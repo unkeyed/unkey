@@ -1,12 +1,12 @@
-import type { SentinelLogsRequestSchema } from "@/lib/schemas/sentinel-logs";
-import type { SentinelRequest } from "@unkey/clickhouse/src/sentinel";
+import type { SentinelLogsRequestSchema } from "@unkey/clickhouse/src/sentinel";
 
 export function transformSentinelLogsFilters(
-  params: SentinelLogsRequestSchema,
-): Omit<SentinelRequest, "workspaceId"> {
+  params: Omit<SentinelLogsRequestSchema, "workspaceId">,
+) {
   return {
     projectId: params.projectId,
     deploymentId: params.deploymentId,
+    environmentId: params.environmentId,
     limit: params.limit,
     startTime: params.startTime,
     endTime: params.endTime,

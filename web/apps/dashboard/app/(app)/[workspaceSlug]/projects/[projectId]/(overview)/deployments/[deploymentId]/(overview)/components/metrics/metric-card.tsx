@@ -1,8 +1,8 @@
+import type { TimeseriesData } from "@/components/logs/overview-charts/types";
 import type { IconProps } from "@unkey/icons";
 import type { ComponentType } from "react";
 import { LogsTimeseriesBarChart } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
 import { MetricSelect } from "./metric-select";
-import type { TimeseriesData } from "@/components/logs/overview-charts/types";
 type MetricType = "latency" | "cpu" | "memory" | "storage";
 
 type MetricConfig = {
@@ -44,7 +44,7 @@ type MetricCardProps = {
     numeric: number;
     unit: string;
   };
-  chartData: { data?: TimeseriesData[], dataKey: string };
+  chartData: { data?: TimeseriesData[]; dataKey: string };
   percentile?: string;
   onPercentileChange?: (value: string) => void;
 };

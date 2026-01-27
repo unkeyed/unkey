@@ -5,5 +5,5 @@ import { DeploymentNetworkView } from "./deployment-network-view";
 export default function DeploymentDetailsPage() {
   const { projectId, liveDeploymentId } = useProject();
 
-  return <DeploymentNetworkView projectId={projectId} liveDeploymentId={liveDeploymentId} />;
+  return <DeploymentNetworkView projectId={projectId} deploymentId={liveDeploymentId} />;
 }

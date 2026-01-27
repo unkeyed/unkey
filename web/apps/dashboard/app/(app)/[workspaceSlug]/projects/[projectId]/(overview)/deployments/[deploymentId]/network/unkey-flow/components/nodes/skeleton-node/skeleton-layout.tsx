@@ -3,12 +3,13 @@ import type { DeploymentNode } from "../types";
 export const SKELETON_TREE: DeploymentNode = {
   id: "internet",
   label: "INTERNET",
+  direction: "horizontal",
   metadata: { type: "origin" },
   children: [
     {
       id: "us-east-1-skeleton",
       label: "us-east-1",
-      direction: "horizontal",
+      direction: "vertical",
       metadata: { type: "skeleton" },
       children: [
         {
@@ -26,7 +27,7 @@ export const SKELETON_TREE: DeploymentNode = {
     {
       id: "eu-central-1-skeleton",
       label: "eu-central-1",
-      direction: "horizontal",
+      direction: "vertical",
       metadata: { type: "skeleton" },
       children: [
         {
@@ -49,7 +50,7 @@ export const SKELETON_TREE: DeploymentNode = {
     {
       id: "ap-southeast-2-skeleton",
       label: "ap-southeast-2",
-      direction: "horizontal",
+      direction: "vertical",
       metadata: { type: "skeleton" },
       children: [
         {

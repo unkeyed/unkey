@@ -1,14 +1,18 @@
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { sentinelLogsRequestSchema, sentinelLogsResponseSchema } from "@/lib/schemas/sentinel-logs";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import {
+  sentinelLogsRequestSchema,
+  sentinelLogsResponseSchema,
+} from "@unkey/clickhouse/src/sentinel";
+import { z } from "zod";
 import { transformSentinelLogsFilters } from "./utils";
 
 export const querySentinelLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
-  .input(sentinelLogsRequestSchema)
-  .output(sentinelLogsResponseSchema)
+  .input(sentinelLogsRequestSchema.omit({ workspaceId: true }))
+  .output(z.array(sentinelLogsResponseSchema))
   .query(async ({ ctx, input }) => {
     try {
       const project = await db.query.projects.findFirst({

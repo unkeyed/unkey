@@ -23,10 +23,17 @@ import {
 
 interface DeploymentNetworkViewProps {
   projectId: string;
-  liveDeploymentId?: string | null;
+  deploymentId?: string | null;
+  showProjectDetails?: boolean;
+  showNodeDetails?: boolean;
 }
 
-export function DeploymentNetworkView({ projectId, liveDeploymentId }: DeploymentNetworkViewProps) {
+export function DeploymentNetworkView({
+  projectId,
+  deploymentId,
+  showProjectDetails = false,
+  showNodeDetails = false,
+}: DeploymentNetworkViewProps) {
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
 
@@ -40,13 +47,16 @@ export function DeploymentNetworkView({ projectId, liveDeploymentId }: Deploymen
       defaultZoom={0.85}
       overlay={
         <>
-          <NodeDetailsPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
-          <ProjectDetails projectId={projectId} />
+          {showNodeDetails && (
+            <NodeDetailsPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
+          )}
+
+          {showProjectDetails && <ProjectDetails projectId={projectId} />}
           <LiveIndicator />
           {process.env.NODE_ENV === "development" && (
             <InternalDevTreeGenerator
               // biome-ignore lint/style/noNonNullAssertion: will be fixed later, when we actually implement tRPC logic
-              deploymentId={liveDeploymentId!}
+              deploymentId={deploymentId!}
               onGenerate={setGeneratedTree}
               onReset={() => setGeneratedTree(null)}
             />

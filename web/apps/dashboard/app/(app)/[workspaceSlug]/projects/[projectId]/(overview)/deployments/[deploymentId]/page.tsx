@@ -109,7 +109,7 @@ export default function DeploymentOverview() {
         />
         <div className="flex gap-2 flex-col">
           <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 h-[600px] gap-2">
-            <DeploymentNetworkView projectId={projectId} liveDeploymentId={liveDeploymentId} />
+            <DeploymentNetworkView projectId={projectId} deploymentId={liveDeploymentId} />
           </Card>
           <div className="flex gap-2">
             <MetricCard
