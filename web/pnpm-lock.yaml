@@ -154,9 +154,6 @@ importers:
       '@trpc/server':
         specifier: 10.45.2
         version: 10.45.2
-      '@unkey/billing':
-        specifier: workspace:^
-        version: link:../../internal/billing
       '@unkey/clickhouse':
         specifier: workspace:^
         version: link:../../internal/clickhouse
@@ -513,9 +510,6 @@ importers:
       '@planetscale/database':
         specifier: 1.19.0
         version: 1.19.0
-      '@unkey/billing':
-        specifier: workspace:^
-        version: link:../billing
       '@unkey/id':
         specifier: workspace:^
         version: link:../id
@@ -649,41 +643,6 @@ importers:
         specifier: 4.0.1
         version: 4.0.1
     devDependencies:
-      typescript:
-        specifier: 5.5.3
-        version: 5.5.3
-
-  internal/logs:
-    dependencies:
-      '@unkey/metrics':
-        specifier: workspace:^
-        version: link:../metrics
-      zod:
-        specifier: 4.3.5
-        version: 4.3.5
-    devDependencies:
-      '@types/node':
-        specifier: 20.14.9
-        version: 20.14.9
-      '@unkey/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      typescript:
-        specifier: 5.5.3
-        version: 5.5.3
-
-  internal/metrics:
-    dependencies:
-      zod:
-        specifier: 4.3.5
-        version: 4.3.5
-    devDependencies:
-      '@types/node':
-        specifier: 20.14.9
-        version: 20.14.9
-      '@unkey/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       typescript:
         specifier: 5.5.3
         version: 5.5.3
@@ -920,16 +879,6 @@ importers:
       '@types/node':
         specifier: 20.14.9
         version: 20.14.9
-      typescript:
-        specifier: 5.5.3
-        version: 5.5.3
-
-  internal/worker-logging:
-    dependencies:
-      '@unkey/logs':
-        specifier: workspace:^
-        version: link:../logs
-    devDependencies:
       typescript:
         specifier: 5.5.3
         version: 5.5.3
