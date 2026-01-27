@@ -85,7 +85,7 @@ export const createSubscription = workspaceProcedure
       });
     }
 
-    const result = await fault(async () => {
+    try {
       await db
         .update(schema.workspaces)
         .set({
@@ -94,15 +94,13 @@ export const createSubscription = workspaceProcedure
         .where(eq(schema.workspaces.id, ctx.workspace.id));
 
       await syncSubscriptionFromStripe(stripe, ctx.workspace.id);
-    });
-
-    if (result instanceof Error) {
+    } catch (error) {
       // Attempt to rollback subscription ID on failure
       await db
         .update(schema.workspaces)
         .set({ stripeSubscriptionId: null })
         .where(eq(schema.workspaces.id, ctx.workspace.id));
-      throw result;
+      throw error;
     }
 
     await insertAuditLogs(db, {

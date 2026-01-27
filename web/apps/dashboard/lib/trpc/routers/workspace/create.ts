@@ -81,6 +81,9 @@ export const createWorkspace = protectedProcedure
           deletedAtM: null,
           partitionId: null,
           k8sNamespace: null,
+          paymentFailedAt : null,
+          paymentFailureNotifiedAt: null,
+          subscriptionStatus: null
         };
 
         await tx.insert(schema.workspaces).values(workspace);
