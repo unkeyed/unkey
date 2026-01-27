@@ -14,12 +14,17 @@ import (
 // runResyncLoop periodically reconciles all deployment ReplicaSets with their
 // desired state from the control plane.
 //
-// This loop runs every minute as a consistency safety net. While
-// [Controller.runActualStateReportLoop] handles real-time K8s events and
+// The loop runs every minute as a consistency safety net. While
+// [Controller.runActualStateReportLoop] handles real-time Kubernetes events and
 // [Controller.runDesiredStateApplyLoop] handles streaming updates, both can miss
-// events during network partitions, controller restarts, or buffer overflows.
+// events during network partitions, controller restarts, or watch buffer overflows.
 // This resync loop guarantees eventual consistency by querying the control plane
-// for each existing ReplicaSet and applying any needed changes.
+// for each existing ReplicaSet and applying any drift.
+//
+// The loop paginates through all krane-managed deployment ReplicaSets across all
+// namespaces, calling GetDesiredDeploymentState for each and applying or deleting
+// as directed. Errors are logged but don't stop the loop from processing remaining
+// ReplicaSets.
 func (c *Controller) runResyncLoop(ctx context.Context) {
 	repeat.Every(1*time.Minute, func() {
 		c.logger.Info("running periodic resync")

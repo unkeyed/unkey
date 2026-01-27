@@ -1600,7 +1600,7 @@ components:
                     example: "users-read"
                 description:
                     type: string
-                    maxLength: 128
+                    maxLength: 512
                     description: |
                         Provides detailed documentation of what this permission grants access to.
                         Include information about affected resources, allowed actions, and any important limitations.
@@ -1642,7 +1642,7 @@ components:
                     example: "support.readonly"
                 description:
                     type: string
-                    maxLength: 2048
+                    maxLength: 512
                     description: |
                         Provides comprehensive documentation of what this role encompasses and what access it grants.
                         Include information about the intended use case, what permissions should be assigned, and any important considerations.
@@ -2841,7 +2841,7 @@ components:
                     example: users-read
                 description:
                     type: string
-                    maxLength: 2048
+                    maxLength: 512
                     description: |
                         Optional detailed explanation of what this permission grants access to.
                         Helps team members understand the scope and implications of granting this permission.

@@ -38,7 +38,6 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for missing required name
 	t.Run("missing name", func(t *testing.T) {
-
 		req := handler.Request{
 			// Name is missing but slug is provided
 			Slug: "test-slug",
@@ -59,7 +58,6 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for missing required slug
 	t.Run("missing slug", func(t *testing.T) {
-
 		req := handler.Request{
 			Name: "test.permission",
 			// Slug is missing
@@ -80,7 +78,6 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for empty name
 	t.Run("empty name", func(t *testing.T) {
-
 		req := handler.Request{
 			Name: "", // Empty string is invalid
 			Slug: "test-slug",
@@ -101,7 +98,6 @@ func TestValidationErrors(t *testing.T) {
 
 	// Test case for empty slug
 	t.Run("empty slug", func(t *testing.T) {
-
 		req := handler.Request{
 			Name: "test.permission",
 			Slug: "", // Empty string is invalid
@@ -234,18 +230,14 @@ func TestValidationErrors(t *testing.T) {
 		}
 	})
 
-	// Test for very long description
-	t.Run("very long description", func(t *testing.T) {
-		// Create a very long description (more than would be reasonable)
-		veryLongDesc := ""
-		for i := 0; i < 2000; i++ { // Just over 1000 character limit
-			veryLongDesc += "a"
-		}
+	// Test for description exceeding 512 character limit
+	t.Run("description too long", func(t *testing.T) {
+		tooLongDesc := strings.Repeat("a", 513)
 
 		req := handler.Request{
 			Name:        "test.permission",
 			Slug:        "test-permission",
-			Description: &veryLongDesc,
+			Description: &tooLongDesc,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](

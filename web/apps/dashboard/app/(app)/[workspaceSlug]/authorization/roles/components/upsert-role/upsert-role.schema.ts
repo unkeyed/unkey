@@ -3,8 +3,8 @@ import { z } from "zod";
 export const roleNameSchema = z
   .string()
   .trim()
-  .min(2, { message: "Role name must be at least 2 characters long" })
-  .max(60, { message: "Role name cannot exceed 60 characters" })
+  .min(1, { message: "Role name must be at least 1 characters long" })
+  .max(512, { message: "Role name cannot exceed 512 characters" })
   .refine((name) => !name.match(/^\s|\s$/), {
     message: "Role name cannot start or end with whitespace",
   })
@@ -15,7 +15,7 @@ export const roleNameSchema = z
 export const roleDescriptionSchema = z
   .string()
   .trim()
-  .max(30, { message: "Role description cannot exceed 30 characters" })
+  .max(512, { message: "Role description cannot exceed 512 characters" })
   .optional();
 
 export const keyIdsSchema = z.array(z.string()).transform((ids) => [...new Set(ids)]);

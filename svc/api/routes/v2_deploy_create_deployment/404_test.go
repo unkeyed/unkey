@@ -1,75 +1,100 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 )
 
-func TestNotFound(t *testing.T) {
+func TestProjectNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
-
-	route := &handler.Handler{
-		Logger:     h.Logger,
-		DB:         h.DB,
-		Keys:       h.Keys,
-		CtrlClient: h.CtrlDeploymentClient,
-	}
-	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"project.*.create_deployment"},
 	})
+
+	route := &handler.Handler{
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
+		CtrlClient: &testutil.MockDeploymentClient{
+			CreateDeploymentFunc: func(ctx context.Context, req *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
+				return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}), nil
+			},
+		},
+	}
+	h.Register(route)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
 	}
 
-	t.Run("project not found", func(t *testing.T) {
-		req := handler.Request{
-			ProjectId:       uid.New(uid.ProjectPrefix), // Non-existent project ID
-			Branch:          "main",
-			EnvironmentSlug: "production",
-		}
+	req := handler.Request{
+		ProjectId:       uid.New(uid.ProjectPrefix), // Non-existent project ID
+		Branch:          "main",
+		EnvironmentSlug: "production",
+	}
 
-		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-			Image: "nginx:latest",
-		})
-
-		require.NoError(t, err, "failed to set image source")
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
-		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-		require.Equal(t, "The requested project does not exist or has been deleted.", res.Body.Error.Detail)
+	err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+		Image: "nginx:latest",
 	})
 
-	t.Run("environment not found", func(t *testing.T) {
-		req := handler.Request{
-			ProjectId:       setup.Project.ID,
-			Branch:          "main",
-			EnvironmentSlug: "nonexistent-env", // Non-existent environment
-		}
+	require.NoError(t, err, "failed to set image source")
 
-		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-			Image: "nginx:latest",
-		})
-		require.NoError(t, err, "failed to set image source")
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+	require.NotNil(t, res.Body)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
+	require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+	require.Equal(t, "The requested project does not exist or has been deleted.", res.Body.Error.Detail)
+}
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
-		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-		require.Equal(t, "Project not found.", res.Body.Error.Detail)
+func TestEnvironmentNotFound(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"project.*.create_deployment"},
 	})
+
+	route := &handler.Handler{
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
+		CtrlClient: &testutil.MockDeploymentClient{
+			CreateDeploymentFunc: func(ctx context.Context, req *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
+				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
+			},
+		},
+	}
+	h.Register(route)
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
+	}
+
+	req := handler.Request{
+		ProjectId:       setup.Project.ID,
+		Branch:          "main",
+		EnvironmentSlug: "nonexistent-env", // Non-existent environment
+	}
+
+	err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
+		Image: "nginx:latest",
+	})
+	require.NoError(t, err, "failed to set image source")
+
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+	require.NotNil(t, res.Body)
 }

@@ -42,6 +42,9 @@ var Cmd = &cli.Command{
 		cli.String("database-replica", "MySQL connection string for read-replica.",
 			cli.EnvVar("UNKEY_DATABASE_REPLICA")),
 
+		cli.String("clickhouse-url", "ClickHouse connection string. Optional.",
+			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
+
 		// Observability
 		cli.Bool("otel", "Enable OpenTelemetry tracing and metrics",
 			cli.EnvVar("UNKEY_OTEL")),
@@ -66,6 +69,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Database configuration
 		DatabasePrimary:         cmd.String("database-primary"),
 		DatabaseReadonlyReplica: cmd.String("database-replica"),
+		ClickhouseURL:           cmd.String("clickhouse-url"),
 
 		// Observability
 		OtelEnabled:           cmd.Bool("otel"),

@@ -10,9 +10,10 @@ import { StatusBadge } from "./status-badge";
 
 type InvitationsProps = {
   organization: Organization;
+  isAdmin: boolean;
 };
 
-export const Invitations = memo<InvitationsProps>(({ organization }) => {
+export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) => {
   const { data: invitationsList, isLoading } = trpc.org.invitations.list.useQuery(organization.id);
   const invitations = invitationsList?.data;
   const utils = trpc.useUtils();
@@ -68,7 +69,7 @@ export const Invitations = memo<InvitationsProps>(({ organization }) => {
               </div>
 
               <div className="ml-4">
-                {invitation.state === "pending" && (
+                {invitation.state === "pending" && isAdmin && (
                   <Button
                     variant="ghost"
                     size="sm"
