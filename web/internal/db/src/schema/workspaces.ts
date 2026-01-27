@@ -104,7 +104,7 @@ export const workspaces = mysqlTable("workspaces", {
   /**
    * deprecated, most customers are on stripe subscriptions instead
    */
-
+  // biome-ignore lint/suspicious/noExplicitAny: legacy field, will be removed
   subscriptions: json("subscriptions").$type<any>(),
   /**
    * if the workspace is disabled, all API requests will be rejected
