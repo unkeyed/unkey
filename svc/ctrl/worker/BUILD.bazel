@@ -29,6 +29,7 @@ go_library(
         "//svc/ctrl/worker/clickhouseuser",
         "//svc/ctrl/worker/customdomain",
         "//svc/ctrl/worker/deploy",
+        "//svc/ctrl/worker/quotacheck",
         "//svc/ctrl/worker/routing",
         "//svc/ctrl/worker/versioning",
         "@com_connectrpc_connect//:connect",

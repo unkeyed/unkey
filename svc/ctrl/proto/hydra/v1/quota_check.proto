@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// QuotaCheckService monitors workspace quota usage and sends notifications.
+//
+// Keyed by billing period (e.g., "2026-01") to track notifications per month.
+// Uses Restate state to deduplicate notifications - each workspace is only
+// notified once per billing period when they first exceed their quota.
+service QuotaCheckService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // RunCheck queries all workspace usage and sends Slack notifications for
+  // newly exceeded quotas. Safe to call multiple times per day - uses state
+  // to avoid duplicate notifications.
+  //
+  // Key: billing period in "YYYY-MM" format (e.g., "2026-01")
+  rpc RunCheck(RunCheckRequest) returns (RunCheckResponse) {}
+
+  // SendMonthlySummary sends a summary of all exceeded workspaces for the month.
+  // Intended to be called on the last day of the billing period.
+  //
+  // Key: billing period in "YYYY-MM" format (e.g., "2026-01")
+  rpc SendMonthlySummary(SendMonthlySummaryRequest) returns (SendMonthlySummaryResponse) {}
+}
+
+message RunCheckRequest {
+  // Slack webhook URL for notifications. If empty, no notifications are sent.
+  string slack_webhook_url = 1;
+}
+
+message RunCheckResponse {
+  // Number of workspaces checked
+  int32 workspaces_checked = 1;
+
+  // Number of workspaces exceeding quota
+  int32 workspaces_exceeded = 2;
+
+  // Number of new notifications sent (excludes already-notified workspaces)
+  int32 notifications_sent = 3;
+}
+
+message SendMonthlySummaryRequest {
+  // Slack webhook URL for the summary notification
+  string slack_webhook_url = 1;
+}
+
+message SendMonthlySummaryResponse {
+  // Number of workspaces included in the summary
+  int32 workspaces_in_summary = 1;
+}

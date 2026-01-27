@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "clickhouse",
     srcs = [
+        "billable_all.go",
         "billable_ratelimits.go",
         "billable_verifications.go",
         "client.go",

@@ -31,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
 	"golang.org/x/net/http2"
@@ -256,6 +257,15 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Info("ClickhouseUserService enabled")
 		}
 	}
+
+	// Quota check service for monitoring workspace usage
+	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotacheck.New(quotacheck.Config{
+		DB:         database,
+		Clickhouse: ch,
+		Logger:     logger,
+	})))
+
+	logger.Info("QuotaCheckService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
