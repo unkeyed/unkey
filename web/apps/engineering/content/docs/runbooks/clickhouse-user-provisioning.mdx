@@ -3,7 +3,7 @@ title: Provisioning ClickHouse Users
 description: How to set up analytics API access for workspaces
 ---
 
-This runbook explains how to provision a ClickHouse user for a workspace. This is required before a workspace can use the analytics API - the API uses these credentials to query ClickHouse on the workspace's behalf with proper row-level security.
+This runbook explains how to provision a ClickHouse user for a workspace which wants to use the v2 analytics API.
 
 ## Prerequisites
 
@@ -40,14 +40,14 @@ curl -X POST "http://restate:8080/hydra.v1.ClickhouseUserService/ws_abc123/Confi
   }'
 ```
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `quota_duration_seconds` | 3600 | Window for rate limits (1 hour) |
-| `max_queries_per_window` | 1000 | Queries allowed per window |
-| `max_execution_time_per_window` | 1800 | Total query time per window (30 min) |
-| `max_query_execution_time` | 30 | Single query timeout (seconds) |
-| `max_query_memory_bytes` | 1GB | Memory limit per query |
-| `max_query_result_rows` | 10M | Max rows returned |
+| Parameter                       | Default | Description                          |
+| ------------------------------- | ------- | ------------------------------------ |
+| `quota_duration_seconds`        | 3600    | Window for rate limits (1 hour)      |
+| `max_queries_per_window`        | 1000    | Queries allowed per window           |
+| `max_execution_time_per_window` | 1800    | Total query time per window (30 min) |
+| `max_query_execution_time`      | 30      | Single query timeout (seconds)       |
+| `max_query_memory_bytes`        | 1GB     | Memory limit per query               |
+| `max_query_result_rows`         | 10M     | Max rows returned                    |
 
 ## Updating an Existing User
 
@@ -108,6 +108,7 @@ For workspace `ws_abc123`, the workflow creates:
 ### "Service not found"
 
 The `ClickhouseUserService` is optional. Check:
+
 - `UNKEY_CLICKHOUSE_ADMIN_URL` is set in ctrl-worker
 - ctrl-worker logs for connection errors
 
