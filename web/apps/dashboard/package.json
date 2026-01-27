@@ -85,9 +85,9 @@
     "openai": "4.78.1",
     "postcss": "8.4.38",
     "postcss-focus-visible": "9.0.1",
-    "react": "19.2.3",
+    "react": "19.2.4",
     "react-day-picker": "8.10.1",
-    "react-dom": "19.2.3",
+    "react-dom": "19.2.4",
     "react-hook-form": "7.55.0",
     "recharts": "2.12.7",
     "slugify": "1.6.6",
@@ -108,8 +108,8 @@
     "@testing-library/react-hooks": "8.0.1",
     "@types/ms": "0.7.34",
     "@types/node": "22.14.0",
-    "@types/react": "19.2.3",
-    "@types/react-dom": "19.2.3",
+    "@types/react": "19.2.4",
+    "@types/react-dom": "19.2.4",
     "autoprefixer": "10.4.19",
     "eslint": "^9.39.2",
     "eslint-config-next": "16.1.5",
@@ -121,8 +121,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@types/react": "19.2.3",
-      "@types/react-dom": "19.2.3"
+      "@types/react": "19.2.4",
+      "@types/react-dom": "19.2.4"
     }
   }
 }
