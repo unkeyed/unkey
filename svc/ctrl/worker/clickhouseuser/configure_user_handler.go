@@ -118,10 +118,26 @@ func (s *Service) ConfigureUser(
 			})
 			if err != nil {
 				// Handle crash-recovery: if we inserted but didn't journal, fetch existing
+				// Use RW to avoid replica lag, then update quotas to ensure they're current
 				if db.IsDuplicateKeyError(err) {
-					existing, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, s.db.RO(), workspaceID)
-					if err != nil {
-						return "", fmt.Errorf("fetch after duplicate: %w", err)
+					existing, fetchErr := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, s.db.RW(), workspaceID)
+					if fetchErr != nil {
+						return "", fmt.Errorf("fetch after duplicate: %w", fetchErr)
+					}
+
+					// Update quota fields in case they changed since the original insert
+					updateErr := db.Query.UpdateClickhouseWorkspaceSettingsLimits(rc, s.db.RW(), db.UpdateClickhouseWorkspaceSettingsLimitsParams{
+						WorkspaceID:               workspaceID,
+						QuotaDurationSeconds:      quotas.quotaDurationSeconds,
+						MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
+						MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
+						MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
+						MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
+						MaxQueryResultRows:        quotas.maxQueryResultRows,
+						UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+					})
+					if updateErr != nil {
+						return "", fmt.Errorf("update limits after duplicate: %w", updateErr)
 					}
 
 					return existing.ClickhouseWorkspaceSetting.PasswordEncrypted, nil
