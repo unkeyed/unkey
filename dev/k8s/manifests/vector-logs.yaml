@@ -50,10 +50,69 @@ data:
     inputs = ["kubernetes_logs"]
     condition = '.kubernetes.container_name == "deployment"'
 
+    # Merge multiline logs (stack traces, etc.)
+    # Lines starting with whitespace are continuation lines
+    [transforms.merge_multiline]
+    type = "reduce"
+    inputs = ["filter_init_containers"]
+    group_by = ["file"]
+    expire_after_ms = 2000
+    flush_period_ms = 500
+
+      # Start new log entry when line matches common log patterns.
+      # Based on Fluent Bit's built-in parsers for Go, Java, Python.
+      # See: https://github.com/fluent/fluent-bit/tree/master/src/multiline
+      #
+      # Matches (NEW LOG ENTRY):
+      # - ISO8601 timestamps: 2026-01-27, 2026/01/27
+      # - Syslog timestamps: Jan 27 12:34:56, Jan  7 12:34:56
+      # - Bracketed time: [12:34:56], [2026-01-27]
+      # - Log levels: INFO, ERROR, WARN, DEBUG, FATAL, TRACE, PANIC (with optional []/: prefix/suffix)
+      # - JSON objects: {"
+      # - Go panics: panic:, http: panic serving
+      # - Python tracebacks: Traceback (most recent call last):
+      # - Java/C# exceptions: *Exception:, *Error:, Caused by:
+      #
+      # Does NOT match (CONTINUATION - gets merged):
+      # - Indented lines (tabs/spaces)
+      # - Stack frames: at com.example..., File "...", goroutine N [...]
+      # - Java: ... N more, Suppressed:
+      [transforms.merge_multiline.starts_when]
+      type = "vrl"
+      source = '''
+      msg = string!(.message)
+
+      # Timestamp patterns (most common log starters)
+      ts_iso = match(msg, r'^\d{4}[-/]\d{2}[-/]\d{2}')
+      ts_syslog = match(msg, r'^[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}')
+      ts_bracket = match(msg, r'^\[\d{2}[:\-]\d{2}[:\-]\d{2}')
+      ts_time = match(msg, r'^\d{2}:\d{2}:\d{2}[,.\s]')
+
+      # Log level patterns (case insensitive check via lowercase)
+      msg_lower = downcase(msg)
+      lvl_standard = match(msg_lower, r'^(info|error|warn|warning|debug|fatal|trace|panic|notice|critical|alert|emergency)[\s:\]\[]')
+      lvl_bracket = match(msg_lower, r'^\[(info|error|warn|warning|debug|fatal|trace|panic)\]')
+
+      # JSON object start
+      json_start = match(msg, r'^\s*\{\"')
+
+      # Language-specific exception starters
+      go_panic = match(msg, r'^(panic:|http: panic serving)')
+      py_traceback = match(msg, r'^Traceback \(most recent call last\):')
+      java_exception = match(msg, r'^[\w.$]+?(Exception|Error|Throwable)[:\s]')
+      java_caused = match(msg, r'^Caused by:')
+
+      # Return true if ANY pattern matches (starts new log entry)
+      ts_iso || ts_syslog || ts_bracket || ts_time || lvl_standard || lvl_bracket || json_start || go_panic || py_traceback || java_exception || java_caused
+      '''
+
+      [transforms.merge_multiline.merge_strategies]
+      message = "concat_newline"
+
     # Extract labels and parse structured logs
     [transforms.extract_labels]
     type = "remap"
-    inputs = ["filter_init_containers"]
+    inputs = ["merge_multiline"]
     source = '''
     # Extract Unkey-specific labels from pod (|| for null coalescing)
     .workspace_id = .kubernetes.pod_labels."unkey.com/workspace.id" || ""
@@ -95,8 +154,44 @@ data:
             del(.attributes.level)
             del(.attributes.severity)
         } else {
-            # Plain text log - default to info (can't reliably determine severity)
-            .severity = "info"
+            # Plain text log - comprehensive severity detection
+            # After multiline merge, we scan the ENTIRE content for error indicators
+            # Based on: https://betterstack.com/community/guides/logging/log-levels-explained/
+            msg_lower = downcase(raw_message)
+
+            # === ERROR DETECTION ===
+            # 1. Go panics (anywhere in content)
+            go_panic = contains(msg_lower, "panic:") || contains(msg_lower, "panic serving")
+
+            # 2. Python tracebacks
+            py_traceback = contains(raw_message, "Traceback (most recent call last):")
+
+            # 3. Java/C# exceptions (Exception/Error/Throwable followed by : or newline)
+            java_exception = match(raw_message, r'(Exception|Error|Throwable)[:\r\n]')
+
+            # 4. Explicit ERROR level in log (handles "2026/01/27 12:00:00 ERROR ..." patterns)
+            # Match: [ERROR], |ERROR|, " ERROR:", " ERROR ", "ERROR:", at line start
+            explicit_error = match(msg_lower, r'(^|[\s\[\|])error([\s:\]\|]|$)') || match(msg_lower, r'(^|[\s\[\|])fatal([\s:\]\|]|$)') || match(msg_lower, r'(^|[\s\[\|])critical([\s:\]\|]|$)')
+
+            # 5. Common error indicators
+            error_keywords = contains(msg_lower, "failed to") || contains(msg_lower, "failure:") || contains(msg_lower, "crashed") || contains(msg_lower, "segfault") || contains(msg_lower, "killed") || contains(msg_lower, "oom")
+
+            # === WARN DETECTION ===
+            explicit_warn = match(msg_lower, r'(^|[\s\[\|])warn(ing)?([\s:\]\|]|$)')
+
+            # === DEBUG DETECTION ===
+            explicit_debug = match(msg_lower, r'(^|[\s\[\|])(debug|trace)([\s:\]\|]|$)')
+
+            # === DETERMINE SEVERITY ===
+            if go_panic || py_traceback || java_exception || explicit_error || error_keywords {
+                .severity = "error"
+            } else if explicit_warn {
+                .severity = "warn"
+            } else if explicit_debug {
+                .severity = "debug"
+            } else {
+                .severity = "info"
+            }
         }
     }
 
@@ -141,8 +236,8 @@ data:
     auth.password = "password"
 
       [sinks.clickhouse.batch]
-      max_bytes = 10485760
-      timeout_secs = 10
+      max_bytes = 5242880
+      timeout_secs = 3
 
       [sinks.clickhouse.encoding]
       timestamp_format = "unix_ms"

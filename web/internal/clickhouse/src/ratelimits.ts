@@ -7,7 +7,7 @@ export function insertRatelimit(ch: Inserter) {
     table: "ratelimits.raw_ratelimits_v1",
     schema: z.object({
       request_id: z.string(),
-      time: z.number().int(),
+      time: z.int(),
       workspace_id: z.string(),
       namespace_id: z.string(),
       identifier: z.string(),
@@ -19,8 +19,8 @@ export function insertRatelimit(ch: Inserter) {
 export const ratelimitLogsTimeseriesParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   identifiers: z
     .array(
       z.object({
@@ -32,10 +32,10 @@ export const ratelimitLogsTimeseriesParams = z.object({
 });
 
 export const ratelimitLogsTimeseriesDataPoint = z.object({
-  x: z.number().int(),
+  x: z.int(),
   y: z.object({
-    passed: z.number().int().default(0),
-    total: z.number().int().default(0),
+    passed: z.int().prefault(0),
+    total: z.int().prefault(0),
   }),
 });
 
@@ -237,7 +237,7 @@ const getRatelimitLastUsedParameters = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
   identifier: z.array(z.string()).optional(),
-  limit: z.number().int(),
+  limit: z.int(),
 });
 
 export function getRatelimitLastUsed(ch: Querier) {
@@ -270,9 +270,9 @@ export function getRatelimitLastUsed(ch: Querier) {
 export const ratelimitLogsParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   requestIds: z.array(z.string()).nullable(),
   identifiers: z
     .array(
@@ -290,14 +290,14 @@ export const ratelimitLogsParams = z.object({
       }),
     )
     .nullable(),
-  cursorTime: z.number().int().nullable(),
+  cursorTime: z.int().nullable(),
 });
 
 export const ratelimitLogs = z.object({
   request_id: z.string(),
-  time: z.number().int(),
+  time: z.int(),
   identifier: z.string(),
-  status: z.number().int(),
+  status: z.int(),
 
   // Fields from metrics table
   host: z.string(),
@@ -305,10 +305,10 @@ export const ratelimitLogs = z.object({
   path: z.string(),
   request_headers: z.array(z.string()),
   request_body: z.string(),
-  response_status: z.number().int(),
+  response_status: z.int(),
   response_headers: z.array(z.string()),
   response_body: z.string(),
-  service_latency: z.number().int(),
+  service_latency: z.int(),
   user_agent: z.string(),
   region: z.string(),
 });
@@ -442,7 +442,7 @@ WHERE workspace_id = {workspaceId: String}
     AND (${statusCondition})`,
       params: extendedParamsSchema,
       schema: z.object({
-        total_count: z.number().int(),
+        total_count: z.int(),
       }),
     });
 
@@ -456,9 +456,9 @@ WHERE workspace_id = {workspaceId: String}
 export const ratelimitOverviewLogsParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   status: z
     .array(
       z.object({
@@ -475,7 +475,7 @@ export const ratelimitOverviewLogsParams = z.object({
       }),
     )
     .nullable(),
-  cursorTime: z.number().int().nullable(),
+  cursorTime: z.int().nullable(),
 
   sorts: z
     .array(
@@ -488,17 +488,17 @@ export const ratelimitOverviewLogsParams = z.object({
 });
 
 export const ratelimitOverviewLogs = z.object({
-  time: z.number().int(),
+  time: z.int(),
   identifier: z.string(),
   request_id: z.string(),
-  passed_count: z.number().int(),
-  blocked_count: z.number().int(),
+  passed_count: z.int(),
+  blocked_count: z.int(),
   // avg_latency: z.number().int(),
   // p99_latency: z.number().int(),
   override: z
     .object({
-      limit: z.number().int(),
-      duration: z.number().int(),
+      limit: z.int(),
+      duration: z.int(),
       overrideId: z.string(),
       async: z.boolean().nullable(),
     })
@@ -681,7 +681,7 @@ WHERE workspace_id = {workspaceId: String}
     AND (${statusCondition})`,
       params: extendedParamsSchema,
       schema: z.object({
-        total_count: z.number().int(),
+        total_count: z.int(),
       }),
     });
 
@@ -696,8 +696,8 @@ WHERE workspace_id = {workspaceId: String}
 export const ratelimitLatencyTimeseriesParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   identifiers: z
     .array(
       z.object({
@@ -711,8 +711,8 @@ export const ratelimitLatencyTimeseriesParams = z.object({
 export const ratelimitLatencyTimeseriesDataPoint = z.object({
   x: dateTimeToUnix,
   y: z.object({
-    avg_latency: z.number().default(0),
-    p99_latency: z.number().default(0),
+    avg_latency: z.number().prefault(0),
+    p99_latency: z.number().prefault(0),
   }),
 });
 

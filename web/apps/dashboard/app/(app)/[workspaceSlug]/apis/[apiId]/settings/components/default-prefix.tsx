@@ -2,7 +2,9 @@
 import { revalidate } from "@/app/actions";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, SettingCard } from "@unkey/ui";
+import type { Resolver } from "react-hook-form";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { keyPrefixSchema } from "../../_components/create-key/create-key.schema";
@@ -17,6 +19,8 @@ const formSchema = z.object({
   keyAuthId: z.string(),
   defaultPrefix: keyPrefixSchema.pipe(z.string()),
 });
+
+type FormValues = z.infer<typeof formSchema>;
 
 type Props = {
   keyAuth: {
@@ -34,8 +38,9 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
     control,
     handleSubmit,
     formState: { isValid, isSubmitting, isDirty },
-  } = useForm<z.infer<typeof formSchema>>({
+  } = useForm<FormValues>({
     ...createApiFormConfig(formSchema),
+    resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: {
       defaultPrefix: keyAuth.defaultPrefix ?? undefined,
       keyAuthId: keyAuth.id,

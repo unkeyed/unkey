@@ -5,10 +5,10 @@ export const permissionNameSchema = z
   .min(1, { message: "Permission name must be at least 1 character long" })
   .max(512, { message: "Permission name cannot exceed 512 characters" })
   .refine((name) => !name.match(/^\s|\s$/), {
-    message: "Permission name cannot start or end with whitespace",
+    error: "Permission name cannot start or end with whitespace",
   })
   .refine((name) => !name.match(/\s{2,}/), {
-    message: "Permission name cannot contain consecutive spaces",
+    error: "Permission name cannot contain consecutive spaces",
   });
 
 export const permissionSlugSchema = z
@@ -23,15 +23,11 @@ export const permissionDescriptionSchema = z
   .max(512, { message: "Permission description cannot exceed 512 characters" })
   .optional();
 
-export const permissionSchema = z
-  .object({
-    permissionId: z.string().startsWith("perm_").optional(),
-    name: permissionNameSchema,
-    slug: permissionSlugSchema,
-    description: permissionDescriptionSchema,
-  })
-  .strict({
-    message: "Unknown fields are not allowed in permission definition",
-  });
+export const permissionSchema = z.strictObject({
+  permissionId: z.string().startsWith("perm_").optional(),
+  name: permissionNameSchema,
+  slug: permissionSlugSchema,
+  description: permissionDescriptionSchema,
+});
 
 export type PermissionFormValues = z.infer<typeof permissionSchema>;

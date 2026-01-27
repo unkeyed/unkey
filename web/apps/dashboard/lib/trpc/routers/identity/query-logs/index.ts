@@ -9,7 +9,7 @@ import { transformIdentityLogsFilters } from "./utils";
 // Extended log type that includes key identification
 export const identityLog = z.object({
   request_id: z.string(),
-  time: z.number().int(),
+  time: z.int(),
   region: z.string(),
   outcome: z.enum([
     "VALID",
@@ -34,7 +34,7 @@ const identityLogsResponse = z.object({
   logs: z.array(identityLog),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.number().int().optional(),
+  nextCursor: z.int().optional(),
 });
 
 type IdentityLogsResponse = z.infer<typeof identityLogsResponse>;

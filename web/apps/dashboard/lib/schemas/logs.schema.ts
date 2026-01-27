@@ -4,9 +4,9 @@ import { logsFilterOperatorEnum } from "./logs.filter.schema";
 
 export type LogsRequestSchema = z.infer<typeof logsRequestSchema>;
 export const logsRequestSchema = z.object({
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   since: z.string(),
   path: z
     .object({
@@ -68,7 +68,7 @@ export const logsResponseSchema = z.object({
   logs: z.array(log),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.number().int().optional(),
+  nextCursor: z.int().optional(),
 });
 
 export type LogsResponseSchema = z.infer<typeof logsResponseSchema>;
@@ -77,8 +77,8 @@ export type LogsResponseSchema = z.infer<typeof logsResponseSchema>;
 
 export type TimeseriesRequestSchema = z.infer<typeof timeseriesRequestSchema>;
 export const timeseriesRequestSchema = z.object({
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   since: z.string(),
   path: z
     .object({

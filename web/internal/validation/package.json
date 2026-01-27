@@ -13,6 +13,6 @@
     "typescript": "5.5.3"
   },
   "dependencies": {
-    "zod": "3.23.5"
+    "zod": "4.3.5"
   }
 }

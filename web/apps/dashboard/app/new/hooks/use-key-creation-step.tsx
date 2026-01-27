@@ -11,6 +11,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.utils";
 import { EXAMPLE_JSON, MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
+import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarClock, ChartPie, Code, Gauge, Key2, StackPerspective2 } from "@unkey/icons";
@@ -67,7 +68,9 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
   });
 
   const methods = useForm<FormValues & { apiName: string }>({
-    resolver: zodResolver(extendedFormSchema),
+    resolver: zodResolver(extendedFormSchema) as DiscriminatedUnionResolver<
+      typeof extendedFormSchema
+    >,
     mode: "onChange",
     shouldFocusError: true,
     shouldUnregister: true,
@@ -155,7 +158,25 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   description="Set request limits per time window to control API usage frequency"
                   defaultChecked={methods.watch("ratelimit.enabled")}
                   onCheckedChange={(checked) => {
-                    methods.setValue("ratelimit.enabled", checked);
+                    const currentData = methods.getValues("ratelimit.data");
+                    if (checked) {
+                      methods.setValue("ratelimit", {
+                        enabled: true,
+                        data:
+                          Array.isArray(currentData) && currentData.length > 0
+                            ? currentData
+                            : [
+                                {
+                                  name: "Default",
+                                  limit: 10,
+                                  refillInterval: 1000,
+                                  autoApply: true,
+                                },
+                              ],
+                      });
+                    } else {
+                      methods.setValue("ratelimit", { enabled: false });
+                    }
                     methods.trigger("ratelimit");
                   }}
                 >
@@ -170,7 +191,23 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   description="Set usage limits based on credits or quota to control consumption"
                   defaultChecked={methods.watch("limit.enabled")}
                   onCheckedChange={(checked) => {
-                    methods.setValue("limit.enabled", checked);
+                    const currentLimit = methods.getValues("limit");
+                    if (checked) {
+                      methods.setValue("limit", {
+                        enabled: true,
+                        data:
+                          currentLimit?.enabled && currentLimit.data?.remaining
+                            ? currentLimit.data
+                            : {
+                                remaining: 100,
+                                refill: {
+                                  interval: "none",
+                                },
+                              },
+                      });
+                    } else {
+                      methods.setValue("limit", { enabled: false });
+                    }
                     methods.trigger("limit");
                   }}
                 >
@@ -187,10 +224,17 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   description="Set when this API key should automatically expire and become invalid"
                   defaultChecked={methods.watch("expiration.enabled")}
                   onCheckedChange={(checked) => {
-                    methods.setValue("expiration.enabled", checked);
-                    const currentExpiryDate = methods.getValues("expiration.data");
-                    if (checked && !currentExpiryDate) {
-                      methods.setValue("expiration.data", addDays(new Date(), 1));
+                    if (checked) {
+                      const currentExpiration = methods.getValues("expiration");
+                      methods.setValue("expiration", {
+                        enabled: true,
+                        data:
+                          currentExpiration?.enabled && currentExpiration.data instanceof Date
+                            ? currentExpiration.data
+                            : addDays(new Date(), 1),
+                      });
+                    } else {
+                      methods.setValue("expiration", { enabled: false });
                     }
                     methods.trigger("expiration");
                   }}
@@ -206,10 +250,17 @@ export const useKeyCreationStep = (props: Props): OnboardingStep => {
                   description="Add custom key-value pairs to store additional information with your API key"
                   defaultChecked={methods.watch("metadata.enabled")}
                   onCheckedChange={(checked) => {
-                    methods.setValue("metadata.enabled", checked);
-                    const currentMetadata = methods.getValues("metadata.data");
-                    if (checked && !currentMetadata) {
-                      methods.setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
+                    if (checked) {
+                      const currentMetadata = methods.getValues("metadata");
+                      methods.setValue("metadata", {
+                        enabled: true,
+                        data:
+                          currentMetadata?.enabled && typeof currentMetadata.data === "string"
+                            ? currentMetadata.data
+                            : JSON.stringify(EXAMPLE_JSON, null, 2),
+                      });
+                    } else {
+                      methods.setValue("metadata", { enabled: false });
                     }
                     methods.trigger("metadata");
                   }}
