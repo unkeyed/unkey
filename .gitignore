@@ -45,6 +45,3 @@ bazel-bin
 bazel-out
 bazel-testlogs
 bazel-unkey
-
-# Python testing cache
-.hypothesis/
