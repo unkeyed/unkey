@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "openapi",
+    srcs = ["runner.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/integration/openapi",
+    visibility = ["//visibility:public"],
+    deps = [
+        # Container and database utilities - NO svc/api import to break dependency chain
+        "//pkg/db",
+        "//pkg/dockertest",
+        "//pkg/otel/logging",
+        "//pkg/testutil/containers",
+        # Seeder for test data - does not depend on svc/api
+        "//svc/api/internal/testutil/seed",
+        # OpenAPI spec (embedded)
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
+    ],
+)
