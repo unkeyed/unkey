@@ -15,7 +15,6 @@ func (v *Validator) validatePathParams(pathParams map[string]string, params []Co
 	for _, param := range params {
 		value, exists := pathParams[param.Name]
 
-		// Path parameters are always required in OpenAPI
 		if !exists || value == "" {
 			errors = append(errors, openapi.ValidationError{
 				Location: "path." + param.Name,
@@ -25,11 +24,9 @@ func (v *Validator) validatePathParams(pathParams map[string]string, params []Co
 			continue
 		}
 
-		// Validate against schema
 		if param.Schema != nil {
-			// Parse value based on style
 			parsedValue := ParseByStyle(param.Style, param.Explode, []string{value}, param.SchemaType, nil, param.Name)
-			if err := param.Schema.Validate(parsedValue); err != nil {
+			if err := param.Schema.Validate(parsedValue.ToAny()); err != nil {
 				errors = append(errors, v.transformParamError(err, "path", param.Name)...)
 			}
 		}
@@ -44,14 +41,11 @@ func (v *Validator) validateQueryParams(r *http.Request, params []CompiledParame
 	query := r.URL.Query()
 
 	for _, param := range params {
-		// Special handling for deepObject style parameters
 		// DeepObject params use format like filter[name]=foo&filter[age]=30
-		// so they won't be found by direct query[param.Name] lookup
 		if param.Style == "deepObject" {
 			parsedValue := ParseByStyle(param.Style, param.Explode, nil, param.SchemaType, query, param.Name)
 
-			// Check required - for deepObject, nil means no matching keys found
-			if param.Required && parsedValue == nil {
+			if param.Required && parsedValue.IsNil() {
 				errors = append(errors, openapi.ValidationError{
 					Location: "query." + param.Name,
 					Message:  "required parameter is missing",
@@ -60,14 +54,12 @@ func (v *Validator) validateQueryParams(r *http.Request, params []CompiledParame
 				continue
 			}
 
-			// Skip validation if not present and not required
-			if parsedValue == nil {
+			if parsedValue.IsNil() {
 				continue
 			}
 
-			// Validate against schema
 			if param.Schema != nil {
-				if err := param.Schema.Validate(parsedValue); err != nil {
+				if err := param.Schema.Validate(parsedValue.ToAny()); err != nil {
 					errors = append(errors, v.transformParamError(err, "query", param.Name)...)
 				}
 			}
@@ -76,7 +68,6 @@ func (v *Validator) validateQueryParams(r *http.Request, params []CompiledParame
 
 		values, exists := query[param.Name]
 
-		// Check required
 		if param.Required && (!exists || len(values) == 0 || (values[0] == "" && !param.AllowEmptyValue)) {
 			errors = append(errors, openapi.ValidationError{
 				Location: "query." + param.Name,
@@ -86,12 +77,10 @@ func (v *Validator) validateQueryParams(r *http.Request, params []CompiledParame
 			continue
 		}
 
-		// Skip validation if not present and not required
 		if !exists || len(values) == 0 {
 			continue
 		}
 
-		// Check allow empty value
 		if !param.AllowEmptyValue && len(values) == 1 && values[0] == "" {
 			errors = append(errors, openapi.ValidationError{
 				Location: "query." + param.Name,
@@ -101,11 +90,9 @@ func (v *Validator) validateQueryParams(r *http.Request, params []CompiledParame
 			continue
 		}
 
-		// Validate against schema
 		if param.Schema != nil {
-			// Parse value based on style
 			parsedValue := ParseByStyle(param.Style, param.Explode, values, param.SchemaType, query, param.Name)
-			if err := param.Schema.Validate(parsedValue); err != nil {
+			if err := param.Schema.Validate(parsedValue.ToAny()); err != nil {
 				errors = append(errors, v.transformParamError(err, "query", param.Name)...)
 			}
 		}
@@ -121,7 +108,6 @@ func (v *Validator) validateHeaderParams(r *http.Request, params []CompiledParam
 	for _, param := range params {
 		value := r.Header.Get(param.Name)
 
-		// Check required
 		if param.Required && value == "" {
 			errors = append(errors, openapi.ValidationError{
 				Location: "header." + param.Name,
@@ -131,16 +117,13 @@ func (v *Validator) validateHeaderParams(r *http.Request, params []CompiledParam
 			continue
 		}
 
-		// Skip validation if not present and not required
 		if value == "" {
 			continue
 		}
 
-		// Validate against schema
 		if param.Schema != nil {
-			// Parse value based on style (headers use simple style by default)
 			parsedValue := ParseByStyle(param.Style, param.Explode, []string{value}, param.SchemaType, nil, param.Name)
-			if err := param.Schema.Validate(parsedValue); err != nil {
+			if err := param.Schema.Validate(parsedValue.ToAny()); err != nil {
 				errors = append(errors, v.transformParamError(err, "header", param.Name)...)
 			}
 		}
@@ -160,7 +143,6 @@ func (v *Validator) validateCookieParams(r *http.Request, params []CompiledParam
 			value = cookie.Value
 		}
 
-		// Check required
 		if param.Required && value == "" {
 			errors = append(errors, openapi.ValidationError{
 				Location: "cookie." + param.Name,
@@ -170,16 +152,13 @@ func (v *Validator) validateCookieParams(r *http.Request, params []CompiledParam
 			continue
 		}
 
-		// Skip validation if not present and not required
 		if value == "" {
 			continue
 		}
 
-		// Validate against schema
 		if param.Schema != nil {
-			// Parse value based on style (cookies use form style with explode=false by default)
 			parsedValue := ParseByStyle(param.Style, param.Explode, []string{value}, param.SchemaType, nil, param.Name)
-			if err := param.Schema.Validate(parsedValue); err != nil {
+			if err := param.Schema.Validate(parsedValue.ToAny()); err != nil {
 				errors = append(errors, v.transformParamError(err, "cookie", param.Name)...)
 			}
 		}
@@ -209,14 +188,10 @@ func (v *Validator) transformParamError(err error, location, paramName string) [
 func collectParamErrors(output *jsonschema.OutputUnit, location, paramName string) []openapi.ValidationError {
 	var errors []openapi.ValidationError
 
-	// Process this unit's error if present
 	if output.Error != nil && !output.Valid {
-		// Use FormatLocation to build the full location path
 		loc := FormatLocation(location+"."+paramName, output.InstanceLocation)
 
 		message := output.Error.String()
-		// For parameter errors, we use the paramName as the field name
-		// or extract from KeywordLocation if nested
 		fieldName := extractFieldFromKeywordLocation(output.KeywordLocation)
 		if fieldName == "" {
 			fieldName = paramName
@@ -230,7 +205,6 @@ func collectParamErrors(output *jsonschema.OutputUnit, location, paramName strin
 		})
 	}
 
-	// Process nested errors
 	for i := range output.Errors {
 		nested := collectParamErrors(&output.Errors[i], location, paramName)
 		errors = append(errors, nested...)
