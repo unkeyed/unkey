@@ -65,7 +65,6 @@ export function ListGroup({
   const handleToast = (message: ToolTipMessageType) => {
     toast.success(
       <QueriesToast message={message} undoBookmarked={() => changeBookmark(filterList.id)}>
-        <CircleCheck iconSize="xl-regular" className="text-success-9" />
       </QueriesToast>,
     );
   };
@@ -141,7 +140,7 @@ export function ListGroup({
           className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
           onMouseEnter={handleMouseEnter}
         >
-          <InfoTooltip variant="inverted" position={{ side: "top" }} content={tooltipMessage}>
+          <InfoTooltip variant="inverted" position={{ side: "top" }} content={tooltipMessage} asChild>
             <button
               type="button"
               className={cn(

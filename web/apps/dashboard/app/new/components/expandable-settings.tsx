@@ -47,20 +47,29 @@ export const ExpandableSettings = ({
     handleCheckedChange(!isEnabled);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCheckedChange(!isEnabled);
+    }
+  };
+
   return (
     <InfoTooltip content={disabledTooltip} disabled={!disabled} asChild>
       <div className={disabled ? "opacity-50 pointer-events-none" : ""}>
         {/* Header */}
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={disabled ? -1 : 0}
           className="flex items-center border rounded-lg border-grayA-3 py-1 pl-[14px] pr-3 cursor-pointer w-full"
           onClick={handleHeaderClick}
+          onKeyDown={handleKeyDown}
         >
           <div className="flex items-center">
             {icon}
             <div className="ml-3 mr-2 text-gray-12 font-medium text-[13px] leading-6">{title}</div>
             {description && (
-              <InfoTooltip content={description}>
+              <InfoTooltip content={description} asChild>
                 <CircleInfo className="text-gray-8 flex-shrink-0" iconSize="sm-regular" />
               </InfoTooltip>
             )}
@@ -85,7 +94,7 @@ export const ExpandableSettings = ({
               thumbClassName="h-[14px] w-[14px] data-[state=unchecked]:bg-grayA-9 data-[state=checked]:bg-white"
             />
           </div>
-        </button>
+        </div>
         {/* Expandable Content */}
         {isEnabled && !disabled && (
           <div className="relative -mb-3">

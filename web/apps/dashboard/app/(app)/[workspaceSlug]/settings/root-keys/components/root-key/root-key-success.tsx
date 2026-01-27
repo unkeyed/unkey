@@ -2,7 +2,13 @@
 
 import { SecretKey } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/secret-key";
 import { Check, CircleInfo, Key2 } from "@unkey/icons";
-import { ConfirmPopover, Dialog, DialogContent, DialogDescription, DialogTitle } from "@unkey/ui";
+import {
+  ConfirmPopover,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  VisuallyHidden,
+} from "@unkey/ui";
 import { ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeySuccess } from "./hooks/use-root-key-success";
 
@@ -21,9 +27,6 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
     return null;
   }
 
-  const dialogTitleId = "root-key-success-title";
-  const dialogDescriptionId = "root-key-success-description";
-
   return (
     <Dialog
       open={!!keyValue}
@@ -37,44 +40,40 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
         className="drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning
         onAttemptClose={handleCloseAttempt}
-        aria-labelledby={dialogTitleId}
-        aria-describedby={dialogDescriptionId}
       >
-        <>
-          <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
-            <div className="py-4 mt-[30px]">
-              <div className="flex gap-4">
-                <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
-                <div className="border border-grayA-4 rounded-[10px] size-14" />
-                <div className="border border-grayA-4 rounded-[10px] size-14 flex items-center justify-center relative">
-                  <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 top-0" />
-                  <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
-                  <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
-                  <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
-                  <Key2 iconSize="2xl-thin" aria-hidden="true" focusable={false} />
-                  <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
-                    <Check iconSize="sm-bold" aria-hidden="true" focusable={false} />
-                  </div>
+        <VisuallyHidden asChild>
+          <DialogTitle>{ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_CREATED}</DialogTitle>
+        </VisuallyHidden>
+        <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
+          <div className="py-4 mt-[30px]">
+            <div className="flex gap-4">
+              <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
+              <div className="border border-grayA-4 rounded-[10px] size-14" />
+              <div className="border border-grayA-4 rounded-[10px] size-14 flex items-center justify-center relative">
+                <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 top-0" />
+                <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
+                <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
+                <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
+                <Key2 iconSize="2xl-thin" aria-hidden="true" focusable={false} />
+                <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
+                  <Check iconSize="sm-bold" aria-hidden="true" focusable={false} />
                 </div>
-                <div className="border border-grayA-4 rounded-[10px] size-14" />
-                <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
               </div>
+              <div className="border border-grayA-4 rounded-[10px] size-14" />
+              <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
             </div>
-            <div className="mt-5 flex flex-col gap-2 items-center">
-              <DialogTitle
-                id={dialogTitleId}
-                className="font-semibold text-gray-12 text-[16px] leading-[24px]"
-              >
-                {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_CREATED}
-              </DialogTitle>
-              <DialogDescription
-                id={dialogDescriptionId}
-                className="text-gray-10 text-[13px] leading-[24px] text-center"
-                ref={dividerRef}
-              >
-                {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED}
-              </DialogDescription>
+          </div>
+          <div className="mt-5 flex flex-col gap-2 items-center">
+            <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
+              {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_CREATED}
             </div>
+            <div
+              className="text-gray-10 text-[13px] leading-[24px] text-center"
+              ref={dividerRef}
+            >
+              {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED}
+            </div>
+          </div>
             <div className="p-1 w-full my-8">
               <div className="h-[1px] bg-grayA-3 w-full" />
             </div>
@@ -133,7 +132,6 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
               // onOpenAutoFocus: (e) => e.preventDefault(),
             }}
           />
-        </>
       </DialogContent>
     </Dialog>
   );

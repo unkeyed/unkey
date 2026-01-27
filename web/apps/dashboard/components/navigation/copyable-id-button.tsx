@@ -97,8 +97,8 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
         <div ref={textRef} className="select-text truncate min-w-0 flex-1">
           {value}
         </div>
-        <span className="pointer-events-none flex-shrink-0 w-full ">
-          {copied ? <TaskChecked className="w-full" /> : <TaskUnchecked className="w-full" />}
+        <span className="pointer-events-none flex-shrink-0">
+          {copied ? <TaskChecked /> : <TaskUnchecked />}
         </span>
       </div>
     </button>
