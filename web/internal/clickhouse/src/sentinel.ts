@@ -4,7 +4,7 @@ import type { Querier } from "./client";
 export const sentinelRequest = z.object({
   workspaceId: z.string(),
   projectId: z.string(),
-  deploymentId: z.string().optional(),
+  deploymentId: z.string(),
   limit: z.number().int().positive().default(50),
   startTime: z.number().int(),
   endTime: z.number().int(),
@@ -70,9 +70,9 @@ export function getSentinelLogs(ch: Querier) {
           sentinel_latency
         FROM default.sentinel_requests_raw_v1
         WHERE workspace_id = {workspaceId: String}
-          AND time BETWEEN {startTime: Int64} AND {endTime: Int64}
           AND project_id = {projectId: String}
-          ${args.deploymentId ? "AND deployment_id = {deploymentId: String}" : ""}
+          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+          AND deployment_id = {deploymentId: String}
         ORDER BY time DESC
         LIMIT {limit: Int}`,
       params: sentinelRequest,

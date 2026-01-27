@@ -30,8 +30,7 @@ import { InfoChip } from "../../../components/info-chip";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
 import { Card } from "../../components/card";
 import { useProject } from "../../layout-provider";
-import { SentinelLogsTable } from "../../sentinel-logs/components/table/sentinel-logs-table";
-import { SentinelLogsProvider } from "../../sentinel-logs/context/sentinel-logs-provider";
+import { DeploymentSentinelLogsTable } from "./components/deployment-sentinel-logs-table";
 import { DeploymentNetworkView } from "./network/deployment-network-view";
 import { LogsTimeseriesBarChart } from "./network/unkey-flow/components/overlay/node-details-panel/components/chart";
 import { generateRealisticChartData } from "./network/unkey-flow/components/overlay/node-details-panel/utils";
@@ -203,10 +202,8 @@ export default function DeploymentOverview() {
           icon={<Layers3 iconSize="md-regular" className="text-gray-9" />}
           title="Logs"
         />
-        <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 h-[600px] gap-2">
-          <SentinelLogsProvider>
-            <SentinelLogsTable />
-          </SentinelLogsProvider>
+        <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 max-h-[600px] h-full gap-2">
+          <DeploymentSentinelLogsTable />
         </Card>
       </Section>
     </ProjectContentWrapper>
