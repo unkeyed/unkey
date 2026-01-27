@@ -45,7 +45,7 @@ type UseDeploymentLogsReturn = {
   handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   handleFilterChange: (filter: LogFilter) => void;
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  scrollRef: React.RefObject<HTMLDivElement>;
+  scrollRef: React.MutableRefObject<HTMLDivElement>;
 };
 
 export function useDeploymentLogs({
@@ -57,7 +57,7 @@ export function useDeploymentLogs({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFade, setShowFade] = useState(true);
   const [storedLogs, setStoredLogs] = useState<Map<string, LogEntry>>(new Map());
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null) as React.MutableRefObject<HTMLDivElement>;
   const { queryTime: timestamp } = useQueryTime();
 
   const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(

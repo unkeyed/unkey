@@ -1,7 +1,7 @@
 "use client";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { type ReactElement, useRef } from "react";
@@ -11,7 +11,7 @@ import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
 
 type PermissionSheetProps = {
-  children: ReactElement;
+  children: ReactElement<{ asChild?: boolean }>;
   apis: { id: string; name: string }[];
   selectedPermissions: UnkeyPermission[];
   onChange: (permissions: UnkeyPermission[]) => void;
@@ -57,6 +57,7 @@ export const PermissionSheet = ({
         overlay="transparent"
       >
         <SheetHeader className="flex flex-row min-w-full border-b border-gray-4 gap-2 ">
+          <SheetTitle className="sr-only">Select Permissions</SheetTitle>
           <SearchPermissions
             isProcessing={isProcessing}
             search={searchValue}

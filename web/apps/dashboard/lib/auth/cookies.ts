@@ -25,7 +25,7 @@ export interface Cookie {
  * Get a cookie value by name
  */
 export async function getCookie(name: string, request?: NextRequest): Promise<string | null> {
-  const cookieStore = request?.cookies || cookies();
+  const cookieStore = request?.cookies || (await cookies());
   return cookieStore.get(name)?.value ?? null;
 }
 
@@ -33,7 +33,7 @@ export async function getCookie(name: string, request?: NextRequest): Promise<st
  * Set a cookie with the given name, value, and options
  */
 export async function setCookie(cookie: Cookie): Promise<void> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.set(cookie.name, cookie.value, cookie.options);
 }
 
@@ -41,7 +41,7 @@ export async function setCookie(cookie: Cookie): Promise<void> {
  * Set multiple cookies at once
  */
 export async function setCookies(cookieList: Cookie[]): Promise<void> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   for (const cookie of cookieList) {
     cookieStore.set(cookie.name, cookie.value, cookie.options);
   }
@@ -51,7 +51,7 @@ export async function setCookies(cookieList: Cookie[]): Promise<void> {
  * Delete a cookie by name
  */
 export async function deleteCookie(name: string): Promise<void> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.delete(name);
 }
 

@@ -5,7 +5,7 @@ import type { NextFetchEvent } from "next/server";
 import { SIGN_IN_URL } from "./lib/auth/types";
 
 // biome-ignore lint/style/noDefaultExport: required by next.js
-export default async function middleware(req: NextRequest, _evt: NextFetchEvent) {
+export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
   const url = new URL(req.url);
 
   // Special redirect for sentinel.new

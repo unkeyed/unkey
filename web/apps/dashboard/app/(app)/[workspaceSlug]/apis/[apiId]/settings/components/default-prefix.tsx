@@ -42,7 +42,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
     ...createApiFormConfig(formSchema),
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: {
-      defaultPrefix: keyAuth.defaultPrefix ?? undefined,
+      defaultPrefix: keyAuth.defaultPrefix ?? "",
       keyAuthId: keyAuth.id,
     },
   });
