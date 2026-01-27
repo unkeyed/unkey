@@ -1,41 +1,6 @@
-import type { SentinelResponse } from "@unkey/clickhouse/src/sentinel";
-
-type ResponseBody = {
-  keyId: string;
-  valid: boolean;
-  meta: Record<string, unknown>;
-  enabled: boolean;
-  permissions: string[];
-  code:
-  | "VALID"
-  | "RATE_LIMITED"
-  | "EXPIRED"
-  | "USAGE_EXCEEDED"
-  | "DISABLED"
-  | "FORBIDDEN"
-  | "INSUFFICIENT_PERMISSIONS";
-};
 
 
-export const extractResponseField = <K extends keyof ResponseBody>(
-  log: SentinelResponse,
-  fieldName: K,
-): ResponseBody[K] | null => {
-  if (!log?.response_body) {
-    return null;
-  }
 
-  try {
-    const parsedBody = JSON.parse(log.response_body) as ResponseBody;
-    return parsedBody[fieldName];
-  } catch {
-    return null;
-  }
-};
-
-/**
- * Format latency in milliseconds
- */
 export const formatLatency = (latency: number): string => {
   return `${latency}ms`;
 };

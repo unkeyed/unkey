@@ -12,7 +12,6 @@ import {
 } from "../../../sentinel-logs/components/table/utils/get-row-class";
 import { useDeploymentSentinelLogsQuery } from "../hooks/use-deployment-sentinel-logs-query";
 import {
-  extractResponseField,
   formatLatency,
   getLatencyStyle,
 } from "./deployment-sentinel-logs-table.utils";
@@ -131,8 +130,7 @@ const columns: Column<SentinelResponse>[] = [
             style.badge.default,
           )}
         >
-          {log.response_status}{" "}
-          {extractResponseField(log, "code") ? `| ${extractResponseField(log, "code")}` : ""}
+          {log.response_status}
         </Badge>
       );
     },
