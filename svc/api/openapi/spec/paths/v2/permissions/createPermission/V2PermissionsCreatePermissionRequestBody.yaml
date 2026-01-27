@@ -31,7 +31,7 @@ properties:
         example: "users-read"
     description:
         type: string
-        maxLength: 128
+        maxLength: 512
         description: |
             Provides detailed documentation of what this permission grants access to.
             Include information about affected resources, allowed actions, and any important limitations.
