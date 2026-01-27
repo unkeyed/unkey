@@ -57,8 +57,11 @@ export const CreateNamespaceButton = ({
           }),
         });
 
-        await mutation;
+        const result = await mutation;
+
+        // Ensure queries are invalidated and refetched before closing
         await queryClient.invalidateQueries({ queryKey: ["ratelimitNamespaces"] });
+        await queryClient.refetchQueries({ queryKey: ["ratelimitNamespaces"] });
 
         reset();
         setIsOpen(false);
