@@ -14,7 +14,6 @@ go_library(
         "//cmd/dev",
         "//cmd/frontline",
         "//cmd/healthcheck",
-        "//cmd/quotacheck",
         "//cmd/run",
         "//cmd/version",
         "//pkg/cli",

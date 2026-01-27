@@ -10,7 +10,6 @@ import (
 	dev "github.com/unkeyed/unkey/cmd/dev"
 	"github.com/unkeyed/unkey/cmd/frontline"
 	"github.com/unkeyed/unkey/cmd/healthcheck"
-	"github.com/unkeyed/unkey/cmd/quotacheck"
 	"github.com/unkeyed/unkey/cmd/run"
 	"github.com/unkeyed/unkey/cmd/version"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -31,7 +30,6 @@ func main() {
 			version.Cmd,
 			deploy.Cmd,
 			healthcheck.Cmd,
-			quotacheck.Cmd,
 			frontline.Cmd,
 			clickhouseUser.Cmd,
 			dev.Cmd,

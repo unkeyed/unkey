@@ -50,9 +50,14 @@ func (n *noop) GetBillableVerifications(ctx context.Context, workspaceID string,
 	return 0, nil
 }
 
-// GetBillableRatelimits implements the Bufferer interface but always returns 0.
+// GetBillableRatelimits implements the Querier interface but always returns 0.
 func (n *noop) GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error) {
 	return 0, nil
+}
+
+// GetAllBillableUsage implements the Querier interface but always returns an empty map.
+func (n *noop) GetAllBillableUsage(ctx context.Context, year, month int) (map[string]WorkspaceUsage, error) {
+	return map[string]WorkspaceUsage{}, nil
 }
 
 func (n *noop) Conn() ch.Conn {
