@@ -1,7 +1,7 @@
 "use client";
 import { collection, collectionManager } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { ProjectDetailsExpandable } from "./(overview)/details/project-details-expandables";
 import { ProjectLayoutContext } from "./(overview)/layout-provider";
 import { ProjectNavigation } from "./(overview)/navigations/project-navigation";

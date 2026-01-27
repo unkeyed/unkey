@@ -26,7 +26,7 @@ export const sentinelLogsResponseSchema = z.object({
   host: z.string(),
   path: z.string(),
   query_string: z.string(),
-  query_params: z.record(z.array(z.string())),
+  query_params: z.record(z.string(), z.array(z.string())),
   request_headers: z.array(z.string()),
   request_body: z.string(),
   response_status: z.number().int(),
@@ -39,7 +39,7 @@ export const sentinelLogsResponseSchema = z.object({
   sentinel_latency: z.number().int(),
 });
 
-export type SentinelLogsResponse = z.infer<typeof sentinelLogsResponseSchema>;
+export type SentinelLogsResponseSchema = z.infer<typeof sentinelLogsResponseSchema>;
 
 export function getSentinelLogs(ch: Querier) {
   return async (args: SentinelLogsRequestSchema) => {

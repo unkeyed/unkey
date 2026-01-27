@@ -1,4 +1,4 @@
-import type { SentinelResponse } from "@unkey/clickhouse/src/sentinel";
+import type { SentinelLogsResponseSchema } from "@unkey/clickhouse/src/sentinel";
 import { cn } from "@unkey/ui/src/lib/utils";
 
 type StatusStyle = {
@@ -57,7 +57,7 @@ export const WARNING_ICON_STYLES = {
   error: "text-error-11",
 };
 
-export const getRowClassName = (log: SentinelResponse): string => {
+export const getRowClassName = (log: SentinelLogsResponseSchema): string => {
   // Early validation
   if (!log?.request_id) {
     throw new Error("Log must have a valid request_id");

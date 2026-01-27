@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
-import type { SentinelResponse } from "@unkey/clickhouse/src/sentinel";
+import type { SentinelLogsResponseSchema } from "@unkey/clickhouse/src/sentinel";
 import { Badge } from "@unkey/ui";
 
-export const LatencyBadge = ({ log }: { log: SentinelResponse }) => {
+export const LatencyBadge = ({ log }: { log: SentinelLogsResponseSchema }) => {
   const style = getLatencyStyle(log.total_latency);
   const tooltipText = `Total: ${log.total_latency}ms | Instance: ${log.instance_latency}ms | Sentinel: ${log.sentinel_latency}ms`;
 
