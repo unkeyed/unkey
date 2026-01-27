@@ -74,9 +74,9 @@ export type VirtualTableProps<TTableData> = {
    */
   onRowMouseLeave?: () => void;
   /**
-   * Additional className for the table container
+   * Override auto-calculated table height in pixels
    */
-  className?: string;
+  fixedHeight?: number;
 };
 
 export type SeparatorItem = {

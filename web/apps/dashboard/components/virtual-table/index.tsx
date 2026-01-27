@@ -58,7 +58,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       renderSkeletonRow,
       onRowMouseEnter,
       onRowMouseLeave,
-      className,
+      fixedHeight: fixedHeightProp,
     } = props;
 
     // Merge configs, allowing specific overrides
@@ -71,7 +71,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
     const hasPadding = config.containerPadding !== "px-0";
 
-    const fixedHeight = useTableHeight(containerRef);
+    const calculatedHeight = useTableHeight(containerRef);
+    const fixedHeight = fixedHeightProp ?? calculatedHeight;
     const tableData = useTableData<TTableData>(realtimeData, historicData);
 
     const virtualizer = useVirtualData({
@@ -109,7 +110,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
       return (
         <div
-          className={cn("w-full flex flex-col md:h-full", className)}
+          className="w-full flex flex-col md:h-full"
           style={{ height: `${fixedHeight}px` }}
           ref={containerRef}
         >
@@ -145,7 +146,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     }
 
     return (
-      <div className={cn("w-full flex flex-col", className)} ref={containerRef}>
+      <div className="w-full flex flex-col" ref={containerRef}>
         <div
           ref={parentRef}
           className={containerClassName}
