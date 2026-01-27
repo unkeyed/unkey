@@ -1,0 +1,273 @@
+---
+title: GitHub App
+description: How to configure the GitHub App for repository connections
+---
+
+The GitHub App integration enables users to connect their GitHub repositories to Unkey projects. This powers automatic deployments when code is pushed to connected repositories.
+
+## Architecture Overview
+
+The integration consists of two main components:
+
+1. **Dashboard** - Handles OAuth flow for connecting repositories
+2. **ctrl-api / ctrl-worker** - Receives webhooks and orchestrates deployments
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Repository Connection Flow                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   User      │────►│  Dashboard  │────►│  GitHub     │
+│   Browser   │     │             │     │  OAuth      │
+└─────────────┘     └─────────────┘     └─────────────┘
+                           │                   │
+                           ▼                   ▼
+                    ┌─────────────┐     ┌─────────────┐
+                    │  Database   │◄────│  Callback   │
+                    │  (install)  │     │             │
+                    └─────────────┘     └─────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Push-to-Deploy Flow                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   GitHub    │────►│  ctrl-api   │────►│  ctrl-worker│────►│  repofetch  │
+│   Webhook   │     │  /github/   │     │  (Restate)  │     │  (K8s Job)  │
+│   (push)    │     │  webhook    │     │             │     │             │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+                                               │                   │
+                                               │                   ▼
+                                               │            ┌─────────────┐
+                                               │            │  S3/Minio   │
+                                               │            │  (tarball)  │
+                                               │            └─────────────┘
+                                               │                   │
+                                               ▼                   │
+                                        ┌─────────────┐            │
+                                        │  Deployment │◄───────────┘
+                                        │  Workflow   │
+                                        └─────────────┘
+```
+
+## User Flow
+
+1. User navigates to project settings and clicks "Connect GitHub"
+2. User is redirected to GitHub to install/authorize the Unkey GitHub App
+3. GitHub redirects back to `/integrations/github/callback` with the installation ID
+4. Dashboard stores the installation ID and prompts user to select a repository
+5. User selects a repository from the list of accessible repos
+6. Dashboard stores the repository connection
+
+## Environment Variables
+
+The GitHub App requires two environment variables in the dashboard:
+
+| Variable | Description |
+|----------|-------------|
+| `GITHUB_APP_ID` | The GitHub App's numeric ID (found in app settings) |
+| `GITHUB_APP_PRIVATE_KEY` | The private key generated for the app (PEM format, newlines as `\n`) |
+
+These are configured via `githubAppEnv()` in `web/apps/dashboard/lib/env.ts`.
+
+## Creating a GitHub App
+
+1. Go to GitHub Settings → Developer settings → GitHub Apps → New GitHub App
+2. Configure the app:
+   - **Name**: Choose a unique name (e.g., "unkey-dev" for development)
+   - **Homepage URL**: Your dashboard URL
+   - **Callback URL**: `https://your-dashboard.com/integrations/github/callback`
+   - **Setup URL**: Leave empty
+   - **Webhook URL**: `https://ctrl-api.your-domain.com/webhooks/github`
+   - **Webhook secret**: Generate a secure random string
+
+3. Permissions required:
+   - **Repository permissions**:
+     - Contents: Read-only (to fetch repository tarballs)
+     - Metadata: Read-only (to list repositories)
+
+4. Subscribe to events:
+   - **Push** (required for automatic deployments)
+
+5. After creation:
+   - Note the App ID
+   - Generate a private key and download it
+   - Convert newlines: `awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' private-key.pem`
+
+## Key Components
+
+### JWT Generation (`lib/github.ts`)
+
+The dashboard generates short-lived JWTs to authenticate as the GitHub App:
+
+```typescript
+function generateAppJWT(): string {
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iat: now - 60,  // 60 seconds in the past for clock drift
+    exp: now + 600, // 10 minutes max
+    iss: env.GITHUB_APP_ID,
+  };
+  // Sign with private key
+}
+```
+
+### Installation Access Tokens
+
+To access user repositories, the dashboard exchanges the App JWT for an installation access token:
+
+```typescript
+export async function getInstallationAccessToken(installationId: string) {
+  const jwt = generateAppJWT();
+  const response = await fetch(
+    `https://api.github.com/app/installations/${installationId}/access_tokens`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${jwt}` },
+    }
+  );
+  return response.json(); // { token, expires_at }
+}
+```
+
+### Database Schema
+
+Installation records are stored in `githubAppInstallations`:
+
+```typescript
+{
+  id: string,
+  projectId: string,
+  installationId: string,  // GitHub's installation ID
+  repositoryId: string,    // Selected repo's numeric ID
+  repositoryFullName: string, // e.g., "owner/repo"
+  createdAtM: number,
+  updatedAtM: number | null,
+  deletedAtM: number | null,
+}
+```
+
+## tRPC Routes
+
+The `githubRouter` in `lib/trpc/routers/github.ts` provides:
+
+| Route | Description |
+|-------|-------------|
+| `github.getInstallation` | Get the GitHub installation for a project |
+| `github.listRepositories` | List repositories accessible to the installation |
+| `github.selectRepository` | Connect a specific repository to the project |
+| `github.disconnect` | Remove the GitHub connection |
+
+## Development Setup
+
+For local development:
+
+1. Create a GitHub App on your personal account or a test organization
+2. Use a tool like ngrok to expose your local dashboard
+3. Set the callback URL to your ngrok URL + `/integrations/github/callback`
+4. Add the environment variables to your `.env` file
+
+## Troubleshooting
+
+**"GitHub App environment not configured"**
+- Ensure `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` are set
+- Check the private key format (newlines should be `\n`)
+
+**"Failed to get installation access token"**
+- Verify the App ID matches the private key
+- Check the installation still exists on GitHub
+- Ensure the app has the required permissions
+
+**No repositories shown**
+- User may need to configure repository access in GitHub App settings
+- Check the installation has access to the expected repositories
+
+---
+
+## Control Plane: Webhook Handling
+
+The control plane (ctrl-api and ctrl-worker) handles GitHub push webhooks to trigger automatic deployments.
+
+### Environment Variables (ctrl-api / ctrl-worker)
+
+| Variable | Description |
+|----------|-------------|
+| `GITHUB_APP_ID` | The GitHub App's numeric ID |
+| `GITHUB_APP_PRIVATE_KEY` | The private key (PEM format) |
+| `GITHUB_APP_WEBHOOK_SECRET` | Secret for verifying webhook signatures |
+
+### Webhook Flow
+
+1. **GitHub sends push webhook** to `ctrl-api` at `/webhooks/github`
+2. **ctrl-api verifies signature** using `X-Hub-Signature-256` header and `GITHUB_APP_WEBHOOK_SECRET`
+3. **ctrl-api looks up installation** by repository full name in database
+4. **ctrl-api triggers Restate workflow** via `GitHubService.HandlePush`
+5. **ctrl-worker executes workflow**:
+   - Generates GitHub installation access token
+   - Creates S3 presigned upload URL
+   - Spawns `repofetch` Kubernetes job (gVisor isolated)
+   - Polls for job completion
+   - Creates deployment record
+   - Triggers `DeploymentService.Deploy` workflow
+
+### repofetch Job
+
+The `repofetch` job runs in the `builds` namespace with gVisor isolation for security:
+
+```go
+// Job labels for Cilium network policy
+labels := map[string]string{
+    "app.kubernetes.io/component":  "repo-fetch",
+    "app.kubernetes.io/managed-by": "ctrl-worker",
+}
+```
+
+The job:
+1. Downloads tarball from GitHub API
+2. Repackages it (strips top-level directory)
+3. Uploads to S3/Minio
+
+### Network Policy
+
+repofetch jobs are restricted by Cilium to only access:
+- DNS (kube-dns)
+- GitHub API (`api.github.com:443`)
+- Minio/S3 (`unkey/minio:9000`)
+
+See `dev/k8s/manifests/cilium-policies.yaml` for the `repofetch-egress` policy.
+
+### Key Files
+
+| File | Description |
+|------|-------------|
+| `svc/ctrl/services/github/webhook_handler.go` | HTTP handler for GitHub webhooks |
+| `svc/ctrl/worker/github/handle_push.go` | Restate workflow for push-to-deploy |
+| `svc/ctrl/pkg/repofetch/client.go` | Kubernetes job client for fetch jobs |
+| `cmd/repofetch/main.go` | The repofetch binary that runs in K8s jobs |
+| `pkg/github/github.go` | GitHub API client and webhook verification |
+
+### Webhook Setup in GitHub App
+
+When creating the GitHub App:
+
+1. Enable webhooks
+2. Set **Webhook URL** to `https://ctrl-api.your-domain.com/webhooks/github`
+3. Set **Webhook secret** (same value as `GITHUB_APP_WEBHOOK_SECRET`)
+4. Subscribe to **Push** events
+
+### Branch-to-Environment Mapping
+
+All branches trigger deployments, but the target environment depends on the branch:
+
+- **Default branch** (usually `main`) → **production** environment
+- **All other branches** → **preview** environment
+
+The default branch is configurable per-project.
+
+```go
+envSlug := "preview"
+if branch == defaultBranch {
+    envSlug = "production"
+}
+```

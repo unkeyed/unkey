@@ -112,20 +112,38 @@ func (w *Workflow) HandlePush(ctx restate.WorkflowSharedContext, req *hydrav1.Ha
 		return nil, fmt.Errorf("failed to find project: %w", err)
 	}
 
+	branch := "main"
+	if req.GetGitCommit() != nil && req.GetGitCommit().GetBranch() != "" {
+		branch = req.GetGitCommit().GetBranch()
+	}
+
+	// Determine environment based on branch
+	// Default branch -> production, all other branches -> preview
+	defaultBranch := req.GetDefaultBranch()
+	if defaultBranch == "" {
+		defaultBranch = "main"
+	}
+
+	envSlug := "preview"
+	if branch == defaultBranch {
+		envSlug = "production"
+	}
+
+	w.logger.Info("Selecting environment based on branch",
+		"branch", branch,
+		"default_branch", defaultBranch,
+		"environment", envSlug,
+	)
+
 	env, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
 		return db.Query.FindEnvironmentByProjectIdAndSlug(runCtx, w.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
 			WorkspaceID: project.WorkspaceID,
 			ProjectID:   project.ID,
-			Slug:        "production",
+			Slug:        envSlug,
 		})
 	}, restate.WithName("find environment"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to find production environment: %w", err)
-	}
-
-	branch := "main"
-	if req.GetGitCommit() != nil && req.GetGitCommit().GetBranch() != "" {
-		branch = req.GetGitCommit().GetBranch()
+		return nil, fmt.Errorf("failed to find %s environment: %w", envSlug, err)
 	}
 
 	now := time.Now().UnixMilli()

@@ -30,6 +30,7 @@ type HandlePushRequest struct {
 	CommitSha          string                 `protobuf:"bytes,4,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
 	ProjectId          string                 `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	GitCommit          *GitCommitInfo         `protobuf:"bytes,6,opt,name=git_commit,json=gitCommit,proto3,oneof" json:"git_commit,omitempty"`
+	DefaultBranch      string                 `protobuf:"bytes,7,opt,name=default_branch,json=defaultBranch,proto3" json:"default_branch,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -104,6 +105,13 @@ func (x *HandlePushRequest) GetGitCommit() *GitCommitInfo {
 		return x.GitCommit
 	}
 	return nil
+}
+
+func (x *HandlePushRequest) GetDefaultBranch() string {
+	if x != nil {
+		return x.DefaultBranch
+	}
+	return ""
 }
 
 type GitCommitInfo struct {
@@ -238,7 +246,7 @@ var File_hydra_v1_github_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_github_proto_rawDesc = "" +
 	"\n" +
-	"\x15hydra/v1/github.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\x8a\x02\n" +
+	"\x15hydra/v1/github.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xb1\x02\n" +
 	"\x11HandlePushRequest\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\tR\x0einstallationId\x120\n" +
 	"\x14repository_full_name\x18\x02 \x01(\tR\x12repositoryFullName\x12\x10\n" +
@@ -248,7 +256,8 @@ const file_hydra_v1_github_proto_rawDesc = "" +
 	"\n" +
 	"project_id\x18\x05 \x01(\tR\tprojectId\x12;\n" +
 	"\n" +
-	"git_commit\x18\x06 \x01(\v2\x17.hydra.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01B\r\n" +
+	"git_commit\x18\x06 \x01(\v2\x17.hydra.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12%\n" +
+	"\x0edefault_branch\x18\a \x01(\tR\rdefaultBranchB\r\n" +
 	"\v_git_commit\"\xdc\x01\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
 	"\n" +

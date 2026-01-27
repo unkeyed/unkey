@@ -158,24 +158,19 @@ func (s *Service) handlePush(ctx context.Context, w http.ResponseWriter, body []
 		return
 	}
 
+	commitSHA := payload.After
+
 	defaultBranch := "main"
 	if project.DefaultBranch.Valid && project.DefaultBranch.String != "" {
 		defaultBranch = project.DefaultBranch.String
 	}
-
-	if branch != defaultBranch {
-		s.logger.Info("Ignoring push to non-default branch", "ref", payload.Ref, "branch", branch, "default_branch", defaultBranch)
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	commitSHA := payload.After
 
 	s.logger.Info("Starting deployment workflow for push",
 		"repository", payload.Repository.FullName,
 		"projectId", project.ID,
 		"commitSha", commitSHA,
 		"branch", branch,
+		"default_branch", defaultBranch,
 	)
 
 	gitCommit := buildGitCommitInfo(&payload, branch)
@@ -187,6 +182,7 @@ func (s *Service) handlePush(ctx context.Context, w http.ResponseWriter, body []
 		CommitSha:          commitSHA,
 		ProjectId:          project.ID,
 		GitCommit:          gitCommit,
+		DefaultBranch:      defaultBranch,
 	}
 
 	invocation, err := s.githubClient(project.ID).HandlePush().Send(ctx, req)

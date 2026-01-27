@@ -83,11 +83,7 @@ export const vercelIntegrationEnv = () =>
 
 export const githubAppSchema = z.object({
   GITHUB_APP_ID: z.string(),
-  GITHUB_APP_CLIENT_ID: z.string(),
-  GITHUB_APP_CLIENT_SECRET: z.string(),
   GITHUB_APP_PRIVATE_KEY: z.string().transform((s) => s.replace(/\\n/g, "\n")),
-  GITHUB_APP_WEBHOOK_SECRET: z.string(),
-  GITHUB_APP_BASE_URL: z.string().url(),
 });
 
 const githubAppParsed = githubAppSchema.safeParse(process.env);

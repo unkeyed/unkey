@@ -20,6 +20,7 @@ message HandlePushRequest {
   string project_id = 5;
 
   optional GitCommitInfo git_commit = 6;
+  string default_branch = 7;
 }
 
 message GitCommitInfo {
