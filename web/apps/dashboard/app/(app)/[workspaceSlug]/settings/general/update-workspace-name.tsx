@@ -41,11 +41,14 @@ export function UpdateWorkspaceName() {
   });
 
   const updateName = trpc.workspace.updateName.useMutation({
-    onSuccess() {
+    async onSuccess() {
       toast.success("Workspace name updated");
-      // invalidate the current user so it refetches
-      utils.user.getCurrentUser.invalidate();
-      utils.workspace.invalidate();
+      // Force immediate refetch of all workspace-related queries
+      await Promise.all([
+        utils.user.getCurrentUser.refetch(),
+        utils.workspace.getCurrent.refetch(),
+        utils.user.listMemberships.refetch(),
+      ]);
       setName(watch("workspaceName"));
       router.refresh();
     },
