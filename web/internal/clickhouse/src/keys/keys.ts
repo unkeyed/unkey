@@ -273,7 +273,7 @@ WITH
           argMax(time, time) as last_time,
           argMax(request_id, time) as last_request_id,
           argMax(tags, time) as last_tags
-      FROM default.keys_last_used_v2
+      FROM default.keys_last_used_v2 FINAL
       WHERE workspace_id = {workspaceId: String}
           AND key_space_id = {keyspaceId: String}
           AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
