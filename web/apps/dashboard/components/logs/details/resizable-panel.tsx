@@ -36,6 +36,7 @@ export const ResizablePanel = ({
     setIsDragging(false);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: panelRef is stable and shouldn't be in deps
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isDragging || !panelRef.current) {

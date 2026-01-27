@@ -94,6 +94,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     );
 
     // Expose refs and methods to parent components. Primarily used for anchoring log details.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: refs are stable and shouldn't be in deps
     useImperativeHandle(
       ref,
       () => ({

@@ -26,11 +26,11 @@ export async function main() {
 }
 
 // biome-ignore lint/style/noDefaultExport: Required by next.js
-export default async function handler(request: NextApiRequest, response: NextApiResponse) {
+export default async function handler(_request: NextApiRequest, response: NextApiResponse) {
   try {
     const result = await main();
     return response.status(200).json(result);
-  } catch (error) {
+  } catch (_error) {
     return response.status(500).json({ error: "Internal Server Error" });
   }
 }

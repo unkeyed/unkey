@@ -1,8 +1,8 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 import "@/styles/tailwind/tailwind.css";
 import "@unkey/ui/css";
 import * as Sentry from "@sentry/nextjs";
@@ -53,17 +53,17 @@ const Feedback = dynamic(() =>
   import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
 );
 
-
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-
- 
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-full antialiased">
         <ReactQueryProvider>
           <ThemeProvider
