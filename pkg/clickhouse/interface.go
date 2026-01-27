@@ -58,6 +58,10 @@ type Querier interface {
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
+
+	// GetAllBillableUsage returns billable usage for all workspaces in a specific month.
+	// More efficient than per-workspace queries when checking all workspaces.
+	GetAllBillableUsage(ctx context.Context, year, month int) (map[string]WorkspaceUsage, error)
 }
 
 type ClickHouse interface {

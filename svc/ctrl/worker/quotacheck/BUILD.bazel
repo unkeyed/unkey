@@ -2,14 +2,19 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "quotacheck",
-    srcs = ["main.go"],
-    importpath = "github.com/unkeyed/unkey/cmd/quotacheck",
+    srcs = [
+        "doc.go",
+        "run_check_handler.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/cli",
+        "//gen/proto/hydra/v1:hydra",
         "//pkg/clickhouse",
         "//pkg/db",
         "//pkg/otel/logging",
+        "@com_github_restatedev_sdk_go//:sdk-go",
         "@org_golang_x_text//language",
         "@org_golang_x_text//message",
         "@org_golang_x_text//number",
