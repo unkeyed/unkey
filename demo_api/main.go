@@ -387,6 +387,27 @@ func main() {
 		time.Sleep(time.Second * 35)
 	})
 
+	mux.HandleFunc("/v1/slow", func(w http.ResponseWriter, r *http.Request) {
+		// Parse sleep duration from query param (default 2s)
+		duration := 2 * time.Second
+		if d := r.URL.Query().Get("duration"); d != "" {
+			if parsed, err := time.ParseDuration(d); err == nil {
+				duration = parsed
+			}
+		}
+
+		time.Sleep(duration)
+
+		response := map[string]interface{}{
+			"message":   fmt.Sprintf("Slept for %v", duration),
+			"timestamp": time.Now().UTC(),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(response)
+	})
+
 	mux.HandleFunc("/v1/protected", func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 
