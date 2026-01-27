@@ -576,16 +576,6 @@ CREATE TABLE `frontline_routes` (
 	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 
-CREATE TABLE `state_changes` (
-	`sequence` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`resource_type` enum('sentinel','deployment') NOT NULL,
-	`resource_id` varchar(256) NOT NULL,
-	`op` enum('upsert','delete') NOT NULL,
-	`region` varchar(64) NOT NULL,
-	`created_at` bigint unsigned NOT NULL,
-	CONSTRAINT `state_changes_sequence` PRIMARY KEY(`sequence`)
-);
-
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -618,6 +608,4 @@ CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
-CREATE INDEX `region_sequence` ON `state_changes` (`region`,`sequence`);
-CREATE INDEX `created_at` ON `state_changes` (`created_at`);
 
