@@ -95,6 +95,55 @@ func TestDiscriminatorExtraction(t *testing.T) {
 	}
 }
 
+// TestDiscriminatorExtractionWithRefResolution tests discriminator extraction from $ref schemas
+func TestDiscriminatorExtractionWithRefResolution(t *testing.T) {
+	t.Parallel()
+
+	// Mock schema that would be returned by resolving a $ref
+	petSchema := map[string]any{
+		"oneOf": []any{
+			map[string]any{"$ref": "#/components/schemas/Dog"},
+			map[string]any{"$ref": "#/components/schemas/Cat"},
+		},
+		"discriminator": map[string]any{
+			"propertyName": "petType",
+			"mapping": map[string]any{
+				"dog": "#/components/schemas/Dog",
+				"cat": "#/components/schemas/Cat",
+			},
+		},
+	}
+
+	// Mock resolver
+	resolver := func(ref string) map[string]any {
+		if ref == "#/components/schemas/Pet" {
+			return petSchema
+		}
+		return nil
+	}
+
+	// Test with $ref schema
+	refSchema := map[string]any{
+		"$ref": "#/components/schemas/Pet",
+	}
+
+	result := extractDiscriminator(refSchema, resolver)
+	require.NotNil(t, result, "expected discriminator to be extracted from resolved $ref")
+	require.Equal(t, "petType", result.PropertyName)
+	require.Len(t, result.Mapping, 2)
+
+	// Test with $ref schema but nil resolver (should return nil)
+	resultNoResolver := extractDiscriminator(refSchema, nil)
+	require.Nil(t, resultNoResolver, "expected nil when resolver is nil")
+
+	// Test with $ref schema that can't be resolved
+	unknownRef := map[string]any{
+		"$ref": "#/components/schemas/Unknown",
+	}
+	resultUnknown := extractDiscriminator(unknownRef, resolver)
+	require.Nil(t, resultUnknown, "expected nil when $ref cannot be resolved")
+}
+
 // TestDiscriminatorValidation tests oneOf validation with discriminator hints
 func TestDiscriminatorValidation(t *testing.T) {
 	t.Parallel()
@@ -168,7 +217,6 @@ func TestDiscriminatorCompiledOperation(t *testing.T) {
 	validator := newTestValidator(t)
 
 	// Test with inline schema that has discriminator directly in the request schema
-	// (not via $ref which doesn't get the discriminator extracted)
 	compiledOp := validator.compiler.GetOperation("testPetInline")
 	require.NotNil(t, compiledOp, "expected compiled operation for testPetInline")
 	require.NotNil(t, compiledOp.Discriminator, "expected discriminator info to be extracted from inline schema")
@@ -177,11 +225,12 @@ func TestDiscriminatorCompiledOperation(t *testing.T) {
 	require.Equal(t, "#/components/schemas/Dog", compiledOp.Discriminator.Mapping["dog"])
 	require.Equal(t, "#/components/schemas/Cat", compiledOp.Discriminator.Mapping["cat"])
 
-	// For $ref schemas, the discriminator is inside the referenced schema
-	// and won't be extracted from op.RequestSchema (which is just the $ref)
+	// Test with $ref schema - discriminator should now be extracted via ref resolution
 	refOp := validator.compiler.GetOperation("testPet")
 	require.NotNil(t, refOp, "expected compiled operation for testPet")
-	// Discriminator extraction from $ref schemas is not currently supported
-	// (would require resolving refs before extraction)
-	require.Nil(t, refOp.Discriminator, "discriminator from $ref schemas is not extracted")
+	require.NotNil(t, refOp.Discriminator, "expected discriminator info to be extracted from $ref schema")
+	require.Equal(t, "petType", refOp.Discriminator.PropertyName)
+	require.Len(t, refOp.Discriminator.Mapping, 2)
+	require.Equal(t, "#/components/schemas/Dog", refOp.Discriminator.Mapping["dog"])
+	require.Equal(t, "#/components/schemas/Cat", refOp.Discriminator.Mapping["cat"])
 }
