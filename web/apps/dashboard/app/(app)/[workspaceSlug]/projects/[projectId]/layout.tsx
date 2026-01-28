@@ -2,9 +2,9 @@
 import { collection, collectionManager } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { use, useEffect, useState } from "react";
-import { ProjectDetailsExpandable } from "./details/project-details-expandables";
-import { ProjectLayoutContext } from "./layout-provider";
-import { ProjectNavigation } from "./navigations/project-navigation";
+import { ProjectDetailsExpandable } from "./(overview)/details/project-details-expandables";
+import { ProjectLayoutContext } from "./(overview)/layout-provider";
+import { ProjectNavigation } from "./(overview)/navigations/project-navigation";
 
 export default function ProjectLayoutWrapper(props: {
   children: React.ReactNode;

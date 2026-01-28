@@ -58,6 +58,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       renderSkeletonRow,
       onRowMouseEnter,
       onRowMouseLeave,
+      fixedHeight: fixedHeightProp,
     } = props;
 
     // Merge configs, allowing specific overrides
@@ -70,7 +71,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
     const hasPadding = config.containerPadding !== "px-0";
 
-    const fixedHeight = useTableHeight(containerRef);
+    const calculatedHeight = useTableHeight(containerRef);
+    const fixedHeight = fixedHeightProp ?? calculatedHeight;
     const tableData = useTableData<TTableData>(realtimeData, historicData);
 
     const virtualizer = useVirtualData({

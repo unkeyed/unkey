@@ -24,6 +24,11 @@ type QuickNavPopoverProps = {
   shortcutKey?: string;
   onItemSelect?: (item: QuickNavItem) => void;
   /**
+   * Explicitly specify which item should be highlighted as active.
+   * Takes precedence over path-based matching.
+   */
+  activeItemId?: string;
+  /**
    * Threshold for when to use virtualization.
    * Lists with fewer items than this will render without virtualization.
    * @default 10
@@ -37,6 +42,7 @@ export const QuickNavPopover = ({
   title = "Navigate to...",
   shortcutKey = "f",
   onItemSelect,
+  activeItemId,
   virtualizationThreshold = 10,
 }: PropsWithChildren<QuickNavPopoverProps>) => {
   const pathname = usePathname();
@@ -112,6 +118,13 @@ export const QuickNavPopover = ({
 
   // Find the active item index for initial focus
   const findActiveItemIndex = useCallback(() => {
+    // Explicit activeItemId takes precedence
+    if (activeItemId) {
+      const activeIndex = items.findIndex((item) => item.id === activeItemId);
+      return activeIndex >= 0 ? activeIndex : 0;
+    }
+
+    // Fall back to path-based matching
     if (!pathname) {
       return 0;
     }
@@ -119,7 +132,7 @@ export const QuickNavPopover = ({
     const activeIndex = items.findIndex((item) => item.href && checkIsActive(item.href, pathname));
 
     return activeIndex >= 0 ? activeIndex : 0;
-  }, [items, pathname]);
+  }, [items, pathname, activeItemId]);
 
   // Scroll to focused item when using virtualization
   useEffect(() => {
@@ -173,7 +186,7 @@ export const QuickNavPopover = ({
               >
                 {rowVirtualizer?.getVirtualItems().map((virtualRow) => {
                   const item = items[virtualRow.index];
-                  const isActive = Boolean(item.href && checkIsActive(item.href, pathname));
+                  const isActive = isItemActive(item, pathname, activeItemId);
 
                   return (
                     <div
@@ -197,7 +210,7 @@ export const QuickNavPopover = ({
               </div>
             ) : (
               items.map((item, index) => {
-                const isActive = Boolean(item.href && checkIsActive(item.href, pathname));
+                const isActive = isItemActive(item, pathname, activeItemId);
 
                 return (
                   <PopoverItem
@@ -288,6 +301,17 @@ const PopoverItem = ({
       )}
     </button>
   );
+};
+
+const isItemActive = (
+  item: QuickNavItem,
+  pathname: string | null,
+  activeItemId?: string,
+): boolean => {
+  if (activeItemId !== undefined) {
+    return item.id === activeItemId;
+  }
+  return Boolean(item.href && checkIsActive(item.href, pathname));
 };
 
 const checkIsActive = (itemPath: string, currentPath: string | null) => {

@@ -2,7 +2,7 @@
 
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { PropsWithChildren } from "react";
-import { useProject } from "../layout-provider";
+import { useProject } from "../(overview)/layout-provider";
 
 type ProjectContentWrapperProps = PropsWithChildren<{
   className?: React.ComponentProps<"div">["className"];

@@ -73,6 +73,10 @@ export type VirtualTableProps<TTableData> = {
    * Callback when mouse leaves a row
    */
   onRowMouseLeave?: () => void;
+  /**
+   * Override auto-calculated table height in pixels
+   */
+  fixedHeight?: number;
 };
 
 export type SeparatorItem = {
