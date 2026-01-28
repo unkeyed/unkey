@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/unkeyed/unkey/pkg/retry"
 )
 
 // Client provides access to the Restate admin API for managing deployments
@@ -39,7 +41,24 @@ func New(cfg Config) *Client {
 
 // RegisterDeployment registers a service deployment with Restate.
 // The uri should be the endpoint where Restate can reach the service.
+// Retries up to 10 times with 5 second backoff on failure.
 func (c *Client) RegisterDeployment(ctx context.Context, uri string) error {
+	// Wait for restate server to be ready
+	time.Sleep(2 * time.Second)
+
+	retrier := retry.New(
+		retry.Attempts(10),
+		retry.Backoff(func(n int) time.Duration {
+			return 5 * time.Second
+		}),
+	)
+
+	return retrier.Do(func() error {
+		return c.registerDeployment(ctx, uri)
+	})
+}
+
+func (c *Client) registerDeployment(ctx context.Context, uri string) error {
 	url := fmt.Sprintf("%s/deployments", c.baseURL)
 	payload := fmt.Sprintf(`{"uri": "%s"}`, uri)
 

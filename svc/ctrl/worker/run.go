@@ -22,7 +22,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
-	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/build"
@@ -274,7 +273,14 @@ func Run(ctx context.Context, cfg Config) error {
 			BaseURL: cfg.Restate.AdminURL,
 			APIKey:  cfg.Restate.APIKey,
 		})
-		go registerWithRestate(ctx, logger, adminClient, cfg.Restate.RegisterAs)
+		go func() {
+			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
+			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs); err != nil {
+				logger.Error("failed to register with Restate", "error", err)
+				return
+			}
+			logger.Info("Successfully registered with Restate")
+		}()
 	} else {
 		logger.Info("Skipping Restate registration (restate-register-as not configured)")
 	}
@@ -309,29 +315,4 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Worker shut down successfully")
 	return nil
-}
-
-// registerWithRestate handles self-registration with the Restate admin API.
-func registerWithRestate(ctx context.Context, logger logging.Logger, client *restateadmin.Client, serviceURI string) {
-	// Wait a moment for the restate server to be ready
-	time.Sleep(2 * time.Second)
-
-	logger.Info("Registering with Restate", "service_uri", serviceURI)
-
-	retrier := retry.New(
-		retry.Attempts(10),
-		retry.Backoff(func(n int) time.Duration {
-			return 5 * time.Second
-		}),
-	)
-
-	err := retrier.Do(func() error {
-		return client.RegisterDeployment(ctx, serviceURI)
-	})
-	if err != nil {
-		logger.Error("failed to register with Restate after retries", "error", err)
-		return
-	}
-
-	logger.Info("Successfully registered with Restate")
 }
