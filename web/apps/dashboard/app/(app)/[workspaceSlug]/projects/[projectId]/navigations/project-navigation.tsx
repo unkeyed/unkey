@@ -57,7 +57,7 @@ export const ProjectNavigation = ({
   const basePath = `/${workspace.slug}/projects`;
 
   const segments = useSelectedLayoutSegments() ?? [];
-  const activeSubPage = segments[0]; // undefined, "deployments", "sentinel-logs", or "openapi-diff"
+  const activeSubPage = segments[0]; // undefined, "deployments", "sentinel-logs", "openapi-diff", or "settings"
 
   const subPages = [
     { id: "overview", label: "Overview", href: `${basePath}/${projectId}`, segment: undefined },
@@ -78,6 +78,12 @@ export const ProjectNavigation = ({
       label: "OpenAPI Diff",
       href: `${basePath}/${projectId}/openapi-diff`,
       segment: "openapi-diff",
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      href: `${basePath}/${projectId}/settings`,
+      segment: "settings",
     },
   ];
 
