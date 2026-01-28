@@ -58,12 +58,12 @@ export const DeploymentsList = () => {
 
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [navigatingId, setNavigatingId] = useState<string | null>(null);
 
   const handleLinkClick = useCallback(
     (e: React.MouseEvent, deploymentId: string) => {
       e.preventDefault();
-      setIsNavigating(true);
+      setNavigatingId(deploymentId);
       router.push(`/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`);
     },
     [router, workspace.slug, project?.id],
@@ -86,7 +86,7 @@ export const DeploymentsList = () => {
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
-                {isNavigating ? (
+                {navigatingId === deployment.id ? (
                   <div className="relative">
                     <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
                       <div className="size-[12px] items-center justify-center flex">

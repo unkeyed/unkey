@@ -139,7 +139,7 @@ export const useBreadcrumbConfig = ({
     {
       id: "deployment-detail",
       children: shortenId(deploymentId || ""),
-      href: `${basePath}/${projectId}/${deploymentId}`,
+      href: `${basePath}/${projectId}/deployments/${deploymentId}`,
       isIdentifier: true,
       shouldRender: Boolean(deploymentId),
       active: Boolean(deploymentId),
