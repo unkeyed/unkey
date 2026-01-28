@@ -27,7 +27,7 @@ import (
 )
 
 // Registrar is an interface for registering shutdown functions.
-// Both pkg/shutdown.Shutdowns and pkg/runner.Runner implement this interface.
+// pkg/runner.Runner implements this interface.
 type Registrar interface {
 	RegisterCtx(fns ...func(ctx context.Context) error)
 }
