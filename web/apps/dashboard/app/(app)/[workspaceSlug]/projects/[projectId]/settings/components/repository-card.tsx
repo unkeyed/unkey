@@ -77,12 +77,7 @@ export const RepositoryCard: React.FC<Props> = ({
         contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
       >
         <div className="flex justify-end">
-          <Button
-            variant="outline"
-            color="danger"
-            onClick={onDisconnect}
-            loading={isDisconnecting}
-          >
+          <Button variant="outline" color="danger" onClick={onDisconnect} loading={isDisconnecting}>
             Disconnect
           </Button>
         </div>

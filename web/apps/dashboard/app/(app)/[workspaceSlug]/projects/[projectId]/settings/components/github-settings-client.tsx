@@ -57,9 +57,7 @@ export const GitHubSettingsClient: React.FC<Props> = ({ projectId }) => {
         </div>
         <div className="flex flex-col w-full gap-6">
           <div>
-            {!hasInstallations ? (
-              <GitHubAppCard projectId={projectId} hasInstallations={false} />
-            ) : (
+            {hasInstallations ? (
               <>
                 <GitHubAppCard projectId={projectId} hasInstallations={true} />
                 <RepositoryCard
@@ -69,6 +67,8 @@ export const GitHubSettingsClient: React.FC<Props> = ({ projectId }) => {
                   isDisconnecting={disconnectRepoMutation.isLoading}
                 />
               </>
+            ) : (
+              <GitHubAppCard projectId={projectId} hasInstallations={false} />
             )}
           </div>
         </div>

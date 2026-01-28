@@ -9,10 +9,7 @@ type Props = {
   hasInstallations: boolean;
 };
 
-export const GitHubAppCard: React.FC<Props> = ({
-  projectId,
-  hasInstallations,
-}) => {
+export const GitHubAppCard: React.FC<Props> = ({ projectId, hasInstallations }) => {
   const params = useParams<{ workspaceSlug: string }>();
 
   const handleConnectGitHub = () => {
@@ -33,10 +30,7 @@ export const GitHubAppCard: React.FC<Props> = ({
       contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
     >
       <div className="flex justify-end gap-2">
-        <Button
-          variant={hasInstallations ? "outline" : "primary"}
-          onClick={handleConnectGitHub}
-        >
+        <Button variant={hasInstallations ? "outline" : "primary"} onClick={handleConnectGitHub}>
           <Github className="size-4" />
           {hasInstallations ? "Configure" : "Install"}
         </Button>
