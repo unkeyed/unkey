@@ -15,14 +15,6 @@ export const deleteKeys = workspaceProcedure
     const userId = ctx.user.id;
     const tenantId = ctx.tenant.id;
 
-    console.info({
-      message: "Attempting to delete keys",
-      userId,
-      tenantId,
-      keyCount: keyIds.length,
-      keyIds,
-    });
-
     if (keyIds.length === 0) {
       console.warn({
         message: "No key IDs provided for deletion",
@@ -78,13 +70,6 @@ export const deleteKeys = workspaceProcedure
 
       try {
         await db.transaction(async (tx) => {
-          console.info({
-            message: "Starting key deletion transaction",
-            userId,
-            tenantId,
-            workspaceId: workspace.id,
-            keysToDelete: workspace.keys.map((k) => k.id),
-          });
 
           await tx
             .update(schema.keys)
@@ -146,14 +131,6 @@ export const deleteKeys = workspaceProcedure
         }
         throw txErr; // Re-throw to be caught by outer catch
       }
-
-      console.info({
-        message: "Keys deleted successfully",
-        userId,
-        tenantId,
-        keyCount: workspace.keys.length,
-        deletedKeyIds: workspace.keys.map((k) => k.id),
-      });
 
       return {
         deletedKeyIds: workspace.keys.map((k) => k.id),
