@@ -27,7 +27,7 @@ func getValue[T any](ctx context.Context, key contextKey) T {
 	return val
 }
 
-// GetRequestId retrieves the request ID from the context.
+// GetRequestID retrieves the request ID from the context.
 // Returns an empty string if no request ID is set.
 //
 // The request ID is typically a unique identifier assigned to each incoming
@@ -38,16 +38,16 @@ func getValue[T any](ctx context.Context, key contextKey) T {
 //
 //	func LogHandler(next http.Handler) http.Handler {
 //	    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//	        requestID := ctxutil.GetRequestId(r.Context())
+//	        requestID := ctxutil.GetRequestID(r.Context())
 //	        log.Printf("[%s] Request received: %s", requestID, r.URL.Path)
 //	        next.ServeHTTP(w, r)
 //	    })
 //	}
-func GetRequestId(ctx context.Context) string {
+func GetRequestID(ctx context.Context) string {
 	return getValue[string](ctx, request_id)
 }
 
-// SetRequestId adds or updates the request ID in the context.
+// SetRequestID adds or updates the request ID in the context.
 // It returns a new context with the request ID value set.
 //
 // This function should typically be called early in the request handling
@@ -61,7 +61,7 @@ func GetRequestId(ctx context.Context) string {
 //	        requestID := uid.New(uid.RequestPrefix)
 //
 //	        // Add it to the context
-//	        ctx := ctxutil.SetRequestId(r.Context(), requestID)
+//	        ctx := ctxutil.SetRequestID(r.Context(), requestID)
 //
 //	        // Set header for client tracking
 //	        w.Header().Set("X-Request-ID", requestID)
@@ -70,6 +70,6 @@ func GetRequestId(ctx context.Context) string {
 //	        next.ServeHTTP(w, r.WithContext(ctx))
 //	    })
 //	}
-func SetRequestId(ctx context.Context, requestId string) context.Context {
-	return context.WithValue(ctx, request_id, requestId)
+func SetRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, request_id, requestID)
 }

@@ -67,7 +67,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	}
 	res := openapi.BadRequestErrorResponse{
 		Meta: openapi.Meta{
-			RequestId: ctxutil.GetRequestId(r.Context()),
+			RequestId: ctxutil.GetRequestID(r.Context()),
 		},
 		Error: openapi.BadRequestErrorDetails{
 			Title:  "Bad Request",

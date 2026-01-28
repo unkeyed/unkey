@@ -17,7 +17,7 @@ func HandleError(ctx context.Context, err error) openapi.BaseError {
 		Detail:    fmsg.GetIssue(err),
 		Instance:  "https://errors.unkey.com/todo",
 		Status:    http.StatusInternalServerError,
-		RequestId: ctxutil.GetRequestId(ctx),
+		RequestId: ctxutil.GetRequestID(ctx),
 		Type:      "TODO docs link",
 	}
 
