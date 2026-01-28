@@ -12,7 +12,7 @@ import (
 
 const findCustomDomainWithCertByDomain = `-- name: FindCustomDomainWithCertByDomain :one
 SELECT
-    cd.pk, cd.id, cd.workspace_id, cd.domain, cd.challenge_type, cd.created_at, cd.updated_at,
+    cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.created_at, cd.updated_at,
     c.id AS certificate_id
 FROM custom_domains cd
 LEFT JOIN certificates c ON c.hostname = cd.domain
@@ -20,20 +20,27 @@ WHERE cd.domain = ?
 `
 
 type FindCustomDomainWithCertByDomainRow struct {
-	Pk            uint64                     `db:"pk"`
-	ID            string                     `db:"id"`
-	WorkspaceID   string                     `db:"workspace_id"`
-	Domain        string                     `db:"domain"`
-	ChallengeType CustomDomainsChallengeType `db:"challenge_type"`
-	CreatedAt     int64                      `db:"created_at"`
-	UpdatedAt     sql.NullInt64              `db:"updated_at"`
-	CertificateID sql.NullString             `db:"certificate_id"`
+	Pk                 uint64                          `db:"pk"`
+	ID                 string                          `db:"id"`
+	WorkspaceID        string                          `db:"workspace_id"`
+	ProjectID          string                          `db:"project_id"`
+	EnvironmentID      string                          `db:"environment_id"`
+	Domain             string                          `db:"domain"`
+	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
+	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
+	TargetCname        string                          `db:"target_cname"`
+	LastCheckedAt      sql.NullInt64                   `db:"last_checked_at"`
+	CheckAttempts      int32                           `db:"check_attempts"`
+	VerificationError  sql.NullString                  `db:"verification_error"`
+	CreatedAt          int64                           `db:"created_at"`
+	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
+	CertificateID      sql.NullString                  `db:"certificate_id"`
 }
 
 // FindCustomDomainWithCertByDomain
 //
 //	SELECT
-//	    cd.pk, cd.id, cd.workspace_id, cd.domain, cd.challenge_type, cd.created_at, cd.updated_at,
+//	    cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.created_at, cd.updated_at,
 //	    c.id AS certificate_id
 //	FROM custom_domains cd
 //	LEFT JOIN certificates c ON c.hostname = cd.domain
@@ -45,8 +52,15 @@ func (q *Queries) FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX,
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
+		&i.EnvironmentID,
 		&i.Domain,
 		&i.ChallengeType,
+		&i.VerificationStatus,
+		&i.TargetCname,
+		&i.LastCheckedAt,
+		&i.CheckAttempts,
+		&i.VerificationError,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CertificateID,

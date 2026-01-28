@@ -220,6 +220,11 @@ type Config struct {
 	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
 
+	// DefaultCname is the CNAME target that users must point their custom domains to.
+	// For production: "cname.unkey-dns.com"
+	// For staging: "dns.unkey.fun"
+	DefaultCname string
+
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.RealClock{} for production deployments.
 	Clock clock.Clock

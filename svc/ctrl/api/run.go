@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
+	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"golang.org/x/net/http2"
@@ -172,6 +173,12 @@ func Run(ctx context.Context, cfg Config) error {
 		ChallengeCache: challengeCache,
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
+	mux.Handle(ctrlv1connect.NewCustomDomainServiceHandler(customdomain.New(customdomain.Config{
+		Database:     database,
+		Restate:      restateClient,
+		Logger:       logger,
+		DefaultCname: cfg.DefaultCname,
+	})))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
