@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "admin",
+    srcs = ["client.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/restate/admin",
+    visibility = ["//visibility:public"],
+)

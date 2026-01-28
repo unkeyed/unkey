@@ -2145,6 +2145,13 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateCustomDomainFailed(ctx context.Context, db DBTX, arg UpdateCustomDomainFailedParams) error
+	//UpdateCustomDomainInvocationID
+	//
+	//  UPDATE custom_domains
+	//  SET invocation_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateCustomDomainInvocationID(ctx context.Context, db DBTX, arg UpdateCustomDomainInvocationIDParams) error
 	//UpdateCustomDomainVerificationStatus
 	//
 	//  UPDATE custom_domains
