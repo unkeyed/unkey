@@ -9,7 +9,6 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/shutdown"
 	"github.com/unkeyed/unkey/pkg/version"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/bridges/prometheus"
@@ -26,6 +25,12 @@ import (
 
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
+
+// Registrar is an interface for registering shutdown functions.
+// Both pkg/shutdown.Shutdowns and pkg/runner.Runner implement this interface.
+type Registrar interface {
+	RegisterCtx(fns ...func(ctx context.Context) error)
+}
 
 // Config defines the configuration settings for OpenTelemetry integration with Grafana.
 // It specifies connection details and application metadata needed for proper telemetry.
@@ -88,7 +93,7 @@ type Config struct {
 //	for _, err := range errs {
 //	    log.Printf("Shutdown error: %v", err)
 //	}
-func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdowns) error {
+func InitGrafana(ctx context.Context, config Config, shutdowns Registrar) error {
 	// Create a resource with common attributes
 	res, err := resource.New(ctx,
 		resource.WithAttributes(

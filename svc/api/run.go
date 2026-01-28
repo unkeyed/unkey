@@ -29,7 +29,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
 	"github.com/unkeyed/unkey/pkg/version"
@@ -47,7 +47,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 
-	shutdowns := shutdown.New()
+	r := runner.New()
 
 	if cfg.OtelEnabled {
 		grafanaErr := otel.InitGrafana(ctx, otel.Config{
@@ -57,7 +57,7 @@ func Run(ctx context.Context, cfg Config) error {
 			CloudRegion:     cfg.Region,
 			TraceSampleRate: cfg.OtelTraceSamplingRate,
 		},
-			shutdowns,
+			r,
 		)
 		if grafanaErr != nil {
 			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
@@ -98,9 +98,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
-		if r := recover(); r != nil {
+		if rec := recover(); rec != nil {
 			logger.Error("panic",
-				"panic", r,
+				"panic", rec,
 				"stack", string(debug.Stack()),
 			)
 		}
@@ -115,30 +115,12 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	defer func() {
-		if err := db.Close(); err != nil {
-			logger.Error("failed to close db", "error", err)
-		}
-	}()
+	r.Defer(db.Close)
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New(prometheus.Config{
-			Logger: logger,
+		r.Go(func(ctx context.Context) error {
+			return prometheus.Serve(fmt.Sprintf(":%d", cfg.PrometheusPort))
 		})
-		if promErr != nil {
-			return fmt.Errorf("unable to start prometheus: %w", promErr)
-		}
-
-		go func() {
-			promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-			if listenErr != nil {
-				panic(listenErr)
-			}
-			serveErr := prom.Serve(ctx, promListener)
-			if serveErr != nil {
-				panic(serveErr)
-			}
-		}()
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
@@ -168,7 +150,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create server: %w", err)
 	}
 
-	shutdowns.RegisterCtx(srv.Shutdown)
+	r.DeferCtx(srv.Shutdown)
 
 	validator, err := validation.New()
 	if err != nil {
@@ -193,7 +175,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Key service will be created after caches
-	shutdowns.Register(rlSvc.Close)
+	r.Defer(rlSvc.Close)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
 		Logger:  logger,
@@ -258,7 +240,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		// Register topic for graceful shutdown
-		shutdowns.Register(cacheInvalidationTopic.Close)
+		r.Defer(cacheInvalidationTopic.Close)
 	}
 
 	caches, err := caches.New(caches.Config{
@@ -285,8 +267,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
 
-	shutdowns.Register(keySvc.Close)
-	shutdowns.Register(ctr.Close)
+	r.Defer(keySvc.Close)
+	r.Defer(ctr.Close)
 
 	// Initialize analytics connection manager
 	analyticsConnMgr := analytics.NewNoopConnectionManager()
@@ -359,17 +341,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	go func() {
-		serveErr := srv.Serve(ctx, cfg.Listener)
-		if serveErr != nil {
-			panic(serveErr)
-		}
-
+	r.Go(func(ctx context.Context) error {
 		logger.Info("API server started successfully")
-	}()
+		return srv.Serve(ctx, cfg.Listener)
+	})
 
 	// Wait for either OS signals or context cancellation, then shutdown
-	if err := shutdowns.WaitForSignal(ctx, time.Minute); err != nil {
+	if err := r.Run(ctx, runner.WithTimeout(time.Minute)); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
