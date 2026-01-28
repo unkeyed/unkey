@@ -107,7 +107,7 @@ func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain strin
 
 	// Create the ACME challenge record with status 'waiting' so the renewal cron picks it up
 	err = db.Query.InsertAcmeChallenge(ctx, c.database.RW(), db.InsertAcmeChallengeParams{
-		WorkspaceID:   workspaceID,
+		WorkspaceID:   internalID,
 		DomainID:      domainID,
 		Token:         "",
 		Authorization: "",
