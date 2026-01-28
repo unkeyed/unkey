@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -59,6 +60,11 @@ func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 	}
 
 	_, err = c.ensureServiceExists(ctx, req, sentinel)
+	if err != nil {
+		return err
+	}
+
+	err = c.ensurePDBExists(ctx, req, sentinel)
 	if err != nil {
 		return err
 	}
@@ -126,10 +132,19 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 				MatchLabels: labels.New().
 					SentinelID(sentinel.GetSentinelId()),
 			},
-
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxUnavailable: ptr.P(intstr.FromInt(0)),
+					MaxSurge:       ptr.P(intstr.FromInt(1)),
+				},
+			},
 			MinReadySeconds: 30,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"reloader.stakater.com/auto": "true",
+					},
 					Labels: labels.New().
 						WorkspaceID(sentinel.GetWorkspaceId()).
 						EnvironmentID(sentinel.GetEnvironmentId()).
@@ -301,4 +316,53 @@ func sentinelTopologySpread(sentinelID string) []corev1.TopologySpreadConstraint
 			},
 		},
 	}
+}
+
+// ensurePDBExists creates or updates a PodDisruptionBudget for the sentinel.
+// The PDB ensures at least one pod remains available during voluntary disruptions
+// (node drains, rolling updates, etc.). It is owned by the Deployment for automatic cleanup.
+func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) error {
+	client := c.clientSet.PolicyV1().PodDisruptionBudgets(NamespaceSentinel)
+
+	desired := &policyv1.PodDisruptionBudget{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "policy/v1",
+			Kind:       "PodDisruptionBudget",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      sentinel.GetK8SName(),
+			Namespace: NamespaceSentinel,
+			Labels: labels.New().
+				WorkspaceID(sentinel.GetWorkspaceId()).
+				ProjectID(sentinel.GetProjectId()).
+				EnvironmentID(sentinel.GetEnvironmentId()).
+				SentinelID(sentinel.GetSentinelId()).
+				ManagedByKrane().
+				ComponentSentinel(),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "apps/v1",
+					Kind:       "Deployment",
+					Name:       deployment.GetName(),
+					UID:        deployment.UID,
+				},
+			},
+		},
+		Spec: policyv1.PodDisruptionBudgetSpec{
+			MinAvailable: ptr.P(intstr.FromInt(1)),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels.New().SentinelID(sentinel.GetSentinelId()),
+			},
+		},
+	}
+
+	patch, err := json.Marshal(desired)
+	if err != nil {
+		return fmt.Errorf("failed to marshal pdb: %w", err)
+	}
+
+	_, err = client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerKrane,
+	})
+	return err
 }
