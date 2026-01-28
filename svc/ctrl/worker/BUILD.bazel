@@ -20,7 +20,6 @@ go_library(
         "//pkg/otel/logging",
         "//pkg/prometheus",
         "//pkg/restate/admin",
-        "//pkg/retry",
         "//pkg/rpc/interceptor",
         "//pkg/shutdown",
         "//svc/ctrl/pkg/build",

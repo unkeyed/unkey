@@ -48,7 +48,10 @@ export function AddCustomDomain({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [domain, setDomain] = useState("");
-  const [environmentId, setEnvironmentId] = useState(environments[0]?.id ?? "");
+  // Default to production environment, fall back to first environment
+  const defaultEnvId =
+    environments.find((e) => e.slug === "production")?.id ?? environments[0]?.id ?? "";
+  const [environmentId, setEnvironmentId] = useState(defaultEnvId);
 
   useEffect(() => {
     containerRef.current?.scrollIntoView({

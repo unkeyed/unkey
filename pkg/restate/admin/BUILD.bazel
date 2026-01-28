@@ -5,4 +5,5 @@ go_library(
     srcs = ["client.go"],
     importpath = "github.com/unkeyed/unkey/pkg/restate/admin",
     visibility = ["//visibility:public"],
+    deps = ["//pkg/retry"],
 )
