@@ -79,7 +79,7 @@ k8s_resource(
 
 # Restate service
 k8s_yaml('k8s/manifests/restate.yaml')
-k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=[], labels=['database'])
+k8s_resource('restate', port_forwards=['8080:8080', '9070:9070'], resource_deps=[], labels=['database'])
 
 
 # Build Go binaries locally (auto-detect arch from minikube)
