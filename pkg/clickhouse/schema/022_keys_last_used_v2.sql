@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS default.keys_last_used_v2
     tags Array(String) DEFAULT []
 )
 ENGINE = ReplacingMergeTree(time)
-ORDER BY (workspace_id, key_space_id, time, key_id)
+PRIMARY KEY (workspace_id, key_space_id, key_id)
+ORDER BY (workspace_id, key_space_id, key_id, time)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE;
 
 -- Materialized view that automatically populates the table from new inserts
