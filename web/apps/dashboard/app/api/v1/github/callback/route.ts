@@ -21,9 +21,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing state parameter" }, { status: 400 });
   }
 
-  const [projectId, workspaceSlug] = state.split(":");
-  if (!projectId || !workspaceSlug) {
+  let parsedState: { projectId?: string };
+  try {
+    parsedState = JSON.parse(state);
+  } catch {
     return NextResponse.json({ error: "Invalid state parameter" }, { status: 400 });
+  }
+
+  const { projectId } = parsedState;
+  if (!projectId) {
+    return NextResponse.json({ error: "Missing projectId in state" }, { status: 400 });
   }
 
   const { orgId } = await getAuth();
@@ -65,6 +72,6 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.redirect(
-    new URL(`/${workspaceSlug}/projects/${projectId}/settings?installed=true`, request.url),
+    new URL(`/${workspace.slug}/projects/${projectId}/settings?installed=true`, request.url),
   );
 }

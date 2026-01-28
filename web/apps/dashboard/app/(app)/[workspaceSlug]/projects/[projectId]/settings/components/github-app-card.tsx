@@ -3,12 +3,11 @@ import { SettingCard, buttonVariants } from "@unkey/ui";
 
 type Props = {
   projectId: string;
-  workspaceSlug: string;
   hasInstallations: boolean;
 };
 
-export const GitHubAppCard: React.FC<Props> = ({ projectId, workspaceSlug, hasInstallations }) => {
-  const state = `${projectId}:${workspaceSlug}`;
+export const GitHubAppCard: React.FC<Props> = ({ projectId, hasInstallations }) => {
+  const state = JSON.stringify({ projectId });
   const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
 
   return (
