@@ -5,7 +5,6 @@ go_library(
     srcs = [
         "config.go",
         "doc.go",
-        "restate.go",
         "run.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker",
@@ -20,6 +19,7 @@ go_library(
         "//pkg/db",
         "//pkg/otel/logging",
         "//pkg/prometheus",
+        "//pkg/restate/admin",
         "//pkg/retry",
         "//pkg/rpc/interceptor",
         "//pkg/shutdown",
@@ -27,6 +27,7 @@ go_library(
         "//svc/ctrl/pkg/s3",
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/certificate",
+        "//svc/ctrl/worker/customdomain",
         "//svc/ctrl/worker/deploy",
         "//svc/ctrl/worker/routing",
         "//svc/ctrl/worker/versioning",

@@ -17,6 +17,17 @@ import type { CustomDomain } from "./types";
 // Basic domain validation regex
 const DOMAIN_REGEX = /^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}$/;
 
+// Extract bare hostname from a pasted URL or raw input
+function extractDomain(input: string): string {
+  const trimmed = input.trim().toLowerCase();
+  try {
+    // Try parsing as a URL (works if it has a protocol)
+    return new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`).hostname;
+  } catch {
+    return trimmed;
+  }
+}
+
 type AddCustomDomainProps = {
   projectId: string;
   environments: Array<{ id: string; slug: string }>;
@@ -54,14 +65,11 @@ export function AddCustomDomain({
       return undefined;
     }
 
-    // Remove protocol if user pasted it
-    const cleanDomain = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-
-    if (!DOMAIN_REGEX.test(cleanDomain)) {
+    if (!DOMAIN_REGEX.test(domain)) {
       return "Invalid domain format";
     }
 
-    if (getExistingDomain(cleanDomain)) {
+    if (getExistingDomain(domain)) {
       return "Domain already registered";
     }
 
@@ -69,8 +77,7 @@ export function AddCustomDomain({
   };
 
   const error = getError();
-  const cleanDomain = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const isValid = cleanDomain && !error && environmentId;
+  const isValid = domain && !error && environmentId;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && isValid) {
@@ -89,7 +96,7 @@ export function AddCustomDomain({
     const mutation = addMutation.mutateAsync({
       projectId,
       environmentId,
-      domain: cleanDomain,
+      domain,
     });
 
     toast.promise(mutation, {
@@ -118,7 +125,7 @@ export function AddCustomDomain({
           type="text"
           placeholder="api.example.com"
           value={domain}
-          onChange={(e) => setDomain(e.target.value.toLowerCase())}
+          onChange={(e) => setDomain(extractDomain(e.target.value))}
           onKeyDown={handleKeyDown}
           className={cn("min-h-[32px] text-sm flex-1", error && "border-red-6 focus:border-red-7")}
           autoComplete="off"

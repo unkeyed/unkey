@@ -14,12 +14,13 @@ import {
   Badge,
   Button,
   ConfirmPopover,
+  CopyButton,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
   toast,
 } from "@unkey/ui";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { CustomDomain, VerificationStatus } from "./types";
 
 type CustomDomainRowProps = {
@@ -60,11 +61,6 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
   const retryMutation = trpc.deploy.customDomain.retry.useMutation();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
-  const anchorRef = useMemo(
-    () => ({ current: deleteButtonRef.current }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deleteButtonRef.current],
-  );
 
   const verificationStatus = domain.verificationStatus as VerificationStatus;
   const status = statusConfig[verificationStatus] ?? statusConfig.pending;
@@ -114,10 +110,10 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
   const isLoading = deleteMutation.isLoading || retryMutation.isLoading;
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-4 last:border-b-0 group hover:bg-gray-2 transition-colors">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <Link4 className="text-gray-9 !size-4 flex-shrink-0" />
-        <div className="flex flex-col min-w-0">
+    <div className="border-b border-gray-4 last:border-b-0 group hover:bg-gray-2 transition-colors">
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Link4 className="text-gray-9 !size-4 flex-shrink-0" />
           <a
             href={`https://${domain.domain}`}
             target="_blank"
@@ -126,96 +122,99 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
           >
             {domain.domain}
           </a>
-          {verificationStatus !== "verified" && (
-            <CnameInstructions targetCname={domain.targetCname} domain={domain.domain} />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Badge variant={status.color} className="gap-1">
+            {status.icon}
+            {status.label}
+          </Badge>
+
+          {verificationStatus === "failed" && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleRetry}
+                  disabled={isLoading}
+                  className="size-7 text-gray-9 hover:text-gray-11"
+                >
+                  <Refresh3
+                    className={cn("!size-3.5", retryMutation.isLoading && "animate-spin")}
+                  />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Retry verification</TooltipContent>
+            </Tooltip>
+          )}
+
+          {domain.verificationError && (
+            <Tooltip>
+              <TooltipTrigger>
+                <CircleInfo className="!size-4 text-error-9" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">{domain.verificationError}</TooltipContent>
+            </Tooltip>
+          )}
+
+          <Button
+            ref={deleteButtonRef}
+            size="icon"
+            variant="ghost"
+            disabled={isLoading}
+            onClick={() => setIsConfirmOpen(true)}
+            className="size-7 text-gray-9 hover:text-error-9 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Trash className="!size-3.5" />
+          </Button>
+
+          {deleteButtonRef.current && (
+            <ConfirmPopover
+              isOpen={isConfirmOpen}
+              onOpenChange={setIsConfirmOpen}
+              triggerRef={deleteButtonRef}
+              title="Delete domain"
+              description={`Are you sure you want to delete ${domain.domain}? This will remove the domain and any associated routing.`}
+              onConfirm={handleDelete}
+              confirmButtonText="Delete"
+              variant="danger"
+            />
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Badge variant={status.color} className="gap-1">
-          {status.icon}
-          {status.label}
-        </Badge>
-
-        {verificationStatus === "failed" && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleRetry}
-                disabled={isLoading}
-                className="size-7 text-gray-9 hover:text-gray-11"
-              >
-                <Refresh3 className={cn("!size-3.5", retryMutation.isLoading && "animate-spin")} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Retry verification</TooltipContent>
-          </Tooltip>
-        )}
-
-        {domain.verificationError && (
-          <Tooltip>
-            <TooltipTrigger>
-              <CircleInfo className="!size-4 text-error-9" />
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">{domain.verificationError}</TooltipContent>
-          </Tooltip>
-        )}
-
-        <Button
-          ref={deleteButtonRef}
-          size="icon"
-          variant="ghost"
-          disabled={isLoading}
-          onClick={() => setIsConfirmOpen(true)}
-          className="size-7 text-gray-9 hover:text-error-9 opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <Trash className="!size-3.5" />
-        </Button>
-
-        {deleteButtonRef.current && (
-          <ConfirmPopover
-            isOpen={isConfirmOpen}
-            onOpenChange={setIsConfirmOpen}
-            triggerRef={anchorRef}
-            title="Delete domain"
-            description={`Are you sure you want to delete ${domain.domain}? This will remove the domain and any associated routing.`}
-            onConfirm={handleDelete}
-            confirmButtonText="Delete"
-            variant="danger"
-          />
-        )}
-      </div>
+      {verificationStatus !== "verified" && (
+        <DnsRecordTable domain={domain.domain} targetCname={domain.targetCname} />
+      )}
     </div>
   );
 }
 
-function CnameInstructions({ targetCname, domain }: { targetCname: string; domain: string }) {
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
-  };
-
+function DnsRecordTable({ domain, targetCname }: { domain: string; targetCname: string }) {
   return (
-    <div className="flex items-center gap-1 text-xs text-gray-9 mt-0.5">
-      <span>Add CNAME:</span>
-      <button
-        type="button"
-        onClick={() => copyToClipboard(domain)}
-        className="font-mono text-accent-11 hover:underline cursor-pointer"
-      >
-        {domain}
-      </button>
-      <span>→</span>
-      <button
-        type="button"
-        onClick={() => copyToClipboard(targetCname)}
-        className="font-mono text-accent-11 hover:underline cursor-pointer"
-      >
-        {targetCname}
-      </button>
+    <div className="px-4 pb-3">
+      <p className="text-xs text-gray-9 mb-2">
+        Add the following DNS record at your provider to verify ownership.
+      </p>
+      <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
+        <div className="grid grid-cols-[80px_1fr_1fr] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
+          <span>Type</span>
+          <span>Name</span>
+          <span>Value</span>
+        </div>
+        <div className="grid grid-cols-[80px_1fr_1fr] px-3 py-2 items-center">
+          <span className="text-gray-11 font-medium">CNAME</span>
+          <span className="flex items-center gap-1.5 min-w-0">
+            <code className="text-content font-mono truncate">{domain}</code>
+            <CopyButton value={domain} variant="ghost" className="size-5 flex-shrink-0" />
+          </span>
+          <span className="flex items-center gap-1.5 min-w-0">
+            <code className="text-content font-mono truncate">{targetCname}</code>
+            <CopyButton value={targetCname} variant="ghost" className="size-5 flex-shrink-0" />
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

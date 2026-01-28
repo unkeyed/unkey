@@ -88,25 +88,7 @@ func (s *Service) AddCustomDomain(
 		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("domain already registered: %s", domain))
 	}
 
-	// Trigger verification workflow first to get invocation ID
-	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain)
-	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
-		WorkspaceId: req.Msg.GetWorkspaceId(),
-		Domain:      domain,
-	})
-
-	var invocationID sql.NullString
-	if sendErr != nil {
-		s.logger.Warn("failed to trigger verification workflow",
-			"domain", domain,
-			"error", sendErr,
-		)
-		// Don't fail the request - domain is created, verification can be retried
-	} else {
-		invocationID = sql.NullString{Valid: true, String: sendResp.Id()}
-	}
-
-	// Create custom domain record with invocation ID
+	// Create custom domain record first (workflow needs it in DB)
 	domainID := uid.New(uid.DomainPrefix)
 	now := time.Now().UnixMilli()
 
@@ -119,11 +101,30 @@ func (s *Service) AddCustomDomain(
 		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
 		VerificationStatus: db.CustomDomainsVerificationStatusPending,
 		TargetCname:        s.defaultCname,
-		InvocationID:       invocationID,
 		CreatedAt:          now,
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create domain: %w", err))
+	}
+
+	// Trigger verification workflow and store invocation ID
+	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain)
+	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
+		WorkspaceId: req.Msg.GetWorkspaceId(),
+		Domain:      domain,
+	})
+	if sendErr != nil {
+		s.logger.Warn("failed to trigger verification workflow",
+			"domain", domain,
+			"error", sendErr,
+		)
+		// Don't fail the request - domain is created, verification can be retried
+	} else {
+		_ = db.Query.UpdateCustomDomainInvocationID(ctx, s.db.RW(), db.UpdateCustomDomainInvocationIDParams{
+			ID:           domainID,
+			InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
+			UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+		})
 	}
 
 	return connect.NewResponse(&ctrlv1.AddCustomDomainResponse{

@@ -29,6 +29,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
+	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
@@ -154,6 +155,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
+
+	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
+		DB:           database,
+		Logger:       logger,
+		DefaultCname: cfg.DefaultCname,
+	})))
 
 	// Initialize domain cache for ACME providers
 	clk := clock.New()

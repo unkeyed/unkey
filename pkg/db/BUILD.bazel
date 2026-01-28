@@ -82,6 +82,7 @@ go_library(
         "custom_domain_reset_verification.sql_generated.go",
         "custom_domain_update_check_attempt.sql_generated.go",
         "custom_domain_update_failed.sql_generated.go",
+        "custom_domain_update_invocation_id.sql_generated.go",
         "custom_domain_update_verification_status.sql_generated.go",
         "custom_domain_update_verified.sql_generated.go",
         "custom_domain_upsert.sql_generated.go",
