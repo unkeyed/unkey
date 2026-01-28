@@ -63,8 +63,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     // Merge configs, allowing specific overrides
     const config = { ...DEFAULT_CONFIG, ...userConfig };
     const isGridLayout = config.layoutMode === "grid";
-    const parentRef = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const parentRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+    const containerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     // Default to false (desktop) to prevent hydration mismatches
     const isMobile = useIsMobile({ defaultValue: false });
 
@@ -94,6 +94,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     );
 
     // Expose refs and methods to parent components. Primarily used for anchoring log details.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: refs are stable and shouldn't be in deps
     useImperativeHandle(
       ref,
       () => ({

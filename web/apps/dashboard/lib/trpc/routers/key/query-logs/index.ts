@@ -11,7 +11,7 @@ const keyDetailsLogsResponse = z.object({
   logs: z.array(z.custom<KeyDetailsLog>()),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.number().int().optional(),
+  nextCursor: z.int().optional(),
 });
 type KeyDetailsLogsResponse = z.infer<typeof keyDetailsLogsResponse>;
 

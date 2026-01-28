@@ -13,7 +13,7 @@ export const EventsFilter = () => {
   return (
     <FilterCheckbox
       showScroll
-      options={Object.values(unkeyAuditLogEvents.Values).map<EventsOption>((value, index) => ({
+      options={Object.values(unkeyAuditLogEvents.enum).map<EventsOption>((value, index) => ({
         id: index,
         display: value,
         label: value,

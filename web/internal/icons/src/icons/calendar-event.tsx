@@ -9,14 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const CalendarEvent: React.FC<IconProps> = ({
-  iconSize = "md-regular",
-  filled,
-  ...props
-}) => {
+export function CalendarEvent({ iconSize = "md-regular", filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -71,4 +67,4 @@ export const CalendarEvent: React.FC<IconProps> = ({
       </g>
     </svg>
   );
-};
+}

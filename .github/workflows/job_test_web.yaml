@@ -25,7 +25,7 @@ jobs:
           CI: 1
         working-directory: web
       - name: Test
-        run: pnpm turbo run test --filter '!api'
+        run: pnpm turbo run test
         env:
           CI: 1
           TESTCONTAINERS_RYUK_DISABLED: true

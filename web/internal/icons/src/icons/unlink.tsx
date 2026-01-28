@@ -9,11 +9,11 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
+
 // Uses Link4 with center removed
-export const Unlink: React.FC<IconProps> = ({ iconSize = "md-regular", ...props }) => {
+export function Unlink({ iconSize = "md-regular", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -43,4 +43,4 @@ export const Unlink: React.FC<IconProps> = ({ iconSize = "md-regular", ...props 
       </g>
     </svg>
   );
-};
+}

@@ -15,9 +15,9 @@ type Service interface {
 	// credits remain.
 	Limit(ctx context.Context, req UsageRequest) (UsageResponse, error)
 
-	// Invalidate removes the cached limit for the given keyId, forcing the
+	// Invalidate removes the cached limit for the given keyID, forcing the
 	// next [Limit] call to reload from the database.
-	Invalidate(ctx context.Context, keyId string) error
+	Invalidate(ctx context.Context, keyID string) error
 
 	// Close gracefully shuts down the usage limiter service, draining any
 	// pending replay operations before returning.
@@ -28,7 +28,7 @@ type Service interface {
 // for an API key. The Cost field specifies how many credits this operation
 // should consume.
 type UsageRequest struct {
-	KeyId string
+	KeyID string
 	Cost  int32
 }
 
@@ -38,5 +38,5 @@ type UsageRequest struct {
 // if the key has no limit configured.
 type UsageResponse struct {
 	Valid     bool
-	Remaining int32
+	Remaining int32 // Remaining usage for the keyID -1 indicates no limit
 }

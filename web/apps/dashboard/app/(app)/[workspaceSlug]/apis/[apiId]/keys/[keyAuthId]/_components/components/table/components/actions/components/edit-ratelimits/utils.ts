@@ -2,21 +2,28 @@ import { getDefaultValues } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_comp
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 
 export const getKeyRatelimitsDefaults = (keyDetails: KeyDetails) => {
+  const defaultValues = getDefaultValues();
   const defaultRatelimits =
     keyDetails.key.ratelimits.items.length > 0
       ? keyDetails.key.ratelimits.items
-      : (getDefaultValues().ratelimit?.data ?? [
-          {
-            name: "Default",
-            limit: 10,
-            refillInterval: 1000,
-          },
-        ]);
+      : defaultValues.ratelimit?.enabled
+        ? defaultValues.ratelimit.data
+        : [
+            {
+              name: "Default",
+              limit: 10,
+              refillInterval: 1000,
+            },
+          ];
 
   return {
-    ratelimit: {
-      enabled: keyDetails.key.ratelimits.enabled,
-      data: defaultRatelimits,
-    },
+    ratelimit: keyDetails.key.ratelimits.enabled
+      ? ({
+          enabled: true as const,
+          data: defaultRatelimits,
+        } as const)
+      : ({
+          enabled: false as const,
+        } as const),
   };
 };

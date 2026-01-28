@@ -22,6 +22,6 @@ export const apisOverviewResponse = z.object({
 export type ApisOverviewResponse = z.infer<typeof apisOverviewResponse>;
 
 export const queryApisOverviewPayload = z.object({
-  limit: z.number().min(1).max(18).default(9),
+  limit: z.number().min(1).max(18).prefault(9),
   cursor: Cursor.optional(),
 });

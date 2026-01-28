@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
+	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
-	"github.com/unkeyed/unkey/pkg/vault"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
@@ -111,30 +112,17 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	shutdowns.Register(sentinelCtrl.Stop)
 
-	// Create vault service for secrets decryption
-
-	var vaultSvc *vault.Service
-	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3.URL != "" {
-		vaultStorage, vaultStorageErr := storage.NewS3(storage.S3Config{
-			Logger:            logger,
-			S3URL:             cfg.VaultS3.URL,
-			S3Bucket:          cfg.VaultS3.Bucket,
-			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
-			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
-		})
-		if vaultStorageErr != nil {
-			return fmt.Errorf("unable to create vault storage: %w", vaultStorageErr)
-		}
-
-		vaultSvc, err = vault.New(vault.Config{
-			Logger:     logger,
-			Storage:    vaultStorage,
-			MasterKeys: cfg.VaultMasterKeys,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create vault service: %w", err)
-		}
-		logger.Info("Vault service initialized", "bucket", cfg.VaultS3.Bucket)
+	// Create vault client for secrets decryption
+	var vaultClient vaultv1connect.VaultServiceClient
+	if cfg.VaultURL != "" {
+		vaultClient = vaultv1connect.NewVaultServiceClient(
+			http.DefaultClient,
+			cfg.VaultURL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": "Bearer " + cfg.VaultToken,
+			})),
+		)
+		logger.Info("Vault client initialized", "url", cfg.VaultURL)
 	}
 
 	// Create the connect handler
@@ -150,16 +138,16 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	// Register secrets service if vault is configured
-	if vaultSvc != nil {
+	if vaultClient != nil {
 		secretsSvc := secrets.New(secrets.Config{
 			Logger:         logger,
-			Vault:          vaultSvc,
+			Vault:          vaultClient,
 			TokenValidator: tokenValidator,
 		})
 		mux.Handle(kranev1connect.NewSecretsServiceHandler(secretsSvc))
 		logger.Info("Secrets service registered")
 	} else {
-		logger.Info("Secrets service not enabled (missing vault or token validator configuration)")
+		logger.Info("Secrets service not enabled (missing vault configuration)")
 	}
 
 	addr := fmt.Sprintf(":%d", cfg.RPCPort)

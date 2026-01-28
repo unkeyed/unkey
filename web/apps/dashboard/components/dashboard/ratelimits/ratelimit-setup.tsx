@@ -1,6 +1,6 @@
 "use client";
 import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
-import type { RatelimitFormContextValues, RatelimitItem } from "@/lib/schemas/ratelimit";
+import type { RatelimitFormValues, RatelimitItem } from "@/lib/schemas/ratelimit";
 import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -20,7 +20,7 @@ export const RatelimitSetup = ({
     control,
     setValue,
     trigger,
-  } = useFormContext<RatelimitFormContextValues>();
+  } = useFormContext<RatelimitFormValues>();
 
   // Helper to safely access error messages from conditional schema
   const getFieldError = (index: number, field: keyof RatelimitItem): string | undefined => {
@@ -52,7 +52,9 @@ export const RatelimitSetup = ({
   // Ensure there's always at least one ratelimit item
   useEffect(() => {
     if (fields.length === 0) {
-      append({
+      // biome-ignore lint/suspicious/noExplicitAny: useFieldArray with discriminated unions requires type assertion
+      (append as any)({
+        id: undefined,
         name: "Default",
         limit: 10,
         refillInterval: 1000,
@@ -67,7 +69,9 @@ export const RatelimitSetup = ({
   };
 
   const handleAddRatelimit = () => {
-    append({
+    // biome-ignore lint/suspicious/noExplicitAny: useFieldArray with discriminated unions requires type assertion
+    (append as any)({
+      id: undefined,
       name: "",
       limit: 10,
       refillInterval: 1000,
@@ -112,7 +116,8 @@ export const RatelimitSetup = ({
       </div>
 
       <div>
-        {fields.map((field, index) => (
+        {/* biome-ignore lint/suspicious/noExplicitAny: useFieldArray with discriminated unions requires type assertion */}
+        {(fields as any[]).map((field: any, index: number) => (
           <div key={field.id} className="space-y-4 w-full border-t border-grayA-3 py-6">
             <div className="flex items-center gap-[14px] w-full">
               <FormInput

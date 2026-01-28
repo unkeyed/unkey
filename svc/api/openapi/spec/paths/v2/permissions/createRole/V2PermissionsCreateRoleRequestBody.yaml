@@ -14,7 +14,7 @@ properties:
     example: "support.readonly"
   description:
     type: string
-    maxLength: 2048
+    maxLength: 512
     description: |
       Provides comprehensive documentation of what this role encompasses and what access it grants.
       Include information about the intended use case, what permissions should be assigned, and any important considerations.

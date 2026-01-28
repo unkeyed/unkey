@@ -1,75 +1,52 @@
-// Package deployment provides complete deployment lifecycle orchestration.
+// Package deployment provides the control-plane deployment service for managing
+// application deployments, promotions, and rollbacks.
 //
-// This package implements the core deployment functionality of the
-// unkey platform, managing the entire deployment process from
-// container creation through scaling, routing, and promotion.
-// It coordinates with Krane agents for container orchestration
-// and integrates with build services for container image creation.
+// This package implements a ConnectRPC service that orchestrates deployment
+// workflows through Restate for durable execution. It acts as the API layer
+// between clients (CLI, dashboard) and the underlying Hydra deployment workflows.
 //
-// # Architecture
+// # Concurrency Model
 //
-// The deployment service provides comprehensive workflow orchestration:
-//   - Deploy new container images and configure routing
-//   - Scale deployments by adjusting replica counts
-//   - Promote successful deployments to production traffic
-//   - Rollback failed deployments to previous working versions
-//   - Manage domain assignments and sticky behavior
-//   - Coordinate with sentinel configurations for edge routing
-//
-// # Built on Restate
-//
-// All deployment workflows use Restate for durable execution:
-//   - Automatic retries on transient failures
-//   - Exactly-once guarantees for each workflow step
-//   - Durable state that survives process crashes and restarts
-//   - Virtual object concurrency control keyed by project ID
-//
-// # Key Workflow Types
-//
-// [Workflow.Deploy]: Deploy new applications from container images
-// [Workflow.Rollback]: Revert to previous deployment version
-// [Workflow.Promote]: Mark deployment as production-ready
+// All operations use Restate virtual objects keyed by project ID, ensuring only
+// one deployment operation runs per project at a time. This prevents race
+// conditions when multiple deployments, promotions, or rollbacks are triggered
+// simultaneously for the same project.
 //
 // # Deployment Sources
 //
-// The service supports multiple deployment sources:
-//   - Source from build: Create from existing container image
-//   - Source from git: Build from repository with Dockerfile
+// [CreateDeployment] supports two deployment sources:
 //
-// # Integration Points
+//   - Build from source: provide a build context path (S3 key to a tar.gz archive)
+//     and optionally a Dockerfile path (defaults to "./Dockerfile")
+//   - Prebuilt image: provide a Docker image reference directly
 //
-// - Build Services: Coordinates with Depot or Docker backends
-// - Krane Agents: Container orchestration and deployment
-// - Database: Persistent state and metadata management
-// - Routing Service: Domain assignment and traffic management
-// - Vault Service: Secure storage of secrets and certificates
+// # Workflow Lifecycle
 //
-// # Usage
+// Deployments follow this lifecycle:
 //
-// Creating deployment service:
-//
-//	deploymentSvc := deployment.New(deployment.Config{
-//		Database:     mainDB,
-//		Restate:      restateClient,
-//		BuildService: buildService,
-//		Logger:        logger,
-//		DefaultDomain: "unkey.app",
-//	})
-//
-//	// Deploy new application
-//	_, err := deploymentSvc.Deploy(ctx, &hydrav1.DeployRequest{
-//		DeploymentId: "deploy-123",
-//		Source: &hydrav1.DeployRequest_Git{
-//			Git: &hydrav1.DeployRequest_Git_Source{
-//				Repository: "https://github.com/user/repo.git",
-//				Branch:     "main",
-//				CommitSha:  "abc123def456",
-//			},
-//		},
-//	})
+//  1. [CreateDeployment] validates the request, stores metadata in the database
+//     with status "pending", and triggers an async Restate workflow
+//  2. The Hydra workflow (separate service) builds the image, deploys containers,
+//     and configures networking
+//  3. [GetDeployment] retrieves current deployment status and metadata
+//  4. [Promote] switches traffic to the target deployment
+//  5. [Rollback] reverts traffic to a previous deployment
 //
 // # Error Handling
 //
-// The service uses comprehensive error handling with proper HTTP
-// status codes and database transaction management.
+// All methods return Connect error codes following standard conventions:
+// [connect.CodeInvalidArgument] for validation errors, [connect.CodeNotFound]
+// for missing resources, and [connect.CodeInternal] for system failures.
+//
+// # Usage
+//
+// Creating the deployment service:
+//
+//	svc := deployment.New(deployment.Config{
+//		Database:         db,
+//		Restate:          restateClient,
+//		Logger:           logger,
+//		AvailableRegions: []string{"us-east-1", "eu-west-1"},
+//		BuildStorage:     s3Storage,
+//	})
 package deployment
