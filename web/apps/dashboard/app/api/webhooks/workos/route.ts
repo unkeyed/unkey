@@ -16,7 +16,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ Error: "Missing signature header" }, { status: 400 });
   }
 
-  const payload = await req.json();
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Invalid JSON payload";
+    console.error("Failed to parse webhook payload:", message);
+    return NextResponse.json({ Error: "Invalid JSON payload" }, { status: 400 });
+  }
   
   const workos = new WorkOS(WORKOS_API_KEY);
 
@@ -48,8 +55,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({}, { status: 200 });
   } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { error: (err as Error).message },
+      { error: message },
       { status: 400 }
     );
   }
