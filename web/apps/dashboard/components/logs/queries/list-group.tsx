@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Bookmark, CircleCheck, Layers2 } from "@unkey/icons";
+import { Bookmark, Layers2 } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useQueries } from "./queries-context";
@@ -64,9 +64,7 @@ export function ListGroup({
 
   const handleToast = (message: ToolTipMessageType) => {
     toast.success(
-      <QueriesToast message={message} undoBookmarked={() => changeBookmark(filterList.id)}>
-        <CircleCheck iconSize="xl-regular" className="text-success-9" />
-      </QueriesToast>,
+      <QueriesToast message={message} undoBookmarked={() => changeBookmark(filterList.id)} />,
     );
   };
 
@@ -141,7 +139,12 @@ export function ListGroup({
           className="flex flex-col h-[24px] pr-2 mt-1.5 w-[24px]"
           onMouseEnter={handleMouseEnter}
         >
-          <InfoTooltip variant="inverted" position={{ side: "top" }} content={tooltipMessage}>
+          <InfoTooltip
+            variant="inverted"
+            position={{ side: "top" }}
+            content={tooltipMessage}
+            asChild
+          >
             <button
               type="button"
               className={cn(

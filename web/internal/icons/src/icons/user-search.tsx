@@ -9,11 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const UserSearch: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
+export function UserSearch({ iconSize, filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize || "md-regular"];
 
   return (
@@ -60,4 +59,4 @@ export const UserSearch: React.FC<IconProps> = ({ iconSize, filled, ...props }) 
       </g>
     </svg>
   );
-};
+}

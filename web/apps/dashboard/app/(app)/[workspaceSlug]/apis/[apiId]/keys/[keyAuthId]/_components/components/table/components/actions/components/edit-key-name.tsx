@@ -5,6 +5,7 @@ import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/sche
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useEffect } from "react";
+import type { Resolver } from "react-hook-form";
 import { FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { useEditKeyName } from "./hooks/use-edit-key";
@@ -14,7 +15,7 @@ const editNameFormSchema = z
   .object({
     name: nameSchema,
     //Hidden field. Required for comparison
-    originalName: z.string().optional().default(""),
+    originalName: z.string().optional().prefault(""),
   })
   .superRefine((data, ctx) => {
     const normalizedNewName = (data.name || "").trim();
@@ -22,7 +23,7 @@ const editNameFormSchema = z
 
     if (normalizedNewName === normalizedOriginalName && normalizedNewName !== "") {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "New name must be different from the current name",
         path: ["name"],
       });
@@ -38,7 +39,7 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
   const methods = usePersistedForm<EditNameFormValues>(
     `${EDIT_NAME_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
-      resolver: zodResolver(editNameFormSchema),
+      resolver: zodResolver(editNameFormSchema) as Resolver<EditNameFormValues>,
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,

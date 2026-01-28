@@ -1,5 +1,4 @@
 import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "@unkey/ui";
 import type { z } from "zod";
 
@@ -97,9 +96,8 @@ export const createMutationHandlers = () => {
 /**
  * Common form configuration for API settings
  */
-export const createApiFormConfig = <T extends z.ZodType>(schema: T) => {
+export const createApiFormConfig = <T extends z.ZodType>(_schema: T) => {
   return {
-    resolver: zodResolver(schema),
     mode: "all" as const,
     shouldFocusError: true,
     delayError: 100,

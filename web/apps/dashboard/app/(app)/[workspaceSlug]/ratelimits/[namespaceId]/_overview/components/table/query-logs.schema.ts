@@ -5,9 +5,9 @@ export const sortFields = z.enum(["time", "avg_latency", "p99_latency", "blocked
 export type SortFields = z.infer<typeof sortFields>;
 
 export const ratelimitQueryOverviewLogsPayload = z.object({
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   namespaceId: z.string(),
   status: z
     .object({

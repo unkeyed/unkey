@@ -70,9 +70,10 @@ type InputProps = DocumentedInputProps & React.InputHTMLAttributes<HTMLInputElem
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, variant, leftIcon, rightIcon, prefix, wrapperClassName, ...props }, ref) => {
-    const prefixRef = useRef<HTMLSpanElement>(null);
+    const prefixRef = useRef<HTMLElement>(null) as React.RefObject<HTMLElement>;
     const [prefixWidth, setPrefixWidth] = useState(0);
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: prefixRef is stable and shouldn't be in deps
     useEffect(() => {
       if (prefix && prefixRef.current) {
         setPrefixWidth(prefixRef.current.offsetWidth);

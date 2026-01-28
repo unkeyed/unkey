@@ -1,17 +1,39 @@
 import { z } from "zod";
 
-// Helper function for creating conditional schemas based on the "enabled" flag
+/**
+ * Creates a conditional schema that validates fields only when enabled is true.
+ * Uses Zod v4 discriminated unions for proper type inference with react-hook-form.
+ *
+ * This function leverages Zod v4's discriminated union feature, which is specifically
+ * designed for conditional validation scenarios. The discriminator field (typically "enabled")
+ * determines which branch of the union is validated, providing superior type safety and
+ * compatibility with form libraries like react-hook-form compared to loose object unions.
+ *
+ * The disabled branch uses passthrough() to allow additional properties (like default values)
+ * without validation, while the enabled branch enforces strict validation.
+ *
+ * @param enabledPath - The path to the boolean field that controls validation (default: "enabled")
+ * @param schema - The schema to apply when enabled is true (must include the enabledPath field set to z.literal(true))
+ * @returns A discriminated union schema compatible with zodResolver
+ *
+ * @example
+ * ```typescript
+ * const conditionalSchema = createConditionalSchema("enabled", z.object({
+ *   enabled: z.literal(true),
+ *   data: z.string(),
+ * }));
+ * ```
+ */
 export const createConditionalSchema = <
   T extends z.ZodRawShape,
-  U extends z.UnknownKeysParam = z.UnknownKeysParam,
-  V extends z.ZodTypeAny = z.ZodTypeAny,
   EnabledPath extends string = "enabled",
 >(
   enabledPath: EnabledPath,
-  schema: z.ZodObject<T, U, V>,
+  schema: z.ZodObject<T>,
 ) => {
-  return z.union([
-    // When enabled is false, don't validate other fields
+  return z.discriminatedUnion(enabledPath, [
+    // When enabled is false, allow additional properties without validation
+    // This enables default values to be set via prefault()
     z
       .object({
         [enabledPath]: z.literal(false),
@@ -26,13 +48,15 @@ export const metadataValidationSchema = z.object({
   enabled: z.literal(true),
   data: z
     .string({
-      required_error: "Metadata is required",
-      invalid_type_error: "Metadata must be a JSON",
+      error: (issue) =>
+        issue.input === undefined ? "Metadata is required" : "Metadata must be a JSON",
     })
     .trim()
-    .min(2, { message: "Metadata must contain valid JSON" })
+    .min(2, {
+      error: "Metadata must contain valid JSON",
+    })
     .max(65534, {
-      message: "Metadata cannot exceed 65535 characters (text field limit)",
+      error: "Metadata cannot exceed 65535 characters (text field limit)",
     })
     .refine(
       (s) => {
@@ -44,13 +68,13 @@ export const metadataValidationSchema = z.object({
         }
       },
       {
-        message: "Must be valid JSON",
+        error: "Must be valid JSON",
       },
     ),
 });
 
 export const metadataSchema = z.object({
-  metadata: createConditionalSchema("enabled", metadataValidationSchema).default({
+  metadata: createConditionalSchema("enabled", metadataValidationSchema).prefault({
     enabled: false,
   }),
 });

@@ -10,7 +10,7 @@ import { transformKeysFilters } from "./utils";
 const KeysOverviewLogsResponse = z.object({
   keysOverviewLogs: z.array(keysLogs),
   hasMore: z.boolean(),
-  nextCursor: z.number().int().optional(),
+  nextCursor: z.int().optional(),
 });
 
 type KeysOverviewLogsResponse = z.infer<typeof KeysOverviewLogsResponse>;

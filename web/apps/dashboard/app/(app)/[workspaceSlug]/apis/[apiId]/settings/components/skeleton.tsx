@@ -132,9 +132,7 @@ export const SettingsClientSkeleton = () => {
                   </div>
                 </div>
                 <div className="font-normal text-accent-11 text-[13px] leading-5 tracking-normal">
-                  <p>
-                    <div className="h-10 w-80 bg-grayA-3 rounded animate-pulse transition-all" />
-                  </p>
+                  <div className="h-10 w-80 bg-grayA-3 rounded animate-pulse transition-all" />
                 </div>
               </div>
               <div className="flex w-full">

@@ -1,8 +1,9 @@
 "use client";
-
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Fingerprint } from "@unkey/icons";
+
+import type { JSX } from "react";
 
 type NavigationProps = {
   readonly identityId: string;
