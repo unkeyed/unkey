@@ -16,6 +16,7 @@ SET verification_status = ?,
     check_attempts = ?,
     verification_error = NULL,
     last_checked_at = NULL,
+    invocation_id = ?,
     updated_at = ?
 WHERE domain = ?
 `
@@ -23,6 +24,7 @@ WHERE domain = ?
 type ResetCustomDomainVerificationParams struct {
 	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
 	CheckAttempts      int32                           `db:"check_attempts"`
+	InvocationID       sql.NullString                  `db:"invocation_id"`
 	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
 	Domain             string                          `db:"domain"`
 }
@@ -34,12 +36,14 @@ type ResetCustomDomainVerificationParams struct {
 //	    check_attempts = ?,
 //	    verification_error = NULL,
 //	    last_checked_at = NULL,
+//	    invocation_id = ?,
 //	    updated_at = ?
 //	WHERE domain = ?
 func (q *Queries) ResetCustomDomainVerification(ctx context.Context, db DBTX, arg ResetCustomDomainVerificationParams) error {
 	_, err := db.ExecContext(ctx, resetCustomDomainVerification,
 		arg.VerificationStatus,
 		arg.CheckAttempts,
+		arg.InvocationID,
 		arg.UpdatedAt,
 		arg.Domain,
 	)

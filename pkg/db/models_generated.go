@@ -993,6 +993,7 @@ type CustomDomain struct {
 	LastCheckedAt      sql.NullInt64                   `db:"last_checked_at"`
 	CheckAttempts      int32                           `db:"check_attempts"`
 	VerificationError  sql.NullString                  `db:"verification_error"`
+	InvocationID       sql.NullString                  `db:"invocation_id"`
 	CreatedAt          int64                           `db:"created_at"`
 	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
 }

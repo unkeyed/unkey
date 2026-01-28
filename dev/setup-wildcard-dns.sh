@@ -81,8 +81,18 @@ if [[ "$OS" == "macos" ]]; then
     fi
 
     # Add our configuration
-    echo "address=/unkey.local/127.0.0.1" > "$DNSMASQ_CONF"
+    {
+        echo "# Resolve all *.unkey.local to localhost"
+        echo "address=/unkey.local/127.0.0.1"
+        echo ""
+        echo "# Custom domain CNAME entries for local testing"
+        echo "# Add more as needed: cname=myapi.unkey.local,cname.unkey.local"
+        echo "cname=api.custom.unkey.local,cname.unkey.local"
+        echo "cname=app.custom.unkey.local,cname.unkey.local"
+        echo "cname=test.custom.unkey.local,cname.unkey.local"
+    } > "$DNSMASQ_CONF"
     echo "Configured dnsmasq to resolve *.unkey.local to 127.0.0.1"
+    echo "Added test CNAME entries for custom domain verification"
 
     # Start dnsmasq service
     echo ""
@@ -110,8 +120,15 @@ else
         echo "# Unkey local development DNS configuration"
         echo "# Resolve all *.unkey.local domains to localhost"
         echo "address=/unkey.local/127.0.0.1"
+        echo ""
+        echo "# Custom domain CNAME entries for local testing"
+        echo "# Add more as needed: cname=myapi.unkey.local,cname.unkey.local"
+        echo "cname=api.custom.unkey.local,cname.unkey.local"
+        echo "cname=app.custom.unkey.local,cname.unkey.local"
+        echo "cname=test.custom.unkey.local,cname.unkey.local"
     } | sudo tee "$DNSMASQ_CONF" > /dev/null
     echo "Configured dnsmasq to resolve *.unkey.local to 127.0.0.1"
+    echo "Added test CNAME entries for custom domain verification"
 
     # Restart dnsmasq service
     echo ""
@@ -143,6 +160,20 @@ echo "Test your setup with:"
 echo "  dig test.unkey.local"
 echo "  ping my-deployment.unkey.local"
 echo "  curl http://anything.unkey.local"
+echo ""
+echo "Custom Domains (CNAME verification):"
+echo "  Pre-configured test domains: api.custom.unkey.local, app.custom.unkey.local, test.custom.unkey.local"
+echo "  Add these as custom domains in the dashboard to test verification."
+echo "  Verify with: dig api.custom.unkey.local"
+echo ""
+echo "  To add more test domains:"
+if [[ "$OS" == "macos" ]]; then
+    echo "    echo 'cname=myapi.unkey.local,cname.unkey.local' >> \$(brew --prefix)/etc/dnsmasq.conf"
+    echo "    sudo brew services restart dnsmasq"
+else
+    echo "    echo 'cname=myapi.unkey.local,cname.unkey.local' | sudo tee -a $DNSMASQ_CONF"
+    echo "    sudo systemctl restart dnsmasq"
+fi
 echo ""
 echo "To undo these changes:"
 if [[ "$OS" == "macos" ]]; then

@@ -38,6 +38,10 @@ type RestateConfig struct {
 	// Example: "http://restate:8080".
 	URL string
 
+	// AdminURL is the Restate admin API endpoint for managing invocations.
+	// Used for canceling invocations. Example: "http://restate:9070".
+	AdminURL string
+
 	// APIKey is the authentication key for Restate ingress requests.
 	// If set, this key will be sent with all requests to the Restate ingress.
 	APIKey string

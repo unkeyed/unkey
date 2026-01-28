@@ -89,6 +89,10 @@ type RestateConfig struct {
 	// Example: "http://restate:9070".
 	AdminURL string
 
+	// APIKey is the optional authentication key for Restate admin API requests.
+	// If set, this key will be sent with all requests to the Restate admin API.
+	APIKey string
+
 	// HttpPort is the port where the worker listens for Restate requests.
 	// This is the internal Restate server port, not the health check port.
 	HttpPort int

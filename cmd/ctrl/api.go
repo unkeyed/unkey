@@ -62,6 +62,8 @@ var apiCmd = &cli.Command{
 		// Restate Configuration
 		cli.String("restate-url", "URL of the Restate ingress endpoint for invoking workflows. Example: http://restate:8080",
 			cli.Default("http://restate:8080"), cli.EnvVar("UNKEY_RESTATE_INGRESS_URL")),
+		cli.String("restate-admin-url", "URL of the Restate admin API for canceling invocations. Example: http://restate:9070",
+			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
 		cli.String("restate-api-key", "API key for Restate ingress requests",
 			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
 
@@ -85,6 +87,9 @@ var apiCmd = &cli.Command{
 		// Certificate bootstrap configuration
 		cli.String("default-domain", "Default domain for wildcard certificate bootstrapping (e.g., unkey.app)", cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 		cli.String("regional-apex-domain", "Apex domain for cross-region communication. Per-region wildcards created as *.{region}.{apex} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
+
+		// Custom domain configuration
+		cli.String("default-cname", "CNAME target for custom domain verification (e.g., cname.unkey-dns.com)", cli.EnvVar("UNKEY_DEFAULT_CNAME")),
 	},
 	Action: apiAction,
 }
@@ -142,8 +147,9 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 
 		// Restate configuration (API is a client, only needs ingress URL)
 		Restate: ctrlapi.RestateConfig{
-			URL:    cmd.String("restate-url"),
-			APIKey: cmd.String("restate-api-key"),
+			URL:      cmd.String("restate-url"),
+			AdminURL: cmd.String("restate-admin-url"),
+			APIKey:   cmd.String("restate-api-key"),
 		},
 
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
@@ -151,6 +157,9 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		// Certificate bootstrap
 		DefaultDomain:      cmd.String("default-domain"),
 		RegionalApexDomain: cmd.String("regional-apex-domain"),
+
+		// Custom domain configuration
+		DefaultCname: cmd.String("default-cname"),
 	}
 
 	err := config.Validate()
