@@ -5,15 +5,11 @@ go_library(
     srcs = [
         "dns1035.go",
         "doc.go",
-        "nanoid.go",
-        "uid.go",
+        "new.go",
+        "prefix.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/uid",
     visibility = ["//visibility:public"],
-    deps = [
-        "//pkg/base58",
-        "//pkg/batchrand",
-    ],
 )
 
 go_test(
@@ -21,9 +17,7 @@ go_test(
     size = "small",
     srcs = [
         "benchmark_test.go",
-        "nanoid_test.go",
-        "uid_test.go",
+        "new_test.go",
     ],
     embed = [":uid"],
-    deps = ["@com_github_stretchr_testify//require"],
 )

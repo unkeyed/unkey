@@ -31,4 +31,5 @@ export * from "./components/timestamp-info";
 export * from "./components/tooltip";
 export * from "./components/separator";
 export * from "./components/toaster";
+export * from "./components/visually-hidden";
 export * from "./hooks/use-mobile";

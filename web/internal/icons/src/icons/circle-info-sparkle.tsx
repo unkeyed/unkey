@@ -9,10 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const CircleInfoSparkle: React.FC<IconProps> = ({ iconSize = "lg-thin", ...props }) => {
+export function CircleInfoSparkle({ iconSize = "lg-thin", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -56,4 +56,4 @@ export const CircleInfoSparkle: React.FC<IconProps> = ({ iconSize = "lg-thin", .
       </g>
     </svg>
   );
-};
+}

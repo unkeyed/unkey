@@ -6,7 +6,7 @@ export async function revalidate(path: string, segment?: "page" | "layout") {
 }
 
 export async function revalidateMyTag(slug: string) {
-  revalidateTag(slug);
+  revalidateTag(slug, "max");
 }
 
 export { revalidateMyTag as revalidateTag };

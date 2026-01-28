@@ -10,11 +10,9 @@
  * https://nucleoapp.com/license
  */
 
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import React from "react";
-import { sizeMap, type IconProps } from "../props";
+import { type IconProps, sizeMap } from "../props";
 
-export const ChevronRight: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
+export function ChevronRight({ iconSize = "xl-thin", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -37,4 +35,4 @@ export const ChevronRight: React.FC<IconProps> = ({ iconSize = "xl-thin", ...pro
       </g>
     </svg>
   );
-};
+}

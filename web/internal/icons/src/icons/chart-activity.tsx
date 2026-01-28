@@ -9,10 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const ChartActivity: React.FC<IconProps> = ({ iconSize = "xl-thin", filled, ...props }) => {
+export function ChartActivity({ iconSize = "xl-thin", filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -35,4 +35,4 @@ export const ChartActivity: React.FC<IconProps> = ({ iconSize = "xl-thin", fille
       </g>
     </svg>
   );
-};
+}

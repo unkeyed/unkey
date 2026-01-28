@@ -5,6 +5,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
+import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
@@ -24,7 +25,9 @@ export const EditExpiration = ({ keyDetails, isOpen, onClose }: EditExpirationPr
   const methods = usePersistedForm<ExpirationFormValues>(
     `${EDIT_EXPIRATION_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
-      resolver: zodResolver(expirationSchema),
+      resolver: zodResolver(expirationSchema) as DiscriminatedUnionResolver<
+        typeof expirationSchema
+      >,
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,

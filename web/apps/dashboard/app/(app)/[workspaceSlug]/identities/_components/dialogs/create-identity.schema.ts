@@ -11,8 +11,8 @@ export const formSchema = z
       .refine((trimmed) => trimmed.length <= 255, "External ID cannot exceed 255 characters")
       .refine((trimmed) => trimmed !== "", "External ID cannot be only whitespace"),
   })
-  .merge(metadataSchema)
-  .merge(ratelimitSchema);
+  .extend(metadataSchema.shape)
+  .extend(ratelimitSchema.shape);
 
 export type FormValues = z.infer<typeof formSchema>;
 

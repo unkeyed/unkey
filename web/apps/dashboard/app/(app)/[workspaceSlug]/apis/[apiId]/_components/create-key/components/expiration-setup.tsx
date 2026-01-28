@@ -116,7 +116,9 @@ export const ExpirationSetup = ({
 
   const getInitialTimeValues = () => {
     // Safely convert currentExpiryDate to Date object, fallback to minValidDate
-    const initialDate = currentExpiryDate ? new Date(currentExpiryDate) : minValidDate;
+    // Type guard: only use currentExpiryDate if it's actually a Date
+    const initialDate =
+      currentExpiryDate instanceof Date ? new Date(currentExpiryDate) : minValidDate;
 
     // If conversion failed, use minValidDate
     const safeInitialDate = Number.isNaN(initialDate.getTime()) ? minValidDate : initialDate;
@@ -130,7 +132,8 @@ export const ExpirationSetup = ({
 
   // Calculate date for showing warning about close expiry (less than 1 hour)
   const isExpiringVerySoon =
-    currentExpiryDate && new Date(currentExpiryDate).getTime() - Date.now() < 60 * 60 * 1000;
+    currentExpiryDate instanceof Date &&
+    new Date(currentExpiryDate).getTime() - Date.now() < 60 * 60 * 1000;
 
   const getExpiryDescription = () => {
     if (isExpiringVerySoon) {
@@ -171,10 +174,14 @@ export const ExpirationSetup = ({
               description={getExpiryDescription()}
               readOnly
               disabled={!expirationEnabled}
-              value={formatExpiryDate(field.value)}
+              value={formatExpiryDate(field.value as Date | undefined)}
               className="cursor-pointer w-full"
               variant={expirationEnabled && isExpiringVerySoon ? "warning" : undefined}
-              error={errors.expiration?.data?.message}
+              error={
+                errors.expiration?.data && "message" in errors.expiration.data
+                  ? errors.expiration.data.message
+                  : undefined
+              }
             />
           </DatetimePopover>
         )}

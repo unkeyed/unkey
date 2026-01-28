@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const keyOutcomesQueryPayload = z.object({
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   keyId: z.string(),
   keyAuthId: z.string(),
 });

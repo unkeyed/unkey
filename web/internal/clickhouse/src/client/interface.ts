@@ -2,7 +2,7 @@ import type { Result } from "@unkey/error";
 import type { z } from "zod";
 import type { InsertError, QueryError } from "./error";
 export interface Querier {
-  query<TIn extends z.ZodSchema<unknown>, TOut extends z.ZodSchema<unknown>>(req: {
+  query<TIn extends z.ZodType<unknown>, TOut extends z.ZodType<unknown>>(req: {
     // The SQL query to run.
     // Use {paramName: Type} to define parameters
     // Example: `SELECT * FROM table WHERE id = {id: String}`
@@ -17,7 +17,7 @@ export interface Querier {
 }
 
 export interface Inserter {
-  insert<TSchema extends z.ZodSchema<unknown>>(req: {
+  insert<TSchema extends z.ZodType<unknown>>(req: {
     table: string;
     schema: TSchema;
   }): (

@@ -59,10 +59,13 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
   }) as string | undefined;
 
   const handleSwitchChange = (checked: boolean) => {
-    setValue("metadata.enabled", checked);
-    // Only set example json if its first time
-    if (checked && !currentMetadata) {
-      setValue("metadata.data", JSON.stringify(EXAMPLE_JSON, null, 2));
+    if (checked) {
+      setValue("metadata", {
+        enabled: true,
+        data: currentMetadata || JSON.stringify(EXAMPLE_JSON, null, 2),
+      });
+    } else {
+      setValue("metadata", { enabled: false });
     }
 
     trigger("metadata");

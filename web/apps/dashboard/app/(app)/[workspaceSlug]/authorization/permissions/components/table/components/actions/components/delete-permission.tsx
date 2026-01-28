@@ -11,7 +11,7 @@ import { PermissionInfo } from "./permission-info";
 
 const deletePermissionFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {
-    message: "Please confirm that you want to permanently delete this permission",
+    error: "Please confirm that you want to permanently delete this permission",
   }),
 });
 
