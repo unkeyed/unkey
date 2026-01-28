@@ -17,7 +17,7 @@ go_library(
         "//pkg/otel/logging",
         "//pkg/prometheus",
         "//pkg/ptr",
-        "//pkg/shutdown",
+        "//pkg/runner",
         "//pkg/tls",
         "//pkg/vault",
         "//pkg/vault/storage",
