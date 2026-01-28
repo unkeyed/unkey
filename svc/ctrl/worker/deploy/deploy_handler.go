@@ -361,6 +361,26 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
+	// Fetch sticky routes (environment + live for production) including custom domains
+	stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
+	if !project.IsRolledBack && environment.Slug == "production" {
+		stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
+	}
+
+	stickyRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
+		return db.Query.FindFrontlineRouteForPromotion(stepCtx, w.db.RO(), db.FindFrontlineRouteForPromotionParams{
+			EnvironmentID: deployment.EnvironmentID,
+			Sticky:        stickyTypes,
+		})
+	}, restate.WithName("finding sticky routes"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to find sticky routes: %w", err)
+	}
+
+	for _, route := range stickyRoutes {
+		existingRouteIDs = append(existingRouteIDs, route.ID)
+	}
+
 	_, err = hydrav1.NewRoutingServiceClient(ctx, project.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
