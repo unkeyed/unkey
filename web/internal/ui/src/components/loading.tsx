@@ -17,7 +17,7 @@ function Loading({
   className,
   type = "spinner",
   ...props
-}: LoadingProps): JSX.Element {
+}: LoadingProps) {
   if (type === "dots") {
     return <DotsLoading size={size ?? 24} className={className} duration={duration} {...props} />;
   }
@@ -42,7 +42,7 @@ const DotsLoading = ({
   className,
   duration = "0.75s",
   ...props
-}: DotsLoadingProps): JSX.Element => {
+}: DotsLoadingProps) => {
   return (
     <svg
       {...props}

@@ -14,6 +14,7 @@ import {
 } from "@unkey/ui";
 import { memo, useState } from "react";
 import type { FC } from "react";
+import React from "react";
 
 // Memoize static content to prevent unnecessary re-renders
 const TabContent = memo(({ title, description }: { title: string; description: string }) => (
@@ -47,7 +48,7 @@ const NAV_ITEMS: Array<{
 // Pre-define content items using the memoized TabContent
 const CONTENT_ITEMS: Array<{
   id: TabId;
-  content: JSX.Element;
+  content: React.ReactElement;
 }> = [
   {
     id: "docs",

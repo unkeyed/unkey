@@ -1,19 +1,13 @@
 import { Buffer } from "node:buffer";
 import crypto from "node:crypto";
-import type { Readable } from "node:stream";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-  runtime: "nodejs",
-};
+export const runtime = "nodejs";
 
 type Key = {
   key_identifier: string;
@@ -49,34 +43,33 @@ const verifyGitSignature = async (
   return !verify.verify(publicKey.key, Buffer.from(signature.toString(), "base64"));
 };
 
-// biome-ignore lint/style/noDefaultExport: Required by next.js
-export default async function handler(request: NextApiRequest, response: NextApiResponse) {
+export async function POST(request: Request) {
   const { RESEND_API_KEY, GITHUB_KEYS_URI } = env();
 
   if (!RESEND_API_KEY || !GITHUB_KEYS_URI) {
     console.error("Missing required environment variables");
-    return response.status(500).json({ error: "Internal Server Error" });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
   const resend = new Resend({
     apiKey: RESEND_API_KEY,
   });
-  const signature = request.headers["github-public-key-signature"]?.toString();
-  const keyId = request.headers["github-public-key-identifier"]?.toString();
-  const rawBody = await getRawBody(request);
-  const data = JSON.parse(Buffer.from(rawBody).toString("utf8"));
+  const signature = request.headers.get("github-public-key-signature");
+  const keyId = request.headers.get("github-public-key-identifier");
+  const rawBody = await request.text();
+  const data = JSON.parse(rawBody);
 
-  if (!signature || !signature || !keyId || !data) {
-    return response.status(400).json({ Error: "Invalid webhook request" });
+  if (!signature || !keyId || !data) {
+    return NextResponse.json({ Error: "Invalid webhook request" }, { status: 400 });
   }
 
   const isGithubVerified = await verifyGitSignature(
-    rawBody.toString(),
+    rawBody,
     signature,
     keyId,
     GITHUB_KEYS_URI,
   );
   if (!isGithubVerified) {
-    return response.status(401).json({ error: "Unauthorized" });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   type FoundKeys = {
     token: string;
@@ -113,12 +106,12 @@ export default async function handler(request: NextApiRequest, response: NextApi
     });
     if (!ws) {
       console.error("Workspace not found");
-      return response.status(201).json({});
+      return NextResponse.json({}, { status: 201 });
     }
 
     if (!ws.orgId) {
       console.error("Workspace orgId not found");
-      return response.status(201).json({});
+      return NextResponse.json({}, { status: 201 });
     }
 
     const users = await getUsers(ws.orgId);
@@ -163,16 +156,9 @@ export default async function handler(request: NextApiRequest, response: NextApi
       label: "true_positive",
     };
   });
-  return response.status(201).json([...githubResponse]);
+  return NextResponse.json([...githubResponse], { status: 201 });
 }
 
-async function getRawBody(readable: Readable): Promise<Buffer> {
-  const chunks = [];
-  for await (const chunk of readable) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-  }
-  return Buffer.concat(chunks);
-}
 type SlackProps = {
   type: string;
   source: string;
