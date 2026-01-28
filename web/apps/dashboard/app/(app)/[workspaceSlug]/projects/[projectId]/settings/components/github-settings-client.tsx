@@ -2,6 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { Loading, toast } from "@unkey/ui";
+import { useParams } from "next/navigation";
 import { GitHubAppCard } from "./github-app-card";
 import { RepositoryCard } from "./repository-card";
 
@@ -10,6 +11,8 @@ type Props = {
 };
 
 export const GitHubSettingsClient: React.FC<Props> = ({ projectId }) => {
+  const params = useParams<{ workspaceSlug: string }>();
+  const workspaceSlug = params?.workspaceSlug ?? "";
   const utils = trpc.useUtils();
 
   const { data, isLoading, refetch } = trpc.github.getInstallations.useQuery(
@@ -57,11 +60,13 @@ export const GitHubSettingsClient: React.FC<Props> = ({ projectId }) => {
         </div>
         <div className="flex flex-col w-full gap-6">
           <div>
-            {!hasInstallations ? (
-              <GitHubAppCard projectId={projectId} hasInstallations={false} />
-            ) : (
+            {hasInstallations ? (
               <>
-                <GitHubAppCard projectId={projectId} hasInstallations={true} />
+                <GitHubAppCard
+                  projectId={projectId}
+                  workspaceSlug={workspaceSlug}
+                  hasInstallations={true}
+                />
                 <RepositoryCard
                   projectId={projectId}
                   connectedRepo={repoConnection?.repositoryFullName ?? null}
@@ -69,6 +74,12 @@ export const GitHubSettingsClient: React.FC<Props> = ({ projectId }) => {
                   isDisconnecting={disconnectRepoMutation.isLoading}
                 />
               </>
+            ) : (
+              <GitHubAppCard
+                projectId={projectId}
+                workspaceSlug={workspaceSlug}
+                hasInstallations={false}
+              />
             )}
           </div>
         </div>

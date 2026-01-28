@@ -1,25 +1,15 @@
-"use client";
-
 import { Github } from "@unkey/icons";
-import { Button, SettingCard } from "@unkey/ui";
-import { useParams } from "next/navigation";
+import { SettingCard, buttonVariants } from "@unkey/ui";
 
 type Props = {
   projectId: string;
+  workspaceSlug: string;
   hasInstallations: boolean;
 };
 
-export const GitHubAppCard: React.FC<Props> = ({
-  projectId,
-  hasInstallations,
-}) => {
-  const params = useParams<{ workspaceSlug: string }>();
-
-  const handleConnectGitHub = () => {
-    const state = `${projectId}:${params?.workspaceSlug ?? ""}`;
-    const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
-    window.location.href = installUrl;
-  };
+export const GitHubAppCard: React.FC<Props> = ({ projectId, workspaceSlug, hasInstallations }) => {
+  const state = `${projectId}:${workspaceSlug}`;
+  const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
 
   return (
     <SettingCard
@@ -33,13 +23,13 @@ export const GitHubAppCard: React.FC<Props> = ({
       contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
     >
       <div className="flex justify-end gap-2">
-        <Button
-          variant={hasInstallations ? "outline" : "primary"}
-          onClick={handleConnectGitHub}
+        <a
+          href={installUrl}
+          className={buttonVariants({ variant: hasInstallations ? "outline" : "primary" })}
         >
           <Github className="size-4" />
           {hasInstallations ? "Configure" : "Install"}
-        </Button>
+        </a>
       </div>
     </SettingCard>
   );
