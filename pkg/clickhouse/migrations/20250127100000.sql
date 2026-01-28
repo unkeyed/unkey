@@ -1,22 +1,29 @@
--- Create "keys_last_used_v2" table
+-- Create "keys_last_used_v2" table with AggregatingMergeTree for automatic deduplication
 CREATE TABLE `default`.`keys_last_used_v2` (
   `workspace_id` String,
   `key_space_id` String,
-  `time` Int64 CODEC(Delta(8), LZ4),
   `key_id` String,
-  `request_id` String,
-  `outcome` LowCardinality(String),
-  `tags` Array(String) DEFAULT []
-) ENGINE = ReplacingMergeTree(time)
-PRIMARY KEY (`workspace_id`, `key_space_id`, `key_id`) ORDER BY (`workspace_id`, `key_space_id`, `key_id`, `time`) TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(90) SETTINGS index_granularity = 8192;
+  `time` SimpleAggregateFunction(max, Int64),
+  `request_id` SimpleAggregateFunction(anyLast, String),
+  `outcome` SimpleAggregateFunction(anyLast, LowCardinality(String)),
+  `tags` SimpleAggregateFunction(anyLast, Array(String))
+) ENGINE = AggregatingMergeTree()
+PRIMARY KEY (`workspace_id`, `key_space_id`, `key_id`)
+ORDER BY (`workspace_id`, `key_space_id`, `key_id`)
+TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(90)
+SETTINGS index_granularity = 8192;
+
 -- Create "keys_last_used_mv_v2" materialized view
-CREATE MATERIALIZED VIEW `default`.`keys_last_used_mv_v2` TO `default`.`keys_last_used_v2` AS
+CREATE MATERIALIZED VIEW `default`.`keys_last_used_mv_v2`
+TO `default`.`keys_last_used_v2`
+AS
 SELECT
   workspace_id,
   key_space_id,
   key_id,
-  time,
-  request_id,
-  outcome,
-  tags
-FROM `default`.`key_verifications_raw_v2`;
+  max(time) as time,
+  anyLast(request_id) as request_id,
+  anyLast(outcome) as outcome,
+  anyLast(tags) as tags
+FROM `default`.`key_verifications_raw_v2`
+GROUP BY workspace_id, key_space_id, key_id;

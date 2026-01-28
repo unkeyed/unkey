@@ -3,22 +3,22 @@
 -- by allowing queries to scan ~10K rows instead of 150M+ rows
 --
 -- IMPORTANT: Stores ONE row per key (latest verification regardless of outcome).
--- ORDER BY prioritizes time for efficient "most recently used keys" queries.
+-- Uses AggregatingMergeTree for automatic aggregation during merges.
 
 -- Target table that stores the latest verification per key
 CREATE TABLE IF NOT EXISTS default.keys_last_used_v2
 (
     workspace_id String,
     key_space_id String,
-    time Int64 CODEC(Delta, LZ4),
     key_id String,
-    request_id String,
-    outcome LowCardinality(String),
-    tags Array(String) DEFAULT []
+    time SimpleAggregateFunction(max, Int64),
+    request_id SimpleAggregateFunction(anyLast, String),
+    outcome SimpleAggregateFunction(anyLast, LowCardinality(String)),
+    tags SimpleAggregateFunction(anyLast, Array(String))
 )
-ENGINE = ReplacingMergeTree(time)
+ENGINE = AggregatingMergeTree()
 PRIMARY KEY (workspace_id, key_space_id, key_id)
-ORDER BY (workspace_id, key_space_id, key_id, time)
+ORDER BY (workspace_id, key_space_id, key_id)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE;
 
 -- Materialized view that automatically populates the table from new inserts
@@ -29,8 +29,10 @@ SELECT
     workspace_id,
     key_space_id,
     key_id,
-    time,
-    request_id,
-    outcome,
-    tags
-FROM default.key_verifications_raw_v2;
+    max(time) as time,
+    anyLast(request_id) as request_id,
+    anyLast(outcome) as outcome,
+    anyLast(tags) as tags
+FROM default.key_verifications_raw_v2
+GROUP BY workspace_id, key_space_id, key_id;
+
