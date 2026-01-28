@@ -13,3 +13,8 @@ plugins:
     opt:
       - paths=import
       - module=github.com/unkeyed/unkey/gen/proto
+
+  - remote: buf.build/bufbuild/es:v2.8.0
+    out: ../../../web/apps/dashboard/gen/proto
+    opt:
+      - target=ts
