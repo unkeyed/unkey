@@ -106,6 +106,7 @@ export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps)
 
       {detailSections.map((section, index) => (
         <DetailSection
+          disabled={section.disabled}
           key={section.title}
           title={section.title}
           items={section.items}

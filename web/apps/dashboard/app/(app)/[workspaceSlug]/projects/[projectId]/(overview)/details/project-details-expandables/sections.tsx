@@ -23,12 +23,14 @@ import { OpenApiDiff } from "./sections/open-api-diff";
 export type DetailItem = {
   icon: ReactNode | null;
   label: string | null;
+  disabled?: boolean;
   content: ReactNode;
   alignment?: "center" | "start";
 };
 
 export type DetailSection = {
   title: string;
+  disabled?: boolean;
   items: DetailItem[];
 };
 
@@ -38,6 +40,7 @@ export const createDetailSections = (
   return [
     {
       title: "OpenAPI changes",
+      disabled: true,
       items: [
         {
           icon: null,
@@ -144,6 +147,7 @@ export const createDetailSections = (
         },
         {
           icon: <Bolt className="size-[14px] text-gray-12" iconSize="md-regular" />,
+          disabled: true,
           label: "CPU",
           content: (
             <div className="text-grayA-10">
@@ -154,6 +158,7 @@ export const createDetailSections = (
         {
           icon: <Grid className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Memory",
+          disabled: true,
           content: (
             <div className="text-grayA-10">
               <span className="text-gray-12 font-medium">TODO</span> MB
@@ -163,6 +168,7 @@ export const createDetailSections = (
         {
           icon: <Harddrive className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Storage",
+          disabled: true,
           content: (
             <div className="text-grayA-10">
               <span className="text-gray-12 font-medium">20</span> GB
@@ -173,6 +179,7 @@ export const createDetailSections = (
           icon: <Heart className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Healthcheck",
           alignment: "start",
+          disabled: true,
           content: (
             <div className="flex flex-col justify-center gap-2">
               <div className="gap-2 items-center flex">
@@ -196,6 +203,7 @@ export const createDetailSections = (
           icon: <ChartActivity className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Scaling",
           alignment: "start",
+          disabled: true,
           content: (
             <div className="text-grayA-10">
               <div>
@@ -210,72 +218,5 @@ export const createDetailSections = (
         },
       ],
     },
-    /*
-    {
-      title: "Build Info",
-      items: [
-        {
-          icon: <PaperClip2 className="text-gray-12" iconSize="md-regular" />,
-          label: "Image size",
-          content: (
-            <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">{details.imageSize}</span>
-              {" "}MB
-            </div>
-          ),
-        },
-        {
-          icon: <CircleHalfDottedClock className="text-gray-12" iconSize="md-regular" />,
-          label: "Build time",
-          content: (
-            <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">{details.buildTime}</span>s
-            </div>
-          ),
-        },
-        {
-          icon: <Bolt className="size-[14px] text-gray-12" iconSize="md-regular" />,
-          label: "Build status",
-          content: (
-            <Badge
-              variant={
-                details.buildStatus === "success"
-                  ? "success"
-                  : details.buildStatus === "failed"
-                    ? "error"
-                    : "secondary"
-              }
-              className="font-medium"
-            >
-              {details.buildStatus === "success"
-                ? "Success"
-                : details.buildStatus === "failed"
-                  ? "Failed"
-                  : "Pending"}
-            </Badge>
-          ),
-        },
-        {
-          icon: <Gear className="size-[14px] text-gray-12" iconSize="md-regular" />,
-          label: "Base image",
-          content: (
-            <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">{details.baseImage}</span>
-            </div>
-          ),
-        },
-        {
-          icon: <CircleHalfDottedClock className="size-[14px] text-gray-12" iconSize="md-regular" />,
-          label: "Built At",
-          content: (
-            <TimestampInfo
-              value={details.builtAt}
-              className="font-medium text-grayA-12 text-[13px]"
-            />
-          ),
-        },
-      ],
-    },
-    */
   ];
 };

@@ -15,6 +15,7 @@ import { Button, InfoTooltip } from "@unkey/ui";
 import { useParams } from "next/navigation";
 import { ActiveDeploymentCard } from "../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
+import { DisabledWrapper } from "../../../components/disabled-wrapper";
 import { InfoChip } from "../../../components/info-chip";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
 import { Section, SectionHeader } from "../../../components/section";
@@ -56,21 +57,26 @@ export default function DeploymentOverview() {
           deploymentId={deploymentId}
           trailingContent={
             <div className="flex gap-1.5 items-center">
-              <InfoChip icon={Bolt}>
-                <div className="text-grayA-10 text-xs">
-                  <span className="text-gray-12 font-medium">4</span> vCPUs
-                </div>
-              </InfoChip>
-              <InfoChip icon={Grid}>
-                <div className="text-grayA-10 text-xs">
-                  <span className="text-gray-12 font-medium">4</span> GiB
-                </div>
-              </InfoChip>
-              <InfoChip icon={Harddrive}>
-                <div className="text-grayA-10 text-xs">
-                  <span className="text-gray-12 font-medium">20</span> GB
-                </div>
-              </InfoChip>
+              <DisabledWrapper
+                tooltipContent="Resource metrics coming soon"
+                className="flex gap-1.5 items-center"
+              >
+                <InfoChip icon={Bolt}>
+                  <div className="text-grayA-10 text-xs">
+                    <span className="text-gray-12 font-medium">—</span> vCPUs
+                  </div>
+                </InfoChip>
+                <InfoChip icon={Grid}>
+                  <div className="text-grayA-10 text-xs">
+                    <span className="text-gray-12 font-medium">—</span> GiB
+                  </div>
+                </InfoChip>
+                <InfoChip icon={Harddrive}>
+                  <div className="text-grayA-10 text-xs">
+                    <span className="text-gray-12 font-medium">—</span> GB
+                  </div>
+                </InfoChip>
+              </DisabledWrapper>
               <div className="gap-1 flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3 p-1.5 h-[22px] rounded-md">
                 <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
                   <img src={"/images/flags/us.svg"} alt="us-flag" className="size-4" />
