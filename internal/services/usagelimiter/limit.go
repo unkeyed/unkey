@@ -14,7 +14,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	defer span.End()
 
 	limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
-		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyId)
+		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyID)
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -36,7 +36,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	}
 
 	err = db.Query.UpdateKeyCreditsDecrement(ctx, s.db.RW(), db.UpdateKeyCreditsDecrementParams{
-		ID:      req.KeyId,
+		ID:      req.KeyID,
 		Credits: sql.NullInt32{Int32: req.Cost, Valid: true},
 	})
 	if err != nil {
