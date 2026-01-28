@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "select_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/prompt/example/select",
+    visibility = ["//visibility:private"],
+    deps = ["//pkg/prompt"],
+)
+
+go_binary(
+    name = "select",
+    embed = [":select_lib"],
+    visibility = ["//visibility:public"],
+)

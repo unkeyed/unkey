@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "datetime_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/prompt/example/datetime",
+    visibility = ["//visibility:private"],
+    deps = ["//pkg/prompt"],
+)
+
+go_binary(
+    name = "datetime",
+    embed = [":datetime_lib"],
+    visibility = ["//visibility:public"],
+)

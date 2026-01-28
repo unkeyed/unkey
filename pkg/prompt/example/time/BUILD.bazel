@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "time_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/prompt/example/time",
+    visibility = ["//visibility:private"],
+    deps = ["//pkg/prompt"],
+)
+
+go_binary(
+    name = "time",
+    embed = [":time_lib"],
+    visibility = ["//visibility:public"],
+)
