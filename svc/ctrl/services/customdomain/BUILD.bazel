@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "customdomain",
+    srcs = ["service.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/customdomain",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/otel/logging",
+        "//pkg/restate/admin",
+        "//pkg/uid",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_restatedev_sdk_go//ingress",
+    ],
+)

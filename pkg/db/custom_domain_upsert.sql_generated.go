@@ -11,37 +11,59 @@ import (
 )
 
 const upsertCustomDomain = `-- name: UpsertCustomDomain :exec
-INSERT INTO custom_domains (id, workspace_id, domain, challenge_type, created_at)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO custom_domains (
+    id, workspace_id, project_id, environment_id, domain,
+    challenge_type, verification_status, target_cname, created_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     workspace_id = VALUES(workspace_id),
+    project_id = VALUES(project_id),
+    environment_id = VALUES(environment_id),
     challenge_type = VALUES(challenge_type),
+    verification_status = VALUES(verification_status),
+    target_cname = VALUES(target_cname),
     updated_at = ?
 `
 
 type UpsertCustomDomainParams struct {
-	ID            string                     `db:"id"`
-	WorkspaceID   string                     `db:"workspace_id"`
-	Domain        string                     `db:"domain"`
-	ChallengeType CustomDomainsChallengeType `db:"challenge_type"`
-	CreatedAt     int64                      `db:"created_at"`
-	UpdatedAt     sql.NullInt64              `db:"updated_at"`
+	ID                 string                          `db:"id"`
+	WorkspaceID        string                          `db:"workspace_id"`
+	ProjectID          string                          `db:"project_id"`
+	EnvironmentID      string                          `db:"environment_id"`
+	Domain             string                          `db:"domain"`
+	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
+	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
+	TargetCname        string                          `db:"target_cname"`
+	CreatedAt          int64                           `db:"created_at"`
+	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
 }
 
 // UpsertCustomDomain
 //
-//	INSERT INTO custom_domains (id, workspace_id, domain, challenge_type, created_at)
-//	VALUES (?, ?, ?, ?, ?)
+//	INSERT INTO custom_domains (
+//	    id, workspace_id, project_id, environment_id, domain,
+//	    challenge_type, verification_status, target_cname, created_at
+//	)
+//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    workspace_id = VALUES(workspace_id),
+//	    project_id = VALUES(project_id),
+//	    environment_id = VALUES(environment_id),
 //	    challenge_type = VALUES(challenge_type),
+//	    verification_status = VALUES(verification_status),
+//	    target_cname = VALUES(target_cname),
 //	    updated_at = ?
 func (q *Queries) UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCustomDomainParams) error {
 	_, err := db.ExecContext(ctx, upsertCustomDomain,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.ProjectID,
+		arg.EnvironmentID,
 		arg.Domain,
 		arg.ChallengeType,
+		arg.VerificationStatus,
+		arg.TargetCname,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

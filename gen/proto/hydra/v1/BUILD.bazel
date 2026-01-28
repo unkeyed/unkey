@@ -7,6 +7,8 @@ go_library(
         "build_restate.pb.go",
         "certificate.pb.go",
         "certificate_restate.pb.go",
+        "custom_domain.pb.go",
+        "custom_domain_restate.pb.go",
         "deployment.pb.go",
         "deployment_restate.pb.go",
         "routing.pb.go",

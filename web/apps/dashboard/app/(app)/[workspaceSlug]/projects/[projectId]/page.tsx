@@ -1,10 +1,11 @@
 "use client";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
+import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
 import type { ReactNode } from "react";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { ActiveDeploymentCard } from "./details/active-deployment-card";
+import { CustomDomainsSection } from "./details/custom-domains-section";
 import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./details/domain-row";
 import { EnvironmentVariablesSection } from "./details/env-variables-section";
 import { useProject } from "./layout-provider";
@@ -55,6 +56,16 @@ export default function ProjectDetails() {
             <DomainRowEmpty />
           )}
         </div>
+      </Section>
+      <Section>
+        <SectionHeader
+          icon={<Link4 iconSize="md-regular" className="text-gray-9" />}
+          title="Custom Domains"
+        />
+        <CustomDomainsSection
+          projectId={projectId}
+          environments={environments?.map((env) => ({ id: env.id, slug: env.slug })) ?? []}
+        />
       </Section>
       <Section>
         <SectionHeader

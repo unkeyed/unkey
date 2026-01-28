@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "acme.connect.go",
         "cluster.connect.go",
+        "custom_domain.connect.go",
         "deployment.connect.go",
         "environment.connect.go",
         "openapi.connect.go",

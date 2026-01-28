@@ -38,6 +38,10 @@ type RestateConfig struct {
 	// Example: "http://restate:8080".
 	URL string
 
+	// AdminURL is the Restate admin API endpoint for managing invocations.
+	// Used for canceling invocations. Example: "http://restate:9070".
+	AdminURL string
+
 	// APIKey is the authentication key for Restate ingress requests.
 	// If set, this key will be sent with all requests to the Restate ingress.
 	APIKey string
@@ -106,6 +110,11 @@ type Config struct {
 	// between frontline instances. Combined with AvailableRegions to create
 	// per-region wildcard certificates like *.{region}.{RegionalApexDomain}.
 	RegionalApexDomain string
+
+	// DefaultCname is the CNAME target that users must point their custom domains to.
+	// For production: "cname.unkey-dns.com"
+	// For staging: "dns.unkey.fun"
+	DefaultCname string
 }
 
 // Validate checks the configuration for required fields and logical consistency.
