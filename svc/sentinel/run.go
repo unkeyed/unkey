@@ -108,14 +108,16 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
-		ch, err = clickhouse.New(clickhouse.Config{
+		chClient, chErr := clickhouse.New(clickhouse.Config{
 			URL:    cfg.ClickhouseURL,
 			Logger: logger,
 		})
-		if err != nil {
-			return fmt.Errorf("unable to create clickhouse: %w", err)
+		if chErr != nil {
+			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
+		} else {
+			ch = chClient
+			shutdowns.Register(ch.Close)
 		}
-		shutdowns.Register(ch.Close)
 	}
 
 	routerSvc, err := router.New(router.Config{

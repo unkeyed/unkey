@@ -1,0 +1,88 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+// Custom domain verification status
+enum CustomDomainStatus {
+  CUSTOM_DOMAIN_STATUS_UNSPECIFIED = 0;
+  CUSTOM_DOMAIN_STATUS_PENDING = 1;
+  CUSTOM_DOMAIN_STATUS_VERIFYING = 2;
+  CUSTOM_DOMAIN_STATUS_VERIFIED = 3;
+  CUSTOM_DOMAIN_STATUS_FAILED = 4;
+}
+
+message AddCustomDomainRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string environment_id = 3;
+  string domain = 4;
+}
+
+message AddCustomDomainResponse {
+  string domain_id = 1;
+  string target_cname = 2; // CNAME target user must configure (e.g., "cname.unkey-dns.com")
+  CustomDomainStatus status = 3;
+}
+
+message GetCustomDomainRequest {
+  string domain = 1;
+}
+
+message GetCustomDomainResponse {
+  CustomDomain domain = 1;
+}
+
+message ListCustomDomainsRequest {
+  string project_id = 1;
+}
+
+message ListCustomDomainsResponse {
+  repeated CustomDomain domains = 1;
+}
+
+message CustomDomain {
+  string id = 1;
+  string domain = 2;
+  string workspace_id = 3;
+  string project_id = 4;
+  string environment_id = 5;
+  CustomDomainStatus verification_status = 6;
+  string target_cname = 7;
+  int32 check_attempts = 8;
+  int64 last_checked_at = 9;
+  string verification_error = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
+}
+
+message DeleteCustomDomainRequest {
+  string domain = 1;
+}
+
+message DeleteCustomDomainResponse {}
+
+message RetryVerificationRequest {
+  string domain = 1;
+}
+
+message RetryVerificationResponse {
+  CustomDomainStatus status = 1;
+}
+
+service CustomDomainService {
+  // Add a new custom domain and start verification
+  rpc AddCustomDomain(AddCustomDomainRequest) returns (AddCustomDomainResponse) {}
+
+  // Get custom domain details including verification status
+  rpc GetCustomDomain(GetCustomDomainRequest) returns (GetCustomDomainResponse) {}
+
+  // List all custom domains for a project
+  rpc ListCustomDomains(ListCustomDomainsRequest) returns (ListCustomDomainsResponse) {}
+
+  // Delete a custom domain
+  rpc DeleteCustomDomain(DeleteCustomDomainRequest) returns (DeleteCustomDomainResponse) {}
+
+  // Retry verification for a failed domain
+  rpc RetryVerification(RetryVerificationRequest) returns (RetryVerificationResponse) {}
+}

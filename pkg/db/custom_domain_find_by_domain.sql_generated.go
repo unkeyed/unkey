@@ -10,14 +10,14 @@ import (
 )
 
 const findCustomDomainByDomain = `-- name: FindCustomDomainByDomain :one
-SELECT pk, id, workspace_id, domain, challenge_type, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, target_cname, last_checked_at, check_attempts, verification_error, created_at, updated_at
 FROM custom_domains
 WHERE domain = ?
 `
 
 // FindCustomDomainByDomain
 //
-//	SELECT pk, id, workspace_id, domain, challenge_type, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, target_cname, last_checked_at, check_attempts, verification_error, created_at, updated_at
 //	FROM custom_domains
 //	WHERE domain = ?
 func (q *Queries) FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error) {
@@ -27,8 +27,15 @@ func (q *Queries) FindCustomDomainByDomain(ctx context.Context, db DBTX, domain 
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
+		&i.EnvironmentID,
 		&i.Domain,
 		&i.ChallengeType,
+		&i.VerificationStatus,
+		&i.TargetCname,
+		&i.LastCheckedAt,
+		&i.CheckAttempts,
+		&i.VerificationError,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

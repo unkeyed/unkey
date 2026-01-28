@@ -478,8 +478,15 @@ CREATE TABLE `custom_domains` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`environment_id` varchar(256) NOT NULL,
 	`domain` varchar(256) NOT NULL,
 	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
+	`verification_status` enum('pending','verifying','verified','failed') NOT NULL DEFAULT 'pending',
+	`target_cname` varchar(256) NOT NULL,
+	`last_checked_at` bigint,
+	`check_attempts` int NOT NULL DEFAULT 0,
+	`verification_error` varchar(512),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `custom_domains_pk` PRIMARY KEY(`pk`),
@@ -576,6 +583,16 @@ CREATE TABLE `frontline_routes` (
 	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 
+CREATE TABLE `state_changes` (
+	`sequence` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`resource_type` enum('sentinel','deployment') NOT NULL,
+	`resource_id` varchar(256) NOT NULL,
+	`op` enum('upsert','delete') NOT NULL,
+	`region` varchar(64) NOT NULL,
+	`created_at` bigint unsigned NOT NULL,
+	CONSTRAINT `state_changes_sequence` PRIMARY KEY(`sequence`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -596,16 +613,18 @@ CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
-CREATE INDEX `region_idx` ON `deployment_topology` (`region`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
+CREATE INDEX `project_idx` ON `custom_domains` (`project_id`);
+CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
 CREATE INDEX `idx_environment_id` ON `sentinels` (`environment_id`);
-CREATE INDEX `region_version_idx` ON `sentinels` (`region`,`version`);
 CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
+CREATE INDEX `region_sequence` ON `state_changes` (`region`,`sequence`);
+CREATE INDEX `created_at` ON `state_changes` (`created_at`);
 
