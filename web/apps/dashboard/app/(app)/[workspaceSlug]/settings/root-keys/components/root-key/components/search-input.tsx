@@ -20,7 +20,7 @@ type SearchInputProps = {
   clearingText: string;
   searchMode: (typeof SEARCH_MODES)[keyof typeof SEARCH_MODES];
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  inputRef: RefObject<HTMLInputElement>;
+  inputRef: RefObject<HTMLInputElement | null>;
 };
 
 export const SearchInput = ({

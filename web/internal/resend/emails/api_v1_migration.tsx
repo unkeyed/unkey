@@ -1,4 +1,3 @@
-"use client";
 import { Button } from "@react-email/button";
 import { Heading } from "@react-email/heading";
 import { Hr } from "@react-email/hr";

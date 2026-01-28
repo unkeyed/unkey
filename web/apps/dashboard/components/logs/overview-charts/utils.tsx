@@ -14,8 +14,8 @@ const TZ_FORMATTER = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 });
 
-// Define types for tooltip payload structure
-type TooltipPayloadItem = {
+// Define types for tooltip payload structure - compatible with Recharts Payload
+export type TooltipPayloadItem = {
   payload?: {
     originalTimestamp?: string | number | Date;
     [key: string]: unknown;

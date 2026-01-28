@@ -8,7 +8,7 @@ import {
   differenceInYears,
   format,
 } from "date-fns";
-import React, { type JSX } from "react";
+import React from "react";
 
 import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { ratelimitFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
@@ -164,7 +164,7 @@ export function formatFilterValue(
   return transformed;
 }
 
-export function getFilterFieldIcon(field: string): JSX.Element {
+export function getFilterFieldIcon(field: string): React.ReactElement {
   const Icon = iconsPerField[field] || ChartActivity2;
   return React.createElement(Icon, {
     iconSize: "md-regular",

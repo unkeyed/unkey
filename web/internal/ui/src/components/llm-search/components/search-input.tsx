@@ -10,7 +10,7 @@ type SearchInputProps = {
   searchMode: "allowTypeDuringSearch" | "debounced" | "manual";
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
 };
 
 const LLM_LIMITS_MAX_QUERY_LENGTH = 120;

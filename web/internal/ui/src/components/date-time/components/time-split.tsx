@@ -110,7 +110,7 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
     text-gray-12 leading-6 tracking-normal font-medium text-[13px]
   `;
 
-  const TimeInput: React.FC<{ field: TimeField; ariaLabel: string }> = (props): JSX.Element => (
+  const TimeInput: React.FC<{ field: TimeField; ariaLabel: string }> = (props) => (
     <input
       type="text"
       value={time[props.field]}
