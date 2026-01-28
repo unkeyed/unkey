@@ -21,16 +21,14 @@ service CustomDomainService {
 }
 
 message VerifyDomainRequest {
-  string workspace_id = 1;
-  string domain = 2;
+  string domain = 1;
 }
 
 // Empty response - success means verified, errors are returned to Restate
 message VerifyDomainResponse {}
 
 message RetryVerificationRequest {
-  string workspace_id = 1;
-  string domain = 2;
+  string domain = 1;
 }
 
 // Empty response - just triggers a new verification workflow

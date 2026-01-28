@@ -102,6 +102,7 @@ func (s *Service) AddCustomDomain(
 		VerificationStatus: db.CustomDomainsVerificationStatusPending,
 		TargetCname:        s.defaultCname,
 		CreatedAt:          now,
+		InvocationID:       sql.NullString{String: "", Valid: false},
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create domain: %w", err))
@@ -110,8 +111,7 @@ func (s *Service) AddCustomDomain(
 	// Trigger verification workflow and store invocation ID
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain)
 	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
-		WorkspaceId: req.Msg.GetWorkspaceId(),
-		Domain:      domain,
+		Domain: domain,
 	})
 	if sendErr != nil {
 		s.logger.Warn("failed to trigger verification workflow",
@@ -253,8 +253,7 @@ func (s *Service) RetryVerification(
 	// Trigger new verification workflow
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain.Domain)
 	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
-		WorkspaceId: domain.WorkspaceID,
-		Domain:      domain.Domain,
+		Domain: domain.Domain,
 	})
 	if sendErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification: %w", sendErr))

@@ -47,7 +47,7 @@ func (c *Client) RegisterDeployment(ctx context.Context, uri string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
@@ -67,7 +67,7 @@ func (c *Client) CancelInvocation(ctx context.Context, invocationID string) erro
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 202 Accepted = cancellation initiated
 	// 404 Not Found = invocation already completed or never existed

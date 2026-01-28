@@ -24,8 +24,7 @@ const (
 
 type VerifyDomainRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	Domain        string                 `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -58,13 +57,6 @@ func (x *VerifyDomainRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use VerifyDomainRequest.ProtoReflect.Descriptor instead.
 func (*VerifyDomainRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_custom_domain_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *VerifyDomainRequest) GetWorkspaceId() string {
-	if x != nil {
-		return x.WorkspaceId
-	}
-	return ""
 }
 
 func (x *VerifyDomainRequest) GetDomain() string {
@@ -113,8 +105,7 @@ func (*VerifyDomainResponse) Descriptor() ([]byte, []int) {
 
 type RetryVerificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	Domain        string                 `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,13 +138,6 @@ func (x *RetryVerificationRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RetryVerificationRequest.ProtoReflect.Descriptor instead.
 func (*RetryVerificationRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_custom_domain_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *RetryVerificationRequest) GetWorkspaceId() string {
-	if x != nil {
-		return x.WorkspaceId
-	}
-	return ""
 }
 
 func (x *RetryVerificationRequest) GetDomain() string {
@@ -204,14 +188,12 @@ var File_hydra_v1_custom_domain_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_custom_domain_proto_rawDesc = "" +
 	"\n" +
-	"\x1chydra/v1/custom_domain.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"P\n" +
-	"\x13VerifyDomainRequest\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x16\n" +
-	"\x06domain\x18\x02 \x01(\tR\x06domain\"\x16\n" +
-	"\x14VerifyDomainResponse\"U\n" +
-	"\x18RetryVerificationRequest\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x16\n" +
-	"\x06domain\x18\x02 \x01(\tR\x06domain\"\x1b\n" +
+	"\x1chydra/v1/custom_domain.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"-\n" +
+	"\x13VerifyDomainRequest\x12\x16\n" +
+	"\x06domain\x18\x01 \x01(\tR\x06domain\"\x16\n" +
+	"\x14VerifyDomainResponse\"2\n" +
+	"\x18RetryVerificationRequest\x12\x16\n" +
+	"\x06domain\x18\x01 \x01(\tR\x06domain\"\x1b\n" +
 	"\x19RetryVerificationResponse2\xcc\x01\n" +
 	"\x13CustomDomainService\x12O\n" +
 	"\fVerifyDomain\x12\x1d.hydra.v1.VerifyDomainRequest\x1a\x1e.hydra.v1.VerifyDomainResponse\"\x00\x12^\n" +

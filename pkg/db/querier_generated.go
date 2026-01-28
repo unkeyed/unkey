@@ -2159,13 +2159,6 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateCustomDomainVerificationStatus(ctx context.Context, db DBTX, arg UpdateCustomDomainVerificationStatusParams) error
-	//UpdateCustomDomainVerified
-	//
-	//  UPDATE custom_domains
-	//  SET verification_status = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateCustomDomainVerified(ctx context.Context, db DBTX, arg UpdateCustomDomainVerifiedParams) error
 	//UpdateDeploymentBuildID
 	//
 	//  UPDATE deployments
