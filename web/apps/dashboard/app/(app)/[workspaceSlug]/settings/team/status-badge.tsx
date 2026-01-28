@@ -10,13 +10,29 @@ type StatusBadgeProps = {
 export const StatusBadge = memo(({ status }: StatusBadgeProps) => {
   switch (status) {
     case "pending":
-      return <Badge variant="primary">Pending</Badge>;
+      return (
+        <Badge variant="warning" className="text-xs">
+          Pending
+        </Badge>
+      );
     case "accepted":
-      return <Badge variant="secondary">Accepted</Badge>;
+      return (
+        <Badge variant="success" className="text-xs">
+          Accepted
+        </Badge>
+      );
     case "revoked":
-      return <Badge variant="secondary">Revoked</Badge>;
+      return (
+        <Badge variant="error" className="text-xs">
+          Revoked
+        </Badge>
+      );
     case "expired":
-      return <Badge variant="secondary">Expired</Badge>;
+      return (
+        <Badge variant="error" className="text-xs">
+          Expired
+        </Badge>
+      );
     default:
       return null;
   }

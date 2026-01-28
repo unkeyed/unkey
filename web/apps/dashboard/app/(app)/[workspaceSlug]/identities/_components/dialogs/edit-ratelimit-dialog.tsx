@@ -4,6 +4,7 @@ import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setu
 import { useEditRatelimits } from "@/hooks/use-edit-ratelimits";
 import type { RatelimitFormValues } from "@/lib/schemas/ratelimit";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
+import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
@@ -59,7 +60,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
   }, [identity]);
 
   const methods = useForm<RatelimitFormValues>({
-    resolver: zodResolver(ratelimitSchema),
+    resolver: zodResolver(ratelimitSchema) as DiscriminatedUnionResolver<typeof ratelimitSchema>,
     defaultValues: getDefaultValues(),
   });
 

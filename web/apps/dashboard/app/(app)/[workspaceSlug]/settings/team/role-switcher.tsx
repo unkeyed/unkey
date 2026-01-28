@@ -15,7 +15,7 @@ import {
 import { memo, useState } from "react";
 
 type RoleSwitcherProps = {
-  member: { id: string; role: string };
+  member: { id: string; role: string; userId: string };
   organization: Organization;
   user: AuthenticatedUser;
   userMembership: Membership;
@@ -25,6 +25,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
   ({ member, organization, user, userMembership }) => {
     const [role, setRole] = useState(member.role);
     const isAdmin = userMembership?.role === "admin";
+    const isCurrentUser = member.userId === user.id;
     const utils = trpc.useUtils();
 
     const updateMember = trpc.org.members.update.useMutation({
@@ -60,7 +61,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
         <div className="w-fit">
           <Select
             value={role}
-            disabled={(Boolean(user) && member.id === user?.id) || updateMember.isLoading}
+            disabled={isCurrentUser || updateMember.isLoading}
             onValueChange={handleRoleUpdate}
           >
             <SelectTrigger className="w-[180px] max-sm:w-36">

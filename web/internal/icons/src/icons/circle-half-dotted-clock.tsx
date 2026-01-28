@@ -9,10 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const CircleHalfDottedClock: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
+export function CircleHalfDottedClock({ iconSize = "xl-thin", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -50,4 +50,4 @@ export const CircleHalfDottedClock: React.FC<IconProps> = ({ iconSize = "xl-thin
       </g>
     </svg>
   );
-};
+}

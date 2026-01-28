@@ -3,6 +3,7 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -92,17 +93,13 @@ func TestValidationErrors(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "validate schema")
 	})
 
-	// Test for very long description
-	t.Run("very long description", func(t *testing.T) {
-		// Create a very long description (more than would be reasonable)
-		veryLongDesc := ""
-		for i := 0; i < 10000; i++ {
-			veryLongDesc += "a"
-		}
+	// Test for description exceeding 512 character limit
+	t.Run("description too long", func(t *testing.T) {
+		tooLongDesc := strings.Repeat("a", 513)
 
 		req := handler.Request{
 			Name:        "test.role",
-			Description: &veryLongDesc,
+			Description: &tooLongDesc,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](

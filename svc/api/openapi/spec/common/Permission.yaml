@@ -29,7 +29,7 @@ properties:
     example: users-read
   description:
     type: string
-    maxLength: 2048
+    maxLength: 512
     description: |
       Optional detailed explanation of what this permission grants access to.
       Helps team members understand the scope and implications of granting this permission.

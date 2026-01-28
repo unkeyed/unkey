@@ -14,9 +14,14 @@ import (
 // and reports actual state changes back to the control plane in real-time.
 //
 // The watch filters for resources with the "managed-by: krane" and "component: deployment"
-// labels, ignoring resources created by other controllers. When a ReplicaSet is added,
-// modified, or deleted, the method queries pod status and reports the actual state to
-// the control plane so routing tables stay synchronized with what's running in the cluster.
+// labels, ignoring resources created by other controllers. When a ReplicaSet is added
+// or modified, the method calls [Controller.buildDeploymentStatus] to query pod state
+// and reports via [Controller.reportDeploymentStatus]. Deletions are reported directly
+// so the control plane can remove the deployment from its routing tables.
+//
+// The method returns an error if the initial watch setup fails. Once started, watch
+// errors are logged but the goroutine continues processing events. The watch runs
+// until the context is cancelled.
 func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
 	w, err := c.clientSet.AppsV1().ReplicaSets("").Watch(ctx, metav1.ListOptions{
 		LabelSelector: labels.New().

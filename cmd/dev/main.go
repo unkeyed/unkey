@@ -12,6 +12,6 @@ var Cmd = &cli.Command{
 	Usage: "All of our development tools",
 	Commands: []*cli.Command{
 		seed.Cmd,
-		// Future: apiRequestsCmd, ratelimitsCmd, etc.
+		generateMasterKeyCmd,
 	},
 }

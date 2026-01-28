@@ -1,11 +1,11 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 import "@/styles/tailwind/tailwind.css";
 import "@unkey/ui/css";
 import * as Sentry from "@sentry/nextjs";
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import type React from "react";
@@ -49,9 +49,8 @@ export function generateMetadata(): Metadata {
   };
 }
 
-const Feedback = dynamic(
-  () => import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
-  { ssr: false },
+const Feedback = dynamic(() =>
+  import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
 );
 
 export default function RootLayout({
@@ -60,10 +59,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-full antialiased">
         <ReactQueryProvider>
-          <ThemeProvider attribute="class">
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
             <WorkspaceProvider>
               <Toaster />
               {children}

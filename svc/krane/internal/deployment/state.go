@@ -12,9 +12,16 @@ import (
 )
 
 // buildDeploymentStatus queries the pods belonging to a ReplicaSet and builds a
-// status report containing each pod's address, resource allocation, and phase.
-// Pods without an IP address are skipped since they can't receive traffic yet.
-// The address is formatted as a cluster-local DNS name for in-cluster routing.
+// status report for the control plane.
+//
+// The report includes each pod's cluster-local DNS address, CPU and memory limits,
+// and health status. Pods without an IP address are excluded since they can't
+// receive traffic yet. The address format is "{ip-with-dashes}.{namespace}.pod.cluster.local:{port}"
+// which enables in-cluster DNS resolution without a headless Service.
+//
+// Pod phase is mapped to instance status: Running pods with all containers ready
+// become STATUS_RUNNING, Pending pods become STATUS_PENDING, and Failed pods or
+// Running pods with unready containers become STATUS_FAILED.
 func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *appsv1.ReplicaSet) (*ctrlv1.ReportDeploymentStatusRequest, error) {
 	selector, err := metav1.LabelSelectorAsSelector(replicaset.Spec.Selector)
 	if err != nil {

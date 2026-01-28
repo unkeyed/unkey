@@ -10,17 +10,18 @@ import (
 	"runtime/debug"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	pkgtls "github.com/unkeyed/unkey/pkg/tls"
-	"github.com/unkeyed/unkey/pkg/vault"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
@@ -108,28 +109,18 @@ func Run(ctx context.Context, cfg Config) error {
 		}()
 	}
 
-	var vaultSvc *vault.Service
-	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
-		var vaultStorage storage.Storage
-		vaultStorage, err = storage.NewS3(storage.S3Config{
-			Logger:            logger,
-			S3URL:             cfg.VaultS3.S3URL,
-			S3Bucket:          cfg.VaultS3.S3Bucket,
-			S3AccessKeyID:     cfg.VaultS3.S3AccessKeyID,
-			S3AccessKeySecret: cfg.VaultS3.S3AccessKeySecret,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create vault storage: %w", err)
-		}
-
-		vaultSvc, err = vault.New(vault.Config{
-			Logger:     logger,
-			Storage:    vaultStorage,
-			MasterKeys: cfg.VaultMasterKeys,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create vault service: %w", err)
-		}
+	var vaultClient vaultv1connect.VaultServiceClient
+	if cfg.VaultURL != "" {
+		vaultClient = vaultv1connect.NewVaultServiceClient(
+			http.DefaultClient,
+			cfg.VaultURL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": "Bearer " + cfg.VaultToken,
+			})),
+		)
+		logger.Info("Vault client initialized", "url", cfg.VaultURL)
+	} else {
+		logger.Warn("Vault not configured - TLS certificate decryption will be unavailable")
 	}
 
 	db, err := db.New(db.Config{
@@ -153,12 +144,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize certificate manager for dynamic TLS
 	var certManager certmanager.Service
-	if vaultSvc != nil {
+	if vaultClient != nil {
 		certManager = certmanager.New(certmanager.Config{
 			Logger:              logger,
 			DB:                  db,
 			TLSCertificateCache: cache.TLSCertificates,
-			Vault:               vaultSvc,
+			Vault:               vaultClient,
 		})
 	}
 
@@ -189,21 +180,35 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create proxy service: %w", err)
 	}
 
-	// Create TLS config with dynamic certificate loading
+	// Create TLS config - either from static files (dev mode) or dynamic certificates (production)
 	var tlsConfig *pkgtls.Config
-	if cfg.EnableTLS && certManager != nil {
-		//nolint:exhaustruct
-		tlsConfig = &tls.Config{
-			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				return certManager.GetCertificate(context.Background(), hello.ServerName)
-			},
-			MinVersion: tls.VersionTLS12,
-			// Enable session resumption for faster subsequent connections
-			// Session tickets allow clients to skip the full TLS handshake
-			SessionTicketsDisabled: false,
-			// Let Go's TLS implementation choose optimal cipher suites
-			// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
-			PreferServerCipherSuites: false,
+	if cfg.EnableTLS {
+		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+			// Dev mode: static file-based certificate
+			fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)
+			if tlsErr != nil {
+				return fmt.Errorf("failed to load TLS certificate from files: %w", tlsErr)
+			}
+			tlsConfig = fileTLSConfig
+			logger.Info("TLS configured with static certificate files",
+				"certFile", cfg.TLSCertFile,
+				"keyFile", cfg.TLSKeyFile)
+		} else if certManager != nil {
+			// Production mode: dynamic certificates from database/vault
+			//nolint:exhaustruct
+			tlsConfig = &tls.Config{
+				GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+					return certManager.GetCertificate(context.Background(), hello.ServerName)
+				},
+				MinVersion: tls.VersionTLS12,
+				// Enable session resumption for faster subsequent connections
+				// Session tickets allow clients to skip the full TLS handshake
+				SessionTicketsDisabled: false,
+				// Let Go's TLS implementation choose optimal cipher suites
+				// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
+				PreferServerCipherSuites: false,
+			}
+			logger.Info("TLS configured with dynamic certificate manager")
 		}
 	}
 

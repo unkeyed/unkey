@@ -9,12 +9,15 @@ import (
 	"connectrpc.com/connect"
 )
 
+// request abstracts over Connect request types to extract HTTP headers for authentication.
 type request interface {
 	Header() http.Header
 }
 
-// authenticate validates the bearer token from the request's Authorization header.
-// Returns a connect.CodeUnauthenticated error if the token is missing, malformed, or invalid.
+// authenticate validates the bearer token from the request's Authorization header using
+// constant-time comparison to prevent timing attacks. Returns connect.CodeUnauthenticated
+// if the Authorization header is missing, does not start with "Bearer ", or contains an
+// invalid token.
 func (s *Service) authenticate(req request) error {
 
 	header := req.Header().Get("Authorization")

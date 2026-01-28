@@ -11,12 +11,19 @@ import (
 )
 
 // WatchSentinels streams sentinel state changes from the control plane to agents.
-// Each sentinel controller maintains its own version cursor for resumable streaming.
-// The agent applies received state to Kubernetes to converge actual state toward desired state.
+// This is the primary mechanism for agents to receive desired state updates for their region.
+// Agents apply received state to Kubernetes to converge actual state toward desired state.
 //
-// This is a long-lived streaming RPC. The server polls the database for new sentinel
-// versions and streams them to the client. The client should track the max version seen
-// and reconnect with that version to resume from where it left off.
+// The stream uses version-based cursors for resumability. The client provides version_last_seen
+// in the request, and the server streams all sentinels with versions greater than that cursor.
+// Clients should track the maximum version received and use it to reconnect without replaying
+// history. When no new versions are available, the server polls the database every second.
+//
+// Each poll fetches up to 100 sentinel rows ordered by version. The desired_state field
+// determines whether to send an ApplySentinel (for running state) or DeleteSentinel (for
+// archived or standby states). Rows with unhandled states are logged and skipped.
+//
+// Returns when the context is cancelled, or on database or stream errors.
 func (s *Service) WatchSentinels(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.WatchSentinelsRequest],
@@ -30,8 +37,12 @@ func (s *Service) WatchSentinels(
 	if err := assert.NotEmpty(region, "region is required"); err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
-
 	versionCursor := req.Msg.GetVersionLastSeen()
+
+	s.logger.Info("krane watching sentinels",
+		"region", region,
+		"version", versionCursor,
+	)
 
 	for {
 		select {
@@ -61,6 +72,9 @@ func (s *Service) WatchSentinels(
 	}
 }
 
+// fetchSentinelStates queries the database for sentinels in the given region with versions
+// greater than afterVersion, returning up to 100 results. Rows with unhandled desired_state
+// values are skipped rather than failing the entire batch.
 func (s *Service) fetchSentinelStates(ctx context.Context, region string, afterVersion uint64) ([]*ctrlv1.SentinelState, error) {
 	rows, err := db.Query.ListSentinelsByRegion(ctx, s.db.RO(), db.ListSentinelsByRegionParams{
 		Region:       region,
@@ -82,6 +96,9 @@ func (s *Service) fetchSentinelStates(ctx context.Context, region string, afterV
 	return states, nil
 }
 
+// sentinelRowToState converts a database sentinel row to a proto SentinelState message.
+// Returns a DeleteSentinel for archived or standby states and an ApplySentinel for running
+// state. Returns nil for unhandled states, which the caller should skip.
 func (s *Service) sentinelRowToState(sentinel db.Sentinel) *ctrlv1.SentinelState {
 	switch sentinel.DesiredState {
 	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:

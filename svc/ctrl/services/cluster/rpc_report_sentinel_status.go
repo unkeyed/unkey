@@ -11,12 +11,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
-// ReportSentinelStatus records the observed replica count for a sentinel as reported by a
-// krane agent. This updates the available_replicas and health fields in the database,
-// allowing the control plane to track which sentinels are actually running and healthy.
-// A sentinel is considered healthy if it has at least one available replica.
+// ReportSentinelStatus records the observed replica count and health for a sentinel as
+// reported by a krane agent. This updates the available_replicas, health, and updated_at
+// fields in the database, enabling the control plane to track which sentinels are actually
+// running and their current health state.
 //
-// Requires bearer token authentication and the X-Krane-Region header.
+// The health proto value is mapped to database enums: HEALTH_HEALTHY to SentinelsHealthHealthy,
+// HEALTH_UNHEALTHY to SentinelsHealthUnhealthy, HEALTH_PAUSED to SentinelsHealthPaused, and
+// HEALTH_UNSPECIFIED to SentinelsHealthUnknown.
+//
+// Returns CodeUnauthenticated if bearer token is invalid, or CodeInternal if the database
+// update fails.
 func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportSentinelStatusRequest]) (*connect.Response[ctrlv1.ReportSentinelStatusResponse], error) {
 
 	if err := s.authenticate(req); err != nil {

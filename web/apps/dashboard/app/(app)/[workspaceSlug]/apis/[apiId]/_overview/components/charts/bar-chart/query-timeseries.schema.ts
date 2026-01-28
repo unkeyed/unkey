@@ -4,8 +4,8 @@ import { keysOverviewFilterOperatorEnum } from "../../../filters.schema";
 
 export const MAX_KEYID_COUNT = 15;
 export const keysOverviewQueryTimeseriesPayload = z.object({
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   since: z.string(),
   apiId: z.string(),
   keyIds: z
