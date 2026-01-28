@@ -68,16 +68,6 @@ export const columns: Column<SentinelLogsResponseSchema>[] = [
     ),
   },
   {
-    key: "host",
-    header: "Hostname",
-    width: "200px",
-    render: (log) => (
-      <div className="font-mono pr-4 truncate" title={log.host}>
-        {log.host}
-      </div>
-    ),
-  },
-  {
     key: "path",
     header: "Path",
     width: "250px",
@@ -88,50 +78,10 @@ export const columns: Column<SentinelLogsResponseSchema>[] = [
     ),
   },
   {
-    key: "ip_address",
-    header: "IP Address",
-    width: "140px",
-    render: (log) => (
-      <div className="font-mono pr-4 truncate" title={log.ip_address}>
-        {log.ip_address}
-      </div>
-    ),
-  },
-  {
-    key: "user_agent",
-    header: "User Agent",
-    width: "200px",
-    render: (log) => (
-      <div className="font-mono pr-4 truncate" title={log.user_agent}>
-        {log.user_agent}
-      </div>
-    ),
-  },
-  {
     key: "latency",
     header: "Latency",
     width: "150px",
     render: (log) => <LatencyBadge log={log} />,
-  },
-  {
-    key: "response_body",
-    header: "Response Body",
-    width: "350px",
-    render: (log) => (
-      <div className="font-mono whitespace-nowrap truncate max-w-[300px]" title={log.response_body}>
-        {log.response_body}
-      </div>
-    ),
-  },
-  {
-    key: "request_body",
-    header: "Request Body",
-    width: "350px",
-    render: (log) => (
-      <div className="font-mono whitespace-nowrap truncate max-w-[300px]" title={log.request_body}>
-        {log.request_body}
-      </div>
-    ),
   },
 ];
 
