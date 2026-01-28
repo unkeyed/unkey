@@ -16,9 +16,14 @@ export const updateApiIpWhitelist = workspaceProcedure
             return null;
           }
           const ips = s.split(/,|\n/).map((ip) => ip.trim());
-          const parsedIps = z.array(z.string().ip()).safeParse(ips);
+          const parsedIps = z.array(z.union([z.ipv4(), z.ipv6()])).safeParse(ips);
           if (!parsedIps.success) {
-            ctx.addIssue(parsedIps.error.issues[0]);
+            const firstIssue = parsedIps.error.issues[0];
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: firstIssue?.message || "Invalid IP address format",
+              path: firstIssue?.path || [],
+            });
             return z.NEVER;
           }
           return parsedIps.data;

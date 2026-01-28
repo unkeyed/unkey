@@ -17,7 +17,7 @@ const schema = z.object({
   branch: z.string(),
   author: z.string().nullable(),
   authorAvatar: z.string().nullable(),
-  commitTimestamp: z.number().int().nullable(),
+  commitTimestamp: z.int().nullable(),
   regions: z.array(z.string()),
   // Domain field
   domain: z.string().nullable(),
@@ -34,7 +34,7 @@ export const createProjectRequestSchema = z.object({
       /^[a-z0-9-]+$/,
       "Project slug must contain only lowercase letters, numbers, and hyphens",
     ),
-  gitRepositoryUrl: z.string().trim().url("Must be a valid URL").nullable().or(z.literal("")),
+  gitRepositoryUrl: z.url("Must be a valid URL").trim().nullable().or(z.literal("")),
 });
 
 export type Project = z.infer<typeof schema>;

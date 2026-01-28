@@ -1,4 +1,4 @@
-import type React from "react";
+import type { CSSProperties } from "react";
 
 // Clean external types that map to detailed internal types
 export type Size = "sm" | "md" | "lg" | "xl" | "2xl";
@@ -29,11 +29,20 @@ export const sizeMap = {
   "2xl-bold": { iconSize: 30, strokeWidth: 3 },
 } as const;
 
-export type IconProps = {
+// export type IconProps = {
+//   className?: string;
+//   title?: string;
+//   iconSize?: iconSize;
+//   filled?: boolean;
+//   focusable?: boolean;
+//   style?: CSSProperties;
+// };
+
+export interface IconProps {
   className?: string;
   title?: string;
   iconSize?: iconSize;
   filled?: boolean;
   focusable?: boolean;
-  style?: React.CSSProperties;
-};
+  style?: CSSProperties;
+}

@@ -1,7 +1,7 @@
 import { formatNumber } from "@/lib/fmt";
 
 import { InfoTooltip } from "@unkey/ui";
-import { useMemo } from "react";
+import { type JSX, useMemo } from "react";
 import type { ProcessedTimeseriesDataPoint } from "../use-fetch-timeseries";
 
 type OutcomeExplainerProps = {

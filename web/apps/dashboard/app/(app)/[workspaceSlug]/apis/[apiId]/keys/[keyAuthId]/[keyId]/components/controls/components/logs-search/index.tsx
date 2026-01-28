@@ -23,7 +23,15 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
       }
       type ValidField = (typeof VALID_FIELDS)[number];
 
-      const transformedFilters = transformStructuredOutputToFilters(data, filters);
+      const transformedFilters = transformStructuredOutputToFilters(
+        data as {
+          filters: Array<{
+            field: string;
+            filters: Array<{ operator: string; value: string | number }>;
+          }>;
+        },
+        filters,
+      ) as typeof filters;
 
       const validFilters = transformedFilters.filter((filter): filter is KeyDetailsFilterValue =>
         VALID_FIELDS.includes(filter.field as ValidField),

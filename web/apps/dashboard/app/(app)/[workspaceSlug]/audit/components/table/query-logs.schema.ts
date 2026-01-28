@@ -2,11 +2,11 @@ import { z } from "zod";
 
 export const DEFAULT_BUCKET_NAME = "unkey_mutations";
 export const auditQueryLogsPayload = z.object({
-  limit: z.number().int(),
-  startTime: z.number().int().optional(),
-  endTime: z.number().int().optional(),
+  limit: z.int(),
+  startTime: z.int().optional(),
+  endTime: z.int().optional(),
   since: z.string(),
-  bucket: z.string().default(DEFAULT_BUCKET_NAME),
+  bucket: z.string().prefault(DEFAULT_BUCKET_NAME),
   events: z
     .object({
       filters: z.array(

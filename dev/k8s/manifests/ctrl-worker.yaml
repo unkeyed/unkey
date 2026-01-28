@@ -28,12 +28,21 @@ spec:
           args: ["run", "ctrl", "worker"]
           imagePullPolicy: Never # Use local images
           ports:
-            - containerPort: 7092
             - containerPort: 9080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9080
+            initialDelaySeconds: 5
+            periodSeconds: 5
           env:
             # Server Configuration
-            - name: UNKEY_WORKER_HTTP_PORT
-              value: "7092"
             - name: UNKEY_INSTANCE_ID
               value: "worker-dev"
             # Database Configuration
@@ -89,20 +98,17 @@ spec:
             - name: UNKEY_ACME_ENABLED
               value: "false"
 
+            # Domain configuration (used by deploy and routing services)
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
 
             # Restate Configuration
-            - name: UNKEY_RESTATE_INGRESS_URL
-              value: "http://restate:8080"
             - name: UNKEY_RESTATE_ADMIN_URL
               value: "http://restate:9070"
             - name: UNKEY_RESTATE_HTTP_PORT
               value: "9080"
             - name: UNKEY_RESTATE_REGISTER_AS
               value: "http://ctrl-worker:9080"
-            - name: UNKEY_RESTATE_API_KEY
-              value: ""
 
             # ClickHouse Configuration
             - name: UNKEY_CLICKHOUSE_URL

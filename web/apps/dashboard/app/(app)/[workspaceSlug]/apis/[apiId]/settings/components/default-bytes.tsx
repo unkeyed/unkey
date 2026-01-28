@@ -2,6 +2,7 @@
 import { revalidate } from "@/app/actions";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, SettingCard } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -36,6 +37,8 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
     formState: { isValid, isSubmitting, isDirty },
   } = useForm<z.infer<typeof formSchema>>({
     ...createApiFormConfig(formSchema),
+    // biome-ignore lint/suspicious/noExplicitAny: Zod v4 type inference with z.coerce creates resolver type mismatch
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       defaultBytes: keyAuth.defaultBytes ?? undefined,
       keyAuthId: keyAuth.id,

@@ -1,12 +1,12 @@
 import type { inferAsyncReturnType } from "@trpc/server";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
+import type { NextRequest } from "next/server";
 
 import { getAuth } from "../auth/get-auth";
 import { db } from "../db";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
-  // biome-ignore lint/suspicious/noExplicitAny:This has to be generic so any is okay
-  let authResult = await getAuth(req as any);
+  let authResult = await getAuth(req as NextRequest);
   const { userId, orgId } = authResult;
 
   let ws: Awaited<ReturnType<typeof db.query.workspaces.findFirst>> = undefined;
@@ -38,8 +38,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
 
         // Retry auth validation to ensure session is fully synchronized
         try {
-          // biome-ignore lint/suspicious/noExplicitAny:This has to be generic so any is okay
-          const retryAuthResult = await getAuth(req as any);
+          const retryAuthResult = await getAuth(req as NextRequest);
           if (retryAuthResult.orgId && retryAuthResult.orgId !== orgId) {
             console.debug("Auth context changed after delay, using updated orgId:", {
               originalOrgId: orgId,

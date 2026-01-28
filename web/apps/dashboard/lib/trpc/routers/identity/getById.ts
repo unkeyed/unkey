@@ -34,7 +34,7 @@ const WorkspaceSchema = z.object({
 const IdentityDetailSchema = z.object({
   id: z.string(),
   externalId: z.string(),
-  meta: z.record(z.unknown()).nullable(),
+  meta: z.record(z.string(), z.unknown()).nullable(),
   workspace: WorkspaceSchema,
   keys: z.array(KeySchema),
   ratelimits: z.array(RatelimitSchema),

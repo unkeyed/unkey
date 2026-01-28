@@ -363,6 +363,9 @@ services:
       # API key for simple authentication
       UNKEY_AUTH_TOKEN: "your-local-dev-key"
 
+      # Certificate bootstrap
+      UNKEY_DEFAULT_DOMAIN: "unkey.local"
+
   ctrl-worker:
     networks:
       - default
@@ -376,8 +379,13 @@ services:
     env_file:
       - .env.depot
     ports:
-      - "7092:7092"
       - "9080:9080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      interval: 5s
     depends_on:
       mysql:
         condition: service_healthy
@@ -399,16 +407,13 @@ services:
     environment:
       UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
-      # Worker configuration
-      UNKEY_WORKER_HTTP_PORT: "7092"
+      # Domain configuration (used by deploy and routing services)
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
 
       # Restate configuration
-      UNKEY_RESTATE_INGRESS_URL: "http://restate:8080"
       UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"
       UNKEY_RESTATE_HTTP_PORT: "9080"
       UNKEY_RESTATE_REGISTER_AS: "http://ctrl-worker:9080"
-      UNKEY_RESTATE_API_KEY: ""
 
       # Vault service for secret encryption
       UNKEY_VAULT_URL: "http://vault:8060"

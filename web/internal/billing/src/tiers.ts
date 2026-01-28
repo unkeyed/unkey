@@ -2,8 +2,8 @@ import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import { z } from "zod";
 
 export const billingTier = z.object({
-  firstUnit: z.number().int().min(1),
-  lastUnit: z.number().int().min(1).nullable(),
+  firstUnit: z.int().min(1),
+  lastUnit: z.int().min(1).nullable(),
   /**
    * in cents, e.g. "10.124" = $0.10124
    * set null, to make it free
