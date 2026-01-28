@@ -236,7 +236,7 @@ func (s *Service) onVerificationSuccess(
 			DeploymentID:             deploymentID,
 			EnvironmentID:            dom.EnvironmentID,
 			FullyQualifiedDomainName: dom.Domain,
-			Sticky:                   db.FrontlineRoutesStickyEnvironment,
+			Sticky:                   db.FrontlineRoutesStickyLive,
 			CreatedAt:                now,
 			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
 		})

@@ -361,9 +361,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
-	// Fetch sticky routes (environment + live for production) including custom domains
+	// Fetch sticky routes for this environment
 	stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
 	if !project.IsRolledBack && environment.Slug == "production" {
+		// Only reassign live routes when not rolled back - rollbacks keep live routes on the previous deployment
 		stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
 	}
 
