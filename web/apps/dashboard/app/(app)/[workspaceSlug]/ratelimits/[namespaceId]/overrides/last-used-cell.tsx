@@ -15,7 +15,7 @@ export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => 
     namespaceId,
     identifier,
   });
-  const badgeRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLElement>(null) as React.RefObject<HTMLElement>;
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (

@@ -19,7 +19,15 @@ export const SentinelLogsSearch = () => {
         );
         return;
       }
-      const transformedFilters = transformStructuredOutputToFilters(data, filters);
+      const transformedFilters = transformStructuredOutputToFilters(
+        data as {
+          filters: Array<{
+            field: string;
+            filters: Array<{ operator: string; value: string | number }>;
+          }>;
+        },
+        filters,
+      ) as typeof filters;
       updateFilters(transformedFilters);
     },
     onError(error) {

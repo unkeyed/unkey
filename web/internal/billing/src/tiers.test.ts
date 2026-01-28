@@ -79,13 +79,12 @@ describe("invalid tiers", () => {
       expect(result.err?.message).toMatchInlineSnapshot(`
         "[
           {
+            "origin": "array",
             "code": "too_small",
             "minimum": 1,
-            "type": "array",
             "inclusive": true,
-            "exact": false,
-            "message": "Array must contain at least 1 element(s)",
-            "path": []
+            "path": [],
+            "message": "Too small: expected array to have >=1 items"
           }
         ]"
       `);

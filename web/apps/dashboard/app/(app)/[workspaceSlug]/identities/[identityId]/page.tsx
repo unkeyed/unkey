@@ -1,10 +1,10 @@
 import { IdentityDetailsLogsClient } from "./logs-client";
 import { Navigation } from "./navigation";
 
-export default function IdentityDetailsPage(props: {
-  params: { identityId: string };
+export default async function IdentityDetailsPage(props: {
+  params: Promise<{ identityId: string }>;
 }) {
-  const { identityId } = props.params;
+  const { identityId } = await props.params;
 
   return (
     <div className="w-full">

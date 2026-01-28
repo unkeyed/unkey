@@ -122,7 +122,11 @@ export const UsageSetup = ({
         type="number"
         label="Number of uses"
         description="Enter the remaining amount of uses for this key."
-        error={errors.limit?.data?.remaining?.message}
+        error={
+          errors.limit?.data && "remaining" in errors.limit.data
+            ? errors.limit.data.remaining?.message
+            : undefined
+        }
         disabled={!limitEnabled}
         readOnly={!limitEnabled}
         {...register("limit.data.remaining")}
@@ -154,7 +158,11 @@ export const UsageSetup = ({
               description="Interval key will be refilled."
               descriptionId="refill-interval-description"
               errorId="refill-interval-error"
-              error={errors.limit?.data?.refill?.interval?.message}
+              error={
+                errors.limit?.data && "refill" in errors.limit.data
+                  ? errors.limit.data.refill?.interval?.message
+                  : undefined
+              }
             />
           </div>
         )}
@@ -171,7 +179,11 @@ export const UsageSetup = ({
             type="number"
             label="Number of uses per interval"
             description="Enter the number of uses to refill per interval."
-            error={errors.limit?.data?.refill?.amount?.message}
+            error={
+              errors.limit?.data && "refill" in errors.limit.data
+                ? errors.limit.data.refill?.amount?.message
+                : undefined
+            }
             disabled={!limitEnabled || currentRefillInterval === "none"}
             readOnly={!limitEnabled || currentRefillInterval === "none"}
             value={field.value === undefined ? "" : field.value}
@@ -194,7 +206,11 @@ export const UsageSetup = ({
             type="number"
             label="On which day of the month should we refill the key?"
             description="Enter the day to refill monthly (1-31)."
-            error={errors.limit?.data?.refill?.refillDay?.message}
+            error={
+              errors.limit?.data && "refill" in errors.limit.data
+                ? errors.limit.data.refill?.refillDay?.message
+                : undefined
+            }
             disabled={!limitEnabled || currentRefillInterval !== "monthly"}
             readOnly={!limitEnabled || currentRefillInterval !== "monthly"}
             value={field.value === undefined ? "" : field.value}

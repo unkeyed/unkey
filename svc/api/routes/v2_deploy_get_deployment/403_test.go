@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 )
@@ -16,23 +18,26 @@ func TestGetDeploymentInsufficientPermissions(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{
-		Logger:     h.Logger,
-		DB:         h.DB,
-		Keys:       h.Keys,
-		CtrlClient: h.CtrlDeploymentClient,
-	}
-	h.Register(route)
-
-	// Create setup with create_deployment permission to create a test deployment
 	setupCreate := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
-	// Create an actual deployment
-	deploymentID := createTestDeployment(t, h.CtrlDeploymentClient, setupCreate.Project.ID, setupCreate.RootKey)
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            deploymentID,
+		WorkspaceID:   setupCreate.Workspace.ID,
+		ProjectID:     setupCreate.Project.ID,
+		EnvironmentID: setupCreate.Environment.ID,
+		GitBranch:     "main",
+	})
 
-	// Now create a key with insufficient permissions (no read_deployment)
+	route := &handler.Handler{
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
+	}
+	h.Register(route)
+
 	rootKeyWithoutRead := h.CreateRootKey(setupCreate.Workspace.ID, "project.*.create_deployment")
 
 	headers := http.Header{

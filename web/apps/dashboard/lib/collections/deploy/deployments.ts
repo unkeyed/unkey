@@ -13,7 +13,7 @@ const schema = z.object({
   gitCommitMessage: z.string().nullable(),
   gitCommitAuthorHandle: z.string().nullable(),
   gitCommitAuthorAvatarUrl: z.string(),
-  gitCommitTimestamp: z.number().int().nullable(),
+  gitCommitTimestamp: z.int().nullable(),
   // OpenAPI
   hasOpenApiSpec: z.boolean(),
   // Deployment status
@@ -23,8 +23,8 @@ const schema = z.object({
       id: z.string(),
     }),
   ),
-  cpuMillicores: z.number().int(),
-  memoryMib: z.number().int(),
+  cpuMillicores: z.int(),
+  memoryMib: z.int(),
   createdAt: z.number(),
 });
 

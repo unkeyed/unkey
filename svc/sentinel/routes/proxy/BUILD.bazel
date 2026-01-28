@@ -6,10 +6,13 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/sentinel/routes/proxy",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
         "//pkg/clock",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/otel/logging",
+        "//pkg/uid",
         "//pkg/zen",
         "//svc/sentinel/services/router",
     ],
