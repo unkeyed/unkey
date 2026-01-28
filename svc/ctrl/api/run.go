@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
@@ -116,6 +117,15 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
 
+	// Restate admin client for managing invocations
+	var restateAdminClient *restateadmin.Client
+	if cfg.Restate.AdminURL != "" {
+		restateAdminClient = restateadmin.New(restateadmin.Config{
+			BaseURL: cfg.Restate.AdminURL,
+			APIKey:  cfg.Restate.APIKey,
+		})
+	}
+
 	c := cluster.New(cluster.Config{
 		Database: database,
 		Logger:   logger,
@@ -176,6 +186,7 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewCustomDomainServiceHandler(customdomain.New(customdomain.Config{
 		Database:     database,
 		Restate:      restateClient,
+		RestateAdmin: restateAdminClient,
 		Logger:       logger,
 		DefaultCname: cfg.DefaultCname,
 	})))

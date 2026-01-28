@@ -74,10 +74,9 @@ func (x *VerifyDomainRequest) GetDomain() string {
 	return ""
 }
 
+// Empty response - success means verified, errors are returned to Restate
 type VerifyDomainResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"` // "pending", "verifying", "verified", "failed"
-	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`   // Error message if failed
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -110,20 +109,6 @@ func (x *VerifyDomainResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use VerifyDomainResponse.ProtoReflect.Descriptor instead.
 func (*VerifyDomainResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_custom_domain_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *VerifyDomainResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *VerifyDomainResponse) GetError() string {
-	if x != nil {
-		return x.Error
-	}
-	return ""
 }
 
 type RetryVerificationRequest struct {
@@ -178,9 +163,9 @@ func (x *RetryVerificationRequest) GetDomain() string {
 	return ""
 }
 
+// Empty response - just triggers a new verification workflow
 type RetryVerificationResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -215,13 +200,6 @@ func (*RetryVerificationResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_custom_domain_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *RetryVerificationResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
 var File_hydra_v1_custom_domain_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_custom_domain_proto_rawDesc = "" +
@@ -229,15 +207,12 @@ const file_hydra_v1_custom_domain_proto_rawDesc = "" +
 	"\x1chydra/v1/custom_domain.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"P\n" +
 	"\x13VerifyDomainRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x16\n" +
-	"\x06domain\x18\x02 \x01(\tR\x06domain\"D\n" +
-	"\x14VerifyDomainResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error\"U\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\"\x16\n" +
+	"\x14VerifyDomainResponse\"U\n" +
 	"\x18RetryVerificationRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x16\n" +
-	"\x06domain\x18\x02 \x01(\tR\x06domain\"3\n" +
-	"\x19RetryVerificationResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status2\xcc\x01\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\"\x1b\n" +
+	"\x19RetryVerificationResponse2\xcc\x01\n" +
 	"\x13CustomDomainService\x12O\n" +
 	"\fVerifyDomain\x12\x1d.hydra.v1.VerifyDomainRequest\x1a\x1e.hydra.v1.VerifyDomainResponse\"\x00\x12^\n" +
 	"\x11RetryVerification\x12\".hydra.v1.RetryVerificationRequest\x1a#.hydra.v1.RetryVerificationResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x97\x01\n" +

@@ -1,4 +1,4 @@
-import { CustomDomainService } from "@/gen/proto/ctrl/v1/custom_domain_pb";
+import { CustomDomainService, CustomDomainStatus } from "@/gen/proto/ctrl/v1/custom_domain_pb";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -6,6 +6,22 @@ import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+
+// Convert proto enum to string status
+function statusToString(status: CustomDomainStatus): string {
+  switch (status) {
+    case CustomDomainStatus.PENDING:
+      return "pending";
+    case CustomDomainStatus.VERIFYING:
+      return "verifying";
+    case CustomDomainStatus.VERIFIED:
+      return "verified";
+    case CustomDomainStatus.FAILED:
+      return "failed";
+    default:
+      return "pending";
+  }
+}
 
 export const listCustomDomains = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -59,7 +75,7 @@ export const listCustomDomains = workspaceProcedure
         workspaceId: d.workspaceId,
         projectId: d.projectId,
         environmentId: d.environmentId,
-        verificationStatus: d.verificationStatus,
+        verificationStatus: statusToString(d.verificationStatus),
         targetCname: d.targetCname,
         checkAttempts: d.checkAttempts,
         lastCheckedAt: d.lastCheckedAt ? Number(d.lastCheckedAt) : null,

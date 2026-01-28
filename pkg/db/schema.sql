@@ -487,6 +487,7 @@ CREATE TABLE `custom_domains` (
 	`last_checked_at` bigint,
 	`check_attempts` int NOT NULL DEFAULT 0,
 	`verification_error` varchar(512),
+	`invocation_id` varchar(256),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `custom_domains_pk` PRIMARY KEY(`pk`),

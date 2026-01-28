@@ -39,7 +39,8 @@ var verificationBackoff = []time.Duration{
 // 2. Creates an ACME challenge record to trigger certificate issuance
 // 3. Creates a frontline route to enable traffic routing
 //
-// If verification fails after all retry attempts, the domain status is set to "failed".
+// If verification fails after all retry attempts, an error is returned so Restate
+// marks the workflow as failed.
 func (s *Service) VerifyDomain(
 	ctx restate.ObjectContext,
 	req *hydrav1.VerifyDomainRequest,
@@ -114,7 +115,7 @@ func (s *Service) VerifyDomain(
 		}
 	}
 
-	// Max attempts reached - mark as failed
+	// Max attempts reached - mark as failed and return error
 	return s.onVerificationFailed(ctx, dom, "CNAME verification failed after maximum retry attempts")
 }
 
@@ -142,7 +143,7 @@ func (s *Service) RetryVerification(
 	}
 
 	// Trigger a new verification workflow
-	resp, err := s.VerifyDomain(ctx, &hydrav1.VerifyDomainRequest{
+	_, err = s.VerifyDomain(ctx, &hydrav1.VerifyDomainRequest{
 		WorkspaceId: req.GetWorkspaceId(),
 		Domain:      req.GetDomain(),
 	})
@@ -150,9 +151,7 @@ func (s *Service) RetryVerification(
 		return nil, err
 	}
 
-	return &hydrav1.RetryVerificationResponse{
-		Status: resp.GetStatus(),
-	}, nil
+	return &hydrav1.RetryVerificationResponse{}, nil
 }
 
 // checkCNAME verifies that the domain has a CNAME record pointing to the expected target.
@@ -202,6 +201,7 @@ func (s *Service) onVerificationSuccess(
 			Status:        db.AcmeChallengesStatusWaiting,
 			ExpiresAt:     time.Now().Add(30 * 24 * time.Hour).UnixMilli(),
 			CreatedAt:     now,
+			UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 		})
 	}, restate.WithName("create acme challenge"))
 	if err != nil {
@@ -237,6 +237,7 @@ func (s *Service) onVerificationSuccess(
 			FullyQualifiedDomainName: dom.Domain,
 			Sticky:                   db.FrontlineRoutesStickyLive,
 			CreatedAt:                now,
+			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
 		})
 	}, restate.WithName("create frontline route"))
 	if err != nil {
@@ -247,12 +248,11 @@ func (s *Service) onVerificationSuccess(
 		"domain", dom.Domain,
 	)
 
-	return &hydrav1.VerifyDomainResponse{
-		Status: "verified",
-	}, nil
+	return &hydrav1.VerifyDomainResponse{}, nil
 }
 
 // onVerificationFailed handles failed domain verification after all retries exhausted.
+// It updates the domain status to failed and returns an error so Restate marks the workflow as failed.
 func (s *Service) onVerificationFailed(
 	ctx restate.ObjectContext,
 	dom db.CustomDomain,
@@ -275,8 +275,6 @@ func (s *Service) onVerificationFailed(
 		"error", errorMsg,
 	)
 
-	return &hydrav1.VerifyDomainResponse{
-		Status: "failed",
-		Error:  errorMsg,
-	}, nil
+	// Return error so Restate marks this workflow as failed
+	return nil, fmt.Errorf("domain verification failed: %s", errorMsg)
 }

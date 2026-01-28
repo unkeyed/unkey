@@ -14,6 +14,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -24,6 +25,7 @@ type Service struct {
 	ctrlv1connect.UnimplementedCustomDomainServiceHandler
 	db           db.Database
 	restate      *restateingress.Client
+	restateAdmin *restateadmin.Client
 	logger       logging.Logger
 	defaultCname string
 }
@@ -34,6 +36,8 @@ type Config struct {
 	Database db.Database
 	// Restate is the ingress client for triggering durable verification workflows.
 	Restate *restateingress.Client
+	// RestateAdmin is the admin client for canceling invocations.
+	RestateAdmin *restateadmin.Client
 	// Logger is used for structured logging throughout the service.
 	Logger logging.Logger
 	// DefaultCname is the CNAME target that users must point their domains to.
@@ -46,6 +50,7 @@ func New(cfg Config) *Service {
 		UnimplementedCustomDomainServiceHandler: ctrlv1connect.UnimplementedCustomDomainServiceHandler{},
 		db:                                      cfg.Database,
 		restate:                                 cfg.Restate,
+		restateAdmin:                            cfg.RestateAdmin,
 		logger:                                  cfg.Logger,
 		defaultCname:                            cfg.DefaultCname,
 	}
@@ -83,7 +88,25 @@ func (s *Service) AddCustomDomain(
 		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("domain already registered: %s", domain))
 	}
 
-	// Create custom domain record
+	// Trigger verification workflow first to get invocation ID
+	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain)
+	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
+		WorkspaceId: req.Msg.GetWorkspaceId(),
+		Domain:      domain,
+	})
+
+	var invocationID sql.NullString
+	if sendErr != nil {
+		s.logger.Warn("failed to trigger verification workflow",
+			"domain", domain,
+			"error", sendErr,
+		)
+		// Don't fail the request - domain is created, verification can be retried
+	} else {
+		invocationID = sql.NullString{Valid: true, String: sendResp.Id()}
+	}
+
+	// Create custom domain record with invocation ID
 	domainID := uid.New(uid.DomainPrefix)
 	now := time.Now().UnixMilli()
 
@@ -96,24 +119,11 @@ func (s *Service) AddCustomDomain(
 		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
 		VerificationStatus: db.CustomDomainsVerificationStatusPending,
 		TargetCname:        s.defaultCname,
+		InvocationID:       invocationID,
 		CreatedAt:          now,
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create domain: %w", err))
-	}
-
-	// Trigger verification workflow
-	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain)
-	_, err = client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
-		WorkspaceId: req.Msg.GetWorkspaceId(),
-		Domain:      domain,
-	})
-	if err != nil {
-		s.logger.Warn("failed to trigger verification workflow",
-			"domain", domain,
-			"error", err,
-		)
-		// Don't fail the request - domain is created, verification can be retried
 	}
 
 	return connect.NewResponse(&ctrlv1.AddCustomDomainResponse{
@@ -175,6 +185,18 @@ func (s *Service) DeleteCustomDomain(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find domain: %w", err))
 	}
 
+	// Cancel any running verification workflow
+	if domain.InvocationID.Valid && s.restateAdmin != nil {
+		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
+			s.logger.Warn("failed to cancel verification workflow",
+				"domain", domain.Domain,
+				"invocation_id", domain.InvocationID.String,
+				"error", cancelErr,
+			)
+			// Continue with deletion even if cancel fails
+		}
+	}
+
 	// Delete in transaction: frontline route, ACME challenge, custom domain
 	err = db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		// Delete frontline route if exists
@@ -215,25 +237,38 @@ func (s *Service) RetryVerification(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find domain: %w", err))
 	}
 
-	// Reset verification state
-	err = db.Query.ResetCustomDomainVerification(ctx, s.db.RW(), db.ResetCustomDomainVerificationParams{
-		Domain:             req.Msg.GetDomain(),
-		VerificationStatus: db.CustomDomainsVerificationStatusPending,
-		CheckAttempts:      0,
-		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to reset verification: %w", err))
+	// Cancel any existing verification workflow
+	if domain.InvocationID.Valid && s.restateAdmin != nil {
+		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
+			s.logger.Warn("failed to cancel old verification workflow",
+				"domain", domain.Domain,
+				"invocation_id", domain.InvocationID.String,
+				"error", cancelErr,
+			)
+			// Continue anyway - we'll start a new workflow
+		}
 	}
 
 	// Trigger new verification workflow
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain.Domain)
-	_, err = client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
+	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
 		WorkspaceId: domain.WorkspaceID,
 		Domain:      domain.Domain,
 	})
+	if sendErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification: %w", sendErr))
+	}
+
+	// Reset verification state with new invocation ID
+	err = db.Query.ResetCustomDomainVerification(ctx, s.db.RW(), db.ResetCustomDomainVerificationParams{
+		Domain:             req.Msg.GetDomain(),
+		VerificationStatus: db.CustomDomainsVerificationStatusPending,
+		CheckAttempts:      0,
+		InvocationID:       sql.NullString{Valid: true, String: sendResp.Id()},
+		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to reset verification: %w", err))
 	}
 
 	return connect.NewResponse(&ctrlv1.RetryVerificationResponse{

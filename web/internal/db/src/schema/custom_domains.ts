@@ -35,6 +35,7 @@ export const customDomains = mysqlTable(
     lastCheckedAt: bigint("last_checked_at", { mode: "number" }),
     checkAttempts: int("check_attempts").notNull().default(0),
     verificationError: varchar("verification_error", { length: 512 }),
+    invocationId: varchar("invocation_id", { length: 256 }),
 
     ...lifecycleDates,
   },
