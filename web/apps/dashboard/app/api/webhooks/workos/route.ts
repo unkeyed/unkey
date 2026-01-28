@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ Error: "Missing signature header" }, { status: 400 });
   }
 
-  const payload = await req.text();
+  const payload = await req.json();
   
   const workos = new WorkOS(WORKOS_API_KEY);
 
