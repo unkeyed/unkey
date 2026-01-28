@@ -9,7 +9,7 @@ import (
 
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	storagemiddleware "github.com/unkeyed/unkey/svc/vault/internal/storage/middleware"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
@@ -21,7 +21,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := shutdown.New()
+	r := runner.New()
 
 	logger := logging.New()
 	if cfg.InstanceID != "" {
@@ -73,22 +73,21 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Register server shutdown
-	shutdowns.RegisterCtx(server.Shutdown)
+	r.DeferCtx(server.Shutdown)
 
 	// Start server
-	go func() {
+	r.Go(func(ctx context.Context) error {
 		logger.Info("Starting vault server", "addr", addr)
-
 		err := server.ListenAndServe()
-
 		if err != nil && err != http.ErrServerClosed {
-			logger.Error("Server failed", "error", err)
+			return fmt.Errorf("server failed: %w", err)
 		}
-	}()
+		return nil
+	})
 
 	// Wait for signal and handle shutdown
 	logger.Info("vault server started successfully")
-	if err := shutdowns.WaitForSignal(ctx); err != nil {
+	if err := r.Run(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}
