@@ -1,7 +1,10 @@
 "use client";
 
 import { ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
-import { createTimeIntervalFormatter } from "@/components/logs/overview-charts/utils";
+import {
+  createTimeIntervalFormatter,
+  type TooltipPayloadItem,
+} from "@/components/logs/overview-charts/utils";
 import {
   type ChartConfig,
   ChartContainer,
@@ -95,8 +98,15 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
                   </div>
                 }
                 className="rounded-lg shadow-lg border border-gray-4"
-                //@ts-expect-error safe to ignore for now
-                labelFormatter={(_, payload) => createTimeIntervalFormatter(data)(payload)}
+                labelFormatter={(_, tooltipPayload): React.ReactNode => {
+                  const payloadArray = Array.isArray(tooltipPayload) ? tooltipPayload : [];
+                  return createTimeIntervalFormatter(data)(
+                    payloadArray.map((item) => ({
+                      payload: item.payload,
+                      ...item,
+                    })),
+                  );
+                }}
               />
             );
           }}
