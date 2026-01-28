@@ -217,7 +217,8 @@ func (s *Service) onVerificationSuccess(
 		Domain:      dom.Domain,
 	})
 
-	// Create frontline route so traffic can be routed to this domain once the cert is ready.
+	// Create frontline route for traffic routing. If no deployment exists yet,
+	// the route will be assigned when the first deployment happens.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		project, findErr := db.Query.FindProjectById(stepCtx, s.db.RO(), dom.ProjectID)
 		if findErr != nil {
@@ -235,7 +236,7 @@ func (s *Service) onVerificationSuccess(
 			DeploymentID:             deploymentID,
 			EnvironmentID:            dom.EnvironmentID,
 			FullyQualifiedDomainName: dom.Domain,
-			Sticky:                   db.FrontlineRoutesStickyLive,
+			Sticky:                   db.FrontlineRoutesStickyEnvironment,
 			CreatedAt:                now,
 			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
 		})
