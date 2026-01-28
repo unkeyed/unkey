@@ -19,7 +19,6 @@ import {
   AreaChart,
   CartesianGrid,
   ReferenceArea,
-  ResponsiveContainer,
   YAxis,
 } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
@@ -207,8 +206,7 @@ export const OverviewAreaChart = ({
       </div>
 
       <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <ChartContainer config={config}>
+        <ChartContainer config={config} className="w-full h-full aspect-auto">
             <AreaChart
               data={data}
               margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
@@ -298,7 +296,6 @@ export const OverviewAreaChart = ({
               )}
             </AreaChart>
           </ChartContainer>
-        </ResponsiveContainer>
       </div>
 
       <div className="h-max border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">

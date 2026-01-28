@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
 import { Grid } from "@unkey/icons";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, YAxis } from "recharts";
 
 // Generic base type that all timeseries data must include
 export type BaseTimeseriesData = {
@@ -42,8 +42,7 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%" debounce={1000}>
-      <ChartContainer config={config}>
+    <ChartContainer config={config} className="w-full h-full aspect-auto">
         <BarChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
           <YAxis domain={["auto", (dataMax: number) => dataMax * 1.3]} hide />
           <CartesianGrid
@@ -107,6 +106,5 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
           ))}
         </BarChart>
       </ChartContainer>
-    </ResponsiveContainer>
   );
 }

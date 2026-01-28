@@ -14,7 +14,7 @@ import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+import { Bar, BarChart, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
 
@@ -172,8 +172,7 @@ export function LogsTimeseriesBarChart({
             ))
           : null}
       </div>
-      <ResponsiveContainer width="100%" height={height} className="border-b border-gray-4">
-        <ChartContainer config={config}>
+      <ChartContainer config={config} className="w-full h-full aspect-auto">
           <BarChart
             data={data}
             margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
@@ -251,7 +250,6 @@ export function LogsTimeseriesBarChart({
             )}
           </BarChart>
         </ChartContainer>
-      </ResponsiveContainer>
     </div>
   );
 }
