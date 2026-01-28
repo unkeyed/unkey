@@ -2,8 +2,8 @@ import { z } from "zod";
 import { ratelimitOverviewFilterOperatorEnum } from "../../../filters.schema";
 
 export const ratelimitOverviewQueryTimeseriesPayload = z.object({
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   since: z.string(),
   namespaceId: z.string(),
   identifiers: z

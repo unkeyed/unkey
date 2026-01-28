@@ -82,11 +82,12 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.Reac
               return null;
             }
             if (child.type === Breadcrumbs.Link) {
-              return React.cloneElement(child, {
+              const enhancedProps: Partial<LinkProps> & { key?: string | null } = {
                 ...child.props,
                 isLast: index === childrenArray.length - 1,
                 key: child.key || `breadcrumb-${index}`,
-              });
+              };
+              return React.cloneElement(child, enhancedProps);
             }
 
             // biome-ignore lint/suspicious/noArrayIndexKey: Usage of index is acceptable here.

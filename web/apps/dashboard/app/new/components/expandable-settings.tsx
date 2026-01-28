@@ -36,56 +36,50 @@ export const ExpandableSettings = ({
     setIsEnabled(checked);
     onCheckedChange?.(checked);
   };
-  const handleSwitchClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
 
-  const handleHeaderClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    handleCheckedChange(!isEnabled);
+  const handleLabelClick = () => {
+    if (!disabled) {
+      handleCheckedChange(!isEnabled);
+    }
   };
 
   return (
     <InfoTooltip content={disabledTooltip} disabled={!disabled} asChild>
       <div className={disabled ? "opacity-50 pointer-events-none" : ""}>
         {/* Header */}
-        <button
-          type="button"
-          className="flex items-center border rounded-lg border-grayA-3 py-1 pl-[14px] pr-3 cursor-pointer w-full"
-          onClick={handleHeaderClick}
-        >
-          <div className="flex items-center">
+        <div className="flex items-center border rounded-lg border-grayA-3 py-1 pl-[14px] pr-3 w-full">
+          <button
+            type="button"
+            onClick={handleLabelClick}
+            disabled={disabled}
+            className="flex items-center flex-1 text-left cursor-pointer disabled:cursor-not-allowed"
+          >
             {icon}
             <div className="ml-3 mr-2 text-gray-12 font-medium text-[13px] leading-6">{title}</div>
             {description && (
-              <InfoTooltip content={description}>
+              <InfoTooltip content={description} asChild>
                 <CircleInfo className="text-gray-8 flex-shrink-0" iconSize="sm-regular" />
               </InfoTooltip>
             )}
-          </div>
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: no need */}
-          <div onClick={handleSwitchClick} className="ml-auto">
-            <Switch
-              checked={isEnabled}
-              onCheckedChange={handleCheckedChange}
-              disabled={disabled}
-              className="
-              ml-auto
-              h-4 w-8
-              data-[state=checked]:bg-success-9
-              data-[state=checked]:ring-2
-              data-[state=checked]:ring-successA-5
-              data-[state=unchecked]:bg-gray-3
-              data-[state=unchecked]:ring-2
-              data-[state=unchecked]:ring-grayA-3
-              [&>span]:h-3.5 [&>span]:w-3.5
-            "
-              thumbClassName="h-[14px] w-[14px] data-[state=unchecked]:bg-grayA-9 data-[state=checked]:bg-white"
-            />
-          </div>
-        </button>
+          </button>
+          <Switch
+            checked={isEnabled}
+            onCheckedChange={handleCheckedChange}
+            disabled={disabled}
+            className="
+            ml-auto
+            h-4 w-8
+            data-[state=checked]:bg-success-9
+            data-[state=checked]:ring-2
+            data-[state=checked]:ring-successA-5
+            data-[state=unchecked]:bg-gray-3
+            data-[state=unchecked]:ring-2
+            data-[state=unchecked]:ring-grayA-3
+            [&>span]:h-3.5 [&>span]:w-3.5
+          "
+            thumbClassName="h-[14px] w-[14px] data-[state=unchecked]:bg-grayA-9 data-[state=checked]:bg-white"
+          />
+        </div>
         {/* Expandable Content */}
         {isEnabled && !disabled && (
           <div className="relative -mb-3">

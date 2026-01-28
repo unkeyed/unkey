@@ -4,8 +4,8 @@ import { TAG_OPERATORS } from "../../../filters.schema";
 
 export const MAX_KEYID_COUNT = 1;
 export const keyDetailsQueryTimeseriesPayload = z.object({
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   since: z.string(),
   keyspaceId: z.string(),
   keyId: z.string(),

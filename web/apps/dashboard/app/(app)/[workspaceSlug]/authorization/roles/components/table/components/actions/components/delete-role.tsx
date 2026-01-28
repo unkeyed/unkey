@@ -11,7 +11,7 @@ import { RoleInfo } from "./role-info";
 
 const deleteRoleFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {
-    message: "Please confirm that you want to permanently delete this role",
+    error: "Please confirm that you want to permanently delete this role",
   }),
 });
 

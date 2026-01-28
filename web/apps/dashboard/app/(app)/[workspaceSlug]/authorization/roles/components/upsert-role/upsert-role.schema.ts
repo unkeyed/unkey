@@ -6,10 +6,10 @@ export const roleNameSchema = z
   .min(1, { message: "Role name must be at least 1 characters long" })
   .max(512, { message: "Role name cannot exceed 512 characters" })
   .refine((name) => !name.match(/^\s|\s$/), {
-    message: "Role name cannot start or end with whitespace",
+    error: "Role name cannot start or end with whitespace",
   })
   .refine((name) => !name.match(/\s{2,}/), {
-    message: "Role name cannot contain consecutive spaces",
+    error: "Role name cannot contain consecutive spaces",
   });
 
 export const roleDescriptionSchema = z
@@ -22,14 +22,12 @@ export const keyIdsSchema = z.array(z.string()).transform((ids) => [...new Set(i
 
 export const permissionIdsSchema = z.array(z.string()).transform((ids) => [...new Set(ids)]);
 
-export const rbacRoleSchema = z
-  .object({
-    roleId: z.string().startsWith("role_").optional(),
-    roleName: roleNameSchema,
-    roleDescription: roleDescriptionSchema,
-    keyIds: keyIdsSchema.optional(),
-    permissionIds: permissionIdsSchema.optional(),
-  })
-  .strict({ message: "Unknown fields are not allowed in role definition" });
+export const rbacRoleSchema = z.strictObject({
+  roleId: z.string().startsWith("role_").optional(),
+  roleName: roleNameSchema,
+  roleDescription: roleDescriptionSchema,
+  keyIds: keyIdsSchema.optional(),
+  permissionIds: permissionIdsSchema.optional(),
+});
 
 export type FormValues = z.infer<typeof rbacRoleSchema>;

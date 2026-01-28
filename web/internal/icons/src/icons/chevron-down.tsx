@@ -9,10 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const ChevronDown: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
+export function ChevronDown({ iconSize = "xl-thin", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -32,4 +32,4 @@ export const ChevronDown: React.FC<IconProps> = ({ iconSize = "xl-thin", ...prop
       </g>
     </svg>
   );
-};
+}

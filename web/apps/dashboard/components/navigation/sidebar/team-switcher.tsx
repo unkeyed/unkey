@@ -20,7 +20,7 @@ import { Check, ChevronExpandY, Plus, UserPlus } from "@unkey/icons";
 import { InfoTooltip, Loading, toast } from "@unkey/ui";
 import Link from "next/link";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { type JSX, useMemo, useState } from "react";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const { isMobile, state } = useSidebar();

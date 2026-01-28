@@ -20,10 +20,17 @@ export const useVirtualData = ({
 }) => {
   const throttledFn = useMemo(
     () =>
-      throttle((cb?: () => void) => cb?.(), config.throttleDelay, {
-        leading: true,
-        trailing: false,
-      }),
+      throttle(
+        (...args: unknown[]) => {
+          const cb = args[0] as (() => void) | undefined;
+          cb?.();
+        },
+        config.throttleDelay,
+        {
+          leading: true,
+          trailing: false,
+        },
+      ),
     [config.throttleDelay],
   );
 

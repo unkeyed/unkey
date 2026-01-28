@@ -40,9 +40,10 @@ export function KeysDetailsLogsControls({
         <LogsSearch apiId={apiId} />
         <LogsFilters />
         <LogsDateTime />
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {hasRemainingCredit ? (
             <motion.div
+              key="remaining-credit"
               className="flex items-center"
               initial={{ opacity: 0, x: -5 }}
               animate={{ opacity: 1, x: 0 }}

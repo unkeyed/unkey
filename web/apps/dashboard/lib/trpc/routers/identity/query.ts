@@ -6,7 +6,7 @@ import { escapeLike } from "../utils/sql";
 
 const identitiesQueryPayload = z.object({
   cursor: z.string().optional(),
-  limit: z.number().optional().default(50),
+  limit: z.number().optional().prefault(50),
   search: z.string().optional(),
 });
 
@@ -15,7 +15,7 @@ export const IdentityResponseSchema = z.object({
   externalId: z.string(),
   workspaceId: z.string(),
   environment: z.string(),
-  meta: z.record(z.unknown()).nullable(),
+  meta: z.record(z.string(), z.unknown()).nullable(),
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
   keys: z.array(z.object({ id: z.string() })),
@@ -72,22 +72,25 @@ export const queryIdentities = workspaceProcedure
       const totalCount = countResult.count;
 
       // Helper function to build filter conditions for query API
-      // biome-ignore lint/suspicious/noExplicitAny: Leave it as is for now
-      const buildFilterConditions = (identity: any, { and, eq, or, like }: any) => {
-        const conditions = [eq(identity.workspaceId, workspaceId), eq(identity.deleted, false)];
+      // biome-ignore lint/suspicious/noExplicitAny: Drizzle query builder types are complex and vary between schema and query contexts
+      const buildFilterConditions = (identity: any, helpers: any) => {
+        const conditions = [
+          helpers.eq(identity.workspaceId, workspaceId),
+          helpers.eq(identity.deleted, false),
+        ];
 
         if (search) {
           const escapedSearch = escapeLike(search);
-          const searchCondition = or(
-            like(identity.externalId, `%${escapedSearch}%`),
-            like(identity.id, `%${escapedSearch}%`),
+          const searchCondition = helpers.or(
+            helpers.like(identity.externalId, `%${escapedSearch}%`),
+            helpers.like(identity.id, `%${escapedSearch}%`),
           );
           if (searchCondition) {
             conditions.push(searchCondition);
           }
         }
 
-        return and(...conditions);
+        return helpers.and(...conditions);
       };
 
       const identitiesQuery = await db.query.identities.findMany({
