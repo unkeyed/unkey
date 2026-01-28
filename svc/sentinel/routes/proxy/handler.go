@@ -3,20 +3,13 @@ package handler
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
-	"strings"
-	"syscall"
-	"time"
 
-	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -31,7 +24,6 @@ type Handler struct {
 	RouterService      router.Service
 	Clock              clock.Clock
 	Transport          *http.Transport
-	ClickHouse         clickhouse.ClickHouse
 	SentinelID         string
 	Region             string
 	MaxRequestBodySize int64
@@ -47,12 +39,13 @@ func (h *Handler) Path() string {
 
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	req := sess.Request()
+
+	tracking, ok := SentinelTrackingFromContext(ctx)
+	if !ok {
+		h.Logger.Warn("no sentinel tracking context found")
+	}
+
 	requestID := uid.New("req")
-	startTime := h.Clock.Now()
-	var instanceStart, instanceEnd time.Time
-	var responseStatus int32
-	var requestBody, responseBody []byte
-	var responseHeaders []string
 
 	deploymentID := req.Header.Get("X-Deployment-Id")
 	if deploymentID == "" {
@@ -73,6 +66,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err
 	}
 
+	var requestBody []byte
 	if req.Body != nil {
 		requestBody, err = io.ReadAll(req.Body)
 		if err != nil {
@@ -85,44 +79,21 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		req.Body = io.NopCloser(bytes.NewReader(requestBody))
 	}
 
-	defer func() {
-		endTime := h.Clock.Now()
-		totalLatency := endTime.Sub(startTime).Milliseconds()
-		var instanceLatency int64
-		var sentinelLatency int64
-		if !instanceStart.IsZero() && !instanceEnd.IsZero() {
-			instanceLatency = instanceEnd.Sub(instanceStart).Milliseconds()
-			sentinelLatency = totalLatency - instanceLatency
+	// Populate tracking context
+	if tracking != nil {
+		tracking.RequestID = requestID
+		tracking.DeploymentID = deploymentID
+		tracking.Deployment = &DeploymentInfo{
+			WorkspaceID:   deployment.WorkspaceID,
+			EnvironmentID: deployment.EnvironmentID,
+			ProjectID:     deployment.ProjectID,
 		}
-
-		h.ClickHouse.BufferSentinelRequest(schema.SentinelRequest{
-			RequestID:       requestID,
-			Time:            startTime.UnixMilli(),
-			WorkspaceID:     deployment.WorkspaceID,
-			EnvironmentID:   deployment.EnvironmentID,
-			ProjectID:       deployment.ProjectID,
-			SentinelID:      h.SentinelID,
-			DeploymentID:    deploymentID,
-			InstanceID:      instance.ID,
-			InstanceAddress: instance.Address,
-			Region:          h.Region,
-			Method:          strings.ToUpper(req.Method),
-			Host:            req.Host,
-			Path:            req.URL.Path,
-			QueryString:     req.URL.RawQuery,
-			QueryParams:     req.URL.Query(),
-			RequestHeaders:  formatHeaders(req.Header),
-			RequestBody:     string(requestBody),
-			ResponseStatus:  responseStatus,
-			ResponseHeaders: responseHeaders,
-			ResponseBody:    string(responseBody),
-			UserAgent:       req.UserAgent(),
-			IPAddress:       sess.Location(),
-			TotalLatency:    totalLatency,
-			InstanceLatency: instanceLatency,
-			SentinelLatency: sentinelLatency,
-		})
-	}()
+		tracking.Instance = &InstanceInfo{
+			ID:      instance.ID,
+			Address: instance.Address,
+		}
+		tracking.RequestBody = requestBody
+	}
 
 	targetURL, err := url.Parse("http://" + instance.Address)
 	if err != nil {
@@ -139,7 +110,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	proxy := &httputil.ReverseProxy{
 		FlushInterval: -1, // flush immediately for streaming
 		Director: func(outReq *http.Request) {
-			instanceStart = h.Clock.Now()
+			if tracking != nil {
+				tracking.InstanceStart = h.Clock.Now()
+			}
+
 			outReq.URL.Scheme = targetURL.Scheme
 			outReq.URL.Host = targetURL.Host
 			outReq.Host = req.Host
@@ -156,162 +130,57 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		},
 		Transport: h.Transport,
 		ModifyResponse: func(resp *http.Response) error {
-			instanceEnd = h.Clock.Now()
-			responseStatus = int32(resp.StatusCode)
-			responseHeaders = formatHeaders(resp.Header)
+			if tracking != nil {
+				tracking.InstanceEnd = h.Clock.Now()
+				tracking.ResponseStatus = int32(resp.StatusCode)
+				tracking.ResponseHeaders = resp.Header
 
-			// Capture response body for logging
-			if resp.Body != nil {
-				responseBody, err = io.ReadAll(resp.Body)
-				if err != nil {
-					h.Logger.Warn("failed to read response body for logging",
-						"error", err.Error(),
-						"deploymentID", deploymentID,
-						"instanceID", instance.ID,
-					)
-					responseBody = nil
+				// Capture response body for logging
+				if resp.Body != nil {
+					responseBody, err := io.ReadAll(resp.Body)
+					if err != nil {
+						return fault.Wrap(err,
+							fault.Code(codes.Sentinel.Proxy.BadGateway.URN()),
+							fault.Internal("failed to read response body for logging"),
+							fault.Public("Failed to process backend response"),
+						)
+					}
+					tracking.ResponseBody = responseBody
+					resp.Body = io.NopCloser(bytes.NewReader(responseBody))
 				}
-				resp.Body = io.NopCloser(bytes.NewReader(responseBody))
 			}
 
-			sentinelDuration := h.Clock.Now().Sub(startTime)
-			resp.Header.Set("X-Unkey-Sentinel-Time", fmt.Sprintf("%dms", sentinelDuration.Milliseconds()))
+			if tracking != nil {
+				sentinelDuration := h.Clock.Now().Sub(tracking.StartTime)
+				resp.Header.Set("X-Unkey-Sentinel-Time", fmt.Sprintf("%dms", sentinelDuration.Milliseconds()))
 
-			if !instanceStart.IsZero() && !instanceEnd.IsZero() {
-				instanceDuration := instanceEnd.Sub(instanceStart)
-				resp.Header.Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
+				if !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero() {
+					instanceDuration := tracking.InstanceEnd.Sub(tracking.InstanceStart)
+					resp.Header.Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
+				}
 			}
 
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			instanceEnd = h.Clock.Now()
+			if tracking != nil {
+				tracking.InstanceEnd = h.Clock.Now()
 
-			sentinelDuration := h.Clock.Now().Sub(startTime)
-			sess.ResponseWriter().Header().Set("X-Unkey-Sentinel-Time", fmt.Sprintf("%dms", sentinelDuration.Milliseconds()))
+				sentinelDuration := h.Clock.Now().Sub(tracking.StartTime)
+				sess.ResponseWriter().Header().Set("X-Unkey-Sentinel-Time", fmt.Sprintf("%dms", sentinelDuration.Milliseconds()))
 
-			if !instanceStart.IsZero() && !instanceEnd.IsZero() {
-				instanceDuration := instanceEnd.Sub(instanceStart)
-				sess.ResponseWriter().Header().Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
+				if !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero() {
+					instanceDuration := tracking.InstanceEnd.Sub(tracking.InstanceStart)
+					sess.ResponseWriter().Header().Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
+				}
 			}
 
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
-
-				h.Logger.Warn("proxy error",
-					"deploymentID", deploymentID,
-					"instanceID", instance.ID,
-					"target", instance.Address,
-					"error", err.Error(),
-				)
 			}
 		},
 	}
 
 	proxy.ServeHTTP(wrapper, req)
-
-	if err := wrapper.Error(); err != nil {
-		urn, message := categorizeProxyError(err)
-
-		// If responseStatus is 0, it means ModifyResponse never ran. No response received from user code.
-		// Set a status code based on error type for CH logging.
-		if responseStatus == 0 {
-			if errors.Is(err, context.Canceled) {
-				responseStatus = 499 // Client Closed Request like nginx
-			} else if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
-				responseStatus = 504 // Gateway Timeout
-			} else {
-				responseStatus = 502 // Bad Gateway
-			}
-		}
-
-		return fault.Wrap(err,
-			fault.Code(urn),
-			fault.Internal(fmt.Sprintf("proxy error forwarding to instance %s", instance.Address)),
-			fault.Public(message),
-		)
-	}
-
-	return nil
-}
-
-func categorizeProxyError(err error) (codes.URN, string) {
-	if errors.Is(err, context.Canceled) {
-		return codes.User.BadRequest.ClientClosedRequest.URN(),
-			"The client closed the connection before the request completed."
-	}
-
-	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
-		return codes.Sentinel.Proxy.SentinelTimeout.URN(),
-			"The request took too long to process. Please try again later."
-	}
-
-	var netErr *net.OpError
-	if errors.As(err, &netErr) {
-		if netErr.Timeout() {
-			return codes.Sentinel.Proxy.SentinelTimeout.URN(),
-				"The request took too long to process. Please try again later."
-		}
-
-		if errors.Is(netErr.Err, syscall.ECONNREFUSED) {
-			return codes.Sentinel.Proxy.ServiceUnavailable.URN(),
-				"The service is temporarily unavailable. Please try again later."
-		}
-
-		if errors.Is(netErr.Err, syscall.ECONNRESET) {
-			return codes.Sentinel.Proxy.BadGateway.URN(),
-				"Connection was reset by the backend service. Please try again."
-		}
-
-		if errors.Is(netErr.Err, syscall.EHOSTUNREACH) {
-			return codes.Sentinel.Proxy.ServiceUnavailable.URN(),
-				"The service is unreachable. Please try again later."
-		}
-	}
-
-	var dnsErr *net.DNSError
-	if errors.As(err, &dnsErr) {
-		if dnsErr.IsNotFound {
-			return codes.Sentinel.Proxy.ServiceUnavailable.URN(),
-				"The service could not be found. Please check your configuration."
-		}
-		if dnsErr.IsTimeout {
-			return codes.Sentinel.Proxy.SentinelTimeout.URN(),
-				"DNS resolution timed out. Please try again later."
-		}
-	}
-
-	return codes.Sentinel.Proxy.BadGateway.URN(),
-		"Unable to connect to an instance. Please try again in a few moments."
-}
-
-func formatHeader(key, value string) string {
-	var b strings.Builder
-	b.Grow(len(key) + 2 + len(value))
-	b.WriteString(key)
-	b.WriteString(": ")
-	b.WriteString(value)
-	return b.String()
-}
-
-func formatHeaders(headers http.Header) []string {
-	result := make([]string, 0, len(headers))
-	for key, values := range headers {
-		lk := strings.ToLower(key)
-		if lk == "authorization" {
-			result = append(result, formatHeader(key, "[REDACTED]"))
-		} else {
-			for _, value := range values {
-				result = append(result, formatHeader(key, value))
-			}
-		}
-	}
-	return result
-}
-
-func getClientIP(req *http.Request) string {
-	if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
-		return clientIP
-	}
-	return req.RemoteAddr
+	return wrapper.Error()
 }
