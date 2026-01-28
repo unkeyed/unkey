@@ -62,12 +62,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ Error: "Invalid webhook request" }, { status: 400 });
   }
 
-  const isGithubVerified = await verifyGitSignature(
-    rawBody,
-    signature,
-    keyId,
-    GITHUB_KEYS_URI,
-  );
+  const isGithubVerified = await verifyGitSignature(rawBody, signature, keyId, GITHUB_KEYS_URI);
   if (!isGithubVerified) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

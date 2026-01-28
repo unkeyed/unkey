@@ -6,7 +6,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const { RESEND_API_KEY, RESEND_AUDIENCE_ID, WORKOS_API_KEY, WORKOS_WEBHOOK_SECRET } = env();
-  
+
   if (!WORKOS_API_KEY || !WORKOS_WEBHOOK_SECRET || !RESEND_API_KEY || !RESEND_AUDIENCE_ID) {
     return NextResponse.json({ Error: "Missing environment variables" }, { status: 400 });
   }
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     console.error("Failed to parse webhook payload:", message);
     return NextResponse.json({ Error: "Invalid JSON payload" }, { status: 400 });
   }
-  
+
   const workos = new WorkOS(WORKOS_API_KEY);
 
   try {
@@ -56,10 +56,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({}, { status: 200 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json(
-      { error: message },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
 

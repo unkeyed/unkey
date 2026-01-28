@@ -11,13 +11,7 @@ interface LoadingProps extends SVGProps<SVGSVGElement> {
   type?: "spinner" | "dots";
 }
 
-function Loading({
-  size,
-  duration,
-  className,
-  type = "spinner",
-  ...props
-}: LoadingProps) {
+function Loading({ size, duration, className, type = "spinner", ...props }: LoadingProps) {
   if (type === "dots") {
     return <DotsLoading size={size ?? 24} className={className} duration={duration} {...props} />;
   }
@@ -37,12 +31,7 @@ type DotsLoadingProps = SVGProps<SVGSVGElement> & {
   duration?: string;
 };
 
-const DotsLoading = ({
-  size,
-  className,
-  duration = "0.75s",
-  ...props
-}: DotsLoadingProps) => {
+const DotsLoading = ({ size, className, duration = "0.75s", ...props }: DotsLoadingProps) => {
   return (
     <svg
       {...props}

@@ -14,7 +14,7 @@ import {
 } from "@unkey/ui";
 import { memo, useState } from "react";
 import type { FC } from "react";
-import React from "react";
+import type React from "react";
 
 // Memoize static content to prevent unnecessary re-renders
 const TabContent = memo(({ title, description }: { title: string; description: string }) => (

@@ -1,10 +1,7 @@
 "use client";
 
 import { ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
-import {
-  createTimeIntervalFormatter,
-  type TooltipPayloadItem,
-} from "@/components/logs/overview-charts/utils";
+import { createTimeIntervalFormatter } from "@/components/logs/overview-charts/utils";
 import {
   type ChartConfig,
   ChartContainer,

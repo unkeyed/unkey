@@ -70,7 +70,6 @@ export const deleteKeys = workspaceProcedure
 
       try {
         await db.transaction(async (tx) => {
-
           await tx
             .update(schema.keys)
             .set({ deletedAtM: Date.now() })
