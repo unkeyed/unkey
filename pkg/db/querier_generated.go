@@ -2335,11 +2335,18 @@ type Querier interface {
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) error
 	//UpsertCustomDomain
 	//
-	//  INSERT INTO custom_domains (id, workspace_id, domain, challenge_type, created_at)
-	//  VALUES (?, ?, ?, ?, ?)
+	//  INSERT INTO custom_domains (
+	//      id, workspace_id, project_id, environment_id, domain,
+	//      challenge_type, verification_status, target_cname, created_at
+	//  )
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      workspace_id = VALUES(workspace_id),
+	//      project_id = VALUES(project_id),
+	//      environment_id = VALUES(environment_id),
 	//      challenge_type = VALUES(challenge_type),
+	//      verification_status = VALUES(verification_status),
+	//      target_cname = VALUES(target_cname),
 	//      updated_at = ?
 	UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCustomDomainParams) error
 	//UpsertEnvironment
