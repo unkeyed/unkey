@@ -85,15 +85,20 @@ func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain strin
 	domainID := uid.New(uid.DomainPrefix)
 	now := time.Now().UnixMilli()
 
-	// Use "unkey_internal" as the workspace for platform-managed resources
-	workspaceID := "unkey_internal"
+	// Use "unkey_internal" as the workspace/project/environment for platform-managed resources
+	// Infrastructure wildcard domains are pre-verified (we control DNS via Route53)
+	internalID := "unkey_internal"
 	err = db.Query.UpsertCustomDomain(ctx, c.database.RW(), db.UpsertCustomDomainParams{
-		ID:            domainID,
-		WorkspaceID:   workspaceID,
-		Domain:        domain,
-		ChallengeType: db.CustomDomainsChallengeTypeDNS01,
-		CreatedAt:     now,
-		UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
+		ID:                 domainID,
+		WorkspaceID:        internalID,
+		ProjectID:          internalID,
+		EnvironmentID:      internalID,
+		Domain:             domain,
+		ChallengeType:      db.CustomDomainsChallengeTypeDNS01,
+		VerificationStatus: db.CustomDomainsVerificationStatusVerified, // Pre-verified for infra domains
+		TargetCname:        "",                                         // Not used for DNS-01 wildcards
+		CreatedAt:          now,
+		UpdatedAt:          sql.NullInt64{Int64: now, Valid: true},
 	})
 	if err != nil {
 		c.logger.Error("Failed to create domain", "error", err, "domain", domain)
