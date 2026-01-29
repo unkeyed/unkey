@@ -108,14 +108,14 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
                     </Avatar>
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-content truncate">
+                        <span className="text-sm text-content truncate secret">
                           {member.firstName
                             ? `${member.firstName}${member.lastName ? ` ${member.lastName}` : ""}`
                             : member.email}
                         </span>
                       </div>
                       {member.firstName && (
-                        <span className="text-sm text-content-subtle truncate">{member.email}</span>
+                        <span className="text-sm text-content-subtle truncate secret">{member.email}</span>
                       )}
                     </div>
                   </div>
