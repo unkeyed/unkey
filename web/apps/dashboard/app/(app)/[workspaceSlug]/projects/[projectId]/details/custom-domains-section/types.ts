@@ -7,6 +7,9 @@ export type CustomDomain = {
   projectId: string;
   environmentId: string;
   verificationStatus: string;
+  verificationToken: string;
+  ownershipVerified: boolean;
+  cnameVerified: boolean;
   targetCname: string;
   checkAttempts: number;
   lastCheckedAt: number | null;

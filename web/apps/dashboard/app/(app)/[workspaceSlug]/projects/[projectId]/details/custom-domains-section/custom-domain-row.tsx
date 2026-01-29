@@ -9,6 +9,7 @@ import {
   Refresh3,
   Trash,
   TriangleWarning,
+  XMark,
 } from "@unkey/icons";
 import {
   Badge,
@@ -20,7 +21,7 @@ import {
   TooltipTrigger,
   toast,
 } from "@unkey/ui";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CustomDomain, VerificationStatus } from "./types";
 
 type CustomDomainRowProps = {
@@ -185,37 +186,206 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
       </div>
 
       {verificationStatus !== "verified" && (
-        <DnsRecordTable domain={domain.domain} targetCname={domain.targetCname} />
+        <DnsRecordTable
+          domain={domain.domain}
+          targetCname={domain.targetCname}
+          verificationToken={domain.verificationToken}
+          ownershipVerified={domain.ownershipVerified}
+          cnameVerified={domain.cnameVerified}
+          projectId={projectId}
+        />
       )}
     </div>
   );
 }
 
-function DnsRecordTable({ domain, targetCname }: { domain: string; targetCname: string }) {
+type DnsRecordTableProps = {
+  domain: string;
+  targetCname: string;
+  verificationToken: string;
+  ownershipVerified: boolean;
+  cnameVerified: boolean;
+  projectId: string;
+};
+
+// Backend checks every 60 seconds via Restate
+const CHECK_INTERVAL_MS = 60 * 1000;
+
+function DnsRecordTable({
+  domain,
+  targetCname,
+  verificationToken: initialVerificationToken,
+  ownershipVerified: initialOwnershipVerified,
+  cnameVerified: initialCnameVerified,
+  projectId,
+}: DnsRecordTableProps) {
+  const [secondsUntilCheck, setSecondsUntilCheck] = useState<number>(CHECK_INTERVAL_MS / 1000);
+
+  // Poll for DNS status updates - only fetches this specific domain
+  const { data: dnsStatus, dataUpdatedAt } = trpc.deploy.customDomain.checkDns.useQuery(
+    { domain, projectId },
+    {
+      refetchInterval: CHECK_INTERVAL_MS,
+      refetchIntervalInBackground: false,
+    },
+  );
+
+  // Use live data if available, otherwise fall back to initial props
+  const verificationToken = dnsStatus?.verificationToken ?? initialVerificationToken;
+  const ownershipVerified = dnsStatus?.ownershipVerified ?? initialOwnershipVerified;
+  const cnameVerified = dnsStatus?.cnameVerified ?? initialCnameVerified;
+
+  useEffect(() => {
+    const calculateSecondsRemaining = () => {
+      if (!dataUpdatedAt) {
+        return CHECK_INTERVAL_MS / 1000;
+      }
+      const nextCheckAt = dataUpdatedAt + CHECK_INTERVAL_MS;
+      const remaining = Math.max(0, Math.ceil((nextCheckAt - Date.now()) / 1000));
+      return remaining;
+    };
+
+    setSecondsUntilCheck(calculateSecondsRemaining());
+
+    const interval = setInterval(() => {
+      setSecondsUntilCheck(calculateSecondsRemaining());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [dataUpdatedAt]);
+
+  const txtRecordName = `_unkey.${domain}`;
+  const txtRecordValue = `unkey-domain-verify=${verificationToken}`;
+
   return (
-    <div className="px-4 pb-3">
-      <p className="text-xs text-gray-9 mb-2">
-        Add the following DNS record at your provider to verify ownership.
-      </p>
-      <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
-        <div className="grid grid-cols-[80px_1fr_1fr] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
-          <span>Type</span>
-          <span>Name</span>
-          <span>Value</span>
+    <div className="px-4 pb-3 space-y-4">
+      <p className="text-xs text-gray-9">Add both DNS records below at your domain provider.</p>
+
+      {/* TXT Record (Ownership Verification) */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-gray-11 font-medium">TXT Record (ownership)</p>
+          <StatusIndicator
+            verified={ownershipVerified}
+            label={ownershipVerified ? "Verified" : "Pending"}
+          />
         </div>
-        <div className="grid grid-cols-[80px_1fr_1fr] px-3 py-2 items-center">
-          <span className="text-gray-11 font-medium">CNAME</span>
-          <span className="flex items-center gap-1.5 min-w-0">
-            <code className="text-content font-mono truncate">{domain}</code>
-            <CopyButton value={domain} variant="ghost" className="size-5 flex-shrink-0" />
-          </span>
-          <span className="flex items-center gap-1.5 min-w-0">
-            <code className="text-content font-mono truncate">{targetCname}</code>
-            <CopyButton value={targetCname} variant="ghost" className="size-5 flex-shrink-0" />
-          </span>
+        <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
+          <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
+            <span>Type</span>
+            <span>Name</span>
+            <span>Value</span>
+            <span>Status</span>
+          </div>
+          <div className="grid grid-cols-[80px_1fr_1fr_60px] px-3 py-2 items-center">
+            <span className="text-gray-11 font-medium">TXT</span>
+            <span className="flex items-center gap-1.5 min-w-0">
+              <code className="text-content font-mono truncate">{txtRecordName}</code>
+              <CopyButton value={txtRecordName} variant="ghost" className="size-5 flex-shrink-0" />
+            </span>
+            <span className="flex items-center gap-1.5 min-w-0">
+              <code className="text-content font-mono truncate">{txtRecordValue}</code>
+              <CopyButton value={txtRecordValue} variant="ghost" className="size-5 flex-shrink-0" />
+            </span>
+            <span className="flex justify-center">
+              {ownershipVerified ? (
+                <CircleCheck className="!size-4 text-success-9" />
+              ) : (
+                <XMark className="!size-4 text-gray-7" />
+              )}
+            </span>
+          </div>
         </div>
       </div>
+
+      {/* CNAME Record (Routing) - Only shown after TXT is verified */}
+      {ownershipVerified && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-11 font-medium">CNAME Record (routing)</p>
+            <StatusIndicator
+              verified={cnameVerified}
+              label={cnameVerified ? "Verified" : "Pending"}
+            />
+          </div>
+          <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
+            <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
+              <span>Type</span>
+              <span>Name</span>
+              <span>Value</span>
+              <span>Status</span>
+            </div>
+            <div className="grid grid-cols-[80px_1fr_1fr_60px] px-3 py-2 items-center">
+              <span className="text-gray-11 font-medium">CNAME</span>
+              <span className="flex items-center gap-1.5 min-w-0">
+                <code className="text-content font-mono truncate">{domain}</code>
+                <CopyButton value={domain} variant="ghost" className="size-5 flex-shrink-0" />
+              </span>
+              <span className="flex items-center gap-1.5 min-w-0">
+                <code className="text-content font-mono truncate">{targetCname}</code>
+                <CopyButton value={targetCname} variant="ghost" className="size-5 flex-shrink-0" />
+              </span>
+              <span className="flex justify-center">
+                {cnameVerified ? (
+                  <CircleCheck className="!size-4 text-success-9" />
+                ) : (
+                  <XMark className="!size-4 text-gray-7" />
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Show CNAME instructions when TXT not yet verified */}
+      {!ownershipVerified && (
+        <div className="opacity-50">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-11 font-medium">CNAME Record (routing)</p>
+            <StatusIndicator verified={false} label="Waiting for TXT" />
+          </div>
+          <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
+            <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
+              <span>Type</span>
+              <span>Name</span>
+              <span>Value</span>
+              <span>Status</span>
+            </div>
+            <div className="grid grid-cols-[80px_1fr_1fr_60px] px-3 py-2 items-center">
+              <span className="text-gray-11 font-medium">CNAME</span>
+              <span className="flex items-center gap-1.5 min-w-0">
+                <code className="text-content font-mono truncate">{domain}</code>
+                <CopyButton value={domain} variant="ghost" className="size-5 flex-shrink-0" />
+              </span>
+              <span className="flex items-center gap-1.5 min-w-0">
+                <code className="text-content font-mono truncate">{targetCname}</code>
+                <CopyButton value={targetCname} variant="ghost" className="size-5 flex-shrink-0" />
+              </span>
+              <span className="flex justify-center">
+                <Clock className="!size-4 text-gray-7" />
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Next check countdown */}
+      <div className="flex justify-end">
+        <span className="text-xs text-gray-9 flex items-center gap-1.5">
+          <Refresh3 className="!size-3.5" />
+          {secondsUntilCheck <= 1 ? "Refreshing..." : `Next check in ${secondsUntilCheck}s`}
+        </span>
+      </div>
     </div>
+  );
+}
+
+function StatusIndicator({ verified, label }: { verified: boolean; label: string }) {
+  return (
+    <Badge variant={verified ? "success" : "secondary"} className="gap-1 text-xs">
+      {verified ? <CircleCheck className="!size-3" /> : <Clock className="!size-3" />}
+      {label}
+    </Badge>
   );
 }
 

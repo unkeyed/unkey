@@ -82,6 +82,9 @@ func (s *Service) AddCustomDomain(
 	// Generate unique CNAME target for this domain
 	targetCname := fmt.Sprintf("%s.%s", uid.DNS1035(16), s.dnsApex)
 
+	// Generate verification token for TXT record ownership verification
+	verificationToken := uid.New("", 24)
+
 	// Check domain doesn't already exist
 	existing, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), domain)
 	if err != nil && !db.IsNotFound(err) {
@@ -103,6 +106,7 @@ func (s *Service) AddCustomDomain(
 		Domain:             domain,
 		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
 		VerificationStatus: db.CustomDomainsVerificationStatusPending,
+		VerificationToken:  verificationToken,
 		TargetCname:        targetCname,
 		CreatedAt:          now,
 		InvocationID:       sql.NullString{String: "", Valid: false},

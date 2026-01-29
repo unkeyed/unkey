@@ -39,6 +39,7 @@ import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
 import { addCustomDomain } from "./deploy/custom-domains/add";
+import { checkDns } from "./deploy/custom-domains/check-dns";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
 import { retryVerification } from "./deploy/custom-domains/retry";
@@ -391,6 +392,7 @@ export const router = t.router({
       list: listCustomDomains,
       delete: deleteCustomDomain,
       retry: retryVerification,
+      checkDns: checkDns,
     }),
     deployment: t.router({
       list: listDeployments,
