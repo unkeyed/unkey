@@ -159,7 +159,7 @@ export function LogsTimeseriesBarChart({
   }
 
   return (
-    <div className="w-full relative" ref={chartRef}>
+    <div className="w-full relative" ref={chartRef} style={{ height: `${height}px` }}>
       <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between pointer-events-none">
         {data
           ? calculateTimePoints(
@@ -172,7 +172,11 @@ export function LogsTimeseriesBarChart({
             ))
           : null}
       </div>
-      <ChartContainer config={config} className="w-full h-full aspect-auto">
+      <ChartContainer
+        config={config}
+        className="w-full aspect-auto border-b border-gray-4"
+        style={{ height: `${height}px` }}
+      >
         <BarChart
           data={data}
           margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
