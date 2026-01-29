@@ -42,7 +42,7 @@ func (r *JsonSender) Send(ctx context.Context, w http.ResponseWriter, status int
 			Detail:    "failed to marshal response body",
 			Instance:  "https://errors.unkey.com/todo",
 			Status:    http.StatusInternalServerError,
-			RequestId: ctxutil.GetRequestId(ctx),
+			RequestId: ctxutil.GetRequestID(ctx),
 			Type:      "TODO docs link",
 		}
 

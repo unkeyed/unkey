@@ -13,11 +13,11 @@
 // Common usage:
 //
 //	// Adding a request ID to context
-//	ctx = ctxutil.SetRequestId(ctx, "req_123abc")
+//	ctx = ctxutil.SetRequestID(ctx, "req_123abc")
 //
 //	// Later, retrieving the request ID
-//	requestId := ctxutil.GetRequestId(ctx)
-//	fmt.Printf("Processing request: %s", requestId)
+//	requestID := ctxutil.GetRequestID(ctx)
+//	fmt.Printf("Processing request: %s", requestID)
 //
 // This package should be used for passing request-scoped data that would be
 // impractical to pass through function parameters, especially across API
