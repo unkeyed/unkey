@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "jwt",
+    srcs = [
+        "claims.go",
+        "doc.go",
+        "errors.go",
+        "hs256.go",
+        "interface.go",
+        "rs256.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/jwt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/assert",
+        "//pkg/clock",
+    ],
+)
+
+go_test(
+    name = "jwt_test",
+    size = "small",
+    srcs = [
+        "hs256_test.go",
+        "rs256_test.go",
+        "security_test.go",
+    ],
+    embed = [":jwt"],
+    deps = [
+        "//pkg/clock",
+        "@com_github_stretchr_testify//require",
+    ],
+)
