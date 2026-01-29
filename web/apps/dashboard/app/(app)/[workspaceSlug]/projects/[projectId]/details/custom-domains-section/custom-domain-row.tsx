@@ -222,7 +222,11 @@ function DnsRecordTable({
   const [secondsUntilCheck, setSecondsUntilCheck] = useState<number>(CHECK_INTERVAL_MS / 1000);
 
   // Poll for DNS status updates - only fetches this specific domain
-  const { data: dnsStatus, dataUpdatedAt, isFetching } = trpc.deploy.customDomain.checkDns.useQuery(
+  const {
+    data: dnsStatus,
+    dataUpdatedAt,
+    isFetching,
+  } = trpc.deploy.customDomain.checkDns.useQuery(
     { domain, projectId },
     {
       refetchInterval: CHECK_INTERVAL_MS,
