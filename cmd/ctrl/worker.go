@@ -82,7 +82,7 @@ var workerCmd = &cli.Command{
 		cli.String("acme-route53-hosted-zone-id", "Route53 hosted zone ID (bypasses auto-discovery, required when wildcard CNAMEs exist)", cli.EnvVar("UNKEY_ACME_ROUTE53_HOSTED_ZONE_ID")),
 
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
-		cli.String("default-cname", "CNAME target for custom domain verification (e.g., cname.unkey-dns.com)", cli.EnvVar("UNKEY_DEFAULT_CNAME")),
+		cli.String("dns-apex", "Base domain for custom domain CNAME targets (e.g., cname.unkey.local)", cli.EnvVar("UNKEY_DNS_APEX")),
 
 		// Restate Configuration
 		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
@@ -176,7 +176,7 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
 
 		// Custom domain configuration
-		DefaultCname: cmd.String("default-cname"),
+		DnsApex: cmd.String("dns-apex"),
 	}
 
 	err := config.Validate()

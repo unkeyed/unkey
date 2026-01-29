@@ -27,7 +27,7 @@ type Service struct {
 	restate      *restateingress.Client
 	restateAdmin *restateadmin.Client
 	logger       logging.Logger
-	defaultCname string
+	dnsApex      string
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -40,8 +40,8 @@ type Config struct {
 	RestateAdmin *restateadmin.Client
 	// Logger is used for structured logging throughout the service.
 	Logger logging.Logger
-	// DefaultCname is the CNAME target that users must point their domains to.
-	DefaultCname string
+	// DnsApex is the base domain for custom domain CNAME targets.
+	DnsApex string
 }
 
 // New creates a new [Service] with the given configuration.
@@ -52,7 +52,7 @@ func New(cfg Config) *Service {
 		restate:                                 cfg.Restate,
 		restateAdmin:                            cfg.RestateAdmin,
 		logger:                                  cfg.Logger,
-		defaultCname:                            cfg.DefaultCname,
+		dnsApex:                                 cfg.DnsApex,
 	}
 }
 
@@ -80,7 +80,7 @@ func (s *Service) AddCustomDomain(
 	}
 
 	// Generate unique CNAME target for this domain
-	targetCname := fmt.Sprintf("%s.%s", uid.DNS1035(16), s.defaultCname)
+	targetCname := fmt.Sprintf("%s.%s", uid.DNS1035(16), s.dnsApex)
 
 	// Check domain doesn't already exist
 	existing, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), domain)

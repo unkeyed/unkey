@@ -156,10 +156,19 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
-		DB:           database,
-		Logger:       logger,
-		DefaultCname: cfg.DefaultCname,
-	})))
+		DB:      database,
+		Logger:  logger,
+		DnsApex: cfg.DnsApex,
+	}),
+		// Retry every 1 minute for up to 24 hours (1440 attempts)
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(1*time.Minute),
+			restate.WithExponentiationFactor(1.0), // Fixed interval, no exponential backoff
+			restate.WithMaxInterval(1*time.Minute),
+			restate.WithMaxAttempts(1440),
+			restate.KillOnMaxAttempts(),
+		),
+	))
 
 	// Initialize domain cache for ACME providers
 	clk := clock.New()

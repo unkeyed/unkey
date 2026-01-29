@@ -2,6 +2,7 @@ package customdomain
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -14,34 +15,25 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// verificationBackoff defines the sleep durations between DNS verification attempts.
-// Total verification window is approximately 24 hours before giving up.
-var verificationBackoff = []time.Duration{
-	1 * time.Minute,  // Check 1: 1 minute after start
-	5 * time.Minute,  // Check 2: 6 minutes total
-	15 * time.Minute, // Check 3: 21 minutes total
-	30 * time.Minute, // Check 4: 51 minutes total
-	1 * time.Hour,    // Check 5: ~2 hours total
-	2 * time.Hour,    // Check 6: ~4 hours total
-	4 * time.Hour,    // Check 7: ~8 hours total
-	6 * time.Hour,    // Check 8: ~14 hours total
-	6 * time.Hour,    // Check 9: ~20 hours total
-	4 * time.Hour,    // Check 10: ~24 hours total
-}
+// maxVerificationDuration is how long we keep retrying before marking as failed.
+const maxVerificationDuration = 24 * time.Hour
+
+// errNotVerified is returned when CNAME is not yet configured, triggering a Restate retry.
+var errNotVerified = errors.New("CNAME not verified yet")
 
 // VerifyDomain performs CNAME verification for a custom domain.
 //
 // This is a Restate virtual object handler keyed by domain name, ensuring only one
-// verification workflow runs per domain at any time. The workflow checks DNS records
-// with exponential backoff over approximately 24 hours.
+// verification workflow runs per domain at any time. The handler checks DNS once
+// per invocation - Restate's retry policy handles periodic re-checks (every 1 minute
+// for up to 24 hours).
 //
 // Once CNAME verification succeeds, the workflow:
 // 1. Updates domain status to "verified"
 // 2. Creates an ACME challenge record to trigger certificate issuance
 // 3. Creates a frontline route to enable traffic routing
 //
-// If verification fails after all retry attempts, an error is returned so Restate
-// marks the workflow as failed.
+// If verification fails after ~24 hours of retries, Restate kills the invocation.
 func (s *Service) VerifyDomain(
 	ctx restate.ObjectContext,
 	req *hydrav1.VerifyDomainRequest,
@@ -53,12 +45,13 @@ func (s *Service) VerifyDomain(
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
 
-	s.logger.Info("starting domain verification",
-		"domain", dom.Domain,
-		"workspace_id", dom.WorkspaceID,
-	)
+	// Check if we've exceeded the verification window
+	elapsed := time.Since(time.UnixMilli(dom.CreatedAt))
+	if elapsed > maxVerificationDuration {
+		return s.onVerificationFailed(ctx, dom, "CNAME verification timed out after 24 hours")
+	}
 
-	// Mark domain as actively being verified so the UI can show progress.
+	// Mark domain as actively being verified (idempotent)
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.UpdateCustomDomainVerificationStatus(stepCtx, s.db.RW(), db.UpdateCustomDomainVerificationStatusParams{
 			ID:                 dom.ID,
@@ -70,58 +63,45 @@ func (s *Service) VerifyDomain(
 		return nil, err
 	}
 
-	// Poll DNS until the CNAME is configured or we exhaust retries.
-	maxAttempts := len(verificationBackoff)
-	for attempt := range maxAttempts {
-		verified, checkErr := restate.Run(ctx, func(stepCtx restate.RunContext) (bool, error) {
-			return s.checkCNAME(dom.Domain, dom.TargetCname)
-		}, restate.WithName(fmt.Sprintf("dns-check-%d", attempt)))
-		if checkErr != nil {
-			s.logger.Warn("DNS check error",
-				"domain", dom.Domain,
-				"error", checkErr,
-				"attempt", attempt,
-			)
-		}
-
-		// Track attempt count for observability. Failure here is non-fatal since
-		// it's just metadata - the verification can still proceed.
-		_, updateErr := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateCustomDomainCheckAttempt(stepCtx, s.db.RW(), db.UpdateCustomDomainCheckAttemptParams{
-				ID:            dom.ID,
-				CheckAttempts: int32(attempt + 1),
-				LastCheckedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-		}, restate.WithName(fmt.Sprintf("update-attempt-%d", attempt)))
-		if updateErr != nil {
-			s.logger.Warn("failed to update check attempt count",
-				"domain", dom.Domain,
-				"error", updateErr,
-				"attempt", attempt,
-			)
-		}
-
-		if verified {
-			return s.onVerificationSuccess(ctx, dom)
-		}
-
-		// Not verified yet - sleep and retry
-		if attempt < maxAttempts-1 {
-			sleepDuration := verificationBackoff[attempt]
-			s.logger.Info("domain not verified, sleeping before retry",
-				"domain", dom.Domain,
-				"attempt", attempt,
-				"next_check_in", sleepDuration,
-			)
-			if err := restate.Sleep(ctx, sleepDuration); err != nil {
-				return nil, err
-			}
-		}
+	// Check CNAME
+	verified, checkErr := restate.Run(ctx, func(stepCtx restate.RunContext) (bool, error) {
+		return s.checkCNAME(dom.Domain, dom.TargetCname)
+	}, restate.WithName("dns-check"))
+	if checkErr != nil {
+		s.logger.Warn("DNS check error",
+			"domain", dom.Domain,
+			"error", checkErr,
+			"elapsed", elapsed,
+		)
 	}
 
-	// Max attempts reached - mark as failed and return error
-	return s.onVerificationFailed(ctx, dom, "CNAME verification failed after maximum retry attempts")
+	// Track attempt count for observability
+	_, updateErr := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, db.Query.UpdateCustomDomainCheckAttempt(stepCtx, s.db.RW(), db.UpdateCustomDomainCheckAttemptParams{
+			ID:            dom.ID,
+			CheckAttempts: dom.CheckAttempts + 1,
+			LastCheckedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("update-attempt"))
+	if updateErr != nil {
+		s.logger.Warn("failed to update check attempt count",
+			"domain", dom.Domain,
+			"error", updateErr,
+		)
+	}
+
+	if verified {
+		return s.onVerificationSuccess(ctx, dom)
+	}
+
+	// Not verified yet - return error to trigger Restate retry
+	s.logger.Info("domain not verified, will retry",
+		"domain", dom.Domain,
+		"attempts", dom.CheckAttempts+1,
+		"elapsed", elapsed,
+	)
+	return nil, errNotVerified
 }
 
 // RetryVerification resets a failed domain and restarts the verification process.
@@ -252,8 +232,8 @@ func (s *Service) onVerificationSuccess(
 	return &hydrav1.VerifyDomainResponse{}, nil
 }
 
-// onVerificationFailed handles failed domain verification after all retries exhausted.
-// It updates the domain status to failed and returns an error so Restate marks the workflow as failed.
+// onVerificationFailed handles failed domain verification after timeout.
+// It updates the domain status to failed and returns a terminal error to stop retries.
 func (s *Service) onVerificationFailed(
 	ctx restate.ObjectContext,
 	dom db.CustomDomain,
@@ -276,7 +256,6 @@ func (s *Service) onVerificationFailed(
 		"error", errorMsg,
 	)
 
-	return nil, fault.New("domain verification failed",
-		fault.Internal(errorMsg),
-	)
+	// Return terminal error to stop Restate retries
+	return nil, restate.TerminalError(fmt.Errorf("domain verification failed: %s", errorMsg), 0)
 }

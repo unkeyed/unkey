@@ -188,7 +188,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:      restateClient,
 		RestateAdmin: restateAdminClient,
 		Logger:       logger,
-		DefaultCname: cfg.DefaultCname,
+		DnsApex:      cfg.DnsApex,
 	})))
 
 	// Configure server

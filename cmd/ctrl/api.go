@@ -89,7 +89,7 @@ var apiCmd = &cli.Command{
 		cli.String("regional-apex-domain", "Apex domain for cross-region communication. Per-region wildcards created as *.{region}.{apex} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
 
 		// Custom domain configuration
-		cli.String("default-cname", "CNAME target for custom domain verification (e.g., cname.unkey-dns.com)", cli.EnvVar("UNKEY_DEFAULT_CNAME")),
+		cli.String("dns-apex", "Base domain for custom domain CNAME targets (e.g., cname.unkey.local)", cli.EnvVar("UNKEY_DNS_APEX")),
 	},
 	Action: apiAction,
 }
@@ -159,7 +159,7 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		RegionalApexDomain: cmd.String("regional-apex-domain"),
 
 		// Custom domain configuration
-		DefaultCname: cmd.String("default-cname"),
+		DnsApex: cmd.String("dns-apex"),
 	}
 
 	err := config.Validate()

@@ -101,7 +101,7 @@ spec:
             # Domain configuration (used by deploy and routing services)
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
-            - name: UNKEY_DEFAULT_CNAME
+            - name: UNKEY_DNS_APEX
               value: "cname.unkey.local"
 
             # Restate Configuration

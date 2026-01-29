@@ -366,7 +366,7 @@ services:
 
       # Certificate bootstrap
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
-      UNKEY_DEFAULT_CNAME: "cname.unkey.local"
+      UNKEY_DNS_APEX: "cname.unkey.local"
 
   ctrl-worker:
     networks:
@@ -411,7 +411,7 @@ services:
 
       # Domain configuration (used by deploy and routing services)
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
-      UNKEY_DEFAULT_CNAME: "cname.unkey.local"
+      UNKEY_DNS_APEX: "cname.unkey.local"
 
       # Restate configuration
       UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"

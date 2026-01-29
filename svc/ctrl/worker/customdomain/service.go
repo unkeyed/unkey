@@ -14,16 +14,16 @@ import (
 // workflow runs per domain at any time.
 //
 // The verification process checks that the user has added a CNAME record
-// pointing to the expected target (e.g., cname.unkey-dns.com). Verification
-// uses exponential backoff over approximately 24 hours before giving up.
+// pointing to a unique target under the configured DNS apex. Verification
+// retries every minute for approximately 24 hours before giving up.
 //
 // Once verified, the service triggers certificate issuance and creates
 // a frontline route so traffic can be routed to the user's deployment.
 type Service struct {
 	hydrav1.UnimplementedCustomDomainServiceServer
-	db           db.Database
-	logger       logging.Logger
-	defaultCname string
+	db      db.Database
+	logger  logging.Logger
+	dnsApex string
 }
 
 var _ hydrav1.CustomDomainServiceServer = (*Service)(nil)
@@ -36,10 +36,11 @@ type Config struct {
 	// Logger receives structured log output from domain verification operations.
 	Logger logging.Logger
 
-	// DefaultCname is the CNAME target that users must point their domains to.
+	// DnsApex is the base domain for custom domain CNAME targets.
+	// Each custom domain gets a unique subdomain like "{random}.{DnsApex}".
 	// For production: "cname.unkey-dns.com"
-	// For staging: "dns.unkey.fun"
-	DefaultCname string
+	// For local: "cname.unkey.local"
+	DnsApex string
 }
 
 // New creates a [Service] with the given configuration.
@@ -48,6 +49,6 @@ func New(cfg Config) *Service {
 		UnimplementedCustomDomainServiceServer: hydrav1.UnimplementedCustomDomainServiceServer{},
 		db:                                     cfg.DB,
 		logger:                                 cfg.Logger,
-		defaultCname:                           cfg.DefaultCname,
+		dnsApex:                                cfg.DnsApex,
 	}
 }

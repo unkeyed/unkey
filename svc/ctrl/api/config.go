@@ -111,10 +111,11 @@ type Config struct {
 	// per-region wildcard certificates like *.{region}.{RegionalApexDomain}.
 	RegionalApexDomain string
 
-	// DefaultCname is the CNAME target that users must point their custom domains to.
+	// DnsApex is the base domain for custom domain CNAME targets.
+	// Each custom domain gets a unique subdomain like "{random}.{DnsApex}".
 	// For production: "cname.unkey-dns.com"
-	// For staging: "dns.unkey.fun"
-	DefaultCname string
+	// For local: "cname.unkey.local"
+	DnsApex string
 }
 
 // Validate checks the configuration for required fields and logical consistency.
