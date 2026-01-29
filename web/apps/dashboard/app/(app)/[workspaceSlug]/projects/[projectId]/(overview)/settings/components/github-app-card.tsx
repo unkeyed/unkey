@@ -1,4 +1,3 @@
-import { getBaseUrl } from "@/lib/utils";
 import { Github } from "@unkey/icons";
 import { SettingCard, buttonVariants } from "@unkey/ui";
 
@@ -7,12 +6,12 @@ type Props = {
   hasInstallations: boolean;
 };
 
-export const GitHubAppCard: React.FC<Props> = ({ projectId, hasInstallations }) => {
+export const GitHubAppCard: React.FC<Props> = ({
+  projectId,
+  hasInstallations,
+}) => {
   const state = JSON.stringify({ projectId });
-  const baseUrl = getBaseUrl();
-  const origin = baseUrl === "" ? window.location.origin : baseUrl;
-  const callbackUrl = new URL("/integrations/github/callback", origin);
-  const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}&redirect_url=${encodeURIComponent(callbackUrl.toString())}`;
+  const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
 
   return (
     <SettingCard
@@ -28,7 +27,9 @@ export const GitHubAppCard: React.FC<Props> = ({ projectId, hasInstallations }) 
       <div className="flex justify-end gap-2">
         <a
           href={installUrl}
-          className={buttonVariants({ variant: hasInstallations ? "outline" : "primary" })}
+          className={buttonVariants({
+            variant: hasInstallations ? "outline" : "primary",
+          })}
         >
           <Github className="size-4" />
           {hasInstallations ? "Configure" : "Install"}
