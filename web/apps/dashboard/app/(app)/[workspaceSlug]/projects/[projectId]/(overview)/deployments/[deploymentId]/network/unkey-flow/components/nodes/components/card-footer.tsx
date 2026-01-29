@@ -46,26 +46,36 @@ export function CardFooter(props: CardFooterProps) {
         {cpu !== undefined && (
           <MetricPill
             icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
-            value={`${cpu}%`}
+            value={formatCpu(cpu)}
             tooltip={
-              isSentinel
-                ? "Average CPU usage across all instances in this sentinel"
-                : "Current CPU usage for this instance"
+              isSentinel ? "CPU allocated to this sentinel" : "CPU allocated to this instance"
             }
           />
         )}
         {memory !== undefined && (
           <MetricPill
             icon={<Focus iconSize="sm-regular" className="shrink-0" />}
-            value={`${memory}%`}
+            value={formatMemory(memory)}
             tooltip={
-              isSentinel
-                ? "Average memory usage across all instances in this sentinel"
-                : "Current memory usage for this instance"
+              isSentinel ? "Memory allocated to this sentinel" : "Memory allocated to this instance"
             }
           />
         )}
       </div>
     </div>
   );
+}
+
+function formatCpu(millicores: number): string {
+  if (millicores >= 1000) {
+    return `${(millicores / 1000).toFixed(millicores % 1000 === 0 ? 0 : 1)}c`;
+  }
+  return `${millicores}m`;
+}
+
+function formatMemory(mib: number): string {
+  if (mib >= 1024) {
+    return `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)} GiB`;
+  }
+  return `${mib} MiB`;
 }

@@ -31,7 +31,7 @@ function mapInstanceStatusToHealth(
   return mapping[status];
 }
 
-function calculateRegionHealth(
+function calculateSentinelHealth(
   instances: Array<{ status: "inactive" | "pending" | "running" | "failed" }>,
   sentinels: Array<{ health: "unknown" | "paused" | "healthy" | "unhealthy" }>,
 ): HealthStatus {
@@ -120,7 +120,7 @@ export const getDeploymentTree = workspaceProcedure
         },
       });
 
-      // Group instances by region
+      // Group instances by region (each sentinel manages one region)
       const instancesByRegion = new Map<string, typeof instances>();
       for (const instance of instances) {
         if (!instancesByRegion.has(instance.region)) {
@@ -129,20 +129,20 @@ export const getDeploymentTree = workspaceProcedure
         instancesByRegion.get(instance.region)!.push(instance);
       }
 
-      // Build tree structure: each sentinel becomes a "region" node with instances as "sentinel" children
+      // Build tree structure: each sentinel node has instances as children
       const children = sentinels.map((sentinel) => {
-        const regionInstances = instancesByRegion.get(sentinel.region) || [];
+        const sentinelInstances = instancesByRegion.get(sentinel.region) || [];
 
         // Calculate aggregate metrics
-        const totalInstanceCpu = regionInstances.reduce((sum, i) => sum + i.cpuMillicores, 0);
-        const totalInstanceMemory = regionInstances.reduce((sum, i) => sum + i.memoryMib, 0);
+        const totalInstanceCpu = sentinelInstances.reduce((sum, i) => sum + i.cpuMillicores, 0);
+        const totalInstanceMemory = sentinelInstances.reduce((sum, i) => sum + i.memoryMib, 0);
 
         // Combined CPU/memory including sentinel
         const totalCpu = sentinel.cpuMillicores + totalInstanceCpu;
         const totalMemory = sentinel.memoryMib + totalInstanceMemory;
 
-        // Calculate health from instances
-        const regionHealth = calculateRegionHealth(regionInstances, [sentinel]);
+        // Calculate health from instances and sentinel
+        const sentinelHealth = calculateSentinelHealth(sentinelInstances, [sentinel]);
 
         return {
           id: sentinel.id,
@@ -151,22 +151,22 @@ export const getDeploymentTree = workspaceProcedure
           metadata: {
             type: "sentinel" as const,
             flagCode: mapRegionToFlag(sentinel.region),
-            instances: regionInstances.length,
+            instances: sentinelInstances.length,
             replicas: sentinel.availableReplicas,
-            cpu: Math.round(totalCpu / 10), // millicores / 10 = %
-            memory: Math.round((totalMemory / deployment.memoryMib) * 100),
+            cpu: totalCpu,
+            memory: totalMemory,
             latency: "—",
-            health: regionHealth,
+            health: sentinelHealth,
           },
-          children: regionInstances.map((instance) => ({
+          children: sentinelInstances.map((instance) => ({
             id: instance.id,
             label: `s-${instance.id.slice(-4)}`,
             metadata: {
               type: "instance" as const,
               description: "Instance replica",
               replicas: sentinel.availableReplicas,
-              cpu: Math.round(instance.cpuMillicores / 10),
-              memory: Math.round((instance.memoryMib / deployment.memoryMib) * 100),
+              cpu: instance.cpuMillicores,
+              memory: instance.memoryMib,
               latency: "—",
               health: mapInstanceStatusToHealth(instance.status),
             },

@@ -9,8 +9,13 @@ type SentinelNodeProps = {
 };
 
 export function SentinelNode({ node }: SentinelNodeProps) {
-  const { flagCode, rps, cpu, memory, health } = node.metadata;
+  const { flagCode, rps, cpu, memory, health, replicas } = node.metadata;
   const regionInfo = REGION_INFO[flagCode];
+
+  const replicaText =
+    replicas === 0
+      ? "No available replicas"
+      : `${replicas} available ${replicas === 1 ? "replica" : "replicas"}`;
 
   return (
     <NodeWrapper health={health}>
@@ -28,7 +33,7 @@ export function SentinelNode({ node }: SentinelNodeProps) {
           </InfoTooltip>
         }
         title={node.label}
-        subtitle="Sentinel"
+        subtitle={replicaText}
         health={health}
       />
       <CardFooter type="sentinel" rps={rps} cpu={cpu} memory={memory} />
