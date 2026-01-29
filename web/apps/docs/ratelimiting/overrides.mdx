@@ -1,70 +1,159 @@
 ---
-title: Custom overrides 
-description: Override limits for identifiers without code changes.
+title: Custom Overrides 
+description: 'Give specific users higher (or lower) rate limits without code changes'
 ---
 
-The problem with code-defined ratelimits is that managing different limits per user is not really feasable.
-You'd need to keep a list of identifiers hardcoded in your code and redeploy your application whenever one of them changes.
+Override default rate limits for specific identifiers directly from the dashboard. No code changes or deploys needed — changes roll out globally in seconds.
 
-With unkey you can add custom overrides dynamically and we'll roll them out to every edge location quickly.
+## When to use this
 
+<CardGroup cols={2}>
+  <Card title="VIP customers" icon="crown">
+    Enterprise customers need higher limits than your default tier.
+  </Card>
+  <Card title="Partners & integrations" icon="handshake">
+    Integration partners building on your API need room to grow.
+  </Card>
+  <Card title="Throttle abusers" icon="ban">
+    Reduce limits for suspicious users without blocking entirely.
+  </Card>
+  <Card title="Testing & debugging" icon="flask">
+    Temporarily increase limits for specific test accounts.
+  </Card>
+</CardGroup>
 
-## Overriding limits for an identifier
+## How it works
 
+1. You define default limits in your code
+2. Create overrides in the dashboard for specific identifiers
+3. When that identifier is rate limited, Unkey uses the override instead of the default
+
+**Override priority:** Exact matches > Wildcard matches > Default limits
+
+## Create an override
 
 <Steps>
 
-<Step title="Head over to your namespace page">
+<Step title="Go to your namespace">
+Click **Ratelimit** in the sidebar → select your namespace → **Overrides** tab.
 
-Click "Ratelimit" in the sidebar > select your namespace > Overrides
 If you don't have a namespace yet, create one first.
-
 </Step>
-<Step title="Create a new override">
+
+<Step title="Add the override">
 
 <Frame>
-      <img src="/ratelimiting/new-override.png"/>
+  <img src="/ratelimiting/new-override.png" alt="New override form"/>
 </Frame>
 
-Enter the identifier to override, a custom limit and custom duration.
-</Step>
-<Step title="Save">
-Click **Override Identifier** to roll out the override globally. It may take up to 60s at most but is usually done in just a few seconds.
+Enter:
+- **Identifier**: The exact identifier or wildcard pattern
+- **Limit**: Custom request limit
+- **Duration**: Time window for the limit
 
-From now on, when the specified identifier gets ratelimited, it'll use the custom limits, rather than what is defined in your code.
 </Step>
+
+<Step title="Save">
+Click **Override Identifier**. Changes propagate globally within ~60 seconds (usually much faster).
+</Step>
+
 </Steps>
 
+## Example: Enterprise customer
 
-## Wildcard Rules
+Your default limit is 100 requests/minute. Acme Corp needs 10,000/minute.
 
-You can use wildcards (`*`) in your override to match multiple identifiers.
-Exact override matches take precedence over wildcard matches, but there's no guarantee of order between multiple wildcard matches yet.
+| Identifier | Limit | Duration |
+|------------|-------|----------|
+| `acme-corp` | 10000 | 60s |
 
-**Example:**
-Given a base limit of 10/60s and these overrides: 
-- `*@domain.com`: 20/60s
-- `hello@domain.com`: 100/s
+Now when `acme-corp` hits your API, they get 10,000/min instead of 100/min.
 
-This would result in the following applied ratelimits:
+## Wildcard patterns
 
-| requested identifier  | match     | used ratelimit  |
-|-----------------------|-----------|-----------------|
-| `abc@domain.com`      | wildcard  | 20/60s          |
-| `hello@domain.com`    | exact     | 100/s           |
-| `xyz`                 | -         | 10/60s          |
-
-Here's an example of setting higher limits for all emails from the `customer.com` domain.
-
-
-<Frame>
-      <img src="/ratelimiting/wildcard-override.png"/>
-</Frame>
+Use `*` to match multiple identifiers at once.
 
 ### Examples
 
-| override        | matches                                 |
-|-----------------|-----------------------------------------|
-| `*@domain.com`  | `1@domain.com`, `hello@domain.com`      |
-| `invite:*`      | `invite:abc`, `invite:hello world`      |
-| `prefix*suffix` | `prefixhelloworldsuffix`                |
+| Pattern | Matches |
+|---------|---------|
+| `*@acme.com` | `alice@acme.com`, `bob@acme.com`, `api@acme.com` |
+| `enterprise:*` | `enterprise:123`, `enterprise:acme`, `enterprise:test` |
+| `user_*_prod` | `user_123_prod`, `user_abc_prod` |
+
+### Priority
+
+Exact matches always win over wildcards:
+
+| Override | Limit |
+|----------|-------|
+| `*@acme.com` | 500/min |
+| `ceo@acme.com` | 10000/min |
+
+**Result:**
+- `ceo@acme.com` → 10,000/min (exact match)
+- `anyone-else@acme.com` → 500/min (wildcard match)
+- `user@other.com` → default limit
+
+<Frame>
+  <img src="/ratelimiting/wildcard-override.png" alt="Wildcard override example"/>
+</Frame>
+
+## Managing overrides via API
+
+Create overrides programmatically:
+
+```bash
+curl -X POST https://api.unkey.com/v2/ratelimits.setOverride \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespaceId": "rl_...",
+    "identifier": "enterprise:acme",
+    "limit": 10000,
+    "duration": 60000
+  }'
+```
+
+This enables workflows like:
+- Automatically increasing limits when users upgrade
+- Syncing limits from your billing system
+- Temporary increases during promotions
+
+## Common patterns
+
+### Tier-based limits
+
+```
+free:*        → 100/min
+pro:*         → 1000/min  
+enterprise:*  → 10000/min
+```
+
+Use prefixed identifiers in your code: `${plan}:${userId}`
+
+### Domain-based limits
+
+```
+*@bigcustomer.com  → 5000/min
+*@partner.io       → 2000/min
+```
+
+### Temporary boost
+
+Need to give someone extra capacity for a demo or migration? Add an override, then remove it when done. No code changes needed.
+
+## Removing overrides
+
+Delete an override from the dashboard or API. The identifier immediately falls back to default limits (or the next matching wildcard).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="How it works" icon="bolt" href="/ratelimiting/modes">
+    Understand rate limiting architecture
+  </Card>
+  <Card title="Multi-ratelimits" icon="layer-group" href="/apis/features/ratelimiting/overview">
+    Configure multiple limits per key
+  </Card>
+</CardGroup>
