@@ -1,5 +1,6 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import { ArrowUpRight, Lock, Shield } from "@unkey/icons";
 import { Button, FormTextarea, InlineLink, SettingCard } from "@unkey/ui";
@@ -36,6 +37,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     formState: { isValid, isSubmitting, errors, isDirty },
   } = useForm<z.infer<typeof formSchema>>({
     ...createApiFormConfig(formSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       ipWhitelist: api.ipWhitelist ?? "",
       apiId: api.id,

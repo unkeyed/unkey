@@ -14,17 +14,17 @@ func TestRequestIDContextFunctions(t *testing.T) {
 	ctx := context.Background()
 
 	// Test with empty context
-	emptyID := ctxutil.GetRequestId(ctx)
+	emptyID := ctxutil.GetRequestID(ctx)
 	require.Empty(t, emptyID)
 
 	// Test setting and retrieving
-	ctx = ctxutil.SetRequestId(ctx, requestID)
-	retrievedID := ctxutil.GetRequestId(ctx)
+	ctx = ctxutil.SetRequestID(ctx, requestID)
+	retrievedID := ctxutil.GetRequestID(ctx)
 	require.Equal(t, requestID, retrievedID)
 
 	// Test overwriting
 	newRequestID := "new-request-id-456"
-	ctx = ctxutil.SetRequestId(ctx, newRequestID)
-	retrievedID = ctxutil.GetRequestId(ctx)
+	ctx = ctxutil.SetRequestID(ctx, newRequestID)
+	retrievedID = ctxutil.GetRequestID(ctx)
 	require.Equal(t, newRequestID, retrievedID)
 }

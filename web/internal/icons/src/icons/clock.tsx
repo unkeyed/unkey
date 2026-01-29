@@ -1,7 +1,18 @@
-import type React from "react";
+/**
+ * Copyright © Nucleo
+ * Version 1.3, January 3, 2024
+ * Nucleo Icons
+ * https://nucleoapp.com/
+ * - Redistribution of icons is prohibited.
+ * - Icons are restricted for use only within the product they are bundled with.
+ *
+ * For more details:
+ * https://nucleoapp.com/license
+ */
+
 import { type IconProps, sizeMap } from "../props";
 
-export const Clock: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
+export function Clock({ iconSize, filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize || "md-regular"];
   return (
     <svg
@@ -33,4 +44,4 @@ export const Clock: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
       </g>
     </svg>
   );
-};
+}

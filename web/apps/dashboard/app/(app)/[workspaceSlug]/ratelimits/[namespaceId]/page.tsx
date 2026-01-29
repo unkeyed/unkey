@@ -1,16 +1,18 @@
 "use client";
+import { use } from "react";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { LogsClient } from "./_overview/logs-client";
 import { NamespaceNavbar } from "./namespace-navbar";
 
 export default function RatelimitNamespacePage(props: {
-  params: { namespaceId: string };
-  searchParams: {
+  params: Promise<{ namespaceId: string }>;
+  searchParams: Promise<{
     identifier?: string;
-  };
+  }>;
 }) {
-  const { namespaceId } = props.params;
+  const params = use(props.params);
+  const { namespaceId } = params;
   const workspace = useWorkspaceNavigation();
 
   return (

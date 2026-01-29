@@ -14,9 +14,9 @@ export const KEY_VERIFICATION_OUTCOMES = [
 export const keysOverviewLogsParams = z.object({
   workspaceId: z.string(),
   keyspaceId: z.string(),
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   outcomes: z
     .array(
       z.object({
@@ -57,7 +57,7 @@ export const keysOverviewLogsParams = z.object({
       }),
     )
     .nullable(),
-  cursorTime: z.number().int().nullable(),
+  cursorTime: z.int().nullable(),
   sorts: z
     .array(
       z.object({
@@ -106,12 +106,12 @@ export const keyDetailsResponseSchema = z.object({
 export type KeyDetailsResponse = z.infer<typeof keyDetailsResponseSchema>;
 
 export const rawKeysOverviewLogs = z.object({
-  time: z.number().int(),
+  time: z.int(),
   key_id: z.string(),
   request_id: z.string(),
-  valid_count: z.number().int(),
-  error_count: z.number().int(),
-  outcome_counts: z.record(z.string(), z.number().int()),
+  valid_count: z.int(),
+  error_count: z.int(),
+  outcome_counts: z.record(z.string(), z.int()),
   tags: z.array(z.string()).optional(),
 });
 

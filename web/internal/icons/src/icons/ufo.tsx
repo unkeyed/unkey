@@ -10,10 +10,9 @@
  * https://nucleoapp.com/license
  */
 
-import type React from "react";
-
 import { type IconProps, sizeMap } from "../props";
-export const Ufo: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
+
+export function Ufo({ iconSize, filled, ...props }: IconProps) {
   const { iconSize: pixelSize } = sizeMap[iconSize || "md-regular"];
   return (
     <svg
@@ -83,4 +82,4 @@ export const Ufo: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
       </g>
     </svg>
   );
-};
+}

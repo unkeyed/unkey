@@ -6,7 +6,7 @@ export function insertSDKTelemetry(ch: Inserter) {
     table: "telemetry.raw_sdks_v1",
     schema: z.object({
       request_id: z.string(),
-      time: z.number().int(),
+      time: z.int(),
       runtime: z.string(),
       platform: z.string(),
       versions: z.array(z.string()),

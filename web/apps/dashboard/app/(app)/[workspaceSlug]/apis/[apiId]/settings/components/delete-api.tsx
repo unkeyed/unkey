@@ -1,6 +1,7 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Lock } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -43,6 +44,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
     formState: { isSubmitting },
   } = useForm<FormValues>({
     ...createApiFormConfig(formSchema),
+    resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
       name: "",

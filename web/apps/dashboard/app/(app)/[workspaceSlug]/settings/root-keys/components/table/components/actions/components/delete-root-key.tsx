@@ -11,7 +11,7 @@ import { RootKeyInfo } from "./root-key-info";
 
 const deleteRootKeyFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {
-    message: "Please confirm that you want to permanently revoke this root key",
+    error: "Please confirm that you want to permanently revoke this root key",
   }),
 });
 

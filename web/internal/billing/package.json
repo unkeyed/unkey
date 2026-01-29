@@ -20,6 +20,6 @@
     "@mendable/firecrawl-js": "1.5.2",
     "@unkey/error": "workspace:^",
     "ai": "3.0.23",
-    "zod": "3.23.5"
+    "zod": "4.3.5"
   }
 }

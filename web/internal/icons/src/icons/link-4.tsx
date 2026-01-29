@@ -9,11 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Link4: React.FC<IconProps> = ({ iconSize = "md-regular", ...props }) => {
+export function Link4({ iconSize = "md-regular", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -43,4 +42,4 @@ export const Link4: React.FC<IconProps> = ({ iconSize = "md-regular", ...props }
       </g>
     </svg>
   );
-};
+}

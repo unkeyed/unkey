@@ -16,7 +16,7 @@ export const LastUsedCell = ({ identityId }: { identityId: string }) => {
       },
     },
   );
-  const badgeRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLElement>(null) as React.RefObject<HTMLElement>;
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (

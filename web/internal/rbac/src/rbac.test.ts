@@ -167,95 +167,65 @@ describe("bad queries", () => {
       "[
         {
           "code": "invalid_union",
-          "unionErrors": [
-            {
-              "issues": [
-                {
-                  "code": "invalid_type",
-                  "expected": "string",
-                  "received": "object",
-                  "path": [],
-                  "message": "Expected string, received object"
-                }
-              ],
-              "name": "ZodError"
-            },
-            {
-              "issues": [
-                {
-                  "code": "invalid_type",
-                  "expected": "array",
-                  "received": "undefined",
-                  "path": [
-                    "and"
-                  ],
-                  "message": "Required"
-                }
-              ],
-              "name": "ZodError"
-            },
-            {
-              "issues": [
-                {
-                  "code": "invalid_union",
-                  "unionErrors": [
+          "errors": [
+            [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [],
+                "message": "Invalid input: expected string, received object"
+              }
+            ],
+            [
+              {
+                "expected": "array",
+                "code": "invalid_type",
+                "path": [
+                  "and"
+                ],
+                "message": "Invalid input: expected array, received undefined"
+              }
+            ],
+            [
+              {
+                "code": "invalid_union",
+                "errors": [
+                  [
                     {
-                      "issues": [
-                        {
-                          "code": "invalid_type",
-                          "expected": "string",
-                          "received": "object",
-                          "path": [
-                            "or",
-                            2
-                          ],
-                          "message": "Expected string, received object"
-                        }
-                      ],
-                      "name": "ZodError"
-                    },
-                    {
-                      "issues": [
-                        {
-                          "code": "invalid_type",
-                          "expected": "array",
-                          "received": "undefined",
-                          "path": [
-                            "or",
-                            2,
-                            "and"
-                          ],
-                          "message": "Required"
-                        }
-                      ],
-                      "name": "ZodError"
-                    },
-                    {
-                      "issues": [
-                        {
-                          "code": "invalid_type",
-                          "expected": "array",
-                          "received": "undefined",
-                          "path": [
-                            "or",
-                            2,
-                            "or"
-                          ],
-                          "message": "Required"
-                        }
-                      ],
-                      "name": "ZodError"
+                      "expected": "string",
+                      "code": "invalid_type",
+                      "path": [],
+                      "message": "Invalid input: expected string, received object"
                     }
                   ],
-                  "path": [
-                    "or",
-                    2
+                  [
+                    {
+                      "expected": "array",
+                      "code": "invalid_type",
+                      "path": [
+                        "and"
+                      ],
+                      "message": "Invalid input: expected array, received undefined"
+                    }
                   ],
-                  "message": "Invalid input"
-                }
-              ],
-              "name": "ZodError"
-            }
+                  [
+                    {
+                      "expected": "array",
+                      "code": "invalid_type",
+                      "path": [
+                        "or"
+                      ],
+                      "message": "Invalid input: expected array, received undefined"
+                    }
+                  ]
+                ],
+                "path": [
+                  "or",
+                  2
+                ],
+                "message": "Invalid input"
+              }
+            ]
           ],
           "path": [],
           "message": "Invalid input"

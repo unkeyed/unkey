@@ -8,7 +8,7 @@ import {
   differenceInYears,
   format,
 } from "date-fns";
-import React from "react";
+import React, { type JSX } from "react";
 
 import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { ratelimitFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
