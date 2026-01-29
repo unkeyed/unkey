@@ -26,8 +26,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => (
               Connect with us on social media!
               <br />
               <Link href="https://x.com/unkeydev">X (formerly Twitter)</Link> |{" "}
-              <Link href="https://unkey.link/lcMby11">Discord</Link> |{" "}
-              <Link href="https://unkey.link/cfe4hcA">GitHub</Link>
+              <Link href="https://unkey.com/discord">Discord</Link> |{" "}
+              <Link href="https://unkey.com/github">GitHub</Link>
             </Text>
           </Section>
         </Container>

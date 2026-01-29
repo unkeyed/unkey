@@ -35,7 +35,7 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/join/success",
     "/favicon.ico",
     "/api/webhooks/stripe",
-    "/api/v1/workos/webhooks",
+    "/api/webhooks/workos",
     "/api/v1/github/verify",
     "/api/auth/refresh",
     "/success",
