@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/dns"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -21,15 +21,6 @@ const maxVerificationDuration = 24 * time.Hour
 
 // errNotVerified is returned when verification is incomplete, triggering a Restate retry.
 var errNotVerified = errors.New("domain not verified yet")
-
-// dnsResolver uses Cloudflare's 1.1.1.1 DNS for consistent lookups across environments.
-var dnsResolver = &net.Resolver{
-	PreferGo: true,
-	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-		d := net.Dialer{Timeout: 10 * time.Second}
-		return d.DialContext(ctx, "udp", "1.1.1.1:53")
-	},
-}
 
 // VerifyDomain performs two-step verification for a custom domain:
 // 1. TXT record verification (proves ownership) - must verify first
@@ -178,16 +169,16 @@ func (s *Service) RetryVerification(
 
 // checkTXTRecord verifies that the domain has a TXT record proving ownership.
 // The TXT record should be at _unkey.<domain> with value "unkey-domain-verify=<token>".
-// Returns (true, nil) if verified, (false, nil) if TXT doesn't match, or (false, err)
-// if DNS lookup failed due to network issues.
+// Returns (true, nil) if verified, (false, nil) if TXT doesn't exist or doesn't match.
 func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
 	defer cancel()
 
-	txtRecords, err := dnsResolver.LookupTXT(ctx, "_unkey."+domain)
+	txtRecords, err := dns.LookupTXT(ctx, "_unkey."+domain)
 	if err != nil {
-		// Return the error so caller can log it and distinguish network failures
-		// from "TXT not configured yet".
+		if dns.IsNotFoundError(err) {
+			return false, nil
+		}
 		return false, err
 	}
 
@@ -201,24 +192,24 @@ func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
 }
 
 // checkCNAME verifies that the domain has a CNAME record pointing to the expected target.
-// Returns (true, nil) if verified, (false, nil) if CNAME doesn't match, or (false, err)
-// if DNS lookup failed due to network issues or misconfiguration.
+// Returns (true, nil) if verified, (false, nil) if CNAME doesn't exist or doesn't match.
 func (s *Service) checkCNAME(domain, expectedCname string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
 	defer cancel()
 
-	cname, err := dnsResolver.LookupCNAME(ctx, domain)
+	cname, err := dns.LookupCNAME(ctx, domain)
 	if err != nil {
-		// Return the error so caller can log it and distinguish network failures
-		// from "CNAME not configured yet".
+		if dns.IsNotFoundError(err) {
+			return false, nil
+		}
 		return false, err
 	}
 
-	// Normalize by removing trailing dots for comparison.
-	cname = strings.TrimSuffix(cname, ".")
+	// LookupCNAME already normalizes, just need to normalize expected
 	expectedCname = strings.TrimSuffix(expectedCname, ".")
+	expectedCname = strings.ToLower(expectedCname)
 
-	return strings.EqualFold(cname, expectedCname), nil
+	return cname == expectedCname, nil
 }
 
 // onVerificationSuccess handles successful domain verification by updating status,

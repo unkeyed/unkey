@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
+        "//pkg/dns",
         "//pkg/fault",
         "//pkg/otel/logging",
         "//pkg/uid",
