@@ -3,7 +3,7 @@ import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { newId } from "@unkey/id";
+import { dns1035, newId } from "@unkey/id";
 
 export const createProject = workspaceProcedure
   .input(createProjectRequestSchema)
@@ -79,6 +79,7 @@ export const createProject = workspaceProcedure
           isRolledBack: false,
           defaultBranch: "main",
           depotProjectId: null,
+          cnameTarget: dns1035(16),
           deleteProtection: false,
           createdAt: Date.now(),
           updatedAt: null,

@@ -842,7 +842,8 @@ type Querier interface {
 	//      created_at,
 	//      updated_at,
 	//      depot_project_id,
-	//      command
+	//      command,
+	//      cname_target
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
@@ -1486,11 +1487,12 @@ type Querier interface {
 	//      slug,
 	//      git_repository_url,
 	//      default_branch,
+	//      cname_target,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertProject(ctx context.Context, db DBTX, arg InsertProjectParams) error
 	//InsertRatelimitNamespace

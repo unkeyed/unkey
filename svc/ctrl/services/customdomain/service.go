@@ -79,6 +79,21 @@ func (s *Service) AddCustomDomain(
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid domain format: %s", domain))
 	}
 
+	// Fetch project to get its unique CNAME target
+	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find project: %w", err))
+	}
+
+	// Use project's unique CNAME subdomain combined with base domain, fall back to default if not set
+	targetCname := s.defaultCname
+	if project.CnameTarget.Valid && project.CnameTarget.String != "" {
+		targetCname = fmt.Sprintf("%s.%s", project.CnameTarget.String, s.defaultCname)
+	}
+
 	// Check domain doesn't already exist
 	existing, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), domain)
 	if err != nil && !db.IsNotFound(err) {
@@ -100,7 +115,7 @@ func (s *Service) AddCustomDomain(
 		Domain:             domain,
 		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
 		VerificationStatus: db.CustomDomainsVerificationStatusPending,
-		TargetCname:        s.defaultCname,
+		TargetCname:        targetCname,
 		CreatedAt:          now,
 		InvocationID:       sql.NullString{String: "", Valid: false},
 	})
@@ -129,7 +144,7 @@ func (s *Service) AddCustomDomain(
 
 	return connect.NewResponse(&ctrlv1.AddCustomDomainResponse{
 		DomainId:    domainID,
-		TargetCname: s.defaultCname,
+		TargetCname: targetCname,
 		Status:      ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
 	}), nil
 }

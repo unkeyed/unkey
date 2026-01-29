@@ -121,6 +121,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			Slug:             projectSlug,
 			GitRepositoryUrl: sql.NullString{Valid: false, String: ""},
 			DefaultBranch:    sql.NullString{Valid: false, String: ""},
+			CnameTarget:      sql.NullString{Valid: true, String: uid.DNS1035(16)},
 			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
 			CreatedAt:        time.Now().UnixMilli(),
 			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},

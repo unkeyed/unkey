@@ -6,9 +6,10 @@ INSERT INTO projects (
     slug,
     git_repository_url,
     default_branch,
+    cname_target,
     delete_protection,
     created_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 );
