@@ -1126,7 +1126,6 @@ type Project struct {
 	IsRolledBack     bool            `db:"is_rolled_back"`
 	DefaultBranch    sql.NullString  `db:"default_branch"`
 	DepotProjectID   sql.NullString  `db:"depot_project_id"`
-	CnameTarget      sql.NullString  `db:"cname_target"`
 	Command          json.RawMessage `db:"command"`
 	DeleteProtection sql.NullBool    `db:"delete_protection"`
 	CreatedAt        int64           `db:"created_at"`

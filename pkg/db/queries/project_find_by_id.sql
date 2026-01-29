@@ -12,7 +12,6 @@ SELECT
     created_at,
     updated_at,
     depot_project_id,
-    command,
-    cname_target
+    command
 FROM projects
 WHERE id = ?;

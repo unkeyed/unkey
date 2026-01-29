@@ -140,7 +140,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		Slug:             req.Slug,
 		GitRepositoryUrl: sql.NullString{Valid: true, String: req.GitRepositoryURL},
 		DefaultBranch:    sql.NullString{Valid: true, String: req.DefaultBranch},
-		CnameTarget:      sql.NullString{Valid: true, String: uid.DNS1035(16)},
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        time.Now().UnixMilli(),
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
@@ -165,7 +164,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		IsRolledBack:     false,
 		DepotProjectID:   sql.NullString{String: "", Valid: false},
 		Command:          nil,
-		CnameTarget:      project.CnameTarget,
 	}
 }
 

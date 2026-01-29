@@ -25,10 +25,6 @@ export const projects = mysqlTable(
     defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
     depotProjectId: varchar("depot_project_id", { length: 255 }),
 
-    // Unique CNAME target for custom domains (e.g., "k3n5p8x2.unkey-dns.com")
-    // Users point their custom domain CNAME to this target
-    cnameTarget: varchar("cname_target", { length: 128 }),
-
     // Default container command override for deployments (e.g., ["./app", "serve"])
     // If empty, the container's default entrypoint/cmd is used
     command: json("command").$type<string[]>().notNull().default(sql`('[]')`),

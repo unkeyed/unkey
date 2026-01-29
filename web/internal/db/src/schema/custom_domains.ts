@@ -31,7 +31,9 @@ export const customDomains = mysqlTable(
 
     // Verification fields
     verificationStatus: verificationStatus.notNull().default("pending"),
-    targetCname: varchar("target_cname", { length: 256 }).notNull(),
+    // Unique CNAME target for this domain (e.g., "k3n5p8x2")
+    // Combined with base domain to form full target like "k3n5p8x2.cname.unkey.local"
+    targetCname: varchar("target_cname", { length: 256 }).notNull().unique(),
     lastCheckedAt: bigint("last_checked_at", { mode: "number" }),
     checkAttempts: int("check_attempts").notNull().default(0),
     verificationError: varchar("verification_error", { length: 512 }),

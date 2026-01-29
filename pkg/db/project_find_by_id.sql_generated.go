@@ -25,8 +25,7 @@ SELECT
     created_at,
     updated_at,
     depot_project_id,
-    command,
-    cname_target
+    command
 FROM projects
 WHERE id = ?
 `
@@ -45,7 +44,6 @@ type FindProjectByIdRow struct {
 	UpdatedAt        sql.NullInt64   `db:"updated_at"`
 	DepotProjectID   sql.NullString  `db:"depot_project_id"`
 	Command          json.RawMessage `db:"command"`
-	CnameTarget      sql.NullString  `db:"cname_target"`
 }
 
 // FindProjectById
@@ -63,8 +61,7 @@ type FindProjectByIdRow struct {
 //	    created_at,
 //	    updated_at,
 //	    depot_project_id,
-//	    command,
-//	    cname_target
+//	    command
 //	FROM projects
 //	WHERE id = ?
 func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error) {
@@ -84,7 +81,6 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Find
 		&i.UpdatedAt,
 		&i.DepotProjectID,
 		&i.Command,
-		&i.CnameTarget,
 	)
 	return i, err
 }

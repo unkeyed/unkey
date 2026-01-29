@@ -112,7 +112,7 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate 
 			Domain:             domain,
 			ChallengeType:      db.CustomDomainsChallengeTypeDNS01,
 			VerificationStatus: db.CustomDomainsVerificationStatusVerified, // Pre-verified for infra domains
-			TargetCname:        "",                                         // Not used for DNS-01 wildcards
+			TargetCname:        uid.DNS1035(16),                            // Unique target (not used for DNS-01 but required for uniqueness)
 			CreatedAt:          now,
 			UpdatedAt:          sql.NullInt64{Int64: now, Valid: true},
 		})

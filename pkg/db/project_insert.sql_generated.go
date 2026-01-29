@@ -18,12 +18,11 @@ INSERT INTO projects (
     slug,
     git_repository_url,
     default_branch,
-    cname_target,
     delete_protection,
     created_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
@@ -34,7 +33,6 @@ type InsertProjectParams struct {
 	Slug             string         `db:"slug"`
 	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
-	CnameTarget      sql.NullString `db:"cname_target"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
@@ -49,12 +47,11 @@ type InsertProjectParams struct {
 //	    slug,
 //	    git_repository_url,
 //	    default_branch,
-//	    cname_target,
 //	    delete_protection,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
-//	    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+//	    ?, ?, ?, ?, ?, ?, ?, ?, ?
 //	)
 func (q *Queries) InsertProject(ctx context.Context, db DBTX, arg InsertProjectParams) error {
 	_, err := db.ExecContext(ctx, insertProject,
@@ -64,7 +61,6 @@ func (q *Queries) InsertProject(ctx context.Context, db DBTX, arg InsertProjectP
 		arg.Slug,
 		arg.GitRepositoryUrl,
 		arg.DefaultBranch,
-		arg.CnameTarget,
 		arg.DeleteProtection,
 		arg.CreatedAt,
 		arg.UpdatedAt,

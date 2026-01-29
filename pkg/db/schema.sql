@@ -407,7 +407,6 @@ CREATE TABLE `projects` (
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
 	`depot_project_id` varchar(255),
-	`cname_target` varchar(128),
 	`command` json NOT NULL DEFAULT ('[]'),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
@@ -493,6 +492,7 @@ CREATE TABLE `custom_domains` (
 	`updated_at` bigint,
 	CONSTRAINT `custom_domains_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `custom_domains_id_unique` UNIQUE(`id`),
+	CONSTRAINT `custom_domains_target_cname_unique` UNIQUE(`target_cname`),
 	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
 );
 
