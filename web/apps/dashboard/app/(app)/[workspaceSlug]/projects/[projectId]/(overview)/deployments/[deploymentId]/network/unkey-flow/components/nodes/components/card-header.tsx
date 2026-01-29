@@ -1,4 +1,4 @@
-import { CircleCheck, Heart } from "@unkey/icons";
+import { CircleCheck } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type HealthStatus, STATUS_CONFIG } from "../status/status-config";
 import { StatusIndicator } from "../status/status-indicator";
@@ -44,12 +44,6 @@ export function CardHeader({ icon, title, subtitle, health, variant = "card" }: 
           icon={<CircleCheck className="text-gray-9" iconSize="sm-regular" />}
           healthStatus="normal"
           tooltip="Sentinel is online and serving traffic"
-        />
-        <StatusIndicator
-          icon={<Heart className={colors.dotTextColor} iconSize="sm-regular" />}
-          healthStatus={health}
-          tooltip="Sentinel health status"
-          showGlow={health !== "normal"}
         />
       </div>
     </div>

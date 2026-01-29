@@ -1,9 +1,9 @@
 import { Bolt, ChartActivity, Focus } from "@unkey/icons";
-import type { RegionNode } from "../types";
+import type { SentinelNode } from "../types";
 import { MetricPill } from "./metric-pill";
 
-type RegionCardFooterProps = {
-  type: "region";
+type SentinelCardFooterProps = {
+  type: "sentinel";
   rps?: number;
   cpu?: number;
   memory?: number;
@@ -11,18 +11,18 @@ type RegionCardFooterProps = {
 
 type InstanceCardFooterProps = {
   type: "instance";
-  flagCode: RegionNode["metadata"]["flagCode"];
+  flagCode: SentinelNode["metadata"]["flagCode"];
   rps?: number;
   cpu?: number;
   memory?: number;
 };
 
-type CardFooterProps = RegionCardFooterProps | InstanceCardFooterProps;
+type CardFooterProps = SentinelCardFooterProps | InstanceCardFooterProps;
 
 export function CardFooter(props: CardFooterProps) {
   const { type, rps, cpu, memory } = props;
   const flagCode = type === "instance" ? props.flagCode : undefined;
-  const isRegion = type === "region";
+  const isSentinel = type === "sentinel";
 
   return (
     <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-[14px]">
@@ -36,8 +36,8 @@ export function CardFooter(props: CardFooterProps) {
           icon={<ChartActivity iconSize="sm-medium" className="shrink-0" />}
           value={rps}
           tooltip={
-            isRegion
-              ? "Requests per second handled by this region's sentinels"
+            isSentinel
+              ? "Requests per second handled by this sentinel"
               : "Requests per second handled by this instance"
           }
         />
@@ -48,8 +48,8 @@ export function CardFooter(props: CardFooterProps) {
             icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
             value={`${cpu}%`}
             tooltip={
-              isRegion
-                ? "Average CPU usage across all sentinel instances in this region"
+              isSentinel
+                ? "Average CPU usage across all instances in this sentinel"
                 : "Current CPU usage for this instance"
             }
           />
@@ -59,8 +59,8 @@ export function CardFooter(props: CardFooterProps) {
             icon={<Focus iconSize="sm-regular" className="shrink-0" />}
             value={`${memory}%`}
             tooltip={
-              isRegion
-                ? "Average memory usage across all sentinel instances in this region"
+              isSentinel
+                ? "Average memory usage across all instances in this sentinel"
                 : "Current memory usage for this instance"
             }
           />

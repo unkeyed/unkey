@@ -4,19 +4,19 @@ import { useState } from "react";
 import {
   type DeploymentNode,
   InfiniteCanvas,
+  InstanceNode,
   InternalDevTreeGenerator,
   LiveIndicator,
   NodeDetailsPanel,
   OriginNode,
   ProjectDetails,
-  RegionNode,
   SKELETON_TREE,
   SentinelNode,
   SkeletonNode,
   TreeConnectionLine,
   TreeLayout,
+  isInstanceNode,
   isOriginNode,
-  isRegionNode,
   isSentinelNode,
   isSkeletonNode,
 } from "./unkey-flow";
@@ -37,8 +37,9 @@ export function DeploymentNetworkView({
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
 
-  const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery();
-
+  const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery({
+    deploymentId: deploymentId ?? "",
+  });
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;
   const isShowingSkeleton = isLoading && !generatedTree;
 
@@ -87,15 +88,15 @@ function renderDeploymentNode(node: DeploymentNode, parent?: DeploymentNode): Re
     return <OriginNode node={node} />;
   }
 
-  if (isRegionNode(node)) {
-    return <RegionNode node={node} />;
+  if (isSentinelNode(node)) {
+    return <SentinelNode node={node} />;
   }
 
-  if (isSentinelNode(node)) {
-    if (!parent || !isRegionNode(parent)) {
-      throw new Error("Sentinel node requires parent region");
+  if (isInstanceNode(node)) {
+    if (!parent || !isSentinelNode(parent)) {
+      throw new Error("Instance node requires parent sentinel");
     }
-    return <SentinelNode node={node} flagCode={parent.metadata.flagCode} />;
+    return <InstanceNode node={node} flagCode={parent.metadata.flagCode} />;
   }
 
   // This will yell at you if you don't handle a node type

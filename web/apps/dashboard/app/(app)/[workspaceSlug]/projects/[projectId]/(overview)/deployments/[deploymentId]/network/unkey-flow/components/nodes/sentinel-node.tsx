@@ -2,14 +2,14 @@ import { InfoTooltip } from "@unkey/ui";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";
-import { REGION_INFO, type RegionNode as RegionNodeType } from "./types";
+import { REGION_INFO, type SentinelNode as SentinelNodeType } from "./types";
 
-type RegionNodeProps = {
-  node: RegionNodeType;
+type SentinelNodeProps = {
+  node: SentinelNodeType;
 };
 
-export function RegionNode({ node }: RegionNodeProps) {
-  const { flagCode, rps, cpu, memory, health, zones } = node.metadata;
+export function SentinelNode({ node }: SentinelNodeProps) {
+  const { flagCode, rps, cpu, memory, health } = node.metadata;
   const regionInfo = REGION_INFO[flagCode];
 
   return (
@@ -28,10 +28,10 @@ export function RegionNode({ node }: RegionNodeProps) {
           </InfoTooltip>
         }
         title={node.label}
-        subtitle={`${zones} availability ${zones === 1 ? "zone" : "zones"}`}
+        subtitle="Sentinel"
         health={health}
       />
-      <CardFooter type="region" rps={rps} cpu={cpu} memory={memory} />
+      <CardFooter type="sentinel" rps={rps} cpu={cpu} memory={memory} />
     </NodeWrapper>
   );
 }

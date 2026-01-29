@@ -3,11 +3,11 @@ import { Button, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import {
   type DeploymentNode,
+  type InstanceNode,
   REGION_INFO,
-  type RegionNode,
   type SentinelNode,
+  isInstanceNode,
   isOriginNode,
-  isRegionNode,
   isSentinelNode,
   isSkeletonNode,
 } from "../nodes/types";
@@ -17,14 +17,14 @@ import { SettingsSection } from "./node-details-panel/components/settings-row";
 import { metrics } from "./node-details-panel/constants";
 import { SentinelInstances } from "./node-details-panel/region-node/sentinel-instances";
 
-const RegionNodeDetails = ({
+const SentinelNodeDetails = ({
   node,
   onClose,
 }: {
-  node: RegionNode;
+  node: SentinelNode;
   onClose: () => void;
 }) => {
-  const { flagCode, zones, health } = node.metadata;
+  const { flagCode, health } = node.metadata;
   const regionInfo = REGION_INFO[flagCode];
 
   return (
@@ -46,7 +46,7 @@ const RegionNodeDetails = ({
             </InfoTooltip>
           ),
           title: node.label,
-          subtitle: `${zones} availability ${zones === 1 ? "zone" : "zones"}`,
+          subtitle: "Sentinel",
           health,
         }}
       />
@@ -75,11 +75,10 @@ const RegionNodeDetails = ({
         ]}
       />
       <SettingsSection
-        title="Regional settings"
+        title="Sentinel settings"
         settings={[
           { label: "Provider", value: "AWS" },
           { label: "Region code", value: node.label },
-          { label: "Availability zones", value: zones },
           {
             label: "Image",
             value: (
@@ -94,12 +93,12 @@ const RegionNodeDetails = ({
   );
 };
 
-type SentinelNodeDetailsProps = {
-  node: SentinelNode;
+type InstanceNodeDetailsProps = {
+  node: InstanceNode;
   onClose: () => void;
 };
 
-const SentinelNodeDetails = ({ node, onClose }: SentinelNodeDetailsProps) => {
+const InstanceNodeDetails = ({ node, onClose }: InstanceNodeDetailsProps) => {
   const { health } = node.metadata;
 
   return (
@@ -120,7 +119,7 @@ const SentinelNodeDetails = ({ node, onClose }: SentinelNodeDetailsProps) => {
       />
       <Metrics metrics={metrics} />
       <SettingsSection
-        title="Sentinel settings"
+        title="Instance settings"
         settings={[
           { label: "Protocol", value: "HTTP/2" },
           { label: "Port", value: 8080 },
@@ -148,11 +147,11 @@ export function NodeDetailsPanel({ node, onClose }: Props) {
     if (isSkeletonNode(node) || isOriginNode(node)) {
       return null;
     }
-    if (isRegionNode(node)) {
-      return <RegionNodeDetails node={node} onClose={onClose} />;
-    }
     if (isSentinelNode(node)) {
       return <SentinelNodeDetails node={node} onClose={onClose} />;
+    }
+    if (isInstanceNode(node)) {
+      return <InstanceNodeDetails node={node} onClose={onClose} />;
     }
     const _exhaustive: never = node;
     return _exhaustive;

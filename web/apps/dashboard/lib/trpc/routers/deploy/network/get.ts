@@ -1,186 +1,195 @@
 import type { DeploymentNode } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes";
-import { workspaceProcedure } from "@/lib/trpc/trpc";
+import type { HealthStatus } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
+import { db } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
-export const getDeploymentTree = workspaceProcedure.query(async () => {
-  try {
-    // TODO: When you have real deployment data, query it from the database
-    // For now, return a default tree structure
-    const defaultTree: DeploymentNode = {
-      id: "internet",
-      label: "INTERNET",
-      direction: "horizontal",
-      metadata: { type: "origin" },
-      children: [
-        {
-          id: "us-east-1",
-          label: "us-east-1",
-          direction: "vertical",
-          metadata: {
-            type: "region",
-            flagCode: "us",
-            zones: 3,
-            instances: 2,
-            replicas: 2,
-            rps: 2400,
-            cpu: 45,
-            memory: 62,
-            storage: 800,
-            latency: "2.3ms",
-            health: "normal",
-          },
-          children: [
-            {
-              id: "us-east-1-s-a1b2-1",
-              label: "s-a1b2",
-              metadata: {
-                type: "sentinel",
-                description: "Instance replica",
-                replicas: 2,
-                rps: 320,
-                cpu: 42,
-                memory: 58,
-                latency: "3.1ms",
-                health: "normal",
-              },
-            },
-            {
-              id: "us-east-1-s-c3d4-2",
-              label: "s-c3d4",
-              metadata: {
-                type: "sentinel",
-                description: "Instance replica",
-                replicas: 2,
-                rps: 280,
-                cpu: 38,
-                memory: 52,
-                latency: "2.8ms",
-                health: "normal",
-              },
-            },
-          ],
-        },
-        {
-          id: "eu-central-1",
-          label: "eu-central-1",
-          direction: "vertical",
-          metadata: {
-            type: "region",
-            flagCode: "de",
-            zones: 2,
-            instances: 3,
-            replicas: 2,
-            rps: 1800,
-            cpu: 52,
-            memory: 68,
-            storage: 650,
-            latency: "3.5ms",
-            health: "normal",
-          },
-          children: [
-            {
-              id: "eu-central-1-s-e5f6-1",
-              label: "s-e5f6",
-              metadata: {
-                type: "sentinel",
-                description: "Instance replica",
-                replicas: 2,
-                rps: 240,
-                cpu: 48,
-                memory: 64,
-                latency: "4.2ms",
-                health: "normal",
-              },
-            },
-            {
-              id: "eu-central-1-s-g7h8-2",
-              label: "s-g7h8",
-              metadata: {
-                type: "sentinel",
-                description: "Instance replica",
-                replicas: 2,
-                rps: 260,
-                cpu: 52,
-                memory: 70,
-                latency: "3.8ms",
-                health: "unstable",
-              },
-            },
-            {
-              id: "eu-central-1-s-i9j0-3",
-              label: "s-i9j0",
-              metadata: {
-                type: "sentinel",
-                description: "Instance replica",
-                replicas: 2,
-                rps: 220,
-                cpu: 46,
-                memory: 62,
-                latency: "4.0ms",
-                health: "normal",
-              },
-            },
-          ],
-        },
-        {
-          id: "ap-southeast-2",
-          label: "ap-southeast-2",
-          direction: "vertical",
-          metadata: {
-            type: "region",
-            flagCode: "au",
-            zones: 2,
-            instances: 2,
-            replicas: 2,
-            rps: 1200,
-            cpu: 38,
-            memory: 55,
-            storage: 720,
-            latency: "4.1ms",
-            health: "normal",
-          },
-          children: [
-            {
-              id: "ap-southeast-2-s-k1l2-1",
-              label: "s-k1l2",
-              metadata: {
-                type: "sentinel",
-                description: "Instance replica",
-                replicas: 2,
-                rps: 180,
-                cpu: 35,
-                memory: 52,
-                latency: "4.5ms",
-                health: "normal",
-              },
-            },
-            {
-              id: "ap-southeast-2-s-m3n4-2",
-              label: "s-m3n4",
-              metadata: {
-                type: "sentinel",
-                description: "Instance replica",
-                replicas: 2,
-                rps: 200,
-                cpu: 40,
-                memory: 58,
-                latency: "3.9ms",
-                health: "normal",
-              },
-            },
-          ],
-        },
-      ],
-    };
+type FlagCode = "us" | "de" | "au" | "jp" | "in" | "br";
 
-    return defaultTree;
-  } catch (error) {
-    if (error instanceof TRPCError) {
-      throw error;
+function mapDatabaseHealthToUI(
+  dbHealth: "unknown" | "paused" | "healthy" | "unhealthy",
+): HealthStatus {
+  const mapping = {
+    healthy: "normal",
+    unhealthy: "unhealthy",
+    paused: "disabled",
+    unknown: "unknown",
+  } as const;
+  return mapping[dbHealth];
+}
+
+function mapInstanceStatusToHealth(
+  status: "inactive" | "pending" | "running" | "failed",
+): HealthStatus {
+  const mapping = {
+    running: "normal",
+    pending: "health_syncing",
+    inactive: "disabled",
+    failed: "unhealthy",
+  } as const;
+  return mapping[status];
+}
+
+function calculateRegionHealth(
+  instances: Array<{ status: "inactive" | "pending" | "running" | "failed" }>,
+  sentinels: Array<{ health: "unknown" | "paused" | "healthy" | "unhealthy" }>,
+): HealthStatus {
+  const healthPriority: Record<HealthStatus, number> = {
+    unhealthy: 5,
+    degraded: 4,
+    unstable: 3,
+    health_syncing: 2,
+    recovering: 2,
+    normal: 1,
+    unknown: 0,
+    disabled: 0,
+  };
+
+  const allHealth = [
+    ...instances.map((i) => mapInstanceStatusToHealth(i.status)),
+    ...sentinels.map((s) => mapDatabaseHealthToUI(s.health)),
+  ];
+
+  return allHealth.reduce(
+    (worst, current) => (healthPriority[current] > healthPriority[worst] ? current : worst),
+    "normal" as HealthStatus,
+  );
+}
+
+function mapRegionToFlag(region: string): FlagCode {
+  if (region.startsWith("us-")) return "us";
+  if (region.startsWith("eu-")) return "de";
+  if (region.startsWith("ap-southeast")) return "au";
+  if (region.startsWith("ap-northeast")) return "jp";
+  if (region.startsWith("ap-south")) return "in";
+  if (region.startsWith("sa-")) return "br";
+  return "us";
+}
+
+export const getDeploymentTree = workspaceProcedure
+  .use(withRatelimit(ratelimit.create))
+  .input(z.object({ deploymentId: z.string() }))
+  .query(async ({ ctx, input }) => {
+    try {
+      // Fetch deployment to get environmentId and resource specs
+      const deployment = await db.query.deployments.findFirst({
+        where: (table, { eq, and }) =>
+          and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+        columns: {
+          environmentId: true,
+          cpuMillicores: true,
+          memoryMib: true,
+        },
+      });
+
+      if (!deployment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Deployment not found",
+        });
+      }
+
+      // Fetch instances by deploymentId
+      const instances = await db.query.instances.findMany({
+        where: (table, { eq, and }) =>
+          and(eq(table.deploymentId, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+        columns: {
+          id: true,
+          region: true,
+          cpuMillicores: true,
+          memoryMib: true,
+          status: true,
+        },
+      });
+
+      // Fetch sentinels by environmentId
+      const sentinels = await db.query.sentinels.findMany({
+        where: (table, { eq, and }) =>
+          and(
+            eq(table.environmentId, deployment.environmentId),
+            eq(table.workspaceId, ctx.workspace.id),
+          ),
+        columns: {
+          id: true,
+          region: true,
+          health: true,
+          availableReplicas: true,
+          cpuMillicores: true,
+          memoryMib: true,
+        },
+      });
+
+      // Group instances by region
+      const instancesByRegion = new Map<string, typeof instances>();
+      for (const instance of instances) {
+        if (!instancesByRegion.has(instance.region)) {
+          instancesByRegion.set(instance.region, []);
+        }
+        instancesByRegion.get(instance.region)!.push(instance);
+      }
+
+      // Build tree structure: each sentinel becomes a "region" node with instances as "sentinel" children
+      const children = sentinels.map((sentinel) => {
+        const regionInstances = instancesByRegion.get(sentinel.region) || [];
+
+        // Calculate aggregate metrics
+        const totalInstanceCpu = regionInstances.reduce((sum, i) => sum + i.cpuMillicores, 0);
+        const totalInstanceMemory = regionInstances.reduce((sum, i) => sum + i.memoryMib, 0);
+
+        // Combined CPU/memory including sentinel
+        const totalCpu = sentinel.cpuMillicores + totalInstanceCpu;
+        const totalMemory = sentinel.memoryMib + totalInstanceMemory;
+
+        // Calculate health from instances
+        const regionHealth = calculateRegionHealth(regionInstances, [sentinel]);
+
+        return {
+          id: sentinel.id,
+          label: sentinel.region,
+          direction: "vertical" as const,
+          metadata: {
+            type: "sentinel" as const,
+            flagCode: mapRegionToFlag(sentinel.region),
+            instances: regionInstances.length,
+            replicas: sentinel.availableReplicas,
+            cpu: Math.round(totalCpu / 10), // millicores / 10 = %
+            memory: Math.round((totalMemory / deployment.memoryMib) * 100),
+            latency: "—",
+            health: regionHealth,
+          },
+          children: regionInstances.map((instance) => ({
+            id: instance.id,
+            label: `s-${instance.id.slice(-4)}`,
+            metadata: {
+              type: "instance" as const,
+              description: "Instance replica",
+              replicas: sentinel.availableReplicas,
+              cpu: Math.round(instance.cpuMillicores / 10),
+              memory: Math.round((instance.memoryMib / deployment.memoryMib) * 100),
+              latency: "—",
+              health: mapInstanceStatusToHealth(instance.status),
+            },
+          })),
+        };
+      });
+
+      const tree: DeploymentNode = {
+        id: "internet",
+        label: "INTERNET",
+        direction: "horizontal",
+        metadata: { type: "origin" },
+        children,
+      };
+
+      return tree;
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch deployment tree",
+      });
     }
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to fetch deployment tree",
-    });
-  }
-});
+  });
