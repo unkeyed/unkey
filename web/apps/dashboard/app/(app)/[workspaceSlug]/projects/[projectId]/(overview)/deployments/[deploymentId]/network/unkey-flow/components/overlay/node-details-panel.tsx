@@ -32,6 +32,7 @@ const SentinelNodeDetails = ({
       <NodeDetailsPanelHeader
         onClose={onClose}
         subSection={{
+          type: "sentinel",
           variant: "panel",
           icon: (
             <InfoTooltip
@@ -106,6 +107,7 @@ const InstanceNodeDetails = ({ node, onClose }: InstanceNodeDetailsProps) => {
       <NodeDetailsPanelHeader
         onClose={onClose}
         subSection={{
+          type: "instance",
           variant: "panel",
           icon: (
             <div className="border rounded-[10px] size-9 flex items-center justify-center border-grayA-5 bg-grayA-2">

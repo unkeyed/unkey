@@ -9,7 +9,7 @@ type SentinelNodeProps = {
 };
 
 export function SentinelNode({ node }: SentinelNodeProps) {
-  const { flagCode, rps, cpu, memory, health, replicas } = node.metadata;
+  const { flagCode, cpu, memory, health, replicas } = node.metadata;
   const regionInfo = REGION_INFO[flagCode];
 
   const replicaText =
@@ -20,6 +20,7 @@ export function SentinelNode({ node }: SentinelNodeProps) {
   return (
     <NodeWrapper health={health}>
       <CardHeader
+        type="sentinel"
         icon={
           <InfoTooltip
             content={`AWS region ${node.label} (${regionInfo.location})`}

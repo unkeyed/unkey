@@ -10,14 +10,12 @@ export const getDeploymentTree = workspaceProcedure
   .input(z.object({ deploymentId: z.string() }))
   .query(async ({ ctx, input }) => {
     try {
-      // Fetch deployment to get environmentId and resource specs
+      // Fetch deployment to get environmentId
       const deployment = await db.query.deployments.findFirst({
         where: (table, { eq, and }) =>
           and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
         columns: {
           environmentId: true,
-          cpuMillicores: true,
-          memoryMib: true,
         },
       });
 
@@ -28,7 +26,6 @@ export const getDeploymentTree = workspaceProcedure
         });
       }
 
-      // Fetch instances and sentinels in parallel
       const [instances, sentinels] = await Promise.all([
         db.query.instances.findMany({
           where: (table, { eq, and }) =>

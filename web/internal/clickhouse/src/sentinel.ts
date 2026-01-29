@@ -58,3 +58,65 @@ export function getSentinelLogs(ch: Querier) {
     return query(args);
   };
 }
+
+export const sentinelRpsRequestSchema = z.object({
+  workspaceId: z.string(),
+  deploymentId: z.string(),
+  startTime: z.number().int(),
+});
+
+export const sentinelRpsResponseSchema = z.object({
+  region: z.string(),
+  avg_rps: z.number(),
+});
+
+export const instanceRpsRequestSchema = z.object({
+  workspaceId: z.string(),
+  deploymentId: z.string(),
+  startTime: z.number().int(),
+});
+
+export const instanceRpsResponseSchema = z.object({
+  instance_id: z.string(),
+  avg_rps: z.number(),
+});
+
+export function getSentinelRps(ch: Querier) {
+  return async (args: z.infer<typeof sentinelRpsRequestSchema>) => {
+    const query = ch.query({
+      query: `
+        SELECT
+          region,
+          round(COUNT(*) * 1000.0 / (toUnixTimestamp(now()) * 1000 - {startTime: UInt64}), 2) as avg_rps
+        FROM default.sentinel_requests_raw_v1
+        WHERE workspace_id = {workspaceId: String}
+          AND deployment_id = {deploymentId: String}
+          AND time >= {startTime: UInt64}
+        GROUP BY region`,
+      params: sentinelRpsRequestSchema,
+      schema: sentinelRpsResponseSchema,
+    });
+
+    return query(args);
+  };
+}
+
+export function getInstanceRps(ch: Querier) {
+  return async (args: z.infer<typeof instanceRpsRequestSchema>) => {
+    const query = ch.query({
+      query: `
+        SELECT
+          instance_id,
+          round(COUNT(*) * 1000.0 / (toUnixTimestamp(now()) * 1000 - {startTime: UInt64}), 2) as avg_rps
+        FROM default.sentinel_requests_raw_v1
+        WHERE workspace_id = {workspaceId: String}
+          AND deployment_id = {deploymentId: String}
+          AND time >= {startTime: UInt64}
+        GROUP BY instance_id`,
+      params: instanceRpsRequestSchema,
+      schema: instanceRpsResponseSchema,
+    });
+
+    return query(args);
+  };
+}

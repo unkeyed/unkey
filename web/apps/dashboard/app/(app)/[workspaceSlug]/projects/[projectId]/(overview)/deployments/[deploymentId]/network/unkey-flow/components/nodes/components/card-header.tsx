@@ -11,9 +11,17 @@ export type CardHeaderProps = {
   subtitle: string;
   health: HealthStatus;
   variant?: CardHeaderVariant;
+  type: "sentinel" | "instance";
 };
 
-export function CardHeader({ icon, title, subtitle, health, variant = "card" }: CardHeaderProps) {
+export function CardHeader({
+  icon,
+  title,
+  type,
+  subtitle,
+  health,
+  variant = "card",
+}: CardHeaderProps) {
   const { colors } = STATUS_CONFIG[health];
   const isCard = variant === "card";
 
@@ -43,7 +51,7 @@ export function CardHeader({ icon, title, subtitle, health, variant = "card" }: 
         <StatusIndicator
           icon={<Heart className={colors.dotTextColor} iconSize="sm-regular" />}
           healthStatus={health}
-          tooltip="Sentinel health status"
+          tooltip={type === "sentinel" ? "Sentinel health status" : "Instance health status"}
           showGlow={health !== "normal"}
         />
       </div>

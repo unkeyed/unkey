@@ -7,7 +7,6 @@ type BaseNode = {
 };
 
 type BaseMetrics = {
-  rps?: number;
   cpu?: number;
   memory?: number;
   storage?: number;

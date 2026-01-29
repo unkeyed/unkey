@@ -15,6 +15,7 @@ export function InstanceNode({ node, flagCode }: InstanceNodeProps) {
   return (
     <NodeWrapper health={health}>
       <CardHeader
+        type="instance"
         icon={
           <div className="border rounded-[10px] size-9 flex items-center justify-center border-grayA-5 bg-grayA-2">
             <Layers3 iconSize="lg-medium" className="text-gray-11" />
