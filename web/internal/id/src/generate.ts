@@ -2,33 +2,6 @@ import baseX from "base-x";
 
 const b58 = baseX("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
 
-const DNS1035_ALPHA = "abcdefghijklmnopqrstuvwxyz";
-const DNS1035_ALPHANUM = `${DNS1035_ALPHA}0123456789`;
-
-/**
- * Generates a random string compliant with RFC 1035 DNS label rules.
- *
- * The first character is always a lowercase letter; subsequent characters are
- * lowercase letters or digits.
- *
- * @param length - Length of the string to generate (default: 8)
- * @returns A DNS-safe random string
- */
-export function dns1035(length = 8): string {
-  if (length === 0) {
-    return "";
-  }
-
-  const buf = crypto.getRandomValues(new Uint8Array(length));
-  let result = DNS1035_ALPHA[buf[0] % DNS1035_ALPHA.length];
-
-  for (let i = 1; i < length; i++) {
-    result += DNS1035_ALPHANUM[buf[i] % DNS1035_ALPHANUM.length];
-  }
-
-  return result;
-}
-
 const prefixes = {
   key: "key",
   policy: "pol",
