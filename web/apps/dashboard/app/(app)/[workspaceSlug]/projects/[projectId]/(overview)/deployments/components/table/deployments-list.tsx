@@ -42,7 +42,6 @@ const DeploymentListTableActions = dynamic(
   },
 );
 
-
 export const DeploymentsList = () => {
   const [selectedDeployment, setSelectedDeployment] = useState<{
     deployment: Deployment;
