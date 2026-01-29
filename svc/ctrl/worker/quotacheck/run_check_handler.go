@@ -17,11 +17,7 @@ import (
 	"golang.org/x/text/number"
 )
 
-const (
-	stateKeyNotifiedWorkspaces = "notified_workspaces"
-	// checkInterval is how often the quota check runs (daily)
-	checkInterval = 24 * time.Hour
-)
+const stateKeyNotifiedWorkspaces = "notified_workspaces"
 
 // exceededWorkspace holds info about a workspace that exceeded its quota.
 type exceededWorkspace struct {
@@ -31,6 +27,7 @@ type exceededWorkspace struct {
 }
 
 // RunCheck queries all workspace usage and sends Slack notifications for newly exceeded quotas.
+// This handler is intended to be called on a schedule via GitHub Actions.
 func (s *Service) RunCheck(
 	ctx restate.ObjectContext,
 	req *hydrav1.RunCheckRequest,
@@ -132,37 +129,12 @@ func (s *Service) RunCheck(
 		"notifications_sent", len(newlyNotified),
 	)
 
-	// Schedule next run - this creates the Restate cron pattern
-	// The job will run again after checkInterval (daily)
-	now := time.Now().UTC()
-	nextRun := now.Add(checkInterval)
-	nextBillingPeriod := nextRun.Format("2006-01")
-
-	selfClient := hydrav1.NewQuotaCheckServiceClient(ctx, nextBillingPeriod)
-	selfClient.RunCheck().Send(
-		&hydrav1.RunCheckRequest{
-			SlackWebhookUrl: req.GetSlackWebhookUrl(),
-		},
-		restate.WithDelay(checkInterval),
-		restate.WithIdempotencyKey(fmt.Sprintf("quota-check-%s", nextRun.Format("2006-01-02"))),
-	)
-	s.logger.Info("scheduled next quota check", "delay", checkInterval, "billing_period", nextBillingPeriod)
-
-	// Check if today is the last day of the month - if so, schedule monthly summary
-	tomorrow := now.AddDate(0, 0, 1)
-	if tomorrow.Month() != now.Month() {
-		// Tomorrow is a new month, so today is the last day
-		// Schedule summary to run in 1 hour (giving time for final daily check to complete)
-		summaryDelay := 1 * time.Hour
-		selfClient = hydrav1.NewQuotaCheckServiceClient(ctx, billingPeriod)
-		selfClient.SendMonthlySummary().Send(
-			&hydrav1.SendMonthlySummaryRequest{
-				SlackWebhookUrl: req.GetSlackWebhookUrl(),
-			},
-			restate.WithDelay(summaryDelay),
-			restate.WithIdempotencyKey(fmt.Sprintf("quota-summary-%s", billingPeriod)),
-		)
-		s.logger.Info("scheduled monthly summary", "billing_period", billingPeriod)
+	// Send heartbeat to indicate successful completion
+	_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, s.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat"))
+	if err != nil {
+		return nil, fmt.Errorf("send heartbeat: %w", err)
 	}
 
 	return &hydrav1.RunCheckResponse{

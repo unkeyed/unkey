@@ -17,6 +17,7 @@ go_library(
         "//pkg/clickhouse",
         "//pkg/clock",
         "//pkg/db",
+        "//pkg/healthcheck",
         "//pkg/otel/logging",
         "//pkg/prometheus",
         "//pkg/restate/admin",

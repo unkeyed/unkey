@@ -13,6 +13,7 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//pkg/clickhouse",
         "//pkg/db",
+        "//pkg/healthcheck",
         "//pkg/otel/logging",
         "@com_github_restatedev_sdk_go//:sdk-go",
         "@org_golang_x_text//language",

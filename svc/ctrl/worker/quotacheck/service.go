@@ -4,6 +4,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
@@ -13,6 +14,7 @@ type Service struct {
 	db         db.Database
 	clickhouse clickhouse.ClickHouse
 	logger     logging.Logger
+	heartbeat  healthcheck.Heartbeat
 }
 
 var _ hydrav1.QuotaCheckServiceServer = (*Service)(nil)
@@ -22,6 +24,9 @@ type Config struct {
 	DB         db.Database
 	Clickhouse clickhouse.ClickHouse
 	Logger     logging.Logger
+	// Heartbeat sends health signals after successful quota check runs.
+	// If nil, no heartbeat is sent.
+	Heartbeat healthcheck.Heartbeat
 }
 
 // New creates a new quota check service.
@@ -31,5 +36,6 @@ func New(cfg Config) *Service {
 		db:                                   cfg.DB,
 		clickhouse:                           cfg.Clickhouse,
 		logger:                               cfg.Logger,
+		heartbeat:                            cfg.Heartbeat,
 	}
 }
