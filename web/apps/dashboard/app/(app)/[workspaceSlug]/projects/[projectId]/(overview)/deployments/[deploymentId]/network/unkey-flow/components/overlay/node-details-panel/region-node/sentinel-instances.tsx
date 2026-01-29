@@ -1,5 +1,6 @@
 import { Bolt, ChartActivity, CircleCheck, Focus, Heart, Layers2 } from "@unkey/icons";
 import type { DeploymentNode } from "../../../nodes";
+import { formatCpu, formatMemory } from "../../../nodes/components/card-footer";
 import { MetricPill } from "../../../nodes/components/metric-pill";
 import { StatusIndicator } from "../../../nodes/status/status-indicator";
 
@@ -76,27 +77,4 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
       </div>
     </div>
   );
-}
-
-function formatCpu(millicores: number): string {
-  const cores = millicores / 1000;
-
-  if (cores < 1) {
-    if (cores === 0.25) return "1/4 vCPU";
-    if (cores === 0.5) return "1/2 vCPU";
-    if (cores === 0.75) return "3/4 vCPU";
-    return `${cores} vCPU`;
-  }
-
-  if (cores % 1 === 0) {
-    return `${cores} vCPU`;
-  }
-  return `${cores.toFixed(1)} vCPU`;
-}
-
-function formatMemory(mib: number): string {
-  if (mib >= 1024) {
-    return `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)} GiB`;
-  }
-  return `${mib} MiB`;
 }

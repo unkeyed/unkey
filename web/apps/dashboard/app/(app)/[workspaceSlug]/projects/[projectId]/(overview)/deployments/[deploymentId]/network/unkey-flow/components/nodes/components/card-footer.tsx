@@ -62,26 +62,34 @@ export function CardFooter(props: CardFooterProps) {
   );
 }
 
-function formatCpu(millicores: number): string {
-  const cores = millicores / 1000;
-
-  // Handle fractional vCPUs < 1
-  if (cores < 1) {
-    if (cores === 0.25) return "1/4 vCPU";
-    if (cores === 0.5) return "1/2 vCPU";
-    if (cores === 0.75) return "3/4 vCPU";
-    // Fallback for other fractional values
-    return `${cores} vCPU`;
+export function formatCpu(millicores: number): string {
+  if (millicores === 0) {
+    return "—";
+  }
+  if (millicores === 256) {
+    return "1/4 vCPU";
+  }
+  if (millicores === 512) {
+    return "1/2 vCPU";
+  }
+  if (millicores === 768) {
+    return "3/4 vCPU";
+  }
+  if (millicores === 1024) {
+    return "1 vCPU";
   }
 
-  // Handle whole and decimal vCPUs >= 1
-  if (cores % 1 === 0) {
-    return `${cores} vCPU`;
+  if (millicores >= 1024 && millicores % 1024 === 0) {
+    return `${millicores / 1024} vCPU`;
   }
-  return `${cores.toFixed(1)} vCPU`;
+
+  return `${millicores}m vCPU`;
 }
 
-function formatMemory(mib: number): string {
+export function formatMemory(mib: number): string {
+  if (mib === 0) {
+    return "—";
+  }
   if (mib >= 1024) {
     return `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)} GiB`;
   }

@@ -4,6 +4,7 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   Bolt,
   Cloud,
+  Earth,
   Grid,
   Harddrive,
   Layers2,
@@ -20,6 +21,7 @@ import { InfoChip } from "../../../components/info-chip";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
 import { Section, SectionHeader } from "../../../components/section";
 import { Card } from "../../components/card";
+import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "../../details/domain-row";
 import { useProject } from "../../layout-provider";
 import { MetricCard } from "./(overview)/components/metrics/metric-card";
 import { DeploymentSentinelLogsTable } from "./(overview)/components/table/deployment-sentinel-logs-table";
@@ -45,6 +47,14 @@ export default function DeploymentOverview() {
     [deploymentId],
   );
   const deploymentStatus = deployment.data.at(0)?.status;
+
+  const { data: domains, isLoading: isDomainsLoading } = useLiveQuery(
+    (q) =>
+      q
+        .from({ domain: collections.domains })
+        .where(({ domain }) => eq(domain.deploymentId, deploymentId)),
+    [deploymentId],
+  );
 
   return (
     <ProjectContentWrapper centered>
@@ -110,6 +120,26 @@ export default function DeploymentOverview() {
       </Section>
       <Section>
         <SectionHeader
+          icon={<Earth iconSize="md-regular" className="text-gray-9" />}
+          title="Domains"
+        />
+        <div>
+          {isDomainsLoading ? (
+            <>
+              <DomainRowSkeleton />
+              <DomainRowSkeleton />
+            </>
+          ) : domains?.length > 0 ? (
+            domains.map((domain) => (
+              <DomainRow key={domain.id} domain={domain.fullyQualifiedDomainName} />
+            ))
+          ) : (
+            <DomainRowEmpty />
+          )}
+        </div>
+      </Section>
+      <Section>
+        <SectionHeader
           icon={<Layers2 iconSize="md-regular" className="text-gray-9" />}
           title="Network"
         />
@@ -151,42 +181,6 @@ export default function DeploymentOverview() {
                   ...baseConfig,
                 }),
                 dataKey: "cpu",
-              }}
-            />
-            <MetricCard
-              icon={Grid}
-              metricType="memory"
-              currentValue={24}
-              secondaryValue={{ numeric: 1.62, unit: "gb" }}
-              chartData={{
-                data: generateRealisticChartData({
-                  count: 80,
-                  baseValue: 24,
-                  variance: 8,
-                  trend: 0.01,
-                  spikeProbability: 0.1,
-                  dataKey: "memory",
-                  ...baseConfig,
-                }),
-                dataKey: "memory",
-              }}
-            />
-            <MetricCard
-              icon={Harddrive}
-              metricType="storage"
-              currentValue={32}
-              secondaryValue={{ numeric: 72.3, unit: "mb" }}
-              chartData={{
-                data: generateRealisticChartData({
-                  count: 80,
-                  baseValue: 32,
-                  variance: 5,
-                  trend: 0.005,
-                  spikeProbability: 0.05,
-                  dataKey: "storage",
-                  ...baseConfig,
-                }),
-                dataKey: "storage",
               }}
             />
           </div>
