@@ -35,11 +35,12 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/join/success",
     "/favicon.ico",
     "/api/webhooks/stripe",
-    "/api/v1/workos/webhooks",
+    "/api/webhooks/workos",
     "/api/v1/github/verify",
     "/api/auth/refresh",
     "/success",
-    "/_next",
+    "/_next/*",
+    "/integrations/github/callback",
   ];
 
   // Check if the current path is in the public paths list

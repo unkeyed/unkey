@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
 import { Grid } from "@unkey/icons";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, YAxis } from "recharts";
 
 // Generic base type that all timeseries data must include
 export type BaseTimeseriesData = {
@@ -42,71 +42,76 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%" debounce={1000}>
-      <ChartContainer config={config}>
-        <BarChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-          <YAxis domain={["auto", (dataMax: number) => dataMax * 1.3]} hide />
-          <CartesianGrid
-            horizontal
-            vertical={false}
-            strokeDasharray="3 3"
-            stroke="hsl(var(--gray-6))"
-            strokeOpacity={0.3}
-            strokeWidth={1}
-            fill="hsl(var(--gray-1))"
-          />
-          <ChartTooltip
-            position={{ y: 50 }}
-            isAnimationActive
-            wrapperStyle={{ zIndex: 1000 }}
-            cursor={{
-              fill: "hsl(var(--accent-3))",
-              strokeWidth: 1,
-              strokeDasharray: "5 5",
-              strokeOpacity: 0.7,
-            }}
-            content={({ active, payload, label }) => {
-              if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
-                return null;
-              }
-              return (
-                <ChartTooltipContent
-                  payload={payload}
-                  label={label}
-                  active={active}
-                  bottomExplainer={
-                    <div className="grid gap-1.5 pt-2 border-t border-grayA-4">
-                      <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
-                        <Grid className="text-gray-6" />
-                        <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
-                          <div className="flex gap-4 items-center min-w-[80px]">
-                            <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
-                              All
-                            </span>
-                            <span className="capitalize text-accent-12 text-xs">Total</span>
-                          </div>
-                          <div className="ml-auto">
-                            <span className="font-mono tabular-nums text-accent-12">
-                              {formatNumber(payload[0]?.payload?.total)}
-                            </span>
-                          </div>
+    <ChartContainer config={config} className="w-full h-full aspect-auto">
+      <BarChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+        <YAxis domain={["auto", (dataMax: number) => dataMax * 1.3]} hide />
+        <CartesianGrid
+          horizontal
+          vertical={false}
+          strokeDasharray="3 3"
+          stroke="hsl(var(--gray-6))"
+          strokeOpacity={0.3}
+          strokeWidth={1}
+          fill="hsl(var(--gray-1))"
+        />
+        <ChartTooltip
+          position={{ y: 50 }}
+          isAnimationActive
+          wrapperStyle={{ zIndex: 1000 }}
+          cursor={{
+            fill: "hsl(var(--accent-3))",
+            strokeWidth: 1,
+            strokeDasharray: "5 5",
+            strokeOpacity: 0.7,
+          }}
+          content={({ active, payload, label }) => {
+            if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
+              return null;
+            }
+            return (
+              <ChartTooltipContent
+                payload={payload}
+                label={label}
+                active={active}
+                bottomExplainer={
+                  <div className="grid gap-1.5 pt-2 border-t border-grayA-4">
+                    <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
+                      <Grid className="text-gray-6" />
+                      <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
+                        <div className="flex gap-4 items-center min-w-[80px]">
+                          <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
+                            All
+                          </span>
+                          <span className="capitalize text-accent-12 text-xs">Total</span>
+                        </div>
+                        <div className="ml-auto">
+                          <span className="font-mono tabular-nums text-accent-12">
+                            {formatNumber(payload[0]?.payload?.total)}
+                          </span>
                         </div>
                       </div>
-                      {tooltipExtraContent?.(payload)}
                     </div>
-                  }
-                  className="rounded-lg shadow-lg border border-gray-4"
-                  //@ts-expect-error safe to ignore for now
-                  labelFormatter={(_, payload) => createTimeIntervalFormatter(data)(payload)}
-                />
-              );
-            }}
-          />
-          {Object.keys(config).map((key) => (
-            <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
-          ))}
-        </BarChart>
-      </ChartContainer>
-    </ResponsiveContainer>
+                    {tooltipExtraContent?.(payload)}
+                  </div>
+                }
+                className="rounded-lg shadow-lg border border-gray-4"
+                labelFormatter={(_, tooltipPayload): React.ReactNode => {
+                  const payloadArray = Array.isArray(tooltipPayload) ? tooltipPayload : [];
+                  return createTimeIntervalFormatter(data)(
+                    payloadArray.map((item) => ({
+                      payload: item.payload,
+                      ...item,
+                    })),
+                  );
+                }}
+              />
+            );
+          }}
+        />
+        {Object.keys(config).map((key) => (
+          <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
+        ))}
+      </BarChart>
+    </ChartContainer>
   );
 }

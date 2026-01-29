@@ -61,7 +61,7 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
                   }}
                 />
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-sm text-content truncate">{invitation.email}</span>
+                  <span className="text-sm text-content truncate secret">{invitation.email}</span>
                   <div className="flex items-center">
                     <StatusBadge status={invitation.state} />
                   </div>

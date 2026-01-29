@@ -58,6 +58,7 @@ import { createProject } from "./deploy/project/create";
 import { listProjects } from "./deploy/project/list";
 import { querySentinelLogs } from "./deploy/sentinel-logs/query";
 import { listEnvironments } from "./environment/list";
+import { githubRouter } from "./github";
 import { createIdentity } from "./identity/create";
 import { deleteIdentity } from "./identity/delete";
 import { getIdentityById } from "./identity/getById";
@@ -247,6 +248,7 @@ export const router = t.router({
     updateWorkspaceStripeCustomer,
   }),
   vercel: vercelRouter,
+  github: githubRouter,
   plain: t.router({
     createIssue: createPlainIssue,
   }),
