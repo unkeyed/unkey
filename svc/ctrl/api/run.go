@@ -173,6 +173,18 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
 
+	if cfg.GitHubWebhookSecret != "" {
+		mux.Handle("POST /webhooks/github", &GitHubWebhook{
+			db:            database,
+			logger:        logger,
+			restate:       restateClient,
+			webhookSecret: cfg.GitHubWebhookSecret,
+		})
+		logger.Info("GitHub webhook handler registered")
+	} else {
+		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
+	}
+
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
 

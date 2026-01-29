@@ -4,7 +4,7 @@ load('ext://secret', 'secret_create_generic')
 
 cfg = config.parse()
 
-update_settings(suppress_unused_image_warnings=["unkey/sentinel:latest"])
+update_settings(suppress_unused_image_warnings=["unkey/repofetch:latest", "unkey/sentinel:latest"])
 
 local_resource(
   'namespace',
@@ -216,6 +216,14 @@ local_resource(
     'docker build -t unkey/sentinel:latest -f Dockerfile.tilt .. && minikube image load unkey/sentinel:latest',
     deps=['../bin'],
     resource_deps=['build-unkey'],
+    labels=['build'],
+)
+
+# Repo fetch image
+local_resource(
+    'build-repofetch-image',
+    'docker build -t unkey/repofetch:latest -f ../Dockerfile.repofetch .. && minikube image load unkey/repofetch:latest',
+    deps=['../Dockerfile.repofetch'],
     labels=['build'],
 )
 

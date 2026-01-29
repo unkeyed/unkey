@@ -43,6 +43,13 @@ type RestateConfig struct {
 	APIKey string
 }
 
+// GitHubConfig holds configuration for GitHub App integration.
+//
+// This configuration enables receiving GitHub webhooks and authenticating
+// with the GitHub API to download repository tarballs for deployment.
+type GitHubConfig struct {
+}
+
 // Config holds configuration for the control plane API server.
 //
 // The API server handles Connect RPC requests and delegates workflow
@@ -96,6 +103,10 @@ type Config struct {
 	// AvailableRegions is a list of available regions for deployments.
 	// Typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
+
+	// GitHubWebhookSecret is the secret used to verify webhook signatures.
+	// Configured in the GitHub App webhook settings.
+	GitHubWebhookSecret string
 
 	// DefaultDomain is the fallback domain for system operations.
 	// Used for wildcard certificate bootstrapping. When set, the API will

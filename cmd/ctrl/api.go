@@ -85,6 +85,9 @@ var apiCmd = &cli.Command{
 		// Certificate bootstrap configuration
 		cli.String("default-domain", "Default domain for wildcard certificate bootstrapping (e.g., unkey.app)", cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
 		cli.String("regional-apex-domain", "Apex domain for cross-region communication. Per-region wildcards created as *.{region}.{apex} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
+
+		// GitHub webhook configuration
+		cli.String("github-webhook-secret", "Secret for verifying GitHub webhook signatures", cli.EnvVar("UNKEY_GITHUB_WEBHOOK_SECRET")),
 	},
 	Action: apiAction,
 }
@@ -151,6 +154,9 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		// Certificate bootstrap
 		DefaultDomain:      cmd.String("default-domain"),
 		RegionalApexDomain: cmd.String("regional-apex-domain"),
+
+		// GitHub webhook
+		GitHubWebhookSecret: cmd.String("github-webhook-secret"),
 	}
 
 	err := config.Validate()

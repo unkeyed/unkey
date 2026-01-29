@@ -223,6 +223,31 @@ type Config struct {
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.RealClock{} for production deployments.
 	Clock clock.Clock
+
+	// GitHub configures GitHub App integration for webhook-triggered deployments.
+	GitHub GitHubConfig
+
+	// RepoFetchImage is the container image used for GitHub tarball fetch jobs.
+	// These jobs run with gVisor isolation in the builds namespace.
+	RepoFetchImage string
+}
+
+// GitHubConfig holds configuration for GitHub App integration.
+type GitHubConfig struct {
+	// AppID is the GitHub App ID for authentication.
+	AppID int64
+
+	// PrivateKeyPEM is the GitHub App private key in PEM format.
+	PrivateKeyPEM string
+
+	// WebhookSecret is the secret used to verify GitHub webhook payloads.
+	WebhookSecret string
+}
+
+// Enabled returns true only if ALL required GitHub App fields are configured.
+// This ensures we never register the workflow with partial/insecure config.
+func (c GitHubConfig) Enabled() bool {
+	return c.AppID != 0 && c.PrivateKeyPEM != ""
 }
 
 // parseBuildPlatform validates and parses a build platform string.
@@ -316,15 +341,18 @@ func (c Config) Validate() error {
 	// Validate build platform format
 	_, platformErr := parseBuildPlatform(c.BuildPlatform)
 
-	// Validate registry configuration
-	registryErr := assert.All(
+	// Validate build configuration (Depot backend)
+	return assert.All(
+		platformErr,
 		assert.NotEmpty(c.RegistryURL, "registry URL is required"),
 		assert.NotEmpty(c.RegistryUsername, "registry username is required"),
 		assert.NotEmpty(c.RegistryPassword, "registry password is required"),
-	)
-
-	return assert.All(
-		platformErr,
-		registryErr,
+		assert.NotEmpty(c.BuildPlatform, "build platform is required"),
+		assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required"),
+		assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required"),
+		assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required"),
+		assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required"),
+		assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required"),
+		assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required"),
 	)
 }
