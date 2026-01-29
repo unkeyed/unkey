@@ -165,6 +165,7 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		IsRolledBack:     false,
 		DepotProjectID:   sql.NullString{String: "", Valid: false},
 		Command:          nil,
+		CnameTarget:      project.CnameTarget,
 	}
 }
 
