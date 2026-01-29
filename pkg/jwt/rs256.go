@@ -28,9 +28,9 @@ import (
 // For simpler scenarios where the same service signs and verifies, consider
 // [HS256Signer] which uses symmetric keys.
 //
-// The type parameter T specifies the claims type, which must implement [Claims].
+// The type parameter T must embed [RegisteredClaims] to include standard JWT fields.
 // RS256Signer is safe for concurrent use; the private key is captured at construction.
-type RS256Signer[T Claims] struct {
+type RS256Signer[T any] struct {
 	privateKey *rsa.PrivateKey
 }
 
@@ -49,7 +49,7 @@ var _ Signer[RegisteredClaims] = (*RS256Signer[RegisteredClaims])(nil)
 //
 // Returns an error if the PEM data is invalid, the key format is unsupported,
 // or the key is not an RSA key (e.g., EC or Ed25519).
-func NewRS256Signer[T Claims](privateKeyPEM string) (*RS256Signer[T], error) {
+func NewRS256Signer[T any](privateKeyPEM string) (*RS256Signer[T], error) {
 	if err := assert.NotEmpty(privateKeyPEM, "private key PEM must not be empty"); err != nil {
 		return nil, err
 	}
@@ -110,11 +110,12 @@ func (s *RS256Signer[T]) Sign(claims T) (string, error) {
 // prevents algorithm confusion attacks where an attacker might try to use
 // a symmetric algorithm with the public key as the secret.
 //
-// The type parameter T specifies the claims type, which must implement [Claims].
+// The type parameter T must embed [RegisteredClaims] to include standard JWT fields.
 // RS256Verifier is safe for concurrent use.
-type RS256Verifier[T Claims] struct {
+type RS256Verifier[T any] struct {
 	publicKey *rsa.PublicKey
 	clock     clock.Clock
+	config    verifyConfig
 }
 
 // Ensure RS256Verifier implements Verifier interface.
@@ -126,14 +127,15 @@ var _ Verifier[RegisteredClaims] = (*RS256Verifier[RegisteredClaims])(nil)
 // standard format for public keys. The function handles keys with escaped
 // newlines and surrounding quotes.
 //
-// By default, the verifier uses the system clock for temporal claims validation.
-// Pass a [clock.Clock] to override this, which is useful for testing:
+// Options can be used to configure verification behavior:
 //
-//	clk := clock.NewTestClock(fixedTime)
-//	verifier, err := NewRS256Verifier[MyClaims](publicKeyPEM, clk)
+//	verifier, err := NewRS256Verifier[MyClaims](publicKeyPEM,
+//	    jwt.WithIssuer("https://auth.example.com"),
+//	    jwt.WithAudience("my-service"),
+//	)
 //
 // Returns an error if the PEM data is invalid or the key is not an RSA public key.
-func NewRS256Verifier[T Claims](publicKeyPEM string, clk ...clock.Clock) (*RS256Verifier[T], error) {
+func NewRS256Verifier[T any](publicKeyPEM string, opts ...VerifyOption) (*RS256Verifier[T], error) {
 	if err := assert.NotEmpty(publicKeyPEM, "public key PEM must not be empty"); err != nil {
 		return nil, err
 	}
@@ -143,12 +145,12 @@ func NewRS256Verifier[T Claims](publicKeyPEM string, clk ...clock.Clock) (*RS256
 		return nil, err
 	}
 
-	var c clock.Clock = clock.New()
-	if len(clk) > 0 {
-		c = clk[0]
+	cfg := verifyConfig{clock: clock.New(), issuer: "", audience: ""}
+	for _, opt := range opts {
+		opt(&cfg)
 	}
 
-	return &RS256Verifier[T]{publicKey: key, clock: c}, nil
+	return &RS256Verifier[T]{publicKey: key, clock: cfg.clock, config: cfg}, nil
 }
 
 // Verify validates a JWT and returns the typed claims.
@@ -223,7 +225,13 @@ func (v *RS256Verifier[T]) Verify(token string, at ...time.Time) (T, error) {
 		return claims, fmt.Errorf("invalid payload JSON: %w", err)
 	}
 
-	if err := claims.Validate(verifyAt); err != nil {
+	// Unmarshal registered claims separately for validation
+	var registered RegisteredClaims
+	if err := json.Unmarshal(payloadJSON, &registered); err != nil {
+		return claims, fmt.Errorf("invalid registered claims: %w", err)
+	}
+
+	if err := registered.validate(verifyAt, &v.config); err != nil {
 		return claims, err
 	}
 

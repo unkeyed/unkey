@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -733,7 +734,7 @@ func TestPayloadModification_ClaimsTampering(t *testing.T) {
 
 	t.Run("modified issuer rejected", func(t *testing.T) {
 		modifiedPayload := base64.RawURLEncoding.EncodeToString(
-			[]byte(`{"iss":"attacker","sub":"user1","exp":` + string(rune(expTime)) + `}`))
+			[]byte(`{"iss":"attacker","sub":"user1","exp":` + strconv.FormatInt(expTime, 10) + `}`))
 		modifiedToken := parts[0] + "." + modifiedPayload + "." + parts[2]
 		_, err := verifier.Verify(modifiedToken)
 		require.Error(t, err)
@@ -741,7 +742,7 @@ func TestPayloadModification_ClaimsTampering(t *testing.T) {
 
 	t.Run("modified subject rejected", func(t *testing.T) {
 		modifiedPayload := base64.RawURLEncoding.EncodeToString(
-			[]byte(`{"iss":"original","sub":"admin","exp":` + string(rune(expTime)) + `}`))
+			[]byte(`{"iss":"original","sub":"admin","exp":` + strconv.FormatInt(expTime, 10) + `}`))
 		modifiedToken := parts[0] + "." + modifiedPayload + "." + parts[2]
 		_, err := verifier.Verify(modifiedToken)
 		require.Error(t, err)
@@ -750,7 +751,7 @@ func TestPayloadModification_ClaimsTampering(t *testing.T) {
 	t.Run("extended exp rejected", func(t *testing.T) {
 		futureExp := time.Now().Add(100 * 365 * 24 * time.Hour).Unix()
 		modifiedPayload := base64.RawURLEncoding.EncodeToString(
-			[]byte(`{"iss":"original","sub":"user1","exp":` + string(rune(futureExp)) + `}`))
+			[]byte(`{"iss":"original","sub":"user1","exp":` + strconv.FormatInt(futureExp, 10) + `}`))
 		modifiedToken := parts[0] + "." + modifiedPayload + "." + parts[2]
 		_, err := verifier.Verify(modifiedToken)
 		require.Error(t, err)
@@ -758,7 +759,7 @@ func TestPayloadModification_ClaimsTampering(t *testing.T) {
 
 	t.Run("added admin claim rejected", func(t *testing.T) {
 		modifiedPayload := base64.RawURLEncoding.EncodeToString(
-			[]byte(`{"iss":"original","sub":"user1","exp":` + string(rune(expTime)) + `,"admin":true}`))
+			[]byte(`{"iss":"original","sub":"user1","exp":` + strconv.FormatInt(expTime, 10) + `,"admin":true}`))
 		modifiedToken := parts[0] + "." + modifiedPayload + "." + parts[2]
 		_, err := verifier.Verify(modifiedToken)
 		require.Error(t, err)
@@ -808,24 +809,58 @@ func TestEdgeCases_LargePayload(t *testing.T) {
 	verifier, err := NewHS256Verifier[testClaims](secret)
 	require.NoError(t, err)
 
-	// Create claims with large string fields
-	largeString := strings.Repeat("x", 10000)
-	claims := testClaims{
-		RegisteredClaims: RegisteredClaims{
-			Issuer:    largeString,
-			Subject:   largeString,
-			ExpiresAt: time.Now().Add(time.Hour).Unix(),
-		},
-		TenantID: largeString,
-	}
+	t.Run("oversized registered claims are rejected", func(t *testing.T) {
+		largeString := strings.Repeat("x", MaxIssuerSize+1)
+		claims := testClaims{
+			RegisteredClaims: RegisteredClaims{
+				Issuer:    largeString,
+				ExpiresAt: time.Now().Add(time.Hour).Unix(),
+			},
+		}
 
-	token, err := signer.Sign(claims)
-	require.NoError(t, err)
-	t.Logf("Large token size: %d bytes", len(token))
+		token, err := signer.Sign(claims)
+		require.NoError(t, err)
+		t.Logf("Large token size: %d bytes", len(token))
 
-	decoded, err := verifier.Verify(token)
-	require.NoError(t, err)
-	require.Equal(t, largeString, decoded.Issuer)
+		_, err = verifier.Verify(token)
+		require.Error(t, err)
+	})
+
+	t.Run("max size registered claims are accepted", func(t *testing.T) {
+		maxString := strings.Repeat("x", MaxIssuerSize)
+		claims := testClaims{
+			RegisteredClaims: RegisteredClaims{
+				Issuer:    maxString,
+				Subject:   maxString,
+				ExpiresAt: time.Now().Add(time.Hour).Unix(),
+			},
+		}
+
+		token, err := signer.Sign(claims)
+		require.NoError(t, err)
+
+		decoded, err := verifier.Verify(token)
+		require.NoError(t, err)
+		require.Equal(t, maxString, decoded.Issuer)
+	})
+
+	t.Run("large custom claims are accepted", func(t *testing.T) {
+		largeString := strings.Repeat("x", 10000)
+		claims := testClaims{
+			RegisteredClaims: RegisteredClaims{
+				Issuer:    "test-issuer",
+				ExpiresAt: time.Now().Add(time.Hour).Unix(),
+			},
+			TenantID: largeString,
+		}
+
+		token, err := signer.Sign(claims)
+		require.NoError(t, err)
+
+		decoded, err := verifier.Verify(token)
+		require.NoError(t, err)
+		require.Equal(t, largeString, decoded.TenantID)
+	})
 }
 
 // TestEdgeCases_UnicodeInClaims tests Unicode handling in claims.
@@ -917,4 +952,256 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// =============================================================================
+// Issuer and Audience Validation Tests
+// =============================================================================
+
+// TestWithIssuer_RejectsWrongIssuer verifies that tokens with a mismatched
+// issuer are rejected when WithIssuer is configured.
+func TestWithIssuer_RejectsWrongIssuer(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes-long")
+	signer, err := NewHS256Signer[RegisteredClaims](secret)
+	require.NoError(t, err)
+
+	verifier, err := NewHS256Verifier[RegisteredClaims](secret,
+		WithIssuer("expected-issuer"),
+	)
+	require.NoError(t, err)
+
+	claims := RegisteredClaims{
+		Issuer:    "wrong-issuer",
+		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}
+
+	token, err := signer.Sign(claims)
+	require.NoError(t, err)
+
+	_, err = verifier.Verify(token)
+	require.ErrorIs(t, err, ErrInvalidIssuer)
+}
+
+// TestWithIssuer_AcceptsMatchingIssuer verifies that tokens with the correct
+// issuer are accepted when WithIssuer is configured.
+func TestWithIssuer_AcceptsMatchingIssuer(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes-long")
+	signer, err := NewHS256Signer[RegisteredClaims](secret)
+	require.NoError(t, err)
+
+	verifier, err := NewHS256Verifier[RegisteredClaims](secret,
+		WithIssuer("expected-issuer"),
+	)
+	require.NoError(t, err)
+
+	claims := RegisteredClaims{
+		Issuer:    "expected-issuer",
+		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}
+
+	token, err := signer.Sign(claims)
+	require.NoError(t, err)
+
+	decoded, err := verifier.Verify(token)
+	require.NoError(t, err)
+	require.Equal(t, "expected-issuer", decoded.Issuer)
+}
+
+// TestWithIssuer_RejectsMissingIssuer verifies that tokens without an issuer
+// are rejected when WithIssuer is configured.
+func TestWithIssuer_RejectsMissingIssuer(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes-long")
+	signer, err := NewHS256Signer[RegisteredClaims](secret)
+	require.NoError(t, err)
+
+	verifier, err := NewHS256Verifier[RegisteredClaims](secret,
+		WithIssuer("expected-issuer"),
+	)
+	require.NoError(t, err)
+
+	claims := RegisteredClaims{
+		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}
+
+	token, err := signer.Sign(claims)
+	require.NoError(t, err)
+
+	_, err = verifier.Verify(token)
+	require.ErrorIs(t, err, ErrInvalidIssuer)
+}
+
+// TestWithAudience_RejectsMissingAudience verifies that tokens without the
+// expected audience are rejected when WithAudience is configured.
+func TestWithAudience_RejectsMissingAudience(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes-long")
+	signer, err := NewHS256Signer[RegisteredClaims](secret)
+	require.NoError(t, err)
+
+	verifier, err := NewHS256Verifier[RegisteredClaims](secret,
+		WithAudience("my-service"),
+	)
+	require.NoError(t, err)
+
+	claims := RegisteredClaims{
+		Issuer:    "test",
+		Audience:  []string{"other-service"},
+		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}
+
+	token, err := signer.Sign(claims)
+	require.NoError(t, err)
+
+	_, err = verifier.Verify(token)
+	require.ErrorIs(t, err, ErrInvalidAudience)
+}
+
+// TestWithAudience_AcceptsMatchingAudience verifies that tokens containing
+// the expected audience are accepted when WithAudience is configured.
+func TestWithAudience_AcceptsMatchingAudience(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes-long")
+	signer, err := NewHS256Signer[RegisteredClaims](secret)
+	require.NoError(t, err)
+
+	verifier, err := NewHS256Verifier[RegisteredClaims](secret,
+		WithAudience("my-service"),
+	)
+	require.NoError(t, err)
+
+	claims := RegisteredClaims{
+		Issuer:    "test",
+		Audience:  []string{"other-service", "my-service"},
+		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}
+
+	token, err := signer.Sign(claims)
+	require.NoError(t, err)
+
+	decoded, err := verifier.Verify(token)
+	require.NoError(t, err)
+	require.Contains(t, decoded.Audience, "my-service")
+}
+
+// TestWithAudience_RejectsEmptyAudience verifies that tokens with empty
+// audience are rejected when WithAudience is configured.
+func TestWithAudience_RejectsEmptyAudience(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes-long")
+	signer, err := NewHS256Signer[RegisteredClaims](secret)
+	require.NoError(t, err)
+
+	verifier, err := NewHS256Verifier[RegisteredClaims](secret,
+		WithAudience("my-service"),
+	)
+	require.NoError(t, err)
+
+	claims := RegisteredClaims{
+		Issuer:    "test",
+		Audience:  []string{},
+		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}
+
+	token, err := signer.Sign(claims)
+	require.NoError(t, err)
+
+	_, err = verifier.Verify(token)
+	require.ErrorIs(t, err, ErrInvalidAudience)
+}
+
+// TestWithIssuerAndAudience_BothRequired verifies that both issuer and audience
+// must match when both options are configured.
+func TestWithIssuerAndAudience_BothRequired(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes-long")
+	signer, err := NewHS256Signer[RegisteredClaims](secret)
+	require.NoError(t, err)
+
+	verifier, err := NewHS256Verifier[RegisteredClaims](secret,
+		WithIssuer("auth-service"),
+		WithAudience("api-service"),
+	)
+	require.NoError(t, err)
+
+	t.Run("both match", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Issuer:    "auth-service",
+			Audience:  []string{"api-service"},
+			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		}
+
+		token, err := signer.Sign(claims)
+		require.NoError(t, err)
+
+		decoded, err := verifier.Verify(token)
+		require.NoError(t, err)
+		require.Equal(t, "auth-service", decoded.Issuer)
+	})
+
+	t.Run("issuer wrong", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Issuer:    "wrong-issuer",
+			Audience:  []string{"api-service"},
+			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		}
+
+		token, err := signer.Sign(claims)
+		require.NoError(t, err)
+
+		_, err = verifier.Verify(token)
+		require.ErrorIs(t, err, ErrInvalidIssuer)
+	})
+
+	t.Run("audience wrong", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Issuer:    "auth-service",
+			Audience:  []string{"wrong-service"},
+			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		}
+
+		token, err := signer.Sign(claims)
+		require.NoError(t, err)
+
+		_, err = verifier.Verify(token)
+		require.ErrorIs(t, err, ErrInvalidAudience)
+	})
+}
+
+// TestRS256_WithIssuerAndAudience verifies that issuer and audience validation
+// works for RS256 verifiers as well.
+func TestRS256_WithIssuerAndAudience(t *testing.T) {
+	privateKeyPEM, publicKeyPEM := generateTestKeyPair(t)
+	signer, err := NewRS256Signer[RegisteredClaims](privateKeyPEM)
+	require.NoError(t, err)
+
+	verifier, err := NewRS256Verifier[RegisteredClaims](publicKeyPEM,
+		WithIssuer("auth-service"),
+		WithAudience("api-service"),
+	)
+	require.NoError(t, err)
+
+	t.Run("valid token", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Issuer:    "auth-service",
+			Audience:  []string{"api-service", "web-service"},
+			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		}
+
+		token, err := signer.Sign(claims)
+		require.NoError(t, err)
+
+		decoded, err := verifier.Verify(token)
+		require.NoError(t, err)
+		require.Equal(t, "auth-service", decoded.Issuer)
+	})
+
+	t.Run("invalid issuer", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Issuer:    "malicious-issuer",
+			Audience:  []string{"api-service"},
+			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		}
+
+		token, err := signer.Sign(claims)
+		require.NoError(t, err)
+
+		_, err = verifier.Verify(token)
+		require.ErrorIs(t, err, ErrInvalidIssuer)
+	})
 }

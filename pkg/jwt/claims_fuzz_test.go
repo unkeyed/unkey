@@ -8,10 +8,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
-// FuzzRegisteredClaims_Validate tests that Validate behaves correctly for any
+// FuzzRegisteredClaims_validate tests that validate behaves correctly for any
 // combination of exp, nbf, and verification time.
-func FuzzRegisteredClaims_Validate(f *testing.F) {
+func FuzzRegisteredClaims_validate(f *testing.F) {
 	fuzz.Seed(f)
+	cfg := &verifyConfig{issuer: "", audience: "", clock: nil}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		c := fuzz.New(t, data)
@@ -26,10 +27,12 @@ func FuzzRegisteredClaims_Validate(f *testing.F) {
 		// Generate a verification time
 		verifyAt := time.Unix(c.Int64(), 0)
 
-		err := claims.Validate(verifyAt)
+		err := claims.validate(verifyAt, cfg)
 
-		// Verify the error matches expected behavior
-		if claims.ExpiresAt != 0 && verifyAt.Unix() > claims.ExpiresAt {
+		// Verify the error matches expected behavior (size checks come first)
+		if len(claims.Issuer) > MaxIssuerSize {
+			require.Error(t, err)
+		} else if claims.ExpiresAt != 0 && verifyAt.Unix() > claims.ExpiresAt {
 			require.ErrorIs(t, err, ErrTokenExpired)
 		} else if claims.NotBefore != 0 && verifyAt.Unix() < claims.NotBefore {
 			require.ErrorIs(t, err, ErrTokenNotYetValid)
@@ -39,9 +42,9 @@ func FuzzRegisteredClaims_Validate(f *testing.F) {
 	})
 }
 
-// FuzzRegisteredClaims_ValidateEdgeCases tests validation at edge cases like
+// FuzzRegisteredClaims_validateEdgeCases tests validation at edge cases like
 // zero values, max int64, and negative timestamps.
-func FuzzRegisteredClaims_ValidateEdgeCases(f *testing.F) {
+func FuzzRegisteredClaims_validateEdgeCases(f *testing.F) {
 	// Add interesting edge cases
 	f.Add(int64(0), int64(0), int64(0))
 	f.Add(int64(-1), int64(0), int64(0))
@@ -50,6 +53,8 @@ func FuzzRegisteredClaims_ValidateEdgeCases(f *testing.F) {
 	f.Add(int64(0), int64(1<<62), int64(0))
 	f.Add(int64(1<<62), int64(1<<62), int64(1<<62))
 
+	cfg := &verifyConfig{issuer: "", audience: "", clock: nil}
+
 	f.Fuzz(func(t *testing.T, exp, nbf, now int64) {
 		claims := RegisteredClaims{
 			ExpiresAt: exp,
@@ -57,7 +62,7 @@ func FuzzRegisteredClaims_ValidateEdgeCases(f *testing.F) {
 		}
 
 		verifyAt := time.Unix(now, 0)
-		err := claims.Validate(verifyAt)
+		err := claims.validate(verifyAt, cfg)
 
 		// Verify the error matches expected behavior
 		if claims.ExpiresAt != 0 && now > claims.ExpiresAt {

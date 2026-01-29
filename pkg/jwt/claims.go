@@ -1,42 +1,31 @@
 package jwt
 
-import "time"
+import (
+	"slices"
+	"time"
 
-// Claims defines the interface for JWT claims that can be validated.
-//
-// Any type used with [Signer] or [Verifier] must implement this interface.
-// The simplest approach is to embed [RegisteredClaims], which provides a
-// Validate method that checks exp and nbf claims. Go's method promotion
-// automatically satisfies this interface:
-//
-//	type MyClaims struct {
-//	    jwt.RegisteredClaims
-//	    TenantID string `json:"tenant_id"`
-//	}
-//	// MyClaims implements Claims via promoted RegisteredClaims.Validate
-//
-// Override Validate only if you need additional validation:
-//
-//	func (c MyClaims) Validate(now time.Time) error {
-//	    if err := c.RegisteredClaims.Validate(now); err != nil {
-//	        return err
-//	    }
-//	    if c.TenantID == "" {
-//	        return errors.New("tenant_id is required")
-//	    }
-//	    return nil
-//	}
-type Claims interface {
-	// Validate checks whether the claims are valid at the given time.
-	//
-	// Implementations should check temporal claims (exp, nbf) against the provided
-	// time and return [ErrTokenExpired] or [ErrTokenNotYetValid] as appropriate.
-	// Custom validation failures should return a descriptive error.
-	//
-	// The time parameter comes from the verifier's clock or an explicit override
-	// passed to [Verifier.Verify]. It is not necessarily time.Now().
-	Validate(now time.Time) error
-}
+	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/clock"
+)
+
+// Maximum sizes for registered claim values in bytes.
+// These limits protect against denial of service attacks using oversized tokens.
+const (
+	// MaxIssuerSize is the maximum allowed length for the iss claim.
+	MaxIssuerSize = 255
+
+	// MaxSubjectSize is the maximum allowed length for the sub claim.
+	MaxSubjectSize = 255
+
+	// MaxAudienceEntrySize is the maximum allowed length for each aud entry.
+	MaxAudienceEntrySize = 255
+
+	// MaxAudienceCount is the maximum number of entries allowed in the aud claim.
+	MaxAudienceCount = 10
+
+	// MaxIDSize is the maximum allowed length for the jti claim.
+	MaxIDSize = 255
+)
 
 // RegisteredClaims contains the standard JWT registered claim names as defined
 // in RFC 7519 Section 4.1. Embed this struct in your custom claims type to
@@ -98,24 +87,75 @@ type RegisteredClaims struct {
 	ID string `json:"jti,omitempty"`
 }
 
-// Validate checks the registered claims against the given time.
+// validate checks the registered claims against the given time and verifier config.
 //
-// Returns [ErrTokenExpired] if exp is set and the token has expired (now > exp).
-// Returns [ErrTokenNotYetValid] if nbf is set and the token is not yet valid (now < nbf).
-// Returns nil if all temporal claims are valid or not set.
-//
-// Zero values for exp and nbf are treated as "not set" and skip validation.
-// Negative timestamps are compared normally; a negative exp in the past will
-// result in [ErrTokenExpired].
-//
-// This method does not validate iss, sub, aud, iat, or jti. Applications requiring
-// those checks must implement them separately after [Verifier.Verify] returns.
-func (c RegisteredClaims) Validate(now time.Time) error {
+// This is called internally by the verifier and validates:
+//   - Size limits on string claims (iss, sub, jti, aud)
+//   - Temporal claims (exp, nbf)
+//   - Issuer matching (if configured)
+//   - Audience matching (if configured)
+func (c RegisteredClaims) validate(now time.Time, cfg *verifyConfig) error {
+	if err := assert.All(
+		assert.LessOrEqual(len(c.Issuer), MaxIssuerSize, "iss exceeds max size"),
+		assert.LessOrEqual(len(c.Subject), MaxSubjectSize, "sub exceeds max size"),
+		assert.LessOrEqual(len(c.ID), MaxIDSize, "jti exceeds max size"),
+		assert.LessOrEqual(len(c.Audience), MaxAudienceCount, "aud exceeds max entries"),
+	); err != nil {
+		return err
+	}
+	for _, aud := range c.Audience {
+		if err := assert.LessOrEqual(len(aud), MaxAudienceEntrySize, "aud entry exceeds max size"); err != nil {
+			return err
+		}
+	}
+
 	if c.ExpiresAt != 0 && now.Unix() > c.ExpiresAt {
 		return ErrTokenExpired
 	}
 	if c.NotBefore != 0 && now.Unix() < c.NotBefore {
 		return ErrTokenNotYetValid
 	}
+
+	if cfg.issuer != "" && c.Issuer != cfg.issuer {
+		return ErrInvalidIssuer
+	}
+	if cfg.audience != "" && !slices.Contains(c.Audience, cfg.audience) {
+		return ErrInvalidAudience
+	}
+
 	return nil
+}
+
+// verifyConfig holds configuration for token verification.
+type verifyConfig struct {
+	issuer   string
+	audience string
+	clock    clock.Clock
+}
+
+// VerifyOption configures token verification behavior.
+type VerifyOption func(*verifyConfig)
+
+// WithIssuer requires tokens to have the specified issuer (iss claim).
+// If the token's issuer does not match, verification fails with [ErrInvalidIssuer].
+func WithIssuer(iss string) VerifyOption {
+	return func(cfg *verifyConfig) {
+		cfg.issuer = iss
+	}
+}
+
+// WithAudience requires tokens to include the specified audience in their aud claim.
+// If the token's audience does not contain this value, verification fails with [ErrInvalidAudience].
+func WithAudience(aud string) VerifyOption {
+	return func(cfg *verifyConfig) {
+		cfg.audience = aud
+	}
+}
+
+// WithClock sets a custom clock for temporal claims validation.
+// This is primarily useful for testing with fixed or controlled time.
+func WithClock(c clock.Clock) VerifyOption {
+	return func(cfg *verifyConfig) {
+		cfg.clock = c
+	}
 }

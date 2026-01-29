@@ -22,13 +22,18 @@ go_test(
     name = "jwt_test",
     size = "small",
     srcs = [
+        "claims_fuzz_test.go",
+        "hs256_fuzz_test.go",
         "hs256_test.go",
+        "rs256_fuzz_test.go",
         "rs256_test.go",
         "security_test.go",
     ],
+    data = glob(["testdata/**"]),
     embed = [":jwt"],
     deps = [
         "//pkg/clock",
+        "//pkg/fuzz",
         "@com_github_stretchr_testify//require",
     ],
 )

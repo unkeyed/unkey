@@ -23,9 +23,9 @@ import (
 // For scenarios where the signing party should not be able to verify (or vice versa),
 // use [RS256Signer] with asymmetric keys instead.
 //
-// The type parameter T specifies the claims type, which must implement [Claims].
+// The type parameter T must embed [RegisteredClaims] to include standard JWT fields.
 // HS256Signer is safe for concurrent use; the secret is captured at construction.
-type HS256Signer[T Claims] struct {
+type HS256Signer[T any] struct {
 	secret []byte
 }
 
@@ -43,7 +43,7 @@ var _ Signer[RegisteredClaims] = (*HS256Signer[RegisteredClaims])(nil)
 // passing it to this function.
 //
 // Returns an error if the secret is nil or empty.
-func NewHS256Signer[T Claims](secret []byte) (*HS256Signer[T], error) {
+func NewHS256Signer[T any](secret []byte) (*HS256Signer[T], error) {
 	if err := assert.NotEmpty(secret, "secret must not be empty"); err != nil {
 		return nil, err
 	}
@@ -100,11 +100,12 @@ func (s *HS256Signer[T]) Sign(claims T) (string, error) {
 // Signature comparison uses [crypto/hmac.Equal] which is constant-time to
 // prevent timing attacks.
 //
-// The type parameter T specifies the claims type, which must implement [Claims].
+// The type parameter T must embed [RegisteredClaims] to include standard JWT fields.
 // HS256Verifier is safe for concurrent use.
-type HS256Verifier[T Claims] struct {
+type HS256Verifier[T any] struct {
 	secret []byte
 	clock  clock.Clock
+	config verifyConfig
 }
 
 // Ensure HS256Verifier implements Verifier interface.
@@ -115,24 +116,25 @@ var _ Verifier[RegisteredClaims] = (*HS256Verifier[RegisteredClaims])(nil)
 // The secret must match the secret used by the corresponding [HS256Signer].
 // Tokens signed with a different secret will fail verification.
 //
-// By default, the verifier uses the system clock for temporal claims validation.
-// Pass a [clock.Clock] to override this, which is useful for testing:
+// Options can be used to configure verification behavior:
 //
-//	clk := clock.NewTestClock(fixedTime)
-//	verifier, err := NewHS256Verifier[MyClaims](secret, clk)
+//	verifier, err := NewHS256Verifier[MyClaims](secret,
+//	    jwt.WithIssuer("https://auth.example.com"),
+//	    jwt.WithAudience("my-service"),
+//	)
 //
 // Returns an error if the secret is nil or empty.
-func NewHS256Verifier[T Claims](secret []byte, clk ...clock.Clock) (*HS256Verifier[T], error) {
+func NewHS256Verifier[T any](secret []byte, opts ...VerifyOption) (*HS256Verifier[T], error) {
 	if err := assert.NotEmpty(secret, "secret must not be empty"); err != nil {
 		return nil, err
 	}
 
-	var c clock.Clock = clock.New()
-	if len(clk) > 0 {
-		c = clk[0]
+	cfg := verifyConfig{clock: clock.New(), issuer: "", audience: ""}
+	for _, opt := range opts {
+		opt(&cfg)
 	}
 
-	return &HS256Verifier[T]{secret: secret, clock: c}, nil
+	return &HS256Verifier[T]{secret: secret, clock: cfg.clock, config: cfg}, nil
 }
 
 // Verify validates a JWT and returns the typed claims.
@@ -210,7 +212,13 @@ func (v *HS256Verifier[T]) Verify(token string, at ...time.Time) (T, error) {
 		return claims, fmt.Errorf("invalid payload JSON: %w", err)
 	}
 
-	if err := claims.Validate(verifyAt); err != nil {
+	// Unmarshal registered claims separately for validation
+	var registered RegisteredClaims
+	if err := json.Unmarshal(payloadJSON, &registered); err != nil {
+		return claims, fmt.Errorf("invalid registered claims: %w", err)
+	}
+
+	if err := registered.validate(verifyAt, &v.config); err != nil {
 		return claims, err
 	}
 

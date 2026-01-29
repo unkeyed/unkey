@@ -26,9 +26,11 @@
 // Signature verification uses constant-time comparison via [crypto/hmac.Equal] for
 // HS256 to prevent timing attacks. RS256 uses Go's standard [crypto/rsa] verification.
 //
-// Claims validation checks exp (expiration) and nbf (not before) timestamps.
-// The current implementation accepts tokens at exactly their exp time; stricter
-// implementations may want to reject at that boundary per RFC 7519.
+// Claims validation is performed automatically by the verifier and includes:
+//   - Size limits on string claims to prevent denial of service (max 255 bytes each)
+//   - Temporal validation of exp (expiration) and nbf (not before) timestamps
+//   - Optional issuer validation via [WithIssuer]
+//   - Optional audience validation via [WithAudience]
 //
 // # Key Types
 //
@@ -36,8 +38,8 @@
 // [NewHS256Verifier] for symmetric signing, or [NewRS256Signer] and [NewRS256Verifier]
 // for asymmetric signing.
 //
-// [RegisteredClaims] implements the standard JWT claims (iss, sub, aud, exp, nbf, iat, jti).
-// Embed it in your own claims struct and implement the [Claims] interface.
+// [RegisteredClaims] contains the standard JWT claims (iss, sub, aud, exp, nbf, iat, jti).
+// Embed it in your custom claims struct to automatically include these fields.
 //
 // # Usage
 //
@@ -49,11 +51,7 @@
 //	    Role     string `json:"role"`
 //	}
 //
-// The embedded [RegisteredClaims.Validate] is promoted automatically, so MyClaims
-// satisfies [Claims] without additional code. Override Validate only if you need
-// custom validation beyond exp/nbf checking.
-//
-// Sign and verify with RS256:
+// Sign tokens with a signer:
 //
 //	signer, err := jwt.NewRS256Signer[MyClaims](privateKeyPEM)
 //	if err != nil {
@@ -69,7 +67,12 @@
 //	    TenantID: "tenant-abc",
 //	})
 //
-//	verifier, err := jwt.NewRS256Verifier[MyClaims](publicKeyPEM)
+// Verify tokens with a verifier, optionally requiring specific issuer/audience:
+//
+//	verifier, err := jwt.NewRS256Verifier[MyClaims](publicKeyPEM,
+//	    jwt.WithIssuer("auth-service"),
+//	    jwt.WithAudience("my-api"),
+//	)
 //	if err != nil {
 //	    return err
 //	}
@@ -78,23 +81,35 @@
 //	if errors.Is(err, jwt.ErrTokenExpired) {
 //	    // Token has expired, prompt re-authentication
 //	}
+//	if errors.Is(err, jwt.ErrInvalidIssuer) {
+//	    // Token was issued by an untrusted issuer
+//	}
+//
+//	// Registered claims are validated automatically.
+//	// Perform any additional custom validation here:
+//	if claims.TenantID == "" {
+//	    return errors.New("tenant_id is required")
+//	}
 //
 // # Error Handling
 //
-// [Verifier.Verify] returns [ErrTokenExpired] when the token's exp claim is in the past,
-// and [ErrTokenNotYetValid] when the nbf claim is in the future. Other errors indicate
-// malformed tokens, invalid signatures, or wrong algorithms.
+// [Verifier.Verify] returns specific errors for different failure conditions:
+//   - [ErrTokenExpired]: token's exp claim is in the past
+//   - [ErrTokenNotYetValid]: token's nbf claim is in the future
+//   - [ErrInvalidIssuer]: token's iss claim doesn't match [WithIssuer] configuration
+//   - [ErrInvalidAudience]: token's aud claim doesn't contain [WithAudience] value
 //
+// Other errors indicate malformed tokens, invalid signatures, or wrong algorithms.
 // Do not distinguish between signature failures and format errors in user-facing
 // messages; both should result in a generic "invalid token" response to avoid
 // leaking information to attackers probing the system.
 //
 // # Testing
 //
-// Verifiers accept an optional [clock.Clock] for deterministic time-based testing:
+// Verifiers accept [WithClock] for deterministic time-based testing:
 //
 //	clk := clock.NewTestClock(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
-//	verifier, _ := jwt.NewHS256Verifier[MyClaims](secret, clk)
+//	verifier, _ := jwt.NewHS256Verifier[MyClaims](secret, jwt.WithClock(clk))
 //
 //	// Token valid at this time
 //	claims, err := verifier.Verify(token)
@@ -111,11 +126,8 @@
 //
 // # Limitations
 //
-// This package does not validate issuer, audience, or subject claims. Applications
-// must check these values after verification if they are security-relevant.
-//
 // There is no built-in clock skew tolerance. If you need leeway for clock drift
-// between services, pass a time slightly in the past to [Verifier.Verify].
+// between services, use [WithClock] with a clock that returns a time slightly in the past.
 //
 // Key rotation and kid (key ID) headers are not supported. For multi-key scenarios,
 // maintain multiple verifiers and try each one, or use a higher-level abstraction.

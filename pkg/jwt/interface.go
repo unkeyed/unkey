@@ -4,7 +4,7 @@ import "time"
 
 // Signer creates signed JSON Web Tokens from claims.
 //
-// The type parameter T specifies the claims type, which must implement [Claims].
+// The type parameter T should embed [RegisteredClaims] for standard JWT fields.
 // This allows compile-time type safety when working with custom claim structures.
 //
 // Implementations are safe for concurrent use. The signing key is captured at
@@ -16,10 +16,6 @@ import "time"
 //	    jwt.RegisteredClaims
 //	    TenantID string `json:"tenant_id"`
 //	}
-//
-// The embedded [RegisteredClaims.Validate] method is promoted automatically,
-// so MyClaims satisfies [Claims] without additional code. Override Validate
-// only if you need custom validation beyond exp/nbf checking.
 //
 // Then create a signer and sign tokens:
 //
@@ -36,7 +32,7 @@ import "time"
 //	    },
 //	    TenantID: "tenant-abc",
 //	})
-type Signer[T Claims] interface {
+type Signer[T any] interface {
 	// Sign creates a signed JWT from the given claims.
 	//
 	// The claims parameter should be a struct embedding [RegisteredClaims] with any
@@ -70,35 +66,48 @@ type Signer[T Claims] interface {
 
 // Verifier validates JSON Web Tokens and extracts typed claims.
 //
-// The type parameter T specifies the claims type, which must implement [Claims].
+// The type parameter T should embed [RegisteredClaims] for standard JWT fields.
 // During verification, the token's payload is unmarshaled into this type, and
-// the [Claims.Validate] method is called to check temporal claims.
+// the registered claims are validated automatically (exp, nbf, size limits,
+// and optionally iss/aud via [WithIssuer] and [WithAudience]).
 //
-// Implementations are safe for concurrent use. The verification key and clock
+// Implementations are safe for concurrent use. The verification key and options
 // are captured at construction time and cannot be changed afterward.
 //
 // Example:
 //
-//	verifier, err := jwt.NewRS256Verifier[MyClaims](publicKeyPEM)
+//	verifier, err := jwt.NewRS256Verifier[MyClaims](publicKeyPEM,
+//	    jwt.WithIssuer("https://auth.example.com"),
+//	    jwt.WithAudience("my-service"),
+//	)
 //	claims, err := verifier.Verify(token)
 //	if errors.Is(err, jwt.ErrTokenExpired) {
 //	    // Handle expiration
 //	}
-type Verifier[T Claims] interface {
+//	// Perform any additional custom validation on claims
+type Verifier[T any] interface {
 	// Verify validates a JWT and returns the typed claims.
 	//
-	// Verification proceeds in order: structure validation (three dot-separated parts),
-	// base64url decoding, JSON parsing, algorithm check, signature verification, and
-	// finally claims validation via [Claims.Validate].
+	// Verification proceeds in order:
+	//  1. Structure validation (three dot-separated parts)
+	//  2. Base64url decoding of header and payload
+	//  3. Algorithm check (must match verifier's algorithm)
+	//  4. Signature verification
+	//  5. JSON parsing into claims type T
+	//  6. Registered claims validation (exp, nbf, size limits, iss, aud)
 	//
-	// The optional time parameter overrides the current time for claims validation.
-	// This is primarily useful for testing; in production, omit it to use the
-	// verifier's clock. If multiple times are passed, only the first is used.
+	// The optional time parameter overrides the clock for claims validation. This is
+	// useful for testing; in production, configure the clock via [WithClock] at
+	// construction time. If multiple times are passed, only the first is used.
 	//
-	// Returns [ErrTokenExpired] if the token's exp claim is in the past, and
-	// [ErrTokenNotYetValid] if the nbf claim is in the future. Other errors indicate
-	// structural problems (malformed token), cryptographic failures (invalid signature,
-	// wrong algorithm), or JSON parsing errors.
+	// Returns specific errors for validation failures:
+	//   - [ErrTokenExpired]: exp claim is in the past
+	//   - [ErrTokenNotYetValid]: nbf claim is in the future
+	//   - [ErrInvalidIssuer]: iss claim doesn't match [WithIssuer] configuration
+	//   - [ErrInvalidAudience]: aud claim doesn't include [WithAudience] value
+	//
+	// Other errors indicate structural problems (malformed token), cryptographic
+	// failures (invalid signature, wrong algorithm), or JSON parsing errors.
 	//
 	// On error, the returned claims value is the zero value of T and should not be used.
 	Verify(token string, at ...time.Time) (T, error)

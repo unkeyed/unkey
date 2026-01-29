@@ -248,7 +248,7 @@ func TestRS256_VerifierWithClock(t *testing.T) {
 
 	baseTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	clk := clock.NewTestClock(baseTime)
-	verifier, err := NewRS256Verifier[testClaims](publicKeyPEM, clk)
+	verifier, err := NewRS256Verifier[testClaims](publicKeyPEM, WithClock(clk))
 	require.NoError(t, err)
 
 	claims := testClaims{
@@ -293,8 +293,9 @@ func TestRS256_CannotVerifyHS256Token(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestRegisteredClaims_Validate(t *testing.T) {
+func TestRegisteredClaims_validate(t *testing.T) {
 	now := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
+	cfg := &verifyConfig{issuer: "", audience: "", clock: nil}
 
 	t.Run("valid claims", func(t *testing.T) {
 		claims := RegisteredClaims{
@@ -302,27 +303,116 @@ func TestRegisteredClaims_Validate(t *testing.T) {
 			ExpiresAt: now.Add(time.Hour).Unix(),
 			NotBefore: now.Add(-time.Hour).Unix(),
 		}
-		require.NoError(t, claims.Validate(now))
+		require.NoError(t, claims.validate(now, cfg))
 	})
 
 	t.Run("expired", func(t *testing.T) {
 		claims := RegisteredClaims{
 			ExpiresAt: now.Add(-time.Hour).Unix(),
 		}
-		require.ErrorIs(t, claims.Validate(now), ErrTokenExpired)
+		require.ErrorIs(t, claims.validate(now, cfg), ErrTokenExpired)
 	})
 
 	t.Run("not yet valid", func(t *testing.T) {
 		claims := RegisteredClaims{
 			NotBefore: now.Add(time.Hour).Unix(),
 		}
-		require.ErrorIs(t, claims.Validate(now), ErrTokenNotYetValid)
+		require.ErrorIs(t, claims.validate(now, cfg), ErrTokenNotYetValid)
 	})
 
 	t.Run("zero exp and nbf are ignored", func(t *testing.T) {
 		claims := RegisteredClaims{
 			Issuer: "test",
 		}
-		require.NoError(t, claims.Validate(now))
+		require.NoError(t, claims.validate(now, cfg))
+	})
+
+	t.Run("issuer at max size", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Issuer: string(make([]byte, MaxIssuerSize)),
+		}
+		require.NoError(t, claims.validate(now, cfg))
+	})
+
+	t.Run("issuer exceeds max size", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Issuer: string(make([]byte, MaxIssuerSize+1)),
+		}
+		require.Error(t, claims.validate(now, cfg))
+	})
+
+	t.Run("subject exceeds max size", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Subject: string(make([]byte, MaxSubjectSize+1)),
+		}
+		require.Error(t, claims.validate(now, cfg))
+	})
+
+	t.Run("jti exceeds max size", func(t *testing.T) {
+		claims := RegisteredClaims{
+			ID: string(make([]byte, MaxIDSize+1)),
+		}
+		require.Error(t, claims.validate(now, cfg))
+	})
+
+	t.Run("audience entry exceeds max size", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Audience: []string{string(make([]byte, MaxAudienceEntrySize+1))},
+		}
+		require.Error(t, claims.validate(now, cfg))
+	})
+
+	t.Run("audience count exceeds max", func(t *testing.T) {
+		aud := make([]string, MaxAudienceCount+1)
+		for i := range aud {
+			aud[i] = "aud"
+		}
+		claims := RegisteredClaims{
+			Audience: aud,
+		}
+		require.Error(t, claims.validate(now, cfg))
+	})
+
+	t.Run("audience at max count and size", func(t *testing.T) {
+		aud := make([]string, MaxAudienceCount)
+		for i := range aud {
+			aud[i] = string(make([]byte, MaxAudienceEntrySize))
+		}
+		claims := RegisteredClaims{
+			Audience: aud,
+		}
+		require.NoError(t, claims.validate(now, cfg))
+	})
+
+	t.Run("issuer mismatch", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Issuer: "wrong-issuer",
+		}
+		issCfg := &verifyConfig{issuer: "expected-issuer", audience: "", clock: nil}
+		require.ErrorIs(t, claims.validate(now, issCfg), ErrInvalidIssuer)
+	})
+
+	t.Run("issuer match", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Issuer: "expected-issuer",
+		}
+		issCfg := &verifyConfig{issuer: "expected-issuer", audience: "", clock: nil}
+		require.NoError(t, claims.validate(now, issCfg))
+	})
+
+	t.Run("audience mismatch", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Audience: []string{"other-service"},
+		}
+		audCfg := &verifyConfig{issuer: "", audience: "my-service", clock: nil}
+		require.ErrorIs(t, claims.validate(now, audCfg), ErrInvalidAudience)
+	})
+
+	t.Run("audience match", func(t *testing.T) {
+		claims := RegisteredClaims{
+			Audience: []string{"other-service", "my-service"},
+		}
+		audCfg := &verifyConfig{issuer: "", audience: "my-service", clock: nil}
+		require.NoError(t, claims.validate(now, audCfg))
 	})
 }

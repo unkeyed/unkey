@@ -19,3 +19,11 @@ var ErrTokenExpired = errors.New("token expired")
 // A token is considered valid when now.Unix() >= nbf. Unlike exp, the boundary
 // condition at exactly nbf is inclusive (the token is valid).
 var ErrTokenNotYetValid = errors.New("token not yet valid")
+
+// ErrInvalidIssuer indicates that the token's iss claim does not match the
+// expected issuer configured via [WithIssuer].
+var ErrInvalidIssuer = errors.New("invalid issuer")
+
+// ErrInvalidAudience indicates that the token's aud claim does not contain
+// the expected audience configured via [WithAudience].
+var ErrInvalidAudience = errors.New("invalid audience")

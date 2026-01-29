@@ -176,7 +176,7 @@ func TestHS256_VerifierWithClock(t *testing.T) {
 
 	baseTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	clk := clock.NewTestClock(baseTime)
-	verifier, err := NewHS256Verifier[testClaims](secret, clk)
+	verifier, err := NewHS256Verifier[testClaims](secret, WithClock(clk))
 	require.NoError(t, err)
 
 	claims := testClaims{
