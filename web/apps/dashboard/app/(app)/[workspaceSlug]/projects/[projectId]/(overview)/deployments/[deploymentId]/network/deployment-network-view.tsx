@@ -69,7 +69,7 @@ export function DeploymentNetworkView({
         data={currentTree}
         nodeSpacing={{ x: 10, y: 75 }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
-        renderNode={(node, parent) => renderDeploymentNode(node, parent)}
+        renderNode={(node, parent) => renderDeploymentNode(node, parent, deploymentId ?? undefined)}
         renderConnection={(path, parent, child) => (
           <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />
         )}
@@ -79,7 +79,11 @@ export function DeploymentNetworkView({
 }
 
 // renderDeployment function does not narrow types without type guards.
-function renderDeploymentNode(node: DeploymentNode, parent?: DeploymentNode): React.ReactNode {
+function renderDeploymentNode(
+  node: DeploymentNode,
+  parent?: DeploymentNode,
+  deploymentId?: string,
+): React.ReactNode {
   if (isSkeletonNode(node)) {
     return <SkeletonNode />;
   }
@@ -89,14 +93,16 @@ function renderDeploymentNode(node: DeploymentNode, parent?: DeploymentNode): Re
   }
 
   if (isSentinelNode(node)) {
-    return <SentinelNode node={node} />;
+    return <SentinelNode node={node} deploymentId={deploymentId} />;
   }
 
   if (isInstanceNode(node)) {
     if (!parent || !isSentinelNode(parent)) {
       throw new Error("Instance node requires parent sentinel");
     }
-    return <InstanceNode node={node} flagCode={parent.metadata.flagCode} />;
+    return (
+      <InstanceNode node={node} flagCode={parent.metadata.flagCode} deploymentId={deploymentId} />
+    );
   }
 
   // This will yell at you if you don't handle a node type

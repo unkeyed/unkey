@@ -52,6 +52,8 @@ import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
+import { getInstanceRps } from "./deploy/network/get-instance-rps";
+import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
 import { createProject } from "./deploy/project/create";
 import { listProjects } from "./deploy/project/list";
 import { querySentinelLogs } from "./deploy/sentinel-logs/query";
@@ -364,6 +366,8 @@ export const router = t.router({
     network: t.router({
       generate: generateDeploymentTree,
       get: getDeploymentTree,
+      getSentinelRps,
+      getInstanceRps,
     }),
     project: t.router({
       list: listProjects,

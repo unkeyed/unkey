@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc/client";
 import { Layers3 } from "@unkey/icons";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
@@ -7,10 +8,21 @@ import type { InstanceNode as InstanceNodeType, SentinelNode as SentinelNodeType
 type InstanceNodeProps = {
   node: InstanceNodeType;
   flagCode: SentinelNodeType["metadata"]["flagCode"];
+  deploymentId?: string;
 };
 
-export function InstanceNode({ node, flagCode }: InstanceNodeProps) {
-  const { rps, cpu, memory, health } = node.metadata;
+export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps) {
+  const { cpu, memory, health } = node.metadata;
+
+  const { data: rps } = trpc.deploy.network.getInstanceRps.useQuery(
+    {
+      instanceId: node.id,
+    },
+    {
+      enabled: Boolean(deploymentId),
+      refetchInterval: 5000,
+    },
+  );
 
   return (
     <NodeWrapper health={health}>

@@ -34,12 +34,8 @@ export function CardFooter(props: CardFooterProps) {
       {rps !== undefined && (
         <MetricPill
           icon={<ChartActivity iconSize="sm-medium" className="shrink-0" />}
-          value={rps}
-          tooltip={
-            isSentinel
-              ? "Requests per second handled by this sentinel"
-              : "Requests per second handled by this instance"
-          }
+          value={formatRps(rps)}
+          tooltip="Avg. RPS over last 15 min (updated every 5s)"
         />
       )}
       <div className="flex items-center gap-2 ml-auto">
@@ -67,10 +63,22 @@ export function CardFooter(props: CardFooterProps) {
 }
 
 function formatCpu(millicores: number): string {
-  if (millicores >= 1000) {
-    return `${(millicores / 1000).toFixed(millicores % 1000 === 0 ? 0 : 1)}c`;
+  const cores = millicores / 1000;
+
+  // Handle fractional vCPUs < 1
+  if (cores < 1) {
+    if (cores === 0.25) return "1/4 vCPU";
+    if (cores === 0.5) return "1/2 vCPU";
+    if (cores === 0.75) return "3/4 vCPU";
+    // Fallback for other fractional values
+    return `${cores} vCPU`;
   }
-  return `${millicores}m`;
+
+  // Handle whole and decimal vCPUs >= 1
+  if (cores % 1 === 0) {
+    return `${cores} vCPU`;
+  }
+  return `${cores.toFixed(1)} vCPU`;
 }
 
 function formatMemory(mib: number): string {
@@ -78,4 +86,8 @@ function formatMemory(mib: number): string {
     return `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)} GiB`;
   }
   return `${mib} MiB`;
+}
+
+function formatRps(rps: number): string {
+  return `${rps} RPS`;
 }

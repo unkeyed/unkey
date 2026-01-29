@@ -62,22 +62,20 @@ export function getSentinelLogs(ch: Querier) {
 export const sentinelRpsRequestSchema = z.object({
   workspaceId: z.string(),
   deploymentId: z.string(),
-  startTime: z.number().int(),
+  sentinelId: z.string(),
 });
 
 export const sentinelRpsResponseSchema = z.object({
-  region: z.string(),
   avg_rps: z.number(),
 });
 
 export const instanceRpsRequestSchema = z.object({
   workspaceId: z.string(),
   deploymentId: z.string(),
-  startTime: z.number().int(),
+  instanceId: z.string(),
 });
 
 export const instanceRpsResponseSchema = z.object({
-  instance_id: z.string(),
   avg_rps: z.number(),
 });
 
@@ -86,13 +84,13 @@ export function getSentinelRps(ch: Querier) {
     const query = ch.query({
       query: `
         SELECT
-          region,
-          round(COUNT(*) * 1000.0 / (toUnixTimestamp(now()) * 1000 - {startTime: UInt64}), 2) as avg_rps
+          -- count * 1000 / elapsed_ms = requests per second (15 minute window = 900000ms)
+          round(COUNT(*) * 1000.0 / 900000, 2) as avg_rps
         FROM default.sentinel_requests_raw_v1
         WHERE workspace_id = {workspaceId: String}
           AND deployment_id = {deploymentId: String}
-          AND time >= {startTime: UInt64}
-        GROUP BY region`,
+          AND sentinel_id = {sentinelId: String}
+          AND time >= toUnixTimestamp(now() - INTERVAL 15 MINUTE) * 1000`,
       params: sentinelRpsRequestSchema,
       schema: sentinelRpsResponseSchema,
     });
@@ -106,13 +104,13 @@ export function getInstanceRps(ch: Querier) {
     const query = ch.query({
       query: `
         SELECT
-          instance_id,
-          round(COUNT(*) * 1000.0 / (toUnixTimestamp(now()) * 1000 - {startTime: UInt64}), 2) as avg_rps
+          -- count * 1000 / elapsed_ms = requests per second (15 minute window = 900000ms)
+          round(COUNT(*) * 1000.0 / 900000, 2) as avg_rps
         FROM default.sentinel_requests_raw_v1
         WHERE workspace_id = {workspaceId: String}
           AND deployment_id = {deploymentId: String}
-          AND time >= {startTime: UInt64}
-        GROUP BY instance_id`,
+          AND instance_id = {instanceId: String}
+          AND time >= toUnixTimestamp(now() - INTERVAL 15 MINUTE) * 1000`,
       params: instanceRpsRequestSchema,
       schema: instanceRpsResponseSchema,
     });

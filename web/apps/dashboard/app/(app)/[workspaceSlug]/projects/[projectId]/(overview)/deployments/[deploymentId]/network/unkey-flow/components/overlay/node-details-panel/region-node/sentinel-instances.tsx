@@ -40,17 +40,17 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
                 <div className="flex items-center gap-2">
                   <MetricPill
                     icon={<ChartActivity iconSize="sm-medium" className="shrink-0" />}
-                    value={rps ?? 0}
-                    tooltip="Requests per second handled by this instance"
+                    value={`${rps ?? 0} RPS`}
+                    tooltip="Avg. RPS over last 15 min (updated every 5s)"
                   />
                   <MetricPill
                     icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
-                    value={`${cpu ?? 0}%`}
+                    value={formatCpu(cpu ?? 0)}
                     tooltip="CPU allocated to this instance"
                   />
                   <MetricPill
                     icon={<Focus iconSize="sm-medium" className="shrink-0" />}
-                    value={`${memory ?? 0}%`}
+                    value={formatMemory(memory ?? 0)}
                     tooltip="Memory allocated to this instance"
                   />
                 </div>
@@ -76,4 +76,27 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
       </div>
     </div>
   );
+}
+
+function formatCpu(millicores: number): string {
+  const cores = millicores / 1000;
+
+  if (cores < 1) {
+    if (cores === 0.25) return "1/4 vCPU";
+    if (cores === 0.5) return "1/2 vCPU";
+    if (cores === 0.75) return "3/4 vCPU";
+    return `${cores} vCPU`;
+  }
+
+  if (cores % 1 === 0) {
+    return `${cores} vCPU`;
+  }
+  return `${cores.toFixed(1)} vCPU`;
+}
+
+function formatMemory(mib: number): string {
+  if (mib >= 1024) {
+    return `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)} GiB`;
+  }
+  return `${mib} MiB`;
 }

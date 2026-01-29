@@ -1,3 +1,4 @@
+import { trpc } from "@/lib/trpc/client";
 import { InfoTooltip } from "@unkey/ui";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
@@ -6,10 +7,21 @@ import { REGION_INFO, type SentinelNode as SentinelNodeType } from "./types";
 
 type SentinelNodeProps = {
   node: SentinelNodeType;
+  deploymentId?: string;
 };
 
-export function SentinelNode({ node }: SentinelNodeProps) {
+export function SentinelNode({ node, deploymentId }: SentinelNodeProps) {
   const { flagCode, cpu, memory, health, replicas } = node.metadata;
+
+  const { data: rps } = trpc.deploy.network.getSentinelRps.useQuery(
+    {
+      sentinelId: node.id,
+    },
+    {
+      enabled: Boolean(deploymentId),
+      refetchInterval: 5000,
+    },
+  );
   const regionInfo = REGION_INFO[flagCode];
 
   const replicaText =
