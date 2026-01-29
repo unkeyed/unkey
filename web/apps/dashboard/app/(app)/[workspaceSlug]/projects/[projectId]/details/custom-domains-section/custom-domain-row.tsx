@@ -222,7 +222,7 @@ function DnsRecordTable({
   const [secondsUntilCheck, setSecondsUntilCheck] = useState<number>(CHECK_INTERVAL_MS / 1000);
 
   // Poll for DNS status updates - only fetches this specific domain
-  const { data: dnsStatus, dataUpdatedAt } = trpc.deploy.customDomain.checkDns.useQuery(
+  const { data: dnsStatus, dataUpdatedAt, isFetching } = trpc.deploy.customDomain.checkDns.useQuery(
     { domain, projectId },
     {
       refetchInterval: CHECK_INTERVAL_MS,
@@ -339,7 +339,7 @@ function DnsRecordTable({
       <div className="flex justify-end">
         <span className="text-xs text-gray-9 flex items-center gap-1.5">
           <Refresh3 className="!size-3.5" />
-          {secondsUntilCheck <= 1 ? "Refreshing..." : `Next check in ${secondsUntilCheck}s`}
+          {isFetching ? "Refreshing..." : `Next check in ${secondsUntilCheck}s`}
         </span>
       </div>
     </div>
