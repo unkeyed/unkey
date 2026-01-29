@@ -6,10 +6,7 @@ type Props = {
   hasInstallations: boolean;
 };
 
-export const GitHubAppCard: React.FC<Props> = ({
-  projectId,
-  hasInstallations,
-}) => {
+export const GitHubAppCard: React.FC<Props> = ({ projectId, hasInstallations }) => {
   const state = JSON.stringify({ projectId });
   const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
 
