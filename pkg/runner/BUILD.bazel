@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "runner",
+    srcs = ["runner.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/runner",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "runner_test",
+    srcs = [
+        "concurrency_test.go",
+        "error_test.go",
+        "run_test.go",
+        "runner_test.go",
+    ],
+    embed = [":runner"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

@@ -3,11 +3,11 @@ import { z } from "zod";
 
 export const identityLogsPayload = z.object({
   identityId: z.string(),
-  limit: z.number().int().min(1).max(100).default(50),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
-  since: z.string().default(""),
-  cursor: z.number().int().nullable().default(null),
+  limit: z.int().min(1).max(100).prefault(50),
+  startTime: z.int(),
+  endTime: z.int(),
+  since: z.string().prefault(""),
+  cursor: z.int().nullable().prefault(null),
   tags: z
     .array(
       z.object({
@@ -16,7 +16,7 @@ export const identityLogsPayload = z.object({
       }),
     )
     .nullable()
-    .default(null),
+    .prefault(null),
   outcomes: z
     .array(
       z.object({
@@ -25,7 +25,7 @@ export const identityLogsPayload = z.object({
       }),
     )
     .nullable()
-    .default(null),
+    .prefault(null),
 });
 
 export type IdentityLogsPayload = z.infer<typeof identityLogsPayload>;

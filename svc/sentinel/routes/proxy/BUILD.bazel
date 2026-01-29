@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "proxy",
-    srcs = ["handler.go"],
+    srcs = [
+        "context.go",
+        "handler.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/sentinel/routes/proxy",
     visibility = ["//visibility:public"],
     deps = [
@@ -10,6 +13,7 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/otel/logging",
+        "//pkg/uid",
         "//pkg/zen",
         "//svc/sentinel/services/router",
     ],

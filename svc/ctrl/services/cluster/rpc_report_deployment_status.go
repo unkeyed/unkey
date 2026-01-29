@@ -12,14 +12,19 @@ import (
 
 // ReportDeploymentStatus reconciles the observed deployment state reported by a krane agent.
 // This is the feedback loop for convergence: agents report what's actually running so the
-// control plane can track instance health and detect drift.
+// control plane can track instance health and detect drift from desired state.
 //
-// For update requests, instances are upserted and any instances no longer reported by the
-// agent are deleted (garbage collection). For delete requests, all instances for the
-// deployment in that region are removed. The operation runs within a retryable transaction
-// to handle transient database errors.
+// The request contains either an Update or Delete change. For Update, the method upserts
+// all reported instances and garbage-collects any instances in the database that were not
+// included in the report. For Delete, all instances for the deployment in that region are
+// removed. Both operations run within a retryable transaction to handle transient database
+// errors using [db.TxRetry].
 //
-// Requires bearer token authentication and the X-Krane-Region header.
+// Instance status is mapped from proto values to database enums via [ctrlDeploymentStatusToDbStatus].
+// Unspecified or unknown statuses default to inactive.
+//
+// Returns CodeUnauthenticated if bearer token is invalid. Database errors during the
+// transaction are returned as-is (not wrapped in Connect error codes).
 func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportDeploymentStatusRequest]) (*connect.Response[ctrlv1.ReportDeploymentStatusResponse], error) {
 	s.logger.Info("reporting deployment status", "req", req.Msg)
 
@@ -114,8 +119,10 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 }
 
-// ctrlDeploymentStatusToDbStatus maps proto instance status to database enum values.
-// Unspecified or unknown statuses are treated as inactive.
+// ctrlDeploymentStatusToDbStatus maps proto instance status values to database enum values.
+// STATUS_PENDING maps to InstancesStatusPending, STATUS_RUNNING to InstancesStatusRunning,
+// STATUS_FAILED to InstancesStatusFailed. STATUS_UNSPECIFIED and any unknown values default
+// to InstancesStatusInactive.
 func ctrlDeploymentStatusToDbStatus(status ctrlv1.ReportDeploymentStatusRequest_Update_Instance_Status) db.InstancesStatus {
 	switch status {
 	case ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED:

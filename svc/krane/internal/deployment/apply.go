@@ -19,14 +19,19 @@ import (
 
 // ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet.
 //
-// The deployment represents a specific build of user code. ApplyDeployment uses
-// server-side apply to create or update the ReplicaSet, which allows concurrent
-// modifications from different sources without conflicts. After applying, it
-// queries the resulting pods and reports their addresses and status back to the
-// control plane so the routing layer knows where to send traffic.
+// The method uses server-side apply to create or update the ReplicaSet, enabling
+// concurrent modifications from different sources without conflicts. After applying,
+// it queries the resulting pods and reports their addresses and status to the control
+// plane so the routing layer knows where to send traffic.
 //
-// The namespace is created automatically if it doesn't exist. Pods run with gVisor
-// isolation (RuntimeClass "gvisor") for security since they execute untrusted user code.
+// ApplyDeployment validates all required fields and returns an error if any are missing
+// or invalid: WorkspaceId, ProjectId, EnvironmentId, DeploymentId, K8sNamespace, K8sName,
+// and Image must be non-empty; Replicas must be >= 0; CpuMillicores and MemoryMib must be > 0.
+//
+// The namespace is created automatically if it doesn't exist, along with a
+// CiliumNetworkPolicy restricting ingress to matching sentinels. Pods run with gVisor
+// isolation (RuntimeClass "gvisor") since they execute untrusted user code, and are
+// scheduled on Karpenter-managed untrusted nodes with zone-spread constraints.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
 	c.logger.Info("applying deployment",
 		"namespace", req.GetK8SNamespace(),
@@ -136,6 +141,9 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	return nil
 }
 
+// buildDeploymentEnv constructs the environment variables injected into deployment
+// containers. It includes the PORT, workspace/project/environment/deployment IDs,
+// and optionally the base64-encoded encrypted environment variables if present.
 func buildDeploymentEnv(req *ctrlv1.ApplyDeployment) []corev1.EnvVar {
 	env := []corev1.EnvVar{
 		{Name: "PORT", Value: strconv.Itoa(DeploymentPort)},

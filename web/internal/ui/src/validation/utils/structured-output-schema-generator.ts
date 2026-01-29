@@ -9,8 +9,8 @@ type DataWithValidationResults = {
 
 // Helper function to validate a single filter and return detailed result
 function validateSingleFilter<
-  TFieldEnum extends z.ZodEnum<[string, ...string[]]>,
-  TOperatorEnum extends z.ZodEnum<[string, ...string[]]>,
+  TFieldEnum extends z.ZodEnum<Readonly<Record<string, string>>>,
+  TOperatorEnum extends z.ZodEnum<Readonly<Record<string, string>>>,
   TConfig extends Record<z.infer<TFieldEnum>, FieldConfig<z.infer<TOperatorEnum>>>,
 >(
   field: keyof TConfig,
@@ -39,8 +39,8 @@ function validateSingleFilter<
 }
 
 export function createFilterOutputSchema<
-  TFieldEnum extends z.ZodEnum<[string, ...string[]]>,
-  TOperatorEnum extends z.ZodEnum<[string, ...string[]]>,
+  TFieldEnum extends z.ZodEnum<Readonly<Record<string, string>>>,
+  TOperatorEnum extends z.ZodEnum<Readonly<Record<string, string>>>,
   TConfig extends Record<z.infer<TFieldEnum>, FieldConfig<z.infer<TOperatorEnum>>>,
 >(fieldEnum: TFieldEnum, operatorEnum: TOperatorEnum, filterFieldConfig: TConfig) {
   return z.object({
@@ -68,7 +68,7 @@ export function createFilterOutputSchema<
 
               return validateSingleFilter(
                 data.field as keyof TConfig,
-                filter as { operator: string; value: string | number },
+                filter as { operator: z.infer<TOperatorEnum>; value: string | number },
                 filterFieldConfig,
               );
             });

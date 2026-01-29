@@ -17,6 +17,7 @@ package prometheus
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
@@ -94,4 +95,23 @@ func New(config Config) (*zen.Server, error) {
 	}))
 
 	return z, nil
+}
+
+// Serve starts a simple HTTP server that exposes Prometheus metrics at GET /metrics.
+// The server listens on the provided address (e.g., ":9090" or "127.0.0.1:9090").
+//
+// This is a simpler alternative to New() that doesn't require the zen framework.
+// It blocks until the server stops or an error occurs.
+//
+// Example usage:
+//
+//	go func() {
+//	    if err := prometheus.Serve(":9090"); err != nil {
+//	        log.Fatalf("Metrics server failed: %v", err)
+//	    }
+//	}()
+func Serve(addr string) error {
+	mux := http.NewServeMux()
+	mux.Handle("GET /metrics", promhttp.Handler())
+	return http.ListenAndServe(addr, mux)
 }

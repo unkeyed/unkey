@@ -24,9 +24,10 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
 
         if (rulesCount === 1) {
           const rule = variables.ratelimit.data[0];
+          const refillInterval = typeof rule.refillInterval === "number" ? rule.refillInterval : 0;
           description = `Your key ${data.keyId} has been updated with a limit of ${
             rule.limit
-          } requests per ${formatInterval(rule.refillInterval)}`;
+          } requests per ${formatInterval(refillInterval)}`;
         } else {
           description = `Your key ${data.keyId} has been updated with ${rulesCount} rate limit rules`;
         }
@@ -75,9 +76,10 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
 
         if (rulesCount === 1) {
           const rule = variables.ratelimit.data[0];
+          const refillInterval = typeof rule.refillInterval === "number" ? rule.refillInterval : 0;
           description = `Identity ${data.identityId} has been updated with a limit of ${
             rule.limit
-          } requests per ${formatInterval(rule.refillInterval)}`;
+          } requests per ${formatInterval(refillInterval)}`;
         } else {
           description = `Identity ${data.identityId} has been updated with ${rulesCount} rate limit rules`;
         }

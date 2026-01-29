@@ -3,9 +3,9 @@ import type { Querier } from "./client/interface";
 
 export const getLogsClickhousePayload = z.object({
   workspaceId: z.string(),
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   paths: z
     .array(
       z.object({
@@ -18,24 +18,24 @@ export const getLogsClickhousePayload = z.object({
   excludeHosts: z.array(z.string()).nullable(),
   methods: z.array(z.string()).nullable(),
   requestIds: z.array(z.string()).nullable(),
-  statusCodes: z.array(z.number().int()).nullable(),
-  cursorTime: z.number().int().nullable(),
+  statusCodes: z.array(z.int()).nullable(),
+  cursorTime: z.int().nullable(),
 });
 
 export const log = z.object({
   request_id: z.string(),
-  time: z.number().int(),
+  time: z.int(),
   workspace_id: z.string(),
   host: z.string(),
   method: z.string(),
   path: z.string(),
   request_headers: z.array(z.string()),
   request_body: z.string(),
-  response_status: z.number().int(),
+  response_status: z.int(),
   response_headers: z.array(z.string()),
   response_body: z.string(),
   error: z.string(),
-  service_latency: z.number().int(),
+  service_latency: z.int(),
 });
 
 export type Log = z.infer<typeof log>;
@@ -145,7 +145,7 @@ export function getLogs(ch: Querier) {
         WHERE ${filterConditions}`,
       params: extendedParamsSchema,
       schema: z.object({
-        total_count: z.number().int(),
+        total_count: z.int(),
       }),
     });
 
@@ -182,8 +182,8 @@ export function getLogs(ch: Querier) {
 
 export const logsTimeseriesParams = z.object({
   workspaceId: z.string(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   paths: z
     .array(
       z.object({
@@ -195,16 +195,16 @@ export const logsTimeseriesParams = z.object({
   hosts: z.array(z.string()).nullable(),
   excludeHosts: z.array(z.string()).nullable(),
   methods: z.array(z.string()).nullable(),
-  statusCodes: z.array(z.number().int()).nullable(),
+  statusCodes: z.array(z.int()).nullable(),
 });
 
 export const logsTimeseriesDataPoint = z.object({
-  x: z.number().int(),
+  x: z.int(),
   y: z.object({
-    success: z.number().int().default(0),
-    error: z.number().int().default(0),
-    warning: z.number().int().default(0),
-    total: z.number().int().default(0),
+    success: z.int().prefault(0),
+    error: z.int().prefault(0),
+    warning: z.int().prefault(0),
+    total: z.int().prefault(0),
   }),
 });
 

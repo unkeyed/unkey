@@ -4,6 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "outDir": "dist",
-    "jsx": "react"
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "es6"]
   }
 }

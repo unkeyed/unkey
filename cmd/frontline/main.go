@@ -5,7 +5,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
 	"github.com/unkeyed/unkey/svc/frontline"
 )
 
@@ -28,6 +27,12 @@ var Cmd = &cli.Command{
 
 		cli.Bool("tls-enabled", "Enable TLS termination for the frontline. Default: true",
 			cli.Default(true), cli.EnvVar("UNKEY_TLS_ENABLED")),
+
+		cli.String("tls-cert-file", "Path to TLS certificate file (dev mode)",
+			cli.EnvVar("UNKEY_TLS_CERT_FILE")),
+
+		cli.String("tls-key-file", "Path to TLS key file (dev mode)",
+			cli.EnvVar("UNKEY_TLS_KEY_FILE")),
 
 		cli.String("region", "The cloud region with platform, e.g. us-east-1.aws",
 			cli.Required(),
@@ -58,16 +63,10 @@ var Cmd = &cli.Command{
 		cli.Int("prometheus-port", "Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.", cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
 
 		// Vault Configuration
-		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
-			cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
-		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
-			cli.EnvVar("UNKEY_VAULT_S3_URL")),
-		cli.String("vault-s3-bucket", "S3 bucket name",
-			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
-		cli.String("vault-s3-access-key-id", "S3 access key ID",
-			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
-		cli.String("vault-s3-access-key-secret", "S3 secret access key",
-			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+		cli.String("vault-url", "URL of the remote vault service (e.g., http://vault:8080)",
+			cli.EnvVar("UNKEY_VAULT_URL")),
+		cli.String("vault-token", "Authentication token for the vault service",
+			cli.EnvVar("UNKEY_VAULT_TOKEN")),
 
 		cli.Int("max-hops", "Maximum number of hops allowed for a request",
 			cli.Default(10), cli.EnvVar("UNKEY_MAX_HOPS")),
@@ -79,17 +78,6 @@ var Cmd = &cli.Command{
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
-	var vaultS3Config *storage.S3Config
-	if cmd.String("vault-s3-url") != "" {
-		vaultS3Config = &storage.S3Config{
-			Logger:            nil,
-			S3URL:             cmd.String("vault-s3-url"),
-			S3Bucket:          cmd.String("vault-s3-bucket"),
-			S3AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
-			S3AccessKeyID:     cmd.String("vault-s3-access-key-id"),
-		}
-	}
-
 	config := frontline.Config{
 		// Basic configuration
 		FrontlineID: cmd.String("frontline-id"),
@@ -101,9 +89,11 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		HttpsPort: cmd.Int("https-port"),
 
 		// TLS configuration
-		EnableTLS:  cmd.Bool("tls-enabled"),
-		ApexDomain: cmd.String("apex-domain"),
-		MaxHops:    cmd.Int("max-hops"),
+		EnableTLS:   cmd.Bool("tls-enabled"),
+		TLSCertFile: cmd.String("tls-cert-file"),
+		TLSKeyFile:  cmd.String("tls-key-file"),
+		ApexDomain:  cmd.String("apex-domain"),
+		MaxHops:     cmd.Int("max-hops"),
 
 		// Control Plane Configuration
 		CtrlAddr: cmd.String("ctrl-addr"),
@@ -118,8 +108,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		PrometheusPort:        cmd.Int("prometheus-port"),
 
 		// Vault configuration
-		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
-		VaultS3:         vaultS3Config,
+		VaultURL:   cmd.String("vault-url"),
+		VaultToken: cmd.String("vault-token"),
 	}
 
 	err := config.Validate()

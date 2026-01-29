@@ -66,8 +66,19 @@ import (
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
 
-// here we register all of the routes.
-// this function runs during startup.
+// Register wires up all API route handlers with their dependencies and middleware
+// chains. This function runs once during server startup; routes cannot be added
+// or removed after initialization.
+//
+// The function applies a default middleware stack to most routes: panic recovery,
+// observability (tracing), metrics collection to ClickHouse, structured logging,
+// error handling, a one-minute request timeout, and request validation. Internal
+// endpoints (chproxy, pprof) use reduced middleware stacks appropriate to their
+// needs.
+//
+// Conditional routes are registered based on [Services] configuration. Chproxy
+// endpoints require a non-empty ChproxyToken, and pprof endpoints require
+// PprofEnabled to be true.
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
@@ -326,40 +337,37 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/deploy
 
-	if svc.CtrlBuildClient != nil {
-		// v2/deploy.createDeployment
-		srv.RegisterRoute(
-			defaultMiddlewares,
-			&v2DeployCreateDeployment.Handler{
-				Logger:     svc.Logger,
-				DB:         svc.Database,
-				Keys:       svc.Keys,
-				CtrlClient: svc.CtrlDeploymentClient,
-			},
-		)
+	// v2/deploy.createDeployment
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2DeployCreateDeployment.Handler{
+			Logger:     svc.Logger,
+			DB:         svc.Database,
+			Keys:       svc.Keys,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
 
-		// v2/deploy.getDeployment
-		srv.RegisterRoute(
-			defaultMiddlewares,
-			&v2DeployGetDeployment.Handler{
-				Logger:     svc.Logger,
-				DB:         svc.Database,
-				Keys:       svc.Keys,
-				CtrlClient: svc.CtrlDeploymentClient,
-			},
-		)
+	// v2/deploy.getDeployment
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2DeployGetDeployment.Handler{
+			Logger: svc.Logger,
+			DB:     svc.Database,
+			Keys:   svc.Keys,
+		},
+	)
 
-		// v2/deploy.generateUploadUrl
-		srv.RegisterRoute(
-			defaultMiddlewares,
-			&v2DeployGenerateUploadUrl.Handler{
-				Logger:     svc.Logger,
-				DB:         svc.Database,
-				Keys:       svc.Keys,
-				CtrlClient: svc.CtrlBuildClient,
-			},
-		)
-	}
+	// v2/deploy.generateUploadUrl
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2DeployGenerateUploadUrl.Handler{
+			Logger:     svc.Logger,
+			DB:         svc.Database,
+			Keys:       svc.Keys,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
 
 	// ---------------------------------------------------------------------------
 	// v2/permissions

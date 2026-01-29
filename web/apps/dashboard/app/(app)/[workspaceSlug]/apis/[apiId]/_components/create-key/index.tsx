@@ -5,7 +5,6 @@ import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
-import type { IconProps } from "@unkey/icons/src/props";
 import {
   Button,
   Loading,
@@ -17,8 +16,8 @@ import {
   NavigableDialogRoot,
   toast,
 } from "@unkey/ui";
-import { type FC, Suspense, useEffect, useState } from "react";
-import { FormProvider } from "react-hook-form";
+import { Suspense, useEffect, useState } from "react";
+import { FormProvider, type Resolver } from "react-hook-form";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";
 import { type DialogSectionName, SECTIONS } from "./create-key.constants";
@@ -56,7 +55,7 @@ export const CreateKeyDialog = ({
   const methods = usePersistedForm<FormValues>(
     FORM_STORAGE_KEY,
     {
-      resolver: zodResolver(formSchema),
+      resolver: zodResolver(formSchema) as Resolver<FormValues>,
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,
@@ -180,7 +179,7 @@ export const CreateKeyDialog = ({
                 items={SECTIONS.map((section) => ({
                   id: section.id,
                   label: <SectionLabel label={section.label} validState={validSteps[section.id]} />,
-                  icon: section.icon as FC<IconProps>,
+                  icon: section.icon,
                 }))}
                 onNavigate={handleSectionNavigation}
                 initialSelectedId="general"

@@ -14,10 +14,9 @@ func TestNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Logger:     h.Logger,
-		DB:         h.DB,
-		Keys:       h.Keys,
-		CtrlClient: h.CtrlDeploymentClient,
+		Logger: h.Logger,
+		DB:     h.DB,
+		Keys:   h.Keys,
 	}
 	h.Register(route)
 
@@ -37,8 +36,7 @@ func TestNotFound(t *testing.T) {
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
-		// CTRL service returns 500 for not found errors, not 404
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 504, received: %s", res)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res)
 		require.NotNil(t, res.Body)
 	})
 }

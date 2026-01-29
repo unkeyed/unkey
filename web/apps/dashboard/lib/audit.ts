@@ -13,7 +13,7 @@ export const auditLogsDataSchema = z
     workspaceId: z.string(),
     bucket: z.string(),
     auditLogId: z.string(),
-    time: z.number().int(),
+    time: z.int(),
     actorType: z.enum(["key", "user", "system"]),
     actorId: z.string(),
     actorName: z.string().nullable(),
@@ -27,7 +27,9 @@ export const auditLogsDataSchema = z
             type: z.string(),
             name: z.string(),
             id: z.string(),
-            meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+            meta: z
+              .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
+              .optional(),
           }),
         )
         .parse(JSON.parse(rs)),

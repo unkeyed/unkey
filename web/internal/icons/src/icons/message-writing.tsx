@@ -9,11 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const MessageWriting: React.FC<IconProps> = ({ iconSize = "md-regular", ...props }) => {
+export function MessageWriting({ iconSize = "md-regular", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
@@ -52,4 +51,4 @@ export const MessageWriting: React.FC<IconProps> = ({ iconSize = "md-regular", .
       </g>
     </svg>
   );
-};
+}

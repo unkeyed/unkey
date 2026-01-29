@@ -8,7 +8,7 @@ export function insertVerification(ch: Inserter) {
     table: "verifications.raw_key_verifications_v1",
     schema: z.object({
       request_id: z.string(),
-      time: z.number().int(),
+      time: z.int(),
       workspace_id: z.string(),
       key_space_id: z.string(),
       key_id: z.string(),
@@ -23,7 +23,7 @@ export function insertVerification(ch: Inserter) {
         "USAGE_EXCEEDED",
         "INSUFFICIENT_PERMISSIONS",
       ]),
-      identity_id: z.string().optional().default(""),
+      identity_id: z.string().optional().prefault(""),
     }),
   });
 }
@@ -33,9 +33,9 @@ export const keyDetailsLogsParams = z.object({
   workspaceId: z.string(),
   keyspaceId: z.string(),
   keyId: z.string(),
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   tags: z
     .array(
       z.object({
@@ -52,12 +52,12 @@ export const keyDetailsLogsParams = z.object({
       }),
     )
     .nullable(),
-  cursorTime: z.number().int().nullable(),
+  cursorTime: z.int().nullable(),
 });
 
 export const keyDetailsLog = z.object({
   request_id: z.string(),
-  time: z.number().int(),
+  time: z.int(),
   region: z.string(),
   outcome: z.enum(KEY_VERIFICATION_OUTCOMES),
   tags: z.array(z.string()),
@@ -150,7 +150,7 @@ export function getKeyDetailsLogs(ch: Querier) {
         WHERE ${baseConditions}`,
       params: extendedParamsSchema,
       schema: z.object({
-        total_count: z.number().int(),
+        total_count: z.int(),
       }),
     });
 
@@ -189,9 +189,9 @@ export function getKeyDetailsLogs(ch: Querier) {
 export const identityLogsParams = z.object({
   workspaceId: z.string(),
   keyIds: z.array(z.string()),
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   tags: z
     .array(
       z.object({
@@ -208,12 +208,12 @@ export const identityLogsParams = z.object({
       }),
     )
     .nullable(),
-  cursorTime: z.number().int().nullable(),
+  cursorTime: z.int().nullable(),
 });
 
 export const identityLog = z.object({
   request_id: z.string(),
-  time: z.number().int(),
+  time: z.int(),
   region: z.string(),
   outcome: z.enum(KEY_VERIFICATION_OUTCOMES),
   tags: z.array(z.string()),
@@ -321,7 +321,7 @@ export function getIdentityLogs(ch: Querier) {
         WHERE ${baseConditions}`,
       params: extendedParamsSchema,
       schema: z.object({
-        total_count: z.number().int(),
+        total_count: z.int(),
       }),
     });
 
@@ -361,8 +361,8 @@ export const verificationTimeseriesParams = z.object({
   workspaceId: z.string(),
   keyspaceId: z.string(),
   keyId: z.string().optional(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   names: z
     .array(
       z.object({
@@ -406,17 +406,17 @@ export const verificationTimeseriesParams = z.object({
 });
 
 export const verificationTimeseriesDataPoint = z.object({
-  x: z.number().int(),
+  x: z.int(),
   y: z.object({
-    total: z.number().int().default(0),
-    valid: z.number().int().default(0),
-    valid_count: z.number().int().default(0),
-    rate_limited_count: z.number().int().default(0),
-    insufficient_permissions_count: z.number().int().default(0),
-    forbidden_count: z.number().int().default(0),
-    disabled_count: z.number().int().default(0),
-    expired_count: z.number().int().default(0),
-    usage_exceeded_count: z.number().int().default(0),
+    total: z.int().prefault(0),
+    valid: z.int().prefault(0),
+    valid_count: z.int().prefault(0),
+    rate_limited_count: z.int().prefault(0),
+    insufficient_permissions_count: z.int().prefault(0),
+    forbidden_count: z.int().prefault(0),
+    disabled_count: z.int().prefault(0),
+    expired_count: z.int().prefault(0),
+    usage_exceeded_count: z.int().prefault(0),
   }),
 });
 
@@ -834,8 +834,8 @@ export const getQuarterlyVerificationTimeseries =
 export const identityTimeseriesParams = z.object({
   workspaceId: z.string(),
   keyIds: z.array(z.string()),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  startTime: z.int(),
+  endTime: z.int(),
   tags: z
     .array(
       z.object({

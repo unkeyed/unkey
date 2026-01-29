@@ -5,6 +5,7 @@ import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
+import { clearWorkspaceCache } from "./getCurrent";
 
 export const changeWorkspaceName = workspaceProcedure
   .input(
@@ -61,7 +62,8 @@ export const changeWorkspaceName = workspaceProcedure
           name: input.name,
         });
 
-        // Invalidate workspace cache after successful update
+        // Clear both server-side and workspace caches after successful update
+        clearWorkspaceCache(ctx.tenant.id);
         await invalidateWorkspaceCache(ctx.tenant.id);
       })
       .catch((_err) => {

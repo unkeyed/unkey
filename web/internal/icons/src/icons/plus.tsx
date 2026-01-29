@@ -9,11 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const Plus: React.FC<IconProps> = ({ iconSize = "xl-thin", filled, ...props }) => {
+export function Plus({ iconSize = "xl-thin", filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
@@ -49,4 +48,4 @@ export const Plus: React.FC<IconProps> = ({ iconSize = "xl-thin", filled, ...pro
       </g>
     </svg>
   );
-};
+}

@@ -21,7 +21,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   role: z.enum(["admin", "basic_member"]),
 });
 

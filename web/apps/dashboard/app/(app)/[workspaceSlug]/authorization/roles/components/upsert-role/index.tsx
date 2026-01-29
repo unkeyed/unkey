@@ -201,7 +201,7 @@ export const UpsertRoleDialog = ({
                 className="[&_input:first-of-type]:h-[36px]"
                 placeholder="domain.manager"
                 label="Name"
-                maxLength={60}
+                maxLength={512}
                 description="A unique name for your role. You will use this when managing roles through the API. These are not customer facing."
                 error={errors.roleName?.message}
                 variant="default"
@@ -213,7 +213,7 @@ export const UpsertRoleDialog = ({
                 className="[&_input:first-of-type]:h-[36px]"
                 label="Description"
                 placeholder="Manage domains and DNS records"
-                maxLength={30}
+                maxLength={512}
                 description="Add a description to help others understand what this role represents."
                 error={errors.roleDescription?.message}
                 optional
