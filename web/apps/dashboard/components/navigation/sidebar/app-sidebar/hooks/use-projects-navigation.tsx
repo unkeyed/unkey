@@ -20,9 +20,17 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
     if (!data) {
       return [];
     }
+
     return data.map((project) => {
-      const pIndex = segments.findIndex((s) => s === "projects");
-      const currentProjectActive = pIndex !== -1 && segments.at(pIndex + 1) === project.id;
+      const projectsSegmentIndex = segments.findIndex((s) => s === "projects");
+
+      const projectIdIndex = projectsSegmentIndex + 1;
+      const subRouteIndex = projectsSegmentIndex + 3;
+
+      const currentProjectActive =
+        projectsSegmentIndex !== -1 && segments.at(projectIdIndex) === project.id;
+
+      const currentSubRoute = segments.at(subRouteIndex);
 
       // Create sub-items
       const subItems: NavItem[] = [
@@ -30,25 +38,25 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
           icon: GridCircle,
           href: `${basePath}/${project.id}`,
           label: "Overview",
-          active: currentProjectActive && !segments.at(pIndex + 2),
+          active: currentProjectActive && !currentSubRoute,
         },
         {
           icon: Cloud,
           href: `${basePath}/${project.id}/deployments`,
           label: "Deployments",
-          active: currentProjectActive && segments.at(pIndex + 2) === "deployments",
+          active: currentProjectActive && currentSubRoute === "deployments",
         },
         {
           icon: Layers3,
           href: `${basePath}/${project.id}/sentinel-logs`,
           label: "Sentinel Logs",
-          active: currentProjectActive && segments.at(pIndex + 2) === "sentinel-logs",
+          active: currentProjectActive && currentSubRoute === "sentinel-logs",
         },
         {
           icon: Connections,
           href: `${basePath}/${project.id}/openapi-diff`,
           label: "Open API Diff",
-          active: currentProjectActive && segments.at(pIndex + 2) === "openapi-diff",
+          active: currentProjectActive && currentSubRoute === "openapi-diff",
         },
       ];
 

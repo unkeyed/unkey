@@ -12,11 +12,11 @@ import { Client } from "./client";
 import { exchangeCode } from "./exchange-code";
 
 type Props = {
-  searchParams: {
+  searchParams: Promise<{
     code?: string;
     next?: string;
     configurationId: string;
-  };
+  }>;
 };
 
 export default async function Page(props: Props) {
@@ -25,11 +25,11 @@ export default async function Page(props: Props) {
     return <div>Set up env</div>;
   }
 
-  if (!props.searchParams.code) {
+  if (!(await props.searchParams).code) {
     return <div>no code</div>;
   }
 
-  if (!props.searchParams.next) {
+  if (!(await props.searchParams).next) {
     return <div>no next</div>;
   }
 
@@ -47,11 +47,15 @@ export default async function Page(props: Props) {
 
   let integration: Omit<VercelIntegration, "pk"> | undefined =
     await db.query.vercelIntegrations.findFirst({
-      where: eq(schema.vercelIntegrations.id, props.searchParams.configurationId),
+      where: eq(schema.vercelIntegrations.id, (await props.searchParams).configurationId),
     });
 
   if (!integration) {
-    const { val, err } = await exchangeCode(props.searchParams.code);
+    const searchParams = await props.searchParams;
+    if (!searchParams.code) {
+      return <div>no code</div>;
+    }
+    const { val, err } = await exchangeCode(searchParams.code);
     if (err) {
       return <div>error: {JSON.stringify(err, null, 2)}</div>;
     }
@@ -106,11 +110,15 @@ export default async function Page(props: Props) {
       </Empty>
     );
   }
+  const searchParams = await props.searchParams;
+  if (!searchParams.next) {
+    return <div>no next</div>;
+  }
   return (
     <Client
       projects={projects.val}
       apis={workspace.apis}
-      returnUrl={props.searchParams.next}
+      returnUrl={searchParams.next}
       integrationId={integration.id}
       accessToken={integration.accessToken}
       vercelTeamId={integration.vercelTeamId}

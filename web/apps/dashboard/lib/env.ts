@@ -6,7 +6,7 @@ export const env = () =>
       VERCEL_ENV: z
         .enum(["development", "preview", "production"])
         .optional()
-        .default("development"),
+        .prefault("development"),
       VERCEL_URL: z.string().optional(),
 
       UNKEY_WORKSPACE_ID: z.string(),
@@ -24,10 +24,10 @@ export const env = () =>
 
       RATELIMIT_DEMO_ROOT_KEY: z.string().optional(),
 
-      AGENT_URL: z.string().url(),
+      AGENT_URL: z.url(),
       AGENT_TOKEN: z.string(),
 
-      CTRL_URL: z.string().url().optional(),
+      CTRL_URL: z.url().optional(),
       CTRL_API_KEY: z.string().optional(),
 
       GITHUB_KEYS_URI: z.string().optional(),

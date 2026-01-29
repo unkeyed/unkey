@@ -1,18 +1,21 @@
 "use client";
 import { collection, collectionManager } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useState } from "react";
-import { ProjectDetailsExpandable } from "./details/project-details-expandables";
-import { ProjectLayoutContext } from "./layout-provider";
-import { ProjectNavigation } from "./navigations/project-navigation";
+import { use, useEffect, useState } from "react";
+import { ProjectDetailsExpandable } from "./(overview)/details/project-details-expandables";
+import { ProjectLayoutContext } from "./(overview)/layout-provider";
+import { ProjectNavigation } from "./(overview)/navigations/project-navigation";
 
-export default function ProjectLayoutWrapper({
-  children,
-  params: { projectId },
-}: {
+export default function ProjectLayoutWrapper(props: {
   children: React.ReactNode;
-  params: { projectId: string };
+  params: Promise<{ projectId: string }>;
 }) {
+  const params = use(props.params);
+
+  const { projectId } = params;
+
+  const { children } = props;
+
   return <ProjectLayout projectId={projectId}>{children}</ProjectLayout>;
 }
 

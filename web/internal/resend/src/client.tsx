@@ -18,7 +18,7 @@ export class Resend {
   public async sendWelcomeEmail(req: { email: string }) {
     const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-    const html = render(<WelcomeEmail />);
+    const html = await render(<WelcomeEmail />);
     try {
       const result = await this.client.emails.send({
         to: req.email,
@@ -42,7 +42,7 @@ export class Resend {
     name: string;
     date: Date;
   }): Promise<void> {
-    const html = render(<PaymentIssue username={req.name} date={req.date.toDateString()} />);
+    const html = await render(<PaymentIssue username={req.name} date={req.date.toDateString()} />);
     try {
       const result = await this.client.emails.send({
         to: req.email,
@@ -66,7 +66,7 @@ export class Resend {
     url: string;
   }): Promise<void> {
     const { date, email, source, url } = req;
-    const html = render(<SecretScanningKeyDetected date={date} source={source} url={url} />);
+    const html = await render(<SecretScanningKeyDetected date={date} source={source} url={url} />);
 
     try {
       const result = await this.client.emails.send({
@@ -91,7 +91,7 @@ export class Resend {
     workspace: string;
     deprecatedEndpoints: string[];
   }): Promise<void> {
-    const html = render(
+    const html = await render(
       <ApiV1Migration
         username={req.name}
         workspaceName={req.workspace}

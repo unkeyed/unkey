@@ -9,10 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const ClockRotateClockwise: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
+export function ClockRotateClockwise({ iconSize, filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize || "md-regular"];
 
   return (
@@ -85,4 +85,4 @@ export const ClockRotateClockwise: React.FC<IconProps> = ({ iconSize, filled, ..
     //   </g>
     // </svg>
   );
-};
+}
