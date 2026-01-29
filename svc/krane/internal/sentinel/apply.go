@@ -349,7 +349,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 			},
 		},
 		Spec: policyv1.PodDisruptionBudgetSpec{
-			MinAvailable: ptr.P(intstr.FromInt(1)),
+			MaxUnavailable: ptr.P(intstr.FromInt(1)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().SentinelID(sentinel.GetSentinelId()),
 			},
