@@ -22,9 +22,12 @@ var Resolver = newResolver(CloudflareDNS, DefaultTimeout)
 
 func newResolver(server string, timeout time.Duration) *net.Resolver {
 	return &net.Resolver{
-		PreferGo: true,
+		PreferGo:     true,
+		StrictErrors: false,
 		Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			return (&net.Dialer{Timeout: timeout}).DialContext(ctx, "udp", server)
+			d := net.Dialer{} //nolint:exhaustruct
+			d.Timeout = timeout
+			return d.DialContext(ctx, "udp", server)
 		},
 	}
 }

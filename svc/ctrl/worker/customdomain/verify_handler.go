@@ -42,9 +42,9 @@ func (s *Service) VerifyDomain(
 	_ *hydrav1.VerifyDomainRequest,
 ) (*hydrav1.VerifyDomainResponse, error) {
 	domain := restate.Key(ctx)
-	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
-		return db.Query.FindCustomDomainByDomain(stepCtx, s.db.RO(), domain)
-	}, restate.WithName("fetch domain"))
+
+	// Fetch domain - NOT journaled so we get fresh state on each retry
+	dom, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), domain)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
@@ -55,67 +55,71 @@ func (s *Service) VerifyDomain(
 		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
 	}
 
-	// Mark domain as actively being verified
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateCustomDomainVerificationStatus(stepCtx, s.db.RW(), db.UpdateCustomDomainVerificationStatusParams{
-			ID:                 dom.ID,
-			VerificationStatus: db.CustomDomainsVerificationStatusVerifying,
-			UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-	}, restate.WithName("mark verifying"))
+	// Mark domain as actively being verified - NOT journaled
+	err = db.Query.UpdateCustomDomainVerificationStatus(ctx, s.db.RW(), db.UpdateCustomDomainVerificationStatusParams{
+		ID:                 dom.ID,
+		VerificationStatus: db.CustomDomainsVerificationStatusVerifying,
+		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	// Check both TXT and CNAME records in parallel - always check both
-	txtFuture := restate.RunAsync(ctx, func(stepCtx restate.RunContext) (bool, error) {
-		return s.checkTXTRecord(dom.Domain, dom.VerificationToken)
-	}, restate.WithName("txt-check"))
+	// Check both TXT and CNAME records in parallel
+	type dnsResult struct {
+		verified bool
+		err      error
+	}
+	txtCh := make(chan dnsResult, 1)
+	cnameCh := make(chan dnsResult, 1)
 
-	cnameFuture := restate.RunAsync(ctx, func(stepCtx restate.RunContext) (bool, error) {
-		return s.checkCNAME(dom.Domain, dom.TargetCname)
-	}, restate.WithName("cname-check"))
+	go func() {
+		verified, err := s.checkTXTRecord(dom.Domain, dom.VerificationToken)
+		txtCh <- dnsResult{verified, err}
+	}()
+	go func() {
+		verified, err := s.checkCNAME(dom.Domain, dom.TargetCname)
+		cnameCh <- dnsResult{verified, err}
+	}()
 
-	// Wait for both checks to complete
-	txtVerified, txtErr := txtFuture.Result()
-	if txtErr != nil {
+	txtResult := <-txtCh
+	cnameResult := <-cnameCh
+
+	if txtResult.err != nil {
 		s.logger.Warn("TXT check error",
 			"domain", dom.Domain,
-			"error", txtErr,
+			"error", txtResult.err,
 			"elapsed", elapsed,
 		)
 	}
-
-	cnameVerified, cnameErr := cnameFuture.Result()
-	if cnameErr != nil {
+	if cnameResult.err != nil {
 		s.logger.Warn("CNAME check error",
 			"domain", dom.Domain,
-			"error", cnameErr,
+			"error", cnameResult.err,
 			"elapsed", elapsed,
 		)
 	}
 
-	// Update attempt count and verification flags
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateCustomDomainCheckAttempt(stepCtx, s.db.RW(), db.UpdateCustomDomainCheckAttemptParams{
-			ID:            dom.ID,
-			CheckAttempts: dom.CheckAttempts + 1,
-			LastCheckedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-	}, restate.WithName("update-attempt"))
+	txtVerified := txtResult.verified
+	cnameVerified := cnameResult.verified
+
+	// Update attempt count and verification flags - NOT journaled so we get fresh updates
+	err = db.Query.UpdateCustomDomainCheckAttempt(ctx, s.db.RW(), db.UpdateCustomDomainCheckAttemptParams{
+		ID:            dom.ID,
+		CheckAttempts: dom.CheckAttempts + 1,
+		LastCheckedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateCustomDomainOwnership(stepCtx, s.db.RW(), db.UpdateCustomDomainOwnershipParams{
-			OwnershipVerified: txtVerified,
-			CnameVerified:     cnameVerified,
-			UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			ID:                dom.ID,
-		})
-	}, restate.WithName("update ownership flags"))
+	err = db.Query.UpdateCustomDomainOwnership(ctx, s.db.RW(), db.UpdateCustomDomainOwnershipParams{
+		OwnershipVerified: txtVerified,
+		CnameVerified:     cnameVerified,
+		UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:                dom.ID,
+	})
 	if err != nil {
 		return nil, err
 	}
