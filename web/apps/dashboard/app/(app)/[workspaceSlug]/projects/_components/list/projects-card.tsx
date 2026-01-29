@@ -4,7 +4,7 @@ import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
-import { Avatar } from "../../[projectId]/details/active-deployment-card/git-avatar";
+import { Avatar } from "../../[projectId]/components/git-avatar";
 import { RegionBadges } from "./region-badges";
 
 type ProjectCardProps = {

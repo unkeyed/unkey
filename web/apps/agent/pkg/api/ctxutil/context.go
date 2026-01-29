@@ -18,10 +18,10 @@ func getValue[T any](ctx context.Context, key contextKey) T {
 	return val
 }
 
-func GetRequestId(ctx context.Context) string {
+func GetRequestID(ctx context.Context) string {
 	return getValue[string](ctx, request_id)
 }
 
-func SetRequestId(ctx context.Context, requestId string) context.Context {
-	return context.WithValue(ctx, request_id, requestId)
+func SetRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, request_id, requestID)
 }
