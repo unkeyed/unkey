@@ -91,6 +91,7 @@ export * from "./icons/key-2";
 export * from "./icons/laptop-2";
 export * from "./icons/layers-2";
 export * from "./icons/layers-3";
+export * from "./icons/layout-right";
 export * from "./icons/link-4";
 export * from "./icons/list-radio";
 export * from "./icons/location2";
