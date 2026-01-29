@@ -298,76 +298,42 @@ function DnsRecordTable({
         </div>
       </div>
 
-      {/* CNAME Record (Routing) - Only shown after TXT is verified */}
-      {ownershipVerified && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-gray-11 font-medium">CNAME Record (routing)</p>
-            <StatusIndicator
-              verified={cnameVerified}
-              label={cnameVerified ? "Verified" : "Pending"}
-            />
+      {/* CNAME Record (Routing) */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-gray-11 font-medium">CNAME Record (routing)</p>
+          <StatusIndicator
+            verified={cnameVerified}
+            label={cnameVerified ? "Verified" : "Pending"}
+          />
+        </div>
+        <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
+          <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
+            <span>Type</span>
+            <span>Name</span>
+            <span>Value</span>
+            <span>Status</span>
           </div>
-          <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
-            <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
-              <span>Type</span>
-              <span>Name</span>
-              <span>Value</span>
-              <span>Status</span>
-            </div>
-            <div className="grid grid-cols-[80px_1fr_1fr_60px] px-3 py-2 items-center">
-              <span className="text-gray-11 font-medium">CNAME</span>
-              <span className="flex items-center gap-1.5 min-w-0">
-                <code className="text-content font-mono truncate">{domain}</code>
-                <CopyButton value={domain} variant="ghost" className="size-5 flex-shrink-0" />
-              </span>
-              <span className="flex items-center gap-1.5 min-w-0">
-                <code className="text-content font-mono truncate">{targetCname}</code>
-                <CopyButton value={targetCname} variant="ghost" className="size-5 flex-shrink-0" />
-              </span>
-              <span className="flex justify-center">
-                {cnameVerified ? (
-                  <CircleCheck className="!size-4 text-success-9" />
-                ) : (
-                  <XMark className="!size-4 text-gray-7" />
-                )}
-              </span>
-            </div>
+          <div className="grid grid-cols-[80px_1fr_1fr_60px] px-3 py-2 items-center">
+            <span className="text-gray-11 font-medium">CNAME</span>
+            <span className="flex items-center gap-1.5 min-w-0">
+              <code className="text-content font-mono truncate">{domain}</code>
+              <CopyButton value={domain} variant="ghost" className="size-5 flex-shrink-0" />
+            </span>
+            <span className="flex items-center gap-1.5 min-w-0">
+              <code className="text-content font-mono truncate">{targetCname}</code>
+              <CopyButton value={targetCname} variant="ghost" className="size-5 flex-shrink-0" />
+            </span>
+            <span className="flex justify-center">
+              {cnameVerified ? (
+                <CircleCheck className="!size-4 text-success-9" />
+              ) : (
+                <XMark className="!size-4 text-gray-7" />
+              )}
+            </span>
           </div>
         </div>
-      )}
-
-      {/* Show CNAME instructions when TXT not yet verified */}
-      {!ownershipVerified && (
-        <div className="opacity-50">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-gray-11 font-medium">CNAME Record (routing)</p>
-            <StatusIndicator verified={false} label="Waiting for TXT" />
-          </div>
-          <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
-            <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
-              <span>Type</span>
-              <span>Name</span>
-              <span>Value</span>
-              <span>Status</span>
-            </div>
-            <div className="grid grid-cols-[80px_1fr_1fr_60px] px-3 py-2 items-center">
-              <span className="text-gray-11 font-medium">CNAME</span>
-              <span className="flex items-center gap-1.5 min-w-0">
-                <code className="text-content font-mono truncate">{domain}</code>
-                <CopyButton value={domain} variant="ghost" className="size-5 flex-shrink-0" />
-              </span>
-              <span className="flex items-center gap-1.5 min-w-0">
-                <code className="text-content font-mono truncate">{targetCname}</code>
-                <CopyButton value={targetCname} variant="ghost" className="size-5 flex-shrink-0" />
-              </span>
-              <span className="flex justify-center">
-                <Clock className="!size-4 text-gray-7" />
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Next check countdown */}
       <div className="flex justify-end">

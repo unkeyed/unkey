@@ -64,76 +64,7 @@ func (s *Service) VerifyDomain(
 		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
 	}
 
-	// Track attempt count for observability
-	_, updateErr := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateCustomDomainCheckAttempt(stepCtx, s.db.RW(), db.UpdateCustomDomainCheckAttemptParams{
-			ID:            dom.ID,
-			CheckAttempts: dom.CheckAttempts + 1,
-			LastCheckedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-	}, restate.WithName("update-attempt"))
-	if updateErr != nil {
-		s.logger.Warn("failed to update check attempt count",
-			"domain", dom.Domain,
-			"error", updateErr,
-		)
-	}
-
-	// Step 1: Check TXT record for ownership verification (if not already verified)
-	if !dom.OwnershipVerified {
-		// Mark domain as pending (TXT verification step)
-		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateCustomDomainVerificationStatus(stepCtx, s.db.RW(), db.UpdateCustomDomainVerificationStatusParams{
-				ID:                 dom.ID,
-				VerificationStatus: db.CustomDomainsVerificationStatusPending,
-				UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-		}, restate.WithName("mark pending"))
-		if err != nil {
-			return nil, err
-		}
-
-		txtVerified, txtErr := restate.Run(ctx, func(stepCtx restate.RunContext) (bool, error) {
-			return s.checkTXTRecord(dom.Domain, dom.VerificationToken)
-		}, restate.WithName("txt-check"))
-		if txtErr != nil {
-			s.logger.Warn("TXT check error",
-				"domain", dom.Domain,
-				"error", txtErr,
-				"elapsed", elapsed,
-			)
-		}
-
-		if !txtVerified {
-			s.logger.Info("TXT record not verified, will retry",
-				"domain", dom.Domain,
-				"attempts", dom.CheckAttempts+1,
-				"elapsed", elapsed,
-			)
-			return nil, errNotVerified
-		}
-
-		// TXT verified - update ownership flag
-		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateCustomDomainOwnership(stepCtx, s.db.RW(), db.UpdateCustomDomainOwnershipParams{
-				OwnershipVerified: true,
-				CnameVerified:     false,
-				UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				ID:                dom.ID,
-			})
-		}, restate.WithName("mark ownership verified"))
-		if err != nil {
-			return nil, err
-		}
-		dom.OwnershipVerified = true
-		s.logger.Info("TXT record verified, ownership confirmed",
-			"domain", dom.Domain,
-		)
-	}
-
-	// Step 2: Check CNAME record for routing (only after ownership is verified)
-	// Mark domain as actively being verified (CNAME step)
+	// Mark domain as actively being verified
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.UpdateCustomDomainVerificationStatus(stepCtx, s.db.RW(), db.UpdateCustomDomainVerificationStatusParams{
 			ID:                 dom.ID,
@@ -145,9 +76,26 @@ func (s *Service) VerifyDomain(
 		return nil, err
 	}
 
-	cnameVerified, cnameErr := restate.Run(ctx, func(stepCtx restate.RunContext) (bool, error) {
+	// Check both TXT and CNAME records in parallel - always check both
+	txtFuture := restate.RunAsync(ctx, func(stepCtx restate.RunContext) (bool, error) {
+		return s.checkTXTRecord(dom.Domain, dom.VerificationToken)
+	}, restate.WithName("txt-check"))
+
+	cnameFuture := restate.RunAsync(ctx, func(stepCtx restate.RunContext) (bool, error) {
 		return s.checkCNAME(dom.Domain, dom.TargetCname)
 	}, restate.WithName("cname-check"))
+
+	// Wait for both checks to complete
+	txtVerified, txtErr := txtFuture.Result()
+	if txtErr != nil {
+		s.logger.Warn("TXT check error",
+			"domain", dom.Domain,
+			"error", txtErr,
+			"elapsed", elapsed,
+		)
+	}
+
+	cnameVerified, cnameErr := cnameFuture.Result()
 	if cnameErr != nil {
 		s.logger.Warn("CNAME check error",
 			"domain", dom.Domain,
@@ -156,33 +104,47 @@ func (s *Service) VerifyDomain(
 		)
 	}
 
-	if !cnameVerified {
-		s.logger.Info("CNAME record not verified, will retry",
-			"domain", dom.Domain,
-			"attempts", dom.CheckAttempts+1,
-			"elapsed", elapsed,
-		)
-		return nil, errNotVerified
-	}
-
-	// CNAME verified - update flag
+	// Update attempt count and verification flags
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateCustomDomainOwnership(stepCtx, s.db.RW(), db.UpdateCustomDomainOwnershipParams{
-			OwnershipVerified: true,
-			CnameVerified:     true,
-			UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			ID:                dom.ID,
+		return restate.Void{}, db.Query.UpdateCustomDomainCheckAttempt(stepCtx, s.db.RW(), db.UpdateCustomDomainCheckAttemptParams{
+			ID:            dom.ID,
+			CheckAttempts: dom.CheckAttempts + 1,
+			LastCheckedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
-	}, restate.WithName("mark cname verified"))
+	}, restate.WithName("update-attempt"))
 	if err != nil {
 		return nil, err
 	}
 
-	s.logger.Info("CNAME record verified, routing enabled",
+	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, db.Query.UpdateCustomDomainOwnership(stepCtx, s.db.RW(), db.UpdateCustomDomainOwnershipParams{
+			OwnershipVerified: txtVerified,
+			CnameVerified:     cnameVerified,
+			UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ID:                dom.ID,
+		})
+	}, restate.WithName("update ownership flags"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Log current status
+	s.logger.Info("DNS verification check complete",
 		"domain", dom.Domain,
+		"txt_verified", txtVerified,
+		"cname_verified", cnameVerified,
+		"attempts", dom.CheckAttempts+1,
+		"elapsed", elapsed,
 	)
 
-	return s.onVerificationSuccess(ctx, dom)
+	// If both verified, we're done
+	if txtVerified && cnameVerified {
+		return s.onVerificationSuccess(ctx, dom)
+	}
+
+	// Not fully verified yet - return error to trigger Restate retry
+	return nil, errNotVerified
 }
 
 // RetryVerification resets a failed domain and restarts the verification process.
