@@ -8,6 +8,7 @@ export const env = () =>
         .optional()
         .prefault("development"),
       VERCEL_URL: z.string().optional(),
+      VERCEL_BRANCH_URL: z.string().optional(), // Only set in preview deployments
 
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),
