@@ -55,7 +55,6 @@ export const ProjectNavigation = ({
   ).data.at(0);
 
   const basePath = `/${workspace.slug}/projects`;
-
   const breadcrumbs = useBreadcrumbConfig({
     projectId,
     basePath,
