@@ -175,8 +175,13 @@ export function getBaseUrl() {
     return "";
   }
 
+  if (process.env.VERCEL_BRANCH_URL) {
+    // Use stable branch URL for preview deployments (e.g., your-app-git-branch-team.vercel.app)
+    return `https://${process.env.VERCEL_BRANCH_URL}`;
+  }
+
   if (process.env.VERCEL_URL) {
-    // reference for vercel.com
+    // Fallback to deployment-specific URL if branch URL not available
     return `https://${process.env.VERCEL_URL}`;
   }
 
