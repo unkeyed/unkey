@@ -37,6 +37,7 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/api/webhooks/stripe",
     "/api/v1/workos/webhooks",
     "/api/v1/github/verify",
+    "api/v1/github/callback",
     "/api/auth/refresh",
     "/success",
     "/_next",
