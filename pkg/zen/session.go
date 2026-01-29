@@ -2,6 +2,7 @@ package zen
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"encoding/json"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -151,7 +151,7 @@ func (s *Session) UserAgent() string {
 }
 
 // Location returns the client's IP address, checking X-Forwarded-For header first,
-// then falling back to RemoteAddr.
+// then falling back to RemoteAddr. Ports are stripped from the returned IP.
 func (s *Session) Location() string {
 	xff := s.r.Header.Get("X-Forwarded-For")
 	if xff != "" {
@@ -159,17 +159,24 @@ func (s *Session) Location() string {
 		for _, ip := range ips {
 			ip = strings.TrimSpace(ip)
 			if ip != "" {
-				return ip
+				return stripPort(ip)
 			}
 		}
 	}
 
 	// Fall back to RemoteAddr
-	host, _, err := net.SplitHostPort(s.r.RemoteAddr)
+	return stripPort(s.r.RemoteAddr)
+}
+
+// stripPort removes the port from an address string.
+// Handles IPv4 (192.168.1.1:8080), IPv6 with brackets ([::1]:8080), and plain addresses.
+func stripPort(addr string) string {
+	host, _, err := net.SplitHostPort(addr)
 	if err == nil {
 		return host
 	}
-	return s.r.RemoteAddr
+	// No port present or invalid format, return as-is
+	return addr
 }
 
 // Request returns the underlying http.Request.
@@ -338,7 +345,6 @@ func (s *Session) BindQuery(dst interface{}) error {
 					switch sliceType {
 					case reflect.String:
 						{
-
 							slice.Index(j).SetString(val)
 						}
 					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

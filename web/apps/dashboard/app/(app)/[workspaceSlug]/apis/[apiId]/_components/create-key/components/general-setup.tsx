@@ -43,9 +43,9 @@ export const GeneralSetup = () => {
         render={({ field }) => (
           <ExternalIdField
             value={field.value ?? null}
-            onChange={(identityId: string | null, externalId: string | null) => {
+            onChange={(identityId, externalId) => {
               field.onChange(identityId);
-              setValue("externalId", externalId);
+              setValue("externalId", externalId, { shouldValidate: true });
             }}
             error={errors.externalId?.message}
           />

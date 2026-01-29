@@ -1,10 +1,5 @@
 package frontline
 
-import (
-	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
-)
-
 type Config struct {
 	// FrontlineID is the unique identifier for this instance of the Frontline server
 	FrontlineID string
@@ -69,22 +64,14 @@ type Config struct {
 	PrometheusPort int
 
 	// --- Vault Configuration ---
-	VaultMasterKeys []string
-	VaultS3         *storage.S3Config
+
+	// VaultURL is the URL of the remote vault service (e.g., http://vault:8080)
+	VaultURL string
+
+	// VaultToken is the authentication token for the vault service
+	VaultToken string
 }
 
 func (c Config) Validate() error {
-	if c.VaultS3 != nil {
-		err := assert.All(
-			assert.NotEmpty(c.VaultS3.S3URL, "vault s3 url is empty"),
-			assert.NotEmpty(c.VaultS3.S3Bucket, "vault s3 bucket is empty"),
-			assert.NotEmpty(c.VaultS3.S3AccessKeyID, "vault s3 access key id is empty"),
-			assert.NotEmpty(c.VaultS3.S3AccessKeySecret, "vault s3 secret access key is empty"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

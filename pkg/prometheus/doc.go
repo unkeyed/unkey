@@ -10,7 +10,7 @@
 // [Serve] blocks until the server stops or encounters an error:
 //
 //	go func() {
-//	    if err := prometheus.Serve(ctx, ":9090"); err != nil {
+//	    if err := prometheus.Serve(":9090"); err != nil {
 //	        log.Printf("metrics server error: %v", err)
 //	    }
 //	}()

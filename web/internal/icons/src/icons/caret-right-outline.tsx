@@ -9,10 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const CaretRightOutline: React.FC<IconProps> = ({ iconSize = "xl-medium", ...props }) => {
+export function CaretRightOutline({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -35,4 +35,4 @@ export const CaretRightOutline: React.FC<IconProps> = ({ iconSize = "xl-medium",
       </g>
     </svg>
   );
-};
+}

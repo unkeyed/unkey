@@ -525,8 +525,8 @@ CREATE TABLE `sentinels` (
 	CONSTRAINT `sentinels_id_unique` UNIQUE(`id`),
 	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`),
-	CONSTRAINT `sentinels_version_unique` UNIQUE(`version`),
-	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`)
+	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
 );
 
 CREATE TABLE `instances` (
@@ -576,16 +576,6 @@ CREATE TABLE `frontline_routes` (
 	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 
-CREATE TABLE `state_changes` (
-	`sequence` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`resource_type` enum('sentinel','deployment') NOT NULL,
-	`resource_id` varchar(256) NOT NULL,
-	`op` enum('upsert','delete') NOT NULL,
-	`region` varchar(64) NOT NULL,
-	`created_at` bigint unsigned NOT NULL,
-	CONSTRAINT `state_changes_sequence` PRIMARY KEY(`sequence`)
-);
-
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -608,7 +598,6 @@ CREATE INDEX `status_idx` ON `deployments` (`status`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 CREATE INDEX `region_idx` ON `deployment_topology` (`region`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
-CREATE INDEX `region_version_idx` ON `deployment_topology` (`region`,`version`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
@@ -619,6 +608,4 @@ CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
-CREATE INDEX `region_sequence` ON `state_changes` (`region`,`sequence`);
-CREATE INDEX `created_at` ON `state_changes` (`created_at`);
 

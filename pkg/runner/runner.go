@@ -181,9 +181,9 @@ func (r *Runner) Run(ctx context.Context, opts ...RunOption) error {
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancelShutdown()
 
-	shutdownErrs := r.shutdown(shutdownCtx)
-
+	// Wait for all tasks to complete before we shutdown, as those tasks might still rely on shared resources.
 	wg.Wait()
+	shutdownErrs := r.shutdown(shutdownCtx)
 
 	if cause != nil && len(shutdownErrs) > 0 {
 		return errors.Join(append([]error{cause}, shutdownErrs...)...)

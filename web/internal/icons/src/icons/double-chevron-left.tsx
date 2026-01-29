@@ -9,14 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
+
 import { type IconProps, sizeMap } from "../props";
 
-export const DoubleChevronLeft: React.FC<IconProps> = ({
-  iconSize = "xl-thin",
-  filled,
-  ...props
-}) => {
+export function DoubleChevronLeft({ iconSize = "xl-thin", filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg
@@ -46,4 +42,4 @@ export const DoubleChevronLeft: React.FC<IconProps> = ({
       </g>
     </svg>
   );
-};
+}

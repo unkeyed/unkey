@@ -20,9 +20,11 @@ export function UpdateWorkspaceName() {
     workspaceName: z
       .string()
       .trim()
-      .min(3, { message: "Workspace name must be at least 3 characters long" })
+      .min(3, {
+        error: "Workspace name must be at least 3 characters long",
+      })
       .max(50, {
-        message: "Workspace name must be less than 50 characters long",
+        error: "Workspace name must be less than 50 characters long",
       }),
   });
 
@@ -41,11 +43,14 @@ export function UpdateWorkspaceName() {
   });
 
   const updateName = trpc.workspace.updateName.useMutation({
-    onSuccess() {
+    async onSuccess() {
       toast.success("Workspace name updated");
-      // invalidate the current user so it refetches
-      utils.user.getCurrentUser.invalidate();
-      utils.workspace.invalidate();
+      // Force immediate refetch of all workspace-related queries
+      await Promise.all([
+        utils.user.getCurrentUser.refetch(),
+        utils.workspace.getCurrent.refetch(),
+        utils.user.listMemberships.refetch(),
+      ]);
       setName(watch("workspaceName"));
       router.refresh();
     },

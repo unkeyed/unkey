@@ -2,11 +2,15 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "dev",
-    srcs = ["main.go"],
+    srcs = [
+        "generate_master_key.go",
+        "main.go",
+    ],
     importpath = "github.com/unkeyed/unkey/cmd/dev",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/dev/seed",
         "//pkg/cli",
+        "//pkg/vault/keys",
     ],
 )

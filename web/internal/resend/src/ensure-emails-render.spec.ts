@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
-import { renderAsync } from "@react-email/render";
+import { render } from "@react-email/render";
 import React from "react";
 import { test } from "vitest";
 
@@ -23,7 +23,7 @@ test("That all the emails render without errors", async () => {
       "default" in emailModule &&
       typeof emailModule.default === "function"
     ) {
-      await renderAsync(
+      await render(
         React.createElement<Record<string, unknown>>(
           emailModule.default as React.FC,
           "PreviewProps" in emailModule

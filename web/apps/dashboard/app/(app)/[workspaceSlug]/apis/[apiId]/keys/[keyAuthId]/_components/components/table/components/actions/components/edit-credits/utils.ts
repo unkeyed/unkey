@@ -8,8 +8,10 @@ type Refill = z.infer<
 >;
 
 export const getKeyLimitDefaults = (keyDetails: KeyDetails) => {
+  const defaults = getDefaultValues();
+  const defaultLimit = defaults.limit;
   const defaultRemaining =
-    keyDetails.key.credits.remaining ?? getDefaultValues().limit?.data?.remaining ?? 100;
+    keyDetails.key.credits.remaining ?? (defaultLimit?.enabled ? defaultLimit.data.remaining : 100);
 
   let refill: Refill;
   if (keyDetails.key.credits.refillDay) {
@@ -35,13 +37,18 @@ export const getKeyLimitDefaults = (keyDetails: KeyDetails) => {
     };
   }
 
+  // Return with proper discriminated union types
   return {
-    limit: {
-      enabled: keyDetails.key.credits.enabled,
-      data: {
-        remaining: defaultRemaining,
-        refill,
-      },
-    },
+    limit: keyDetails.key.credits.enabled
+      ? ({
+          enabled: true as const,
+          data: {
+            remaining: defaultRemaining,
+            refill,
+          },
+        } as const)
+      : ({
+          enabled: false as const,
+        } as const),
   };
 };

@@ -6,9 +6,9 @@ export const sortFields = z.enum(["time", "valid", "invalid"]);
 export type SortFields = z.infer<typeof sortFields>;
 
 export const keysQueryOverviewLogsPayload = z.object({
-  limit: z.number().int(),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
   apiId: z.string(),
   since: z.string(),
   cursor: z.number().nullable().optional().nullable(),

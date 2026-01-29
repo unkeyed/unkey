@@ -287,27 +287,15 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize CTRL deployment client using bufconnect
-	var ctrlDeploymentClient ctrlv1connect.DeploymentServiceClient
-	var ctrlBuildClient ctrlv1connect.BuildServiceClient
-	if cfg.CtrlURL != "" {
-		ctrlDeploymentClient = ctrlv1connect.NewDeploymentServiceClient(
-			&http.Client{},
-			cfg.CtrlURL,
-			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
-			})),
-		)
-		ctrlBuildClient = ctrlv1connect.NewBuildServiceClient(
-			&http.Client{},
-			cfg.CtrlURL,
-			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
-			})),
-		)
-		logger.Info("CTRL clients initialized", "url", cfg.CtrlURL)
-	} else {
-		logger.Warn("CTRL URL not configured, deployment and build endpoints will be unavailable")
-	}
+	ctrlDeploymentClient := ctrlv1connect.NewDeploymentServiceClient(
+		&http.Client{},
+		cfg.CtrlURL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
+		})),
+	)
+
+	logger.Info("CTRL clients initialized", "url", cfg.CtrlURL)
 
 	routes.Register(srv, &routes.Services{
 		Logger:                     logger,
@@ -321,7 +309,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:                      vaultSvc,
 		ChproxyToken:               cfg.ChproxyToken,
 		CtrlDeploymentClient:       ctrlDeploymentClient,
-		CtrlBuildClient:            ctrlBuildClient,
 		PprofEnabled:               cfg.PprofEnabled,
 		PprofUsername:              cfg.PprofUsername,
 		PprofPassword:              cfg.PprofPassword,

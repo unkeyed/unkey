@@ -2,6 +2,7 @@
 
 import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import { metadataSchema } from "@/lib/schemas/metadata";
+import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,7 +45,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   }, [identity.meta]);
 
   const methods = useForm<z.infer<typeof metadataSchema>>({
-    resolver: zodResolver(metadataSchema),
+    resolver: zodResolver(metadataSchema) as DiscriminatedUnionResolver<typeof metadataSchema>,
     defaultValues: getDefaultValues(),
   });
 

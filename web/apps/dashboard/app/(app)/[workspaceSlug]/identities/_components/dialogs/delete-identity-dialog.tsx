@@ -12,7 +12,7 @@ import { IdentityInfo } from "./identity-info";
 
 const deleteIdentityFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {
-    message: "Please confirm that you want to permanently delete this identity",
+    error: "Please confirm that you want to permanently delete this identity",
   }),
 });
 

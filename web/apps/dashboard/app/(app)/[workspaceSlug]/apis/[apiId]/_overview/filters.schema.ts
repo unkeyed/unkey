@@ -54,9 +54,9 @@ export const keysOverviewFilterFieldEnum = z.enum([
   "since",
   "keyIds",
   "names",
-  "outcomes",
   "identities",
   "tags",
+  "outcomes",
 ]);
 
 export const filterOutputSchema = createFilterOutputSchema(
