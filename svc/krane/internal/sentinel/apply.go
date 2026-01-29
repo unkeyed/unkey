@@ -324,6 +324,7 @@ func sentinelTopologySpread(sentinelID string) []corev1.TopologySpreadConstraint
 func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) error {
 	client := c.clientSet.PolicyV1().PodDisruptionBudgets(NamespaceSentinel)
 
+	//nolint:exhaustruct // k8s API types have many optional fields
 	desired := &policyv1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "policy/v1",
