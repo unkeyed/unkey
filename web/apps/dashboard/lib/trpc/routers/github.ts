@@ -82,8 +82,7 @@ const fetchProjectInstallation = async (
           },
           with: {
             githubAppInstallations: {
-              where: (table, { eq }) =>
-                eq(table.installationId, installationId),
+              where: (table, { eq }) => eq(table.installationId, installationId),
               columns: {
                 pk: true,
               },
@@ -186,10 +185,7 @@ export const githubRouter = t.router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const githubContext = await fetchGithubContext(
-        ctx.workspace.id,
-        input.projectId,
-      );
+      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
       if (!githubContext) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -210,10 +206,7 @@ export const githubRouter = t.router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const githubContext = await fetchGithubContext(
-        ctx.workspace.id,
-        input.projectId,
-      );
+      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
       if (!githubContext) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -236,9 +229,7 @@ export const githubRouter = t.router({
       }> = [];
 
       for (const installation of githubContext.installations) {
-        const repos = await getInstallationRepositories(
-          installation.installationId,
-        ).catch(() => {
+        const repos = await getInstallationRepositories(installation.installationId).catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to load GitHub repositories",
@@ -290,15 +281,14 @@ export const githubRouter = t.router({
         });
       }
 
-      const verifiedRepo = await getRepositoryById(
-        input.installationId,
-        input.repositoryId,
-      ).catch(() => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to verify GitHub repository",
-        });
-      });
+      const verifiedRepo = await getRepositoryById(input.installationId, input.repositoryId).catch(
+        () => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to verify GitHub repository",
+          });
+        },
+      );
 
       if (!verifiedRepo) {
         throw new TRPCError({
@@ -345,10 +335,7 @@ export const githubRouter = t.router({
       const project = await db.query.projects
         .findFirst({
           where: (table, { and, eq }) =>
-            and(
-              eq(table.id, input.projectId),
-              eq(table.workspaceId, ctx.workspace.id),
-            ),
+            and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
         })
         .catch(() => {
           throw new TRPCError({
@@ -408,9 +395,7 @@ export const githubRouter = t.router({
 
       await db
         .delete(schema.githubRepoConnections)
-        .where(
-          eq(schema.githubRepoConnections.installationId, input.installationId),
-        )
+        .where(eq(schema.githubRepoConnections.installationId, input.installationId))
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -420,12 +405,7 @@ export const githubRouter = t.router({
 
       await db
         .delete(schema.githubAppInstallations)
-        .where(
-          eq(
-            schema.githubAppInstallations.installationId,
-            input.installationId,
-          ),
-        )
+        .where(eq(schema.githubAppInstallations.installationId, input.installationId))
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
