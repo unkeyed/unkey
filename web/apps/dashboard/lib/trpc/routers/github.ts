@@ -1,5 +1,5 @@
 import { db, eq, schema } from "@/lib/db";
-import { getInstallationRepositories } from "@/lib/github";
+import { getInstallationRepositories, getRepositoryById } from "@/lib/github";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
@@ -139,6 +139,15 @@ export const githubRouter = t.router({
         });
       }
 
+      const verifiedRepo = await getRepositoryById(installation.installationId, input.repositoryId);
+
+      if (!verifiedRepo) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Repository not found in the specified GitHub installation",
+        });
+      }
+
       const existingConnection = await db.query.githubRepoConnections.findFirst({
         where: eq(schema.githubRepoConnections.projectId, input.projectId),
       });
@@ -147,18 +156,18 @@ export const githubRouter = t.router({
         await db
           .update(schema.githubRepoConnections)
           .set({
-            installationId: input.installationId,
-            repositoryId: input.repositoryId,
-            repositoryFullName: input.repositoryFullName,
+            installationId: installation.installationId,
+            repositoryId: verifiedRepo.id,
+            repositoryFullName: verifiedRepo.full_name,
             updatedAt: Date.now(),
           })
           .where(eq(schema.githubRepoConnections.projectId, input.projectId));
       } else {
         await db.insert(schema.githubRepoConnections).values({
           projectId: input.projectId,
-          installationId: input.installationId,
-          repositoryId: input.repositoryId,
-          repositoryFullName: input.repositoryFullName,
+          installationId: installation.installationId,
+          repositoryId: verifiedRepo.id,
+          repositoryFullName: verifiedRepo.full_name,
           createdAt: Date.now(),
           updatedAt: null,
         });

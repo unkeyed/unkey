@@ -106,3 +106,29 @@ export async function getInstallationRepositories(
 
   return allRepositories;
 }
+
+export async function getRepositoryById(
+  installationId: number,
+  repositoryId: number,
+): Promise<GitHubRepository | null> {
+  const { token } = await getInstallationAccessToken(installationId);
+
+  const response = await fetch(`https://api.github.com/repositories/${repositoryId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to get repository: ${error}`);
+  }
+
+  return response.json();
+}
