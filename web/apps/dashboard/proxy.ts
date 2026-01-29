@@ -39,7 +39,7 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/api/v1/github/verify",
     "/api/auth/refresh",
     "/success",
-    "/_next",
+    "/_next/*",
     "/integrations/github/callback",
   ];
 
