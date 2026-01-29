@@ -1,12 +1,4 @@
-type HealthStatus =
-  | "normal"
-  | "unstable"
-  | "degraded"
-  | "unhealthy"
-  | "recovering"
-  | "health_syncing"
-  | "unknown"
-  | "disabled";
+type HealthStatus = "normal" | "unhealthy" | "health_syncing" | "unknown" | "disabled";
 
 type BaseNode = {
   id: string;

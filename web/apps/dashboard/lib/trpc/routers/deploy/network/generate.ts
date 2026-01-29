@@ -8,16 +8,7 @@ import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-const healthStatusSchema = z.enum([
-  "normal",
-  "unstable",
-  "degraded",
-  "unhealthy",
-  "recovering",
-  "health_syncing",
-  "unknown",
-  "disabled",
-]);
+const healthStatusSchema = z.enum(["normal", "unhealthy", "health_syncing", "unknown", "disabled"]);
 
 const generatorConfigSchema = z.object({
   regions: z.number().min(1).max(7),
@@ -36,10 +27,7 @@ export const generateDeploymentTree = workspaceProcedure
     try {
       const healthStatuses: HealthStatus[] = [
         "normal",
-        "unstable",
-        "degraded",
         "unhealthy",
-        "recovering",
         "health_syncing",
         "unknown",
         "disabled",
