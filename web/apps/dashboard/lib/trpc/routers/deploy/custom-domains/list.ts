@@ -1,40 +1,12 @@
-import { CustomDomainService, CustomDomainStatus } from "@/gen/proto/ctrl/v1/custom_domain_pb";
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-// Convert proto enum to string status
-function statusToString(status: CustomDomainStatus): string {
-  switch (status) {
-    case CustomDomainStatus.PENDING:
-      return "pending";
-    case CustomDomainStatus.VERIFYING:
-      return "verifying";
-    case CustomDomainStatus.VERIFIED:
-      return "verified";
-    case CustomDomainStatus.FAILED:
-      return "failed";
-    default:
-      return "pending";
-  }
-}
 
 export const listCustomDomains = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(z.object({ projectId: z.string() }))
   .query(async ({ input, ctx }) => {
-    const { CTRL_URL, CTRL_API_KEY } = env();
-    if (!CTRL_URL || !CTRL_API_KEY) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "ctrl service is not configured",
-      });
-    }
-
     // Verify project belongs to workspace
     const project = await db.query.projects.findFirst({
       where: (table, { eq, and }) =>
@@ -51,37 +23,39 @@ export const listCustomDomains = workspaceProcedure
       });
     }
 
-    const ctrl = createClient(
-      CustomDomainService,
-      createConnectTransport({
-        baseUrl: CTRL_URL,
-        interceptors: [
-          (next) => (req) => {
-            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
-            return next(req);
-          },
-        ],
-      }),
-    );
-
     try {
-      const response = await ctrl.listCustomDomains({
-        projectId: input.projectId,
+      const domains = await db.query.customDomains.findMany({
+        where: (table, { eq }) => eq(table.projectId, input.projectId),
+        columns: {
+          id: true,
+          domain: true,
+          workspaceId: true,
+          projectId: true,
+          environmentId: true,
+          verificationStatus: true,
+          targetCname: true,
+          checkAttempts: true,
+          lastCheckedAt: true,
+          verificationError: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: (table, { desc }) => desc(table.createdAt),
       });
 
-      return response.domains.map((d) => ({
+      return domains.map((d) => ({
         id: d.id,
         domain: d.domain,
         workspaceId: d.workspaceId,
         projectId: d.projectId,
         environmentId: d.environmentId,
-        verificationStatus: statusToString(d.verificationStatus),
+        verificationStatus: d.verificationStatus,
         targetCname: d.targetCname,
         checkAttempts: d.checkAttempts,
-        lastCheckedAt: d.lastCheckedAt ? Number(d.lastCheckedAt) : null,
-        verificationError: d.verificationError || null,
-        createdAt: Number(d.createdAt),
-        updatedAt: d.updatedAt ? Number(d.updatedAt) : null,
+        lastCheckedAt: d.lastCheckedAt,
+        verificationError: d.verificationError,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
       }));
     } catch (error) {
       console.error("List custom domains failed:", error);

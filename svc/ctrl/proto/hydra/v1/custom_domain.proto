@@ -20,16 +20,14 @@ service CustomDomainService {
   rpc RetryVerification(RetryVerificationRequest) returns (RetryVerificationResponse) {}
 }
 
-message VerifyDomainRequest {
-  string domain = 1;
-}
+// Empty request - domain is the virtual object key (ctx.Key())
+message VerifyDomainRequest {}
 
 // Empty response - success means verified, errors are returned to Restate
 message VerifyDomainResponse {}
 
-message RetryVerificationRequest {
-  string domain = 1;
-}
+// Empty request - domain is the virtual object key (ctx.Key())
+message RetryVerificationRequest {}
 
 // Empty response - just triggers a new verification workflow
 message RetryVerificationResponse {}

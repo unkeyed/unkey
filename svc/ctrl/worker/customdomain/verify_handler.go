@@ -36,10 +36,11 @@ var errNotVerified = errors.New("CNAME not verified yet")
 // If verification fails after ~24 hours of retries, Restate kills the invocation.
 func (s *Service) VerifyDomain(
 	ctx restate.ObjectContext,
-	req *hydrav1.VerifyDomainRequest,
+	_ *hydrav1.VerifyDomainRequest,
 ) (*hydrav1.VerifyDomainResponse, error) {
+	domain := restate.Key(ctx)
 	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
-		return db.Query.FindCustomDomainByDomain(stepCtx, s.db.RO(), req.GetDomain())
+		return db.Query.FindCustomDomainByDomain(stepCtx, s.db.RO(), domain)
 	}, restate.WithName("fetch domain"))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
@@ -107,13 +108,14 @@ func (s *Service) VerifyDomain(
 // RetryVerification resets a failed domain and restarts the verification process.
 func (s *Service) RetryVerification(
 	ctx restate.ObjectContext,
-	req *hydrav1.RetryVerificationRequest,
+	_ *hydrav1.RetryVerificationRequest,
 ) (*hydrav1.RetryVerificationResponse, error) {
-	s.logger.Info("retrying domain verification", "domain", req.GetDomain())
+	domain := restate.Key(ctx)
+	s.logger.Info("retrying domain verification", "domain", domain)
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.ResetCustomDomainVerification(stepCtx, s.db.RW(), db.ResetCustomDomainVerificationParams{
-			Domain:             req.GetDomain(),
+			Domain:             domain,
 			VerificationStatus: db.CustomDomainsVerificationStatusPending,
 			CheckAttempts:      0,
 			InvocationID:       sql.NullString{Valid: false},
@@ -124,9 +126,7 @@ func (s *Service) RetryVerification(
 		return nil, err
 	}
 
-	_, err = s.VerifyDomain(ctx, &hydrav1.VerifyDomainRequest{
-		Domain: req.GetDomain(),
-	})
+	_, err = s.VerifyDomain(ctx, &hydrav1.VerifyDomainRequest{})
 	if err != nil {
 		return nil, err
 	}

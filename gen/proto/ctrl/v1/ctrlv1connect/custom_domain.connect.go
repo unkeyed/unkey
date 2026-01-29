@@ -36,12 +36,6 @@ const (
 	// CustomDomainServiceAddCustomDomainProcedure is the fully-qualified name of the
 	// CustomDomainService's AddCustomDomain RPC.
 	CustomDomainServiceAddCustomDomainProcedure = "/ctrl.v1.CustomDomainService/AddCustomDomain"
-	// CustomDomainServiceGetCustomDomainProcedure is the fully-qualified name of the
-	// CustomDomainService's GetCustomDomain RPC.
-	CustomDomainServiceGetCustomDomainProcedure = "/ctrl.v1.CustomDomainService/GetCustomDomain"
-	// CustomDomainServiceListCustomDomainsProcedure is the fully-qualified name of the
-	// CustomDomainService's ListCustomDomains RPC.
-	CustomDomainServiceListCustomDomainsProcedure = "/ctrl.v1.CustomDomainService/ListCustomDomains"
 	// CustomDomainServiceDeleteCustomDomainProcedure is the fully-qualified name of the
 	// CustomDomainService's DeleteCustomDomain RPC.
 	CustomDomainServiceDeleteCustomDomainProcedure = "/ctrl.v1.CustomDomainService/DeleteCustomDomain"
@@ -54,10 +48,6 @@ const (
 type CustomDomainServiceClient interface {
 	// Add a new custom domain and start verification
 	AddCustomDomain(context.Context, *connect.Request[v1.AddCustomDomainRequest]) (*connect.Response[v1.AddCustomDomainResponse], error)
-	// Get custom domain details including verification status
-	GetCustomDomain(context.Context, *connect.Request[v1.GetCustomDomainRequest]) (*connect.Response[v1.GetCustomDomainResponse], error)
-	// List all custom domains for a project
-	ListCustomDomains(context.Context, *connect.Request[v1.ListCustomDomainsRequest]) (*connect.Response[v1.ListCustomDomainsResponse], error)
 	// Delete a custom domain
 	DeleteCustomDomain(context.Context, *connect.Request[v1.DeleteCustomDomainRequest]) (*connect.Response[v1.DeleteCustomDomainResponse], error)
 	// Retry verification for a failed domain
@@ -81,18 +71,6 @@ func NewCustomDomainServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(customDomainServiceMethods.ByName("AddCustomDomain")),
 			connect.WithClientOptions(opts...),
 		),
-		getCustomDomain: connect.NewClient[v1.GetCustomDomainRequest, v1.GetCustomDomainResponse](
-			httpClient,
-			baseURL+CustomDomainServiceGetCustomDomainProcedure,
-			connect.WithSchema(customDomainServiceMethods.ByName("GetCustomDomain")),
-			connect.WithClientOptions(opts...),
-		),
-		listCustomDomains: connect.NewClient[v1.ListCustomDomainsRequest, v1.ListCustomDomainsResponse](
-			httpClient,
-			baseURL+CustomDomainServiceListCustomDomainsProcedure,
-			connect.WithSchema(customDomainServiceMethods.ByName("ListCustomDomains")),
-			connect.WithClientOptions(opts...),
-		),
 		deleteCustomDomain: connect.NewClient[v1.DeleteCustomDomainRequest, v1.DeleteCustomDomainResponse](
 			httpClient,
 			baseURL+CustomDomainServiceDeleteCustomDomainProcedure,
@@ -111,8 +89,6 @@ func NewCustomDomainServiceClient(httpClient connect.HTTPClient, baseURL string,
 // customDomainServiceClient implements CustomDomainServiceClient.
 type customDomainServiceClient struct {
 	addCustomDomain    *connect.Client[v1.AddCustomDomainRequest, v1.AddCustomDomainResponse]
-	getCustomDomain    *connect.Client[v1.GetCustomDomainRequest, v1.GetCustomDomainResponse]
-	listCustomDomains  *connect.Client[v1.ListCustomDomainsRequest, v1.ListCustomDomainsResponse]
 	deleteCustomDomain *connect.Client[v1.DeleteCustomDomainRequest, v1.DeleteCustomDomainResponse]
 	retryVerification  *connect.Client[v1.RetryVerificationRequest, v1.RetryVerificationResponse]
 }
@@ -120,16 +96,6 @@ type customDomainServiceClient struct {
 // AddCustomDomain calls ctrl.v1.CustomDomainService.AddCustomDomain.
 func (c *customDomainServiceClient) AddCustomDomain(ctx context.Context, req *connect.Request[v1.AddCustomDomainRequest]) (*connect.Response[v1.AddCustomDomainResponse], error) {
 	return c.addCustomDomain.CallUnary(ctx, req)
-}
-
-// GetCustomDomain calls ctrl.v1.CustomDomainService.GetCustomDomain.
-func (c *customDomainServiceClient) GetCustomDomain(ctx context.Context, req *connect.Request[v1.GetCustomDomainRequest]) (*connect.Response[v1.GetCustomDomainResponse], error) {
-	return c.getCustomDomain.CallUnary(ctx, req)
-}
-
-// ListCustomDomains calls ctrl.v1.CustomDomainService.ListCustomDomains.
-func (c *customDomainServiceClient) ListCustomDomains(ctx context.Context, req *connect.Request[v1.ListCustomDomainsRequest]) (*connect.Response[v1.ListCustomDomainsResponse], error) {
-	return c.listCustomDomains.CallUnary(ctx, req)
 }
 
 // DeleteCustomDomain calls ctrl.v1.CustomDomainService.DeleteCustomDomain.
@@ -146,10 +112,6 @@ func (c *customDomainServiceClient) RetryVerification(ctx context.Context, req *
 type CustomDomainServiceHandler interface {
 	// Add a new custom domain and start verification
 	AddCustomDomain(context.Context, *connect.Request[v1.AddCustomDomainRequest]) (*connect.Response[v1.AddCustomDomainResponse], error)
-	// Get custom domain details including verification status
-	GetCustomDomain(context.Context, *connect.Request[v1.GetCustomDomainRequest]) (*connect.Response[v1.GetCustomDomainResponse], error)
-	// List all custom domains for a project
-	ListCustomDomains(context.Context, *connect.Request[v1.ListCustomDomainsRequest]) (*connect.Response[v1.ListCustomDomainsResponse], error)
 	// Delete a custom domain
 	DeleteCustomDomain(context.Context, *connect.Request[v1.DeleteCustomDomainRequest]) (*connect.Response[v1.DeleteCustomDomainResponse], error)
 	// Retry verification for a failed domain
@@ -169,18 +131,6 @@ func NewCustomDomainServiceHandler(svc CustomDomainServiceHandler, opts ...conne
 		connect.WithSchema(customDomainServiceMethods.ByName("AddCustomDomain")),
 		connect.WithHandlerOptions(opts...),
 	)
-	customDomainServiceGetCustomDomainHandler := connect.NewUnaryHandler(
-		CustomDomainServiceGetCustomDomainProcedure,
-		svc.GetCustomDomain,
-		connect.WithSchema(customDomainServiceMethods.ByName("GetCustomDomain")),
-		connect.WithHandlerOptions(opts...),
-	)
-	customDomainServiceListCustomDomainsHandler := connect.NewUnaryHandler(
-		CustomDomainServiceListCustomDomainsProcedure,
-		svc.ListCustomDomains,
-		connect.WithSchema(customDomainServiceMethods.ByName("ListCustomDomains")),
-		connect.WithHandlerOptions(opts...),
-	)
 	customDomainServiceDeleteCustomDomainHandler := connect.NewUnaryHandler(
 		CustomDomainServiceDeleteCustomDomainProcedure,
 		svc.DeleteCustomDomain,
@@ -197,10 +147,6 @@ func NewCustomDomainServiceHandler(svc CustomDomainServiceHandler, opts ...conne
 		switch r.URL.Path {
 		case CustomDomainServiceAddCustomDomainProcedure:
 			customDomainServiceAddCustomDomainHandler.ServeHTTP(w, r)
-		case CustomDomainServiceGetCustomDomainProcedure:
-			customDomainServiceGetCustomDomainHandler.ServeHTTP(w, r)
-		case CustomDomainServiceListCustomDomainsProcedure:
-			customDomainServiceListCustomDomainsHandler.ServeHTTP(w, r)
 		case CustomDomainServiceDeleteCustomDomainProcedure:
 			customDomainServiceDeleteCustomDomainHandler.ServeHTTP(w, r)
 		case CustomDomainServiceRetryVerificationProcedure:
@@ -216,14 +162,6 @@ type UnimplementedCustomDomainServiceHandler struct{}
 
 func (UnimplementedCustomDomainServiceHandler) AddCustomDomain(context.Context, *connect.Request[v1.AddCustomDomainRequest]) (*connect.Response[v1.AddCustomDomainResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.CustomDomainService.AddCustomDomain is not implemented"))
-}
-
-func (UnimplementedCustomDomainServiceHandler) GetCustomDomain(context.Context, *connect.Request[v1.GetCustomDomainRequest]) (*connect.Response[v1.GetCustomDomainResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.CustomDomainService.GetCustomDomain is not implemented"))
-}
-
-func (UnimplementedCustomDomainServiceHandler) ListCustomDomains(context.Context, *connect.Request[v1.ListCustomDomainsRequest]) (*connect.Response[v1.ListCustomDomainsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.CustomDomainService.ListCustomDomains is not implemented"))
 }
 
 func (UnimplementedCustomDomainServiceHandler) DeleteCustomDomain(context.Context, *connect.Request[v1.DeleteCustomDomainRequest]) (*connect.Response[v1.DeleteCustomDomainResponse], error) {

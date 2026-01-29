@@ -112,10 +112,9 @@ func (s *Service) AddCustomDomain(
 	}
 
 	// Trigger verification workflow and store invocation ID
+	// Domain is passed as the virtual object key when creating the client
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain)
-	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
-		Domain: domain,
-	})
+	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
 	if sendErr != nil {
 		s.logger.Warn("failed to trigger verification workflow",
 			"domain", domain,
@@ -134,44 +133,6 @@ func (s *Service) AddCustomDomain(
 		DomainId:    domainID,
 		TargetCname: targetCname,
 		Status:      ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
-	}), nil
-}
-
-// GetCustomDomain retrieves a custom domain by its domain name.
-func (s *Service) GetCustomDomain(
-	ctx context.Context,
-	req *connect.Request[ctrlv1.GetCustomDomainRequest],
-) (*connect.Response[ctrlv1.GetCustomDomainResponse], error) {
-	domain, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), req.Msg.GetDomain())
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("domain not found: %s", req.Msg.GetDomain()))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find domain: %w", err))
-	}
-
-	return connect.NewResponse(&ctrlv1.GetCustomDomainResponse{
-		Domain: domainToProto(domain),
-	}), nil
-}
-
-// ListCustomDomains lists all custom domains for a project.
-func (s *Service) ListCustomDomains(
-	ctx context.Context,
-	req *connect.Request[ctrlv1.ListCustomDomainsRequest],
-) (*connect.Response[ctrlv1.ListCustomDomainsResponse], error) {
-	domains, err := db.Query.ListCustomDomainsByProjectID(ctx, s.db.RO(), req.Msg.GetProjectId())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list domains: %w", err))
-	}
-
-	result := make([]*ctrlv1.CustomDomain, 0, len(domains))
-	for _, d := range domains {
-		result = append(result, domainToProto(d))
-	}
-
-	return connect.NewResponse(&ctrlv1.ListCustomDomainsResponse{
-		Domains: result,
 	}), nil
 }
 
@@ -254,10 +215,9 @@ func (s *Service) RetryVerification(
 	}
 
 	// Trigger new verification workflow
+	// Domain is passed as the virtual object key when creating the client
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain.Domain)
-	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{
-		Domain: domain.Domain,
-	})
+	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
 	if sendErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification: %w", sendErr))
 	}
@@ -277,49 +237,4 @@ func (s *Service) RetryVerification(
 	return connect.NewResponse(&ctrlv1.RetryVerificationResponse{
 		Status: ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
 	}), nil
-}
-
-// domainToProto converts a database CustomDomain to the protobuf representation.
-func domainToProto(d db.CustomDomain) *ctrlv1.CustomDomain {
-	status := ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_UNSPECIFIED
-	switch d.VerificationStatus {
-	case db.CustomDomainsVerificationStatusPending:
-		status = ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING
-	case db.CustomDomainsVerificationStatusVerifying:
-		status = ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_VERIFYING
-	case db.CustomDomainsVerificationStatusVerified:
-		status = ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_VERIFIED
-	case db.CustomDomainsVerificationStatusFailed:
-		status = ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_FAILED
-	}
-
-	var lastCheckedAt int64
-	if d.LastCheckedAt.Valid {
-		lastCheckedAt = d.LastCheckedAt.Int64
-	}
-
-	var verificationError string
-	if d.VerificationError.Valid {
-		verificationError = d.VerificationError.String
-	}
-
-	var updatedAt int64
-	if d.UpdatedAt.Valid {
-		updatedAt = d.UpdatedAt.Int64
-	}
-
-	return &ctrlv1.CustomDomain{
-		Id:                 d.ID,
-		Domain:             d.Domain,
-		WorkspaceId:        d.WorkspaceID,
-		ProjectId:          d.ProjectID,
-		EnvironmentId:      d.EnvironmentID,
-		VerificationStatus: status,
-		TargetCname:        d.TargetCname,
-		CheckAttempts:      d.CheckAttempts,
-		LastCheckedAt:      lastCheckedAt,
-		VerificationError:  verificationError,
-		CreatedAt:          d.CreatedAt,
-		UpdatedAt:          updatedAt,
-	}
 }
