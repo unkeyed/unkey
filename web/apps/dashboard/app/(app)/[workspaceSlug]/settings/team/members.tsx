@@ -115,7 +115,9 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
                         </span>
                       </div>
                       {member.firstName && (
-                        <span className="text-sm text-content-subtle truncate secret">{member.email}</span>
+                        <span className="text-sm text-content-subtle truncate secret">
+                          {member.email}
+                        </span>
                       )}
                     </div>
                   </div>
