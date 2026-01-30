@@ -94,7 +94,7 @@ spec:
             # Certificate bootstrap
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
-            - name: UNKEY_DNS_APEX
+            - name: UNKEY_CNAME_DOMAIN
               value: "cname.unkey.local"
 
       initContainers:

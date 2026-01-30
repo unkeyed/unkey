@@ -106,16 +106,16 @@ type Config struct {
 	// ensure a wildcard certificate exists for *.{DefaultDomain}.
 	DefaultDomain string
 
-	// RegionalApexDomain is the base domain for cross-region communication
+	// RegionalDomain is the base domain for cross-region communication
 	// between frontline instances. Combined with AvailableRegions to create
-	// per-region wildcard certificates like *.{region}.{RegionalApexDomain}.
-	RegionalApexDomain string
+	// per-region wildcard certificates like *.{region}.{RegionalDomain}.
+	RegionalDomain string
 
-	// DnsApex is the base domain for custom domain CNAME targets.
-	// Each custom domain gets a unique subdomain like "{random}.{DnsApex}".
+	// CnameDomain is the base domain for custom domain CNAME targets.
+	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	// For production: "unkey-dns.com"
 	// For local: "unkey.local"
-	DnsApex string
+	CnameDomain string
 }
 
 // Validate checks the configuration for required fields and logical consistency.

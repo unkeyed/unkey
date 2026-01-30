@@ -232,11 +232,11 @@ type Config struct {
 	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
 
-	// DnsApex is the base domain for custom domain CNAME targets.
-	// Each custom domain gets a unique subdomain like "{random}.{DnsApex}".
+	// CnameDomain is the base domain for custom domain CNAME targets.
+	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	// For production: "cname.unkey-dns.com"
 	// For local: "cname.unkey.local"
-	DnsApex string
+	CnameDomain string
 
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.RealClock{} for production deployments.

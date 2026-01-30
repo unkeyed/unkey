@@ -23,7 +23,7 @@ type Service struct {
 	hydrav1.UnimplementedCustomDomainServiceServer
 	db      db.Database
 	logger  logging.Logger
-	dnsApex string
+	cnameDomain string
 }
 
 var _ hydrav1.CustomDomainServiceServer = (*Service)(nil)
@@ -36,11 +36,11 @@ type Config struct {
 	// Logger receives structured log output from domain verification operations.
 	Logger logging.Logger
 
-	// DnsApex is the base domain for custom domain CNAME targets.
-	// Each custom domain gets a unique subdomain like "{random}.{DnsApex}".
+	// CnameDomain is the base domain for custom domain CNAME targets.
+	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	// For production: "cname.unkey-dns.com"
 	// For local: "cname.unkey.local"
-	DnsApex string
+	CnameDomain string
 }
 
 // New creates a [Service] with the given configuration.
@@ -49,6 +49,6 @@ func New(cfg Config) *Service {
 		UnimplementedCustomDomainServiceServer: hydrav1.UnimplementedCustomDomainServiceServer{},
 		db:                                     cfg.DB,
 		logger:                                 cfg.Logger,
-		dnsApex:                                cfg.DnsApex,
+		cnameDomain:                                cfg.CnameDomain,
 	}
 }
