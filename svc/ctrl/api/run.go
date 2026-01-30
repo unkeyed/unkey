@@ -18,12 +18,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
+	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"golang.org/x/net/http2"
@@ -115,6 +117,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
 
+	// Restate admin client for managing invocations
+	restateAdminClient := restateadmin.New(restateadmin.Config{
+		BaseURL: cfg.Restate.AdminURL,
+		APIKey:  cfg.Restate.APIKey,
+	})
+
 	c := cluster.New(cluster.Config{
 		Database: database,
 		Logger:   logger,
@@ -172,6 +180,13 @@ func Run(ctx context.Context, cfg Config) error {
 		ChallengeCache: challengeCache,
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
+	mux.Handle(ctrlv1connect.NewCustomDomainServiceHandler(customdomain.New(customdomain.Config{
+		Database:     database,
+		Restate:      restateClient,
+		RestateAdmin: restateAdminClient,
+		Logger:       logger,
+		DnsApex:      cfg.DnsApex,
+	})))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

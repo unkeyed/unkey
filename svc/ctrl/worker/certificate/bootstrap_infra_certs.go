@@ -105,12 +105,16 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate 
 		now := time.Now().UnixMilli()
 
 		err = db.Query.UpsertCustomDomain(ctx, s.db.RW(), db.UpsertCustomDomainParams{
-			ID:            domainID,
-			WorkspaceID:   InfraWorkspaceID,
-			Domain:        domain,
-			ChallengeType: db.CustomDomainsChallengeTypeDNS01,
-			CreatedAt:     now,
-			UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
+			ID:                 domainID,
+			WorkspaceID:        InfraWorkspaceID,
+			ProjectID:          InfraWorkspaceID,
+			EnvironmentID:      InfraWorkspaceID,
+			Domain:             domain,
+			ChallengeType:      db.CustomDomainsChallengeTypeDNS01,
+			VerificationStatus: db.CustomDomainsVerificationStatusVerified, // Pre-verified for infra domains
+			TargetCname:        uid.DNS1035(16),                            // Unique target (not used for DNS-01 but required for uniqueness)
+			CreatedAt:          now,
+			UpdatedAt:          sql.NullInt64{Int64: now, Valid: true},
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create custom domain record: %w", err)

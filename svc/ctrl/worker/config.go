@@ -89,6 +89,10 @@ type RestateConfig struct {
 	// Example: "http://restate:9070".
 	AdminURL string
 
+	// APIKey is the optional authentication key for Restate admin API requests.
+	// If set, this key will be sent with all requests to the Restate admin API.
+	APIKey string
+
 	// HttpPort is the port where the worker listens for Restate requests.
 	// This is the internal Restate server port, not the health check port.
 	HttpPort int
@@ -227,6 +231,12 @@ type Config struct {
 	// AvailableRegions is a list of available regions for deployments.
 	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
+
+	// DnsApex is the base domain for custom domain CNAME targets.
+	// Each custom domain gets a unique subdomain like "{random}.{DnsApex}".
+	// For production: "cname.unkey-dns.com"
+	// For local: "cname.unkey.local"
+	DnsApex string
 
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.RealClock{} for production deployments.

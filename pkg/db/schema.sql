@@ -478,12 +478,24 @@ CREATE TABLE `custom_domains` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(256) NOT NULL,
+	`environment_id` varchar(256) NOT NULL,
 	`domain` varchar(256) NOT NULL,
 	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
+	`verification_status` enum('pending','verifying','verified','failed') NOT NULL DEFAULT 'pending',
+	`verification_token` varchar(64) NOT NULL,
+	`ownership_verified` boolean NOT NULL DEFAULT false,
+	`cname_verified` boolean NOT NULL DEFAULT false,
+	`target_cname` varchar(256) NOT NULL,
+	`last_checked_at` bigint,
+	`check_attempts` int NOT NULL DEFAULT 0,
+	`verification_error` varchar(512),
+	`invocation_id` varchar(256),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `custom_domains_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `custom_domains_id_unique` UNIQUE(`id`),
+	CONSTRAINT `custom_domains_target_cname_unique` UNIQUE(`target_cname`),
 	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
 );
 
@@ -576,6 +588,28 @@ CREATE TABLE `frontline_routes` (
 	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 
+CREATE TABLE `github_app_installations` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`installation_id` bigint NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `github_app_installations_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `github_app_installations_installation_id_unique` UNIQUE(`installation_id`)
+);
+
+CREATE TABLE `github_repo_connections` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`project_id` varchar(64) NOT NULL,
+	`installation_id` bigint NOT NULL,
+	`repository_id` bigint NOT NULL,
+	`repository_full_name` varchar(500) NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `github_repo_connections_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `github_repo_connections_project_id_unique` UNIQUE(`project_id`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -599,6 +633,8 @@ CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
+CREATE INDEX `project_idx` ON `custom_domains` (`project_id`);
+CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
 CREATE INDEX `idx_environment_id` ON `sentinels` (`environment_id`);
