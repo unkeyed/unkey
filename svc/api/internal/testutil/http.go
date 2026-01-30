@@ -80,8 +80,8 @@ func NewHarness(t *testing.T) *Harness {
 	// Start all services in parallel first
 	containers.StartAllServices(t)
 
-	mysqlCfg := dockertest.MySQL(t)
-	mysqlDSN := mysqlCfg.DSN
+	mysqlCfg := containers.MySQL(t)
+	mysqlDSN := mysqlCfg.FormatDSN()
 
 	redisUrl := dockertest.Redis(t)
 

@@ -8,4 +8,5 @@ go_library(
     ],
     importpath = "github.com/unkeyed/unkey/pkg/testutil/containers",
     visibility = ["//visibility:public"],
+    deps = ["@com_github_go_sql_driver_mysql//:mysql"],
 )

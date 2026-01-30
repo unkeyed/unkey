@@ -3,27 +3,6 @@ bazel_dep(name = "gazelle", version = "0.47.0")
 bazel_dep(name = "rules_oci", version = "2.2.6")
 bazel_dep(name = "rules_pkg", version = "1.1.0")
 
-oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
-oci.toolchains()
-oci.pull(
-    name = "mysql_base",
-    image = "mysql",
-    tag = "9.4.0",
-    platforms = [
-        "linux/amd64",
-        "linux/arm64",
-    ],
-    reproducible = False,
-)
-use_repo(
-    oci,
-    "mysql_base",
-    "mysql_base_linux_amd64",
-    "mysql_base_linux_arm64",
-    "oci_crane_toolchains",
-    "oci_regctl_toolchains",
-)
-
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 
 # Download an SDK for the host OS & architecture as well as common remote execution
