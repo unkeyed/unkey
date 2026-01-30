@@ -95,7 +95,7 @@ spec:
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
             - name: UNKEY_CNAME_DOMAIN
-              value: "cname.unkey.local"
+              value: "unkey.local"
 
       initContainers:
         - name: wait-for-dependencies

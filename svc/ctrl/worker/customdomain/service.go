@@ -38,8 +38,8 @@ type Config struct {
 
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
-	// For production: "cname.unkey-dns.com"
-	// For local: "cname.unkey.local"
+	// For production: "unkey-dns.com"
+	// For local: "unkey.local"
 	CnameDomain string
 }
 

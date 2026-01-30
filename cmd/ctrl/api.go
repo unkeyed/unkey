@@ -90,7 +90,7 @@ var apiCmd = &cli.Command{
 		cli.String("regional-domain", "Domain for cross-region communication. Per-region wildcards created as *.{region}.{domain} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_DOMAIN")),
 
 		// Custom domain configuration
-		cli.String("cname-domain", "Base domain for custom domain CNAME targets (e.g., cname.unkey-dns.com)", cli.Required(), cli.EnvVar("UNKEY_CNAME_DOMAIN")),
+		cli.String("cname-domain", "Base domain for custom domain CNAME targets (e.g., unkey-dns.com)", cli.Required(), cli.EnvVar("UNKEY_CNAME_DOMAIN")),
 	},
 	Action: apiAction,
 }
