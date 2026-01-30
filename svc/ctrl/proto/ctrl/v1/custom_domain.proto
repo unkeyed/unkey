@@ -21,7 +21,7 @@ message AddCustomDomainRequest {
 
 message AddCustomDomainResponse {
   string domain_id = 1;
-  string target_cname = 2; // CNAME target user must configure (e.g., "cname.unkey-dns.com")
+  string target_cname = 2; // CNAME target user must configure (e.g., "xxxx.unkey-dns.com")
   CustomDomainStatus status = 3;
 }
 
