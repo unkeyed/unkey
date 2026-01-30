@@ -1,0 +1,250 @@
+---
+title: "Per-User Rate Limits"
+description: "Apply different rate limits based on user tier or plan"
+---
+
+Apply different rate limits to different users based on their subscription tier, role, or any other criteria. This recipe shows how to implement tiered rate limiting without hardcoding limits in your application.
+
+## The pattern
+
+```typescript
+// Define limits per tier
+const TIER_LIMITS = {
+  free: { limit: 100, duration: "1h" },
+  pro: { limit: 1000, duration: "1h" },
+  enterprise: { limit: 10000, duration: "1h" },
+};
+
+// Get user's tier and apply appropriate limit
+const tier = await getUserTier(userId);
+const config = TIER_LIMITS[tier];
+
+const { success } = await limiter.limit(userId, {
+  limit: config.limit,
+  duration: config.duration,
+});
+```
+
+## Full implementation
+
+### Next.js API Route
+
+```typescript
+// app/api/route.ts
+import { Ratelimit } from "@unkey/ratelimit";
+import { headers } from "next/headers";
+import { NextResponse } from "next/server";
+
+// Initialize with default limits (will be overridden per-request)
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "api",
+  limit: 100,
+  duration: "1h",
+});
+
+const TIER_LIMITS: Record<string, { limit: number; duration: string }> = {
+  free: { limit: 100, duration: "1h" },
+  pro: { limit: 1000, duration: "1h" },
+  enterprise: { limit: 10000, duration: "1h" },
+};
+
+async function getUserTier(userId: string): Promise<string> {
+  // Replace with your actual user lookup
+  // e.g., database query, auth provider, etc.
+  const user = await db.users.findUnique({ where: { id: userId } });
+  return user?.tier ?? "free";
+}
+
+export async function POST(request: Request) {
+  const headersList = headers();
+  const userId = headersList.get("x-user-id");
+
+  if (!userId) {
+    return NextResponse.json({ error: "Missing user ID" }, { status: 401 });
+  }
+
+  // Get user's tier
+  const tier = await getUserTier(userId);
+  const config = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
+
+  // Apply tier-specific rate limit
+  const { success, remaining, reset } = await limiter.limit(userId, {
+    limit: config.limit,
+    duration: config.duration as any,
+  });
+
+  if (!success) {
+    return NextResponse.json(
+      { 
+        error: "Rate limit exceeded",
+        tier,
+        reset: new Date(reset).toISOString(),
+      },
+      { 
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": config.limit.toString(),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": reset.toString(),
+        },
+      }
+    );
+  }
+
+  // Your API logic here
+  return NextResponse.json({
+    message: "Success",
+    tier,
+    remaining,
+  });
+}
+```
+
+### Express Middleware
+
+```typescript
+// middleware/ratelimit.ts
+import { Ratelimit } from "@unkey/ratelimit";
+import type { Request, Response, NextFunction } from "express";
+
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "api",
+  limit: 100,
+  duration: "1h",
+});
+
+const TIER_LIMITS: Record<string, { limit: number; duration: string }> = {
+  free: { limit: 100, duration: "1h" },
+  pro: { limit: 1000, duration: "1h" },
+  enterprise: { limit: 10000, duration: "1h" },
+};
+
+export function tieredRateLimit() {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.headers["x-user-id"] as string;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Missing user ID" });
+    }
+
+    // Get tier from your auth system
+    const tier = req.user?.tier ?? "free";
+    const config = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
+
+    const { success, remaining, reset } = await limiter.limit(userId, {
+      limit: config.limit,
+      duration: config.duration as any,
+    });
+
+    // Always set rate limit headers
+    res.set({
+      "X-RateLimit-Limit": config.limit.toString(),
+      "X-RateLimit-Remaining": remaining.toString(),
+      "X-RateLimit-Reset": reset.toString(),
+      "X-RateLimit-Tier": tier,
+    });
+
+    if (!success) {
+      return res.status(429).json({
+        error: "Rate limit exceeded",
+        tier,
+        retryAfter: Math.ceil((reset - Date.now()) / 1000),
+      });
+    }
+
+    next();
+  };
+}
+```
+
+## Using Unkey overrides (recommended)
+
+Instead of managing limits in your code, use [Unkey overrides](/ratelimiting/overrides) to set per-user limits dynamically:
+
+```typescript
+import { Ratelimit } from "@unkey/ratelimit";
+
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "api",
+  limit: 100,      // Default for free tier
+  duration: "1h",
+});
+
+// When a user upgrades to Pro, set an override
+await limiter.setOverride({
+  identifier: userId,
+  limit: 1000,
+  duration: "1h",
+});
+
+// Now this user automatically gets 1000/hour instead of 100
+const { success } = await limiter.limit(userId);
+```
+
+This approach means:
+- No code changes when limits change
+- Overrides can be managed via API or dashboard
+- Default limit applies to users without overrides
+
+## With API key verification
+
+If you're already using Unkey for API keys, attach rate limits directly to keys:
+
+```typescript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+
+// Create a Pro tier key with higher limits
+await unkey.keys.create({
+  apiId: "api_xxx",
+  name: "Pro User Key",
+  ratelimit: {
+    limit: 1000,
+    duration: 3600000, // 1 hour in ms
+  },
+  meta: {
+    tier: "pro",
+  },
+});
+
+// Verification automatically enforces the key's rate limit
+const { meta, data } = await unkey.keys.verify({ key: userKey });
+
+if (!data.valid) {
+  if (data.code === "RATE_LIMITED") {
+    // Key-specific limit exceeded
+  }
+}
+```
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Use identifiers consistently" icon="fingerprint">
+    Always use the same identifier format (user ID, org ID) for accurate limiting across requests.
+  </Card>
+  <Card title="Communicate limits clearly" icon="comment">
+    Return rate limit headers so clients know their limits and can back off gracefully.
+  </Card>
+  <Card title="Consider burst allowance" icon="bolt">
+    Pro/Enterprise users often expect some burst capacity. Consider slightly higher limits with shorter windows.
+  </Card>
+  <Card title="Log limit hits" icon="chart-line">
+    Track when users hit limits to inform pricing decisions and identify potential abuse.
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Overrides" icon="sliders" href="/ratelimiting/overrides">
+    Manage per-user limits without code changes
+  </Card>
+  <Card title="Tiered subscriptions" icon="layer-group" href="/cookbook/tiered-subscriptions">
+    Full subscription tier implementation
+  </Card>
+</CardGroup>

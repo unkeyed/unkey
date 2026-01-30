@@ -1,0 +1,335 @@
+---
+title: "Usage-Based Billing"
+description: "Track API usage per customer for metered billing"
+---
+
+Charge customers based on how much they use your API. This recipe shows how to track usage with Unkey's credits system and integrate with billing providers like Stripe.
+
+## The pattern
+
+```typescript
+// Create a key with monthly credits
+const key = await unkey.keys.create({
+  apiId: "api_xxx",
+  remaining: 10000,  // 10,000 API calls included
+  refill: {
+    interval: "monthly",
+    amount: 10000,
+  },
+});
+
+// Each verification decrements remaining
+const { meta, data } = await unkey.keys.verify({ key: userKey });
+
+if (!data.valid && data.code === "USAGE_EXCEEDED") {
+  // Prompt user to upgrade or pay for overage
+}
+
+// Check remaining credits
+console.log(data.credits); // 9,999 after first call
+```
+
+## Full implementation
+
+### Setting up usage tracking
+
+```typescript
+// lib/unkey.ts
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+
+interface CreateBillingKeyOptions {
+  customerId: string;
+  plan: "starter" | "growth" | "scale";
+  stripeCustomerId?: string;
+}
+
+const PLAN_CREDITS = {
+  starter: 1_000,
+  growth: 10_000,
+  scale: 100_000,
+};
+
+export async function createBillingKey(options: CreateBillingKeyOptions) {
+  const credits = PLAN_CREDITS[options.plan];
+
+  const { meta, data, error } = await unkey.keys.create({
+    apiId: process.env.UNKEY_API_ID!,
+    externalId: options.customerId, // Link to your user/org
+    name: `${options.plan} plan`,
+    remaining: credits,
+    refill: {
+      interval: "monthly",
+      amount: credits,
+    },
+    meta: {
+      plan: options.plan,
+      stripeCustomerId: options.stripeCustomerId,
+      createdAt: new Date().toISOString(),
+    },
+  });
+
+  if (error) throw error;
+  return data;
+}
+```
+
+### API route with usage tracking
+
+```typescript
+// app/api/route.ts
+import { verifyKey } from "@unkey/api";
+import { NextResponse } from "next/server";
+
+export async function POST(request: Request) {
+  const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
+  
+  if (!apiKey) {
+    return NextResponse.json({ error: "Missing API key" }, { status: 401 });
+  }
+
+  const { meta, data, error } = await verifyKey({
+    key: apiKey,
+    apiId: process.env.UNKEY_API_ID!,
+  });
+
+  if (error) {
+    return NextResponse.json({ error: "Verification failed" }, { status: 500 });
+  }
+
+  if (!data.valid) {
+    if (data.code === "USAGE_EXCEEDED") {
+      return NextResponse.json(
+        { 
+          error: "Usage limit exceeded",
+          remaining: 0,
+          message: "Please upgrade your plan or wait for monthly reset",
+        },
+        { status: 402 } // Payment Required
+      );
+    }
+    
+    return NextResponse.json(
+      { error: "Invalid API key", code: data.code },
+      { status: 401 }
+    );
+  }
+
+  // Include usage info in response headers
+  const response = NextResponse.json({ 
+    success: true,
+    // Your API response...
+  });
+  
+  response.headers.set("X-Usage-Remaining", (data.credits ?? 0).toString());
+  
+  return response;
+}
+```
+
+### Stripe integration for overages
+
+```typescript
+// lib/billing.ts
+import Stripe from "stripe";
+import { Unkey } from "@unkey/api";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+
+// Record overage usage in Stripe
+export async function recordOverage(keyId: string, amount: number) {
+  // Get the key to find the Stripe customer
+  const { data: key } = await unkey.keys.get({ keyId });
+  
+  if (!key?.meta?.stripeCustomerId) {
+    throw new Error("No Stripe customer linked to this key");
+  }
+
+  // Find or create a usage-based subscription item
+  const subscriptions = await stripe.subscriptions.list({
+    customer: key.meta.stripeCustomerId as string,
+    status: "active",
+  });
+
+  const subscription = subscriptions.data[0];
+  if (!subscription) {
+    throw new Error("No active subscription");
+  }
+
+  // Find the metered price item
+  const meteredItem = subscription.items.data.find(
+    (item) => item.price.recurring?.usage_type === "metered"
+  );
+
+  if (meteredItem) {
+    // Report usage to Stripe
+    await stripe.subscriptionItems.createUsageRecord(meteredItem.id, {
+      quantity: amount,
+      timestamp: Math.floor(Date.now() / 1000),
+      action: "increment",
+    });
+  }
+}
+
+// Webhook handler for when credits run out
+export async function handleUsageExceeded(keyId: string) {
+  const { data: key } = await unkey.keys.get({ keyId });
+  
+  if (key?.meta?.stripeCustomerId) {
+    // Option 1: Add overage credits and bill later
+    await unkey.keys.update({
+      keyId,
+      remaining: 1000, // Grant overage allowance
+    });
+    
+    await recordOverage(keyId, 1000);
+    
+    // Option 2: Or just notify and let them upgrade
+    // await sendUpgradeEmail(key.meta.email);
+  }
+}
+```
+
+### Usage dashboard endpoint
+
+```typescript
+// app/api/usage/route.ts
+import { Unkey } from "@unkey/api";
+import { NextResponse } from "next/server";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+
+export async function GET(request: Request) {
+  const customerId = request.headers.get("x-customer-id");
+  
+  if (!customerId) {
+    return NextResponse.json({ error: "Missing customer ID" }, { status: 401 });
+  }
+
+  // Get all keys for this customer
+  const { data } = await unkey.apis.listKeys({
+    apiId: process.env.UNKEY_API_ID!,
+    externalId: customerId,
+  });
+
+  if (!data?.keys.length) {
+    return NextResponse.json({ error: "No keys found" }, { status: 404 });
+  }
+
+  const key = data.keys[0];
+
+  return NextResponse.json({
+    plan: key.meta?.plan ?? "starter",
+    usage: {
+      remaining: key.remaining ?? 0,
+      limit: key.refill?.amount ?? 0,
+      used: (key.refill?.amount ?? 0) - (key.remaining ?? 0),
+      resetsAt: key.refill?.lastRefillAt 
+        ? new Date(new Date(key.refill.lastRefillAt).getTime() + 30 * 24 * 60 * 60 * 1000)
+        : null,
+    },
+  });
+}
+```
+
+## Plan upgrades
+
+When a customer upgrades, update their key:
+
+```typescript
+export async function upgradePlan(
+  keyId: string, 
+  newPlan: "starter" | "growth" | "scale"
+) {
+  const newCredits = PLAN_CREDITS[newPlan];
+  
+  // Get current usage
+  const { data: currentKey } = await unkey.keys.get({ keyId });
+  const currentRemaining = currentKey?.remaining ?? 0;
+  
+  // Option 1: Add the difference (pro-rated)
+  const creditsToAdd = newCredits - (currentKey?.refill?.amount ?? 0);
+  
+  await unkey.keys.update({
+    keyId,
+    remaining: currentRemaining + creditsToAdd,
+    refill: {
+      interval: "monthly",
+      amount: newCredits,
+    },
+    meta: {
+      ...currentKey?.meta,
+      plan: newPlan,
+      upgradedAt: new Date().toISOString(),
+    },
+  });
+
+  // Option 2: Reset to new plan's full credits
+  // await unkey.keys.update({
+  //   keyId,
+  //   remaining: newCredits,
+  //   refill: { interval: "monthly", amount: newCredits },
+  // });
+}
+```
+
+## Multi-resource tracking
+
+Track different types of usage separately:
+
+```typescript
+// Create a key with multiple rate limits as credit pools
+const { data } = await unkey.keys.create({
+  apiId: process.env.UNKEY_API_ID!,
+  externalId: customerId,
+  remaining: 10000, // General API calls
+  ratelimits: [
+    { name: "ai-tokens", limit: 100000, duration: 2592000000 }, // 30 days
+    { name: "storage-mb", limit: 5000, duration: 2592000000 },
+    { name: "exports", limit: 100, duration: 2592000000 },
+  ],
+  meta: { plan: "growth" },
+});
+
+// Check specific resource usage on verify
+const { data: verification } = await unkey.keys.verify({
+  key: userKey,
+  ratelimits: [
+    { name: "ai-tokens", cost: tokenCount },
+  ],
+});
+
+if (verification.ratelimits?.find(r => r.name === "ai-tokens")?.remaining === 0) {
+  return { error: "AI token quota exceeded" };
+}
+```
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Use refill wisely" icon="rotate">
+    Monthly refills keep usage tracking simple. For different billing cycles, adjust the interval.
+  </Card>
+  <Card title="Handle overages gracefully" icon="hand-holding-dollar">
+    Don't just cut users off. Offer overage billing or soft limits with warnings.
+  </Card>
+  <Card title="Show usage prominently" icon="gauge">
+    Let users see their usage in your dashboard. Nobody likes surprise bills.
+  </Card>
+  <Card title="Sync with your billing provider" icon="arrows-rotate">
+    Use webhooks to keep Stripe/Paddle usage records in sync with Unkey.
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Tiered subscriptions" icon="layer-group" href="/cookbook/tiered-subscriptions">
+    Complete Free/Pro/Enterprise implementation
+  </Card>
+  <Card title="Credits & refill" icon="coins" href="/apis/features/remaining">
+    Deep dive into Unkey's credit system
+  </Card>
+</CardGroup>

@@ -1,69 +1,136 @@
 ---
-title: Welcome to Unkey
-description: API management redefined
+title: What is Unkey?
+description: The API development platform for modern teams
 mode: "wide"
 ---
 
-Unkey provides an easy to use API management platform, including API key management, standalone ratelimiting and LLM caching.
+Unkey is the API development platform that handles the infrastructure you'd rather not build yourself: **API key management**, **rate limiting**, and **usage tracking** — all with global performance and zero servers to manage.
 
-## New to Unkey?
+<CardGroup cols={3}>
+  <Card title="API Keys" icon="key">
+    Issue, verify, and revoke keys with metadata, expiration, and usage limits built in.
+  </Card>
+  <Card title="Rate Limiting" icon="gauge-high">
+    Protect any endpoint from abuse — standalone or attached to API keys.
+  </Card>
+  <Card title="Usage Tracking" icon="chart-line">
+    Know who's using your API, how much, and when — with analytics out of the box.
+  </Card>
+</CardGroup>
 
-Start using Unkey with your existing project, or start from scratch.
+## Why Unkey?
+
+Building API infrastructure from scratch means managing databases, Redis clusters, edge caching, and analytics pipelines. Unkey handles all of that so you can focus on your actual product.
+
+| DIY Approach | With Unkey |
+|--------------|------------|
+| Set up key storage, hashing, rotation | `unkey.keys.create()` |
+| Deploy Redis for rate limiting | `unkey.ratelimit.limit()` |
+| Build usage tracking & dashboards | Built-in analytics |
+| Manage infrastructure globally | Globally distributed |
+
+<Note>
+Unkey never stores your API keys in plain text. We hash them before storage, so even if our database were compromised, your keys stay safe.
+</Note>
+
+## What can you build?
+
+<AccordionGroup>
+  <Accordion title="Protect a public API" icon="shield-halved">
+    Issue API keys to your users, verify them on every request, and automatically reject invalid or expired keys.
+    
+    ```ts
+    const { data } = await unkey.keys.verify({ key: "sk_123..." });
+    if (!data.valid) return new Response("Unauthorized", { status: 401 });
+    ```
+  </Accordion>
+  
+  <Accordion title="Rate limit anything" icon="gauge">
+    Limit requests per user, per IP, per endpoint — or any identifier you choose. No Redis required.
+    
+    ```ts
+    const { success } = await limiter.limit(userId);
+    if (!success) return new Response("Too many requests", { status: 429 });
+    ```
+  </Accordion>
+  
+  <Accordion title="Usage-based billing" icon="receipt">
+    Track API usage per customer with credit limits and automatic refills. Perfect for tiered pricing.
+    
+    ```ts
+    // Create a key with 1000 credits/month that refills automatically
+    await unkey.keys.create({
+      apiId: "api_...",
+      credits: {
+        remaining: 1000,
+        refill: { interval: "monthly", amount: 1000 }
+      }
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Multi-tenant rate limits" icon="building">
+    Use Identities to group keys under users or organizations, sharing rate limits across all their keys.
+    
+    ```ts
+    // All keys for this identity share the same rate limit pool
+    await unkey.keys.create({
+      apiId: "api_...",
+      externalId: "org_acme",
+      ratelimits: [{ name: "requests", limit: 10000, duration: 3600000 }]
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Get started
 
 <CardGroup cols={2}>
   <Card
     title="Quickstart"
-    icon="bolt-lightning"
-    href="/quickstart"
+    icon="rocket"
+    href="/quickstart/quickstart"
   >
-    Get started with Unkey with your favorite language.
+    Create your first API and verify a key in under 5 minutes.
   </Card>
   <Card
-    title="API Keys"
-    icon="file-lock"
-    href="/apis/introduction"
+    title="Framework guides"
+    icon="code"
+    href="/quickstart/apis/nextjs"
   >
-    Learn how to use API Keys to protect, and scale your APIs
-  </Card>
-  <Card
-    title="Standalone Ratelimiting"
-    icon="shield"
-    href="/ratelimiting/introduction"
-  >
-    Protect public or private endpoints
+    Step-by-step guides for Next.js, Bun, Express, Hono, and more.
   </Card>
 </CardGroup>
 
-## Start building
-
-Ready to use Unkey to power your API?
+## Choose your path
 
 <CardGroup cols={2}>
-  <Card title="Unkey API Reference" icon="database" href="/api-reference">
-     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+  <Card title="I need API key authentication" icon="key" href="/apis/introduction">
+    Issue keys to users, verify on requests, track usage per key.
   </Card>
-  <Card title="SDKs" icon="brackets-curly" href="/libraries">
-   Integrate Unkey into your application with one of our SDKs
+  <Card title="I need rate limiting" icon="gauge-high" href="/ratelimiting/introduction">
+    Protect endpoints from abuse without managing Redis infrastructure.
   </Card>
-  <Card title="Tutorials" icon="code" href="https://www.unkey.com/blog?tag=tutorials">
-    Learn how to work with Unkey through tutorials
+  <Card title="I need both" icon="bolt" href="/quickstart/quickstart">
+    Start with API keys — rate limiting can be added per-key or standalone.
+  </Card>
+  <Card title="I'm migrating from another solution" icon="arrows-rotate" href="/migrations/introduction">
+    Bring existing keys to Unkey without disrupting your users.
   </Card>
 </CardGroup>
 
 ## Join the community
 
-Join the Unkey community to ask questions, discuss best practices, and share tips.
+Questions? Ideas? Just want to hang out with other API builders?
 
 <CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord" />
-  <Card
-    title="GitHub"
-    icon="github"
-    href="https://github.com/unkeyed"
-  ></Card>
-  <Card
-    title="Twitter / X"
-    icon="x-twitter"
-    href="https://x.com/unkeydev"
-  ></Card>
+  <Card title="Discord" icon="discord" href="https://unkey.com/discord">
+    Chat with the team and community
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/unkeyed/unkey">
+    Star us, report issues, contribute
+  </Card>
+  <Card title="Twitter / X" icon="x-twitter" href="https://x.com/unkeydev">
+    Follow for updates
+  </Card>
 </CardGroup>

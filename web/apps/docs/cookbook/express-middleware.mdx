@@ -1,0 +1,362 @@
+---
+title: "Express Middleware"
+description: "Reusable API key authentication middleware for Express"
+---
+
+A production-ready middleware pattern for Express applications.
+
+## Install
+
+```bash
+npm install @unkey/api express
+```
+
+## Basic Middleware
+
+```typescript middleware/auth.ts
+import { verifyKey, VerifyKeyResult } from "@unkey/api";
+import { Request, Response, NextFunction } from "express";
+
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      unkey?: VerifyKeyResult;
+    }
+  }
+}
+
+export async function unkeyAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  // 1. Extract API key
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing API key" });
+  }
+  
+  const apiKey = authHeader.slice(7);
+
+  // 2. Verify with Unkey (v2 returns { meta, data, error })
+  const { meta, data, error } = await verifyKey({
+    key: apiKey,
+    apiId: process.env.UNKEY_API_ID!,
+  });
+
+  // 3. Handle errors
+  if (error) {
+    console.error("Unkey error:", error);
+    return res.status(503).json({ error: "Authentication service unavailable" });
+  }
+
+  // 4. Check validity
+  if (!data.valid) {
+    const status = data.code === "RATE_LIMITED" ? 429 : 401;
+    return res.status(status).json({ error: data.code });
+  }
+
+  // 5. Attach to request and continue
+  req.unkey = data;
+  next();
+}
+```
+
+## Use the Middleware
+
+```typescript app.ts
+import express from "express";
+import { unkeyAuth } from "./middleware/auth";
+
+const app = express();
+
+// Public routes
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// Protected routes
+app.get("/api/data", unkeyAuth, (req, res) => {
+  // Access verification result
+  const { identity, meta, remaining } = req.unkey!;
+  
+  res.json({
+    message: "Access granted",
+    user: identity?.externalId,
+    plan: meta?.plan,
+    creditsRemaining: remaining,
+  });
+});
+
+// Protect entire router
+const apiRouter = express.Router();
+apiRouter.use(unkeyAuth);
+
+apiRouter.get("/users", (req, res) => {
+  res.json({ users: [] });
+});
+
+apiRouter.post("/users", (req, res) => {
+  res.json({ created: true });
+});
+
+app.use("/api/v1", apiRouter);
+
+app.listen(3000);
+```
+
+---
+
+## With Rate Limit Headers
+
+Include rate limit info in response headers:
+
+```typescript middleware/auth.ts
+export async function unkeyAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing API key" });
+  }
+
+  const { meta, data, error } = await verifyKey({
+    key: authHeader.slice(7),
+    apiId: process.env.UNKEY_API_ID!,
+  });
+
+  if (error) {
+    return res.status(503).json({ error: "Service unavailable" });
+  }
+
+  // Add rate limit headers if available (v2 uses ratelimits array)
+  if (data.ratelimits?.[0]) {
+    const rl = data.ratelimits[0];
+    res.set({
+      "X-RateLimit-Limit": rl.limit.toString(),
+      "X-RateLimit-Remaining": rl.remaining.toString(),
+      "X-RateLimit-Reset": rl.reset.toString(),
+    });
+  }
+
+  // Add remaining credits header if available
+  if (data.credits !== undefined) {
+    res.set("X-Credits-Remaining", data.credits.toString());
+  }
+
+  if (!data.valid) {
+    const status = data.code === "RATE_LIMITED" ? 429 : 401;
+    return res.status(status).json({ error: data.code });
+  }
+
+  req.unkey = data;
+  next();
+}
+```
+
+---
+
+## Permission-Based Access
+
+Create middleware that requires specific permissions:
+
+```typescript middleware/permissions.ts
+import { verifyKey } from "@unkey/api";
+import { Request, Response, NextFunction } from "express";
+
+export function requirePermission(permission: string) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing API key" });
+    }
+
+    const { meta, data, error } = await verifyKey({
+      key: authHeader.slice(7),
+      apiId: process.env.UNKEY_API_ID!,
+      permissions: permission,  // Check for this permission
+    });
+
+    if (error) {
+      return res.status(503).json({ error: "Service unavailable" });
+    }
+
+    if (!data.valid) {
+      if (data.code === "INSUFFICIENT_PERMISSIONS") {
+        return res.status(403).json({ 
+          error: "Forbidden",
+          required: permission,
+        });
+      }
+      return res.status(401).json({ error: data.code });
+    }
+
+    req.unkey = data;
+    next();
+  };
+}
+```
+
+Use it:
+
+```typescript
+// Anyone with a valid key
+app.get("/api/data", unkeyAuth, handler);
+
+// Only keys with "admin" permission
+app.delete("/api/users/:id", requirePermission("admin"), deleteUser);
+
+// Only keys with "billing.read" permission
+app.get("/api/invoices", requirePermission("billing.read"), getInvoices);
+```
+
+---
+
+## Configurable Middleware Factory
+
+Create a flexible middleware that can be configured per-route:
+
+```typescript middleware/auth.ts
+import { verifyKey, VerifyKeyResult } from "@unkey/api";
+import { Request, Response, NextFunction } from "express";
+
+interface AuthOptions {
+  apiId?: string;
+  permissions?: string;
+  getKey?: (req: Request) => string | null;
+  onError?: (req: Request, res: Response, error: Error) => void;
+  onInvalid?: (req: Request, res: Response, result: VerifyKeyResult) => void;
+}
+
+export function createAuthMiddleware(options: AuthOptions = {}) {
+  const {
+    apiId = process.env.UNKEY_API_ID!,
+    permissions,
+    getKey = (req) => req.headers.authorization?.slice(7) ?? null,
+    onError = (req, res) => res.status(503).json({ error: "Service unavailable" }),
+    onInvalid = (req, res, result) => res.status(401).json({ error: result.code }),
+  } = options;
+
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const apiKey = getKey(req);
+    
+    if (!apiKey) {
+      return res.status(401).json({ error: "Missing API key" });
+    }
+
+    const { meta, data, error } = await verifyKey({
+      key: apiKey,
+      apiId,
+      permissions,
+    });
+
+    if (error) {
+      return onError(req, res, error);
+    }
+
+    if (!data.valid) {
+      return onInvalid(req, res, data);
+    }
+
+    req.unkey = data;
+    next();
+  };
+}
+
+// Pre-configured middlewares
+export const unkeyAuth = createAuthMiddleware();
+
+export const adminAuth = createAuthMiddleware({
+  permissions: "admin",
+  onInvalid: (req, res, result) => {
+    if (result.code === "INSUFFICIENT_PERMISSIONS") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    return res.status(401).json({ error: result.code });
+  },
+});
+```
+
+---
+
+## Error Handling
+
+Graceful degradation when Unkey is unavailable:
+
+```typescript middleware/auth.ts
+export async function unkeyAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const apiKey = req.headers.authorization?.slice(7);
+  
+  if (!apiKey) {
+    return res.status(401).json({ error: "Missing API key" });
+  }
+
+  try {
+    const { meta, data, error } = await verifyKey({
+      key: apiKey,
+      apiId: process.env.UNKEY_API_ID!,
+    });
+
+    if (error) {
+      // Log for monitoring
+      console.error("Unkey verification error:", error);
+      
+      // Option 1: Fail closed (more secure)
+      return res.status(503).json({ error: "Authentication unavailable" });
+      
+      // Option 2: Fail open (better availability, less secure)
+      // console.warn("Allowing request due to Unkey unavailability");
+      // return next();
+    }
+
+    if (!data.valid) {
+      return res.status(401).json({ error: data.code });
+    }
+
+    req.unkey = data;
+    next();
+    
+  } catch (e) {
+    console.error("Unexpected auth error:", e);
+    return res.status(503).json({ error: "Authentication service error" });
+  }
+}
+```
+
+---
+
+## TypeScript Setup
+
+```typescript types/express.d.ts
+import { VerifyKeyResult } from "@unkey/api";
+
+declare global {
+  namespace Express {
+    interface Request {
+      unkey?: VerifyKeyResult;
+    }
+  }
+}
+
+export {};
+```
+
+Make sure to include this in your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "typeRoots": ["./node_modules/@types", "./types"]
+  }
+}
+```

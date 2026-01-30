@@ -1,15 +1,106 @@
 ---
-title: 'Overview'
-description: 'How does Unkey work? What security measures are in place?'
-mode: "wide"
+title: 'Security Overview'
+description: 'How Unkey protects your API keys and data'
 ---
 
-## Why is Unkey secure? What makes it secure?
+Security is foundational to Unkey. We handle API keys for your production systems, so we take this responsibility seriously.
 
-Unkey is secure because we never store the API Key in our database. Instead we store a hash of the API Key. This means that even if our database is compromised, your API Keys are safe. You should follow a similar pattern in your own applications by providing the API key to your user and not storing it in your database either.
+## Key security principles
 
-We manage the keys by using the unique id that each key is given when it is created. This id allows you as developer to update or delete the key, but this id cannot be used to verify the key.
+<CardGroup cols={2}>
+  <Card title="Keys are never stored in plaintext" icon="lock">
+    We hash your API keys before storage. Even if our database were compromised, attackers couldn't recover the original keys.
+  </Card>
+  <Card title="You control the lifecycle" icon="key">
+    Create, rotate, and revoke keys instantly. Changes propagate globally within seconds.
+  </Card>
+  <Card title="Minimal permissions by default" icon="shield-halved">
+    Root keys use explicit permissions. Grant only what's needed for each use case.
+  </Card>
+  <Card title="Audit everything" icon="scroll">
+    Every key operation is logged. Know who did what, when, from where.
+  </Card>
+</CardGroup>
 
-## Where are API keys stored?
+## How API key storage works
 
-We don't store API Keys, we store a hash of the API Key (sha256). This is then stored in our database. When you attempt to verify the API Key, we hash the API Key you provide and compare it to the hash we have stored. If they match, then the API Key is valid.
+When you create an API key through Unkey:
+
+<Steps>
+  <Step title="Key generation">
+    We generate a cryptographically random key (e.g., `sk_live_abc123xyz...`)
+  </Step>
+  <Step title="Key returned to you (once)">
+    The plaintext key is returned in the API response. **This is the only time you'll see it.**
+  </Step>
+  <Step title="Hash stored">
+    We compute a SHA-256 hash of the key and store only the hash in our database.
+  </Step>
+  <Step title="Verification">
+    When a key is verified, we hash the provided key and compare it to the stored hash. Match = valid.
+  </Step>
+</Steps>
+
+```
+Your key:    sk_live_abc123xyz789...
+Stored:      a3f2b8c9d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1
+                     ↑ SHA-256 hash (cannot be reversed)
+```
+
+<Note>
+This is the same approach used by GitHub, Stripe, and other security-conscious platforms. Even with full database access, an attacker cannot recover your original keys.
+</Note>
+
+## Root keys
+
+Root keys authenticate your requests to the Unkey API itself. They're how you create, manage, and verify API keys programmatically.
+
+**Best practices:**
+
+- Use separate root keys for different environments (dev, staging, production)
+- Grant minimal permissions — only what each service needs
+- Rotate root keys periodically
+- Never commit root keys to version control
+
+[Learn more about root keys →](/security/root-keys)
+
+## Infrastructure security
+
+| Layer | Protection |
+|-------|-----------|
+| **Transport** | All API traffic uses TLS 1.3. No plaintext connections accepted. |
+| **Infrastructure** | Requests are processed across our globally distributed infrastructure, with DDoS protection. |
+| **Database** | Encrypted at rest and in transit. Regular backups with point-in-time recovery. |
+| **Access** | Internal access requires multi-factor authentication and is logged. |
+
+## Compliance & certifications
+
+We're actively working toward SOC 2 Type II certification. If you have specific compliance requirements, [contact us](mailto:support@unkey.dev) to discuss.
+
+## Responsible disclosure
+
+Found a security issue? We appreciate responsible disclosure.
+
+- Email: [security@unkey.dev](mailto:security@unkey.dev)
+- Please include steps to reproduce
+- We'll acknowledge within 48 hours
+
+## More security features
+
+<CardGroup cols={2}>
+  <Card title="Root Key Permissions" icon="user-shield" href="/security/root-keys">
+    Fine-grained access control for your root keys
+  </Card>
+  <Card title="IP Whitelisting" icon="filter" href="/apis/features/whitelist">
+    Restrict key verification to specific IP ranges
+  </Card>
+  <Card title="Key Recovery" icon="rotate" href="/security/recovering-keys">
+    What to do if a key is compromised
+  </Card>
+  <Card title="GitHub Scanning" icon="github" href="/security/github-scanning">
+    Automatic detection of leaked keys in public repos
+  </Card>
+  <Card title="Delete Protection" icon="trash-can-slash" href="/security/delete-protection">
+    Prevent accidental deletion of critical keys
+  </Card>
+</CardGroup>

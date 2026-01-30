@@ -1,106 +1,186 @@
 ---
-title: Overview
-description: Protect your public APIs
-mode: "wide"
+title: API Key Management
+description: Issue, verify, and manage API keys at scale
 ---
 
-Unkey provides a simple feature rich API key management system. You can use Unkey to protect your public APIs with ease. Below is an example of implementing Unkey in your API.
+API keys are the most common way to authenticate requests to your API. Unkey handles the entire lifecycle — creating keys, verifying them on every request, tracking usage, and revoking them when needed — so you can focus on your actual API logic.
+
+## When to use API keys
+
+API keys work best when you need:
+
+- **Machine-to-machine authentication** — Backend services, scripts, or integrations calling your API
+- **Usage tracking per customer** — Know who's making requests and how many
+- **Simple integration** — A single header (`Authorization: Bearer sk_...`) that developers understand
+- **Granular control** — Per-key rate limits, expiration, and permissions
+
+<Note>
+For user-facing authentication (login flows, sessions), you'll typically use OAuth, JWTs, or an auth provider like Clerk or Auth0 alongside Unkey. Unkey handles the API key layer, not user sessions.
+</Note>
+
+## How it works
+
+<Steps>
+  <Step title="Create an API in Unkey">
+    An "API" in Unkey is a container for keys. You might have separate APIs for "Production" and "Staging", or for different products.
+  </Step>
+  <Step title="Issue keys to users">
+    When a user signs up or requests API access, create a key for them. You can attach metadata (user ID, plan tier), set limits, and configure expiration.
+  </Step>
+  <Step title="Verify on every request">
+    When a request hits your API, extract the key from the header and verify it with Unkey. We'll tell you if it's valid, who it belongs to, and how many requests they have left.
+  </Step>
+  <Step title="Manage the lifecycle">
+    Revoke keys when users churn. Rotate keys when security requires it. Update limits when users upgrade. All through the dashboard or API.
+  </Step>
+</Steps>
+
+## Quick example
+
+Here's what verification looks like in practice:
 
 <CodeGroup>
 
-```ts Typescript
-import { Unkey } from "@unkey/api";
+```ts TypeScript
+import { verifyKey } from "@unkey/api";
 
-const unkey = new Unkey({
-  rootKey: process.env["UNKEY_ROOT_KEY"] ?? "",
-});
+export async function handler(req: Request) {
+  // 1. Extract the key from the Authorization header
+  const key = req.headers.get("Authorization")?.replace("Bearer ", "");
+  
+  if (!key) {
+    return new Response("Missing API key", { status: 401 });
+  }
 
-async function run() {
-  const result = await unkey.keys.verifyKey({
-    key: "sk_1234abcdef"
-  });
+  // 2. Verify with Unkey (v2 returns { meta, data, error })
+  const { meta, data, error } = await verifyKey({ key });
 
-  console.log(result);
+  if (error) {
+    // Network error — decide how to handle (fail open/closed)
+    console.error(error);
+    return new Response("Service unavailable", { status: 503 });
+  }
+
+  if (!data.valid) {
+    // Key is invalid, expired, rate limited, or has no remaining uses
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  // 3. Key is valid — data contains useful metadata
+  console.log(`Request from: ${data.identity?.externalId}`);
+  console.log(`Remaining credits: ${data.remaining}`);
+  
+  // Continue with your API logic...
+  return new Response("Hello!");
 }
 ```
 
-```py Python
-from unkey.py import Unkey
+```python Python
+from unkey import Unkey
 
+unkey = Unkey(root_key="unkey_...")
 
-with Unkey(root_key="<YOUR_BEARER_TOKEN_HERE>") as unkey:
-
-    res = unkey.keys.verify_key(key="sk_1234abcdef")
-
-    # Handle response
-    print(res)
-
+def handler(request):
+    key = request.headers.get("Authorization", "").replace("Bearer ", "")
+    
+    if not key:
+        return Response("Missing API key", status=401)
+    
+    result = unkey.keys.verify_key(key=key)
+    
+    if not result.valid:
+        return Response("Unauthorized", status=401)
+    
+    # Key is valid — continue with your API logic
+    return Response("Hello!")
 ```
-```go Golang
+
+```go Go
 package main
 
-import(
-	"context"
-	"os"
-	unkey "github.com/unkeyed/sdks/api/go/v2"
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"log"
+import (
+    "context"
+    "net/http"
+    unkey "github.com/unkeyed/sdks/api/go/v2"
 )
 
-func main() {
-    ctx := context.Background()
-
-    s := unkey.New(
-        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
-    )
-
-    res, err := s.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
-        Key: "sk_1234abcdef"
+func handler(w http.ResponseWriter, r *http.Request) {
+    key := r.Header.Get("Authorization")
+    
+    client := unkey.New(unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")))
+    
+    res, err := client.Keys.VerifyKey(context.Background(), components.V2KeysVerifyKeyRequestBody{
+        Key: key,
     })
-    if err != nil {
-        log.Fatal(err)
+    
+    if err != nil || !res.Valid {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
     }
-    if res.V2KeysVerifyKeyResponseBody != nil {
-        // handle response
-    }
+    
+    w.Write([]byte("Hello!"))
 }
 ```
-```bash cURL
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.verifyKey \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "key": "sk_1234"
-  }'
-```
 
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Content-Type: application/json" \
+  -d '{"key": "sk_1234..."}'
+```
 
 </CodeGroup>
 
+## What you get with each verification
+
+When you verify a key, Unkey returns:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the key passed all checks |
+| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
+| `keyId` | `string` | The key's unique identifier |
+| `name` | `string?` | Human-readable name of the key |
+| `meta` | `object?` | Custom metadata associated with the key |
+| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
+| `credits` | `number?` | Remaining uses (if usage limits set) |
+| `enabled` | `boolean` | Whether the key is enabled |
+| `roles` | `string[]?` | Permissions attached to the key |
+| `permissions` | `string[]?` | Permissions attached to the key |
+| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
+| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+
 ## Features
 
-Below are some of the key features of Unkey API key management system, for you to explore.
+Unkey keys support much more than basic authentication:
 
 <CardGroup cols={2}>
-  <Card title="Ratelimiting" href="/apis/features/ratelimiting"  >
-   Key based ratelimiting
+  <Card title="Rate limiting" icon="gauge-high" href="/apis/features/ratelimiting/overview">
+    Limit requests per key — per second, minute, hour, or any window.
   </Card>
-  <Card title="Usage limited keys"  href="/apis/features/remaining">
-    Set usage limits per key
+  <Card title="Usage limits" icon="calculator" href="/apis/features/remaining">
+    Cap total requests per key. Perfect for API credits or trial limits.
   </Card>
-   <Card title="Temporary Keys"  href="/apis/features/temp-keys">
-    Keys that expire after a set time
+  <Card title="Auto-refill" icon="arrows-rotate" href="/apis/features/refill">
+    Automatically restore usage limits on a schedule (daily, monthly, etc).
   </Card>
-  <Card title="Refillable Keys"  href="/apis/features/refill">
-   Refill your remaining keys on a set schedule
- </Card>
- <Card title="Analytics"  href="/apis/features/analytics">
-  Rich analytics on your API and keys
-</Card>
-<Card title="Environments"  href="/apis/features/environments">
- Separate your keys into live and test environments
-</Card>
-<Card title="Authorization"  href="/apis/features/authorization/introduction">
- Access Control with Roles and Permissions
-</Card>
-  </CardGroup>
+  <Card title="Expiration" icon="clock" href="/apis/features/temp-keys">
+    Create keys that automatically expire after a set time.
+  </Card>
+  <Card title="Permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+    Attach roles and permissions for fine-grained access control.
+  </Card>
+  <Card title="Analytics" icon="chart-line" href="/apis/features/analytics">
+    See usage patterns, top consumers, and verification trends.
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart: API Keys" icon="rocket" href="/quickstart/apis/nextjs">
+    Full walkthrough for Next.js, Bun, Express, or Hono.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/v2/overview">
+    All endpoints for creating, updating, and managing keys.
+  </Card>
+</CardGroup>

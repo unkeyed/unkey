@@ -1,138 +1,255 @@
 ---
 title: Express
-description: Authentication for your Express server
-mode: "wide"
+description: Protect your Express API routes with Unkey
 ---
+
+## What you'll build
+
+An Express server with a protected `/secret` route that requires a valid API key. Requests without a valid key get rejected with a 401.
+
+**Time to complete:** ~5 minutes
 
 ## Prerequisites
 
-- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
-- Created an API in the [Unkey dashboard](https://app.unkey.com/apis)
+- [Unkey account](https://app.unkey.com/auth/sign-up) (free)
+- [API created](https://app.unkey.com/apis) in your Unkey dashboard
+- Node.js 18+
 
-<Card
-  title="Skip the tutorial"
-  icon="link"
-  href="https://github.com/unkeyed/examples/tree/main/express"
->
-  Don't want to read the tutorial? Click this to get an example ready to test.
+<Card title="Want to skip ahead?" icon="github" href="https://github.com/unkeyed/examples/tree/main/express">
+  Clone the complete example and run it locally.
 </Card>
-
-## Creating an express server
 
 <Steps titleSize="h3">
 
-<Step title="Create express application">
-
-First run the following:
+<Step title="Create your Express app">
 
 ```bash
-mkdir unkey-with-express
+mkdir unkey-express && cd unkey-express
 npm init -y
-npm install cors dotenv express ts-node
-npm install -D @types/cors @types/express ts-node-dev typescript
-```
-
-Then update your package.json to have the following
-
-```json
-"scripts": {
-    "start": "ts-node ./index.ts",
-    "build": "tsc",
-    "serve": "node dist/index.js"
-  },
+npm install express @unkey/api dotenv
 ```
 
 </Step>
 
-<Step title="Install">
+<Step title="Add your root key">
 
-Now install the `@unkey/api` package
+Get a root key from [Settings → Root Keys](https://app.unkey.com/settings/root-keys) and create a `.env` file:
 
-```bash
-npm install @unkey/api
+```bash .env
+UNKEY_ROOT_KEY="unkey_..."
+UNKEY_API_ID="api_..."
 ```
+
+<Warning>
+Never commit your `.env` file. Add it to `.gitignore`.
+</Warning>
 
 </Step>
 
-<Step title="Creating the server">
+<Step title="Create your server">
 
-Create a file called `server.ts` and add the following code
+Create `index.js` with a protected route:
 
-```ts server.ts
-import express, { Request, Response, Application } from "express";
-import dotenv from "dotenv";
-import { Unkey } from "@unkey/api";
-//For env File
-dotenv.config();
+```js index.js
+const express = require("express");
+const { verifyKey } = require("@unkey/api");
+require("dotenv").config();
 
-const app: Application = express();
-const port = process.env.PORT || 8000;
-const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY }); // copy this from the dashboard
+const app = express();
+const port = process.env.PORT || 3000;
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Welcome to Express & TypeScript Server");
+// Public route
+app.get("/", (req, res) => {
+  res.json({ message: "Welcome! Try /secret with an API key." });
 });
 
-// This endpoint is protected by Unkey
-app.get("/secret", async (req: Request, res: Response) => {
-  const authHeader = req.headers["authorization"];
-  const key = authHeader?.toString().replace("Bearer ", "");
+// Protected route
+app.get("/secret", async (req, res) => {
+  // 1. Extract the key from the Authorization header
+  const authHeader = req.headers.authorization;
+  const key = authHeader?.replace("Bearer ", "");
+
   if (!key) {
-    return res.status(401).send("Unauthorized");
+    return res.status(401).json({ error: "Missing API key" });
   }
 
-  const result = await unkey.key.sverifyKey({ key });
+  // 2. Verify with Unkey (v2 returns { meta, data, error })
+  const { meta, data, error } = await verifyKey({ key });
 
-  if (!result.data.valid) {
-    res.status(401);
-    return res.status(401).send("Unauthorized");
+  if (error) {
+    // Network error or Unkey service issue
+    console.error(error.message);
+    return res.status(500).json({ error: "Could not verify key" });
   }
 
-  return res.status(200).send(JSON.stringify(result));
+  if (!data.valid) {
+    // Key is invalid, expired, rate limited, etc.
+    return res.status(401).json({ 
+      error: "Invalid API key",
+      code: data.code 
+    });
+  }
+
+  // 3. Key is valid — return protected data
+  res.json({
+    message: "Welcome to the secret route!",
+    keyId: data.keyId,
+    // Include any metadata you attached to the key
+    identity: data.identity,
+  });
 });
+
 app.listen(port, () => {
-  console.log(`Server is listening at http://localhost:${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 });
 ```
 
 </Step>
 
-<Step  title="Running the server">
+<Step title="Start your server">
 
 ```bash
-npm run start
+node index.js
 ```
 
 </Step>
 
-<Step  title="Try it out">
+<Step title="Test it">
 
-Go to https://app.unkey.com and create a new key. Then verify it with our new server:
+First, create a test key in your [Unkey dashboard](https://app.unkey.com), then:
 
-```bash
-curl 'http://localhost:8000/secret' \
-  -H 'Authorization:Bearer <YOUR_KEY>'
+```bash Test with valid key
+curl http://localhost:3000/secret \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-It should return `{"keyId":"key_id","valid":true,"meta":{},"enabled":true,"permissions":[],"code":"VALID"}` and potentially more information about the key, depending on what you set up in the dashboard.
+You should see:
+```json
+{
+  "message": "Welcome to the secret route!",
+  "keyId": "key_...",
+  "identity": null
+}
+```
+
+Now try without a key:
+```bash Test without key
+curl http://localhost:3000/secret
+```
+
+You'll get:
+```json
+{
+  "error": "Missing API key"
+}
+```
 
 </Step>
 
 </Steps>
 
-## What is next?
+## What's in `data`?
 
-Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+After successful verification, `data` contains:
 
-<CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">
-    Join our Discord to chat with us and the community
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the key passed all checks |
+| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
+| `keyId` | `string` | The key's unique identifier |
+| `name` | `string?` | Human-readable name of the key |
+| `meta` | `object?` | Custom metadata associated with the key |
+| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
+| `credits` | `number?` | Remaining uses (if usage limits set) |
+| `enabled` | `boolean` | Whether the key is enabled |
+| `roles` | `string[]?` | Permissions attached to the key |
+| `permissions` | `string[]?` | Permissions attached to the key |
+| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
+| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+
+## Using as middleware
+
+For cleaner code, extract verification into middleware:
+
+```js middleware/auth.js
+const { verifyKey } = require("@unkey/api");
+
+async function unkeyAuth(req, res, next) {
+  const key = req.headers.authorization?.replace("Bearer ", "");
+
+  if (!key) {
+    return res.status(401).json({ error: "Missing API key" });
+  }
+
+  const { meta, data, error } = await verifyKey({ key });
+
+  if (error || !data.valid) {
+    return res.status(401).json({ error: "Invalid API key" });
+  }
+
+  // Attach key info to request for use in route handlers
+  req.unkey = data;
+  next();
+}
+
+module.exports = { unkeyAuth };
+```
+
+Then use it on any route:
+
+```js
+const { unkeyAuth } = require("./middleware/auth");
+
+app.get("/secret", unkeyAuth, (req, res) => {
+  // req.unkey contains the verification result
+  res.json({ message: "Secret data", keyId: req.unkey.keyId });
+});
+
+app.get("/another-secret", unkeyAuth, (req, res) => {
+  res.json({ data: "More protected content" });
+});
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Add rate limiting" icon="gauge-high" href="/apis/features/ratelimiting/overview">
+    Limit requests per key
   </Card>
-  <Card title="Unkey API Reference" icon="database" href="/api-reference">
-    Learn about our API that helps you manage APIs, keys, ratelimits and
-    analytical data.
+  <Card title="Set usage limits" icon="calculator" href="/apis/features/remaining">
+    Cap total requests per key
   </Card>
-  <Card title="SDKs" icon="brackets-curly" href="/libraries">
-    Check out our SDKs and how they fit into your Express application.
+  <Card title="Add permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+    Fine-grained access control
+  </Card>
+  <Card title="SDK Reference" icon="book" href="/libraries/ts/api">
+    Full TypeScript SDK docs
   </Card>
 </CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Getting 401 even with a valid key?">
+    - Ensure the key hasn't expired or been revoked
+    - Verify the `Authorization` header format: `Bearer YOUR_KEY` (note the space)
+    - Check that your root key has the `verify_key` permission
+  </Accordion>
+  
+  <Accordion title="Getting 500 errors?">
+    - Check that `UNKEY_ROOT_KEY` is set correctly in your `.env`
+    - Make sure you're calling `require("dotenv").config()` before using env vars
+    - Check the Unkey dashboard for any service issues
+  </Accordion>
+  
+  <Accordion title="TypeScript version?">
+    The code above uses CommonJS. For TypeScript, install types and use imports:
+    ```bash
+    npm install -D typescript @types/express @types/node
+    ```
+    ```ts
+    import express from "express";
+    import { verifyKey } from "@unkey/api";
+    ```
+  </Accordion>
+</AccordionGroup>

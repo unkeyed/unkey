@@ -1,80 +1,188 @@
 ---
 title: Analytics
-description: 'Per key and per API analytics'
+description: 'Track usage per key, per API, and with custom tags'
 ---
 
-Unkey offers both per key and per API analytics that allow you to drive business decisions.
+Unkey provides analytics at multiple levels — see overall API usage, drill down into individual keys, and use tags to segment data however you need.
 
-<Note>
-  We're currently working on a v2 API for analytics with advanced SQL querying capabilities. This feature is opt-in only and not yet publicly available.
-</Note>
+## What you can track
 
-## Per API Analytics
+<CardGroup cols={2}>
+  <Card title="API-level metrics" icon="chart-line">
+    Total verifications, active keys, usage trends across your entire API.
+  </Card>
+  <Card title="Key-level metrics" icon="key">
+    Per-key usage, success/failure rates, geographic distribution.
+  </Card>
+  <Card title="Custom tags" icon="tags">
+    Add context to verifications: endpoint, resource, version, region.
+  </Card>
+  <Card title="Identity tracking" icon="user">
+    Track usage across multiple keys for the same user.
+  </Card>
+</CardGroup>
 
-Our per API analytics offer a broad overview of the usage for a specific API with total keys, active keys and verifications in the last 30 days.
+## Per-API analytics
+
+The dashboard shows aggregate metrics for each API:
+
+- **Total keys**: How many keys exist for this API
+- **Active keys**: Keys used in the last 30 days
+- **Verifications**: Total verification requests over time
+- **Success/failure rates**: Valid vs invalid/expired/rate-limited
 
 <Frame caption="Per API Analytics">
   <img src="/images/per-api-analytics.png" alt="Per API Analytics"/>
 </Frame>
 
-## Per Key Analytics
+## Per-key analytics
 
-Our per key analytics give you a deep dive into each individual key, giving usage data, key data and where the requests originated from. This data can be useful for finding your top users, and where verifications are coming from.
+Drill into individual keys to see:
 
-<Frame caption="Per key Analytics">
+- **Usage over time**: Verification volume by day/hour
+- **Geographic distribution**: Where requests originate
+- **Response codes**: Success, rate limited, expired, etc.
+- **Remaining credits**: If using usage limits
+
+<Frame caption="Per Key Analytics">
   <img src="/images/per-key-analytics.png" alt="Per key analytics"/>
 </Frame>
 
-## Tags
+## Tags: Custom dimensions
 
-You can add tags to verification requests to aggregate or filter data when querying.
+Tags let you add context to verification requests. Later, you can filter and aggregate analytics by these tags.
 
-For example you might want to add the path of your API as a tag: `path=/v1/my-path` and then later retrieve a breakdown of api key usage per unique path.
+### Example use cases
 
-Unkey does not parse tags in any special way.
-The only limitations are:
-- Tags are strings.
-- You can specify up to 10 tags per request.
-- Each tag must be between (including) 1 and 128 characters.
+- **By endpoint**: `path=/v1/posts.create` — see which endpoints are most used
+- **By resource**: `postId=post_123` — track access to specific resources
+- **By version**: `apiVersion=2.1.0` — compare usage across versions
+- **By region**: `region=us-east-1` — geographic breakdown
 
-That being said, having some structure for your tags could be benefitial for you.
-A common theme is treating them as key-value pairs and specifying them with either a colon or equal-sign as delimiter.
-```
-key:value
-key=value
-```
+### Adding tags to verification
 
-Since Unkey does not know what API routes your user has called or which resources they interact with, we encourage you to record these in the tags.
-Here's an example tags for a fictional blog API:
+Include up to 10 tags per verification request:
 
+<CodeGroup>
 
-```json
-[
-  "path=/v1/posts.createPost",
-  "postId=post_1asofijqknslkfqWF",
-  "region=us-east-1",
-  "apiVersion=f8ad21bd", // a git sha of your deployment or semver
-]
-```
-
-### Using tags
-
-Tags can be added in the request body.
-
-```bash Providing Tags {6-9}
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.verifyKey \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "key": "sk_1234",
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "sk_...",
     "tags": [
-      "tag1",
-      "path=/v1/my-resource/123"
+      "path=/v1/posts.create",
+      "postId=post_abc123",
+      "region=us-east-1"
     ]
   }'
 ```
 
+```typescript TypeScript
+const { meta, data } = await verifyKey({
+  key: "sk_...",
+  apiId: "api_...",
+  tags: [
+    "path=/v1/posts.create",
+    "postId=post_abc123",
+    "region=us-east-1",
+  ],
+});
+```
 
-### Querying tags
+</CodeGroup>
 
-Tags can be used to filter and aggregate data in your analytics.
+### Tag format
+
+Tags are arbitrary strings. Unkey doesn't parse them, but we recommend key-value format for consistency:
+
+```
+key=value
+key:value
+```
+
+**Limits:**
+- Up to 10 tags per request
+- Each tag: 1-128 characters
+
+### Tag naming conventions
+
+Pick a convention and stick with it:
+
+```typescript
+// Good: consistent key=value format
+const tags = [
+  "endpoint=/v1/users",
+  "method=POST",
+  "version=2024-01",
+];
+
+// Also good: namespaced
+const tags = [
+  "api.endpoint=/v1/users",
+  "api.method=POST",
+  "deploy.sha=abc123",
+];
+```
+
+## Identity-level analytics
+
+When keys are linked to an [identity](/concepts/identities/overview), you can track usage across all keys belonging to that identity. This is useful when users have multiple keys (e.g., different environments or applications).
+
+```typescript
+await unkey.keys.create({
+  apiId: "api_...",
+  identity: {
+    externalId: "user_123",  // Links to this user
+  },
+});
+```
+
+Now analytics can be viewed per-user, aggregating all their keys.
+
+## Querying analytics
+
+Analytics can be queried via the API for building custom dashboards:
+
+```typescript
+// Get verification stats for a key
+const stats = await unkey.analytics.getKeyStats({
+  keyId: "key_...",
+  start: Date.now() - 30 * 24 * 60 * 60 * 1000, // Last 30 days
+  end: Date.now(),
+});
+```
+
+<Note>
+We're working on a v2 analytics API with advanced SQL querying capabilities. Contact us if you're interested in early access.
+</Note>
+
+## Common patterns
+
+### Finding your top users
+
+Query keys sorted by verification count to identify power users or potential abuse.
+
+### Tracking feature adoption
+
+Tag verifications with feature names to see which features are most used:
+
+```typescript
+const tags = data.meta?.features ?? [];
+// tags: ["feature=export", "feature=bulk-upload"]
+```
+
+### Billing and usage reports
+
+Combine verification counts with custom costs to generate accurate usage reports for billing.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Usage limits" icon="calculator" href="/apis/features/remaining">
+    Cap total requests and track remaining credits
+  </Card>
+  <Card title="Identities" icon="user" href="/concepts/identities/overview">
+    Group keys by user for aggregate analytics
+  </Card>
+</CardGroup>

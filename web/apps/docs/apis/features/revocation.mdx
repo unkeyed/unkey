@@ -1,39 +1,149 @@
 ---
 title: Key Revocation
-description: 'Keys can be revoked at any time, from the API or the dashboard.'
+description: 'Delete or disable keys instantly when needed'
 ---
 
-In the event that a key is compromised, you can revoke it at any time. Once the key is revoked, it can take up to 60 seconds for the key to be invalidated. Once invalidated, the key will no longer be able to be used to authenticate requests.
+When a key is compromised or a user's access should end, you can revoke it immediately. Unkey supports both permanent deletion and temporary disabling.
 
-## Delete a Key
+## When to use this
 
-To permanently delete a key, use the `/v2/keys.deleteKey` endpoint:
+<CardGroup cols={2}>
+  <Card title="Security incident" icon="triangle-exclamation">
+    Key was leaked in a public repo or logs. Delete it immediately.
+  </Card>
+  <Card title="User offboarding" icon="user-minus">
+    Customer canceled or employee left. Revoke their API access.
+  </Card>
+  <Card title="Suspicious activity" icon="magnifying-glass">
+    Unusual traffic patterns. Disable the key while investigating.
+  </Card>
+  <Card title="Billing issues" icon="credit-card">
+    Payment failed. Temporarily disable until resolved.
+  </Card>
+</CardGroup>
 
-```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.deleteKey \
-  --header 'Authorization: Bearer <ROOT_KEY>' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "keyId": "<KEY_ID>"
+## Delete vs Disable
+
+| Action | Effect | Reversible? | Use when |
+|--------|--------|-------------|----------|
+| **Delete** | Permanently removes the key | No | Key is compromised, user churned |
+| **Disable** | Key exists but can't authenticate | Yes | Temporary suspension, investigation |
+
+## Delete a key permanently
+
+Use when the key should never work again:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.deleteKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_..."
   }'
 ```
 
-This will immediately invalidate the key and remove it from your account.
+```typescript TypeScript
+await unkey.keys.delete({
+  keyId: "key_...",
+});
+```
 
-## Disable a Key Temporarily
+</CodeGroup>
 
-If you want to temporarily disable a key without deleting it, use the `/v2/keys.updateKey` endpoint:
+The key is invalidated within 60 seconds globally.
 
-```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.updateKey \
-  --header 'Authorization: Bearer <ROOT_KEY>' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "keyId": "<KEY_ID>",
+<Warning>
+Deletion is permanent. The key cannot be recovered. If you might need to restore access, use disable instead.
+</Warning>
+
+## Disable a key temporarily
+
+Use when you want to suspend access but may restore it later:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
     "enabled": false
   }'
 ```
 
-This keeps the key in your system but prevents it from being used for authentication. You can re-enable it later by setting `enabled: true`.
+```typescript TypeScript
+await unkey.keys.update({
+  keyId: "key_...",
+  enabled: false,
+});
+```
+
+</CodeGroup>
+
+Verification response when disabled:
+
+```json
+{
+  "data": {
+    "valid": false,
+    "code": "DISABLED",
+    "keyId": "key_..."
+  }
+}
+```
+
+## Re-enable a disabled key
+
+```typescript
+await unkey.keys.update({
+  keyId: "key_...",
+  enabled: true,
+});
+```
+
+The key works again immediately.
+
+## Propagation time
+
+- **Delete**: Up to 60 seconds for global invalidation
+- **Disable**: Up to 60 seconds for global propagation
+
+For immediate revocation of a compromised key, you may want to also:
+1. Rotate any affected secrets downstream
+2. Review audit logs for unauthorized access
+3. Alert the user if appropriate
+
+## Bulk revocation
+
+To revoke all keys for a specific user, query their keys first:
+
+```typescript
+// Get all keys for a user
+const { meta, data } = await unkey.keys.list({
+  apiId: "api_...",
+  externalId: "user_123",
+});
+
+// Delete them all
+for (const key of data.keys) {
+  await unkey.keys.delete({ keyId: key.id });
+}
+```
+
+<Tip>
+For security incidents, consider using [key rerolling](/apis/features/rerolling-key) if you need to maintain the user's configuration while replacing the compromised key.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Key rerolling" icon="rotate" href="/apis/features/rerolling-key">
+    Replace a key while preserving its configuration
+  </Card>
+  <Card title="Audit logs" icon="scroll" href="/audit-log/introduction">
+    Track who revoked which keys
+  </Card>
+</CardGroup>

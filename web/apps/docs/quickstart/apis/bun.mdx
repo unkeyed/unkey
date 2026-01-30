@@ -1,78 +1,103 @@
 ---
 title: Bun
-description: Authentication for Bun's http server
-mode: "wide"
+description: Protect your Bun server with Unkey API key authentication
 ---
+
+## What you'll build
+
+A Bun HTTP server that requires a valid API key on every request. Invalid or missing keys get rejected with a 401.
+
+**Time to complete:** ~3 minutes
 
 ## Prerequisites
 
-- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
-- Created an API in the [Unkey dashboard](https://app.unkey.com/apis)
+- [Unkey account](https://app.unkey.com/auth/sign-up) (free)
+- [API created](https://app.unkey.com/apis) in your Unkey dashboard
+- [Bun](https://bun.sh) installed
 
-<Card
-  title="Skip the tutorial"
-  icon="link"
-  href="https://github.com/unkeyed/examples/tree/main/bun-server"
->
-  Don't want to read the tutorial? Click this to get an example ready to test.
+<Card title="Want to skip ahead?" icon="github" href="https://github.com/unkeyed/examples/tree/main/bun-server">
+  Clone the complete example and run it locally.
 </Card>
 
-## Creating a bun server protected by Unkey
-
 <Steps titleSize="h3">
+
 <Step title="Create a new Bun project">
-First we need a bun project, so create a new directory and init bun.
+
 ```bash
-mkdir unkey-with-bun
-cd unkey-with-bun
+mkdir unkey-bun && cd unkey-bun
 bun init -y
 ```
 
 </Step>
-<Step  title="Install">
 
-Now install the `@unkey/api` package
+<Step title="Install the SDK">
 
 ```bash
-bun install @unkey/api
+bun add @unkey/api
 ```
 
 </Step>
 
-<Step title="Modify the server">
+<Step title="Add your root key">
 
-Open up the file called `index.ts` and add the following code
+Create a `.env` file with your credentials from the [Unkey dashboard](https://app.unkey.com/settings/root-keys):
+
+```bash .env
+UNKEY_ROOT_KEY="unkey_..."
+UNKEY_API_ID="api_..."
+```
+
+</Step>
+
+<Step title="Create your server">
+
+Replace the contents of `index.ts`:
 
 ```ts index.ts
-import { Unkey } from "@unkey/api";
-
-const unkey = new Unkey({
-  rootKey: process.env.UNKEY_ROOT_KEY,
-});
+import { verifyKey } from "@unkey/api";
 
 const server = Bun.serve({
   async fetch(req) {
+    // 1. Extract the key from the Authorization header
     const key = req.headers.get("Authorization")?.replace("Bearer ", "");
+
     if (!key) {
-      return new Response("Unauthorized", { status: 401 });
+      return Response.json({ error: "Missing API key" }, { status: 401 });
     }
 
-    const result = await unkey.keys.verifyKey(key);
+    // 2. Verify with Unkey (v2 returns { meta, data, error })
+    const { meta, data, error } = await verifyKey({ key });
 
-    if (!result.data.valid) {
-      return new Response("Unauthorized", { status: 401 });
+    if (error) {
+      // Network error or Unkey service issue
+      console.error(error.message);
+      return Response.json({ error: "Verification failed" }, { status: 500 });
     }
 
-    return Response.json(result);
+    if (!data.valid) {
+      // Key is invalid, expired, rate limited, etc.
+      return Response.json(
+        { error: "Invalid API key", code: data.code },
+        { status: 401 }
+      );
+    }
+
+    // 3. Key is valid — return your response
+    return Response.json({
+      message: "Hello from protected endpoint!",
+      keyId: data.keyId,
+      identity: data.identity,
+    });
   },
-  port: 8000,
+  port: 3000,
 });
-console.log(`Listening on ${server.url}`);
+
+console.log(`Server running at http://localhost:${server.port}`);
 ```
 
 </Step>
 
-<Step title="Running the server">
+<Step title="Run your server">
 
 ```bash
 bun run index.ts
@@ -80,33 +105,144 @@ bun run index.ts
 
 </Step>
 
-<Step title="Try it out">
+<Step title="Test it">
 
-Go to `https://app.unkey.com` and create a new key. Then verify it with our new server:
+Create a test key in your [Unkey dashboard](https://app.unkey.com), then:
 
-```bash
-curl http://localhost:8000 -H "Authorization: Bearer <KEY>"
+```bash Test with valid key
+curl http://localhost:3000 \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-It should return `{"keyId":"key_id","valid":true,"meta":{},"enabled":true,"permissions":[],"code":"VALID"}` and potentially more information about the key, depending on what you set up in the dashboard.
+You should see:
+```json
+{
+  "message": "Hello from protected endpoint!",
+  "keyId": "key_...",
+  "identity": null
+}
+```
+
+Try without a key:
+```bash Test without key
+curl http://localhost:3000
+```
+
+You'll get:
+```json
+{
+  "error": "Missing API key"
+}
+```
 
 </Step>
 
 </Steps>
 
-## What is next?
+## What's in `data`?
 
-Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+After successful verification:
 
-<CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">
-    Join our Discord to chat with us and the community
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the key passed all checks |
+| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
+| `keyId` | `string` | The key's unique identifier |
+| `name` | `string?` | Human-readable name of the key |
+| `meta` | `object?` | Custom metadata associated with the key |
+| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
+| `credits` | `number?` | Remaining uses (if usage limits set) |
+| `enabled` | `boolean` | Whether the key is enabled |
+| `roles` | `string[]?` | Permissions attached to the key |
+| `permissions` | `string[]?` | Permissions attached to the key |
+| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
+| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+
+## Adding routes
+
+Bun's built-in server uses a single `fetch` handler. For multiple routes, pattern match on the URL:
+
+```ts index.ts
+import { verifyKey } from "@unkey/api";
+
+// Helper to verify key
+async function authenticate(req: Request) {
+  const key = req.headers.get("Authorization")?.replace("Bearer ", "");
+  if (!key) return { valid: false, error: "Missing API key" };
+
+  const { meta, data, error } = await verifyKey({ key });
+
+  if (error) return { valid: false, error: "Verification failed" };
+  return data;
+}
+
+const server = Bun.serve({
+  async fetch(req) {
+    const url = new URL(req.url);
+
+    // Public route
+    if (url.pathname === "/") {
+      return Response.json({ message: "Welcome! Try /api/secret" });
+    }
+
+    // Protected routes
+    if (url.pathname.startsWith("/api/")) {
+      const auth = await authenticate(req);
+      
+      if (!auth.valid) {
+        return Response.json({ error: auth.error || "Unauthorized" }, { status: 401 });
+      }
+
+      // Route to specific handlers
+      if (url.pathname === "/api/secret") {
+        return Response.json({ secret: "data", keyId: auth.keyId });
+      }
+
+      if (url.pathname === "/api/user") {
+        return Response.json({ user: auth.identity });
+      }
+    }
+
+    return Response.json({ error: "Not found" }, { status: 404 });
+  },
+  port: 3000,
+});
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Add rate limiting" icon="gauge-high" href="/quickstart/ratelimiting/bun">
+    Protect endpoints from abuse
   </Card>
-  <Card title="Unkey API Reference" icon="database" href="/api-reference">
-    Learn about our API that helps you manage APIs, keys, ratelimits and
-    analytical data.
+  <Card title="Set usage limits" icon="calculator" href="/apis/features/remaining">
+    Cap total requests per key
   </Card>
-  <Card title="SDKs" icon="brackets-curly" href="/libraries">
-    Check out our SDKs and how they fit into your Bun application.
+  <Card title="Add permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+    Fine-grained access control
+  </Card>
+  <Card title="SDK Reference" icon="book" href="/libraries/ts/api">
+    Full TypeScript SDK docs
   </Card>
 </CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Getting 401 even with a valid key?">
+    - Check that `UNKEY_API_ID` in `.env` matches the API where you created the key
+    - Ensure the key hasn't expired or been revoked
+    - Verify the header format: `Authorization: Bearer YOUR_KEY` (note the space)
+  </Accordion>
+  
+  <Accordion title="Environment variables not loading?">
+    Bun automatically loads `.env` files. Make sure:
+    - The `.env` file is in your project root
+    - You're using `Bun.env.VAR_NAME` not `process.env.VAR_NAME`
+    - Restart the server after changing `.env`
+  </Accordion>
+  
+  <Accordion title="TypeScript errors?">
+    Run `bun init -y` to ensure you have a proper `tsconfig.json`. Bun handles TypeScript natively, no extra setup needed.
+  </Accordion>
+</AccordionGroup>

@@ -1,6 +1,6 @@
 ---
-title: "Overview"
-description: "Nuxt module for unkey"
+title: "Nuxt Module"
+description: "Nuxt module for Unkey"
 ---
 
 If you are using Nuxt, you can benefit from an almost zero-config experience with the `@unkey/nuxt` module.
@@ -95,17 +95,14 @@ const created = await unkey.keys.create({
   apiId: "api_7oKUUscTZy22jmVf9THxDA",
   prefix: "xyz",
   byteLength: 16,
-  ownerId: "chronark",
+  externalId: "user_123",  // Link to your user
   meta: {
     hello: "world",
   },
-  expires: 1686941966471,
+  expires: Date.now() + 30 * 24 * 60 * 60 * 1000,  // 30 days from now
   ratelimit: {
-    async: true,
-    duration: 1000,
     limit: 10,
-    refillRate: 1,
-    refillInterval: 1000,
+    duration: 1000,  // 10 requests per second
   },
 });
 
