@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { Querier } from "./client";
 
-const TIMESERIES_WINDOW_HOURS = 12;
-const TIMESERIES_INTERVAL_MINUTES = 10;
+const TIMESERIES_WINDOW_HOURS = 6;
+const TIMESERIES_INTERVAL_MINUTES = 15;
 const TIMESERIES_INTERVAL_SECONDS = TIMESERIES_INTERVAL_MINUTES * 60;
 const CURRENT_RPS_WINDOW_MINUTES = 15;
 const CURRENT_RPS_WINDOW_MS = CURRENT_RPS_WINDOW_MINUTES * 60 * 1000;
@@ -149,12 +149,33 @@ export const deploymentRpsResponseSchema = z.object({
 });
 
 export function getDeploymentRps(ch: Querier) {
-  return createRpsQuery(ch, deploymentRpsRequestSchema, {
-    workspace_id: "String",
-    project_id: "String",
-    deployment_id: "String",
-    environment_id: "String",
-  });
+  return async (args: z.infer<typeof deploymentRpsRequestSchema>) => {
+    const windowHours = TIMESERIES_WINDOW_HOURS;
+    const windowMs = windowHours * 60 * 60 * 1000;
+
+    const query = ch.query({
+      query: `
+        SELECT
+          round(COUNT(*) * 1000.0 / {windowMs: UInt64}, 2) as avg_rps
+        FROM default.sentinel_requests_raw_v1
+        WHERE workspace_id = {workspaceId: String}
+          AND project_id = {projectId: String}
+          AND deployment_id = {deploymentId: String}
+          AND environment_id = {environmentId: String}
+          AND time >= toUnixTimestamp(now() - INTERVAL {windowHours: UInt8} HOUR) * 1000`,
+      params: deploymentRpsRequestSchema.extend({
+        windowHours: z.number(),
+        windowMs: z.number(),
+      }),
+      schema: deploymentRpsResponseSchema,
+    });
+
+    return query({
+      ...args,
+      windowHours,
+      windowMs,
+    });
+  };
 }
 
 export const deploymentRpsTimeseriesRequestSchema = z.object({
@@ -245,7 +266,7 @@ export function getDeploymentLatency(ch: Querier) {
           AND project_id = {projectId: String}
           AND deployment_id = {deploymentId: String}
           AND environment_id = {environmentId: String}
-          AND time >= toUnixTimestamp(now() - INTERVAL {windowMinutes: UInt8} MINUTE) * 1000`,
+          AND time >= toUnixTimestamp(now() - INTERVAL {windowMinutes: UInt16} MINUTE) * 1000`,
       params: deploymentLatencyRequestSchema.extend({
         windowMinutes: z.number(),
         percentileValue: z.number(),
@@ -255,7 +276,7 @@ export function getDeploymentLatency(ch: Querier) {
 
     return query({
       ...args,
-      windowMinutes: CURRENT_RPS_WINDOW_MINUTES,
+      windowMinutes: TIMESERIES_WINDOW_HOURS * 60,
       percentileValue,
     });
   };

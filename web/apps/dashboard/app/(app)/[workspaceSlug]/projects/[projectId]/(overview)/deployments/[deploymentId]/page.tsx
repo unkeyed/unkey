@@ -76,12 +76,12 @@ export default function DeploymentOverview() {
     percentile: latencyPercentile,
   });
 
-  // Map x,y to TimeseriesData format (originalTimestamp, y)
+
   const chartData =
     rpsTimeseries?.map((d) => ({
       originalTimestamp: d.x,
       y: d.y,
-      total: d.y, // Required by chart tooltip to hide on zero values
+      total: d.y,
     })) ?? [];
 
   const latencyChartData =
@@ -196,8 +196,8 @@ export default function DeploymentOverview() {
                 dataKey: "y",
               }}
               timeWindow={{
-                current: `${latencyPercentile.toUpperCase()} over last 15 min`,
-                chart: "Last 12h (10 min intervals)",
+                current: ``,
+                chart: "Last 6h",
               }}
             />
             <MetricCard
@@ -209,8 +209,8 @@ export default function DeploymentOverview() {
                 dataKey: "y",
               }}
               timeWindow={{
-                current: "Avg. over last 15 min",
-                chart: "Last 12h (10 min intervals)",
+                current: "",
+                chart: "Last 6h",
               }}
             />
           </div>
