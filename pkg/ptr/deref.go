@@ -1,5 +1,17 @@
 package ptr
 
+import "cmp"
+
+// PositiveOr returns *p if p is non-nil and *p > 0, otherwise returns fallback.
+// Useful for optional config values where zero/negative means "use default".
+func PositiveOr[T cmp.Ordered](p *T, fallback T) T {
+	var zero T
+	if p != nil && *p > zero {
+		return *p
+	}
+	return fallback
+}
+
 // SafeDeref returns the value pointed to by p or a fallback value if p is nil.
 // When p is nil and no fallback is provided, it returns the zero value for type T.
 //

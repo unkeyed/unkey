@@ -216,6 +216,14 @@ type Config struct {
 	// Used for analytics and operational metrics storage.
 	ClickhouseURL string
 
+	// ClickhouseAdminURL is the connection string for the ClickHouse admin user.
+	// Used by ClickhouseUserService to create/configure workspace users.
+	// The admin user requires limited permissions: CREATE/ALTER/DROP for USER,
+	// QUOTA, ROW POLICY, and SETTINGS PROFILE, plus GRANT OPTION on analytics tables.
+	// Optional - if not set, ClickhouseUserService will not be enabled.
+	// Example: "clickhouse://unkey_user_admin:C57RqT5EPZBqCJkMxN9mEZZEzMPcw9yBlwhIizk99t7kx6uLi9rYmtWObsXzdl@clickhouse:9000/default"
+	ClickhouseAdminURL string
+
 	// SentinelImage is the container image used for new sentinel deployments.
 	// Overrides default sentinel image with custom build or registry.
 	SentinelImage string
