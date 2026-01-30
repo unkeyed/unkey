@@ -1,6 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 
-export async function main() {
+export const runtime = "nodejs";
+
+async function testWebhook() {
   const WEBHOOK_PAYLOAD = [
     {
       token: "unkey_3Zji53gSycvTL7vJGiCoh7es",
@@ -21,16 +23,14 @@ export async function main() {
     },
   });
   const response = await request.json();
-  // console.log(response);
   return response;
 }
 
-// biome-ignore lint/style/noDefaultExport: Required by next.js
-export default async function handler(_request: NextApiRequest, response: NextApiResponse) {
+export async function GET() {
   try {
-    const result = await main();
-    return response.status(200).json(result);
+    const result = await testWebhook();
+    return NextResponse.json(result, { status: 200 });
   } catch (_error) {
-    return response.status(500).json({ error: "Internal Server Error" });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql
 import { apis } from "./apis";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
+import { githubAppInstallations } from "./github_app";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
@@ -124,6 +125,7 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   ratelimitNamespaces: many(ratelimitNamespaces),
   keySpaces: many(keyAuth),
   identities: many(identities),
+  githubAppInstallations: many(githubAppInstallations),
   quotas: one(quotas),
   clickhouseSettings: one(clickhouseWorkspaceSettings),
 

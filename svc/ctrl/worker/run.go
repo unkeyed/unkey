@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	githubSvc "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
@@ -230,6 +231,31 @@ func Run(ctx context.Context, cfg Config) error {
 		BuildStorage:                     imageStore,
 		FetchClient:                      nil, // TODO: wire up repofetch.Client
 	}))
+
+	// ClickHouse user provisioning service (optional - requires admin URL and vault)
+	if cfg.ClickhouseAdminURL == "" {
+		logger.Info("ClickhouseUserService disabled: CLICKHOUSE_ADMIN_URL not configured")
+	} else if vaultClient == nil {
+		logger.Warn("ClickhouseUserService disabled: vault not configured")
+	} else {
+		chAdmin, chAdminErr := clickhouse.New(clickhouse.Config{
+			URL:    cfg.ClickhouseAdminURL,
+			Logger: logger,
+		})
+		if chAdminErr != nil {
+			logger.Warn("ClickhouseUserService disabled: failed to connect to admin",
+				"error", chAdminErr,
+			)
+		} else {
+			restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseuser.New(clickhouseuser.Config{
+				DB:         database,
+				Vault:      vaultClient,
+				Clickhouse: chAdmin,
+				Logger:     logger,
+			})))
+			logger.Info("ClickhouseUserService enabled")
+		}
+	}
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

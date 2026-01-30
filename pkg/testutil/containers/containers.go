@@ -2,8 +2,6 @@ package containers
 
 import (
 	"testing"
-
-	mysql "github.com/go-sql-driver/mysql"
 )
 
 // S3Config holds S3/MinIO connection configuration for testing.
@@ -67,35 +65,6 @@ type OTELConfig struct {
 func StartAllServices(t *testing.T) {
 	// Services are managed externally via docker-compose.
 	// This is intentionally a no-op.
-}
-
-// MySQL returns MySQL database configuration for integration testing.
-//
-// Returns a configuration for connecting from test runners to localhost:3306.
-// Uses standard credentials (unkey/password) with parse time enabled and
-// logging disabled to reduce test output noise.
-//
-// Database name is intentionally left empty - tests should create and use
-// specific database names to avoid conflicts between test runs.
-//
-// Example usage:
-//
-//	cfg := containers.MySQL(t)
-//	cfg.DBName = "unkey"
-//	db, err := sql.Open("mysql", cfg.FormatDSN())
-//	require.NoError(t, err)
-//	defer db.Close()
-func MySQL(t *testing.T) *mysql.Config {
-	cfg := mysql.NewConfig()
-	cfg.User = "unkey"
-	cfg.Passwd = "password"
-	cfg.Net = "tcp"
-	cfg.Addr = "localhost:3306"
-	cfg.DBName = "unkey"
-	cfg.ParseTime = true
-	cfg.Logger = &mysql.NopLogger{}
-
-	return cfg
 }
 
 // ClickHouse returns ClickHouse database connection string for integration testing.

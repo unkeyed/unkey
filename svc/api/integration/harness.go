@@ -69,15 +69,11 @@ func New(t *testing.T, config Config) *Harness {
 	})
 	require.NoError(t, err)
 
-	mysqlHostCfg := containers.MySQL(t)
-	mysqlHostCfg.DBName = "unkey"
-	mysqlHostDSN := mysqlHostCfg.FormatDSN()
+	mysqlCfg := dockertest.MySQL(t)
+	mysqlHostDSN := mysqlCfg.DSN
 
 	// For docker DSN, use docker service name
-	mysqlDockerCfg := containers.MySQL(t)
-	mysqlDockerCfg.Addr = "mysql:3306"
-	mysqlDockerCfg.DBName = "unkey"
-	mysqlDockerDSN := mysqlDockerCfg.FormatDSN()
+	mysqlDockerDSN := mysqlCfg.DockerDSN
 	db, err := db.New(db.Config{
 		Logger:      logging.NewNoop(),
 		PrimaryDSN:  mysqlHostDSN,
@@ -136,8 +132,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		cluster.Addrs[i] = fmt.Sprintf("http://%s", ln.Addr().String())
 
 		// Create API config for this node using host connections
-		mysqlHostCfg := containers.MySQL(h.t)
-		mysqlHostCfg.DBName = "unkey" // Set the database name
+		mysqlDSN := h.dbDSN
 		clickhouseHostDSN := containers.ClickHouse(h.t)
 		kafkaBrokers := containers.Kafka(h.t)
 		apiConfig := api.Config{
@@ -148,7 +143,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			Platform:                "test",
 			Image:                   "test",
 			Listener:                ln,
-			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
+			DatabasePrimary:         mysqlDSN,
 			DatabaseReadonlyReplica: "",
 			ClickhouseURL:           clickhouseHostDSN,
 			ClickhouseAnalyticsURL:  "",
