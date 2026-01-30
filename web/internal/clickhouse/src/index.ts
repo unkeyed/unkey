@@ -70,6 +70,7 @@ import {
   insertRatelimit,
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
+import { getSentinelLogs } from "./sentinel";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
@@ -299,6 +300,11 @@ export class ClickHouse {
   public get telemetry() {
     return {
       insert: insertSDKTelemetry(this.inserter),
+    };
+  }
+  public get sentinel() {
+    return {
+      logs: getSentinelLogs(this.querier),
     };
   }
 }

@@ -122,7 +122,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                 border="bottom"
                 contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
               >
-                <div className="flex flex-row justify-end items-center pl-4 pr-3 w-full h-9 border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black rounded-lg min-w-[327px]">
+                <div className="flex flex-row justify-end items-center pl-2 pr-2 py-2 w-full border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black rounded-lg min-w-[327px]">
                   <pre className="flex-1 text-xs text-left overflow-x-auto">
                     <code>{namespace.id}</code>
                   </pre>

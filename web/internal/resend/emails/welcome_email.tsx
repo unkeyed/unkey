@@ -1,4 +1,3 @@
-"use client";
 import { Button } from "@react-email/button";
 import { Heading } from "@react-email/heading";
 import { Hr } from "@react-email/hr";
@@ -31,8 +30,10 @@ export function WelcomeEmail() {
         <ul className="pb-4 text-sm">
           <li className="pt-4">
             {" "}
-            <Link href="https://go.unkey.com/api-onboard">Quickstart Guides</Link> - Our complete
-            series of guides will help you integrate Unkey step by step.
+            <Link href="https://www.unkey.com/docs/quickstart/onboarding/onboarding-api">
+              Quickstart Guides
+            </Link>{" "}
+            - Our complete series of guides will help you integrate Unkey step by step.
           </li>
           <li className="pt-4">
             <Link href="https://www.unkey.com/docs/api-reference/v2/overview">
