@@ -22,7 +22,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
-import type { CustomDomain } from "./types";
+import type { CustomDomain, VerificationStatus } from "./types";
 
 type CustomDomainRowProps = {
   domain: CustomDomain;
