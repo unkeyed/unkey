@@ -4,7 +4,8 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 3 * * *" # Daily at 3:00 AM UTC
+    - cron: "0 15 * * *" # Quota check: Daily at 15:00 UTC (16:00 Berlin)
+    - cron: "0 3 * * *"  # Cert renewal: Daily at 3:00 AM UTC
   workflow_dispatch:
     inputs:
       task:
@@ -19,7 +20,7 @@ on:
 
 jobs:
   quota-check:
-    if: github.event_name == 'schedule' || github.event.inputs.task == 'all' || github.event.inputs.task == 'quota-check'
+    if: github.event.schedule == '0 15 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'quota-check'
     environment: operations
     runs-on: ubuntu-latest
     steps:
@@ -40,7 +41,7 @@ jobs:
             -d '{"slackWebhookUrl": "'"${SLACK_WEBHOOK_URL}"'"}'
 
   certificate-renewal:
-    if: github.event_name == 'schedule' || github.event.inputs.task == 'all' || github.event.inputs.task == 'cert-renewal'
+    if: github.event.schedule == '0 3 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'cert-renewal'
     environment: operations
     runs-on: ubuntu-latest
     steps:
