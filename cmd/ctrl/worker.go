@@ -104,7 +104,6 @@ var workerCmd = &cli.Command{
 		// GitHub App Configuration
 		cli.Int64("github-app-id", "GitHub App ID for webhook-triggered deployments", cli.EnvVar("UNKEY_GITHUB_APP_ID")),
 		cli.String("github-private-key-pem", "GitHub App private key in PEM format", cli.EnvVar("UNKEY_GITHUB_PRIVATE_KEY_PEM")),
-		cli.String("github-webhook-secret", "Secret for verifying GitHub webhook signatures", cli.EnvVar("UNKEY_GITHUB_WEBHOOK_SECRET")),
 		cli.String("repofetch-image", "Container image for GitHub tarball fetch jobs", cli.Default("unkey/repofetch:latest"), cli.EnvVar("UNKEY_REPOFETCH_IMAGE")),
 	},
 	Action: workerAction,
@@ -184,7 +183,6 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		GitHub: worker.GitHubConfig{
 			AppID:         cmd.Int64("github-app-id"),
 			PrivateKeyPEM: cmd.String("github-private-key-pem"),
-			WebhookSecret: cmd.String("github-webhook-secret"),
 		},
 		RepoFetchImage: cmd.String("repofetch-image"),
 	}

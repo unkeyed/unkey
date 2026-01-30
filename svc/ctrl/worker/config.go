@@ -247,9 +247,6 @@ type GitHubConfig struct {
 
 	// PrivateKeyPEM is the GitHub App private key in PEM format.
 	PrivateKeyPEM string
-
-	// WebhookSecret is the secret used to verify GitHub webhook payloads.
-	WebhookSecret string
 }
 
 // Enabled returns true only if ALL required GitHub App fields are configured.
