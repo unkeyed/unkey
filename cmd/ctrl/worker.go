@@ -104,6 +104,10 @@ var workerCmd = &cli.Command{
 		// Sentinel configuration
 		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
 		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
+
+		// Healthcheck heartbeat URLs
+		cli.String("cert-renewal-heartbeat-url", "Checkly heartbeat URL for certificate renewal", cli.EnvVar("UNKEY_CERT_RENEWAL_HEARTBEAT_URL")),
+		cli.String("quota-check-heartbeat-url", "Checkly heartbeat URL for quota checks", cli.EnvVar("UNKEY_QUOTA_CHECK_HEARTBEAT_URL")),
 	},
 	Action: workerAction,
 }
@@ -181,6 +185,10 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 
 		// Custom domain configuration
 		CnameDomain: strings.TrimSuffix(strings.TrimSpace(cmd.RequireString("cname-domain")), "."),
+
+		// Healthcheck heartbeat URLs
+		CertRenewalHeartbeatURL: cmd.String("cert-renewal-heartbeat-url"),
+		QuotaCheckHeartbeatURL:  cmd.String("quota-check-heartbeat-url"),
 	}
 
 	err := config.Validate()
