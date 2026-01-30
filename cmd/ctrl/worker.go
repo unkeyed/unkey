@@ -94,6 +94,8 @@ var workerCmd = &cli.Command{
 		// ClickHouse Configuration
 		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Required. Example: clickhouse://user:pass@host:9000/unkey",
 			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
+		cli.String("clickhouse-admin-url", "ClickHouse admin connection string for user provisioning. Optional. Example: clickhouse://unkey_user_admin:password@host:9000/default",
+			cli.EnvVar("UNKEY_CLICKHOUSE_ADMIN_URL")),
 
 		// Sentinel configuration
 		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
@@ -162,7 +164,8 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		},
 
 		// Clickhouse Configuration
-		ClickhouseURL: cmd.String("clickhouse-url"),
+		ClickhouseURL:      cmd.String("clickhouse-url"),
+		ClickhouseAdminURL: cmd.String("clickhouse-admin-url"),
 
 		// Common
 		Clock: clock.New(),

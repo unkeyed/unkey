@@ -7,7 +7,7 @@ import { SEARCH_MODES, SearchInput } from "./search-input";
 type Props = {
   isProcessing: boolean;
   search: string | undefined;
-  inputRef: RefObject<HTMLInputElement>;
+  inputRef: RefObject<HTMLInputElement | null>;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) => {
