@@ -1,23 +1,14 @@
 import type {
   DeploymentNode,
   HealthStatus,
-  RegionNode,
+  InstanceNode,
   SentinelNode,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-const healthStatusSchema = z.enum([
-  "normal",
-  "unstable",
-  "degraded",
-  "unhealthy",
-  "recovering",
-  "health_syncing",
-  "unknown",
-  "disabled",
-]);
+const healthStatusSchema = z.enum(["normal", "unhealthy", "health_syncing", "unknown", "disabled"]);
 
 const generatorConfigSchema = z.object({
   regions: z.number().min(1).max(7),
@@ -36,10 +27,7 @@ export const generateDeploymentTree = workspaceProcedure
     try {
       const healthStatuses: HealthStatus[] = [
         "normal",
-        "unstable",
-        "degraded",
         "unhealthy",
-        "recovering",
         "health_syncing",
         "unknown",
         "disabled",
@@ -54,7 +42,7 @@ export const generateDeploymentTree = workspaceProcedure
         "sa-east-1",
       ] as const;
 
-      const flags: Record<string, RegionNode["metadata"]["flagCode"]> = {
+      const flags: Record<string, SentinelNode["metadata"]["flagCode"]> = {
         "us-east-1": "us",
         "eu-central-1": "de",
         "ap-southeast-2": "au",
@@ -87,7 +75,7 @@ export const generateDeploymentTree = workspaceProcedure
         label: "INTERNET",
         direction: input.regionDirection ?? "horizontal",
         metadata: { type: "origin" },
-        children: selectedRegions.map((regionId): RegionNode => {
+        children: selectedRegions.map((regionId): SentinelNode => {
           const instanceCount = getRandomInt(
             input.instancesPerRegion.min,
             input.instancesPerRegion.max,
@@ -100,9 +88,8 @@ export const generateDeploymentTree = workspaceProcedure
             label: regionId,
             direction: input.instanceDirection ?? "horizontal",
             metadata: {
-              type: "region",
+              type: "sentinel",
               flagCode: flags[regionId],
-              zones: getRandomInt(1, 3),
               instances: totalInstances,
               replicas: 2,
               rps: getRandomInt(1000, 5000),
@@ -112,16 +99,15 @@ export const generateDeploymentTree = workspaceProcedure
               latency: `${(Math.random() * 5 + 1).toFixed(1)}ms`,
               health: regionHealth,
             },
-            children: Array.from({ length: instanceCount }, (_, i): SentinelNode => {
+            children: Array.from({ length: instanceCount }, (_, i): InstanceNode => {
               const instanceId = Math.random().toString(36).substring(2, 6);
 
               return {
                 id: `${regionId}-s-${instanceId}-${i + 1}`,
                 label: `s-${instanceId}`,
                 metadata: {
-                  type: "sentinel",
+                  type: "instance",
                   description: "Instance replica",
-                  instances: 1,
                   replicas: 2,
                   rps: getRandomInt(100, 500),
                   cpu: getRandomInt(20, 70),
