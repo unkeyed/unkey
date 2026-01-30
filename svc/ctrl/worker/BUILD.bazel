@@ -28,6 +28,7 @@ go_library(
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/certificate",
         "//svc/ctrl/worker/deploy",
+        "//svc/ctrl/worker/github",
         "//svc/ctrl/worker/routing",
         "//svc/ctrl/worker/versioning",
         "@com_connectrpc_connect//:connect",

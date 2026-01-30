@@ -98,6 +98,12 @@ var workerCmd = &cli.Command{
 		// Sentinel configuration
 		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
 		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
+
+		// GitHub App Configuration
+		cli.Int64("github-app-id", "GitHub App ID for webhook-triggered deployments", cli.EnvVar("UNKEY_GITHUB_APP_ID")),
+		cli.String("github-private-key-pem", "GitHub App private key in PEM format", cli.EnvVar("UNKEY_GITHUB_PRIVATE_KEY_PEM")),
+		cli.String("github-webhook-secret", "Secret for verifying GitHub webhook signatures", cli.EnvVar("UNKEY_GITHUB_WEBHOOK_SECRET")),
+		cli.String("repofetch-image", "Container image for GitHub tarball fetch jobs", cli.Default("unkey/repofetch:latest"), cli.EnvVar("UNKEY_REPOFETCH_IMAGE")),
 	},
 	Action: workerAction,
 }
@@ -170,6 +176,14 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		// Sentinel configuration
 		SentinelImage:    cmd.String("sentinel-image"),
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
+
+		// GitHub configuration
+		GitHub: worker.GitHubConfig{
+			AppID:         cmd.Int64("github-app-id"),
+			PrivateKeyPEM: cmd.String("github-private-key-pem"),
+			WebhookSecret: cmd.String("github-webhook-secret"),
+		},
+		RepoFetchImage: cmd.String("repofetch-image"),
 	}
 
 	err := config.Validate()

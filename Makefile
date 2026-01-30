@@ -127,7 +127,7 @@ fuzz: ## Run fuzz tests
 		for func in $$funcs; do \
 			echo "Fuzzing $$func in $$file"; \
 			parentDir=$$(dirname $$file); \
-			go test $$parentDir -run=$$func -fuzz=$$func -fuzztime=60s; \
+			go test $$parentDir -run=^$$func$$ -fuzz=^$$func$$ -fuzztime=1m; \
 		done; \
 	done
 .PHONY: unkey

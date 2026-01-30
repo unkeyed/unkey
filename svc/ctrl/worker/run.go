@@ -28,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	githubSvc "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
 	"golang.org/x/net/http2"
@@ -211,6 +212,24 @@ func Run(ctx context.Context, cfg Config) error {
 		DNSProvider:   dnsProvider,
 		HTTPProvider:  httpProvider,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
+
+	ghClient, err := githubSvc.NewClient(githubSvc.ClientConfig{
+		AppID:         cfg.GitHub.AppID,
+		PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+		WebhookSecret: cfg.GitHub.WebhookSecret,
+	}, logger)
+	if err != nil {
+		return fmt.Errorf("failed to create GitHub client: %w", err)
+	}
+
+	restateSrv.Bind(hydrav1.NewGitHubServiceServer(&githubSvc.Workflow{
+		UnimplementedGitHubServiceServer: hydrav1.UnimplementedGitHubServiceServer{},
+		Logger:                           logger,
+		DB:                               database,
+		GitHub:                           ghClient,
+		BuildStorage:                     imageStore,
+		FetchClient:                      nil, // TODO: wire up repofetch.Client
+	}))
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
