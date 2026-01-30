@@ -70,7 +70,13 @@ import {
   insertRatelimit,
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
-import { getInstanceRps, getSentinelLogs, getSentinelRps } from "./sentinel";
+import {
+  getDeploymentRps,
+  getDeploymentRpsTimeseries,
+  getInstanceRps,
+  getSentinelLogs,
+  getSentinelRps,
+} from "./sentinel";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
@@ -308,6 +314,8 @@ export class ClickHouse {
       rps: {
         bySentinel: getSentinelRps(this.querier),
         byInstance: getInstanceRps(this.querier),
+        byDeployment: getDeploymentRps(this.querier),
+        timeseries: getDeploymentRpsTimeseries(this.querier),
       },
     };
   }

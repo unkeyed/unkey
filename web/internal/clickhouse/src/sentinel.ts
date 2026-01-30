@@ -1,6 +1,12 @@
 import { z } from "zod";
 import type { Querier } from "./client";
 
+const TIMESERIES_WINDOW_HOURS = 12;
+const TIMESERIES_INTERVAL_MINUTES = 10;
+const TIMESERIES_INTERVAL_SECONDS = TIMESERIES_INTERVAL_MINUTES * 60;
+const CURRENT_RPS_WINDOW_MINUTES = 15;
+const CURRENT_RPS_WINDOW_MS = CURRENT_RPS_WINDOW_MINUTES * 60 * 1000;
+
 export const sentinelLogsRequestSchema = z.object({
   workspaceId: z.string(),
   projectId: z.string(),
@@ -79,42 +85,126 @@ export const instanceRpsResponseSchema = z.object({
   avg_rps: z.number(),
 });
 
-export function getSentinelRps(ch: Querier) {
-  return async (args: z.infer<typeof sentinelRpsRequestSchema>) => {
+function createRpsQuery<T extends z.ZodObject<z.ZodRawShape>>(
+  ch: Querier,
+  requestSchema: T,
+  whereFields: Record<string, string>,
+) {
+  return async (args: z.infer<T>) => {
+    const whereClauses = Object.entries(whereFields)
+      .map(([field, type]) => `${field} = {${toCamelCase(field)}: ${type}}`)
+      .join("\n          AND ");
+
     const query = ch.query({
       query: `
         SELECT
-          -- count * 1000 / elapsed_ms = requests per second (15 minute window = 900000ms)
-          round(COUNT(*) * 1000.0 / 900000, 2) as avg_rps
+          round(COUNT(*) * 1000.0 / {windowMs: UInt64}, 2) as avg_rps
         FROM default.sentinel_requests_raw_v1
-        WHERE workspace_id = {workspaceId: String}
-          AND deployment_id = {deploymentId: String}
-          AND sentinel_id = {sentinelId: String}
-          AND time >= toUnixTimestamp(now() - INTERVAL 15 MINUTE) * 1000`,
-      params: sentinelRpsRequestSchema,
+        WHERE ${whereClauses}
+          AND time >= toUnixTimestamp(now() - INTERVAL {windowMinutes: UInt8} MINUTE) * 1000`,
+      params: requestSchema.extend({
+        windowMinutes: z.number(),
+        windowMs: z.number(),
+      }),
       schema: sentinelRpsResponseSchema,
     });
 
-    return query(args);
+    return query({
+      ...args,
+      windowMinutes: CURRENT_RPS_WINDOW_MINUTES,
+      windowMs: CURRENT_RPS_WINDOW_MS,
+    });
   };
 }
 
+function toCamelCase(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+export function getSentinelRps(ch: Querier) {
+  return createRpsQuery(ch, sentinelRpsRequestSchema, {
+    workspace_id: "String",
+    deployment_id: "String",
+    sentinel_id: "String",
+  });
+}
+
 export function getInstanceRps(ch: Querier) {
-  return async (args: z.infer<typeof instanceRpsRequestSchema>) => {
+  return createRpsQuery(ch, instanceRpsRequestSchema, {
+    workspace_id: "String",
+    deployment_id: "String",
+    instance_id: "String",
+  });
+}
+
+export const deploymentRpsRequestSchema = z.object({
+  workspaceId: z.string(),
+  projectId: z.string(),
+  deploymentId: z.string(),
+  environmentId: z.string(),
+});
+
+export const deploymentRpsResponseSchema = z.object({
+  avg_rps: z.number(),
+});
+
+export function getDeploymentRps(ch: Querier) {
+  return createRpsQuery(ch, deploymentRpsRequestSchema, {
+    workspace_id: "String",
+    project_id: "String",
+    deployment_id: "String",
+    environment_id: "String",
+  });
+}
+
+export const deploymentRpsTimeseriesRequestSchema = z.object({
+  workspaceId: z.string(),
+  projectId: z.string(),
+  deploymentId: z.string(),
+  environmentId: z.string(),
+});
+
+export const deploymentRpsTimeseriesResponseSchema = z.object({
+  x: z.number().int(),
+  y: z.number(),
+});
+
+export function getDeploymentRpsTimeseries(ch: Querier) {
+  return async (args: z.infer<typeof deploymentRpsTimeseriesRequestSchema>) => {
     const query = ch.query({
       query: `
         SELECT
-          -- count * 1000 / elapsed_ms = requests per second (15 minute window = 900000ms)
-          round(COUNT(*) * 1000.0 / 900000, 2) as avg_rps
-        FROM default.sentinel_requests_raw_v1
-        WHERE workspace_id = {workspaceId: String}
-          AND deployment_id = {deploymentId: String}
-          AND instance_id = {instanceId: String}
-          AND time >= toUnixTimestamp(now() - INTERVAL 15 MINUTE) * 1000`,
-      params: instanceRpsRequestSchema,
-      schema: instanceRpsResponseSchema,
+          toUnixTimestamp(bucket) * 1000 as x,
+          round(COUNT(*) / {intervalSeconds: UInt32}, 2) as y
+        FROM (
+          SELECT
+            toStartOfInterval(toDateTime(time / 1000), INTERVAL {intervalMinutes: UInt8} MINUTE) as bucket
+          FROM default.sentinel_requests_raw_v1
+          WHERE workspace_id = {workspaceId: String}
+            AND project_id = {projectId: String}
+            AND deployment_id = {deploymentId: String}
+            AND environment_id = {environmentId: String}
+            AND time >= toUnixTimestamp(now() - INTERVAL {windowHours: UInt8} HOUR) * 1000
+        )
+        GROUP BY bucket
+        ORDER BY bucket ASC
+        WITH FILL
+          FROM toStartOfInterval(now() - INTERVAL {windowHours: UInt8} HOUR, INTERVAL {intervalMinutes: UInt8} MINUTE)
+          TO toStartOfInterval(now(), INTERVAL {intervalMinutes: UInt8} MINUTE)
+          STEP INTERVAL {intervalMinutes: UInt8} MINUTE`,
+      params: deploymentRpsTimeseriesRequestSchema.extend({
+        windowHours: z.number(),
+        intervalMinutes: z.number(),
+        intervalSeconds: z.number(),
+      }),
+      schema: deploymentRpsTimeseriesResponseSchema,
     });
 
-    return query(args);
+    return query({
+      ...args,
+      windowHours: TIMESERIES_WINDOW_HOURS,
+      intervalMinutes: TIMESERIES_INTERVAL_MINUTES,
+      intervalSeconds: TIMESERIES_INTERVAL_SECONDS,
+    });
   };
 }

@@ -1,8 +1,10 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   Bolt,
+  ChartActivity,
   Cloud,
   Earth,
   Grid,
@@ -55,6 +57,23 @@ export default function DeploymentOverview() {
         .where(({ domain }) => eq(domain.deploymentId, deploymentId)),
     [deploymentId],
   );
+
+  // RPS data queries
+  const { data: currentRps } = trpc.deploy.metrics.getDeploymentRps.useQuery({
+    deploymentId,
+  });
+
+  const { data: rpsTimeseries } = trpc.deploy.metrics.getDeploymentRpsTimeseries.useQuery({
+    deploymentId,
+  });
+
+  // Map x,y to TimeseriesData format (originalTimestamp, y)
+  const chartData =
+    rpsTimeseries?.map((d) => ({
+      originalTimestamp: d.x,
+      y: d.y,
+      total: d.y, // Required by chart tooltip to hide on zero values
+    })) ?? [];
 
   return (
     <ProjectContentWrapper centered>
@@ -167,20 +186,16 @@ export default function DeploymentOverview() {
               }}
             />
             <MetricCard
-              icon={Bolt}
-              metricType="cpu"
-              currentValue={32}
+              icon={ChartActivity}
+              metricType="rps"
+              currentValue={currentRps?.avg_rps ?? 0}
               chartData={{
-                data: generateRealisticChartData({
-                  count: 80,
-                  baseValue: 32,
-                  variance: 10,
-                  trend: 0.02,
-                  spikeProbability: 0.15,
-                  dataKey: "cpu",
-                  ...baseConfig,
-                }),
-                dataKey: "cpu",
+                data: chartData,
+                dataKey: "y",
+              }}
+              timeWindow={{
+                current: "Avg. over last 15 min",
+                chart: "Last 12h (10 min intervals)",
               }}
             />
           </div>
