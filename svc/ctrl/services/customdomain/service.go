@@ -27,7 +27,7 @@ type Service struct {
 	restate      *restateingress.Client
 	restateAdmin *restateadmin.Client
 	logger       logging.Logger
-	cnameDomain      string
+	cnameDomain  string
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -52,7 +52,7 @@ func New(cfg Config) *Service {
 		restate:                                 cfg.Restate,
 		restateAdmin:                            cfg.RestateAdmin,
 		logger:                                  cfg.Logger,
-		cnameDomain:                                 cfg.CnameDomain,
+		cnameDomain:                             cfg.CnameDomain,
 	}
 }
 

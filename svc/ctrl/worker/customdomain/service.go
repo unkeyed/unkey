@@ -21,8 +21,8 @@ import (
 // a frontline route so traffic can be routed to the user's deployment.
 type Service struct {
 	hydrav1.UnimplementedCustomDomainServiceServer
-	db      db.Database
-	logger  logging.Logger
+	db          db.Database
+	logger      logging.Logger
 	cnameDomain string
 }
 
@@ -49,6 +49,6 @@ func New(cfg Config) *Service {
 		UnimplementedCustomDomainServiceServer: hydrav1.UnimplementedCustomDomainServiceServer{},
 		db:                                     cfg.DB,
 		logger:                                 cfg.Logger,
-		cnameDomain:                                cfg.CnameDomain,
+		cnameDomain:                            cfg.CnameDomain,
 	}
 }

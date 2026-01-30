@@ -17,12 +17,12 @@ import (
 // This ensures wildcard certificates exist for the default domain,
 // regional apex domains, and starts the certificate renewal cron job.
 type certificateBootstrap struct {
-	logger             logging.Logger
-	database           db.Database
-	defaultDomain      string
+	logger         logging.Logger
+	database       db.Database
+	defaultDomain  string
 	regionalDomain string
-	regions            []string
-	restateClient      hydrav1.CertificateServiceIngressClient
+	regions        []string
+	restateClient  hydrav1.CertificateServiceIngressClient
 }
 
 func (c *certificateBootstrap) run(ctx context.Context) {
