@@ -2,7 +2,6 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import type { PopoverContentProps } from "@radix-ui/react-popover";
 import { TriangleWarning2 } from "@unkey/icons";
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
@@ -17,7 +16,7 @@ type ConfirmPopoverProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-  triggerRef: React.RefObject<HTMLElement>;
+  triggerRef: React.RefObject<HTMLElement | null>;
   title?: string;
   description?: string;
   confirmButtonText?: string;
@@ -61,7 +60,7 @@ export const ConfirmPopover = ({
   cancelButtonText = "Cancel",
   variant = "warning",
   popoverProps = {},
-}: ConfirmPopoverProps): JSX.Element => {
+}: ConfirmPopoverProps): React.ReactElement => {
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);
@@ -77,9 +76,19 @@ export const ConfirmPopover = ({
     className: cn(DEFAULT_POPOVER_PROPS.className, popoverProps.className),
   };
 
+  // Create a safe ref that Radix can use (virtualRef expects non-null current)
+  const safeRef = React.useMemo(
+    () => ({
+      get current() {
+        return triggerRef.current ?? document.body;
+      },
+    }),
+    [triggerRef],
+  );
+
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
-      <PopoverAnchor virtualRef={triggerRef} />
+      <PopoverAnchor virtualRef={safeRef} />
       <PopoverContent {...mergedPopoverProps}>
         <div className="p-4 w-full">
           <div className="flex gap-3 items-center justify-start">
