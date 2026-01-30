@@ -1998,17 +1998,6 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
-	// ListWorkspacesWithQuotas returns all enabled workspaces with their quota settings.
-	// Used for bulk quota checking operations.
-	//
-	//  SELECT
-	//     w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
-	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON w.id = q.workspace_id
-	//  WHERE w.enabled = true
-	//  ORDER BY w.id ASC
-	ListWorkspacesWithQuotas(ctx context.Context, db DBTX) ([]ListWorkspacesWithQuotasRow, error)
 	// Acquires an exclusive lock on the identity row to prevent concurrent modifications.
 	// This should be called at the start of a transaction before modifying identity-related data.
 	//
