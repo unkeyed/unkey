@@ -208,3 +208,111 @@ export function getDeploymentRpsTimeseries(ch: Querier) {
     });
   };
 }
+
+function percentileToValue(percentile: string): number {
+  const map: Record<string, number> = {
+    p50: 0.5,
+    p75: 0.75,
+    p90: 0.9,
+    p95: 0.95,
+    p99: 0.99,
+  };
+  return map[percentile] ?? 0.5;
+}
+
+export const deploymentLatencyRequestSchema = z.object({
+  workspaceId: z.string(),
+  projectId: z.string(),
+  deploymentId: z.string(),
+  environmentId: z.string(),
+  percentile: z.string().default("p50"),
+});
+
+export const deploymentLatencyResponseSchema = z.object({
+  latency: z.number(),
+});
+
+export function getDeploymentLatency(ch: Querier) {
+  return async (args: z.infer<typeof deploymentLatencyRequestSchema>) => {
+    const percentileValue = percentileToValue(args.percentile);
+
+    const query = ch.query({
+      query: `
+        SELECT
+          round(quantile({percentileValue: Float64})(total_latency), 2) as latency
+        FROM default.sentinel_requests_raw_v1
+        WHERE workspace_id = {workspaceId: String}
+          AND project_id = {projectId: String}
+          AND deployment_id = {deploymentId: String}
+          AND environment_id = {environmentId: String}
+          AND time >= toUnixTimestamp(now() - INTERVAL {windowMinutes: UInt8} MINUTE) * 1000`,
+      params: deploymentLatencyRequestSchema.extend({
+        windowMinutes: z.number(),
+        percentileValue: z.number(),
+      }),
+      schema: deploymentLatencyResponseSchema,
+    });
+
+    return query({
+      ...args,
+      windowMinutes: CURRENT_RPS_WINDOW_MINUTES,
+      percentileValue,
+    });
+  };
+}
+
+export const deploymentLatencyTimeseriesRequestSchema = z.object({
+  workspaceId: z.string(),
+  projectId: z.string(),
+  deploymentId: z.string(),
+  environmentId: z.string(),
+  percentile: z.string().default("p50"),
+});
+
+export const deploymentLatencyTimeseriesResponseSchema = z.object({
+  x: z.number().int(),
+  y: z.number(),
+});
+
+export function getDeploymentLatencyTimeseries(ch: Querier) {
+  return async (args: z.infer<typeof deploymentLatencyTimeseriesRequestSchema>) => {
+    const percentileValue = percentileToValue(args.percentile);
+
+    const query = ch.query({
+      query: `
+        SELECT
+          toUnixTimestamp(bucket) * 1000 as x,
+          round(quantile({percentileValue: Float64})(total_latency), 2) as y
+        FROM (
+          SELECT
+            toStartOfInterval(toDateTime(time / 1000), INTERVAL {intervalMinutes: UInt8} MINUTE) as bucket,
+            total_latency
+          FROM default.sentinel_requests_raw_v1
+          WHERE workspace_id = {workspaceId: String}
+            AND project_id = {projectId: String}
+            AND deployment_id = {deploymentId: String}
+            AND environment_id = {environmentId: String}
+            AND time >= toUnixTimestamp(now() - INTERVAL {windowHours: UInt8} HOUR) * 1000
+        )
+        GROUP BY bucket
+        ORDER BY bucket ASC
+        WITH FILL
+          FROM toStartOfInterval(now() - INTERVAL {windowHours: UInt8} HOUR, INTERVAL {intervalMinutes: UInt8} MINUTE)
+          TO toStartOfInterval(now(), INTERVAL {intervalMinutes: UInt8} MINUTE)
+          STEP INTERVAL {intervalMinutes: UInt8} MINUTE`,
+      params: deploymentLatencyTimeseriesRequestSchema.extend({
+        windowHours: z.number(),
+        intervalMinutes: z.number(),
+        percentileValue: z.number(),
+      }),
+      schema: deploymentLatencyTimeseriesResponseSchema,
+    });
+
+    return query({
+      ...args,
+      windowHours: TIMESERIES_WINDOW_HOURS,
+      intervalMinutes: TIMESERIES_INTERVAL_MINUTES,
+      percentileValue,
+    });
+  };
+}

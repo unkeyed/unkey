@@ -16,6 +16,7 @@ import {
 } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { ActiveDeploymentCard } from "../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { DisabledWrapper } from "../../../components/disabled-wrapper";
@@ -28,16 +29,13 @@ import { useProject } from "../../layout-provider";
 import { MetricCard } from "./(overview)/components/metrics/metric-card";
 import { DeploymentSentinelLogsTable } from "./(overview)/components/table/deployment-sentinel-logs-table";
 import { DeploymentNetworkView } from "./network/deployment-network-view";
-import { generateRealisticChartData } from "./network/unkey-flow/components/overlay/node-details-panel/utils";
-
-const baseConfig = {
-  startTime: Date.now() - 24 * 60 * 60 * 1000 * 5,
-  intervalMs: 60 * 60 * 1000,
-};
 
 export default function DeploymentOverview() {
   const params = useParams();
   const deploymentId = params?.deploymentId as string;
+  const [latencyPercentile, setLatencyPercentile] = useState<"p50" | "p75" | "p90" | "p95" | "p99">(
+    "p50",
+  );
 
   const { collections, setIsDetailsOpen, isDetailsOpen, projectId, liveDeploymentId } =
     useProject();
@@ -67,12 +65,30 @@ export default function DeploymentOverview() {
     deploymentId,
   });
 
+  // Latency data queries
+  const { data: currentLatency } = trpc.deploy.metrics.getDeploymentLatency.useQuery({
+    deploymentId,
+    percentile: latencyPercentile,
+  });
+
+  const { data: latencyTimeseries } = trpc.deploy.metrics.getDeploymentLatencyTimeseries.useQuery({
+    deploymentId,
+    percentile: latencyPercentile,
+  });
+
   // Map x,y to TimeseriesData format (originalTimestamp, y)
   const chartData =
     rpsTimeseries?.map((d) => ({
       originalTimestamp: d.x,
       y: d.y,
       total: d.y, // Required by chart tooltip to hide on zero values
+    })) ?? [];
+
+  const latencyChartData =
+    latencyTimeseries?.map((d) => ({
+      originalTimestamp: d.x,
+      y: d.y,
+      total: d.y,
     })) ?? [];
 
   return (
@@ -170,19 +186,18 @@ export default function DeploymentOverview() {
             <MetricCard
               icon={TimeClock}
               metricType="latency"
-              currentValue={3.1}
-              percentile="p50"
+              currentValue={currentLatency?.latency ?? 0}
+              percentile={latencyPercentile}
+              onPercentileChange={(value) =>
+                setLatencyPercentile(value as typeof latencyPercentile)
+              }
               chartData={{
-                data: generateRealisticChartData({
-                  count: 80,
-                  baseValue: 3,
-                  variance: 2,
-                  trend: 0.01,
-                  spikeProbability: 0.25,
-                  dataKey: "latency",
-                  ...baseConfig,
-                }),
-                dataKey: "latency",
+                data: latencyChartData,
+                dataKey: "y",
+              }}
+              timeWindow={{
+                current: `${latencyPercentile.toUpperCase()} over last 15 min`,
+                chart: "Last 12h (10 min intervals)",
               }}
             />
             <MetricCard

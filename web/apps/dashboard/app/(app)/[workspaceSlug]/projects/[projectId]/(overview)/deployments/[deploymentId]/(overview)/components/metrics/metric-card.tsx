@@ -89,7 +89,9 @@ export function MetricCard({
               <span className="text-grayA-9 text-xs"> {secondaryValue.unit}</span>
             </>
           )}
-          {timeWindow && <span className="text-grayA-9 text-[10px] whitespace-nowrap">{timeWindow.current}</span>}
+          {timeWindow && (
+            <span className="text-grayA-9 text-[10px] whitespace-nowrap">{timeWindow.current}</span>
+          )}
         </div>
       </div>
       <div className="mt-6 flex flex-col">

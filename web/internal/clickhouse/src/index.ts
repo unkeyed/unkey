@@ -71,6 +71,8 @@ import {
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
 import {
+  getDeploymentLatency,
+  getDeploymentLatencyTimeseries,
   getDeploymentRps,
   getDeploymentRpsTimeseries,
   getInstanceRps,
@@ -316,6 +318,10 @@ export class ClickHouse {
         byInstance: getInstanceRps(this.querier),
         byDeployment: getDeploymentRps(this.querier),
         timeseries: getDeploymentRpsTimeseries(this.querier),
+      },
+      latency: {
+        byDeployment: getDeploymentLatency(this.querier),
+        timeseries: getDeploymentLatencyTimeseries(this.querier),
       },
     };
   }

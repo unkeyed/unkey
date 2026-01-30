@@ -12,6 +12,7 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo } from "react";
 import { Bar, BarChart } from "recharts";
+import { LogsChartEmpty } from "./components/logs-chart-empty";
 import { LogsChartError } from "./components/logs-chart-error";
 import { LogsChartLoading } from "./components/logs-chart-loading";
 
@@ -32,7 +33,6 @@ export function LogsTimeseriesBarChart({
   isError,
   chartContainerClassname,
 }: LogsTimeseriesBarChartProps) {
-  // // Precompute timestamp-to-index mapping for O(1) lookup
   const timestampToIndexMap = useMemo(() => {
     const map = new Map<number, number>();
     if (data?.length) {
@@ -48,12 +48,18 @@ export function LogsTimeseriesBarChart({
     return map;
   }, [data]);
 
+  const isEmpty = !data || data.length === 0;
+
   if (isError) {
     return <LogsChartError />;
   }
 
   if (isLoading) {
     return <LogsChartLoading />;
+  }
+
+  if (isEmpty) {
+    return <LogsChartEmpty config={config} height={height} />;
   }
 
   return (

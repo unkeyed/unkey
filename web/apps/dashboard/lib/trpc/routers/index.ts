@@ -50,6 +50,8 @@ import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
+import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
+import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
 import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-timeseries";
 import { generateDeploymentTree } from "./deploy/network/generate";
@@ -404,6 +406,8 @@ export const router = t.router({
     metrics: t.router({
       getDeploymentRps,
       getDeploymentRpsTimeseries,
+      getDeploymentLatency,
+      getDeploymentLatencyTimeseries,
     }),
   }),
 });
