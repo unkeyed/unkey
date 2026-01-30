@@ -157,9 +157,9 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
-		DB:      database,
-		Logger:  logger,
-		DnsApex: cfg.DnsApex,
+		DB:          database,
+		Logger:      logger,
+		CnameDomain: cfg.CnameDomain,
 	}),
 		// Retry every 1 minute for up to 24 hours (1440 attempts)
 		restate.WithInvocationRetryPolicy(
