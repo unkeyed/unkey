@@ -1,0 +1,324 @@
+package quotacheck
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	restate "github.com/restatedev/sdk-go"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/db"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
+	"golang.org/x/text/number"
+)
+
+const stateKeyNotifiedWorkspaces = "notified_workspaces"
+
+// exceededWorkspace holds info about a workspace that exceeded its quota.
+type exceededWorkspace struct {
+	Workspace db.Workspace
+	Quota     db.Quotum
+	Used      int64
+}
+
+// RunCheck queries all workspace usage and sends Slack notifications for newly exceeded quotas.
+// This handler is intended to be called on a schedule via GitHub Actions.
+func (s *Service) RunCheck(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunCheckRequest,
+) (*hydrav1.RunCheckResponse, error) {
+	billingPeriod := restate.Key(ctx)
+	s.logger.Info("running quota check", "billing_period", billingPeriod)
+
+	// Parse billing period to get year/month
+	year, month, err := parseBillingPeriod(billingPeriod)
+	if err != nil {
+		return nil, fmt.Errorf("invalid billing period %q: %w", billingPeriod, err)
+	}
+
+	// Load already-notified workspaces from state
+	notified, err := restate.Get[map[string]bool](ctx, stateKeyNotifiedWorkspaces)
+	if err != nil {
+		return nil, fmt.Errorf("get notified state: %w", err)
+	}
+	if notified == nil {
+		notified = make(map[string]bool)
+	}
+
+	var exceeded []exceededWorkspace
+	var newlyNotified []string
+	workspacesChecked := 0
+	cursor := ""
+
+	// Iterate through all workspaces with cursor-based pagination
+	for {
+		// Fetch next batch of workspaces
+		currentCursor := cursor
+		batch, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesRow, error) {
+			return db.Query.ListWorkspaces(rc, s.db.RO(), currentCursor)
+		}, restate.WithName("fetch workspaces after "+currentCursor))
+		if fetchErr != nil {
+			return nil, fmt.Errorf("fetch workspaces: %w", fetchErr)
+		}
+
+		if len(batch) == 0 {
+			break
+		}
+		cursor = batch[len(batch)-1].Workspace.ID
+
+		// Process each workspace in the batch
+		for _, ws := range batch {
+			workspacesChecked++
+			if workspacesChecked%100 == 0 {
+				s.logger.Info("progress", "count", workspacesChecked)
+			}
+
+			if !ws.Workspace.Enabled {
+				continue
+			}
+
+			// Skip workspaces we've already notified this billing period
+			if notified[ws.Workspace.ID] {
+				continue
+			}
+
+			// Get usage for this workspace from ClickHouse
+			usedVerifications, verErr := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
+				return s.clickhouse.GetBillableVerifications(rc, ws.Workspace.ID, year, month)
+			}, restate.WithName("get verifications "+ws.Workspace.ID))
+			if verErr != nil {
+				s.logger.Error("failed to get verifications", "workspace_id", ws.Workspace.ID, "error", verErr)
+				continue
+			}
+
+			usedRatelimits, rlErr := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
+				return s.clickhouse.GetBillableRatelimits(rc, ws.Workspace.ID, year, month)
+			}, restate.WithName("get ratelimits "+ws.Workspace.ID))
+			if rlErr != nil {
+				s.logger.Error("failed to get ratelimits", "workspace_id", ws.Workspace.ID, "error", rlErr)
+				continue
+			}
+
+			usage := usedVerifications + usedRatelimits
+
+			if usage > ws.Quotas.RequestsPerMonth {
+				e := exceededWorkspace{
+					Workspace: ws.Workspace,
+					Quota:     ws.Quotas,
+					Used:      usage,
+				}
+				exceeded = append(exceeded, e)
+
+				// Send notification if not already notified this period
+				if req.GetSlackWebhookUrl() != "" && !notified[ws.Workspace.ID] {
+					_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+						return restate.Void{}, sendSlackNotification(req.GetSlackWebhookUrl(), e)
+					}, restate.WithName("notify "+ws.Workspace.ID))
+					if notifyErr != nil {
+						s.logger.Error("failed to send slack notification",
+							"workspace_id", ws.Workspace.ID,
+							"error", notifyErr,
+						)
+						continue
+					}
+
+					newlyNotified = append(newlyNotified, ws.Workspace.ID)
+				}
+			}
+		}
+	}
+
+	// Update state with newly notified workspaces
+	if len(newlyNotified) > 0 {
+		for _, wsID := range newlyNotified {
+			notified[wsID] = true
+		}
+		restate.Set(ctx, stateKeyNotifiedWorkspaces, notified)
+	}
+
+	s.logger.Info("quota check complete",
+		"billing_period", billingPeriod,
+		"workspaces_checked", workspacesChecked,
+		"workspaces_exceeded", len(exceeded),
+		"notifications_sent", len(newlyNotified),
+	)
+
+	// Send heartbeat to indicate successful completion
+	_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, s.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat"))
+	if err != nil {
+		return nil, fmt.Errorf("send heartbeat: %w", err)
+	}
+
+	return &hydrav1.RunCheckResponse{
+		WorkspacesChecked:  int32(workspacesChecked),
+		WorkspacesExceeded: int32(len(exceeded)),
+		NotificationsSent:  int32(len(newlyNotified)),
+	}, nil
+}
+
+// SendMonthlySummary sends a summary of all exceeded workspaces for the billing period.
+func (s *Service) SendMonthlySummary(
+	ctx restate.ObjectContext,
+	req *hydrav1.SendMonthlySummaryRequest,
+) (*hydrav1.SendMonthlySummaryResponse, error) {
+	billingPeriod := restate.Key(ctx)
+	s.logger.Info("sending monthly summary", "billing_period", billingPeriod)
+
+	if req.GetSlackWebhookUrl() == "" {
+		return &hydrav1.SendMonthlySummaryResponse{WorkspacesInSummary: 0}, nil
+	}
+
+	// Load notified workspaces from state
+	notified, err := restate.Get[map[string]bool](ctx, stateKeyNotifiedWorkspaces)
+	if err != nil {
+		return nil, fmt.Errorf("get notified state: %w", err)
+	}
+	if notified == nil || len(notified) == 0 {
+		s.logger.Info("no exceeded workspaces to summarize", "billing_period", billingPeriod)
+		return &hydrav1.SendMonthlySummaryResponse{WorkspacesInSummary: 0}, nil
+	}
+
+	// Send summary notification
+	_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, sendSummaryNotification(req.GetSlackWebhookUrl(), billingPeriod, notified)
+	}, restate.WithName("send summary"))
+	if err != nil {
+		return nil, fmt.Errorf("send summary: %w", err)
+	}
+
+	return &hydrav1.SendMonthlySummaryResponse{
+		WorkspacesInSummary: int32(len(notified)),
+	}, nil
+}
+
+func parseBillingPeriod(period string) (year, month int, err error) {
+	parts := strings.Split(period, "-")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("expected YYYY-MM format")
+	}
+	year, err = strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid year: %w", err)
+	}
+	month, err = strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid month: %w", err)
+	}
+	if month < 1 || month > 12 {
+		return 0, 0, fmt.Errorf("month must be 1-12")
+	}
+	return year, month, nil
+}
+
+func sendSlackNotification(webhookURL string, e exceededWorkspace) error {
+	printer := message.NewPrinter(language.English)
+
+	payload := map[string]any{
+		"text": fmt.Sprintf("Quota Exceeded: %s", e.Workspace.Name),
+		"blocks": []map[string]any{
+			{
+				"type": "header",
+				"text": map[string]any{
+					"type":  "plain_text",
+					"text":  fmt.Sprintf("Quota Exceeded: %s", e.Workspace.Name),
+					"emoji": true,
+				},
+			},
+			{
+				"type": "section",
+				"fields": []map[string]any{
+					{"type": "mrkdwn", "text": fmt.Sprintf("*Workspace ID:*\n`%s`", e.Workspace.ID)},
+					{"type": "mrkdwn", "text": fmt.Sprintf("*Workspace Name:*\n%s", e.Workspace.Name)},
+					{"type": "mrkdwn", "text": fmt.Sprintf("*Organisation ID:*\n`%s`", e.Workspace.OrgID)},
+					{"type": "mrkdwn", "text": fmt.Sprintf("*Stripe ID:*\n`%s`", e.Workspace.StripeCustomerID.String)},
+				},
+			},
+			{
+				"type": "section",
+				"fields": []map[string]any{
+					{"type": "mrkdwn", "text": fmt.Sprintf("*Tier:*\n%s", e.Workspace.Tier.String)},
+					{"type": "mrkdwn", "text": "*Quota:*\nRequestsPerMonth"},
+				},
+			},
+			{
+				"type": "section",
+				"fields": []map[string]any{
+					{"type": "mrkdwn", "text": fmt.Sprintf("*Limit:*\n%s", printer.Sprint(number.Decimal(e.Quota.RequestsPerMonth)))},
+					{"type": "mrkdwn", "text": fmt.Sprintf("*Used:*\n%s", printer.Sprint(number.Decimal(e.Used)))},
+				},
+			},
+		},
+	}
+
+	return postSlack(webhookURL, payload)
+}
+
+func sendSummaryNotification(webhookURL, billingPeriod string, notified map[string]bool) error {
+	var workspaceIDs []string
+	for wsID := range notified {
+		workspaceIDs = append(workspaceIDs, wsID)
+	}
+
+	payload := map[string]any{
+		"text": fmt.Sprintf("Monthly Quota Summary: %s", billingPeriod),
+		"blocks": []map[string]any{
+			{
+				"type": "header",
+				"text": map[string]any{
+					"type":  "plain_text",
+					"text":  fmt.Sprintf("Monthly Quota Summary: %s", billingPeriod),
+					"emoji": true,
+				},
+			},
+			{
+				"type": "section",
+				"text": map[string]any{
+					"type": "mrkdwn",
+					"text": fmt.Sprintf("*%d workspaces* exceeded their quota this month.", len(notified)),
+				},
+			},
+			{
+				"type": "section",
+				"text": map[string]any{
+					"type": "mrkdwn",
+					"text": fmt.Sprintf("```%s```", strings.Join(workspaceIDs, "\n")),
+				},
+			},
+		},
+	}
+
+	return postSlack(webhookURL, payload)
+}
+
+func postSlack(webhookURL string, payload map[string]any) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, webhookURL, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("slack returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}

@@ -5,6 +5,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
@@ -12,9 +13,9 @@ import (
 //
 // Service implements hydrav1.CertificateServiceServer with two main handlers:
 // [Service.ProcessChallenge] for obtaining/renewing individual certificates, and
-// [Service.RenewExpiringCertificates] as a self-scheduling cron job. It also provides
-// [Service.BootstrapInfraCerts] for provisioning infrastructure wildcard certificates
-// at startup.
+// [Service.RenewExpiringCertificates] for batch renewal (called via GitHub Actions).
+// It also provides [Service.BootstrapInfraCerts] for provisioning infrastructure
+// wildcard certificates at startup.
 //
 // The service uses a single global ACME account (not per-workspace) to simplify
 // key management and avoid hitting Let's Encrypt's account rate limits. Challenge
@@ -32,6 +33,7 @@ type Service struct {
 	defaultDomain string
 	dnsProvider   challenge.Provider
 	httpProvider  challenge.Provider
+	heartbeat     healthcheck.Heartbeat
 }
 
 var _ hydrav1.CertificateServiceServer = (*Service)(nil)
@@ -63,12 +65,17 @@ type Config struct {
 	// HTTPProvider handles HTTP-01 challenges for regular (non-wildcard) certificates.
 	// Must be set to issue regular certs; ignored for wildcard certificates.
 	HTTPProvider challenge.Provider
+
+	// Heartbeat sends health signals after successful certificate renewal runs.
+	// If nil, no heartbeat is sent.
+	Heartbeat healthcheck.Heartbeat
 }
 
 // New creates a [Service] with the given configuration. The returned service is
 // ready to handle certificate requests but does not start any background processes.
-// Call [Service.BootstrapInfraCerts] at startup to provision infrastructure certs,
-// and trigger [Service.RenewExpiringCertificates] once to start the renewal cron.
+// Call [Service.BootstrapInfraCerts] at startup to provision infrastructure certs.
+// [Service.RenewExpiringCertificates] is intended to be called on a schedule via
+// GitHub Actions.
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedCertificateServiceServer: hydrav1.UnimplementedCertificateServiceServer{},
@@ -79,5 +86,6 @@ func New(cfg Config) *Service {
 		defaultDomain:                         cfg.DefaultDomain,
 		dnsProvider:                           cfg.DNSProvider,
 		httpProvider:                          cfg.HTTPProvider,
+		heartbeat:                             cfg.Heartbeat,
 	}
 }
