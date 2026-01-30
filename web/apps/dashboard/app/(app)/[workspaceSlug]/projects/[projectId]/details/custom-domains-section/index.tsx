@@ -55,7 +55,7 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
         )}
 
         {customDomains.length === 0 && !isAddingNew && !isLoading && (
-          <EmptyState onAdd={startAdding} />
+          <EmptyState onAdd={startAdding} hasEnvironments={environments.length > 0} />
         )}
       </div>
 
@@ -72,14 +72,18 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
   );
 }
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({ onAdd, hasEnvironments }: { onAdd: () => void; hasEnvironments: boolean }) {
   return (
     <div className="px-4 py-8 text-center flex flex-col items-center gap-3">
       <p className="text-gray-9 text-sm">No custom domains configured</p>
-      <Button size="sm" variant="outline" onClick={onAdd} className="gap-1.5">
-        <Plus className="!size-3" />
-        Add domain
-      </Button>
+      {hasEnvironments ? (
+        <Button size="sm" variant="outline" onClick={onAdd} className="gap-1.5">
+          <Plus className="!size-3" />
+          Add domain
+        </Button>
+      ) : (
+        <p className="text-gray-8 text-xs">Create an environment first to add custom domains</p>
+      )}
     </div>
   );
 }

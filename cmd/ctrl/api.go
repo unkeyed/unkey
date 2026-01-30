@@ -2,6 +2,7 @@ package ctrl
 
 import (
 	"context"
+	"strings"
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/tls"
@@ -89,7 +90,7 @@ var apiCmd = &cli.Command{
 		cli.String("regional-apex-domain", "Apex domain for cross-region communication. Per-region wildcards created as *.{region}.{apex} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
 
 		// Custom domain configuration
-		cli.String("dns-apex", "Base domain for custom domain CNAME targets (e.g., cname.unkey.local)", cli.EnvVar("UNKEY_DNS_APEX")),
+		cli.String("dns-apex", "Base domain for custom domain CNAME targets (e.g., unkey.local)", cli.Required(), cli.EnvVar("UNKEY_DNS_APEX")),
 	},
 	Action: apiAction,
 }
@@ -148,7 +149,7 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		// Restate configuration (API is a client, only needs ingress URL)
 		Restate: ctrlapi.RestateConfig{
 			URL:      cmd.String("restate-url"),
-			AdminURL: cmd.String("restate-admin-url"),
+			AdminURL: cmd.RequireString("restate-admin-url"),
 			APIKey:   cmd.String("restate-api-key"),
 		},
 
@@ -159,7 +160,7 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		RegionalApexDomain: cmd.String("regional-apex-domain"),
 
 		// Custom domain configuration
-		DnsApex: cmd.String("dns-apex"),
+		DnsApex: strings.TrimSuffix(strings.TrimSpace(cmd.RequireString("dns-apex")), "."),
 	}
 
 	err := config.Validate()

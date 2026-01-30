@@ -148,7 +148,7 @@ func (x *AddCustomDomainRequest) GetDomain() string {
 type AddCustomDomainResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DomainId      string                 `protobuf:"bytes,1,opt,name=domain_id,json=domainId,proto3" json:"domain_id,omitempty"`
-	TargetCname   string                 `protobuf:"bytes,2,opt,name=target_cname,json=targetCname,proto3" json:"target_cname,omitempty"` // CNAME target user must configure (e.g., "cname.unkey-dns.com")
+	TargetCname   string                 `protobuf:"bytes,2,opt,name=target_cname,json=targetCname,proto3" json:"target_cname,omitempty"` // CNAME target user must configure (e.g., "xxxx.unkey-dns.com")
 	Status        CustomDomainStatus     `protobuf:"varint,3,opt,name=status,proto3,enum=ctrl.v1.CustomDomainStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -207,7 +207,9 @@ func (x *AddCustomDomainResponse) GetStatus() CustomDomainStatus {
 
 type DeleteCustomDomainRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Domain        string                 `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Domain        string                 `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -240,6 +242,20 @@ func (x *DeleteCustomDomainRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteCustomDomainRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCustomDomainRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *DeleteCustomDomainRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *DeleteCustomDomainRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
 }
 
 func (x *DeleteCustomDomainRequest) GetDomain() string {
@@ -287,7 +303,9 @@ func (*DeleteCustomDomainResponse) Descriptor() ([]byte, []int) {
 
 type RetryVerificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Domain        string                 `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Domain        string                 `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -320,6 +338,20 @@ func (x *RetryVerificationRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RetryVerificationRequest.ProtoReflect.Descriptor instead.
 func (*RetryVerificationRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RetryVerificationRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *RetryVerificationRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
 }
 
 func (x *RetryVerificationRequest) GetDomain() string {
@@ -387,12 +419,18 @@ const file_ctrl_v1_custom_domain_proto_rawDesc = "" +
 	"\x17AddCustomDomainResponse\x12\x1b\n" +
 	"\tdomain_id\x18\x01 \x01(\tR\bdomainId\x12!\n" +
 	"\ftarget_cname\x18\x02 \x01(\tR\vtargetCname\x123\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x1b.ctrl.v1.CustomDomainStatusR\x06status\"3\n" +
-	"\x19DeleteCustomDomainRequest\x12\x16\n" +
-	"\x06domain\x18\x01 \x01(\tR\x06domain\"\x1c\n" +
-	"\x1aDeleteCustomDomainResponse\"2\n" +
-	"\x18RetryVerificationRequest\x12\x16\n" +
-	"\x06domain\x18\x01 \x01(\tR\x06domain\"P\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x1b.ctrl.v1.CustomDomainStatusR\x06status\"u\n" +
+	"\x19DeleteCustomDomainRequest\x12!\n" +
+	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
+	"\x06domain\x18\x03 \x01(\tR\x06domain\"\x1c\n" +
+	"\x1aDeleteCustomDomainResponse\"t\n" +
+	"\x18RetryVerificationRequest\x12!\n" +
+	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
+	"\x06domain\x18\x03 \x01(\tR\x06domain\"P\n" +
 	"\x19RetryVerificationResponse\x123\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1b.ctrl.v1.CustomDomainStatusR\x06status*\xc4\x01\n" +
 	"\x12CustomDomainStatus\x12$\n" +

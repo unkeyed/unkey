@@ -6,7 +6,7 @@ export type CustomDomain = {
   workspaceId: string;
   projectId: string;
   environmentId: string;
-  verificationStatus: string;
+  verificationStatus: VerificationStatus;
   verificationToken: string;
   ownershipVerified: boolean;
   cnameVerified: boolean;

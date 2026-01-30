@@ -118,13 +118,10 @@ func Run(ctx context.Context, cfg Config) error {
 	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
 
 	// Restate admin client for managing invocations
-	var restateAdminClient *restateadmin.Client
-	if cfg.Restate.AdminURL != "" {
-		restateAdminClient = restateadmin.New(restateadmin.Config{
-			BaseURL: cfg.Restate.AdminURL,
-			APIKey:  cfg.Restate.APIKey,
-		})
-	}
+	restateAdminClient := restateadmin.New(restateadmin.Config{
+		BaseURL: cfg.Restate.AdminURL,
+		APIKey:  cfg.Restate.APIKey,
+	})
 
 	c := cluster.New(cluster.Config{
 		Database: database,

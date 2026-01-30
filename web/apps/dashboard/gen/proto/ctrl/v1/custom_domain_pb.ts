@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/custom_domain.proto.
  */
 export const file_ctrl_v1_custom_domain: GenFile = /*@__PURE__*/
-  fileDesc("ChtjdHJsL3YxL2N1c3RvbV9kb21haW4ucHJvdG8SB2N0cmwudjEiagoWQWRkQ3VzdG9tRG9tYWluUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgDIAEoCRIOCgZkb21haW4YBCABKAkibwoXQWRkQ3VzdG9tRG9tYWluUmVzcG9uc2USEQoJZG9tYWluX2lkGAEgASgJEhQKDHRhcmdldF9jbmFtZRgCIAEoCRIrCgZzdGF0dXMYAyABKA4yGy5jdHJsLnYxLkN1c3RvbURvbWFpblN0YXR1cyIrChlEZWxldGVDdXN0b21Eb21haW5SZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCSIcChpEZWxldGVDdXN0b21Eb21haW5SZXNwb25zZSIqChhSZXRyeVZlcmlmaWNhdGlvblJlcXVlc3QSDgoGZG9tYWluGAEgASgJIkgKGVJldHJ5VmVyaWZpY2F0aW9uUmVzcG9uc2USKwoGc3RhdHVzGAEgASgOMhsuY3RybC52MS5DdXN0b21Eb21haW5TdGF0dXMqxAEKEkN1c3RvbURvbWFpblN0YXR1cxIkCiBDVVNUT01fRE9NQUlOX1NUQVRVU19VTlNQRUNJRklFRBAAEiAKHENVU1RPTV9ET01BSU5fU1RBVFVTX1BFTkRJTkcQARIiCh5DVVNUT01fRE9NQUlOX1NUQVRVU19WRVJJRllJTkcQAhIhCh1DVVNUT01fRE9NQUlOX1NUQVRVU19WRVJJRklFRBADEh8KG0NVU1RPTV9ET01BSU5fU1RBVFVTX0ZBSUxFRBAEMqwCChNDdXN0b21Eb21haW5TZXJ2aWNlElYKD0FkZEN1c3RvbURvbWFpbhIfLmN0cmwudjEuQWRkQ3VzdG9tRG9tYWluUmVxdWVzdBogLmN0cmwudjEuQWRkQ3VzdG9tRG9tYWluUmVzcG9uc2UiABJfChJEZWxldGVDdXN0b21Eb21haW4SIi5jdHJsLnYxLkRlbGV0ZUN1c3RvbURvbWFpblJlcXVlc3QaIy5jdHJsLnYxLkRlbGV0ZUN1c3RvbURvbWFpblJlc3BvbnNlIgASXAoRUmV0cnlWZXJpZmljYXRpb24SIS5jdHJsLnYxLlJldHJ5VmVyaWZpY2F0aW9uUmVxdWVzdBoiLmN0cmwudjEuUmV0cnlWZXJpZmljYXRpb25SZXNwb25zZSIAQpABCgtjb20uY3RybC52MUIRQ3VzdG9tRG9tYWluUHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
+  fileDesc("ChtjdHJsL3YxL2N1c3RvbV9kb21haW4ucHJvdG8SB2N0cmwudjEiagoWQWRkQ3VzdG9tRG9tYWluUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgDIAEoCRIOCgZkb21haW4YBCABKAkibwoXQWRkQ3VzdG9tRG9tYWluUmVzcG9uc2USEQoJZG9tYWluX2lkGAEgASgJEhQKDHRhcmdldF9jbmFtZRgCIAEoCRIrCgZzdGF0dXMYAyABKA4yGy5jdHJsLnYxLkN1c3RvbURvbWFpblN0YXR1cyJVChlEZWxldGVDdXN0b21Eb21haW5SZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg4KBmRvbWFpbhgDIAEoCSIcChpEZWxldGVDdXN0b21Eb21haW5SZXNwb25zZSJUChhSZXRyeVZlcmlmaWNhdGlvblJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSDgoGZG9tYWluGAMgASgJIkgKGVJldHJ5VmVyaWZpY2F0aW9uUmVzcG9uc2USKwoGc3RhdHVzGAEgASgOMhsuY3RybC52MS5DdXN0b21Eb21haW5TdGF0dXMqxAEKEkN1c3RvbURvbWFpblN0YXR1cxIkCiBDVVNUT01fRE9NQUlOX1NUQVRVU19VTlNQRUNJRklFRBAAEiAKHENVU1RPTV9ET01BSU5fU1RBVFVTX1BFTkRJTkcQARIiCh5DVVNUT01fRE9NQUlOX1NUQVRVU19WRVJJRllJTkcQAhIhCh1DVVNUT01fRE9NQUlOX1NUQVRVU19WRVJJRklFRBADEh8KG0NVU1RPTV9ET01BSU5fU1RBVFVTX0ZBSUxFRBAEMqwCChNDdXN0b21Eb21haW5TZXJ2aWNlElYKD0FkZEN1c3RvbURvbWFpbhIfLmN0cmwudjEuQWRkQ3VzdG9tRG9tYWluUmVxdWVzdBogLmN0cmwudjEuQWRkQ3VzdG9tRG9tYWluUmVzcG9uc2UiABJfChJEZWxldGVDdXN0b21Eb21haW4SIi5jdHJsLnYxLkRlbGV0ZUN1c3RvbURvbWFpblJlcXVlc3QaIy5jdHJsLnYxLkRlbGV0ZUN1c3RvbURvbWFpblJlc3BvbnNlIgASXAoRUmV0cnlWZXJpZmljYXRpb24SIS5jdHJsLnYxLlJldHJ5VmVyaWZpY2F0aW9uUmVxdWVzdBoiLmN0cmwudjEuUmV0cnlWZXJpZmljYXRpb25SZXNwb25zZSIAQpABCgtjb20uY3RybC52MUIRQ3VzdG9tRG9tYWluUHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message ctrl.v1.AddCustomDomainRequest
@@ -54,7 +54,7 @@ export type AddCustomDomainResponse = Message<"ctrl.v1.AddCustomDomainResponse">
   domainId: string;
 
   /**
-   * CNAME target user must configure (e.g., "cname.unkey-dns.com")
+   * CNAME target user must configure (e.g., "xxxx.unkey-dns.com")
    *
    * @generated from field: string target_cname = 2;
    */
@@ -78,7 +78,17 @@ export const AddCustomDomainResponseSchema: GenMessage<AddCustomDomainResponse> 
  */
 export type DeleteCustomDomainRequest = Message<"ctrl.v1.DeleteCustomDomainRequest"> & {
   /**
-   * @generated from field: string domain = 1;
+   * @generated from field: string workspace_id = 1;
+   */
+  workspaceId: string;
+
+  /**
+   * @generated from field: string project_id = 2;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string domain = 3;
    */
   domain: string;
 };
@@ -108,7 +118,17 @@ export const DeleteCustomDomainResponseSchema: GenMessage<DeleteCustomDomainResp
  */
 export type RetryVerificationRequest = Message<"ctrl.v1.RetryVerificationRequest"> & {
   /**
-   * @generated from field: string domain = 1;
+   * @generated from field: string workspace_id = 1;
+   */
+  workspaceId: string;
+
+  /**
+   * @generated from field: string project_id = 2;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string domain = 3;
    */
   domain: string;
 };

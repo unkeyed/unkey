@@ -22,7 +22,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
-import type { CustomDomain, VerificationStatus } from "./types";
+import type { CustomDomain } from "./types";
 
 type CustomDomainRowProps = {
   domain: CustomDomain;
@@ -63,8 +63,7 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
-  const verificationStatus = domain.verificationStatus as VerificationStatus;
-  const status = statusConfig[verificationStatus] ?? statusConfig.pending;
+  const status = statusConfig[domain.verificationStatus];
 
   const handleDelete = async () => {
     const mutation = deleteMutation.mutateAsync({
@@ -131,7 +130,7 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
             {status.label}
           </Badge>
 
-          {verificationStatus === "failed" && (
+          {domain.verificationStatus === "failed" && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -185,7 +184,7 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
         </div>
       </div>
 
-      {verificationStatus !== "verified" && (
+      {domain.verificationStatus !== "verified" && (
         <DnsRecordTable
           domain={domain.domain}
           targetCname={domain.targetCname}

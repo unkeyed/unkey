@@ -1005,6 +1005,24 @@ type FrontlineRoute struct {
 	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
 
+type GithubAppInstallation struct {
+	Pk             uint64        `db:"pk"`
+	WorkspaceID    string        `db:"workspace_id"`
+	InstallationID int64         `db:"installation_id"`
+	CreatedAt      int64         `db:"created_at"`
+	UpdatedAt      sql.NullInt64 `db:"updated_at"`
+}
+
+type GithubRepoConnection struct {
+	Pk                 uint64        `db:"pk"`
+	ProjectID          string        `db:"project_id"`
+	InstallationID     int64         `db:"installation_id"`
+	RepositoryID       int64         `db:"repository_id"`
+	RepositoryFullName string        `db:"repository_full_name"`
+	CreatedAt          int64         `db:"created_at"`
+	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+}
+
 type Identity struct {
 	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`

@@ -17,17 +17,17 @@ const (
 	DefaultTimeout = 10 * time.Second
 )
 
-// Resolver uses Cloudflare's 1.1.1.1 for consistent lookups across environments.
-var Resolver = newResolver(CloudflareDNS, DefaultTimeout)
+// resolver uses Cloudflare's 1.1.1.1 for consistent lookups across environments.
+var resolver = newResolver(CloudflareDNS, DefaultTimeout)
 
 func newResolver(server string, timeout time.Duration) *net.Resolver {
 	return &net.Resolver{
 		PreferGo:     true,
 		StrictErrors: false,
-		Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
+		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
 			d := net.Dialer{} //nolint:exhaustruct
 			d.Timeout = timeout
-			return d.DialContext(ctx, "udp", server)
+			return d.DialContext(ctx, network, server)
 		},
 	}
 }
@@ -42,13 +42,13 @@ func IsNotFoundError(err error) bool {
 
 // LookupTXT looks up TXT records for the given domain.
 func LookupTXT(ctx context.Context, domain string) ([]string, error) {
-	return Resolver.LookupTXT(ctx, domain)
+	return resolver.LookupTXT(ctx, domain)
 }
 
 // LookupCNAME looks up the CNAME record for the given domain.
 // The returned CNAME is normalized (trailing dot removed, lowercased).
 func LookupCNAME(ctx context.Context, domain string) (string, error) {
-	cname, err := Resolver.LookupCNAME(ctx, domain)
+	cname, err := resolver.LookupCNAME(ctx, domain)
 	if err != nil {
 		return "", err
 	}

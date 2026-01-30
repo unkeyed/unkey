@@ -4,6 +4,7 @@ package admin
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,9 +44,6 @@ func New(cfg Config) *Client {
 // The uri should be the endpoint where Restate can reach the service.
 // Retries up to 10 times with 5 second backoff on failure.
 func (c *Client) RegisterDeployment(ctx context.Context, uri string) error {
-	// Wait for restate server to be ready
-	time.Sleep(2 * time.Second)
-
 	retrier := retry.New(
 		retry.Attempts(10),
 		retry.Backoff(func(n int) time.Duration {
@@ -60,9 +58,12 @@ func (c *Client) RegisterDeployment(ctx context.Context, uri string) error {
 
 func (c *Client) registerDeployment(ctx context.Context, uri string) error {
 	url := fmt.Sprintf("%s/deployments", c.baseURL)
-	payload := fmt.Sprintf(`{"uri": "%s"}`, uri)
+	payload, err := json.Marshal(map[string]string{"uri": uri})
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
 
-	resp, err := c.do(ctx, http.MethodPost, url, []byte(payload))
+	resp, err := c.do(ctx, http.MethodPost, url, payload)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,10 @@ func (c *Client) registerDeployment(ctx context.Context, uri string) error {
 		return nil
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return fmt.Errorf("registration failed with status %d (failed to read body: %w)", resp.StatusCode, readErr)
+	}
 	return fmt.Errorf("registration failed with status %d: %s", resp.StatusCode, string(body))
 }
 
@@ -94,7 +98,10 @@ func (c *Client) CancelInvocation(ctx context.Context, invocationID string) erro
 		return nil
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return fmt.Errorf("cancel failed with status %d (failed to read body: %w)", resp.StatusCode, readErr)
+	}
 	return fmt.Errorf("cancel failed with status %d: %s", resp.StatusCode, string(body))
 }
 

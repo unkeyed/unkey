@@ -40,6 +40,26 @@ export const retryVerification = workspaceProcedure
       });
     }
 
+    // Verify domain belongs to project and workspace
+    const customDomain = await db.query.customDomains.findFirst({
+      where: (table, { eq, and }) =>
+        and(
+          eq(table.domain, input.domain),
+          eq(table.projectId, input.projectId),
+          eq(table.workspaceId, ctx.workspace.id),
+        ),
+      columns: {
+        id: true,
+      },
+    });
+
+    if (!customDomain) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Domain not found for project",
+      });
+    }
+
     const ctrl = createClient(
       CustomDomainService,
       createConnectTransport({
@@ -55,6 +75,8 @@ export const retryVerification = workspaceProcedure
 
     try {
       const response = await ctrl.retryVerification({
+        workspaceId: ctx.workspace.id,
+        projectId: input.projectId,
         domain: input.domain,
       });
 

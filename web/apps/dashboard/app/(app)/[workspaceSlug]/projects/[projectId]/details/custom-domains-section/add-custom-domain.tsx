@@ -83,7 +83,7 @@ export function AddCustomDomain({
   const isValid = domain && !error && environmentId;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && isValid) {
+    if (e.key === "Enter" && isValid && !isSubmitting) {
       e.preventDefault();
       handleSave();
     } else if (e.key === "Escape") {
@@ -92,7 +92,7 @@ export function AddCustomDomain({
   };
 
   const handleSave = async () => {
-    if (!isValid) {
+    if (!isValid || isSubmitting) {
       return;
     }
 

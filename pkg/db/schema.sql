@@ -588,6 +588,28 @@ CREATE TABLE `frontline_routes` (
 	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 
+CREATE TABLE `github_app_installations` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`installation_id` bigint NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `github_app_installations_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `github_app_installations_installation_id_unique` UNIQUE(`installation_id`)
+);
+
+CREATE TABLE `github_repo_connections` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`project_id` varchar(64) NOT NULL,
+	`installation_id` bigint NOT NULL,
+	`repository_id` bigint NOT NULL,
+	`repository_full_name` varchar(500) NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `github_repo_connections_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `github_repo_connections_project_id_unique` UNIQUE(`project_id`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);

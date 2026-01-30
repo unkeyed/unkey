@@ -26,13 +26,17 @@ message AddCustomDomainResponse {
 }
 
 message DeleteCustomDomainRequest {
-  string domain = 1;
+  string workspace_id = 1;
+  string project_id = 2;
+  string domain = 3;
 }
 
 message DeleteCustomDomainResponse {}
 
 message RetryVerificationRequest {
-  string domain = 1;
+  string workspace_id = 1;
+  string project_id = 2;
+  string domain = 3;
 }
 
 message RetryVerificationResponse {

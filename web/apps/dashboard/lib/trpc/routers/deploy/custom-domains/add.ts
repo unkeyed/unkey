@@ -2,7 +2,7 @@ import { CustomDomainService } from "@/gen/proto/ctrl/v1/custom_domain_pb";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { createClient } from "@connectrpc/connect";
+import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -86,8 +86,7 @@ export const addCustomDomain = workspaceProcedure
     } catch (error) {
       console.error("Add custom domain failed:", error);
 
-      // Check if it's an already exists error
-      if (error instanceof Error && error.message.includes("already")) {
+      if (error instanceof ConnectError && error.code === Code.AlreadyExists) {
         throw new TRPCError({
           code: "CONFLICT",
           message: "Domain already registered",

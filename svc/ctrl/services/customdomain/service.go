@@ -83,7 +83,7 @@ func (s *Service) AddCustomDomain(
 	targetCname := fmt.Sprintf("%s.%s", uid.DNS1035(16), s.dnsApex)
 
 	// Generate verification token for TXT record ownership verification
-	verificationToken := uid.New("", 24)
+	verificationToken := uid.Secure(24)
 
 	// Check domain doesn't already exist
 	existing, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), domain)
@@ -154,6 +154,11 @@ func (s *Service) DeleteCustomDomain(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find domain: %w", err))
 	}
 
+	// Validate tenant ownership
+	if domain.WorkspaceID != req.Msg.GetWorkspaceId() || domain.ProjectID != req.Msg.GetProjectId() {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("domain not found: %s", req.Msg.GetDomain()))
+	}
+
 	// Cancel any running verification workflow
 	if domain.InvocationID.Valid && s.restateAdmin != nil {
 		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
@@ -204,6 +209,11 @@ func (s *Service) RetryVerification(
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("domain not found: %s", req.Msg.GetDomain()))
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find domain: %w", err))
+	}
+
+	// Validate tenant ownership
+	if domain.WorkspaceID != req.Msg.GetWorkspaceId() || domain.ProjectID != req.Msg.GetProjectId() {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("domain not found: %s", req.Msg.GetDomain()))
 	}
 
 	// Cancel any existing verification workflow
