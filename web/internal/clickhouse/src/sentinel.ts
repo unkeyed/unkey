@@ -13,8 +13,6 @@ export const sentinelLogsRequestSchema = z.object({
   deploymentId: z.string(),
   environmentId: z.string(),
   limit: z.number().int().positive().default(50),
-  startTime: z.number().int(),
-  endTime: z.number().int(),
 });
 
 export type SentinelLogsRequestSchema = z.infer<typeof sentinelLogsRequestSchema>;
@@ -53,15 +51,20 @@ export function getSentinelLogs(ch: Querier) {
         WHERE workspace_id = {workspaceId: String}
           AND project_id = {projectId: String}
           AND environment_id = {environmentId: String}
-          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
           AND deployment_id = {deploymentId: String}
+          AND time >= toUnixTimestamp(now() - INTERVAL {windowHours: UInt8} HOUR) * 1000
         ORDER BY time DESC
         LIMIT {limit: Int}`,
-      params: sentinelLogsRequestSchema,
+      params: sentinelLogsRequestSchema.extend({
+        windowHours: z.number(),
+      }),
       schema: sentinelLogsResponseSchema,
     });
 
-    return query(args);
+    return query({
+      ...args,
+      windowHours: TIMESERIES_WINDOW_HOURS,
+    });
   };
 }
 

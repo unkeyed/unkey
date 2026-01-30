@@ -39,7 +39,6 @@ type MetricCardProps = {
   percentile?: string;
   onPercentileChange?: (value: string) => void;
   timeWindow?: {
-    current: string;
     chart: string;
   };
 };
@@ -88,9 +87,6 @@ export function MetricCard({
               </span>
               <span className="text-grayA-9 text-xs"> {secondaryValue.unit}</span>
             </>
-          )}
-          {timeWindow && (
-            <span className="text-grayA-9 text-[10px] whitespace-nowrap">{timeWindow.current}</span>
           )}
         </div>
       </div>

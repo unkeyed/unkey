@@ -76,7 +76,6 @@ export default function DeploymentOverview() {
     percentile: latencyPercentile,
   });
 
-
   const chartData =
     rpsTimeseries?.map((d) => ({
       originalTimestamp: d.x,
@@ -196,7 +195,6 @@ export default function DeploymentOverview() {
                 dataKey: "y",
               }}
               timeWindow={{
-                current: ``,
                 chart: "Last 6h",
               }}
             />
@@ -209,7 +207,6 @@ export default function DeploymentOverview() {
                 dataKey: "y",
               }}
               timeWindow={{
-                current: "",
                 chart: "Last 6h",
               }}
             />

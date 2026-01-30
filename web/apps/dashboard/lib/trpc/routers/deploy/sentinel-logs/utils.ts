@@ -8,7 +8,5 @@ export function transformSentinelLogsFilters(
     deploymentId: params.deploymentId,
     environmentId: params.environmentId,
     limit: params.limit,
-    startTime: params.startTime,
-    endTime: params.endTime,
   };
 }
