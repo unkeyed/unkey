@@ -13,3 +13,11 @@ plugins:
     opt:
       - paths=import
       - module=github.com/unkeyed/unkey/gen/proto
+
+  # Only generate TypeScript for ctrl protos (dashboard API), not hydra (internal worker)
+  - remote: buf.build/bufbuild/es:v2.8.0
+    out: ../../../web/apps/dashboard/gen/proto
+    opt:
+      - target=ts
+    inputs:
+      - directory: ctrl

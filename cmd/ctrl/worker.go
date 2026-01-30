@@ -2,6 +2,7 @@ package ctrl
 
 import (
 	"context"
+	"strings"
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -82,10 +83,13 @@ var workerCmd = &cli.Command{
 		cli.String("acme-route53-hosted-zone-id", "Route53 hosted zone ID (bypasses auto-discovery, required when wildcard CNAMEs exist)", cli.EnvVar("UNKEY_ACME_ROUTE53_HOSTED_ZONE_ID")),
 
 		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
+		cli.String("dns-apex", "Base domain for custom domain CNAME targets (e.g., unkey.local)", cli.Required(), cli.EnvVar("UNKEY_DNS_APEX")),
 
 		// Restate Configuration
 		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
 			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
+		cli.String("restate-api-key", "API key for Restate admin API requests",
+			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
 		cli.Int("restate-http-port", "Port where we listen for Restate HTTP requests. Example: 9080",
 			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
 		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://worker:9080",
@@ -159,6 +163,7 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		// Restate configuration
 		Restate: worker.RestateConfig{
 			AdminURL:   cmd.String("restate-admin-url"),
+			APIKey:     cmd.String("restate-api-key"),
 			HttpPort:   cmd.Int("restate-http-port"),
 			RegisterAs: cmd.String("restate-register-as"),
 		},
@@ -173,6 +178,9 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		// Sentinel configuration
 		SentinelImage:    cmd.String("sentinel-image"),
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
+
+		// Custom domain configuration
+		DnsApex: strings.TrimSuffix(strings.TrimSpace(cmd.RequireString("dns-apex")), "."),
 	}
 
 	err := config.Validate()
