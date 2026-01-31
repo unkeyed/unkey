@@ -3,6 +3,10 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
+import { getStripeClient } from "@/lib/stripe";
+
+// Prefix constant for end user IDs (matches Go backend)
+const END_USER_PREFIX = "end_user";
 
 // Search identities by external ID (like create key does)
 export const searchIdentitiesByExternalId = workspaceProcedure
@@ -146,15 +150,25 @@ export const createEndUser = workspaceProcedure
     }
 
     const now = Date.now();
-    const endUserId = newId("billing_end_user");
-    const stripeCustomerId = `cus_placeholder_${endUserId}`;
+    const endUserId = newId(END_USER_PREFIX);
+
+    // Create real Stripe customer (like Go backend does)
+    const stripe = getStripeClient();
+    const stripeCustomer = await stripe.customers.create({
+      email: input.email,
+      name: input.name,
+      metadata: {
+        workspace_id: ctx.workspace.id,
+        external_id: input.externalId,
+      },
+    });
 
     await db.insert(schema.billingEndUsers).values({
       id: endUserId,
       workspaceId: ctx.workspace.id,
       externalId: input.externalId,
       pricingModelId: input.pricingModelId,
-      stripeCustomerId,
+      stripeCustomerId: stripeCustomer.id,
       email: input.email ?? null,
       name: input.name ?? null,
       metadata: input.metadata ?? null,
@@ -162,7 +176,7 @@ export const createEndUser = workspaceProcedure
       updatedAtM: now,
     });
 
-    return { id: endUserId, stripeCustomerId, identityId };
+    return { id: endUserId, stripeCustomerId: stripeCustomer.id, identityId };
   });
 
 // List end users
@@ -285,15 +299,26 @@ export const upsertEndUser = workspaceProcedure
     }
 
     // Create new end user
-    const id = newId("billingEndUser");
-    const stripeCustomerId = `cus_placeholder_${id}`;
+    const now = Date.now();
+    const id = newId(END_USER_PREFIX);
+
+    // Create real Stripe customer (like Go backend does)
+    const stripe = getStripeClient();
+    const stripeCustomer = await stripe.customers.create({
+      email: input.email,
+      name: input.name,
+      metadata: {
+        workspace_id: ctx.workspace.id,
+        external_id: input.externalId,
+      },
+    });
 
     await db.insert(schema.billingEndUsers).values({
       id,
       workspaceId: ctx.workspace.id,
       externalId: input.externalId,
       pricingModelId: input.pricingModelId,
-      stripeCustomerId,
+      stripeCustomerId: stripeCustomer.id,
       email: input.email ?? null,
       name: input.name ?? null,
       metadata: input.metadata ?? null,
@@ -301,7 +326,7 @@ export const upsertEndUser = workspaceProcedure
       updatedAtM: now,
     });
 
-    return { id, stripeCustomerId, created: true };
+    return { id, stripeCustomerId: stripeCustomer.id, created: true };
   });
 
 // Update end user
