@@ -32,7 +32,8 @@ const prefixes = {
   environmentVariable: "evr",
   project: "proj",
   billingEndUser: "beu",
-  "pricingModel": "pricem"
+  pricingModel: "pricem",
+  stripeConnectAccount: "sc"
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {

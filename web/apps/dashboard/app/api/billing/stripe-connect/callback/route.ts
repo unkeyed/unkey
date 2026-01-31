@@ -171,7 +171,7 @@ export async function GET(request: Request): Promise<Response> {
       });
     } else {
       // Insert new account
-      const id = newId("stripe_connected_account");
+      const id = newId("stripeConnectAccount");
       await db.insert(schema.stripeConnectedAccounts).values({
         id,
         workspaceId: state.workspaceId,

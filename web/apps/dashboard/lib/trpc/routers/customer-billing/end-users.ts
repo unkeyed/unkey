@@ -133,7 +133,7 @@ export const createEndUser = workspaceProcedure
       identityId = existingIdentity.id;
     } else {
       // Create new identity (like create key does)
-      identityId = newId("id");
+      identityId = newId("identity");
       await db.insert(schema.identities).values({
         id: identityId,
         externalId: input.externalId,
@@ -147,7 +147,7 @@ export const createEndUser = workspaceProcedure
     }
 
     const now = Date.now();
-    const endUserId = newId("end_user");
+    const endUserId = newId("billingEndUser");
 
     // Create real Stripe customer (like Go backend does)
     const stripe = getStripeClient();
@@ -295,9 +295,7 @@ export const upsertEndUser = workspaceProcedure
       return { id: existing.id, stripeCustomerId: existing.stripeCustomerId, created: false };
     }
 
-    // Create new end user
-    const now = Date.now();
-    const id = newId("end_user");
+    const id = newId("billingEndUser");
 
     // Create real Stripe customer (like Go backend does)
     const stripe = getStripeClient();
