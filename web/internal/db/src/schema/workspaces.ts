@@ -1,6 +1,12 @@
 import { relations } from "drizzle-orm";
 import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
+import {
+  billingEndUsers,
+  billingInvoices,
+  pricingModels,
+  stripeConnectedAccounts,
+} from "./billing";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
 import { githubAppInstallations } from "./github_app";
@@ -64,6 +70,11 @@ export const workspaces = mysqlTable("workspaces", {
        */
 
       deployments?: boolean;
+
+      /**
+       * Can access /billing pages
+       */
+      billing?: boolean;
     }>()
     .notNull(),
   features: json("features")
@@ -132,4 +143,10 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   projects: many(projects),
   sentinels: many(sentinels),
   certificates: many(certificates),
+
+  // Billing relations
+  stripeConnectedAccounts: many(stripeConnectedAccounts),
+  pricingModels: many(pricingModels),
+  billingEndUsers: many(billingEndUsers),
+  billingInvoices: many(billingInvoices),
 }));

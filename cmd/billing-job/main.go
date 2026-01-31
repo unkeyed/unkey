@@ -1,0 +1,278 @@
+package billingjob
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/unkeyed/unkey/pkg/billing"
+	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/encryption"
+	"github.com/unkeyed/unkey/pkg/otel/logging"
+)
+
+// Cmd is the billing-job command that generates invoices for customer billing.
+// It runs as a scheduled job (typically monthly) to process billing for all
+// workspaces or a specific workspace.
+var Cmd = &cli.Command{
+	Version:  "",
+	Commands: []*cli.Command{},
+	Aliases:  []string{},
+	Name:     "billing-job",
+	Usage:    "Generate billing invoices for customer end users",
+	Description: `Generate billing invoices for customer end users based on API usage.
+
+This command aggregates usage data from ClickHouse and generates Stripe invoices
+for all end users in the specified workspace(s). It should be run monthly,
+typically on the 1st of each month to bill for the previous month's usage.
+
+CONFIGURATION:
+The command requires database, ClickHouse, and Stripe credentials to function.
+It can process a single workspace or all workspaces with billing enabled.
+
+EXAMPLES:
+# Generate invoices for a specific workspace for the previous month
+unkey billing-job --workspace-id ws_123 --database-dsn ... --clickhouse-url ... --stripe-key ...
+
+# Generate invoices for a specific billing period
+unkey billing-job --workspace-id ws_123 --period-start 2025-01-01 --period-end 2025-02-01 ...
+
+# Using environment variables
+WORKSPACE_ID=ws_123 DATABASE_DSN=... CLICKHOUSE_URL=... STRIPE_KEY=... unkey billing-job`,
+	Flags: []cli.Flag{
+		// Workspace configuration
+		cli.String("workspace-id", "Workspace ID to generate invoices for. If not provided, processes all billing-enabled workspaces.",
+			cli.EnvVar("WORKSPACE_ID")),
+
+		// Billing period configuration
+		cli.String("period-start", "Start of billing period (YYYY-MM-DD). Defaults to first day of previous month.",
+			cli.EnvVar("BILLING_PERIOD_START")),
+		cli.String("period-end", "End of billing period (YYYY-MM-DD). Defaults to first day of current month.",
+			cli.EnvVar("BILLING_PERIOD_END")),
+
+		// Database configuration
+		cli.String("database-dsn", "DSN for the primary database",
+			cli.EnvVar("DATABASE_DSN"), cli.Required()),
+
+		// ClickHouse configuration
+		cli.String("clickhouse-url", "URL for the ClickHouse database",
+			cli.EnvVar("CLICKHOUSE_URL"), cli.Required()),
+
+		// Stripe configuration
+		cli.String("stripe-key", "Stripe API secret key",
+			cli.EnvVar("STRIPE_KEY"), cli.Required()),
+		cli.String("stripe-webhook-secret", "Stripe webhook signing secret",
+			cli.EnvVar("STRIPE_WEBHOOK_SECRET")),
+		cli.String("stripe-client-id", "Stripe Connect client ID for OAuth",
+			cli.EnvVar("STRIPE_CLIENT_ID")),
+
+		// Encryption configuration
+		cli.String("master-key", "Master encryption key for Stripe tokens (base64 encoded, at least 32 bytes)",
+			cli.EnvVar("MASTER_KEY"), cli.Required()),
+
+		// Execution options
+		cli.Bool("dry-run", "Preview invoice generation without creating actual invoices",
+			cli.Default(false), cli.EnvVar("DRY_RUN")),
+	},
+	Action: run,
+}
+
+func run(ctx context.Context, cmd *cli.Command) error {
+	logger := logging.New()
+
+	logger.Info("Starting billing job")
+
+	// Parse billing period
+	periodStart, periodEnd, err := parseBillingPeriod(cmd.String("period-start"), cmd.String("period-end"))
+	if err != nil {
+		logger.Error("Failed to parse billing period", "error", err)
+		return fmt.Errorf("failed to parse billing period: %w", err)
+	}
+
+	logger.Info("Billing period",
+		"start", periodStart.Format("2006-01-02"),
+		"end", periodEnd.Format("2006-01-02"),
+	)
+
+	// Check for dry run mode
+	if cmd.Bool("dry-run") {
+		logger.Info("DRY RUN MODE - No invoices will be created")
+	}
+
+	// Initialize database connection
+	database, err := db.New(db.Config{
+		PrimaryDSN:  cmd.String("database-dsn"),
+		ReadOnlyDSN: "",
+		Logger:      logger,
+	})
+	if err != nil {
+		logger.Error("Failed to connect to database", "error", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	// Initialize ClickHouse connection
+	ch, err := clickhouse.New(clickhouse.Config{
+		URL:    cmd.String("clickhouse-url"),
+		Logger: logger,
+	})
+	if err != nil {
+		logger.Error("Failed to connect to ClickHouse", "error", err)
+		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
+	}
+
+	// Initialize encryption service
+	masterKeyStr := cmd.String("master-key")
+	masterKey := []byte(masterKeyStr)
+	workspaceEncryption, err := encryption.NewWorkspaceEncryption(masterKey)
+	if err != nil {
+		logger.Error("Failed to initialize encryption", "error", err)
+		return fmt.Errorf("failed to initialize encryption: %w", err)
+	}
+
+	// Initialize billing services
+	stripeKey := cmd.String("stripe-key")
+	stripeClientID := cmd.String("stripe-client-id")
+	webhookSecret := cmd.String("stripe-webhook-secret")
+
+	connectService := billing.NewStripeConnectService(database, workspaceEncryption, stripeClientID)
+	pricingService := billing.NewPricingModelService(database)
+	endUserService := billing.NewEndUserService(database, ch, stripeKey, connectService)
+	usageAggregator := billing.NewUsageAggregator(ch)
+	billingService := billing.NewBillingService(
+		database,
+		usageAggregator,
+		pricingService,
+		endUserService,
+		connectService,
+		stripeKey,
+		webhookSecret,
+	)
+
+	// Get workspace ID if specified
+	workspaceID := cmd.String("workspace-id")
+
+	if workspaceID != "" {
+		// Process single workspace
+		logger.Info("Processing single workspace", "workspace_id", workspaceID)
+
+		if cmd.Bool("dry-run") {
+			logger.Info("Would generate invoices for workspace", "workspace_id", workspaceID)
+			return nil
+		}
+
+		err = billingService.GenerateInvoices(ctx, workspaceID, periodStart, periodEnd)
+		if err != nil {
+			logger.Error("Failed to generate invoices",
+				"workspace_id", workspaceID,
+				"error", err,
+			)
+			return fmt.Errorf("failed to generate invoices for workspace %s: %w", workspaceID, err)
+		}
+
+		logger.Info("Successfully generated invoices", "workspace_id", workspaceID)
+	} else {
+		// Process all workspaces with billing enabled
+		logger.Info("Processing all billing-enabled workspaces")
+
+		workspaces, err := listBillingEnabledWorkspaces(ctx, database)
+		if err != nil {
+			logger.Error("Failed to list billing-enabled workspaces", "error", err)
+			return fmt.Errorf("failed to list billing-enabled workspaces: %w", err)
+		}
+
+		logger.Info("Found billing-enabled workspaces", "count", len(workspaces))
+
+		var successCount, failCount int
+		for _, wsID := range workspaces {
+			logger.Info("Processing workspace", "workspace_id", wsID)
+
+			if cmd.Bool("dry-run") {
+				logger.Info("Would generate invoices for workspace", "workspace_id", wsID)
+				successCount++
+				continue
+			}
+
+			err = billingService.GenerateInvoices(ctx, wsID, periodStart, periodEnd)
+			if err != nil {
+				logger.Error("Failed to generate invoices for workspace",
+					"workspace_id", wsID,
+					"error", err,
+				)
+				failCount++
+				// Continue processing other workspaces
+				continue
+			}
+
+			logger.Info("Successfully generated invoices for workspace", "workspace_id", wsID)
+			successCount++
+		}
+
+		logger.Info("Billing job completed",
+			"success_count", successCount,
+			"fail_count", failCount,
+		)
+
+		if failCount > 0 {
+			return fmt.Errorf("failed to generate invoices for %d workspaces", failCount)
+		}
+	}
+
+	logger.Info("Billing job completed successfully")
+	return nil
+}
+
+// parseBillingPeriod parses the billing period from command line arguments.
+// If not provided, defaults to the previous month.
+func parseBillingPeriod(startStr, endStr string) (time.Time, time.Time, error) {
+	now := time.Now().UTC()
+
+	var periodStart, periodEnd time.Time
+	var err error
+
+	if startStr != "" {
+		periodStart, err = time.Parse("2006-01-02", startStr)
+		if err != nil {
+			return time.Time{}, time.Time{}, fmt.Errorf("invalid period-start format (expected YYYY-MM-DD): %w", err)
+		}
+	} else {
+		// Default to first day of previous month
+		firstOfCurrentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+		periodStart = firstOfCurrentMonth.AddDate(0, -1, 0)
+	}
+
+	if endStr != "" {
+		periodEnd, err = time.Parse("2006-01-02", endStr)
+		if err != nil {
+			return time.Time{}, time.Time{}, fmt.Errorf("invalid period-end format (expected YYYY-MM-DD): %w", err)
+		}
+	} else {
+		// Default to first day of current month
+		periodEnd = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	}
+
+	// Validate period
+	if !periodEnd.After(periodStart) {
+		return time.Time{}, time.Time{}, fmt.Errorf("period-end must be after period-start")
+	}
+
+	return periodStart, periodEnd, nil
+}
+
+// listBillingEnabledWorkspaces returns workspace IDs that have billing enabled
+// (i.e., have a connected Stripe account).
+func listBillingEnabledWorkspaces(ctx context.Context, database db.Database) ([]string, error) {
+	// Query workspaces with connected Stripe accounts
+	accounts, err := db.Query.StripeConnectedAccountListActive(ctx, database.RO())
+	if err != nil {
+		return nil, fmt.Errorf("failed to list connected accounts: %w", err)
+	}
+
+	workspaceIDs := make([]string, 0, len(accounts))
+	for _, account := range accounts {
+		workspaceIDs = append(workspaceIDs, account.WorkspaceID)
+	}
+
+	return workspaceIDs, nil
+}

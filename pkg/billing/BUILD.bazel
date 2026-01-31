@@ -1,0 +1,40 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "billing",
+    srcs = [
+        "billing_service.go",
+        "doc.go",
+        "end_user.go",
+        "noop.go",
+        "pricing_model.go",
+        "stripe_connect.go",
+        "usage_aggregator.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/billing",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/circuitbreaker",
+        "//pkg/clickhouse",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/encryption",
+        "//pkg/fault",
+        "//pkg/retry",
+        "//pkg/uid",
+        "@com_github_stripe_stripe_go_v81//:stripe-go",
+        "@com_github_stripe_stripe_go_v81//customer",
+        "@com_github_stripe_stripe_go_v81//invoice",
+        "@com_github_stripe_stripe_go_v81//invoiceitem",
+        "@com_github_stripe_stripe_go_v81//oauth",
+    ],
+)
+
+go_test(
+    name = "billing_test",
+    srcs = ["pricing_model_test.go"],
+    embed = [":billing"],
+    deps = [
+        "@com_github_stretchr_testify//require",
+    ],
+)

@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/billing"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
@@ -78,4 +79,18 @@ type Services struct {
 	// AnalyticsConnectionManager manages connections to analytics backends
 	// for retrieving verification and usage data.
 	AnalyticsConnectionManager analytics.ConnectionManager
+
+	// StripeConnect handles Stripe Connect OAuth flow for connecting
+	// customer Stripe accounts.
+	StripeConnect billing.StripeConnectService
+
+	// PricingService manages pricing models for billing end users.
+	PricingService billing.PricingModelService
+
+	// EndUserService manages billing end users and their usage.
+	EndUserService billing.EndUserService
+
+	// BillingService handles invoice generation, payment processing,
+	// and webhook handling for Stripe events.
+	BillingService billing.BillingService
 }

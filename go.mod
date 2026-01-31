@@ -333,6 +333,7 @@ require (
 	github.com/spyzhov/ajson v0.8.0 // indirect
 	github.com/sqlc-dev/sqlc v1.30.0 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
+	github.com/stripe/stripe-go/v81 v81.4.0
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/tidwall/btree v1.8.1 // indirect

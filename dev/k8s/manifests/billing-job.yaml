@@ -1,0 +1,110 @@
+---
+# Billing Job CronJob
+# Generates invoices for customer billing on the 1st of each month at 00:00 UTC.
+# This job aggregates usage data from ClickHouse and creates Stripe invoices
+# for all end users in workspaces with billing enabled.
+#
+# Requirements: 5.1, 5.2
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: billing-job
+  namespace: unkey
+  labels:
+    app: billing-job
+spec:
+  # Run at 00:00 UTC on the 1st of each month
+  schedule: "0 0 1 * *"
+  # Keep 3 successful job history entries
+  successfulJobsHistoryLimit: 3
+  # Keep 3 failed job history entries
+  failedJobsHistoryLimit: 3
+  # Don't allow concurrent runs
+  concurrencyPolicy: Forbid
+  # Start the job within 1 hour of scheduled time, otherwise skip
+  startingDeadlineSeconds: 3600
+  jobTemplate:
+    spec:
+      # Retry up to 3 times on failure
+      backoffLimit: 3
+      # Job should complete within 2 hours
+      activeDeadlineSeconds: 7200
+      template:
+        metadata:
+          labels:
+            app: billing-job
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: billing-job
+              image: unkey/go:latest
+              args: ["billing-job"]
+              imagePullPolicy: Never # Use local images in dev
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+              env:
+                # Database Configuration
+                - name: DATABASE_DSN
+                  value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+                # ClickHouse Configuration
+                - name: CLICKHOUSE_URL
+                  value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+                # Stripe Configuration
+                - name: STRIPE_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: billing-secrets
+                      key: stripe-key
+                      optional: true
+                - name: STRIPE_WEBHOOK_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: billing-secrets
+                      key: stripe-webhook-secret
+                      optional: true
+                - name: STRIPE_CLIENT_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: billing-secrets
+                      key: stripe-client-id
+                      optional: true
+                # Encryption Configuration
+                - name: MASTER_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: billing-secrets
+                      key: master-key
+                      optional: true
+          initContainers:
+            - name: wait-for-dependencies
+              image: busybox:1.36
+              command:
+                [
+                  "sh",
+                  "-c",
+                  "until nc -z mysql 3306 && nc -z clickhouse 8123; do echo waiting for dependencies; sleep 2; done;",
+                ]
+
+---
+# Secret for billing job credentials
+# In production, these should be managed via a secrets manager
+apiVersion: v1
+kind: Secret
+metadata:
+  name: billing-secrets
+  namespace: unkey
+  labels:
+    app: billing-job
+type: Opaque
+stringData:
+  # Placeholder values for local development
+  # Replace with actual values in production
+  stripe-key: "sk_test_placeholder"
+  stripe-webhook-secret: "whsec_placeholder"
+  stripe-client-id: "ca_placeholder"
+  master-key: "your-32-byte-master-key-here-ok"

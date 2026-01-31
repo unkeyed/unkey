@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "billing-job",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/cmd/billing-job",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/billing",
+        "//pkg/cli",
+        "//pkg/clickhouse",
+        "//pkg/db",
+        "//pkg/encryption",
+        "//pkg/otel/logging",
+    ],
+)

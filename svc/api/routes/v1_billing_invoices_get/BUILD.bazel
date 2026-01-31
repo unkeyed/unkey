@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "v1_billing_invoices_get",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v1_billing_invoices_get",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/keys",
+        "//pkg/billing",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/rbac",
+        "//pkg/zen",
+    ],
+)

@@ -1,5 +1,6 @@
 import type { Workspace } from "@/lib/db";
 import {
+  Coins,
   Cube,
   Fingerprint,
   Gauge,
@@ -116,6 +117,45 @@ export const createWorkspaceNavigation = (segments: string[], workspace: Workspa
       href: `${basePath}/identities`,
       label: "Identities",
       active: segments.at(1) === "identities",
+    },
+    {
+      icon: Coins,
+      href: `${basePath}/billing/connect`,
+      label: "Customer Billing",
+      active: segments.at(1) === "billing",
+      tag: <Tag label="Beta" className="mr-2 group-hover:bg-gray-1" />,
+      items: [
+        {
+          icon: null,
+          href: `${basePath}/billing/connect`,
+          label: "Stripe Connect",
+          active: segments.some((s) => s === "connect"),
+        },
+        {
+          icon: null,
+          href: `${basePath}/billing/pricing-models`,
+          label: "Pricing Models",
+          active: segments.some((s) => s === "pricing-models"),
+        },
+        {
+          icon: null,
+          href: `${basePath}/billing/end-users`,
+          label: "End Users",
+          active: segments.some((s) => s === "end-users"),
+        },
+        {
+          icon: null,
+          href: `${basePath}/billing/invoices`,
+          label: "Invoices",
+          active: segments.some((s) => s === "invoices"),
+        },
+        {
+          icon: null,
+          href: `${basePath}/billing/analytics`,
+          label: "Analytics",
+          active: segments.some((s) => s === "analytics"),
+        },
+      ],
     },
     {
       icon: Gear,
