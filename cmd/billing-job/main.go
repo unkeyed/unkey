@@ -3,7 +3,6 @@ package billingjob
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/billing"
