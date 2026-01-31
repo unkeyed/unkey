@@ -4,7 +4,33 @@ import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
-// Search end users by external ID
+// Search identities by external ID (like create key does)
+export const searchIdentitiesByExternalId = workspaceProcedure
+  .input(
+    z.object({
+      query: z.string().trim().min(1).max(255),
+    }),
+  )
+  .query(async ({ ctx, input }) => {
+    const { query } = input;
+    const workspaceId = ctx.workspace.id;
+
+    // Search for identities by external ID
+    const identities = await db.query.identities.findMany({
+      where: (table, { and, eq, like }) =>
+        and(
+          eq(table.workspaceId, workspaceId),
+          eq(table.deleted, false),
+          like(table.externalId, `%${query}%`),
+        ),
+      limit: 10,
+      orderBy: (identities, { asc }) => [asc(identities.externalId)],
+    });
+
+    return { identities };
+  });
+
+// Search end users by external ID (for existing end users)
 export const searchEndUsers = workspaceProcedure
   .input(
     z.object({
@@ -15,6 +41,7 @@ export const searchEndUsers = workspaceProcedure
     const { query } = input;
     const workspaceId = ctx.workspace.id;
 
+    // Search for end users by external ID
     const endUsers = await db.query.billingEndUsers.findMany({
       where: (table, { and, eq, like }) =>
         and(

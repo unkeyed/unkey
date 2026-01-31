@@ -3,13 +3,12 @@
 import { useSearchEndUsers } from "../hooks/use-search-end-users";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo } from "react";
 
 type EndUserExternalIdFieldProps = {
   value: string | null;
-  onChange: (endUserId: string | null, externalId: string | null) => void;
+  onChange: (identityId: string | null, externalId: string | null) => void;
   error?: string;
   disabled?: boolean;
 };
@@ -24,16 +23,16 @@ export const EndUserExternalIdField = ({
     useSearchEndUsers();
 
   const exactMatch = searchResults.some(
-    (user) => user.externalId.toLowerCase() === trimmedSearchValue.toLowerCase(),
+    (identity) => identity.externalId.toLowerCase() === trimmedSearchValue.toLowerCase(),
   );
 
   const hasPartialMatches = searchResults.length > 0;
 
-  // Create options from search results
-  const options = searchResults.map((user) => ({
-    label: user.externalId,
-    value: user.id,
-    searchValue: user.externalId,
+  // Create options from search results (identities)
+  const options = searchResults.map((identity) => ({
+    label: identity.externalId,
+    value: identity.id,
+    searchValue: identity.externalId,
     selectedLabel: <></>,
   }));
 
@@ -71,7 +70,7 @@ export const EndUserExternalIdField = ({
     <FormCombobox
       required
       label="External ID"
-      description="ID of the end user in your system for billing attribution."
+      description="ID of the end user in your system for billing attribution. Search for existing identities or create a new end user."
       options={finalOptions}
       key={value}
       value={value || ""}
@@ -80,12 +79,12 @@ export const EndUserExternalIdField = ({
       }}
       onSelect={(val) => {
         if (val === "__create_new__") {
-          // When creating, pass null for endUserId and the externalId
+          // When creating, pass null for identityId and the externalId
           onChange(null, trimmedSearchValue);
           return;
         }
-        const endUser = searchResults.find((user) => user.id === val);
-        onChange(endUser?.id || null, endUser?.externalId || null);
+        const identity = searchResults.find((id) => id.id === val);
+        onChange(identity?.id || null, identity?.externalId || null);
       }}
       placeholder={
         <div className="flex w-full text-grayA-8 text-xs items-center py-2">Search or create External ID</div>
@@ -112,7 +111,7 @@ export const EndUserExternalIdField = ({
                   <TriangleWarning2 iconSize="sm-regular" />
                 </div>
                 <div className="font-medium text-[13px] leading-7 text-gray-12">
-                  End user not found
+                  No matching identity found
                 </div>
               </div>
             </div>
@@ -121,7 +120,7 @@ export const EndUserExternalIdField = ({
             </div>
             <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4 text-left">
               You can create a new end user with this{" "}
-              <span className="font-medium">External ID</span> and use it immediately.
+              <span className="font-medium">External ID</span> for billing purposes.
             </div>
           </div>
         ) : isLoading ? (
@@ -145,7 +144,7 @@ export const EndUserExternalIdField = ({
       error={error}
       disabled={disabled || isLoading}
       loading={isLoading}
-      title={isLoading ? "Searching for end users..." : undefined}
+      title={isLoading ? "Searching for identities..." : undefined}
     />
   );
 };
