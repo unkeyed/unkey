@@ -5,8 +5,9 @@ import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import { getStripeClient } from "@/lib/stripe";
 
-// Prefix constant for end user IDs (matches Go backend)
+// Prefix constants matching Go backend (from @unkey/id package)
 const END_USER_PREFIX = "end_user";
+const IDENTITY_PREFIX = "id";
 
 // Search identities by external ID (like create key does)
 export const searchIdentitiesByExternalId = workspaceProcedure
@@ -136,7 +137,7 @@ export const createEndUser = workspaceProcedure
       identityId = existingIdentity.id;
     } else {
       // Create new identity (like create key does)
-      identityId = newId("identity");
+      identityId = newId(IDENTITY_PREFIX);
       await db.insert(schema.identities).values({
         id: identityId,
         externalId: input.externalId,
