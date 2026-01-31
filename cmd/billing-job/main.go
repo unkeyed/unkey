@@ -76,6 +76,8 @@ var Cmd = &cli.Command{
 }
 
 func run(ctx context.Context, cmd *cli.Command) error {
+	panic("DEBUG: run function reached") // Remove after debugging
+
 	logger := &simpleLogger{verbose: cmd.Bool("verbose")}
 
 	logOutput("=== Starting Billing Job ===\n")
