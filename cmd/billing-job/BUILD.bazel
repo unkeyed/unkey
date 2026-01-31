@@ -17,6 +17,15 @@ go_library(
 
 go_binary(
     name = "unkey-billing-job",
-    embed = [":billing-job"],
+    srcs = ["dev_main.go"],
+    importpath = "github.com/unkeyed/unkey/cmd/billing-job",
     visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/billing",
+        "//pkg/cli",
+        "//pkg/clickhouse",
+        "//pkg/db",
+        "//pkg/encryption",
+        "//pkg/otel/logging",
+    ],
 )

@@ -1,0 +1,14 @@
+package main
+
+import (
+	"context"
+	"os"
+
+	billingjob "github.com/unkeyed/unkey/cmd/billing-job"
+)
+
+func main() {
+	if err := billingjob.Cmd.Run(context.Background(), os.Args...); err != nil {
+		os.Exit(1)
+	}
+}
