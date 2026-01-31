@@ -10,28 +10,35 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/encryption"
+	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
-// Simple logger that writes to stdout
+// No-op logger for db.New() which requires non-nil Logger
+type noopLogger struct{}
+
+func (n *noopLogger) Info(msg string, keysAndValues ...interface{})  {}
+func (n *noopLogger) Error(msg string, keysAndValues ...interface{}) {}
+
+// Simple logger that writes to stdout for CLI output
 type simpleLogger struct {
 	verbose bool
 }
 
 func (l *simpleLogger) Infof(format string, args ...interface{}) {
-	fmt.Printf("[INFO] "+format+"\n", args...)
+	logOutput("[INFO] "+format, args...)
 }
 
 func (l *simpleLogger) Warnf(format string, args ...interface{}) {
-	fmt.Printf("[WARN] "+format+"\n", args...)
+	logOutput("[WARN] "+format, args...)
 }
 
 func (l *simpleLogger) Errorf(format string, args ...interface{}) {
-	fmt.Printf("[ERROR] "+format+"\n", args...)
+	logOutput("[ERROR] "+format, args...)
 }
 
 func (l *simpleLogger) Debugf(format string, args ...interface{}) {
 	if l.verbose {
-		fmt.Printf("[DEBUG] "+format+"\n", args...)
+		logOutput("[DEBUG] "+format, args...)
 	}
 }
 
@@ -105,7 +112,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.String("database-dsn"),
 		ReadOnlyDSN: "",
-		Logger:      nil,
+		Logger:      &noopLogger{},
 	})
 	if err != nil {
 		logger.Errorf("FAILED to connect to database: %v", err)
