@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "billing-job",
@@ -13,4 +13,10 @@ go_library(
         "//pkg/encryption",
         "//pkg/otel/logging",
     ],
+)
+
+go_binary(
+    name = "unkey-billing-job",
+    embed = [":billing-job"],
+    visibility = ["//visibility:public"],
 )
