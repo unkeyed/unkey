@@ -398,10 +398,12 @@ func (s *billingService) createStripeInvoice(
 
 	// Create invoice items for verifications
 	if usage.Verifications > 0 {
-		// nolint:exhaustruct // Stripe params have many optional fields
 		unitAmountInCents := int64(math.Round(pricingModel.VerificationUnitPrice * 100))
 		totalAmountInCents := unitAmountInCents * usage.Verifications
 		itemParams := &stripe.InvoiceItemParams{
+			Params: stripe.Params{
+				StripeAccount: stripe.String(connectedAccount.StripeAccountID),
+			},
 			Customer:    stripe.String(endUser.StripeCustomerID),
 			Amount:      stripe.Int64(totalAmountInCents),
 			Currency:    stripe.String(pricingModel.Currency),
@@ -409,7 +411,6 @@ func (s *billingService) createStripeInvoice(
 			Quantity:    stripe.Int64(usage.Verifications),
 			UnitAmount:  stripe.Int64(unitAmountInCents),
 		}
-		itemParams.SetStripeAccount(connectedAccount.StripeAccountID)
 
 		_, err := invoiceitem.New(itemParams)
 		if err != nil {
@@ -424,10 +425,12 @@ func (s *billingService) createStripeInvoice(
 
 	// Create invoice items for rate limits
 	if usage.RateLimits > 0 {
-		// nolint:exhaustruct // Stripe params have many optional fields
 		unitAmountInCents := int64(math.Round(pricingModel.RatelimitUnitPrice * 100))
 		totalAmountInCents := unitAmountInCents * usage.RateLimits
 		itemParams := &stripe.InvoiceItemParams{
+			Params: stripe.Params{
+				StripeAccount: stripe.String(connectedAccount.StripeAccountID),
+			},
 			Customer:    stripe.String(endUser.StripeCustomerID),
 			Amount:      stripe.Int64(totalAmountInCents),
 			Currency:    stripe.String(pricingModel.Currency),
@@ -435,7 +438,6 @@ func (s *billingService) createStripeInvoice(
 			Quantity:    stripe.Int64(usage.RateLimits),
 			UnitAmount:  stripe.Int64(unitAmountInCents),
 		}
-		itemParams.SetStripeAccount(connectedAccount.StripeAccountID)
 
 		_, err := invoiceitem.New(itemParams)
 		if err != nil {
