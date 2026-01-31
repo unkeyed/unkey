@@ -21,8 +21,8 @@ type PricingModelData struct {
 	WorkspaceID           string                 `json:"workspaceId"`
 	Name                  string                 `json:"name"`
 	Currency              string                 `json:"currency"`
-	VerificationUnitPrice int64                  `json:"verificationUnitPrice"`
-	RatelimitUnitPrice    int64                  `json:"ratelimitUnitPrice"`
+	VerificationUnitPrice float64                `json:"verificationUnitPrice"`
+	RatelimitUnitPrice    float64                `json:"ratelimitUnitPrice"`
 	TieredPricing         *billing.TieredPricing `json:"tieredPricing,omitempty"`
 	Version               int32                  `json:"version"`
 	Active                bool                   `json:"active"`

@@ -56,8 +56,8 @@ export const getEndUser = workspaceProcedure
     return endUser;
   });
 
-// Create end user
-export const createEndUser = workspaceProcedure
+// Upsert end user by external ID
+export const upsertEndUser = workspaceProcedure
   .input(
     z.object({
       externalId: z.string().min(1).max(255),
@@ -100,23 +100,31 @@ export const createEndUser = workspaceProcedure
       });
     }
 
-    // Check for duplicate external ID
+    const now = Date.now();
+
+    // Check for existing end user with same external ID (upsert logic)
     const existing = await db.query.billingEndUsers.findFirst({
       where: eq(schema.billingEndUsers.externalId, input.externalId),
     });
 
     if (existing && existing.workspaceId === ctx.workspace.id) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "An end user with this external ID already exists",
-      });
+      // Update existing end user
+      await db
+        .update(schema.billingEndUsers)
+        .set({
+          pricingModelId: input.pricingModelId,
+          email: input.email ?? existing.email,
+          name: input.name ?? existing.name,
+          metadata: input.metadata ?? existing.metadata,
+          updatedAtM: now,
+        })
+        .where(eq(schema.billingEndUsers.id, existing.id));
+
+      return { id: existing.id, stripeCustomerId: existing.stripeCustomerId, created: false };
     }
 
+    // Create new end user
     const id = newId("billing_end_user");
-    const now = Date.now();
-
-    // In a real implementation, we would create a Stripe customer here
-    // For now, we'll use a placeholder
     const stripeCustomerId = `cus_placeholder_${id}`;
 
     await db.insert(schema.billingEndUsers).values({
@@ -132,7 +140,7 @@ export const createEndUser = workspaceProcedure
       updatedAtM: now,
     });
 
-    return { id, stripeCustomerId };
+    return { id, stripeCustomerId, created: true };
   });
 
 // Update end user

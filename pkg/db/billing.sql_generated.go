@@ -688,12 +688,12 @@ type PricingModelInsertParams struct {
 	WorkspaceID           string `db:"workspace_id"`
 	Name                  string `db:"name"`
 	Currency              string `db:"currency"`
-	VerificationUnitPrice int64  `db:"verification_unit_price"`
-	RatelimitUnitPrice    int64  `db:"ratelimit_unit_price"`
-	TieredPricing         []byte `db:"tiered_pricing"`
-	Version               int32  `db:"version"`
-	Active                bool   `db:"active"`
-	CreatedAtM            int64  `db:"created_at_m"`
+	VerificationUnitPrice float64 `db:"verification_unit_price"`
+	RatelimitUnitPrice    float64 `db:"ratelimit_unit_price"`
+	TieredPricing         []byte  `db:"tiered_pricing"`
+	Version               int32   `db:"version"`
+	Active                bool    `db:"active"`
+	CreatedAtM            int64   `db:"created_at_m"`
 }
 
 // PricingModelInsert
@@ -809,8 +809,8 @@ WHERE id = ?
 
 type PricingModelUpdateParams struct {
 	Name                  string        `db:"name"`
-	VerificationUnitPrice int64         `db:"verification_unit_price"`
-	RatelimitUnitPrice    int64         `db:"ratelimit_unit_price"`
+	VerificationUnitPrice float64       `db:"verification_unit_price"`
+	RatelimitUnitPrice    float64       `db:"ratelimit_unit_price"`
 	TieredPricing         []byte        `db:"tiered_pricing"`
 	Version               int32         `db:"version"`
 	UpdatedAtM            sql.NullInt64 `db:"updated_at_m"`

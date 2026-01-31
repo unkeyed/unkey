@@ -22,8 +22,8 @@ import (
 type CreatePricingModelRequest struct {
 	Name                  string                 `json:"name" validate:"required"`
 	Currency              string                 `json:"currency" validate:"required,len=3"`
-	VerificationUnitPrice int64                  `json:"verificationUnitPrice" validate:"gte=0"`
-	RatelimitUnitPrice    int64                  `json:"ratelimitUnitPrice" validate:"gte=0"`
+	VerificationUnitPrice float64                `json:"verificationUnitPrice" validate:"gte=0"`
+	RatelimitUnitPrice    float64                `json:"ratelimitUnitPrice" validate:"gte=0"`
 	TieredPricing         *billing.TieredPricing `json:"tieredPricing,omitempty"`
 }
 
@@ -36,8 +36,8 @@ type CreatePricingModelResponse struct {
 		WorkspaceID           string                 `json:"workspaceId"`
 		Name                  string                 `json:"name"`
 		Currency              string                 `json:"currency"`
-		VerificationUnitPrice int64                  `json:"verificationUnitPrice"`
-		RatelimitUnitPrice    int64                  `json:"ratelimitUnitPrice"`
+		VerificationUnitPrice float64                `json:"verificationUnitPrice"`
+		RatelimitUnitPrice    float64                `json:"ratelimitUnitPrice"`
 		TieredPricing         *billing.TieredPricing `json:"tieredPricing,omitempty"`
 		Version               int32                  `json:"version"`
 		Active                bool                   `json:"active"`

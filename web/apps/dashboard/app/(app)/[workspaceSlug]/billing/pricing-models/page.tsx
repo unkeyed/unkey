@@ -4,7 +4,7 @@ import { PageLoading } from "@/components/dashboard/page-loading";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleInfo, PenWriting3, Plus, Trash, TriangleWarning } from "@unkey/icons";
+import { CircleInfo, PenWriting3, Plus, Trash } from "@unkey/icons";
 import {
   Alert,
   AlertDescription,
@@ -187,16 +187,6 @@ export default function PricingModelsPage() {
       <BillingNavbar activePage={{ href: "pricing-models", text: "Pricing Models" }} />
       <div className="py-3 w-full flex items-center justify-center">
         <div className="w-[900px] flex flex-col justify-center items-center gap-5 mx-6 mt-4">
-          {!isConnected && (
-            <Alert variant="warn" className="w-full">
-              <TriangleWarning className="h-4 w-4" />
-              <AlertTitle>Stripe Not Connected</AlertTitle>
-              <AlertDescription>
-                Please connect your Stripe account before creating pricing models.
-              </AlertDescription>
-            </Alert>
-          )}
-
           {workspaceCurrency && (
             <Alert variant="default" className="w-full">
               <CircleInfo className="h-4 w-4" />

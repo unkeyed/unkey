@@ -14,7 +14,7 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BillingNavbar } from "../billing-navbar";
 
 type Granularity = "day" | "week" | "month";
@@ -38,28 +38,33 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [granularity, setGranularity] = useState<Granularity>("day");
 
-  const now = Date.now();
-  const startDate = now - TIME_RANGES[timeRange].days * 24 * 60 * 60 * 1000;
+  // Use useMemo to ensure stable dates for query keys
+  const { startDate, endDate } = useMemo(() => {
+    const now = Date.now();
+    const startDate = now - TIME_RANGES[timeRange].days * 24 * 60 * 60 * 1000;
+    return { startDate, endDate: now };
+  }, [timeRange]);
 
   const { data: revenueData, isLoading: isLoadingRevenue } =
     trpc.customerBilling.analytics.revenue.useQuery({
       startDate,
-      endDate: now,
+      endDate,
       granularity,
     });
 
   const { data: usageData, isLoading: isLoadingUsage } =
     trpc.customerBilling.analytics.usage.useQuery({
       startDate,
-      endDate: now,
+      endDate,
     });
 
-  const { data: summary } = trpc.customerBilling.invoices.getSummary.useQuery();
+  const { data: summary, isLoading: isLoadingSummary } =
+    trpc.customerBilling.invoices.getSummary.useQuery();
 
   const exportMutation = trpc.customerBilling.analytics.export.useQuery(
     {
       startDate,
-      endDate: now,
+      endDate,
     },
     {
       enabled: false,
@@ -104,14 +109,32 @@ export default function AnalyticsPage() {
     );
   }
 
-  const isLoading = isLoadingRevenue || isLoadingUsage;
+  const isLoading = isLoadingRevenue || isLoadingUsage || isLoadingSummary;
 
   if (isLoading) {
     return <PageLoading message="Loading analytics..." />;
   }
 
+  // Handle empty state when there are no invoices
+  if (!summary || summary.totalInvoices === 0) {
+    return (
+      <div>
+        <BillingNavbar activePage={{ href: "analytics", text: "Analytics" }} />
+        <div className="p-4">
+          <Empty>
+            <Empty.Icon />
+            <Empty.Title>No Invoice Data</Empty.Title>
+            <Empty.Description>
+              There are no invoices yet. Revenue and usage data will appear once invoices are created.
+            </Empty.Description>
+          </Empty>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate max revenue for chart scaling
-  const maxRevenue = revenueData
+  const maxRevenue = revenueData && revenueData.length > 0
     ? Math.max(...revenueData.map((d: RevenueDataPoint) => d.revenue), 1)
     : 1;
 

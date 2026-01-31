@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -40,8 +41,8 @@ type PricingModel struct {
 	WorkspaceID           string
 	Name                  string
 	Currency              string
-	VerificationUnitPrice int64 // cents
-	RatelimitUnitPrice    int64 // cents
+	VerificationUnitPrice float64 // dollars (can be fractional, e.g., 0.001 for 0.1 cent)
+	RatelimitUnitPrice    float64 // dollars (can be fractional, e.g., 0.001 for 0.1 cent)
 	TieredPricing         *TieredPricing
 	Version               int32
 	Active                bool
@@ -56,8 +57,8 @@ type TieredPricing struct {
 
 // PricingTier represents a single pricing tier
 type PricingTier struct {
-	UpTo      int64 `json:"upTo"`      // 0 means unlimited
-	UnitPrice int64 `json:"unitPrice"` // cents
+	UpTo      int64   `json:"upTo"`      // 0 means unlimited
+	UnitPrice float64 `json:"unitPrice"` // dollars (can be fractional)
 }
 
 // CreatePricingModelRequest contains parameters for creating a pricing model
@@ -65,16 +66,16 @@ type CreatePricingModelRequest struct {
 	WorkspaceID           string
 	Name                  string
 	Currency              string
-	VerificationUnitPrice int64
-	RatelimitUnitPrice    int64
+	VerificationUnitPrice float64
+	RatelimitUnitPrice    float64
 	TieredPricing         *TieredPricing
 }
 
 // UpdatePricingModelRequest contains parameters for updating a pricing model
 type UpdatePricingModelRequest struct {
 	Name                  string
-	VerificationUnitPrice int64
-	RatelimitUnitPrice    int64
+	VerificationUnitPrice float64
+	RatelimitUnitPrice    float64
 	TieredPricing         *TieredPricing
 }
 
@@ -460,6 +461,7 @@ func (s *pricingModelService) DeletePricingModel(ctx context.Context, id string)
 
 // CalculateCharges calculates the total charges for usage based on the pricing model.
 // Supports both flat pricing and tiered pricing.
+// Returns charges in cents (rounded) for Stripe integration.
 //
 // Validates: Requirements 5.3
 func (s *pricingModelService) CalculateCharges(
@@ -496,10 +498,45 @@ func (s *pricingModelService) CalculateCharges(
 		return calculateTieredCharges(model.TieredPricing, verifications, rateLimits)
 	}
 
-	// Flat pricing
-	verificationCharges := verifications * model.VerificationUnitPrice
-	rateLimitCharges := rateLimits * model.RatelimitUnitPrice
-	return verificationCharges + rateLimitCharges, nil
+	// Flat pricing - use float64 for fractional pricing
+	verificationCharges := float64(verifications) * model.VerificationUnitPrice
+	rateLimitCharges := float64(rateLimits) * model.RatelimitUnitPrice
+	totalCharges := verificationCharges + rateLimitCharges
+
+	// Round to nearest cent (Stripe uses cents)
+	totalInCents := int64(math.Round(totalCharges * 100))
+	return totalInCents, nil
+}
+
+// calculateTieredCharges calculates charges using tiered pricing
+// Returns charges in cents (rounded) for Stripe integration.
+func calculateTieredCharges(tp *TieredPricing, verifications, rateLimits int64) (int64, error) {
+	totalUsage := verifications + rateLimits
+	var totalCharge float64
+	var usedSoFar int64
+
+	for _, tier := range tp.Tiers {
+		if usedSoFar >= totalUsage {
+			break
+		}
+
+		var tierUsage int64
+		if tier.UpTo == 0 {
+			// Unlimited tier - use all remaining
+			tierUsage = totalUsage - usedSoFar
+		} else {
+			// Limited tier - use up to the tier limit minus what we've already used
+			tierLimit := tier.UpTo - usedSoFar
+			remaining := totalUsage - usedSoFar
+			tierUsage = min(remaining, tierLimit)
+		}
+
+		totalCharge += float64(tierUsage) * tier.UnitPrice
+		usedSoFar += tierUsage
+	}
+
+	// Round to nearest cent (Stripe uses cents)
+	return int64(math.Round(totalCharge * 100)), nil
 }
 
 // validateTieredPricing validates the tiered pricing configuration
@@ -522,7 +559,7 @@ func validateTieredPricing(tp *TieredPricing) error {
 		}
 	}
 
-	// Check that unit prices are non-negative
+	// Check that unit prices are non-negative (supports fractional pricing)
 	for i, tier := range tp.Tiers {
 		if tier.UnitPrice < 0 {
 			return fmt.Errorf("tier %d unit price cannot be negative", i)
@@ -530,35 +567,6 @@ func validateTieredPricing(tp *TieredPricing) error {
 	}
 
 	return nil
-}
-
-// calculateTieredCharges calculates charges using tiered pricing
-func calculateTieredCharges(tp *TieredPricing, verifications, rateLimits int64) (int64, error) {
-	totalUsage := verifications + rateLimits
-	var totalCharge int64
-	var usedSoFar int64
-
-	for _, tier := range tp.Tiers {
-		if usedSoFar >= totalUsage {
-			break
-		}
-
-		var tierUsage int64
-		if tier.UpTo == 0 {
-			// Unlimited tier - use all remaining
-			tierUsage = totalUsage - usedSoFar
-		} else {
-			// Limited tier - use up to the tier limit minus what we've already used
-			tierLimit := tier.UpTo - usedSoFar
-			remaining := totalUsage - usedSoFar
-			tierUsage = min(remaining, tierLimit)
-		}
-
-		totalCharge += tierUsage * tier.UnitPrice
-		usedSoFar += tierUsage
-	}
-
-	return totalCharge, nil
 }
 
 // dbModelToPricingModel converts a database model to a domain model

@@ -19,6 +19,10 @@ export const getRevenueAnalytics = workspaceProcedure
         gte(schema.billingInvoices.billingPeriodStart, input.startDate),
         lte(schema.billingInvoices.billingPeriodEnd, input.endDate),
       ),
+      columns: {
+        billingPeriodEnd: true,
+        totalAmount: true,
+      },
     });
 
     // Group by date based on granularity
@@ -74,6 +78,10 @@ export const getUsageAnalytics = workspaceProcedure
         gte(schema.billingInvoices.billingPeriodStart, input.startDate),
         lte(schema.billingInvoices.billingPeriodEnd, input.endDate),
       ),
+      columns: {
+        verificationCount: true,
+        ratelimitCount: true,
+      },
     });
 
     const totalVerifications = invoices.reduce((sum, i) => sum + i.verificationCount, 0);

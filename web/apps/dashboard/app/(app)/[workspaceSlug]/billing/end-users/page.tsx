@@ -4,11 +4,8 @@ import { PageLoading } from "@/components/dashboard/page-loading";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, PenWriting3, Plus, Trash, TriangleWarning } from "@unkey/icons";
+import { Eye, PenWriting3, Plus, Trash } from "@unkey/icons";
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Button,
   Dialog,
   DialogContent,
@@ -204,26 +201,6 @@ export default function EndUsersPage() {
       <BillingNavbar activePage={{ href: "end-users", text: "End Users" }} />
       <div className="py-3 w-full flex items-center justify-center">
         <div className="w-[900px] flex flex-col justify-center items-center gap-5 mx-6 mt-4">
-          {!isConnected && (
-            <Alert variant="warn" className="w-full">
-              <TriangleWarning className="h-4 w-4" />
-              <AlertTitle>Stripe Not Connected</AlertTitle>
-              <AlertDescription>
-                Please connect your Stripe account before creating end users.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {isConnected && !hasPricingModels && (
-            <Alert variant="warn" className="w-full">
-              <TriangleWarning className="h-4 w-4" />
-              <AlertTitle>No Pricing Models</AlertTitle>
-              <AlertDescription>
-                Please create a pricing model before adding end users.
-              </AlertDescription>
-            </Alert>
-          )}
-
           <div className="w-full flex justify-between items-center">
             <h2 className="text-lg font-medium">End Users</h2>
             <Button

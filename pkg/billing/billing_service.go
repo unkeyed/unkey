@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/stripe/stripe-go/v81"
@@ -398,13 +399,15 @@ func (s *billingService) createStripeInvoice(
 	// Create invoice items for verifications
 	if usage.Verifications > 0 {
 		// nolint:exhaustruct // Stripe params have many optional fields
+		unitAmountInCents := int64(math.Round(pricingModel.VerificationUnitPrice * 100))
+		totalAmountInCents := unitAmountInCents * usage.Verifications
 		itemParams := &stripe.InvoiceItemParams{
 			Customer:    stripe.String(endUser.StripeCustomerID),
-			Amount:      stripe.Int64(usage.Verifications * pricingModel.VerificationUnitPrice),
+			Amount:      stripe.Int64(totalAmountInCents),
 			Currency:    stripe.String(pricingModel.Currency),
 			Description: stripe.String(fmt.Sprintf("API Verifications (%d)", usage.Verifications)),
 			Quantity:    stripe.Int64(usage.Verifications),
-			UnitAmount:  stripe.Int64(pricingModel.VerificationUnitPrice),
+			UnitAmount:  stripe.Int64(unitAmountInCents),
 		}
 		itemParams.SetStripeAccount(connectedAccount.StripeAccountID)
 
@@ -422,13 +425,15 @@ func (s *billingService) createStripeInvoice(
 	// Create invoice items for rate limits
 	if usage.RateLimits > 0 {
 		// nolint:exhaustruct // Stripe params have many optional fields
+		unitAmountInCents := int64(math.Round(pricingModel.RatelimitUnitPrice * 100))
+		totalAmountInCents := unitAmountInCents * usage.RateLimits
 		itemParams := &stripe.InvoiceItemParams{
 			Customer:    stripe.String(endUser.StripeCustomerID),
-			Amount:      stripe.Int64(usage.RateLimits * pricingModel.RatelimitUnitPrice),
+			Amount:      stripe.Int64(totalAmountInCents),
 			Currency:    stripe.String(pricingModel.Currency),
 			Description: stripe.String(fmt.Sprintf("Rate Limit Checks (%d)", usage.RateLimits)),
 			Quantity:    stripe.Int64(usage.RateLimits),
-			UnitAmount:  stripe.Int64(pricingModel.RatelimitUnitPrice),
+			UnitAmount:  stripe.Int64(unitAmountInCents),
 		}
 		itemParams.SetStripeAccount(connectedAccount.StripeAccountID)
 

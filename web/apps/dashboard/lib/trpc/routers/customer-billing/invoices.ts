@@ -86,7 +86,26 @@ export const getInvoice = workspaceProcedure
 export const getInvoiceSummary = workspaceProcedure.query(async ({ ctx }) => {
   const invoices = await db.query.billingInvoices.findMany({
     where: eq(schema.billingInvoices.workspaceId, ctx.workspace.id),
+    columns: {
+      status: true,
+      totalAmount: true,
+    },
   });
+
+  if (invoices.length === 0) {
+    return {
+      totalRevenue: 0,
+      pendingRevenue: 0,
+      totalInvoices: 0,
+      statusCounts: {
+        draft: 0,
+        open: 0,
+        paid: 0,
+        void: 0,
+        uncollectible: 0,
+      },
+    };
+  }
 
   const totalRevenue = invoices
     .filter((i) => i.status === "paid")
