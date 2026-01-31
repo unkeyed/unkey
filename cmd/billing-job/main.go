@@ -238,8 +238,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		processedWorkspaces  = 0
 		failedWorkspaces     = 0
 		totalEndUsers       = 0
-		totalVerifications  int64
-		totalRateLimits     int64
 		totalInvoicesCreated = 0
 	)
 
