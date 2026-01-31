@@ -10,13 +10,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/encryption"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // No-op logger for db.New() which requires non-nil Logger
 type noopLogger struct{}
 
 func (n *noopLogger) Info(msg string, keysAndValues ...interface{})  {}
+func (n *noopLogger) Debug(msg string, keysAndValues ...interface{}) {}
 func (n *noopLogger) Error(msg string, keysAndValues ...interface{}) {}
 
 // Simple logger that writes to stdout for CLI output
