@@ -245,7 +245,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 	for i, wsID := range workspaces {
 		logger.Info("-----------------------------------")
-		logger.Info(fmt.Sprintf "[%d/%d] Processing workspace", i+1, totalWorkspaces), "workspace_id", wsID)
+		logger.Info(fmt.Sprintf("[%d/%d] Processing workspace", i+1, totalWorkspaces), "workspace_id", wsID)
 
 		// Count end users in workspace
 		endUsers, err := endUserService.ListEndUsers(ctx, wsID)
