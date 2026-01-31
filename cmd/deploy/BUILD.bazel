@@ -9,6 +9,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/cmd/deploy",
     visibility = ["//visibility:public"],
     deps = [
+        "//cmd/deploy/internal/errors",
         "//cmd/deploy/internal/ui",
         "//pkg/cli",
         "//pkg/git",
