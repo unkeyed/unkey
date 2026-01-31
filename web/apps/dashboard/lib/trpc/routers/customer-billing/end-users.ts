@@ -124,7 +124,7 @@ export const upsertEndUser = workspaceProcedure
     }
 
     // Create new end user
-    const id = newId("billing_end_user");
+    const id = newId("billingEndUser");
     const stripeCustomerId = `cus_placeholder_${id}`;
 
     await db.insert(schema.billingEndUsers).values({

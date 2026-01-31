@@ -1,7 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
 // Get connected account status
