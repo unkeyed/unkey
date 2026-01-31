@@ -9,6 +9,7 @@ import { useMemo } from "react";
 type EndUserExternalIdFieldProps = {
   value: string | null;
   onChange: (identityId: string | null, externalId: string | null) => void;
+  onSelectIdentity?: (identityId: string | null, externalId: string | null) => void;
   error?: string;
   disabled?: boolean;
 };
@@ -16,6 +17,7 @@ type EndUserExternalIdFieldProps = {
 export const EndUserExternalIdField = ({
   value,
   onChange,
+  onSelectIdentity,
   error,
   disabled = false,
 }: EndUserExternalIdFieldProps) => {
@@ -81,10 +83,18 @@ export const EndUserExternalIdField = ({
         if (val === "__create_new__") {
           // When creating, pass null for identityId and the externalId
           onChange(null, trimmedSearchValue);
+          if (onSelectIdentity) {
+            onSelectIdentity(null, trimmedSearchValue);
+          }
           return;
         }
         const identity = searchResults.find((id) => id.id === val);
-        onChange(identity?.id || null, identity?.externalId || null);
+        const identityId = identity?.id || null;
+        const externalId = identity?.externalId || null;
+        onChange(identityId, externalId);
+        if (onSelectIdentity) {
+          onSelectIdentity(identityId, externalId);
+        }
       }}
       placeholder={
         <div className="flex w-full text-grayA-8 text-xs items-center py-2">Search or create External ID</div>

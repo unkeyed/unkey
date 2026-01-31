@@ -86,7 +86,7 @@ export default function EndUsersPage() {
       toast.success("End user created");
       utils.customerBilling.endUsers.list.invalidate();
       setIsCreateOpen(false);
-      setSelectedEndUserId(null);
+      setSelectedIdentityId(null);
       createForm.reset();
     },
     onError: (error: { message: string }) => {
@@ -122,7 +122,7 @@ export default function EndUsersPage() {
     },
   });
 
-  const [selectedEndUserId, setSelectedEndUserId] = useState<string | null>(null);
+  const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
 
   const createForm = useForm<EndUserFormData>({
     resolver: zodResolver(endUserSchema),
@@ -139,29 +139,8 @@ export default function EndUsersPage() {
   });
 
   const handleCreate = (data: EndUserFormData) => {
-    // Check if an end user with this external ID already exists
-    if (selectedEndUserId) {
-      toast.error("End user already exists", {
-        description: "An end user with this external ID already exists. Please use a different external ID or select from the list.",
-      });
-      return;
-    }
-
-    // Also check if the typed external ID matches an existing end user
-    const externalId = data.externalId.trim();
-    const existingEndUser = endUsers?.find(
-      (user) => user.externalId.toLowerCase() === externalId.toLowerCase()
-    );
-
-    if (existingEndUser) {
-      toast.error("End user already exists", {
-        description: `An end user with external ID "${externalId}" already exists. Please use a different external ID.`,
-      });
-      return;
-    }
-
     createMutation.mutate({
-      externalId: externalId,
+      externalId: data.externalId.trim(),
       pricingModelId: data.pricingModelId,
       email: data.email || undefined,
       name: data.name || undefined,
@@ -289,7 +268,7 @@ export default function EndUsersPage() {
         open={isCreateOpen}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedEndUserId(null);
+            setSelectedIdentityId(null);
             createForm.reset();
           }
           setIsCreateOpen(open);
@@ -301,9 +280,15 @@ export default function EndUsersPage() {
           </DialogHeader>
           <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
             <EndUserExternalIdField
-              value={selectedEndUserId}
-              onChange={(endUserId, externalId) => {
-                setSelectedEndUserId(endUserId);
+              value={selectedIdentityId}
+              onChange={(identityId, externalId) => {
+                setSelectedIdentityId(identityId);
+                if (externalId) {
+                  createForm.setValue("externalId", externalId, { shouldValidate: true });
+                }
+              }}
+              onSelectIdentity={(identityId, externalId) => {
+                setSelectedIdentityId(identityId);
                 if (externalId) {
                   createForm.setValue("externalId", externalId, { shouldValidate: true });
                 }
