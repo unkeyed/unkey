@@ -11,18 +11,19 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/encryption"
+	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // No-op logger for db.New() which requires non-nil Logger
 type noopLogger struct{}
 
-func (n *noopLogger) With(args ...any) Logger                    { return n }
-func (n *noopLogger) WithAttrs(attrs ...slog.Attr) Logger        { return n }
-func (n *noopLogger) WithCallDepth(depth int) Logger             { return n }
-func (n *noopLogger) Debug(msg string, args ...any)              {}
-func (n *noopLogger) Info(msg string, args ...any)               {}
-func (n *noopLogger) Warn(msg string, args ...any)               {}
-func (n *noopLogger) Error(msg string, args ...any)              {}
+func (n *noopLogger) With(args ...any) logging.Logger                  { return n }
+func (n *noopLogger) WithAttrs(attrs ...slog.Attr) logging.Logger      { return n }
+func (n *noopLogger) WithCallDepth(depth int) logging.Logger           { return n }
+func (n *noopLogger) Debug(msg string, args ...any)                    {}
+func (n *noopLogger) Info(msg string, args ...any)                     {}
+func (n *noopLogger) Warn(msg string, args ...any)                     {}
+func (n *noopLogger) Error(msg string, args ...any)                    {}
 
 // Simple logger that writes to stdout for CLI output
 type simpleLogger struct {
