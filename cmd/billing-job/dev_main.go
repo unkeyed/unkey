@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	if err := billingjob.Cmd.Run(context.Background(), os.Args...); err != nil {
+	if err := billingjob.Cmd.Run(context.Background(), billingjob.Cmd); err != nil {
 		os.Exit(1)
 	}
 }
