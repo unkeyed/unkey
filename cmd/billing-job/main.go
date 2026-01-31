@@ -2,6 +2,7 @@ package billingjob
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"time"
@@ -143,7 +144,12 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	// Step 3: Initialize Services
 	logOutput("[3/5] Initializing billing services...\n")
 
-	masterKey := []byte(cmd.String("master-key"))
+	// Decode master key from base64 (matching dashboard/vault behavior)
+	masterKey, err := base64.StdEncoding.DecodeString(cmd.String("master-key"))
+	if err != nil {
+		logger.Errorf("Failed to decode master key: %v", err)
+		return fmt.Errorf("failed to decode master key: %w", err)
+	}
 	workspaceEncryption, err := encryption.NewWorkspaceEncryption(masterKey)
 	if err != nil {
 		logger.Errorf("Failed to initialize encryption: %v", err)
