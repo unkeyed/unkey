@@ -21,18 +21,6 @@ export default function StripeConnectPage() {
     refetch,
   } = trpc.customerBilling.connect.getAccount.useQuery();
 
-  const getAuthUrl = trpc.customerBilling.connect.getAuthorizationUrl.useMutation({
-    onSuccess: (data) => {
-      window.location.href = data.authorizationUrl;
-    },
-    onError: (error) => {
-      setIsConnecting(false);
-      toast.error("Failed to initiate Stripe Connect", {
-        description: error.message,
-      });
-    },
-  });
-
   const disconnectAccount = trpc.customerBilling.connect.disconnect.useMutation({
     onSuccess: () => {
       toast.success("Stripe account disconnected");
@@ -65,8 +53,25 @@ export default function StripeConnectPage() {
 
   const handleConnect = () => {
     setIsConnecting(true);
+    const clientId = process.env.NEXT_PUBLIC_STRIPE_CONNECT_CLIENT_ID;
     const redirectUri = `${window.location.origin}/api/billing/stripe-connect/callback`;
-    getAuthUrl.mutate({ redirectUri });
+    const state = Buffer.from(
+      JSON.stringify({
+        workspaceId: workspace.id,
+        timestamp: Date.now(),
+      }),
+    ).toString("base64");
+
+    const params = new URLSearchParams({
+      response_type: "code",
+      client_id: clientId ?? "",
+      scope: "read_write",
+      redirect_uri: redirectUri,
+      state,
+    });
+
+    const authUrl = `https://connect.stripe.com/oauth/authorize?${params.toString()}`;
+    window.location.href = authUrl;
   };
 
   const handleDisconnect = () => {
@@ -174,11 +179,7 @@ export default function StripeConnectPage() {
                 border="both"
               >
                 <div className="flex justify-end w-full">
-                  <Button
-                    variant="primary"
-                    onClick={handleConnect}
-                    loading={isConnecting || getAuthUrl.isLoading}
-                  >
+                  <Button variant="primary" onClick={handleConnect} loading={isConnecting}>
                     Connect with Stripe
                   </Button>
                 </div>

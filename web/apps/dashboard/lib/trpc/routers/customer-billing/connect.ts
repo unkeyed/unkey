@@ -24,51 +24,7 @@ export const getConnectedAccount = workspaceProcedure.query(async ({ ctx }) => {
   };
 });
 
-// Get authorization URL for Stripe Connect OAuth
-export const getAuthorizationUrl = workspaceProcedure
-  .input(
-    z.object({
-      redirectUri: z.string().url(),
-    }),
-  )
-  .mutation(async ({ ctx, input }) => {
-    // Check if workspace has billing beta access
-    if (!ctx.workspace.betaFeatures.billing) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Billing feature is not enabled for this workspace",
-      });
-    }
-
-    const clientId = process.env.STRIPE_CONNECT_CLIENT_ID;
-    if (!clientId) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Stripe Connect is not configured",
-      });
-    }
-
-    const state = Buffer.from(
-      JSON.stringify({
-        workspaceId: ctx.workspace.id,
-        timestamp: Date.now(),
-      }),
-    ).toString("base64");
-
-    const params = new URLSearchParams({
-      response_type: "code",
-      client_id: clientId,
-      scope: "read_write",
-      redirect_uri: input.redirectUri,
-      state,
-    });
-
-    return {
-      authorizationUrl: `https://connect.stripe.com/oauth/authorize?${params.toString()}`,
-    };
-  });
-
-// Disconnect Stripe account
+// Disconnect Stripe account - uses the API route for programmatic access
 export const disconnectAccount = workspaceProcedure.mutation(async ({ ctx }) => {
   const account = await db.query.stripeConnectedAccounts.findFirst({
     where: eq(schema.stripeConnectedAccounts.workspaceId, ctx.workspace.id),
