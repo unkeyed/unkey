@@ -93,7 +93,9 @@ linters:
         - ^sigs.k8s.io/controller-runtime/pkg/client.*$
         - ^github.com/moby/buildkit/client.*$
         - ^github.com/docker/docker/api/types/container.*$
-        - ^github.com/docker/docker/api/types/image.*$"
+        - ^github.com/docker/docker/api/types/image.*$
+        - ^github.com/stripe/stripe-go/v81.InvoiceItemParams$
+        - ^github.com/stripe/stripe-go/v81.Params$"
 
     funlen:
       lines: 100
