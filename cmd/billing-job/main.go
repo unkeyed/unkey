@@ -75,14 +75,21 @@ WORKSPACE_ID=ws_123 DATABASE_DSN=... CLICKHOUSE_URL=... STRIPE_KEY=... unkey bil
 		// Execution options
 		cli.Bool("dry-run", "Preview invoice generation without creating actual invoices",
 			cli.Default(false), cli.EnvVar("DRY_RUN")),
+		cli.Bool("verbose", "Enable verbose logging",
+			cli.Default(false), cli.EnvVar("VERBOSE")),
 	},
 	Action: run,
 }
 
 func run(ctx context.Context, cmd *cli.Command) error {
 	logger := logging.New()
+	verbose := cmd.Bool("verbose")
 
-	logger.Info("Starting billing job")
+	logger.Info("=== Starting Billing Job ===")
+	logger.Info("Initializing billing job",
+		"dry_run", cmd.Bool("dry-run"),
+		"verbose", verbose,
+	)
 
 	// Parse billing period
 	periodStart, periodEnd, err := parseBillingPeriod(cmd.String("period-start"), cmd.String("period-end"))
@@ -91,50 +98,85 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to parse billing period: %w", err)
 	}
 
-	logger.Info("Billing period",
-		"start", periodStart.Format("2006-01-02"),
-		"end", periodEnd.Format("2006-01-02"),
+	logger.Info("Billing period configuration",
+		"period_start", periodStart.Format("2006-01-02"),
+		"period_end", periodEnd.Format("2006-01-02"),
+		"duration_days", int(periodEnd.Sub(periodStart).Hours()/24),
 	)
 
 	// Check for dry run mode
 	if cmd.Bool("dry-run") {
-		logger.Info("DRY RUN MODE - No invoices will be created")
+		logger.Warn("*** DRY RUN MODE *** No invoices will be created")
 	}
 
-	// Initialize database connection
+	// =========================================
+	// Step 1: Connect to Database
+	// =========================================
+	logger.Info("[1/5] Connecting to database...")
+	databaseDSN := cmd.String("database-dsn")
+	logger.Debug("Database DSN configured",
+		"dsn_length", len(databaseDSN),
+	)
+
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cmd.String("database-dsn"),
+		PrimaryDSN:  databaseDSN,
 		ReadOnlyDSN: "",
 		Logger:      logger,
 	})
 	if err != nil {
-		logger.Error("Failed to connect to database", "error", err)
+		logger.Error("FAILED to connect to database", "error", err)
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
+	logger.Info("[1/5] Successfully connected to database")
 
-	// Initialize ClickHouse connection
+	// =========================================
+	// Step 2: Connect to ClickHouse
+	// =========================================
+	logger.Info("[2/5] Connecting to ClickHouse...")
+	clickhouseURL := cmd.String("clickhouse-url")
+	logger.Debug("ClickHouse URL configured",
+		"url_length", len(clickhouseURL),
+	)
+
 	ch, err := clickhouse.New(clickhouse.Config{
-		URL:    cmd.String("clickhouse-url"),
+		URL:    clickhouseURL,
 		Logger: logger,
 	})
 	if err != nil {
-		logger.Error("Failed to connect to ClickHouse", "error", err)
+		logger.Error("FAILED to connect to ClickHouse", "error", err)
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
+	logger.Info("[2/5] Successfully connected to ClickHouse")
+
+	// =========================================
+	// Step 3: Initialize Services
+	// =========================================
+	logger.Info("[3/5] Initializing billing services...")
 
 	// Initialize encryption service
 	masterKeyStr := cmd.String("master-key")
+	logger.Debug("Master key configured",
+		"key_length", len(masterKeyStr),
+	)
+
 	masterKey := []byte(masterKeyStr)
 	workspaceEncryption, err := encryption.NewWorkspaceEncryption(masterKey)
 	if err != nil {
 		logger.Error("Failed to initialize encryption", "error", err)
 		return fmt.Errorf("failed to initialize encryption: %w", err)
 	}
+	logger.Info("Encryption service initialized")
 
 	// Initialize billing services
 	stripeKey := cmd.String("stripe-key")
 	stripeClientID := cmd.String("stripe-client-id")
 	webhookSecret := cmd.String("stripe-webhook-secret")
+
+	logger.Debug("Stripe configuration",
+		"stripe_key_length", len(stripeKey),
+		"client_id_set", stripeClientID != "",
+		"webhook_secret_set", webhookSecret != "",
+	)
 
 	connectService := billing.NewStripeConnectService(database, workspaceEncryption, stripeClientID)
 	pricingService := billing.NewPricingModelService(database)
@@ -149,77 +191,116 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		stripeKey,
 		webhookSecret,
 	)
+	logger.Info("[3/5] All billing services initialized")
+
+	// =========================================
+	// Step 4: List Workspaces
+	// =========================================
+	logger.Info("[4/5] Finding workspaces to process...")
 
 	// Get workspace ID if specified
 	workspaceID := cmd.String("workspace-id")
+	var workspaces []string
 
 	if workspaceID != "" {
 		// Process single workspace
 		logger.Info("Processing single workspace", "workspace_id", workspaceID)
-
-		if cmd.Bool("dry-run") {
-			logger.Info("Would generate invoices for workspace", "workspace_id", workspaceID)
-			return nil
-		}
-
-		err = billingService.GenerateInvoices(ctx, workspaceID, periodStart, periodEnd)
-		if err != nil {
-			logger.Error("Failed to generate invoices",
-				"workspace_id", workspaceID,
-				"error", err,
-			)
-			return fmt.Errorf("failed to generate invoices for workspace %s: %w", workspaceID, err)
-		}
-
-		logger.Info("Successfully generated invoices", "workspace_id", workspaceID)
+		workspaces = []string{workspaceID}
 	} else {
 		// Process all workspaces with billing enabled
-		logger.Info("Processing all billing-enabled workspaces")
-
-		workspaces, err := listBillingEnabledWorkspaces(ctx, database)
+		logger.Info("Looking for all billing-enabled workspaces...")
+		workspaces, err = listBillingEnabledWorkspaces(ctx, database)
 		if err != nil {
-			logger.Error("Failed to list billing-enabled workspaces", "error", err)
+			logger.Error("FAILED to list billing-enabled workspaces", "error", err)
 			return fmt.Errorf("failed to list billing-enabled workspaces: %w", err)
 		}
-
 		logger.Info("Found billing-enabled workspaces", "count", len(workspaces))
-
-		var successCount, failCount int
-		for _, wsID := range workspaces {
-			logger.Info("Processing workspace", "workspace_id", wsID)
-
-			if cmd.Bool("dry-run") {
-				logger.Info("Would generate invoices for workspace", "workspace_id", wsID)
-				successCount++
-				continue
-			}
-
-			err = billingService.GenerateInvoices(ctx, wsID, periodStart, periodEnd)
-			if err != nil {
-				logger.Error("Failed to generate invoices for workspace",
-					"workspace_id", wsID,
-					"error", err,
-				)
-				failCount++
-				// Continue processing other workspaces
-				continue
-			}
-
-			logger.Info("Successfully generated invoices for workspace", "workspace_id", wsID)
-			successCount++
-		}
-
-		logger.Info("Billing job completed",
-			"success_count", successCount,
-			"fail_count", failCount,
-		)
-
-		if failCount > 0 {
-			return fmt.Errorf("failed to generate invoices for %d workspaces", failCount)
-		}
 	}
 
-	logger.Info("Billing job completed successfully")
+	// =========================================
+	// Step 5: Generate Invoices
+	// =========================================
+	logger.Info("[5/5] Generating invoices...")
+
+	if cmd.Bool("dry-run") {
+		logger.Warn("DRY RUN: Would process the following workspaces:")
+		for _, wsID := range workspaces {
+			logger.Info("  - Would process workspace", "workspace_id", wsID)
+		}
+		logger.Warn("DRY RUN: No invoices were created")
+		logger.Info("=== Billing Job Completed (Dry Run) ===")
+		return nil
+	}
+
+	// Process each workspace
+	var (
+		totalWorkspaces      = len(workspaces)
+		processedWorkspaces  = 0
+		failedWorkspaces     = 0
+		totalEndUsers       = 0
+		totalVerifications  int64
+		totalRateLimits     int64
+		totalInvoicesCreated = 0
+	)
+
+	for i, wsID := range workspaces {
+		logger.Info("-----------------------------------")
+		logger.Info(fmt.Sprintf "[%d/%d] Processing workspace", i+1, totalWorkspaces), "workspace_id", wsID)
+
+		// Count end users in workspace
+		endUsers, err := endUserService.ListEndUsers(ctx, wsID)
+		if err != nil {
+			logger.Error("Failed to list end users for workspace",
+				"workspace_id", wsID,
+				"error", err,
+			)
+			failedWorkspaces++
+			continue
+		}
+		logger.Info("Found end users in workspace", "workspace_id", wsID, "count", len(endUsers))
+		totalEndUsers += len(endUsers)
+
+		// Generate invoices
+		err = billingService.GenerateInvoices(ctx, wsID, periodStart, periodEnd)
+		if err != nil {
+			logger.Error("FAILED to generate invoices for workspace",
+				"workspace_id", wsID,
+				"error", err,
+			)
+			failedWorkspaces++
+			// Continue processing other workspaces
+			continue
+		}
+
+		processedWorkspaces++
+		totalInvoicesCreated++ // Simplified - actual count would come from billing service
+
+		logger.Info("Successfully generated invoices for workspace",
+			"workspace_id", wsID,
+		)
+	}
+
+	// =========================================
+	// Summary
+	// =========================================
+	logger.Info("===================================")
+	logger.Info("=== Billing Job Completed ===")
+	logger.Info("Summary:",
+		"total_workspaces", totalWorkspaces,
+		"processed_workspaces", processedWorkspaces,
+		"failed_workspaces", failedWorkspaces,
+		"total_end_users", totalEndUsers,
+		"invoices_created", totalInvoicesCreated,
+	)
+
+	if failedWorkspaces > 0 {
+		logger.Error("Some workspaces failed processing",
+			"failed_count", failedWorkspaces,
+		)
+		return fmt.Errorf("failed to generate invoices for %d workspaces", failedWorkspaces)
+	}
+
+	logger.Info("All workspaces processed successfully!")
 	return nil
 }
 
