@@ -21,6 +21,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+// PlatformFeePercent is the percentage fee Unkey charges on top of usage
+const PlatformFeePercent = 0.03 // 3%
+
 // BillingService manages invoice generation, payment collection, and billing analytics.
 type BillingService interface {
 	// GenerateInvoices generates invoices for monthly billing period (no manual trigger)
@@ -305,8 +308,12 @@ func (s *billingService) generateInvoiceForEndUser(
 		)
 	}
 
+	// Calculate platform fee (3% of usage charges)
+	platformFee := int64(float64(totalAmount) * PlatformFeePercent)
+	totalAmountWithFee := totalAmount + platformFee
+
 	// Skip if total amount is zero
-	if totalAmount == 0 {
+	if totalAmountWithFee == 0 {
 		return nil
 	}
 
@@ -321,6 +328,7 @@ func (s *billingService) generateInvoiceForEndUser(
 				pricingModel,
 				usage,
 				totalAmount,
+				platformFee,
 			)
 			if createErr != nil {
 				return nil, createErr
@@ -353,7 +361,7 @@ func (s *billingService) generateInvoiceForEndUser(
 		BillingPeriodEnd:   periodEnd.UnixMilli(),
 		VerificationCount:  usage.Verifications,
 		RatelimitCount:     usage.RateLimits,
-		TotalAmount:        totalAmount,
+		TotalAmount:        totalAmountWithFee,
 		Currency:           pricingModel.Currency,
 		Status:             string(InvoiceStatusOpen),
 		CreatedAtM:         now,
@@ -382,7 +390,8 @@ func (s *billingService) createStripeInvoice(
 	endUser *EndUser,
 	pricingModel *PricingModel,
 	usage *Usage,
-	totalAmount int64,
+	usageAmount int64,
+	platformFee int64,
 ) (string, error) {
 	stripe.Key = s.stripeKey
 
@@ -430,6 +439,28 @@ func (s *billingService) createStripeInvoice(
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal(fmt.Sprintf("failed to create rate limit invoice item: %v", err)),
 				fault.Public("Failed to create invoice item in Stripe"),
+			)
+		}
+	}
+
+	// Create platform fee invoice item (3% of usage charges)
+	if platformFee > 0 {
+		// nolint:exhaustruct // Stripe params have many optional fields
+		platformFeeParams := &stripe.InvoiceItemParams{
+			Customer:    stripe.String(endUser.StripeCustomerID),
+			Amount:      stripe.Int64(platformFee),
+			Currency:    stripe.String(pricingModel.Currency),
+			Description: stripe.String("Platform Fee (3%)"),
+		}
+		platformFeeParams.SetStripeAccount(connectedAccount.StripeAccountID)
+
+		_, err := invoiceitem.New(platformFeeParams)
+		if err != nil {
+			return "", fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal(fmt.Sprintf("failed to create platform fee invoice item: %v", err)),
+				fault.Public("Failed to create platform fee in Stripe"),
 			)
 		}
 	}
