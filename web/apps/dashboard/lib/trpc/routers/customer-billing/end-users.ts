@@ -109,23 +109,48 @@ export const createEndUser = workspaceProcedure
     }
 
     // Check if end user with this externalId already exists (search pattern)
-    const existing = await db.query.billingEndUsers.findFirst({
+    const existingEndUser = await db.query.billingEndUsers.findFirst({
       where: eq(schema.billingEndUsers.externalId, input.externalId),
     });
 
-    if (existing && existing.workspaceId === ctx.workspace.id) {
+    if (existingEndUser && existingEndUser.workspaceId === ctx.workspace.id) {
       throw new TRPCError({
         code: "CONFLICT",
         message: "An end user with this external ID already exists in your workspace.",
       });
     }
 
+    // Check if identity with this externalId already exists
+    let identityId: string;
+    const existingIdentity = await db.query.identities.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.workspaceId, ctx.workspace.id), eq(table.externalId, input.externalId)),
+    });
+
+    if (existingIdentity) {
+      // Use existing identity
+      identityId = existingIdentity.id;
+    } else {
+      // Create new identity (like create key does)
+      identityId = newId("identity");
+      await db.insert(schema.identities).values({
+        id: identityId,
+        externalId: input.externalId,
+        workspaceId: ctx.workspace.id,
+        createdAt: Date.now(),
+        updatedAt: null,
+        meta: null,
+        environment: "",
+        deleted: false,
+      });
+    }
+
     const now = Date.now();
-    const id = newId("billing_end_user");
-    const stripeCustomerId = `cus_placeholder_${id}`;
+    const endUserId = newId("billing_end_user");
+    const stripeCustomerId = `cus_placeholder_${endUserId}`;
 
     await db.insert(schema.billingEndUsers).values({
-      id,
+      id: endUserId,
       workspaceId: ctx.workspace.id,
       externalId: input.externalId,
       pricingModelId: input.pricingModelId,
@@ -137,7 +162,7 @@ export const createEndUser = workspaceProcedure
       updatedAtM: now,
     });
 
-    return { id, stripeCustomerId };
+    return { id: endUserId, stripeCustomerId, identityId };
   });
 
 // List end users
