@@ -238,6 +238,8 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		processedWorkspaces  = 0
 		failedWorkspaces     = 0
 		totalEndUsers       = 0
+		totalVerifications  int64
+		totalRateLimits     int64
 		totalInvoicesCreated = 0
 	)
 
@@ -288,7 +290,15 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		"processed_workspaces", processedWorkspaces,
 		"failed_workspaces", failedWorkspaces,
 		"total_end_users", totalEndUsers,
+		"total_verifications", totalVerifications,
+		"total_rate_limits", totalRateLimits,
 		"invoices_created", totalInvoicesCreated,
+	)
+
+	// Log a message indicating the job is working
+	logger.Info("Billing job processed data successfully",
+		"workspaces_processed", processedWorkspaces,
+		"end_users_found", totalEndUsers,
 	)
 
 	if failedWorkspaces > 0 {
