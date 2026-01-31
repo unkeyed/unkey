@@ -26,6 +26,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { BillingNavbar } from "../billing-navbar";
+import { EndUserExternalIdField } from "./components/external-id-field";
 
 interface EndUserItem {
   id: string;
@@ -85,6 +86,7 @@ export default function EndUsersPage() {
       toast.success("End user created");
       utils.customerBilling.endUsers.list.invalidate();
       setIsCreateOpen(false);
+      setSelectedEndUserId(null);
       createForm.reset();
     },
     onError: (error: { message: string }) => {
@@ -120,6 +122,8 @@ export default function EndUsersPage() {
     },
   });
 
+  const [selectedEndUserId, setSelectedEndUserId] = useState<string | null>(null);
+
   const createForm = useForm<EndUserFormData>({
     resolver: zodResolver(endUserSchema),
     defaultValues: {
@@ -135,8 +139,29 @@ export default function EndUsersPage() {
   });
 
   const handleCreate = (data: EndUserFormData) => {
+    // Check if an end user with this external ID already exists
+    if (selectedEndUserId) {
+      toast.error("End user already exists", {
+        description: "An end user with this external ID already exists. Please use a different external ID or select from the list.",
+      });
+      return;
+    }
+
+    // Also check if the typed external ID matches an existing end user
+    const externalId = data.externalId.trim();
+    const existingEndUser = endUsers?.find(
+      (user) => user.externalId.toLowerCase() === externalId.toLowerCase()
+    );
+
+    if (existingEndUser) {
+      toast.error("End user already exists", {
+        description: `An end user with external ID "${externalId}" already exists. Please use a different external ID.`,
+      });
+      return;
+    }
+
     createMutation.mutate({
-      externalId: data.externalId,
+      externalId: externalId,
       pricingModelId: data.pricingModelId,
       email: data.email || undefined,
       name: data.name || undefined,
@@ -260,17 +285,29 @@ export default function EndUsersPage() {
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedEndUserId(null);
+            createForm.reset();
+          }
+          setIsCreateOpen(open);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add End User</DialogTitle>
           </DialogHeader>
           <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
-            <FormInput
-              label="External ID"
-              placeholder="e.g., user_123 or org_456"
-              description="This should match the external_id used in your API keys or identities"
-              {...createForm.register("externalId")}
+            <EndUserExternalIdField
+              value={selectedEndUserId}
+              onChange={(endUserId, externalId) => {
+                setSelectedEndUserId(endUserId);
+                if (externalId) {
+                  createForm.setValue("externalId", externalId, { shouldValidate: true });
+                }
+              }}
               error={createForm.formState.errors.externalId?.message}
             />
 

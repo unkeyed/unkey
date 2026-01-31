@@ -1,7 +1,7 @@
 import { t } from "../../trpc";
 import { exportBillingData, getRevenueAnalytics, getUsageAnalytics } from "./analytics";
 import { disconnectAccount, getAuthorizationUrl, getConnectedAccount } from "./connect";
-import { createEndUser, deleteEndUser, getEndUser, listEndUsers, updateEndUser, upsertEndUser } from "./end-users";
+import { createEndUser, deleteEndUser, getEndUser, listEndUsers, searchEndUsers, updateEndUser, upsertEndUser } from "./end-users";
 import { getInvoice, getInvoiceSummary, listInvoices } from "./invoices";
 import {
   createPricingModel,
@@ -29,7 +29,8 @@ export const customerBillingRouter = t.router({
   endUsers: t.router({
     list: listEndUsers,
     get: getEndUser,
-    upsert: upsertEndUser,
+    search: searchEndUsers,
+    create: createEndUser,
     update: updateEndUser,
     delete: deleteEndUser,
   }),

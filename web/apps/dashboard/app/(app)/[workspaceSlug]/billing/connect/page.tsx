@@ -39,17 +39,18 @@ export default function StripeConnectPage() {
     const error = searchParams.get("error");
 
     if (success === "true") {
-      toast.success("Stripe account connected successfully!");
-      refetch();
-      // Clean up URL
-      router.replace(`/${workspace.slug}/billing/connect`);
+      // Show toast and redirect after a brief delay to ensure single toast
+      setTimeout(() => {
+        toast.success("Stripe account connected successfully!");
+        router.replace(`/${workspace.slug}/billing/connect`);
+      }, 100);
     } else if (error) {
       toast.error("Failed to connect Stripe account", {
         description: error,
       });
       router.replace(`/${workspace.slug}/billing/connect`);
     }
-  }, [searchParams, refetch, router, workspace.slug]);
+  }, [searchParams, router, workspace.slug]);
 
   const handleConnect = () => {
     setIsConnecting(true);
