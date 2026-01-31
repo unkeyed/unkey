@@ -443,29 +443,8 @@ func (s *billingService) createStripeInvoice(
 		}
 	}
 
-	// Create platform fee invoice item (3% of usage charges)
-	if platformFee > 0 {
-		// nolint:exhaustruct // Stripe params have many optional fields
-		platformFeeParams := &stripe.InvoiceItemParams{
-			Customer:    stripe.String(endUser.StripeCustomerID),
-			Amount:      stripe.Int64(platformFee),
-			Currency:    stripe.String(pricingModel.Currency),
-			Description: stripe.String("Platform Fee (3%)"),
-		}
-		platformFeeParams.SetStripeAccount(connectedAccount.StripeAccountID)
-
-		_, err := invoiceitem.New(platformFeeParams)
-		if err != nil {
-			return "", fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal(fmt.Sprintf("failed to create platform fee invoice item: %v", err)),
-				fault.Public("Failed to create platform fee in Stripe"),
-			)
-		}
-	}
-
 	// Create invoice with automatic payment collection and dunning
+	// Application fee (3%) is set to collect platform fee from the payment
 	// nolint:exhaustruct // Stripe params have many optional fields
 	invoiceParams := &stripe.InvoiceParams{
 		Customer:                    stripe.String(endUser.StripeCustomerID),
@@ -475,6 +454,7 @@ func (s *billingService) createStripeInvoice(
 		Description:                 stripe.String(fmt.Sprintf("Usage for period %s to %s", usage.ExternalID, usage.ExternalID)),
 		AutomaticTax:                &stripe.InvoiceAutomaticTaxParams{Enabled: stripe.Bool(false)},
 		PendingInvoiceItemsBehavior: stripe.String("include"),
+		ApplicationFeeAmount:        stripe.Int64(platformFee),
 	}
 	invoiceParams.SetStripeAccount(connectedAccount.StripeAccountID)
 
