@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"time"
 
@@ -53,7 +52,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := shutdown.New()
+	r := runner.New()
 
 	logger := logging.New()
 	if cfg.InstanceID != "" {
@@ -98,7 +97,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
 	}
-	shutdowns.Register(deploymentCtrl.Stop)
+	r.Defer(deploymentCtrl.Stop)
 
 	// Start the sentinel controller (independent control loop)
 	sentinelCtrl := sentinel.New(sentinel.Config{
@@ -110,7 +109,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err := sentinelCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)
 	}
-	shutdowns.Register(sentinelCtrl.Stop)
+	r.Defer(sentinelCtrl.Stop)
 
 	// Create vault client for secrets decryption
 	var vaultClient vaultv1connect.VaultServiceClient
@@ -159,44 +158,28 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Register server shutdown
-	shutdowns.RegisterCtx(server.Shutdown)
+	r.DeferCtx(server.Shutdown)
 
 	// Start server
-	go func() {
-		logger.Info("Starting ctrl server", "addr", addr, "tls")
-
+	r.Go(func(ctx context.Context) error {
+		logger.Info("Starting ctrl server", "addr", addr)
 		err := server.ListenAndServe()
-
 		if err != nil && err != http.ErrServerClosed {
-			logger.Error("Server failed", "error", err)
+			return fmt.Errorf("server failed: %w", err)
 		}
-	}()
+		return nil
+	})
 
 	if cfg.PrometheusPort > 0 {
-
-		prom, err := prometheus.New(prometheus.Config{
-			Logger: logger,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create prometheus server: %w", err)
-		}
-
-		shutdowns.RegisterCtx(prom.Shutdown)
-		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-		if err != nil {
-			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, err)
-		}
-		go func() {
+		r.Go(func(ctx context.Context) error {
 			logger.Info("prometheus started", "port", cfg.PrometheusPort)
-			if err := prom.Serve(ctx, ln); err != nil {
-				logger.Error("failed to start prometheus server", "error", err)
-			}
-		}()
-
+			return prometheus.Serve(fmt.Sprintf(":%d", cfg.PrometheusPort))
+		})
 	}
+
 	// Wait for signal and handle shutdown
 	logger.Info("Krane server started successfully")
-	if err := shutdowns.WaitForSignal(ctx); err != nil {
+	if err := r.Run(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}
