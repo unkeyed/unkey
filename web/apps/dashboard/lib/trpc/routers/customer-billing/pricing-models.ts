@@ -39,8 +39,8 @@ export const createPricingModel = workspaceProcedure
     z.object({
       name: z.string().min(1).max(255),
       currency: z.string().length(3),
-      verificationUnitPrice: z.number().min(0),
-      ratelimitUnitPrice: z.number().min(0),
+      verificationUnitPrice: z.number().multipleOf(0.00001).nonnegative(),
+      ratelimitUnitPrice: z.number().multipleOf(0.00001).nonnegative(),
       tieredPricing: tieredPricingSchema.nullable().optional(),
     }),
   )

@@ -15,7 +15,6 @@ import {
 export const customerBillingRouter = t.router({
   connect: t.router({
     getAccount: getConnectedAccount,
-    getAuthorizationUrl,
     disconnect: disconnectAccount,
   }),
   pricingModels: t.router({
