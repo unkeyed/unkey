@@ -11,10 +11,11 @@ const NONCE_LENGTH = 12;
 /**
  * Derive a workspace-specific encryption key from the master key using HMAC-SHA256.
  * This matches the Go implementation in pkg/encryption/workspace.go
+ * Note: masterKey is used as raw bytes (not hex decoded), matching Go's []byte() behavior
  */
-function deriveWorkspaceKey(masterKeyHex: string, workspaceId: string): Buffer {
-  const masterKey = Buffer.from(masterKeyHex, "hex");
-  const h = createHmac("sha256", masterKey);
+function deriveWorkspaceKey(masterKey: string, workspaceId: string): Buffer {
+  const masterKeyBytes = Buffer.from(masterKey, "utf-8"); // Use as raw bytes, not hex
+  const h = createHmac("sha256", masterKeyBytes);
   h.update("unkey-billing-encryption:");
   h.update(workspaceId);
   return h.digest();
