@@ -1,7 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
-import { Vault } from "@/lib/vault";
+import { encryptToken } from "@/lib/encryption";
 import { newId } from "@unkey/id";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
@@ -115,23 +115,14 @@ export async function GET(request: Request): Promise<Response> {
       );
     }
 
-    // Encrypt tokens before storing
-    const environment = env();
-    const vault = new Vault({
-      baseUrl: environment.AGENT_URL,
-      token: environment.AGENT_TOKEN,
-    });
+    // Encrypt tokens before storing using the same format as billing code
+    const masterKey = process.env.MASTER_KEY;
+    if (!masterKey) {
+      throw new Error("MASTER_KEY environment variable not set");
+    }
 
-    const [accessTokenEncrypted, refreshTokenEncrypted] = await Promise.all([
-      vault.encrypt({
-        keyring: state.workspaceId,
-        data: response.access_token,
-      }),
-      vault.encrypt({
-        keyring: state.workspaceId,
-        data: response.refresh_token ?? "",
-      }),
-    ]);
+    const accessTokenEncrypted = encryptToken(state.workspaceId, response.access_token, masterKey);
+    const refreshTokenEncrypted = encryptToken(state.workspaceId, response.refresh_token ?? "", masterKey);
 
     const now = Date.now();
 
@@ -146,8 +137,8 @@ export async function GET(request: Request): Promise<Response> {
         .update(schema.stripeConnectedAccounts)
         .set({
           stripeAccountId: response.stripe_user_id,
-          accessTokenEncrypted: accessTokenEncrypted.encrypted,
-          refreshTokenEncrypted: refreshTokenEncrypted.encrypted,
+          accessTokenEncrypted: accessTokenEncrypted,
+          refreshTokenEncrypted: refreshTokenEncrypted,
           scope: response.scope ?? "read_write",
           connectedAt: now,
           disconnectedAt: null,
@@ -176,8 +167,8 @@ export async function GET(request: Request): Promise<Response> {
         id,
         workspaceId: state.workspaceId,
         stripeAccountId: response.stripe_user_id,
-        accessTokenEncrypted: accessTokenEncrypted.encrypted,
-        refreshTokenEncrypted: refreshTokenEncrypted.encrypted,
+        accessTokenEncrypted: accessTokenEncrypted,
+        refreshTokenEncrypted: refreshTokenEncrypted,
         scope: response.scope ?? "read_write",
         connectedAt: now,
         createdAtM: now,
