@@ -5,10 +5,6 @@ import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import { getStripeClient } from "@/lib/stripe";
 
-// Prefix constants matching Go backend (from @unkey/id package)
-const END_USER_PREFIX = "end_user";
-const IDENTITY_PREFIX = "id";
-
 // Search identities by external ID (like create key does)
 export const searchIdentitiesByExternalId = workspaceProcedure
   .input(
@@ -137,7 +133,7 @@ export const createEndUser = workspaceProcedure
       identityId = existingIdentity.id;
     } else {
       // Create new identity (like create key does)
-      identityId = newId(IDENTITY_PREFIX);
+      identityId = newId("id");
       await db.insert(schema.identities).values({
         id: identityId,
         externalId: input.externalId,
@@ -151,7 +147,7 @@ export const createEndUser = workspaceProcedure
     }
 
     const now = Date.now();
-    const endUserId = newId(END_USER_PREFIX);
+    const endUserId = newId("end_user");
 
     // Create real Stripe customer (like Go backend does)
     const stripe = getStripeClient();
@@ -301,7 +297,7 @@ export const upsertEndUser = workspaceProcedure
 
     // Create new end user
     const now = Date.now();
-    const id = newId(END_USER_PREFIX);
+    const id = newId("end_user");
 
     // Create real Stripe customer (like Go backend does)
     const stripe = getStripeClient();
