@@ -36,6 +36,11 @@ func (l *simpleLogger) Debugf(format string, args ...interface{}) {
 	}
 }
 
+// logOutput writes to stdout, ignoring errors (un actionable in CLI context)
+func logOutput(format string, args ...interface{}) {
+	fmt.Printf(format+"\n", args...)
+}
+
 // Cmd is the billing-job command that generates invoices for customer billing.
 var Cmd = &cli.Command{
 	Version:  "",
@@ -74,7 +79,7 @@ var Cmd = &cli.Command{
 func run(ctx context.Context, cmd *cli.Command) error {
 	logger := &simpleLogger{verbose: cmd.Bool("verbose")}
 
-	fmt.Fprintf(os.Stdout, "=== Starting Billing Job ===\n")
+	logOutput("=== Starting Billing Job ===\n")
 	logger.Infof("Initializing billing job (dry_run=%v, verbose=%v)", cmd.Bool("dry-run"), cmd.Bool("verbose"))
 
 	// Parse billing period
@@ -95,7 +100,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	// Step 1: Connect to Database
-	fmt.Fprintf(os.Stdout, "[1/5] Connecting to database...\n")
+	logOutput("[1/5] Connecting to database...\n")
 	logger.Debugf("Database DSN length: %d", len(cmd.String("database-dsn")))
 
 	database, err := db.New(db.Config{
@@ -107,10 +112,10 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		logger.Errorf("FAILED to connect to database: %v", err)
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	fmt.Fprintf(os.Stdout, "[1/5] Successfully connected to database\n")
+	logOutput("[1/5] Successfully connected to database\n")
 
 	// Step 2: Connect to ClickHouse
-	fmt.Fprintf(os.Stdout, "[2/5] Connecting to ClickHouse...\n")
+	logOutput("[2/5] Connecting to ClickHouse...\n")
 	logger.Debugf("ClickHouse URL length: %d", len(cmd.String("clickhouse-url")))
 
 	ch, err := clickhouse.New(clickhouse.Config{
@@ -121,10 +126,10 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		logger.Errorf("FAILED to connect to ClickHouse: %v", err)
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
-	fmt.Fprintf(os.Stdout, "[2/5] Successfully connected to ClickHouse\n")
+	logOutput("[2/5] Successfully connected to ClickHouse\n")
 
 	// Step 3: Initialize Services
-	fmt.Fprintf(os.Stdout, "[3/5] Initializing billing services...\n")
+	logOutput("[3/5] Initializing billing services...\n")
 
 	masterKey := []byte(cmd.String("master-key"))
 	workspaceEncryption, err := encryption.NewWorkspaceEncryption(masterKey)
@@ -132,7 +137,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		logger.Errorf("Failed to initialize encryption: %v", err)
 		return fmt.Errorf("failed to initialize encryption: %w", err)
 	}
-	fmt.Fprintf(os.Stdout, "Encryption service initialized\n")
+	logOutput("Encryption service initialized\n")
 
 	stripeKey := cmd.String("stripe-key")
 	stripeClientID := cmd.String("stripe-client-id")
@@ -151,10 +156,10 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		stripeKey,
 		webhookSecret,
 	)
-	fmt.Fprintf(os.Stdout, "[3/5] All billing services initialized\n")
+	logOutput("[3/5] All billing services initialized\n")
 
 	// Step 4: Find Workspaces
-	fmt.Fprintf(os.Stdout, "[4/5] Finding workspaces to process...\n")
+	logOutput("[4/5] Finding workspaces to process...\n")
 
 	workspaceID := cmd.String("workspace-id")
 	var workspaces []string
@@ -163,7 +168,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		logger.Infof("Processing single workspace: %s", workspaceID)
 		workspaces = []string{workspaceID}
 	} else {
-		fmt.Fprintf(os.Stdout, "Looking for all billing-enabled workspaces...\n")
+		logOutput("Looking for all billing-enabled workspaces...\n")
 		workspaces, err = listBillingEnabledWorkspaces(ctx, database)
 		if err != nil {
 			logger.Errorf("FAILED to list billing-enabled workspaces: %v", err)
@@ -173,14 +178,14 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	// Step 5: Generate Invoices
-	fmt.Fprintf(os.Stdout, "[5/5] Generating invoices...\n")
+	logOutput("[5/5] Generating invoices...\n")
 
 	if cmd.Bool("dry-run") {
 		logger.Warnf("DRY RUN: Would process %d workspaces:\n", len(workspaces))
 		for _, wsID := range workspaces {
-			fmt.Fprintf(os.Stdout, "  - %s\n", wsID)
+			logOutput("  - %s\n", wsID)
 		}
-		fmt.Fprintf(os.Stdout, "=== Billing Job Completed (Dry Run) ===\n")
+		logOutput("=== Billing Job Completed (Dry Run) ===\n")
 		return nil
 	}
 
@@ -195,8 +200,8 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	)
 
 	for i, wsID := range workspaces {
-		fmt.Fprintf(os.Stdout, "-----------------------------------\n")
-		fmt.Fprintf(os.Stdout, "[%d/%d] Processing workspace: %s\n", i+1, totalWorkspaces, wsID)
+		logOutput("-----------------------------------\n")
+		logOutput("[%d/%d] Processing workspace: %s\n", i+1, totalWorkspaces, wsID)
 
 		// Count end users in workspace
 		endUsers, err := endUserService.ListEndUsers(ctx, wsID)
@@ -205,7 +210,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 			failedWorkspaces++
 			continue
 		}
-		fmt.Fprintf(os.Stdout, "Found %d end users in workspace %s\n", len(endUsers), wsID)
+		logOutput("Found %d end users in workspace %s\n", len(endUsers), wsID)
 		totalEndUsers += len(endUsers)
 
 		// Generate invoices
@@ -218,28 +223,28 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 		processedWorkspaces++
 		totalInvoicesCreated++
-		fmt.Fprintf(os.Stdout, "Successfully generated invoices for workspace %s\n", wsID)
+		logOutput("Successfully generated invoices for workspace %s\n", wsID)
 	}
 
 	// Summary
-	fmt.Fprintf(os.Stdout, "===================================\n")
-	fmt.Fprintf(os.Stdout, "=== Billing Job Completed ===\n")
-	fmt.Fprintf(os.Stdout, "Summary:\n")
-	fmt.Fprintf(os.Stdout, "  Total workspaces: %d\n", totalWorkspaces)
-	fmt.Fprintf(os.Stdout, "  Processed workspaces: %d\n", processedWorkspaces)
-	fmt.Fprintf(os.Stdout, "  Failed workspaces: %d\n", failedWorkspaces)
-	fmt.Fprintf(os.Stdout, "  Total end users: %d\n", totalEndUsers)
-	fmt.Fprintf(os.Stdout, "  Total verifications: %d\n", totalVerifications)
-	fmt.Fprintf(os.Stdout, "  Total rate limits: %d\n", totalRateLimits)
-	fmt.Fprintf(os.Stdout, "  Invoices created: %d\n", totalInvoicesCreated)
-	fmt.Fprintf(os.Stdout, "===================================\n")
+	logOutput("===================================\n")
+	logOutput("=== Billing Job Completed ===\n")
+	logOutput("Summary:\n")
+	logOutput("  Total workspaces: %d\n", totalWorkspaces)
+	logOutput("  Processed workspaces: %d\n", processedWorkspaces)
+	logOutput("  Failed workspaces: %d\n", failedWorkspaces)
+	logOutput("  Total end users: %d\n", totalEndUsers)
+	logOutput("  Total verifications: %d\n", totalVerifications)
+	logOutput("  Total rate limits: %d\n", totalRateLimits)
+	logOutput("  Invoices created: %d\n", totalInvoicesCreated)
+	logOutput("===================================\n")
 
 	if failedWorkspaces > 0 {
 		logger.Errorf("Some workspaces failed processing: %d/%d\n", failedWorkspaces, totalWorkspaces)
 		return fmt.Errorf("failed to generate invoices for %d workspaces", failedWorkspaces)
 	}
 
-	fmt.Fprintf(os.Stdout, "All workspaces processed successfully!\n")
+	logOutput("All workspaces processed successfully!\n")
 	return nil
 }
 
