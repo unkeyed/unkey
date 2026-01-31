@@ -64,9 +64,6 @@ import (
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
 	v1BillingAnalyticsRevenue "github.com/unkeyed/unkey/svc/api/routes/v1_billing_analytics_revenue"
-	v1BillingConnectAuthorize "github.com/unkeyed/unkey/svc/api/routes/v1_billing_connect_authorize"
-	v1BillingConnectCallback "github.com/unkeyed/unkey/svc/api/routes/v1_billing_connect_callback"
-	v1BillingConnectDisconnect "github.com/unkeyed/unkey/svc/api/routes/v1_billing_connect_disconnect"
 	v1BillingEndUsersCreate "github.com/unkeyed/unkey/svc/api/routes/v1_billing_end_users_create"
 	v1BillingEndUsersGet "github.com/unkeyed/unkey/svc/api/routes/v1_billing_end_users_get"
 	v1BillingEndUsersList "github.com/unkeyed/unkey/svc/api/routes/v1_billing_end_users_list"
@@ -676,40 +673,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// ---------------------------------------------------------------------------
 	// v1/billing
-
-	// v1/billing/connect/authorize
-	srv.RegisterRoute(
-		defaultMiddlewares,
-		&v1BillingConnectAuthorize.Handler{
-			Logger:        svc.Logger,
-			DB:            svc.Database,
-			Keys:          svc.Keys,
-			StripeConnect: svc.StripeConnect,
-		},
-	)
-
-	// v1/billing/connect/callback
-	srv.RegisterRoute(
-		defaultMiddlewares,
-		&v1BillingConnectCallback.Handler{
-			Logger:        svc.Logger,
-			DB:            svc.Database,
-			Keys:          svc.Keys,
-			StripeConnect: svc.StripeConnect,
-		},
-	)
-
-	// v1/billing/connect (disconnect)
-	srv.RegisterRoute(
-		defaultMiddlewares,
-		&v1BillingConnectDisconnect.Handler{
-			Logger:        svc.Logger,
-			DB:            svc.Database,
-			Keys:          svc.Keys,
-			StripeConnect: svc.StripeConnect,
-			Auditlogs:     svc.Auditlogs,
-		},
-	)
 
 	// v1/billing/pricing-models (create)
 	srv.RegisterRoute(
