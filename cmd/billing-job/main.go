@@ -132,7 +132,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 	ch, err := clickhouse.New(clickhouse.Config{
 		URL:    cmd.String("clickhouse-url"),
-		Logger: nil,
+		Logger: &noopLogger{},
 	})
 	if err != nil {
 		logger.Errorf("FAILED to connect to ClickHouse: %v", err)
