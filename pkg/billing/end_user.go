@@ -227,7 +227,7 @@ func (s *endUserService) CreateEndUser(
 
 	// Create end user in database
 	now := time.Now().UnixMilli()
-	endUserID := uid.New("end_user")
+	endUserID := uid.New(uid.EndUserPrefix)
 
 	insertParams := db.BillingEndUserInsertParams{
 		ID:                   endUserID,

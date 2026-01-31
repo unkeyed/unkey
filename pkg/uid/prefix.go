@@ -21,6 +21,11 @@ const (
 	SentinelPrefix           Prefix = "se"
 	OrgPrefix                Prefix = "org"
 
+	// Billing prefixes
+	EndUserPrefix    Prefix = "end_user"
+	InvoicePrefix    Prefix = "invoice"
+	TransactionPrefix Prefix = "transaction"
+
 	// Control plane prefixes
 	ProjectPrefix        Prefix = "proj"
 	EnvironmentPrefix    Prefix = "env"

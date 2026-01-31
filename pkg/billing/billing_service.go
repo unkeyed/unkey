@@ -351,7 +351,7 @@ func (s *billingService) generateInvoiceForEndUser(
 
 	// Store invoice in database
 	now := time.Now().UnixMilli()
-	invoiceID := uid.New("invoice")
+	invoiceID := uid.New(uid.InvoicePrefix)
 
 	insertParams := db.BillingInvoiceInsertParams{
 		ID:                 invoiceID,
@@ -734,7 +734,7 @@ func (s *billingService) handleInvoicePaid(ctx context.Context, event *stripe.Ev
 
 	// Record transaction
 	if stripeInvoice.PaymentIntent != nil {
-		transactionID := uid.New("transaction")
+		transactionID := uid.New(uid.TransactionPrefix)
 		insertParams := db.BillingTransactionInsertParams{
 			ID:                    transactionID,
 			InvoiceID:             dbInvoice.ID,
