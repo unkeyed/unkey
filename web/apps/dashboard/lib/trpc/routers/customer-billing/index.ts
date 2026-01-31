@@ -1,6 +1,6 @@
 import { t } from "../../trpc";
 import { exportBillingData, getRevenueAnalytics, getUsageAnalytics } from "./analytics";
-import { disconnectAccount, getAuthorizationUrl, getConnectedAccount } from "./connect";
+import { disconnectAccount, getConnectedAccount } from "./connect";
 import { createEndUser, deleteEndUser, getEndUser, listEndUsers, searchEndUsers, updateEndUser, upsertEndUser } from "./end-users";
 import { getInvoice, getInvoiceSummary, listInvoices } from "./invoices";
 import {

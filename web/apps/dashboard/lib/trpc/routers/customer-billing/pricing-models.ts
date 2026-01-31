@@ -81,7 +81,7 @@ export const createPricingModel = workspaceProcedure
       }
     }
 
-    const id = newId("pricing_model");
+    const id = newId("pricingModel");
     const now = Date.now();
 
     await db.insert(schema.pricingModels).values({
