@@ -1,0 +1,96 @@
+import { z } from "zod";
+import type { Querier } from "./client/interface";
+
+const TABLE = "default.runtime_logs_raw_v1";
+
+export const runtimeLogsRequestSchema = z.object({
+  workspaceId: z.string(),
+  projectId: z.string(),
+  deploymentId: z.string(),
+  environmentId: z.string(),
+  limit: z.int(),
+  startTime: z.int(),
+  endTime: z.int(),
+  severity: z.array(z.string()).nullable(),
+  searchText: z.string().nullable(),
+  cursorTime: z.int().nullable(),
+});
+
+export type RuntimeLogsRequest = z.infer<typeof runtimeLogsRequestSchema>;
+
+export const runtimeLogResponseSchema = z.object({
+  time: z.int(),
+  severity: z.string(),
+  message: z.string(),
+  deployment_id: z.string(),
+  k8s_pod_name: z.string(),
+  region: z.string(),
+  attributes: z.record(z.string(), z.unknown()).nullable(),
+});
+
+export type RuntimeLogResponse = z.infer<typeof runtimeLogResponseSchema>;
+
+export function getRuntimeLogs(ch: Querier) {
+  return async (args: RuntimeLogsRequest) => {
+    const filterConditions = `
+      workspace_id = {workspaceId: String}
+      AND project_id = {projectId: String}
+      AND deployment_id = {deploymentId: String}
+      AND environment_id = {environmentId: String}
+      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+
+      AND (
+        CASE
+          WHEN length({severity: Array(String)}) > 0 THEN
+            severity IN {severity: Array(String)}
+          ELSE TRUE
+        END
+      )
+
+      AND (
+        CASE
+          WHEN length({podNames: Array(String)}) > 0 THEN
+            k8s_pod_name IN {podNames: Array(String)}
+          ELSE TRUE
+        END
+      )
+
+      AND (
+        CASE
+          WHEN {searchText: Nullable(String)} IS NOT NULL THEN
+            position(message, {searchText: Nullable(String)}) > 0
+            OR position(attributes_text, {searchText: Nullable(String)}) > 0
+          ELSE TRUE
+        END
+      )
+    `;
+
+    const totalQuery = ch.query({
+      query: `
+        SELECT count(*) as total_count
+        FROM ${TABLE}
+        WHERE ${filterConditions}`,
+      params: runtimeLogsRequestSchema,
+      schema: z.object({ total_count: z.int() }),
+    });
+
+    const logsQuery = ch.query({
+      query: `
+        SELECT
+          time, severity, message, deployment_id,
+          k8s_pod_name, region, attributes
+        FROM ${TABLE}
+        WHERE ${filterConditions}
+          AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})
+        ORDER BY time DESC
+        LIMIT {limit: Int}`,
+      params: runtimeLogsRequestSchema,
+      schema: runtimeLogResponseSchema,
+    });
+
+    return {
+      logsQuery: logsQuery(args),
+      totalQuery: totalQuery(args),
+    };
+  };
+}

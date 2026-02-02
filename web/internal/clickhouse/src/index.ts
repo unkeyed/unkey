@@ -70,6 +70,7 @@ import {
   insertRatelimit,
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
+import { getRuntimeLogs } from "./runtime-logs";
 import {
   getDeploymentLatency,
   getDeploymentLatencyTimeseries,
@@ -323,6 +324,11 @@ export class ClickHouse {
         byDeployment: getDeploymentLatency(this.querier),
         timeseries: getDeploymentLatencyTimeseries(this.querier),
       },
+    };
+  }
+  public get runtimeLogs() {
+    return {
+      logs: getRuntimeLogs(this.querier),
     };
   }
 }

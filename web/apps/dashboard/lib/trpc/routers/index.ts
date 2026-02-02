@@ -65,6 +65,7 @@ import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
 import { createProject } from "./deploy/project/create";
 import { listProjects } from "./deploy/project/list";
+import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
 import { querySentinelLogs } from "./deploy/sentinel-logs/query";
 import { listEnvironments } from "./environment/list";
 import { githubRouter } from "./github";
@@ -414,6 +415,9 @@ export const router = t.router({
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,
+    }),
+    runtimeLogs: t.router({
+      query: queryRuntimeLogs,
     }),
     metrics: t.router({
       getDeploymentRps,
