@@ -466,8 +466,6 @@ func (s *billingService) createStripeInvoice(
 			)
 		}
 		// Other error (like duplicate), continue with existing ID
-	} else {
-		stripeCustomerID = newCustomer.ID
 	}
 
 	// Create invoice items for verifications
