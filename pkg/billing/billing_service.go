@@ -437,6 +437,8 @@ func (s *billingService) createStripeInvoice(
 	// Ensure customer exists on connected account
 	// If StripeCustomerID is empty or customer doesn't exist on connected account, create it
 	stripeCustomerID := endUser.StripeCustomerID
+	var newCustomer *stripe.Customer
+	var err error
 
 	// nolint:exhaustruct
 	customerParams := &stripe.CustomerParams{
@@ -451,7 +453,7 @@ func (s *billingService) createStripeInvoice(
 
 	// Try to get customer if ID exists
 	if stripeCustomerID != "" {
-		_, err := customer.Get(stripeCustomerID, customerParams)
+		_, err = customer.Get(stripeCustomerID, customerParams)
 		if err == nil {
 			// Customer exists, use existing ID
 			goto CreateInvoiceItems
@@ -459,7 +461,7 @@ func (s *billingService) createStripeInvoice(
 	}
 
 	// Customer doesn't exist or ID is empty, create new customer
-	newCustomer, err := customer.New(customerParams)
+	newCustomer, err = customer.New(customerParams)
 	if err != nil {
 		return "", fault.Wrap(
 			err,
