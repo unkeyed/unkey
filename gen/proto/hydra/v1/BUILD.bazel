@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
@@ -30,33 +29,3 @@ go_library(
         "@org_golang_google_protobuf//runtime/protoimpl",
     ],
 )
-||||||| parent of 022ef85f2 (some more changes)
-=======
-load("@rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "hydra",
-    srcs = [
-        "build.pb.go",
-        "build_restate.pb.go",
-        "certificate.pb.go",
-        "certificate_restate.pb.go",
-        "deployment.pb.go",
-        "deployment_restate.pb.go",
-        "routing.pb.go",
-        "routing_restate.pb.go",
-        "versioning.pb.go",
-        "versioning_restate.pb.go",
-    ],
-    importpath = "github.com/unkeyed/unkey/gen/proto/hydra/v1",
-    visibility = ["//visibility:public"],
-    deps = [
-        "@com_github_restatedev_sdk_go//:sdk-go",
-        "@com_github_restatedev_sdk_go//encoding",
-        "@com_github_restatedev_sdk_go//generated/dev/restate/sdk",
-        "@com_github_restatedev_sdk_go//ingress",
-        "@org_golang_google_protobuf//reflect/protoreflect",
-        "@org_golang_google_protobuf//runtime/protoimpl",
-    ],
-)
->>>>>>> 022ef85f2 (some more changes)

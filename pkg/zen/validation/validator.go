@@ -47,11 +47,16 @@ func New() (*Validator, error) {
 
 	matcher := NewPathMatcher(parser.Operations())
 
+	return NewValidator(matcher, compiler, parser.SecuritySchemes()), nil
+}
+
+// NewValidator creates a Validator with the given components
+func NewValidator(matcher *PathMatcher, compiler *SchemaCompiler, securitySchemes map[string]SecurityScheme) *Validator {
 	return &Validator{
 		matcher:         matcher,
 		compiler:        compiler,
-		securitySchemes: parser.SecuritySchemes(),
-	}, nil
+		securitySchemes: securitySchemes,
+	}
 }
 
 // BadRequestError wraps BadRequestErrorResponse to implement ValidationErrorResponse
