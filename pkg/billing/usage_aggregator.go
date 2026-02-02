@@ -64,6 +64,24 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 		return nil, fault.Wrap(err, fault.Internal("failed to query verifications for usage aggregation"))
 	}
 
+	// Query credits from the end-user billable aggregated table
+	creditsQuery := `
+		SELECT
+			external_id,
+			sum(count) as count
+		FROM default.end_user_billable_credits_per_month_v1
+		WHERE workspace_id = ?
+			AND year = ?
+			AND month = ?
+			AND external_id != ''
+		GROUP BY external_id
+	`
+
+	creditRows, err := u.clickhouse.QueryToMaps(ctx, creditsQuery, workspaceID, year, month)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to query credits for usage aggregation"))
+	}
+
 	// Build usage map
 	usageMap := make(map[string]*Usage)
 
@@ -84,9 +102,33 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 				ExternalID:     externalID,
 				Verifications:  0,
 				KeysWithAccess: 0,
+				Credits:        0,
 			}
 		}
 		usageMap[externalID].Verifications = int64(count)
+	}
+
+	// Process credits
+	for _, row := range creditRows {
+		externalID, ok := row["external_id"].(string)
+		if !ok || externalID == "" {
+			continue
+		}
+
+		count, ok := row["count"].(uint64)
+		if !ok {
+			continue
+		}
+
+		if _, exists := usageMap[externalID]; !exists {
+			usageMap[externalID] = &Usage{
+				ExternalID:     externalID,
+				Verifications:  0,
+				KeysWithAccess: 0,
+				Credits:        0,
+			}
+		}
+		usageMap[externalID].Credits = int64(count)
 	}
 
 	return usageMap, nil
@@ -105,6 +147,7 @@ func (u *usageAggregator) GetEndUserUsage(ctx context.Context, workspaceID, exte
 		ExternalID:     externalID,
 		Verifications:  0,
 		KeysWithAccess: 0,
+		Credits:        0,
 	}
 
 	// Query verifications from the end-user billable aggregated table
@@ -123,6 +166,23 @@ func (u *usageAggregator) GetEndUserUsage(ctx context.Context, workspaceID, exte
 		return nil, fault.Wrap(err, fault.Internal("failed to query verifications for end user"))
 	}
 	usage.Verifications = int64(verificationCount)
+
+	// Query credits from the end-user billable aggregated table
+	creditsQuery := `
+		SELECT sum(count) as count
+		FROM default.end_user_billable_credits_per_month_v1
+		WHERE workspace_id = ?
+			AND external_id = ?
+			AND year = ?
+			AND month = ?
+	`
+
+	var creditsCount uint64
+	err = u.clickhouse.Conn().QueryRow(ctx, creditsQuery, workspaceID, externalID, year, month).Scan(&creditsCount)
+	if err != nil && err.Error() != "sql: no rows in result set" {
+		return nil, fault.Wrap(err, fault.Internal("failed to query credits for end user"))
+	}
+	usage.Credits = int64(creditsCount)
 
 	return usage, nil
 }

@@ -356,7 +356,7 @@ func (s *billingService) generateInvoiceForEndUser(
 	invoiceID := uid.New(uid.InvoicePrefix)
 
 	// Calculate credits used
-	creditsUsed := usage.Verifications
+	creditsUsed := usage.Credits
 
 	insertParams := db.BillingInvoiceInsertParams{
 		ID:                 invoiceID,
@@ -455,7 +455,7 @@ func (s *billingService) createStripeInvoice(
 	}
 
 	// Create invoice items for credits
-	creditsUsed := usage.Verifications
+	creditsUsed := usage.Credits
 	if creditsUsed > 0 && pricingModel.CreditUnitPrice > 0 {
 		// nolint:exhaustruct // Stripe params have many optional fields
 		unitAmountInCents := int64(math.Round(pricingModel.CreditUnitPrice * 100))

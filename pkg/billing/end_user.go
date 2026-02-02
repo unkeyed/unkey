@@ -54,6 +54,7 @@ type Usage struct {
 	ExternalID     string
 	Verifications  int64
 	KeysWithAccess int64 // unique keys with VALID=true verification
+	Credits        int64 // credits spent
 }
 
 // CreateEndUserRequest contains parameters for creating an end user

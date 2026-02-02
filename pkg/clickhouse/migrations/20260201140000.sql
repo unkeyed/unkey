@@ -40,23 +40,20 @@ CREATE TABLE IF NOT EXISTS default.end_user_billable_credits_per_month_v1 (
 ) ENGINE = SummingMergeTree()
 ORDER BY (workspace_id, external_id, year, month);
 
--- TODO: Add materialized view for credits tracking when data source is identified
--- The MV should track credit spending similar to verifications but with a filter for credits spent
--- Example query structure (requires identifying the data source):
--- CREATE MATERIALIZED VIEW IF NOT EXISTS default.end_user_billable_credits_mv_v1
--- TO default.end_user_billable_credits_per_month_v1 AS
--- SELECT
---     workspace_id,
---     external_id,
---     toYear(time) AS year,
---     toMonth(time) AS month,
---     sum(count) AS count
--- FROM <source_table>
--- WHERE
---     <credit_spent_condition>
---     AND external_id != ''
--- GROUP BY
---     workspace_id,
---     external_id,
---     year,
---     month;
+CREATE MATERIALIZED VIEW IF NOT EXISTS default.end_user_billable_credits_mv_v1
+TO default.end_user_billable_credits_per_month_v1 AS
+SELECT
+    workspace_id,
+    external_id,
+    toYear(time) AS year,
+    toMonth(time) AS month,
+    sum(spent_credits) AS count
+FROM default.key_verifications_per_month_v3
+WHERE
+    external_id != ''
+    AND spent_credits > 0
+GROUP BY
+    workspace_id,
+    external_id,
+    year,
+    month;
