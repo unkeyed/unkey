@@ -185,7 +185,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:      restateClient,
 		RestateAdmin: restateAdminClient,
 		Logger:       logger,
-		DnsApex:      cfg.DnsApex,
+		CnameDomain:  cfg.CnameDomain,
 	})))
 
 	// Configure server
@@ -241,12 +241,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// Bootstrap certificates (wildcard domain and renewal cron)
 	if cfg.DefaultDomain != "" {
 		certBootstrap := &certificateBootstrap{
-			logger:             logger,
-			database:           database,
-			defaultDomain:      cfg.DefaultDomain,
-			regionalApexDomain: cfg.RegionalApexDomain,
-			regions:            cfg.AvailableRegions,
-			restateClient:      hydrav1.NewCertificateServiceIngressClient(restateClient, "global"),
+			logger:         logger,
+			database:       database,
+			defaultDomain:  cfg.DefaultDomain,
+			regionalDomain: cfg.RegionalDomain,
+			regions:        cfg.AvailableRegions,
+			restateClient:  hydrav1.NewCertificateServiceIngressClient(restateClient, "global"),
 		}
 		go certBootstrap.run(ctx)
 	}

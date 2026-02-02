@@ -87,10 +87,10 @@ var apiCmd = &cli.Command{
 
 		// Certificate bootstrap configuration
 		cli.String("default-domain", "Default domain for wildcard certificate bootstrapping (e.g., unkey.app)", cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
-		cli.String("regional-apex-domain", "Apex domain for cross-region communication. Per-region wildcards created as *.{region}.{apex} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_APEX_DOMAIN")),
+		cli.String("regional-domain", "Domain for cross-region communication. Per-region wildcards created as *.{region}.{domain} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_DOMAIN")),
 
 		// Custom domain configuration
-		cli.String("dns-apex", "Base domain for custom domain CNAME targets (e.g., unkey.local)", cli.Required(), cli.EnvVar("UNKEY_DNS_APEX")),
+		cli.String("cname-domain", "Base domain for custom domain CNAME targets (e.g., unkey-dns.com)", cli.Required(), cli.EnvVar("UNKEY_CNAME_DOMAIN")),
 	},
 	Action: apiAction,
 }
@@ -156,11 +156,11 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
 
 		// Certificate bootstrap
-		DefaultDomain:      cmd.String("default-domain"),
-		RegionalApexDomain: cmd.String("regional-apex-domain"),
+		DefaultDomain:  cmd.String("default-domain"),
+		RegionalDomain: cmd.String("regional-domain"),
 
 		// Custom domain configuration
-		DnsApex: strings.TrimSuffix(strings.TrimSpace(cmd.RequireString("dns-apex")), "."),
+		CnameDomain: strings.TrimSuffix(strings.TrimSpace(cmd.RequireString("cname-domain")), "."),
 	}
 
 	err := config.Validate()

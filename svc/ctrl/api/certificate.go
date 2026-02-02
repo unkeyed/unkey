@@ -17,12 +17,12 @@ import (
 // This ensures wildcard certificates exist for the default domain,
 // regional apex domains, and starts the certificate renewal cron job.
 type certificateBootstrap struct {
-	logger             logging.Logger
-	database           db.Database
-	defaultDomain      string
-	regionalApexDomain string
-	regions            []string
-	restateClient      hydrav1.CertificateServiceIngressClient
+	logger         logging.Logger
+	database       db.Database
+	defaultDomain  string
+	regionalDomain string
+	regions        []string
+	restateClient  hydrav1.CertificateServiceIngressClient
 }
 
 func (c *certificateBootstrap) run(ctx context.Context) {
@@ -35,9 +35,9 @@ func (c *certificateBootstrap) run(ctx context.Context) {
 	}
 
 	// Bootstrap per-region wildcards (e.g., *.us-west-2.aws.unkey.cloud)
-	if c.regionalApexDomain != "" {
+	if c.regionalDomain != "" {
 		for _, region := range c.regions {
-			domain := fmt.Sprintf("*.%s.%s", region, c.regionalApexDomain)
+			domain := fmt.Sprintf("*.%s.%s", region, c.regionalDomain)
 			c.bootstrapDomain(ctx, domain)
 		}
 	}
@@ -96,6 +96,7 @@ func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain strin
 		Domain:             domain,
 		ChallengeType:      db.CustomDomainsChallengeTypeDNS01,
 		VerificationStatus: db.CustomDomainsVerificationStatusVerified, // Pre-verified for infra domains
+		VerificationToken:  "",                                         // Not needed for infra domains (already verified)
 		TargetCname:        uid.DNS1035(16),                            // Unique target (not used for DNS-01 but required for uniqueness)
 		CreatedAt:          now,
 		UpdatedAt:          sql.NullInt64{Int64: now, Valid: true},
