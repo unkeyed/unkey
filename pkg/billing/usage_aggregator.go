@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -28,6 +30,10 @@ func extractString(value interface{}) (string, bool) {
 
 // extractStringFromReflect handles non-string types using reflection
 func extractStringFromReflect(value interface{}) (string, bool) {
+	if value == nil {
+		return "", false
+	}
+
 	rv := reflect.ValueOf(value)
 	if rv.Kind() == reflect.Interface {
 		rv = rv.Elem()
@@ -36,8 +42,9 @@ func extractStringFromReflect(value interface{}) (string, bool) {
 		rv = rv.Elem()
 	}
 
-	// Check if it's a struct with a Value field (Variant-like)
+	// Handle struct types (Variant-like)
 	if rv.Kind() == reflect.Struct {
+		// Try to get the Value field first
 		fv := rv.FieldByName("Value")
 		if fv.IsValid() && fv.Kind() == reflect.Interface {
 			inner := fv.Interface()
@@ -45,7 +52,29 @@ func extractStringFromReflect(value interface{}) (string, bool) {
 				return s, true
 			}
 		}
+
+		// If Value field not found or not a string, try all fields
+		for i := 0; i < rv.NumField(); i++ {
+			field := rv.Field(i)
+			if field.Kind() == reflect.Interface {
+				inner := field.Interface()
+				if s, ok := inner.(string); ok {
+					return s, true
+				}
+			}
+		}
+
+		// Try parsing the string representation
+		strValue := fmt.Sprintf("%v", value)
+		// The format is like "{user_123}" so extract the content
+		if strings.HasPrefix(strValue, "{") && strings.HasSuffix(strValue, "}") {
+			content := strValue[1 : len(strValue)-1]
+			if content != "" {
+				return content, true
+			}
+		}
 	}
+
 	return "", false
 }
 
@@ -73,6 +102,10 @@ func extractInt64(value interface{}) (int64, bool) {
 
 // extractInt64FromReflect handles non-int64 types using reflection
 func extractInt64FromReflect(value interface{}) (int64, bool) {
+	if value == nil {
+		return 0, false
+	}
+
 	rv := reflect.ValueOf(value)
 	if rv.Kind() == reflect.Interface {
 		rv = rv.Elem()
@@ -82,6 +115,7 @@ func extractInt64FromReflect(value interface{}) (int64, bool) {
 	}
 
 	if rv.Kind() == reflect.Struct {
+		// Try to get the Value field first
 		fv := rv.FieldByName("Value")
 		if fv.IsValid() && fv.Kind() == reflect.Interface {
 			inner := fv.Interface()
@@ -94,7 +128,34 @@ func extractInt64FromReflect(value interface{}) (int64, bool) {
 				return int64(inner.(uint64)), true
 			}
 		}
+
+		// If Value field not found or not an int, try all fields
+		for i := 0; i < rv.NumField(); i++ {
+			field := rv.Field(i)
+			if field.Kind() == reflect.Interface {
+				inner := field.Interface()
+				switch inner.(type) {
+				case int64:
+					return inner.(int64), true
+				case int:
+					return int64(inner.(int)), true
+				case uint64:
+					return int64(inner.(uint64)), true
+				}
+			}
+		}
+
+		// Try parsing the string representation
+		strValue := fmt.Sprintf("%v", value)
+		// The format is like "{15}" so extract the content
+		if strings.HasPrefix(strValue, "{") && strings.HasSuffix(strValue, "}") {
+			content := strValue[1 : len(strValue)-1]
+			if val, err := strconv.ParseInt(content, 10, 64); err == nil {
+				return val, true
+			}
+		}
 	}
+
 	return 0, false
 }
 
