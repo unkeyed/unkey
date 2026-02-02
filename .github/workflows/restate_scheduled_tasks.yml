@@ -38,7 +38,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
             "${RESTATE_URL}/hydra.v1.QuotaCheckService/${{ steps.billing.outputs.period }}/RunCheck" \
-            -d '{"slackWebhookUrl": "'"${SLACK_WEBHOOK_URL}"'"}'
+            -d "$(jq -n --arg slack "${SLACK_WEBHOOK_URL}" '{slackWebhookUrl: $slack}')"
 
   certificate-renewal:
     if: github.event.schedule == '0 3 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'cert-renewal'
