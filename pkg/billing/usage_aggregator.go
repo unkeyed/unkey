@@ -37,7 +37,7 @@ func extractStringFromReflect(value interface{}) (string, bool) {
 	strValue := fmt.Sprintf("%v", value)
 	// The format is like "{user_123}" so extract the content
 	if strings.HasPrefix(strValue, "{") && strings.HasSuffix(strValue, "}") {
-		content := strValue[1 : len(strValue)-1]
+		content := strings.TrimSpace(strValue[1 : len(strValue)-1])
 		if content != "" {
 			return content, true
 		}
@@ -74,11 +74,11 @@ func extractInt64FromReflect(value interface{}) (int64, bool) {
 		return 0, false
 	}
 
-	// Try string representation - handle Variant types like "{15}"
+	// Try string representation - handle Variant types like "{15 }"
 	strValue := fmt.Sprintf("%v", value)
-	// The format is like "{15}" so extract the content
+	// The format is like "{15 }" so extract the content between braces
 	if strings.HasPrefix(strValue, "{") && strings.HasSuffix(strValue, "}") {
-		content := strValue[1 : len(strValue)-1]
+		content := strings.TrimSpace(strValue[1 : len(strValue)-1])
 		if val, err := strconv.ParseInt(content, 10, 64); err == nil {
 			return val, true
 		}
