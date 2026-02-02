@@ -1,9 +1,9 @@
 -- name: UpsertCustomDomain :exec
 INSERT INTO custom_domains (
     id, workspace_id, project_id, environment_id, domain,
-    challenge_type, verification_status, target_cname, created_at
+    challenge_type, verification_status, verification_token, target_cname, created_at
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     workspace_id = VALUES(workspace_id),
     project_id = VALUES(project_id),

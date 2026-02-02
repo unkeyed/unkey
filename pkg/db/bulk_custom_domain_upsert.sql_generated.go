@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertCustomDomain is the base query for bulk insert
-const bulkUpsertCustomDomain = `INSERT INTO custom_domains ( id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, target_cname, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertCustomDomain = `INSERT INTO custom_domains ( id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, target_cname, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
     workspace_id = VALUES(workspace_id),
     project_id = VALUES(project_id),
     environment_id = VALUES(environment_id),
@@ -28,7 +28,7 @@ func (q *BulkQueries) UpsertCustomDomain(ctx context.Context, db DBTX, args []Up
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertCustomDomain, strings.Join(valueClauses, ", "))
@@ -43,6 +43,7 @@ func (q *BulkQueries) UpsertCustomDomain(ctx context.Context, db DBTX, args []Up
 		allArgs = append(allArgs, arg.Domain)
 		allArgs = append(allArgs, arg.ChallengeType)
 		allArgs = append(allArgs, arg.VerificationStatus)
+		allArgs = append(allArgs, arg.VerificationToken)
 		allArgs = append(allArgs, arg.TargetCname)
 		allArgs = append(allArgs, arg.CreatedAt)
 	}
