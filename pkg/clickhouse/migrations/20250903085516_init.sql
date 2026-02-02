@@ -1,13 +1,13 @@
 -- Add new schema named "billing"
-CREATE DATABASE `billing` ENGINE Atomic;
+CREATE DATABASE IF NOT EXISTS `billing` ENGINE Atomic;
 -- Add new schema named "business"
-CREATE DATABASE `business` ENGINE Atomic;
+CREATE DATABASE IF NOT EXISTS `business` ENGINE Atomic;
 -- Add new schema named "metrics"
-CREATE DATABASE `metrics` ENGINE Atomic;
+CREATE DATABASE IF NOT EXISTS `metrics` ENGINE Atomic;
 -- Add new schema named "ratelimits"
-CREATE DATABASE `ratelimits` ENGINE Atomic;
+CREATE DATABASE IF NOT EXISTS `ratelimits` ENGINE Atomic;
 -- Add new schema named "verifications"
-CREATE DATABASE `verifications` ENGINE Atomic;
+CREATE DATABASE IF NOT EXISTS `verifications` ENGINE Atomic;
 -- Create "billable_ratelimits_per_month_v1" table
 CREATE TABLE `billing`.`billable_ratelimits_per_month_v1` (
   `year` Int32,
