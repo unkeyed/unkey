@@ -44,6 +44,7 @@ func NewHeaderBlock(text string) Block {
 			Text:  text,
 			Emoji: true,
 		},
+		Fields: nil,
 	}
 }
 
@@ -51,6 +52,7 @@ func NewHeaderBlock(text string) Block {
 func NewSectionBlock(fields ...Field) Block {
 	return Block{
 		Type:   "section",
+		Text:   nil,
 		Fields: fields,
 	}
 }
