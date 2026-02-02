@@ -90,7 +90,8 @@ export type UnkeyAuditLog = {
       | "identity"
       | "auditLogBucket"
       | "environment"
-      | "deployment";
+      | "deployment"
+      | "stripeConnectedAccount";
 
     id: string;
     name?: string;

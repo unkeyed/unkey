@@ -85,6 +85,7 @@ use_repo(
     "com_github_gordonklaus_ineffassign",
     "com_github_kisielk_errcheck",
     "com_github_nishanths_exhaustive",
+    "com_github_stripe_stripe_go_v81",
     "com_github_unkeyed_sdks_api_go_v2",
     "team_gaijin_dev_go_exhaustruct_v4",
 )

@@ -57,6 +57,9 @@ spec:
               value: "http://agent:8080"
             - name: AGENT_TOKEN
               value: "agent-auth-secret"
+            # Master key for token encryption (must match billing-job)
+            - name: MASTER_KEY
+              value: "02a7a5b6c686c6c6f776f726c64"
           readinessProbe:
             httpGet:
               path: /

@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "v1_billing_end_users_update",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v1_billing_end_users_update",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/auditlogs",
+        "//internal/services/keys",
+        "//pkg/auditlog",
+        "//pkg/billing",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/rbac",
+        "//pkg/zen",
+    ],
+)

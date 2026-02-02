@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "v1_billing_webhooks_stripe",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v1_billing_webhooks_stripe",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/billing",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/zen",
+    ],
+)

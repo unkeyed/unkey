@@ -45,3 +45,4 @@ bazel-bin
 bazel-out
 bazel-testlogs
 bazel-unkey
+bazel-unkey-dev

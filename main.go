@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	billingjob "github.com/unkeyed/unkey/cmd/billing-job"
 	"github.com/unkeyed/unkey/cmd/deploy"
 	dev "github.com/unkeyed/unkey/cmd/dev"
 	"github.com/unkeyed/unkey/cmd/frontline"
@@ -33,6 +34,7 @@ func main() {
 			quotacheck.Cmd,
 			frontline.Cmd,
 			dev.Cmd,
+			billingjob.Cmd,
 		},
 	}
 

@@ -610,6 +610,86 @@ CREATE TABLE `github_repo_connections` (
 	CONSTRAINT `github_repo_connections_project_id_unique` UNIQUE(`project_id`)
 );
 
+CREATE TABLE `billing_end_users` (
+	`id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`external_id` varchar(255) NOT NULL,
+	`pricing_model_id` varchar(255) NOT NULL,
+	`stripe_customer_id` varchar(255) NOT NULL,
+	`stripe_subscription_id` varchar(255),
+	`email` varchar(255),
+	`name` varchar(255),
+	`metadata` json,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `billing_end_users_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `billing_invoices` (
+	`id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`end_user_id` varchar(255) NOT NULL,
+	`stripe_invoice_id` varchar(255) NOT NULL,
+	`billing_period_start` bigint NOT NULL,
+	`billing_period_end` bigint NOT NULL,
+	`verification_count` bigint NOT NULL,
+	`ratelimit_count` bigint NOT NULL,
+	`key_access_count` bigint NOT NULL DEFAULT 0,
+	`credits_used` bigint NOT NULL DEFAULT 0,
+	`total_amount` bigint NOT NULL,
+	`currency` varchar(3) NOT NULL,
+	`status` varchar(50) NOT NULL,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `billing_invoices_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `billing_transactions` (
+	`id` varchar(255) NOT NULL,
+	`invoice_id` varchar(255) NOT NULL,
+	`stripe_payment_intent_id` varchar(255),
+	`amount` bigint NOT NULL,
+	`currency` varchar(3) NOT NULL,
+	`status` varchar(50) NOT NULL,
+	`failure_reason` text,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	CONSTRAINT `billing_transactions_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `pricing_models` (
+	`id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`name` varchar(255) NOT NULL,
+	`currency` varchar(3) NOT NULL,
+	`verification_unit_price` decimal(20,8) NOT NULL,
+	`key_access_unit_price` decimal(20,8) NOT NULL DEFAULT 0,
+	`credit_unit_price` decimal(20,8) NOT NULL DEFAULT 0,
+	`tiered_pricing` json,
+	`version` int NOT NULL DEFAULT 1,
+	`active` boolean NOT NULL DEFAULT true,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `pricing_models_id` PRIMARY KEY(`id`)
+);
+
+CREATE TABLE `stripe_connected_accounts` (
+	`id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`stripe_account_id` varchar(255) NOT NULL,
+	`access_token_encrypted` text NOT NULL,
+	`refresh_token_encrypted` text NOT NULL,
+	`scope` varchar(255) NOT NULL,
+	`connected_at` bigint NOT NULL,
+	`disconnected_at` bigint,
+	`created_at_m` bigint NOT NULL DEFAULT 0,
+	`updated_at_m` bigint,
+	`deleted_at_m` bigint,
+	CONSTRAINT `stripe_connected_accounts_id` PRIMARY KEY(`id`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -642,4 +722,17 @@ CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
+CREATE INDEX `workspace_external_idx` ON `billing_end_users` (`workspace_id`,`external_id`);
+CREATE INDEX `pricing_model_idx` ON `billing_end_users` (`pricing_model_id`);
+CREATE INDEX `stripe_customer_idx` ON `billing_end_users` (`stripe_customer_id`);
+CREATE INDEX `workspace_idx` ON `billing_invoices` (`workspace_id`);
+CREATE INDEX `end_user_idx` ON `billing_invoices` (`end_user_id`);
+CREATE INDEX `stripe_invoice_idx` ON `billing_invoices` (`stripe_invoice_id`);
+CREATE INDEX `billing_period_idx` ON `billing_invoices` (`billing_period_start`,`billing_period_end`);
+CREATE INDEX `invoice_idx` ON `billing_transactions` (`invoice_id`);
+CREATE INDEX `payment_intent_idx` ON `billing_transactions` (`stripe_payment_intent_id`);
+CREATE INDEX `workspace_idx` ON `pricing_models` (`workspace_id`);
+CREATE INDEX `workspace_currency_idx` ON `pricing_models` (`workspace_id`,`currency`);
+CREATE INDEX `workspace_idx` ON `stripe_connected_accounts` (`workspace_id`);
+CREATE INDEX `stripe_account_idx` ON `stripe_connected_accounts` (`stripe_account_id`);
 

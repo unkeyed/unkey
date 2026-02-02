@@ -63,6 +63,20 @@ import (
 
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
+	v1BillingAnalyticsRevenue "github.com/unkeyed/unkey/svc/api/routes/v1_billing_analytics_revenue"
+	v1BillingEndUsersCreate "github.com/unkeyed/unkey/svc/api/routes/v1_billing_end_users_create"
+	v1BillingEndUsersGet "github.com/unkeyed/unkey/svc/api/routes/v1_billing_end_users_get"
+	v1BillingEndUsersList "github.com/unkeyed/unkey/svc/api/routes/v1_billing_end_users_list"
+	v1BillingEndUsersUpdate "github.com/unkeyed/unkey/svc/api/routes/v1_billing_end_users_update"
+	v1BillingEndUsersUsage "github.com/unkeyed/unkey/svc/api/routes/v1_billing_end_users_usage"
+	v1BillingInvoicesGet "github.com/unkeyed/unkey/svc/api/routes/v1_billing_invoices_get"
+	v1BillingInvoicesList "github.com/unkeyed/unkey/svc/api/routes/v1_billing_invoices_list"
+	v1BillingPricingModelsCreate "github.com/unkeyed/unkey/svc/api/routes/v1_billing_pricing_models_create"
+	v1BillingPricingModelsDelete "github.com/unkeyed/unkey/svc/api/routes/v1_billing_pricing_models_delete"
+	v1BillingPricingModelsList "github.com/unkeyed/unkey/svc/api/routes/v1_billing_pricing_models_list"
+	v1BillingPricingModelsUpdate "github.com/unkeyed/unkey/svc/api/routes/v1_billing_pricing_models_update"
+	v1BillingWebhooksStripe "github.com/unkeyed/unkey/svc/api/routes/v1_billing_webhooks_stripe"
+
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -654,6 +668,155 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			ClickHouse:                 svc.ClickHouse,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 			Caches:                     svc.Caches,
+		},
+	)
+
+	// ---------------------------------------------------------------------------
+	// v1/billing
+
+	// v1/billing/pricing-models (create)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingPricingModelsCreate.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			PricingService: svc.PricingService,
+			Auditlogs:      svc.Auditlogs,
+		},
+	)
+
+	// v1/billing/pricing-models (list)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingPricingModelsList.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			PricingService: svc.PricingService,
+		},
+	)
+
+	// v1/billing/pricing-models/:id (update)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingPricingModelsUpdate.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			PricingService: svc.PricingService,
+			Auditlogs:      svc.Auditlogs,
+		},
+	)
+
+	// v1/billing/pricing-models/:id (delete)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingPricingModelsDelete.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			PricingService: svc.PricingService,
+			Auditlogs:      svc.Auditlogs,
+		},
+	)
+
+	// v1/billing/end-users (create)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingEndUsersCreate.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			EndUserService: svc.EndUserService,
+			Auditlogs:      svc.Auditlogs,
+		},
+	)
+
+	// v1/billing/end-users (list)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingEndUsersList.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			EndUserService: svc.EndUserService,
+		},
+	)
+
+	// v1/billing/end-users/:id (get)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingEndUsersGet.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			EndUserService: svc.EndUserService,
+		},
+	)
+
+	// v1/billing/end-users/:id (update)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingEndUsersUpdate.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			EndUserService: svc.EndUserService,
+			Auditlogs:      svc.Auditlogs,
+		},
+	)
+
+	// v1/billing/end-users/:id/usage
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingEndUsersUsage.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			EndUserService: svc.EndUserService,
+		},
+	)
+
+	// v1/billing/invoices (list)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingInvoicesList.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			BillingService: svc.BillingService,
+		},
+	)
+
+	// v1/billing/invoices/:id (get)
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingInvoicesGet.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			BillingService: svc.BillingService,
+		},
+	)
+
+	// v1/billing/analytics/revenue
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingAnalyticsRevenue.Handler{
+			Logger:         svc.Logger,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			BillingService: svc.BillingService,
+		},
+	)
+
+	// v1/billing/webhooks/stripe
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v1BillingWebhooksStripe.Handler{
+			Logger:         svc.Logger,
+			BillingService: svc.BillingService,
 		},
 	)
 

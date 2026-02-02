@@ -870,6 +870,51 @@ type AuditLogTarget struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
+type BillingEndUser struct {
+	ID                   string         `db:"id"`
+	WorkspaceID          string         `db:"workspace_id"`
+	ExternalID           string         `db:"external_id"`
+	PricingModelID       string         `db:"pricing_model_id"`
+	StripeCustomerID     string         `db:"stripe_customer_id"`
+	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
+	Email                sql.NullString `db:"email"`
+	Name                 sql.NullString `db:"name"`
+	Metadata             []byte         `db:"metadata"`
+	CreatedAtM           int64          `db:"created_at_m"`
+	UpdatedAtM           sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM           sql.NullInt64  `db:"deleted_at_m"`
+}
+
+type BillingInvoice struct {
+	ID                 string        `db:"id"`
+	WorkspaceID        string        `db:"workspace_id"`
+	EndUserID          string        `db:"end_user_id"`
+	StripeInvoiceID    string        `db:"stripe_invoice_id"`
+	BillingPeriodStart int64         `db:"billing_period_start"`
+	BillingPeriodEnd   int64         `db:"billing_period_end"`
+	VerificationCount  int64         `db:"verification_count"`
+	RatelimitCount     int64         `db:"ratelimit_count"`
+	KeyAccessCount     int64         `db:"key_access_count"`
+	CreditsUsed        int64         `db:"credits_used"`
+	TotalAmount        int64         `db:"total_amount"`
+	Currency           string        `db:"currency"`
+	Status             string        `db:"status"`
+	CreatedAtM         int64         `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64 `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64 `db:"deleted_at_m"`
+}
+
+type BillingTransaction struct {
+	ID                    string         `db:"id"`
+	InvoiceID             string         `db:"invoice_id"`
+	StripePaymentIntentID sql.NullString `db:"stripe_payment_intent_id"`
+	Amount                int64          `db:"amount"`
+	Currency              string         `db:"currency"`
+	Status                string         `db:"status"`
+	FailureReason         sql.NullString `db:"failure_reason"`
+	CreatedAtM            int64          `db:"created_at_m"`
+}
+
 type Certificate struct {
 	Pk                  uint64        `db:"pk"`
 	ID                  string        `db:"id"`
@@ -1136,6 +1181,22 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64     `db:"updated_at_m"`
 }
 
+type PricingModel struct {
+	ID                    string        `db:"id"`
+	WorkspaceID           string        `db:"workspace_id"`
+	Name                  string        `db:"name"`
+	Currency              string        `db:"currency"`
+	VerificationUnitPrice string        `db:"verification_unit_price"`
+	KeyAccessUnitPrice    string        `db:"key_access_unit_price"`
+	CreditUnitPrice       string        `db:"credit_unit_price"`
+	TieredPricing         []byte        `db:"tiered_pricing"`
+	Version               int32         `db:"version"`
+	Active                bool          `db:"active"`
+	CreatedAtM            int64         `db:"created_at_m"`
+	UpdatedAtM            sql.NullInt64 `db:"updated_at_m"`
+	DeletedAtM            sql.NullInt64 `db:"deleted_at_m"`
+}
+
 type Project struct {
 	Pk               uint64          `db:"pk"`
 	ID               string          `db:"id"`
@@ -1239,6 +1300,20 @@ type Sentinel struct {
 	Version           uint64                `db:"version"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
+}
+
+type StripeConnectedAccount struct {
+	ID                    string        `db:"id"`
+	WorkspaceID           string        `db:"workspace_id"`
+	StripeAccountID       string        `db:"stripe_account_id"`
+	AccessTokenEncrypted  string        `db:"access_token_encrypted"`
+	RefreshTokenEncrypted string        `db:"refresh_token_encrypted"`
+	Scope                 string        `db:"scope"`
+	ConnectedAt           int64         `db:"connected_at"`
+	DisconnectedAt        sql.NullInt64 `db:"disconnected_at"`
+	CreatedAtM            int64         `db:"created_at_m"`
+	UpdatedAtM            sql.NullInt64 `db:"updated_at_m"`
+	DeletedAtM            sql.NullInt64 `db:"deleted_at_m"`
 }
 
 type VercelBinding struct {

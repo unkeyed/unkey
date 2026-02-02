@@ -105,6 +105,10 @@ var excludePatterns = []string{
 	`^github\.com/docker/docker/api/types/image.*$`,
 	`^github\.com/docker/docker/api/types/registry\.AuthConfig$`,
 	`^github\.com/docker/cli/cli/config/configfile\.ConfigFile$`,
+
+	// Stripe
+	`^github\.com/stripe/stripe-go/v81\.InvoiceItemParams$`,
+	`^github\.com/stripe/stripe-go/v81\.Params$`,
 }
 
 func mustCreateAnalyzer() *analysis.Analyzer {

@@ -38,6 +38,7 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { customerBillingRouter } from "./customer-billing";
 import { addCustomDomain } from "./deploy/custom-domains/add";
 import { checkDns } from "./deploy/custom-domains/check-dns";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
@@ -328,6 +329,7 @@ export const router = t.router({
   billing: t.router({
     queryUsage,
   }),
+  customerBilling: customerBillingRouter,
   audit: t.router({
     logs: fetchAuditLog,
     llmSearch: auditLogsSearch,

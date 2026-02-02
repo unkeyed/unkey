@@ -10,6 +10,125 @@ import (
 )
 
 type Querier interface {
+	//BillingEndUserFindByExternalId
+	//
+	//  SELECT id, workspace_id, external_id, pricing_model_id, stripe_customer_id, stripe_subscription_id, email, name, metadata, created_at_m, updated_at_m, deleted_at_m FROM billing_end_users
+	//  WHERE workspace_id = ? AND external_id = ? AND deleted_at_m IS NULL
+	//  LIMIT 1
+	BillingEndUserFindByExternalId(ctx context.Context, db DBTX, arg BillingEndUserFindByExternalIdParams) (BillingEndUser, error)
+	//BillingEndUserFindById
+	//
+	//  SELECT id, workspace_id, external_id, pricing_model_id, stripe_customer_id, stripe_subscription_id, email, name, metadata, created_at_m, updated_at_m, deleted_at_m FROM billing_end_users
+	//  WHERE id = ? AND deleted_at_m IS NULL
+	//  LIMIT 1
+	BillingEndUserFindById(ctx context.Context, db DBTX, id string) (BillingEndUser, error)
+	//BillingEndUserInsert
+	//
+	//  INSERT INTO billing_end_users (
+	//    id,
+	//    workspace_id,
+	//    external_id,
+	//    pricing_model_id,
+	//    stripe_customer_id,
+	//    stripe_subscription_id,
+	//    email,
+	//    name,
+	//    metadata,
+	//    created_at_m
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	BillingEndUserInsert(ctx context.Context, db DBTX, arg BillingEndUserInsertParams) error
+	//BillingEndUserListByWorkspaceId
+	//
+	//  SELECT id, workspace_id, external_id, pricing_model_id, stripe_customer_id, stripe_subscription_id, email, name, metadata, created_at_m, updated_at_m, deleted_at_m FROM billing_end_users
+	//  WHERE workspace_id = ? AND deleted_at_m IS NULL
+	//  ORDER BY created_at_m DESC
+	BillingEndUserListByWorkspaceId(ctx context.Context, db DBTX, workspaceID string) ([]BillingEndUser, error)
+	//BillingEndUserUpdate
+	//
+	//  UPDATE billing_end_users
+	//  SET
+	//    pricing_model_id = ?,
+	//    stripe_subscription_id = ?,
+	//    email = ?,
+	//    name = ?,
+	//    metadata = ?,
+	//    updated_at_m = ?
+	//  WHERE id = ?
+	BillingEndUserUpdate(ctx context.Context, db DBTX, arg BillingEndUserUpdateParams) error
+	//BillingInvoiceFindById
+	//
+	//  SELECT id, workspace_id, end_user_id, stripe_invoice_id, billing_period_start, billing_period_end, verification_count, ratelimit_count, key_access_count, credits_used, total_amount, currency, status, created_at_m, updated_at_m, deleted_at_m FROM billing_invoices
+	//  WHERE id = ?
+	//  LIMIT 1
+	BillingInvoiceFindById(ctx context.Context, db DBTX, id string) (BillingInvoice, error)
+	//BillingInvoiceFindByStripeInvoiceId
+	//
+	//  SELECT id, workspace_id, end_user_id, stripe_invoice_id, billing_period_start, billing_period_end, verification_count, ratelimit_count, key_access_count, credits_used, total_amount, currency, status, created_at_m, updated_at_m, deleted_at_m FROM billing_invoices
+	//  WHERE stripe_invoice_id = ?
+	//  LIMIT 1
+	BillingInvoiceFindByStripeInvoiceId(ctx context.Context, db DBTX, stripeInvoiceID string) (BillingInvoice, error)
+	//BillingInvoiceInsert
+	//
+	//  INSERT INTO billing_invoices (
+	//    id,
+	//    workspace_id,
+	//    end_user_id,
+	//    stripe_invoice_id,
+	//    billing_period_start,
+	//    billing_period_end,
+	//    verification_count,
+	//    key_access_count,
+	//    credits_used,
+	//    total_amount,
+	//    currency,
+	//    status,
+	//    created_at_m
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	BillingInvoiceInsert(ctx context.Context, db DBTX, arg BillingInvoiceInsertParams) error
+	//BillingInvoiceListByEndUserId
+	//
+	//  SELECT id, workspace_id, end_user_id, stripe_invoice_id, billing_period_start, billing_period_end, verification_count, ratelimit_count, key_access_count, credits_used, total_amount, currency, status, created_at_m, updated_at_m, deleted_at_m FROM billing_invoices
+	//  WHERE end_user_id = ?
+	//  ORDER BY created_at_m DESC
+	BillingInvoiceListByEndUserId(ctx context.Context, db DBTX, endUserID string) ([]BillingInvoice, error)
+	//BillingInvoiceListByWorkspaceId
+	//
+	//  SELECT id, workspace_id, end_user_id, stripe_invoice_id, billing_period_start, billing_period_end, verification_count, ratelimit_count, key_access_count, credits_used, total_amount, currency, status, created_at_m, updated_at_m, deleted_at_m FROM billing_invoices
+	//  WHERE workspace_id = ?
+	//  ORDER BY created_at_m DESC
+	//  LIMIT ? OFFSET ?
+	BillingInvoiceListByWorkspaceId(ctx context.Context, db DBTX, arg BillingInvoiceListByWorkspaceIdParams) ([]BillingInvoice, error)
+	//BillingInvoiceUpdateStatus
+	//
+	//  UPDATE billing_invoices
+	//  SET status = ?, updated_at_m = ?
+	//  WHERE id = ?
+	BillingInvoiceUpdateStatus(ctx context.Context, db DBTX, arg BillingInvoiceUpdateStatusParams) error
+	//BillingTransactionInsert
+	//
+	//  INSERT INTO billing_transactions (
+	//    id,
+	//    invoice_id,
+	//    stripe_payment_intent_id,
+	//    amount,
+	//    currency,
+	//    status,
+	//    failure_reason,
+	//    created_at_m
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	BillingTransactionInsert(ctx context.Context, db DBTX, arg BillingTransactionInsertParams) error
+	//BillingTransactionListByInvoiceId
+	//
+	//  SELECT id, invoice_id, stripe_payment_intent_id, amount, currency, status, failure_reason, created_at_m FROM billing_transactions
+	//  WHERE invoice_id = ?
+	//  ORDER BY created_at_m DESC
+	BillingTransactionListByInvoiceId(ctx context.Context, db DBTX, invoiceID string) ([]BillingTransaction, error)
+	//BillingTransactionUpdateStatus
+	//
+	//  UPDATE billing_transactions
+	//  SET status = ?, failure_reason = ?
+	//  WHERE id = ?
+	BillingTransactionUpdateStatus(ctx context.Context, db DBTX, arg BillingTransactionUpdateStatusParams) error
 	//ClearAcmeChallengeTokens
 	//
 	//  UPDATE acme_challenges
@@ -2012,6 +2131,64 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	//PricingModelCountEndUsers
+	//
+	//  SELECT COUNT(*) as count FROM billing_end_users
+	//  WHERE pricing_model_id = ?
+	PricingModelCountEndUsers(ctx context.Context, db DBTX, pricingModelID string) (int64, error)
+	//PricingModelFindById
+	//
+	//  SELECT id, workspace_id, name, currency, verification_unit_price, key_access_unit_price, credit_unit_price, tiered_pricing, version, active, created_at_m, updated_at_m, deleted_at_m FROM pricing_models
+	//  WHERE id = ? AND deleted_at_m IS NULL
+	//  LIMIT 1
+	PricingModelFindById(ctx context.Context, db DBTX, id string) (PricingModel, error)
+	//PricingModelFindWorkspaceCurrency
+	//
+	//  SELECT currency FROM pricing_models
+	//  WHERE workspace_id = ? AND deleted_at_m IS NULL
+	//  LIMIT 1
+	PricingModelFindWorkspaceCurrency(ctx context.Context, db DBTX, workspaceID string) (string, error)
+	//PricingModelInsert
+	//
+	//  INSERT INTO pricing_models (
+	//    id,
+	//    workspace_id,
+	//    name,
+	//    currency,
+	//    verification_unit_price,
+	//    key_access_unit_price,
+	//    credit_unit_price,
+	//    tiered_pricing,
+	//    version,
+	//    active,
+	//    created_at_m
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	PricingModelInsert(ctx context.Context, db DBTX, arg PricingModelInsertParams) error
+	//PricingModelListByWorkspaceId
+	//
+	//  SELECT id, workspace_id, name, currency, verification_unit_price, key_access_unit_price, credit_unit_price, tiered_pricing, version, active, created_at_m, updated_at_m, deleted_at_m FROM pricing_models
+	//  WHERE workspace_id = ? AND deleted_at_m IS NULL
+	//  ORDER BY created_at_m DESC
+	PricingModelListByWorkspaceId(ctx context.Context, db DBTX, workspaceID string) ([]PricingModel, error)
+	//PricingModelSoftDelete
+	//
+	//  UPDATE pricing_models
+	//  SET deleted_at_m = ?, active = false, updated_at_m = ?
+	//  WHERE id = ?
+	PricingModelSoftDelete(ctx context.Context, db DBTX, arg PricingModelSoftDeleteParams) error
+	//PricingModelUpdate
+	//
+	//  UPDATE pricing_models
+	//  SET
+	//    name = ?,
+	//    verification_unit_price = ?,
+	//    key_access_unit_price = ?,
+	//    credit_unit_price = ?,
+	//    tiered_pricing = ?,
+	//    version = ?,
+	//    updated_at_m = ?
+	//  WHERE id = ?
+	PricingModelUpdate(ctx context.Context, db DBTX, arg PricingModelUpdateParams) error
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes
@@ -2082,6 +2259,37 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
+	//StripeConnectedAccountDisconnect
+	//
+	//  UPDATE stripe_connected_accounts
+	//  SET disconnected_at = ?, updated_at_m = ?
+	//  WHERE workspace_id = ?
+	StripeConnectedAccountDisconnect(ctx context.Context, db DBTX, arg StripeConnectedAccountDisconnectParams) error
+	//StripeConnectedAccountFindByWorkspaceId
+	//
+	//  SELECT id, workspace_id, stripe_account_id, access_token_encrypted, refresh_token_encrypted, scope, connected_at, disconnected_at, created_at_m, updated_at_m, deleted_at_m FROM stripe_connected_accounts
+	//  WHERE workspace_id = ? AND disconnected_at IS NULL
+	//  LIMIT 1
+	StripeConnectedAccountFindByWorkspaceId(ctx context.Context, db DBTX, workspaceID string) (StripeConnectedAccount, error)
+	//StripeConnectedAccountInsert
+	//
+	//  INSERT INTO stripe_connected_accounts (
+	//    id,
+	//    workspace_id,
+	//    stripe_account_id,
+	//    access_token_encrypted,
+	//    refresh_token_encrypted,
+	//    scope,
+	//    connected_at,
+	//    created_at_m
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	StripeConnectedAccountInsert(ctx context.Context, db DBTX, arg StripeConnectedAccountInsertParams) error
+	//StripeConnectedAccountListActive
+	//
+	//  SELECT id, workspace_id, stripe_account_id, access_token_encrypted, refresh_token_encrypted, scope, connected_at, disconnected_at, created_at_m, updated_at_m, deleted_at_m FROM stripe_connected_accounts
+	//  WHERE disconnected_at IS NULL AND deleted_at_m IS NULL
+	//  ORDER BY created_at_m DESC
+	StripeConnectedAccountListActive(ctx context.Context, db DBTX) ([]StripeConnectedAccount, error)
 	//UpdateAcmeChallengePending
 	//
 	//  UPDATE acme_challenges

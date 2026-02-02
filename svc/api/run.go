@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/billing"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
@@ -332,6 +333,10 @@ func Run(ctx context.Context, cfg Config) error {
 		PprofPassword:              cfg.PprofPassword,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
+		StripeConnect:              billing.NewNoopStripeConnectService(),
+		PricingService:             billing.NewNoopPricingModelService(),
+		EndUserService:             billing.NewNoopEndUserService(),
+		BillingService:             billing.NewNoopBillingService(),
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,
