@@ -103,8 +103,11 @@ For full control over the authentication flow.
 
 ```typescript app/api/protected/route.ts
 import { verifyKey } from "@unkey/api";
+import { UnkeyError } from "@unkey/api/models/errors";
 import { NextRequest, NextResponse } from "next/server";
 
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 export async function POST(req: NextRequest) {
   // 1. Extract API key
   const authHeader = req.headers.get("authorization");
@@ -116,34 +119,36 @@ export async function POST(req: NextRequest) {
   }
   const apiKey = authHeader.slice(7);
 
-  // 2. Verify with Unkey (v2 returns { meta, data, error })
-  const { meta, data, error } = await verifyKey({
-    key: apiKey,
-  });
+  // 2. Verify with Unkey 
+  try {
+    const {data} = await unkey.keys.verifyKey({
+      key: "api_key",
+    });
 
-  // 3. Handle errors
-  if (error) {
-    console.error("Unkey error:", error);
-    return NextResponse.json(
-      { error: "Authentication service unavailable" },
-      { status: 503 }
-    );
+    // You can reject the request because the key is invalid.
+    if (!data.valid) {
+      return Response.json({ error: "Invalid API key" }, { status: 401 });
+    }
+    // Perform your operations
+    return Response.json({ data: "hello world" });
+  } catch (err) {
+    // handle our errors however you want.
+    if (err instanceof UnkeyError) {
+      console.error("Unkey API Error:", {
+        statusCode: err.statusCode,
+        body: err.body,
+        message: err.message,
+      });
+      return Response.json(
+        { error: "API error occurred", details: err.message },
+        { status: err.statusCode },
+      );
+    }
+
+    // Handle generic errors
+    console.log("Unknown error:", err);
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
-
-  // 4. Check validity
-  if (!data.valid) {
-    return NextResponse.json(
-      { error: `Unauthorized: ${data.code}` },
-      { status: data.code === "RATE_LIMITED" ? 429 : 401 }
-    );
-  }
-
-  // 5. Request is authenticated
-  return NextResponse.json({
-    message: "Access granted",
-    user: data.identity?.externalId,
-    remaining: data.credits,
-  });
 }
 ```
 
@@ -154,35 +159,45 @@ export async function POST(req: NextRequest) {
 Create a helper for consistent auth across routes:
 
 ```typescript lib/auth.ts
-import { verifyKey, VerifyKeyResult } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+import { UnkeyError } from "@unkey/api/models/errors";
 import { NextRequest, NextResponse } from "next/server";
-
+import { V2KeysVerifyKeyResponseData } from "@unkey/api/models/components";
 type AuthenticatedHandler = (
   req: NextRequest,
-  auth: VerifyKeyResult
+  auth: V2KeysVerifyKeyResponseData,
 ) => Promise<NextResponse>;
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export function withAuth(handler: AuthenticatedHandler) {
   return async (req: NextRequest) => {
     const authHeader = req.headers.get("authorization");
-    
+
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Missing API key" }, { status: 401 });
     }
+    try {
+      const { data } = await unkey.keys.verifyKey({
+        key: authHeader.slice(7),
+      });
 
-    const { meta, data, error } = await verifyKey({
-      key: authHeader.slice(7),
-    });
-
-    if (error) {
-      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+      if (!data.valid) {
+        return NextResponse.json({ error: data.code }, { status: 401 });
+      }
+      return handler(req, data);
+    } catch (error) {
+      if (error instanceof UnkeyError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.statusCode },
+        );
+      }
+      return NextResponse.json(
+        { error: "Service unavailable" },
+        { status: 503 },
+      );
     }
-
-    if (!data.valid) {
-      return NextResponse.json({ error: data.code }, { status: 401 });
-    }
-
-    return handler(req, data);
   };
 }
 ```
@@ -200,6 +215,17 @@ export const GET = withAuth(async (req, auth) => {
   
   return Response.json({ users });
 });
+
+import { withAuth } from "../../lib/auth/withauth";
+import { NextResponse } from "next/server";
+
+export const GET = withAuth(async (_req, auth) => {
+  // auth contains the full verification result so you can look at details
+  const users = await db.users.findMany({
+    where: { organizationId: auth.identity?.externalId },
+  });
+  return NextResponse.json({ users });
+});
 ```
 
 ---
@@ -209,24 +235,59 @@ export const GET = withAuth(async (req, auth) => {
 Require specific permissions for sensitive endpoints:
 
 ```typescript app/api/admin/route.ts
+
+
 import { verifyKey } from "@unkey/api";
+import { UnkeyError } from "@unkey/api/models/errors";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function DELETE(req: NextRequest) {
-  const apiKey = req.headers.get("authorization")?.slice(7);
 
-  const { data } = await verifyKey({
-    key: apiKey!,
-    permissions: "admin.delete",  // Required permission
-  });
-
-  if (!data.valid) {
-    if (data.code === "INSUFFICIENT_PERMISSIONS") {
-      return Response.json({ error: "Admin access required" }, { status: 403 });
-    }
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+export async function POST(req: NextRequest) {
+  // 1. Extract API key
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json(
+      { error: "Missing API key" },
+      { status: 401 }
+    );
   }
+  const apiKey = authHeader.slice(7);
 
-  // Perform admin action...
+  // 2. Verify with Unkey 
+  try {
+    const result = await unkey.keys.verifyKey({
+      key: apiKey,
+      permissions: ["admin.delete"],
+    });
+
+    // You can reject the request because the key is invalid.
+    if (!result.data.valid) {
+      
+      if (result.data.code === "INSUFFICIENT_PERMISSIONS") {
+        return Response.json({ error: "Admin access required" }, { status: 403 });
+      }
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return Response.json({ data: "hello world" });
+  } catch (err) {
+    // handle our errors however you want.
+    if (err instanceof UnkeyError) {
+      console.error("Unkey API Error:", {
+        statusCode: err.statusCode,
+        body: err.body,
+        message: err.message,
+      });
+      return Response.json(
+        { error: "API error occurred", details: err.message },
+        { status: err.statusCode },
+      );
+    }
+
+    // Handle generic errors
+    console.log("Unknown error:", err);
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 ```
 
