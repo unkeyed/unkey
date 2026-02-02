@@ -137,23 +137,30 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 	for _, row := range verificationRows {
 		externalID, ok := row["external_id"].(string)
 		if !ok || externalID == "" {
+			fmt.Printf("DEBUG: AggregateUsage: skipping row with invalid external_id\n")
 			continue
 		}
 
 		count, ok := row["count"].(uint64)
 		if !ok {
+			fmt.Printf("DEBUG: AggregateUsage: skipping row with invalid count for external_id=%s\n", externalID)
 			continue
 		}
 
+		fmt.Printf("DEBUG: AggregateUsage: processing verification row: external_id=%s, count=%d\n", externalID, count)
 		if _, exists := usageMap[externalID]; !exists {
+			fmt.Printf("DEBUG: AggregateUsage: creating new Usage for external_id=%s\n", externalID)
 			usageMap[externalID] = &Usage{
 				ExternalID:     externalID,
 				Verifications:  0,
 				KeysWithAccess: 0,
 				Credits:        0,
 			}
+		} else {
+			fmt.Printf("DEBUG: AggregateUsage: updating existing Usage for external_id=%s\n", externalID)
 		}
 		usageMap[externalID].Verifications = int64(count)
+		fmt.Printf("DEBUG: AggregateUsage: usageMap[%s].Verifications = %d\n", externalID, usageMap[externalID].Verifications)
 	}
 
 	// Process credits
@@ -177,6 +184,11 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 			}
 		}
 		usageMap[externalID].Credits = int64(count)
+	}
+
+	fmt.Printf("DEBUG: AggregateUsage: before return: usageMap len=%d\n", len(usageMap))
+	for k, v := range usageMap {
+		fmt.Printf("DEBUG: AggregateUsage: usageMap[%s] = {Verifications: %d, Credits: %d}\n", k, v.Verifications, v.Credits)
 	}
 
 	return usageMap, nil
