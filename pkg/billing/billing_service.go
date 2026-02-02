@@ -245,6 +245,11 @@ func (s *billingService) GenerateInvoices(
 		)
 	}
 
+	fmt.Printf("DEBUG: GenerateInvoices: usageMap from AggregateUsage: len=%d\n", len(usageMap))
+	for k, v := range usageMap {
+		fmt.Printf("DEBUG: GenerateInvoices: usageMap[%s] = {Verifications: %d, Credits: %d}\n", k, v.Verifications, v.Credits)
+	}
+
 	// Get all end users for workspace
 	endUsers, err := s.endUserService.ListEndUsers(ctx, workspaceID)
 	if err != nil {
