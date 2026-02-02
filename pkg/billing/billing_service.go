@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/customer"
 	"github.com/stripe/stripe-go/v81/invoice"
 	"github.com/stripe/stripe-go/v81/invoiceitem"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
@@ -432,6 +433,38 @@ func (s *billingService) createStripeInvoice(
 	platformFee int64,
 ) (string, error) {
 	stripe.Key = s.stripeKey
+
+	// Ensure customer exists on connected account
+	// Check if customer exists on connected account
+	stripeCustomerID := endUser.StripeCustomerID
+	customerParams := &stripe.CustomerParams{
+		Email: stripe.String(endUser.Email),
+		Name:  stripe.String(endUser.Name),
+		Metadata: map[string]string{
+			"workspace_id": endUser.WorkspaceID,
+			"external_id":  endUser.ExternalID,
+		},
+	}
+	customerParams.SetStripeAccount(connectedAccount.StripeAccountID)
+
+	// Try to get the customer on the connected account
+	_, err := customer.Get(stripeCustomerID, customerParams)
+	if err != nil {
+		// Customer doesn't exist on connected account, create it
+		newCustomer, err := customer.New(customerParams)
+		if err != nil {
+			return "", fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal(fmt.Sprintf("failed to create Stripe customer: %v", err)),
+				fault.Public("Failed to create customer in Stripe"),
+			)
+		}
+		stripeCustomerID = newCustomer.ID
+		// Note: We don't update the database with the new customer ID here
+		// because this is a billing job and we don't want to modify the end user record.
+		// The customer will be created correctly next time the end user is updated.
+	}
 
 	// Create invoice items for verifications
 	if usage.Verifications > 0 {
