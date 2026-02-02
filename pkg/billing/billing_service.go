@@ -436,6 +436,7 @@ func (s *billingService) createStripeInvoice(
 
 	// Ensure customer exists on connected account
 	// If customer doesn't exist on connected account, create it
+	// nolint:exhaustruct
 	customerParams := &stripe.CustomerParams{}
 	customerParams.SetStripeAccount(connectedAccount.StripeAccountID)
 	_, err := customer.Get(endUser.StripeCustomerID, customerParams)
