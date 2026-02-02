@@ -36,6 +36,7 @@ jobs:
           curl -sf -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
+            -H "idempotency-key: quota-check-$(date -u +'%Y-%m-%d')" \
             "${RESTATE_URL}/hydra.v1.QuotaCheckService/${{ steps.billing.outputs.period }}/RunCheck" \
             -d '{}'
 
@@ -52,5 +53,6 @@ jobs:
           curl -sf -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
+            -H "idempotency-key: cert-renewal-$(date -u +'%Y-%m-%d')" \
             "${RESTATE_URL}/hydra.v1.CertificateService/global/RenewExpiringCertificates" \
             -d '{"daysBeforeExpiry": 30}'
