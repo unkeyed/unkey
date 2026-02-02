@@ -2,6 +2,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { percentileSchema } from "@unkey/clickhouse/src/sentinel";
 import { z } from "zod";
 
 export const getDeploymentLatency = workspaceProcedure
@@ -9,7 +10,7 @@ export const getDeploymentLatency = workspaceProcedure
   .input(
     z.object({
       deploymentId: z.string(),
-      percentile: z.string().default("p50"),
+      percentile: percentileSchema
     }),
   )
   .query(async ({ ctx, input }) => {

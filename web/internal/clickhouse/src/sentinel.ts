@@ -34,7 +34,7 @@ const SQL = {
       STEP INTERVAL {intervalMinutes: UInt8} MINUTE`,
 } as const;
 
-const percentileSchema = z.enum(["p50", "p75", "p90", "p95", "p99"]).default("p50");
+export const percentileSchema = z.enum(["p50", "p75", "p90", "p95", "p99"]).default("p50");
 
 const PERCENTILE_VALUES = {
   p50: 0.5,

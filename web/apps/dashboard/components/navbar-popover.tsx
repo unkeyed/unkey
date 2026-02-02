@@ -279,7 +279,7 @@ const PopoverItem = ({
     <DisabledWrapper
       disabled={Boolean(disabled)}
       tooltipContent={disabledTooltip}
-      className="py-0 px-0"
+      className="py-0 px-0 pointer-events-none cursor"
     >
       <button
         type="button"
