@@ -10,10 +10,9 @@ CREATE TABLE IF NOT EXISTS default.end_user_billable_verifications_per_month_v1 
     month Int8,
     count Int64
 ) ENGINE = SummingMergeTree()
-ORDER BY (workspace_id, external_id, year, month)
-TTL toDate(time) + INTERVAL 1 YEAR DELETE;
+ORDER BY (workspace_id, external_id, year, month);
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS default.end_user_billable_verifications_mv_v1 
+CREATE MATERIALIZED VIEW IF NOT EXISTS default.end_user_billable_verifications_mv_v1
 TO default.end_user_billable_verifications_per_month_v1 AS
 SELECT
     workspace_id,
@@ -22,13 +21,13 @@ SELECT
     toMonth(time) AS month,
     sum(count) AS count
 FROM default.key_verifications_per_month_v3
-WHERE 
-    outcome = 'VALID' 
+WHERE
+    outcome = 'VALID'
     AND external_id != ''
-GROUP BY 
-    workspace_id, 
-    external_id, 
-    year, 
+GROUP BY
+    workspace_id,
+    external_id,
+    year,
     month;
 
 -- End User Billable Rate Limits Per Month
@@ -39,8 +38,7 @@ CREATE TABLE IF NOT EXISTS default.end_user_billable_ratelimits_per_month_v1 (
     month Int8,
     count Int64
 ) ENGINE = SummingMergeTree()
-ORDER BY (workspace_id, external_id, year, month)
-TTL toDate(time) + INTERVAL 1 YEAR DELETE;
+ORDER BY (workspace_id, external_id, year, month);
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS default.end_user_billable_ratelimits_mv_v1 
 TO default.end_user_billable_ratelimits_per_month_v1 AS
