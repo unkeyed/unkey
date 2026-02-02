@@ -437,6 +437,7 @@ func (s *billingService) createStripeInvoice(
 	// Ensure customer exists on connected account
 	// Check if customer exists on connected account
 	stripeCustomerID := endUser.StripeCustomerID
+	// nolint:exhaustruct // Stripe params have many optional fields
 	customerParams := &stripe.CustomerParams{
 		Email: stripe.String(endUser.Email),
 		Name:  stripe.String(endUser.Name),
@@ -472,7 +473,7 @@ func (s *billingService) createStripeInvoice(
 		unitAmountInCents := int64(math.Round(pricingModel.VerificationUnitPrice * 100))
 		totalAmountInCents := unitAmountInCents * usage.Verifications
 		itemParams := &stripe.InvoiceItemParams{
-			Customer:    stripe.String(endUser.StripeCustomerID),
+			Customer:    stripe.String(stripeCustomerID),
 			Amount:      stripe.Int64(totalAmountInCents),
 			Currency:    stripe.String(pricingModel.Currency),
 			Description: stripe.String(fmt.Sprintf("API Verifications (%d)", usage.Verifications)),
@@ -496,7 +497,7 @@ func (s *billingService) createStripeInvoice(
 		unitAmountInCents := int64(math.Round(pricingModel.KeyAccessUnitPrice * 100))
 		totalAmountInCents := unitAmountInCents * usage.KeysWithAccess
 		itemParams := &stripe.InvoiceItemParams{
-			Customer:    stripe.String(endUser.StripeCustomerID),
+			Customer:    stripe.String(stripeCustomerID),
 			Amount:      stripe.Int64(totalAmountInCents),
 			Currency:    stripe.String(pricingModel.Currency),
 			Description: stripe.String(fmt.Sprintf("API Keys with Access (%d)", usage.KeysWithAccess)),
@@ -521,7 +522,7 @@ func (s *billingService) createStripeInvoice(
 		unitAmountInCents := int64(math.Round(pricingModel.CreditUnitPrice * 100))
 		totalAmountInCents := unitAmountInCents * creditsUsed
 		itemParams := &stripe.InvoiceItemParams{
-			Customer:    stripe.String(endUser.StripeCustomerID),
+			Customer:    stripe.String(stripeCustomerID),
 			Amount:      stripe.Int64(totalAmountInCents),
 			Currency:    stripe.String(pricingModel.Currency),
 			Description: stripe.String(fmt.Sprintf("Credits Used (%d)", creditsUsed)),
@@ -543,7 +544,7 @@ func (s *billingService) createStripeInvoice(
 	// Application fee (3%) is set to collect platform fee from the payment
 	// nolint:exhaustruct // Stripe params have many optional fields
 	invoiceParams := &stripe.InvoiceParams{
-		Customer:                    stripe.String(endUser.StripeCustomerID),
+		Customer:                    stripe.String(stripeCustomerID),
 		AutoAdvance:                 stripe.Bool(true), // Automatically finalize and send
 		CollectionMethod:            stripe.String("charge_automatically"),
 		DaysUntilDue:                stripe.Int64(0), // Due immediately
