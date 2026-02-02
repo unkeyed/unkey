@@ -256,6 +256,17 @@ func (s *billingService) GenerateInvoices(
 		)
 	}
 
+	// DEBUG: Log usage map and end users
+	s.logger.Debug(ctx, "GenerateInvoices: usageMap entries=%d, endUsers=%d", len(usageMap), len(endUsers))
+	for _, endUser := range endUsers {
+		s.logger.Debug(ctx, "GenerateInvoices: endUser=%s, externalID=%s", endUser.ID, endUser.ExternalID)
+		if usage, ok := usageMap[endUser.ExternalID]; ok {
+			s.logger.Debug(ctx, "GenerateInvoices: found usage for externalID=%s, verifications=%d, credits=%d", endUser.ExternalID, usage.Verifications, usage.Credits)
+		} else {
+			s.logger.Debug(ctx, "GenerateInvoices: NO usage found for externalID=%s", endUser.ExternalID)
+		}
+	}
+
 	// Generate invoice for each end user with usage
 	for _, endUser := range endUsers {
 		usage, hasUsage := usageMap[endUser.ExternalID]
