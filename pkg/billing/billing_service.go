@@ -248,7 +248,7 @@ func (s *billingService) GenerateInvoices(
 	// Generate invoice for each end user with usage
 	for _, endUser := range endUsers {
 		usage, hasUsage := usageMap[endUser.ExternalID]
-		if !hasUsage || (usage.Verifications == 0 && usage.RateLimits == 0) {
+		if !hasUsage || usage.Verifications == 0 {
 			// Skip end users with no usage
 			continue
 		}
@@ -355,8 +355,8 @@ func (s *billingService) generateInvoiceForEndUser(
 	now := time.Now().UnixMilli()
 	invoiceID := uid.New(uid.InvoicePrefix)
 
-	// Calculate credits used (verifications + rate limits)
-	creditsUsed := usage.Verifications + usage.RateLimits
+	// Calculate credits used
+	creditsUsed := usage.Verifications
 
 	insertParams := db.BillingInvoiceInsertParams{
 		ID:                 invoiceID,
@@ -454,8 +454,8 @@ func (s *billingService) createStripeInvoice(
 		}
 	}
 
-	// Create invoice items for credits (verifications + rate limits)
-	creditsUsed := usage.Verifications + usage.RateLimits
+	// Create invoice items for credits
+	creditsUsed := usage.Verifications
 	if creditsUsed > 0 && pricingModel.CreditUnitPrice > 0 {
 		// nolint:exhaustruct // Stripe params have many optional fields
 		unitAmountInCents := int64(math.Round(pricingModel.CreditUnitPrice * 100))

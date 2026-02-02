@@ -53,7 +53,6 @@ type EndUser struct {
 type Usage struct {
 	ExternalID     string
 	Verifications  int64
-	RateLimits     int64
 	KeysWithAccess int64 // unique keys with VALID=true verification
 }
 
@@ -502,44 +501,9 @@ func (s *endUserService) GetUsage(
 		)
 	}
 
-	// Query ClickHouse for rate limits
-	// Use the new end-user billable table that includes external_id
-	// Query across all months in the date range
-	rateLimitsQuery := `
-		SELECT sum(count) as count
-		FROM default.end_user_billable_ratelimits_per_month_v1
-		WHERE workspace_id = ?
-		AND external_id = ?
-		AND (
-			(year > ? OR (year = ? AND month >= ?)) AND
-			(year < ? OR (year = ? AND month <= ?))
-		)
-	`
-
-	var rateLimits int64
-	err = s.ch.Conn().QueryRow(
-		ctx,
-		rateLimitsQuery,
-		endUser.WorkspaceID,
-		endUser.ExternalID,
-		// Start condition: (year > startYear OR (year = startYear AND month >= startMonth))
-		startYear, startYear, startMonth,
-		// End condition: (year < endYear OR (year = endYear AND month <= endMonth))
-		endYear, endYear, endMonth,
-	).Scan(&rateLimits)
-	if err != nil && err.Error() != "sql: no rows in result set" {
-		return nil, fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal(fmt.Sprintf("failed to query rate limits: %v", err)),
-			fault.Public("Failed to retrieve usage data"),
-		)
-	}
-
 	return &Usage{
 		ExternalID:     endUser.ExternalID,
 		Verifications:  verifications,
-		RateLimits:     rateLimits,
 		KeysWithAccess: 0,
 	}, nil
 }

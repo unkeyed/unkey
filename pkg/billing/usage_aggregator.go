@@ -36,75 +36,32 @@ func NewUsageAggregator(ch clickhouse.Querier) UsageAggregator {
 }
 
 // AggregateUsage aggregates usage from ClickHouse for a billing period.
-// It queries both key_verifications_raw_v2 and ratelimits_raw_v2 tables,
-// filtering by workspace_id, time range, and excluding events without external_id.
+// It queries end_user_billable_verifications_per_month_v1 table,
+// filtering by workspace_id, year, and month.
 // Results are grouped by external_id.
 //
 // Requirements: 4.1, 4.2, 4.3, 4.4, 4.6
 func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string, periodStart, periodEnd time.Time) (map[string]*Usage, error) {
-	// Convert times to milliseconds for ClickHouse
-	startMs := periodStart.UnixMilli()
-	endMs := periodEnd.UnixMilli()
+	// Get year and month from the period
+	year := int16(periodStart.Year())
+	month := int8(periodStart.Month())
 
-	// Query verifications grouped by external_id
+	// Query verifications from the end-user billable aggregated table
 	verificationsQuery := `
 		SELECT
 			external_id,
-			count() as count
-		FROM default.key_verifications_raw_v2
+			sum(count) as count
+		FROM default.end_user_billable_verifications_per_month_v1
 		WHERE workspace_id = ?
-			AND time >= ?
-			AND time < ?
+			AND year = ?
+			AND month = ?
 			AND external_id != ''
-			AND outcome = 'VALID'
 		GROUP BY external_id
 	`
 
-	verificationRows, err := u.clickhouse.QueryToMaps(ctx, verificationsQuery, workspaceID, startMs, endMs)
+	verificationRows, err := u.clickhouse.QueryToMaps(ctx, verificationsQuery, workspaceID, year, month)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query verifications for usage aggregation"))
-	}
-
-	// Query unique keys with access (VALID=true) grouped by external_id
-	// This counts unique key_id values for billing key access charges
-	keysWithAccessQuery := `
-		SELECT
-			external_id,
-			count(distinct key_id) as count
-		FROM default.key_verifications_raw_v2
-		WHERE workspace_id = ?
-			AND time >= ?
-			AND time < ?
-			AND external_id != ''
-			AND outcome = 'VALID'
-		GROUP BY external_id
-	`
-
-	keysWithAccessRows, err := u.clickhouse.QueryToMaps(ctx, keysWithAccessQuery, workspaceID, startMs, endMs)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to query keys with access for usage aggregation"))
-	}
-
-	// Query rate limits grouped by external_id
-	// Note: Ratelimit table uses identifier field, not external_id
-	// We need to join with identities to get external_id
-	// For now, we'll query ratelimits by identifier and assume identifier matches external_id
-	ratelimitsQuery := `
-		SELECT
-			identifier as external_id,
-			count() as count
-		FROM default.ratelimits_raw_v2
-		WHERE workspace_id = ?
-			AND time >= ?
-			AND time < ?
-			AND identifier != ''
-			AND passed = true
-		GROUP BY identifier
-	`
-
-	ratelimitRows, err := u.clickhouse.QueryToMaps(ctx, ratelimitsQuery, workspaceID, startMs, endMs)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to query ratelimits for usage aggregation"))
 	}
 
 	// Build usage map
@@ -126,57 +83,10 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 			usageMap[externalID] = &Usage{
 				ExternalID:     externalID,
 				Verifications:  0,
-				RateLimits:     0,
 				KeysWithAccess: 0,
 			}
 		}
 		usageMap[externalID].Verifications = int64(count)
-	}
-
-	// Process keys with access
-	for _, row := range keysWithAccessRows {
-		externalID, ok := row["external_id"].(string)
-		if !ok || externalID == "" {
-			continue
-		}
-
-		count, ok := row["count"].(uint64)
-		if !ok {
-			continue
-		}
-
-		if _, exists := usageMap[externalID]; !exists {
-			usageMap[externalID] = &Usage{
-				ExternalID:     externalID,
-				Verifications:  0,
-				RateLimits:     0,
-				KeysWithAccess: 0,
-			}
-		}
-		usageMap[externalID].KeysWithAccess = int64(count)
-	}
-
-	// Process rate limits
-	for _, row := range ratelimitRows {
-		externalID, ok := row["external_id"].(string)
-		if !ok || externalID == "" {
-			continue
-		}
-
-		count, ok := row["count"].(uint64)
-		if !ok {
-			continue
-		}
-
-		if _, exists := usageMap[externalID]; !exists {
-			usageMap[externalID] = &Usage{
-				ExternalID:     externalID,
-				Verifications:  0,
-				RateLimits:     0,
-				KeysWithAccess: 0,
-			}
-		}
-		usageMap[externalID].RateLimits = int64(count)
 	}
 
 	return usageMap, nil
@@ -187,70 +97,32 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 //
 // Requirements: 4.1, 4.2, 4.3, 4.4, 4.6
 func (u *usageAggregator) GetEndUserUsage(ctx context.Context, workspaceID, externalID string, periodStart, periodEnd time.Time) (*Usage, error) {
-	// Convert times to milliseconds for ClickHouse
-	startMs := periodStart.UnixMilli()
-	endMs := periodEnd.UnixMilli()
+	// Get year and month from the period
+	year := int16(periodStart.Year())
+	month := int8(periodStart.Month())
 
 	usage := &Usage{
 		ExternalID:     externalID,
 		Verifications:  0,
-		RateLimits:     0,
 		KeysWithAccess: 0,
 	}
 
-	// Query verifications for this external_id
+	// Query verifications from the end-user billable aggregated table
 	verificationsQuery := `
-		SELECT count() as count
-		FROM default.key_verifications_raw_v2
+		SELECT sum(count) as count
+		FROM default.end_user_billable_verifications_per_month_v1
 		WHERE workspace_id = ?
 			AND external_id = ?
-			AND time >= ?
-			AND time < ?
-			AND outcome = 'VALID'
+			AND year = ?
+			AND month = ?
 	`
 
 	var verificationCount uint64
-	err := u.clickhouse.Conn().QueryRow(ctx, verificationsQuery, workspaceID, externalID, startMs, endMs).Scan(&verificationCount)
+	err := u.clickhouse.Conn().QueryRow(ctx, verificationsQuery, workspaceID, externalID, year, month).Scan(&verificationCount)
 	if err != nil && err.Error() != "sql: no rows in result set" {
 		return nil, fault.Wrap(err, fault.Internal("failed to query verifications for end user"))
 	}
 	usage.Verifications = int64(verificationCount)
-
-	// Query unique keys with access for this external_id
-	keysWithAccessQuery := `
-		SELECT count(distinct key_id) as count
-		FROM default.key_verifications_raw_v2
-		WHERE workspace_id = ?
-			AND external_id = ?
-			AND time >= ?
-			AND time < ?
-			AND outcome = 'VALID'
-	`
-
-	var keysWithAccessCount uint64
-	err = u.clickhouse.Conn().QueryRow(ctx, keysWithAccessQuery, workspaceID, externalID, startMs, endMs).Scan(&keysWithAccessCount)
-	if err != nil && err.Error() != "sql: no rows in result set" {
-		return nil, fault.Wrap(err, fault.Internal("failed to query keys with access for end user"))
-	}
-	usage.KeysWithAccess = int64(keysWithAccessCount)
-
-	// Query rate limits for this external_id (using identifier field)
-	ratelimitsQuery := `
-		SELECT count() as count
-		FROM default.ratelimits_raw_v2
-		WHERE workspace_id = ?
-			AND identifier = ?
-			AND time >= ?
-			AND time < ?
-			AND passed = true
-	`
-
-	var ratelimitCount uint64
-	err = u.clickhouse.Conn().QueryRow(ctx, ratelimitsQuery, workspaceID, externalID, startMs, endMs).Scan(&ratelimitCount)
-	if err != nil && err.Error() != "sql: no rows in result set" {
-		return nil, fault.Wrap(err, fault.Internal("failed to query ratelimits for end user"))
-	}
-	usage.RateLimits = int64(ratelimitCount)
 
 	return usage, nil
 }
