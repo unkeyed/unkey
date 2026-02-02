@@ -1,6 +1,7 @@
 "use client";
 import { collection, collectionManager } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { usePathname } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { ProjectDetailsExpandable } from "./(overview)/details/project-details-expandables";
 import { ProjectLayoutContext } from "./(overview)/layout-provider";
@@ -27,6 +28,10 @@ type ProjectLayoutProps = {
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  const pathname = usePathname();
+  const isOnDeploymentDetail =
+    pathname?.includes("/deployments/") && pathname.split("/").filter(Boolean).length >= 5; // /workspace/projects/projectId/deployments/deploymentId/*
 
   const collections = collectionManager.getProjectCollections(projectId);
 
@@ -58,13 +63,15 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
       }}
     >
       <div className="h-screen flex flex-col overflow-hidden">
-        <ProjectNavigation
-          projectId={projectId}
-          onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-          isDetailsOpen={isDetailsOpen}
-          liveDeploymentId={liveDeploymentId}
-          onMount={setTableDistanceToTop}
-        />
+        {!isOnDeploymentDetail && (
+          <ProjectNavigation
+            projectId={projectId}
+            onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+            isDetailsOpen={isDetailsOpen}
+            liveDeploymentId={liveDeploymentId}
+            onMount={setTableDistanceToTop}
+          />
+        )}
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 overflow-auto">{children}</div>
           <ProjectDetailsExpandable

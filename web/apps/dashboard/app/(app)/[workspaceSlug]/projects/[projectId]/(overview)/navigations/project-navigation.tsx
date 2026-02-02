@@ -142,7 +142,7 @@ export const ProjectNavigation = ({
   }
 
   return (
-    <Navbar ref={handleRef}>
+    <Navbar ref={handleRef} className="h-[65px]">
       <Navbar.Breadcrumbs icon={<Cube />}>
         {breadcrumbs.map((breadcrumb) => (
           <Navbar.Breadcrumbs.Link

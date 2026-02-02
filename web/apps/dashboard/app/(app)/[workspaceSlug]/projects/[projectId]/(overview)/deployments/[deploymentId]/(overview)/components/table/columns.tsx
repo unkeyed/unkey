@@ -1,10 +1,10 @@
 import type { Column } from "@/components/virtual-table/types";
+import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { LatencyBadge } from "./components/latency-badge";
 import { WARNING_ICON_STYLES, getStatusStyle } from "./utils/get-row-class";
-import { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 
 export const columns: Column<SentinelLogsResponse>[] = [
   {

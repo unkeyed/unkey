@@ -10,7 +10,7 @@ export const getDeploymentLatency = workspaceProcedure
   .input(
     z.object({
       deploymentId: z.string(),
-      percentile: percentileSchema
+      percentile: percentileSchema,
     }),
   )
   .query(async ({ ctx, input }) => {
