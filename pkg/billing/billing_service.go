@@ -193,7 +193,10 @@ func (s *billingService) GenerateInvoices(
 	workspaceID string,
 	periodStart, periodEnd time.Time,
 ) (UsageStats, error) {
-	stats := UsageStats{}
+	stats := UsageStats{
+		Verifications: 0,
+		Credits:       0,
+	}
 
 	if workspaceID == "" {
 		return stats, fault.Wrap(
