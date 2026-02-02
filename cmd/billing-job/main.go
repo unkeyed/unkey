@@ -220,7 +220,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		failedWorkspaces     = 0
 		totalEndUsers       = 0
 		totalVerifications  int64
-		totalRateLimits     int64
+		totalCredits        int64
 		totalInvoicesCreated = 0
 	)
 
@@ -238,13 +238,17 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		logOutput("Found %d end users in workspace %s\n", len(endUsers), wsID)
 		totalEndUsers += len(endUsers)
 
-		// Generate invoices
-		err = billingService.GenerateInvoices(ctx, wsID, periodStart, periodEnd)
+		// Generate invoices and get usage stats
+		stats, err := billingService.GenerateInvoices(ctx, wsID, periodStart, periodEnd)
 		if err != nil {
 			logger.Errorf("FAILED to generate invoices for workspace %s: %v", wsID, err)
 			failedWorkspaces++
 			continue
 		}
+
+		// Accumulate stats
+		totalVerifications += stats.Verifications
+		totalCredits += stats.Credits
 
 		processedWorkspaces++
 		totalInvoicesCreated++
@@ -260,7 +264,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	logOutput("  Failed workspaces: %d\n", failedWorkspaces)
 	logOutput("  Total end users: %d\n", totalEndUsers)
 	logOutput("  Total verifications: %d\n", totalVerifications)
-	logOutput("  Total rate limits: %d\n", totalRateLimits)
+	logOutput("  Total credits: %d\n", totalCredits)
 	logOutput("  Invoices created: %d\n", totalInvoicesCreated)
 	logOutput("===================================\n")
 

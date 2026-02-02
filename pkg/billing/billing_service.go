@@ -182,13 +182,21 @@ func NewBillingService(
 // for the specified billing period. This is called by the scheduled billing job.
 //
 // Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8
+// UsageStats holds usage statistics for invoice generation
+type UsageStats struct {
+	Verifications int64
+	Credits       int64
+}
+
 func (s *billingService) GenerateInvoices(
 	ctx context.Context,
 	workspaceID string,
 	periodStart, periodEnd time.Time,
-) error {
+) (UsageStats, error) {
+	stats := UsageStats{}
+
 	if workspaceID == "" {
-		return fault.Wrap(
+		return stats, fault.Wrap(
 			fmt.Errorf("workspace ID is required"),
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Public("Workspace ID is required"),
@@ -198,7 +206,7 @@ func (s *billingService) GenerateInvoices(
 	// Get connected account
 	connectedAccount, err := s.connectService.GetConnectedAccount(ctx, workspaceID)
 	if err != nil {
-		return fault.Wrap(
+		return stats, fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal(fmt.Sprintf("failed to get connected account: %v", err)),
@@ -207,7 +215,7 @@ func (s *billingService) GenerateInvoices(
 	}
 
 	if connectedAccount.DisconnectedAt != nil {
-		return fault.Wrap(
+		return stats, fault.Wrap(
 			fmt.Errorf("stripe account is disconnected"),
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Public("Stripe account is disconnected"),
@@ -219,14 +227,14 @@ func (s *billingService) GenerateInvoices(
 	if err != nil {
 		// Check if error is temporary (ClickHouse unavailable)
 		if isTemporaryError(err) {
-			return fault.Wrap(
+			return stats, fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal(fmt.Sprintf("usage data temporarily unavailable: %v", err)),
 				fault.Public("Usage data is temporarily unavailable. Invoice generation will be retried."),
 			)
 		}
-		return fault.Wrap(
+		return stats, fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal(fmt.Sprintf("failed to aggregate usage: %v", err)),
@@ -237,7 +245,7 @@ func (s *billingService) GenerateInvoices(
 	// Get all end users for workspace
 	endUsers, err := s.endUserService.ListEndUsers(ctx, workspaceID)
 	if err != nil {
-		return fault.Wrap(
+		return stats, fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal(fmt.Sprintf("failed to list end users: %v", err)),
@@ -253,6 +261,10 @@ func (s *billingService) GenerateInvoices(
 			continue
 		}
 
+		// Accumulate stats
+		stats.Verifications += usage.Verifications
+		stats.Credits += usage.Credits
+
 		err := s.generateInvoiceForEndUser(
 			ctx,
 			connectedAccount,
@@ -264,7 +276,7 @@ func (s *billingService) GenerateInvoices(
 		if err != nil {
 			// Log error but continue with other end users
 			// In production, this should be logged to a monitoring system
-			return fault.Wrap(
+			return stats, fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal(fmt.Sprintf("failed to generate invoice for end user %s: %v", endUser.ID, err)),
@@ -273,7 +285,7 @@ func (s *billingService) GenerateInvoices(
 		}
 	}
 
-	return nil
+	return stats, nil
 }
 
 // generateInvoiceForEndUser generates an invoice for a single end user
