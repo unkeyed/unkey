@@ -1,8 +1,6 @@
 import type { SentinelLogsRequest } from "@unkey/clickhouse/src/sentinel";
 
-export function transformSentinelLogsFilters(
-  params: Omit<SentinelLogsRequest, "workspaceId">,
-) {
+export function transformSentinelLogsFilters(params: Omit<SentinelLogsRequest, "workspaceId">) {
   return {
     projectId: params.projectId,
     deploymentId: params.deploymentId,

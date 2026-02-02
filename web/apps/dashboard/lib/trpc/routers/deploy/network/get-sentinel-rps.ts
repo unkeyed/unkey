@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 export const getSentinelRps = workspaceProcedure
-  .use(withRatelimit(ratelimit.create))
+  .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
       sentinelId: z.string(),

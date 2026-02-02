@@ -1,5 +1,6 @@
 "use client";
 
+import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/sentinel";
 import { ChartActivity, Layers2, TimeClock } from "@unkey/icons";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -11,9 +12,7 @@ import { useDeploymentRps } from "../../hooks/use-deployment-rps";
 import { MetricCard } from "../metrics/metric-card";
 
 export function DeploymentNetworkSection() {
-  const [latencyPercentile, setLatencyPercentile] = useState<"p50" | "p75" | "p90" | "p95" | "p99">(
-    "p50",
-  );
+  const [latencyPercentile, setLatencyPercentile] = useState<keyof typeof PERCENTILE_VALUES>("p50");
 
   const params = useParams();
   const deploymentId = params?.deploymentId as string;
