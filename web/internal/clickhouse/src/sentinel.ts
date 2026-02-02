@@ -140,6 +140,7 @@ export function getInstanceRps(ch: Querier) {
   return async (args: z.infer<typeof instanceRpsRequestSchema>) => {
     const query = ch.query({
       query: `
+        -- count * 1000 / ms = requests per second
         SELECT round(COUNT(*) * 1000.0 / {windowMs: UInt64}, 2) as avg_rps
         FROM ${TABLE}
         WHERE ${SQL.deploymentFilter}
@@ -173,6 +174,7 @@ export function getDeploymentRps(ch: Querier) {
 
     const query = ch.query({
       query: `
+        -- count * 1000 / ms = requests per second
         SELECT round(COUNT(*) * 1000.0 / {windowMs: UInt64}, 2) as avg_rps
         FROM ${TABLE}
         WHERE ${SQL.deploymentFilter}
