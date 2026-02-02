@@ -21,8 +21,7 @@ const stateKeyNotifiedWorkspaces = "notified_workspaces"
 
 // exceededWorkspace holds info about a workspace that exceeded its quota.
 type exceededWorkspace struct {
-	Workspace db.Workspace
-	Quota     db.Quotum
+	Workspace db.ListWorkspacesForQuotaCheckRow
 	Used      int64
 }
 
@@ -60,8 +59,8 @@ func (s *Service) RunCheck(
 	for {
 		// Fetch next batch of workspaces
 		currentCursor := cursor
-		batch, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesRow, error) {
-			return db.Query.ListWorkspaces(rc, s.db.RO(), currentCursor)
+		batch, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesForQuotaCheckRow, error) {
+			return db.Query.ListWorkspacesForQuotaCheck(rc, s.db.RO(), currentCursor)
 		}, restate.WithName("fetch workspaces after "+currentCursor))
 		if fetchErr != nil {
 			return nil, fmt.Errorf("fetch workspaces: %w", fetchErr)
@@ -70,7 +69,7 @@ func (s *Service) RunCheck(
 		if len(batch) == 0 {
 			break
 		}
-		cursor = batch[len(batch)-1].Workspace.ID
+		cursor = batch[len(batch)-1].ID
 
 		// Process each workspace in the batch
 		for _, ws := range batch {
@@ -79,39 +78,38 @@ func (s *Service) RunCheck(
 				s.logger.Info("progress", "count", workspacesChecked)
 			}
 
-			if !ws.Workspace.Enabled {
+			if !ws.Enabled {
 				continue
 			}
 
 			// Skip workspaces we've already notified this billing period
-			if notified[ws.Workspace.ID] {
+			if notified[ws.ID] {
 				continue
 			}
 
 			// Get usage for this workspace from ClickHouse
 			usedVerifications, verErr := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
-				return s.clickhouse.GetBillableVerifications(rc, ws.Workspace.ID, year, month)
-			}, restate.WithName("get verifications "+ws.Workspace.ID))
+				return s.clickhouse.GetBillableVerifications(rc, ws.ID, year, month)
+			}, restate.WithName("get verifications "+ws.ID))
 			if verErr != nil {
 				return nil, fmt.Errorf("failed to get verifications: %w", verErr)
 			}
 
 			usedRatelimits, rlErr := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
-				return s.clickhouse.GetBillableRatelimits(rc, ws.Workspace.ID, year, month)
-			}, restate.WithName("get ratelimits "+ws.Workspace.ID))
+				return s.clickhouse.GetBillableRatelimits(rc, ws.ID, year, month)
+			}, restate.WithName("get ratelimits "+ws.ID))
 			if rlErr != nil {
 				return nil, fmt.Errorf("failed to get ratelimits: %w", rlErr)
 			}
 
 			usage := usedVerifications + usedRatelimits
 
-			if usage < ws.Quotas.RequestsPerMonth {
+			if usage < ws.RequestsPerMonth.Int64 {
 				continue
 			}
 
 			e := exceededWorkspace{
-				Workspace: ws.Workspace,
-				Quota:     ws.Quotas,
+				Workspace: ws,
 				Used:      usage,
 			}
 
@@ -119,15 +117,15 @@ func (s *Service) RunCheck(
 			if req.GetSlackWebhookUrl() != "" {
 				_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
 					return restate.Void{}, sendSlackNotification(req.GetSlackWebhookUrl(), e)
-				}, restate.WithName("notify "+ws.Workspace.ID))
+				}, restate.WithName("notify "+ws.ID))
 				if notifyErr != nil {
 					return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
 				}
 			}
 
 			exceeded = append(exceeded, e)
-			notified[ws.Workspace.ID] = true
-			newlyNotified = append(newlyNotified, ws.Workspace.ID)
+			notified[ws.ID] = true
+			newlyNotified = append(newlyNotified, ws.ID)
 		}
 	}
 
@@ -210,7 +208,7 @@ func sendSlackNotification(webhookURL string, e exceededWorkspace) error {
 			{
 				"type": "section",
 				"fields": []map[string]any{
-					{"type": "mrkdwn", "text": fmt.Sprintf("*Limit:*\n%s", printer.Sprint(number.Decimal(e.Quota.RequestsPerMonth)))},
+					{"type": "mrkdwn", "text": fmt.Sprintf("*Limit:*\n%s", printer.Sprint(number.Decimal(e.Workspace.RequestsPerMonth.Int64)))},
 					{"type": "mrkdwn", "text": fmt.Sprintf("*Used:*\n%s", printer.Sprint(number.Decimal(e.Used)))},
 				},
 			},
