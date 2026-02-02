@@ -56,7 +56,13 @@ func (s *Service) RunCheck(
 		notifiedAt = make(map[string]int64)
 	}
 
-	now := time.Now().Unix()
+	// Get current time deterministically for Restate replay
+	now, err := restate.Run(ctx, func(restate.RunContext) (int64, error) {
+		return time.Now().Unix(), nil
+	}, restate.WithName("get current time"))
+	if err != nil {
+		return nil, fmt.Errorf("get current time: %w", err)
+	}
 
 	var exceeded []exceededWorkspace
 	var newlyNotified []string
