@@ -135,7 +135,10 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 
 	// Process verifications
 	for _, row := range verificationRows {
+		rawExternalID := row["external_id"]
+		fmt.Printf("DEBUG: AggregateUsage: raw external_id type=%T, value=%v\n", rawExternalID, rawExternalID)
 		externalID, ok := row["external_id"].(string)
+		fmt.Printf("DEBUG: AggregateUsage: type assertion ok=%v, externalID=%q\n", ok, externalID)
 		if !ok || externalID == "" {
 			fmt.Printf("DEBUG: AggregateUsage: skipping row with invalid external_id\n")
 			continue
