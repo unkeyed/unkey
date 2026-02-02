@@ -17,9 +17,9 @@ type Payload struct {
 
 // Block represents a Slack block element.
 type Block struct {
-	Type   string     `json:"type"`
-	Text   *Text      `json:"text,omitempty"`
-	Fields []Field    `json:"fields,omitempty"`
+	Type   string  `json:"type"`
+	Text   *Text   `json:"text,omitempty"`
+	Fields []Field `json:"fields,omitempty"`
 }
 
 // Text represents a Slack text element.
