@@ -23,9 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
   SettingCard,
-  Switch,
   toast,
 } from "@unkey/ui";
+import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
