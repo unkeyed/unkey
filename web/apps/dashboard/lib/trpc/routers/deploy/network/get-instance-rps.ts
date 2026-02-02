@@ -18,6 +18,14 @@ export const getInstanceRps = workspaceProcedure
           and(eq(table.id, input.instanceId), eq(table.workspaceId, ctx.workspace.id)),
         columns: {
           deploymentId: true,
+          projectId: true,
+        },
+        with: {
+          deployment: {
+            columns: {
+              environmentId: true,
+            },
+          },
         },
       });
 
@@ -32,6 +40,8 @@ export const getInstanceRps = workspaceProcedure
         const result = await clickhouse.sentinel.rps.byInstance({
           workspaceId: ctx.workspace.id,
           deploymentId: instance.deploymentId,
+          environmentId: instance.deployment.environmentId,
+          projectId: instance.projectId,
           instanceId: input.instanceId,
         });
 

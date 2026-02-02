@@ -1,6 +1,7 @@
 "use client";
 
 import { ChartActivity, Layers2, TimeClock } from "@unkey/icons";
+import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";
@@ -8,7 +9,6 @@ import { DeploymentNetworkView } from "../../../network/deployment-network-view"
 import { useDeploymentLatency } from "../../hooks/use-deployment-latency";
 import { useDeploymentRps } from "../../hooks/use-deployment-rps";
 import { MetricCard } from "../metrics/metric-card";
-import { useParams } from "next/navigation";
 
 export function DeploymentNetworkSection() {
   const [latencyPercentile, setLatencyPercentile] = useState<"p50" | "p75" | "p90" | "p95" | "p99">(

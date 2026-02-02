@@ -1,21 +1,17 @@
 "use client";
 
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Earth } from "@unkey/icons";
+import { useParams } from "next/navigation";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "../../../../../details/domain-row";
 import { useProject } from "../../../../../layout-provider";
-import { useParams } from "next/navigation";
-import { eq, useLiveQuery } from "@tanstack/react-db";
-
-
 
 export function DeploymentDomainsSection() {
-
   const params = useParams();
   const deploymentId = params?.deploymentId as string;
 
   const { collections } = useProject();
-
 
   const { data: domains, isLoading } = useLiveQuery(
     (q) =>

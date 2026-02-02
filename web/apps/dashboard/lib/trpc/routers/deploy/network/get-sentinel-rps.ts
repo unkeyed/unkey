@@ -36,8 +36,9 @@ export const getSentinelRps = workspaceProcedure
           ),
         columns: {
           id: true,
+          environmentId: true,
+          projectId: true,
         },
-        orderBy: (table, { desc }) => [desc(table.createdAt)],
       });
 
       if (!deployment) {
@@ -48,6 +49,8 @@ export const getSentinelRps = workspaceProcedure
         const result = await clickhouse.sentinel.rps.bySentinel({
           workspaceId: ctx.workspace.id,
           deploymentId: deployment.id,
+          environmentId: deployment.environmentId,
+          projectId: deployment.projectId,
           sentinelId: input.sentinelId,
         });
 

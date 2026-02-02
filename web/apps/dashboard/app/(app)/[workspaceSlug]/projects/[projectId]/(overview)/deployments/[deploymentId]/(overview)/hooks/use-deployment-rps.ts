@@ -18,17 +18,27 @@ export function useDeploymentRps(deploymentId: string): UseDeploymentRpsResult {
     data: currentRpsData,
     isLoading: isCurrentLoading,
     isError: isCurrentError,
-  } = trpc.deploy.metrics.getDeploymentRps.useQuery({
-    deploymentId,
-  });
+  } = trpc.deploy.metrics.getDeploymentRps.useQuery(
+    {
+      deploymentId,
+    },
+    {
+      refetchInterval: 10_000,
+    },
+  );
 
   const {
     data: timeseriesData,
     isLoading: isTimeseriesLoading,
     isError: isTimeseriesError,
-  } = trpc.deploy.metrics.getDeploymentRpsTimeseries.useQuery({
-    deploymentId,
-  });
+  } = trpc.deploy.metrics.getDeploymentRpsTimeseries.useQuery(
+    {
+      deploymentId,
+    },
+    {
+      refetchInterval: 10_000,
+    },
+  );
 
   const timeseries =
     timeseriesData?.map((d) => ({

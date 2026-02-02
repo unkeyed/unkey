@@ -23,19 +23,25 @@ export function useDeploymentLatency(
     data: currentLatencyData,
     isLoading: isCurrentLoading,
     isError: isCurrentError,
-  } = trpc.deploy.metrics.getDeploymentLatency.useQuery({
-    deploymentId,
-    percentile,
-  });
+  } = trpc.deploy.metrics.getDeploymentLatency.useQuery(
+    {
+      deploymentId,
+      percentile,
+    },
+    { refetchInterval: 10_000 },
+  );
 
   const {
     data: timeseriesData,
     isLoading: isTimeseriesLoading,
     isError: isTimeseriesError,
-  } = trpc.deploy.metrics.getDeploymentLatencyTimeseries.useQuery({
-    deploymentId,
-    percentile,
-  });
+  } = trpc.deploy.metrics.getDeploymentLatencyTimeseries.useQuery(
+    {
+      deploymentId,
+      percentile,
+    },
+    { refetchInterval: 10_000 },
+  );
 
   const timeseries =
     timeseriesData?.map((d) => ({

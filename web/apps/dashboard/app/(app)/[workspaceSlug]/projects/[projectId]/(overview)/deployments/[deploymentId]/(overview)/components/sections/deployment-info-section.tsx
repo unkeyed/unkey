@@ -1,18 +1,15 @@
 "use client";
 
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Bolt, Cloud, Grid, Harddrive, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
+import { useParams } from "next/navigation";
 import { ActiveDeploymentCard } from "../../../../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../../../../components/deployment-status-badge";
 import { DisabledWrapper } from "../../../../../../components/disabled-wrapper";
 import { InfoChip } from "../../../../../../components/info-chip";
 import { Section, SectionHeader } from "../../../../../../components/section";
-import { useParams } from "next/navigation";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useProject } from "../../../../../layout-provider";
-
-
-
 
 export function DeploymentInfoSection() {
   const params = useParams();
