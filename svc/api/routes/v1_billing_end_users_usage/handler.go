@@ -29,7 +29,7 @@ type GetUsageResponse struct {
 	Data struct {
 		ExternalID    string `json:"externalId"`
 		Verifications int64  `json:"verifications"`
-		RateLimits    int64  `json:"rateLimits"`
+		Credits       int64  `json:"credits"`
 	} `json:"data"`
 }
 
@@ -132,7 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	resp.Meta.RequestID = s.RequestID()
 	resp.Data.ExternalID = usage.ExternalID
 	resp.Data.Verifications = usage.Verifications
-	resp.Data.RateLimits = usage.RateLimits
+	resp.Data.Credits = usage.Credits
 
 	return s.JSON(http.StatusOK, resp)
 }
