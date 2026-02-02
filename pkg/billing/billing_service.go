@@ -548,7 +548,6 @@ func (s *billingService) createStripeInvoice(
 		Customer:                    stripe.String(endUser.StripeCustomerID),
 		AutoAdvance:                 stripe.Bool(true), // Automatically finalize and send
 		CollectionMethod:            stripe.String("charge_automatically"),
-		DaysUntilDue:                stripe.Int64(0), // Due immediately
 		Description:                 stripe.String(fmt.Sprintf("Usage for period %s to %s", usage.ExternalID, usage.ExternalID)),
 		AutomaticTax:                &stripe.InvoiceAutomaticTaxParams{Enabled: stripe.Bool(false)},
 		PendingInvoiceItemsBehavior: stripe.String("include"),
