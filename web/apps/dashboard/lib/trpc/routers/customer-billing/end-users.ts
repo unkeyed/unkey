@@ -149,18 +149,7 @@ export const createEndUser = workspaceProcedure
     const now = Date.now();
     const endUserId = newId("billingEndUser");
 
-    // Get connected account for workspace to create customer on connected account
-    const billingConnectedAccount = await db.query.billingConnectedAccounts.findFirst({
-      where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
-    });
-    if (!billingConnectedAccount || !billingConnectedAccount.stripeAccountId) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Stripe account not connected",
-      });
-    }
-
-    // Create real Stripe customer on connected account
+    // Create real Stripe customer on connected account using the already-fetched connectedAccount
     const stripe = getStripeClient();
     const stripeCustomer = await stripe.customers.create(
       {
@@ -172,7 +161,7 @@ export const createEndUser = workspaceProcedure
         },
       },
       {
-        stripeAccount: billingConnectedAccount.stripeAccountId,
+        stripeAccount: connectedAccount.stripeAccountId,
       }
     );
 
