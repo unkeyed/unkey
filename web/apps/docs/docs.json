@@ -224,7 +224,8 @@
                       "errors/unkey/application/precondition_failed",
                       "errors/unkey/application/protected_resource",
                       "errors/unkey/application/service_unavailable",
-                      "errors/unkey/application/unexpected_error"
+                      "errors/unkey/application/unexpected_error",
+                      "errors/unkey/application/unsupported_media_type"
                     ]
                   },
                   {

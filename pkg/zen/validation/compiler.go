@@ -126,46 +126,31 @@ func NewSchemaCompiler(parser *SpecParser, specBytes []byte) (*SchemaCompiler, e
 // compileParameterSchemas compiles schemas for all parameters in a ParameterSet
 func compileParameterSchemas(compiler *jsonschema.Compiler, operationID string, params ParameterSet) (CompiledParameterSet, error) {
 	result := CompiledParameterSet{
-		Query:  nil,
-		Header: nil,
-		Cookie: nil,
-		Path:   nil,
+		Query:  []CompiledParameter{},
+		Header: []CompiledParameter{},
+		Cookie: []CompiledParameter{},
+		Path:   []CompiledParameter{},
 	}
 
-	// Compile query parameters
-	for _, param := range params.Query {
-		compiled, err := compileParameterSchema(compiler, operationID, "query", param)
-		if err != nil {
-			return result, err
-		}
-		result.Query = append(result.Query, compiled)
+	paramGroups := []struct {
+		source []Parameter
+		target *[]CompiledParameter
+		name   string
+	}{
+		{params.Query, &result.Query, "query"},
+		{params.Header, &result.Header, "header"},
+		{params.Cookie, &result.Cookie, "cookie"},
+		{params.Path, &result.Path, "path"},
 	}
 
-	// Compile header parameters
-	for _, param := range params.Header {
-		compiled, err := compileParameterSchema(compiler, operationID, "header", param)
-		if err != nil {
-			return result, err
+	for _, group := range paramGroups {
+		for _, param := range group.source {
+			compiled, err := compileParameterSchema(compiler, operationID, group.name, param)
+			if err != nil {
+				return result, err
+			}
+			*group.target = append(*group.target, compiled)
 		}
-		result.Header = append(result.Header, compiled)
-	}
-
-	// Compile cookie parameters
-	for _, param := range params.Cookie {
-		compiled, err := compileParameterSchema(compiler, operationID, "cookie", param)
-		if err != nil {
-			return result, err
-		}
-		result.Cookie = append(result.Cookie, compiled)
-	}
-
-	// Compile path parameters
-	for _, param := range params.Path {
-		compiled, err := compileParameterSchema(compiler, operationID, "path", param)
-		if err != nil {
-			return result, err
-		}
-		result.Path = append(result.Path, compiled)
 	}
 
 	return result, nil
@@ -357,122 +342,139 @@ func extractSchemaType(schema map[string]any) string {
 func cleanForJSONSchema(data any) any {
 	switch v := data.(type) {
 	case map[string]any:
-		result := make(map[string]any)
-
-		// First pass: handle nullable conversion before processing other keys
-		// This must happen before we skip the nullable keyword
-		if nullable, ok := v["nullable"].(bool); ok && nullable {
-			if existingType, hasType := v["type"]; hasType {
-				switch t := existingType.(type) {
-				case string:
-					result["type"] = []any{t, "null"}
-				case []any:
-					hasNull := false
-					for _, tv := range t {
-						if tv == "null" || tv == nil {
-							hasNull = true
-							break
-						}
-					}
-					if !hasNull {
-						result["type"] = append(t, "null")
-					} else {
-						// Just fix any nil values
-						fixedArr := make([]any, len(t))
-						for i, item := range t {
-							if item == nil {
-								fixedArr[i] = "null"
-							} else {
-								fixedArr[i] = item
-							}
-						}
-						result["type"] = fixedArr
-					}
-				}
-			} else {
-				// No type specified, just add null type
-				result["type"] = []any{"null"}
-			}
-		}
-
-		for key, value := range v {
-			// Skip OpenAPI-specific keywords that aren't valid JSON Schema
-			if openAPIKeywords[key] {
-				continue
-			}
-
-			// Skip type if we already handled it via nullable conversion
-			if key == "type" && result["type"] != nil {
-				continue
-			}
-
-			// Transform 'examples' from OpenAPI object format to JSON Schema array format
-			if key == "examples" {
-				if examplesMap, ok := value.(map[string]any); ok {
-					// Convert object examples to array (just extract the values)
-					arr := make([]any, 0, len(examplesMap))
-					for _, ex := range examplesMap {
-						if exObj, ok := ex.(map[string]any); ok {
-							if val, hasValue := exObj["value"]; hasValue {
-								arr = append(arr, val)
-							}
-						} else {
-							arr = append(arr, ex)
-						}
-					}
-					if len(arr) > 0 {
-						result[key] = arr
-					}
-					continue
-				}
-			}
-
-			// Fix 'type' arrays that contain actual null values instead of the string "null"
-			// YAML parses `- null` (unquoted) as nil, but JSON Schema requires the string "null"
-			if key == "type" {
-				if typeArr, ok := value.([]any); ok {
-					fixedArr := make([]any, len(typeArr))
-					for i, item := range typeArr {
-						if item == nil {
-							fixedArr[i] = "null"
-						} else {
-							fixedArr[i] = item
-						}
-					}
-					result[key] = fixedArr
-					continue
-				}
-			}
-
-			// Recursively clean nested values
-			result[key] = cleanForJSONSchema(value)
-		}
-
-		return result
-
+		return cleanSchemaObject(v)
 	case []any:
 		result := make([]any, len(v))
 		for i, item := range v {
 			result[i] = cleanForJSONSchema(item)
 		}
 		return result
-
 	default:
 		return v
 	}
+}
+
+// cleanSchemaObject cleans a single schema object (map)
+func cleanSchemaObject(v map[string]any) map[string]any {
+	result := make(map[string]any)
+
+	// Handle nullable conversion first (OpenAPI 3.0 -> JSON Schema type array)
+	if nullableType := convertNullableType(v); nullableType != nil {
+		result["type"] = nullableType
+	}
+
+	for key, value := range v {
+		if openAPIKeywords[key] {
+			continue
+		}
+
+		// Skip type if already handled via nullable conversion
+		if key == "type" && result["type"] != nil {
+			continue
+		}
+
+		// Transform 'examples' from OpenAPI object format to JSON Schema array format
+		if key == "examples" {
+			if transformed := transformOpenAPIExamples(value); transformed != nil {
+				result[key] = transformed
+			}
+			continue
+		}
+
+		// Fix 'type' arrays containing nil instead of "null" string
+		if key == "type" {
+			if typeArr, ok := value.([]any); ok {
+				result[key] = fixTypeArrayNulls(typeArr)
+				continue
+			}
+		}
+
+		result[key] = cleanForJSONSchema(value)
+	}
+
+	return result
+}
+
+// convertNullableType converts OpenAPI 3.0 nullable:true to JSON Schema type array.
+// Returns the new type array, or nil if no conversion needed.
+func convertNullableType(schema map[string]any) []any {
+	nullable, ok := schema["nullable"].(bool)
+	if !ok || !nullable {
+		return nil
+	}
+
+	existingType, hasType := schema["type"]
+	if !hasType {
+		return []any{"null"}
+	}
+
+	switch t := existingType.(type) {
+	case string:
+		return []any{t, "null"}
+	case []any:
+		if containsNull(t) {
+			return fixTypeArrayNulls(t)
+		}
+		return append(t, "null")
+	}
+
+	return nil
+}
+
+// containsNull checks if a type array already contains null
+func containsNull(typeArr []any) bool {
+	for _, tv := range typeArr {
+		if tv == "null" || tv == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// fixTypeArrayNulls replaces nil values with "null" string in type arrays.
+// YAML parses `- null` (unquoted) as nil, but JSON Schema requires the string "null".
+func fixTypeArrayNulls(typeArr []any) []any {
+	result := make([]any, len(typeArr))
+	for i, item := range typeArr {
+		if item == nil {
+			result[i] = "null"
+		} else {
+			result[i] = item
+		}
+	}
+	return result
+}
+
+// transformOpenAPIExamples converts OpenAPI examples object format to JSON Schema array.
+// Returns nil if the value is not in OpenAPI object format.
+func transformOpenAPIExamples(value any) []any {
+	examplesMap, ok := value.(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	arr := make([]any, 0, len(examplesMap))
+	for _, ex := range examplesMap {
+		if exObj, ok := ex.(map[string]any); ok {
+			if val, hasValue := exObj["value"]; hasValue {
+				arr = append(arr, val)
+				continue
+			}
+		}
+		arr = append(arr, ex)
+	}
+
+	if len(arr) == 0 {
+		return nil
+	}
+	return arr
 }
 
 // extractDiscriminator extracts discriminator information from a schema that uses oneOf/anyOf.
 // If the schema is a $ref, it will be resolved using the provided resolver.
 // Returns nil if no discriminator is present.
 func extractDiscriminator(schema map[string]any, resolver SchemaRefResolver) *DiscriminatorInfo {
-	// If the schema is just a $ref, resolve it first
-	if ref, ok := schema["$ref"].(string); ok && len(schema) == 1 && resolver != nil {
-		resolved := resolver(ref)
-		if resolved != nil {
-			schema = resolved
-		}
-	}
+	schema = resolveSchemaRef(schema, resolver)
 
 	discriminator, ok := schema["discriminator"].(map[string]any)
 	if !ok {
@@ -484,48 +486,82 @@ func extractDiscriminator(schema map[string]any, resolver SchemaRefResolver) *Di
 		return nil
 	}
 
-	mapping := make(map[string]string)
-
-	// Check for explicit mapping
-	if m, ok := discriminator["mapping"].(map[string]any); ok {
-		for k, v := range m {
-			if ref, ok := v.(string); ok {
-				mapping[k] = ref
-			}
-		}
-	}
-
-	// If no explicit mapping, try to infer from oneOf/anyOf schemas
+	mapping := extractExplicitMapping(discriminator)
 	if len(mapping) == 0 {
-		for _, keyword := range []string{"oneOf", "anyOf"} {
-			if arr, ok := schema[keyword].([]any); ok {
-				for _, item := range arr {
-					if itemSchema, ok := item.(map[string]any); ok {
-						if ref, ok := itemSchema["$ref"].(string); ok {
-							// Extract schema name from ref for implicit mapping
-							// e.g., "#/components/schemas/Dog" -> "Dog"
-							parts := strings.Split(ref, "/")
-							if len(parts) > 0 {
-								name := parts[len(parts)-1]
-								mapping[name] = ref
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if len(mapping) == 0 {
-		// No mapping could be determined
-		return &DiscriminatorInfo{
-			PropertyName: propertyName,
-			Mapping:      nil,
-		}
+		mapping = inferMappingFromSchema(schema)
 	}
 
 	return &DiscriminatorInfo{
 		PropertyName: propertyName,
 		Mapping:      mapping,
 	}
+}
+
+// resolveSchemaRef resolves a $ref if the schema is a lone reference
+func resolveSchemaRef(schema map[string]any, resolver SchemaRefResolver) map[string]any {
+	if resolver == nil || len(schema) != 1 {
+		return schema
+	}
+
+	ref, ok := schema["$ref"].(string)
+	if !ok {
+		return schema
+	}
+
+	if resolved := resolver(ref); resolved != nil {
+		return resolved
+	}
+	return schema
+}
+
+// extractExplicitMapping extracts the explicit mapping from a discriminator object
+func extractExplicitMapping(discriminator map[string]any) map[string]string {
+	m, ok := discriminator["mapping"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	mapping := make(map[string]string)
+	for k, v := range m {
+		if ref, ok := v.(string); ok {
+			mapping[k] = ref
+		}
+	}
+	return mapping
+}
+
+// inferMappingFromSchema infers discriminator mapping from oneOf/anyOf $refs.
+// Maps schema name to ref (e.g., "Dog" -> "#/components/schemas/Dog")
+func inferMappingFromSchema(schema map[string]any) map[string]string {
+	mapping := make(map[string]string)
+
+	for _, keyword := range []string{"oneOf", "anyOf"} {
+		arr, ok := schema[keyword].([]any)
+		if !ok {
+			continue
+		}
+
+		for _, item := range arr {
+			itemSchema, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+
+			ref, ok := itemSchema["$ref"].(string)
+			if !ok {
+				continue
+			}
+
+			parts := strings.Split(ref, "/")
+			if len(parts) > 0 {
+				name := parts[len(parts)-1]
+				mapping[name] = ref
+			}
+		}
+	}
+
+	if len(mapping) == 0 {
+		return nil
+	}
+	return mapping
 }
