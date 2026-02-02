@@ -31,9 +31,24 @@ type SecurityRequirement struct {
 	Schemes map[string][]string
 }
 
+// SecurityError represents a security validation error
+// It returns 400 Bad Request for format issues (missing/malformed headers)
+type SecurityError struct {
+	openapi.BadRequestErrorResponse
+}
+
+func (e *SecurityError) GetStatus() int {
+	return e.Error.Status
+}
+
+func (e *SecurityError) SetRequestID(requestID string) {
+	e.Meta.RequestId = requestID
+}
+
 // ValidateSecurity validates the security requirements for a request
 // Returns nil if security is satisfied, or an error response if not
-func ValidateSecurity(r *http.Request, requirements []SecurityRequirement, schemes map[string]SecurityScheme, requestID string) *UnauthorizedError {
+// Returns 400 Bad Request for missing/malformed auth headers (format issues)
+func ValidateSecurity(r *http.Request, requirements []SecurityRequirement, schemes map[string]SecurityScheme, requestID string) *SecurityError {
 	// If no security requirements, the operation is public
 	if len(requirements) == 0 {
 		return nil
@@ -140,7 +155,8 @@ func validateAPIKeyScheme(r *http.Request, scheme SecurityScheme) bool {
 
 // buildSecurityError creates an appropriate error response based on the expected security
 // It inspects the request to provide detailed error messages about what's wrong
-func buildSecurityError(r *http.Request, requirements []SecurityRequirement, schemes map[string]SecurityScheme, requestID string) *UnauthorizedError {
+// Returns 400 Bad Request for format issues (missing/malformed auth headers)
+func buildSecurityError(r *http.Request, requirements []SecurityRequirement, schemes map[string]SecurityScheme, requestID string) *SecurityError {
 	// Check for bearer auth schemes and provide detailed errors
 	for _, req := range requirements {
 		for schemeName := range req.Schemes {
@@ -161,36 +177,39 @@ func buildSecurityError(r *http.Request, requirements []SecurityRequirement, sch
 	}
 
 	// Generic auth error for other scheme types
-	return &UnauthorizedError{
-		UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+	return &SecurityError{
+		BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 			Meta: openapi.Meta{
 				RequestId: requestID,
 			},
-			Error: openapi.BaseError{
-				Title:  "Unauthorized",
+			Error: openapi.BadRequestErrorDetails{
+				Title:  "Bad Request",
 				Detail: "Authentication is required",
-				Status: http.StatusUnauthorized,
+				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+				Errors: []openapi.ValidationError{},
 			},
 		},
 	}
 }
 
-// buildBearerAuthError creates a detailed error for bearer auth failures
-func buildBearerAuthError(r *http.Request, requestID string) *UnauthorizedError {
+// buildBearerAuthError creates a detailed error for bearer auth format failures
+// Returns 400 Bad Request for missing/malformed Authorization header
+func buildBearerAuthError(r *http.Request, requestID string) *SecurityError {
 	authHeader := r.Header.Get("Authorization")
 
 	if authHeader == "" {
-		return &UnauthorizedError{
-			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+		return &SecurityError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: requestID,
 				},
-				Error: openapi.BaseError{
-					Title:  "Unauthorized",
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
 					Detail: "Authorization header is required but was not provided",
-					Status: http.StatusUnauthorized,
+					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+					Errors: []openapi.ValidationError{},
 				},
 			},
 		}
@@ -198,16 +217,17 @@ func buildBearerAuthError(r *http.Request, requestID string) *UnauthorizedError 
 
 	const bearerPrefix = "bearer "
 	if len(authHeader) < len(bearerPrefix) || !strings.EqualFold(authHeader[:len(bearerPrefix)], bearerPrefix) {
-		return &UnauthorizedError{
-			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+		return &SecurityError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: requestID,
 				},
-				Error: openapi.BaseError{
-					Title:  "Unauthorized",
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
 					Detail: "Authorization header must use Bearer scheme",
-					Status: http.StatusUnauthorized,
+					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+					Errors: []openapi.ValidationError{},
 				},
 			},
 		}
@@ -215,52 +235,56 @@ func buildBearerAuthError(r *http.Request, requestID string) *UnauthorizedError 
 
 	token := strings.TrimSpace(authHeader[len(bearerPrefix):])
 	if token == "" {
-		return &UnauthorizedError{
-			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+		return &SecurityError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: requestID,
 				},
-				Error: openapi.BaseError{
-					Title:  "Unauthorized",
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
 					Detail: "Bearer token is empty",
-					Status: http.StatusUnauthorized,
+					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+					Errors: []openapi.ValidationError{},
 				},
 			},
 		}
 	}
 
 	// Fallback - shouldn't reach here if validateHTTPScheme works correctly
-	return &UnauthorizedError{
-		UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+	return &SecurityError{
+		BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 			Meta: openapi.Meta{
 				RequestId: requestID,
 			},
-			Error: openapi.BaseError{
-				Title:  "Unauthorized",
+			Error: openapi.BadRequestErrorDetails{
+				Title:  "Bad Request",
 				Detail: "Bearer authentication failed",
-				Status: http.StatusUnauthorized,
+				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+				Errors: []openapi.ValidationError{},
 			},
 		},
 	}
 }
 
-// buildBasicAuthError creates a detailed error for basic auth failures
-func buildBasicAuthError(r *http.Request, requestID string) *UnauthorizedError {
+// buildBasicAuthError creates a detailed error for basic auth format failures
+// Returns 400 Bad Request for missing/malformed Authorization header
+func buildBasicAuthError(r *http.Request, requestID string) *SecurityError {
 	authHeader := r.Header.Get("Authorization")
 
 	if authHeader == "" {
-		return &UnauthorizedError{
-			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+		return &SecurityError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: requestID,
 				},
-				Error: openapi.BaseError{
-					Title:  "Unauthorized",
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
 					Detail: "Authorization header is required but was not provided",
-					Status: http.StatusUnauthorized,
+					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+					Errors: []openapi.ValidationError{},
 				},
 			},
 		}
@@ -268,16 +292,17 @@ func buildBasicAuthError(r *http.Request, requestID string) *UnauthorizedError {
 
 	const basicPrefix = "basic "
 	if len(authHeader) < len(basicPrefix) || !strings.EqualFold(authHeader[:len(basicPrefix)], basicPrefix) {
-		return &UnauthorizedError{
-			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+		return &SecurityError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: requestID,
 				},
-				Error: openapi.BaseError{
-					Title:  "Unauthorized",
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
 					Detail: "Authorization header must use Basic scheme",
-					Status: http.StatusUnauthorized,
+					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+					Errors: []openapi.ValidationError{},
 				},
 			},
 		}
@@ -285,38 +310,41 @@ func buildBasicAuthError(r *http.Request, requestID string) *UnauthorizedError {
 
 	credentials := strings.TrimSpace(authHeader[len(basicPrefix):])
 	if credentials == "" {
-		return &UnauthorizedError{
-			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+		return &SecurityError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: requestID,
 				},
-				Error: openapi.BaseError{
-					Title:  "Unauthorized",
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
 					Detail: "Basic credentials are empty",
-					Status: http.StatusUnauthorized,
+					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+					Errors: []openapi.ValidationError{},
 				},
 			},
 		}
 	}
 
-	return &UnauthorizedError{
-		UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+	return &SecurityError{
+		BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 			Meta: openapi.Meta{
 				RequestId: requestID,
 			},
-			Error: openapi.BaseError{
-				Title:  "Unauthorized",
+			Error: openapi.BadRequestErrorDetails{
+				Title:  "Bad Request",
 				Detail: "Basic authentication failed",
-				Status: http.StatusUnauthorized,
+				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+				Errors: []openapi.ValidationError{},
 			},
 		},
 	}
 }
 
-// buildAPIKeyError creates a detailed error for API key auth failures
-func buildAPIKeyError(scheme SecurityScheme, requestID string) *UnauthorizedError {
+// buildAPIKeyError creates a detailed error for API key auth format failures
+// Returns 400 Bad Request for missing API key
+func buildAPIKeyError(scheme SecurityScheme, requestID string) *SecurityError {
 	var location string
 	switch scheme.In {
 	case LocationHeader:
@@ -331,38 +359,40 @@ func buildAPIKeyError(scheme SecurityScheme, requestID string) *UnauthorizedErro
 		location = "request"
 	}
 
-	return &UnauthorizedError{
-		UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+	return &SecurityError{
+		BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 			Meta: openapi.Meta{
 				RequestId: requestID,
 			},
-			Error: openapi.BaseError{
-				Title:  "Unauthorized",
+			Error: openapi.BadRequestErrorDetails{
+				Title:  "Bad Request",
 				Detail: "API key is required in " + location + " '" + scheme.Name + "'",
-				Status: http.StatusUnauthorized,
+				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+				Errors: []openapi.ValidationError{},
 			},
 		},
 	}
 }
 
 // ValidateBearerAuth validates that a request has a valid Bearer token in the Authorization header
-// This is used for detailed error messages when we know bearer auth is required
-func ValidateBearerAuth(r *http.Request, requestID string) *UnauthorizedError {
+// Returns 400 Bad Request for missing/malformed Authorization header
+func ValidateBearerAuth(r *http.Request, requestID string) *SecurityError {
 	authHeader := r.Header.Get("Authorization")
 
 	// Check if Authorization header is present
 	if authHeader == "" {
-		return &UnauthorizedError{
-			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+		return &SecurityError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: requestID,
 				},
-				Error: openapi.BaseError{
-					Title:  "Unauthorized",
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
 					Detail: "Authorization header is required but was not provided",
-					Status: http.StatusUnauthorized,
+					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
+					Errors: []openapi.ValidationError{},
 				},
 			},
 		}
@@ -371,16 +401,17 @@ func ValidateBearerAuth(r *http.Request, requestID string) *UnauthorizedError {
 	// Check for Bearer scheme (case-insensitive)
 	const bearerPrefix = "bearer "
 	if len(authHeader) < len(bearerPrefix) || !strings.EqualFold(authHeader[:len(bearerPrefix)], bearerPrefix) {
-		return &UnauthorizedError{
-			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+		return &SecurityError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: requestID,
 				},
-				Error: openapi.BaseError{
-					Title:  "Unauthorized",
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
 					Detail: "Authorization header must use Bearer scheme",
-					Status: http.StatusUnauthorized,
+					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+					Errors: []openapi.ValidationError{},
 				},
 			},
 		}
@@ -389,16 +420,17 @@ func ValidateBearerAuth(r *http.Request, requestID string) *UnauthorizedError {
 	// Check that there's actually a token after "Bearer "
 	token := strings.TrimSpace(authHeader[len(bearerPrefix):])
 	if token == "" {
-		return &UnauthorizedError{
-			UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
+		return &SecurityError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: requestID,
 				},
-				Error: openapi.BaseError{
-					Title:  "Unauthorized",
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
 					Detail: "Bearer token is empty",
-					Status: http.StatusUnauthorized,
+					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
+					Errors: []openapi.ValidationError{},
 				},
 			},
 		}

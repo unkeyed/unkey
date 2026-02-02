@@ -59,6 +59,7 @@ func (v *Validator) validateContentType(r *http.Request, compiledOp *CompiledOpe
 		if strings.EqualFold(mediaType, allowedMedia) {
 			return nil
 		}
+
 		// Handle wildcards like application/*
 		if strings.HasSuffix(allowedMedia, "/*") {
 			prefix := strings.TrimSuffix(allowedMedia, "*")
@@ -66,6 +67,7 @@ func (v *Validator) validateContentType(r *http.Request, compiledOp *CompiledOpe
 				return nil
 			}
 		}
+
 		// Handle */* (accept all)
 		if allowedMedia == "*/*" {
 			return nil

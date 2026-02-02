@@ -221,6 +221,7 @@
                     "pages": [
                       "errors/unkey/application/assertion_failed",
                       "errors/unkey/application/invalid_input",
+                      "errors/unkey/application/missing_body",
                       "errors/unkey/application/precondition_failed",
                       "errors/unkey/application/protected_resource",
                       "errors/unkey/application/service_unavailable",
