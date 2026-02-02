@@ -444,7 +444,6 @@ func (s *billingService) createStripeInvoice(
 			Currency:    stripe.String(pricingModel.Currency),
 			Description: stripe.String(fmt.Sprintf("API Verifications (%d)", usage.Verifications)),
 			Quantity:    stripe.Int64(usage.Verifications),
-			UnitAmount:  stripe.Int64(unitAmountInCents),
 		}
 		itemParams.SetStripeAccount(connectedAccount.StripeAccountID)
 
@@ -470,7 +469,6 @@ func (s *billingService) createStripeInvoice(
 			Currency:    stripe.String(pricingModel.Currency),
 			Description: stripe.String(fmt.Sprintf("API Keys with Access (%d)", usage.KeysWithAccess)),
 			Quantity:    stripe.Int64(usage.KeysWithAccess),
-			UnitAmount:  stripe.Int64(unitAmountInCents),
 		}
 		itemParams.SetStripeAccount(connectedAccount.StripeAccountID)
 
@@ -497,7 +495,6 @@ func (s *billingService) createStripeInvoice(
 			Currency:    stripe.String(pricingModel.Currency),
 			Description: stripe.String(fmt.Sprintf("Credits Used (%d)", creditsUsed)),
 			Quantity:    stripe.Int64(creditsUsed),
-			UnitAmount:  stripe.Int64(unitAmountInCents),
 		}
 		itemParams.SetStripeAccount(connectedAccount.StripeAccountID)
 
