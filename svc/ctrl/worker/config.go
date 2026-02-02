@@ -251,6 +251,11 @@ type Config struct {
 	// When set, a heartbeat is sent after successful quota check runs.
 	// Optional - if empty, no heartbeat is sent.
 	QuotaCheckHeartbeatURL string
+
+	// QuotaCheckSlackWebhookURL is the Slack webhook URL for quota exceeded notifications.
+	// When set, Slack notifications are sent when workspaces exceed their quota.
+	// Optional - if empty, no Slack notifications are sent.
+	QuotaCheckSlackWebhookURL string
 }
 
 // parseBuildPlatform validates and parses a build platform string.

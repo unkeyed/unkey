@@ -12,10 +12,11 @@ import (
 // Service implements the QuotaCheckService Restate virtual object.
 type Service struct {
 	hydrav1.UnimplementedQuotaCheckServiceServer
-	db         db.Database
-	clickhouse clickhouse.ClickHouse
-	logger     logging.Logger
-	heartbeat  healthcheck.Heartbeat
+	db              db.Database
+	clickhouse      clickhouse.ClickHouse
+	logger          logging.Logger
+	heartbeat       healthcheck.Heartbeat
+	slackWebhookURL string
 }
 
 var _ hydrav1.QuotaCheckServiceServer = (*Service)(nil)
@@ -28,6 +29,9 @@ type Config struct {
 	// Heartbeat sends health signals after successful quota check runs.
 	// Must not be nil - use healthcheck.NewNoop() if monitoring is not needed.
 	Heartbeat healthcheck.Heartbeat
+	// SlackWebhookURL is the webhook URL for sending quota exceeded notifications.
+	// If empty, no Slack notifications are sent.
+	SlackWebhookURL string
 }
 
 // New creates a new quota check service.
@@ -42,5 +46,6 @@ func New(cfg Config) (*Service, error) {
 		clickhouse:                           cfg.Clickhouse,
 		logger:                               cfg.Logger,
 		heartbeat:                            cfg.Heartbeat,
+		slackWebhookURL:                      cfg.SlackWebhookURL,
 	}, nil
 }

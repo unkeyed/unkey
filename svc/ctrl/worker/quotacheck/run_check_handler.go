@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -17,10 +18,17 @@ import (
 
 const stateKeyNotifiedWorkspaces = "notified_workspaces"
 
+// followUpInterval is the minimum time between follow-up notifications.
+// First notification is sent immediately, subsequent ones are sent weekly.
+// We use 6 days 20 hours instead of exactly 7 days to account for timing drift
+// in the daily scheduled job (e.g., 16:03 one week vs 16:00 the next).
+const followUpInterval = 6*24*time.Hour + 20*time.Hour
+
 // exceededWorkspace holds info about a workspace that exceeded its quota.
 type exceededWorkspace struct {
-	Workspace db.ListWorkspacesForQuotaCheckRow
-	Used      int64
+	Workspace  db.ListWorkspacesForQuotaCheckRow
+	Used       int64
+	IsFollowUp bool
 }
 
 // RunCheck queries all workspace usage and sends Slack notifications for newly exceeded quotas.
@@ -38,15 +46,17 @@ func (s *Service) RunCheck(
 		return nil, fmt.Errorf("invalid billing period %q: %w", billingPeriod, err)
 	}
 
-	// Load already-notified workspaces from state
-	notified, err := restate.Get[map[string]bool](ctx, stateKeyNotifiedWorkspaces)
+	// Load notification timestamps from state (workspace ID -> Unix timestamp of last notification)
+	notifiedAt, err := restate.Get[map[string]int64](ctx, stateKeyNotifiedWorkspaces)
 	if err != nil {
 		return nil, fmt.Errorf("get notified state: %w", err)
 	}
 
-	if notified == nil {
-		notified = make(map[string]bool)
+	if notifiedAt == nil {
+		notifiedAt = make(map[string]int64)
 	}
+
+	now := time.Now().Unix()
 
 	var exceeded []exceededWorkspace
 	var newlyNotified []string
@@ -80,11 +90,6 @@ func (s *Service) RunCheck(
 				continue
 			}
 
-			// Skip workspaces we've already notified this billing period
-			if notified[ws.ID] {
-				continue
-			}
-
 			// Get usage for this workspace from ClickHouse
 			usedVerifications, verErr := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
 				return s.clickhouse.GetBillableVerifications(rc, ws.ID, year, month)
@@ -111,15 +116,28 @@ func (s *Service) RunCheck(
 				continue
 			}
 
+			// Check if we should send a notification:
+			// - First time: always notify
+			// - Follow-up: only if 7+ days since last notification
+			lastNotified := notifiedAt[ws.ID]
+			isFollowUp := lastNotified > 0
+			if isFollowUp {
+				timeSinceLastNotification := time.Duration(now-lastNotified) * time.Second
+				if timeSinceLastNotification < followUpInterval {
+					continue
+				}
+			}
+
 			e := exceededWorkspace{
-				Workspace: ws,
-				Used:      usage,
+				Workspace:  ws,
+				Used:       usage,
+				IsFollowUp: isFollowUp,
 			}
 
 			// Send notification
-			if req.GetSlackWebhookUrl() != "" {
+			if s.slackWebhookURL != "" {
 				_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-					return restate.Void{}, sendSlackNotification(rc, req.GetSlackWebhookUrl(), e)
+					return restate.Void{}, sendSlackNotification(rc, s.slackWebhookURL, e)
 				}, restate.WithName("notify "+ws.ID))
 				if notifyErr != nil {
 					return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
@@ -127,14 +145,14 @@ func (s *Service) RunCheck(
 			}
 
 			exceeded = append(exceeded, e)
-			notified[ws.ID] = true
+			notifiedAt[ws.ID] = now
 			newlyNotified = append(newlyNotified, ws.ID)
 		}
 	}
 
-	// Update state with newly notified workspaces
+	// Update state with notification timestamps
 	if len(newlyNotified) > 0 {
-		restate.Set(ctx, stateKeyNotifiedWorkspaces, notified)
+		restate.Set(ctx, stateKeyNotifiedWorkspaces, notifiedAt)
 	}
 
 	s.logger.Info("quota check complete",
@@ -182,6 +200,9 @@ func sendSlackNotification(ctx context.Context, webhookURL string, e exceededWor
 	printer := message.NewPrinter(language.English)
 
 	title := fmt.Sprintf("Quota Exceeded: %s", e.Workspace.Name)
+	if e.IsFollowUp {
+		title = fmt.Sprintf("Quota Still Exceeded (Weekly Reminder): %s", e.Workspace.Name)
+	}
 
 	payload := slack.Payload{
 		Text: title,

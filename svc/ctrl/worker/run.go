@@ -270,10 +270,11 @@ func Run(ctx context.Context, cfg Config) error {
 		quotaHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.QuotaCheckHeartbeatURL)
 	}
 	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
-		DB:         database,
-		Clickhouse: ch,
-		Logger:     logger,
-		Heartbeat:  quotaHeartbeat,
+		DB:              database,
+		Clickhouse:      ch,
+		Logger:          logger,
+		Heartbeat:       quotaHeartbeat,
+		SlackWebhookURL: cfg.QuotaCheckSlackWebhookURL,
 	})
 	if err != nil {
 		return fmt.Errorf("create quota check service: %w", err)

@@ -22,10 +22,7 @@ service QuotaCheckService {
   rpc RunCheck(RunCheckRequest) returns (RunCheckResponse) {}
 }
 
-message RunCheckRequest {
-  // Slack webhook URL for notifications. If empty, no notifications are sent.
-  string slack_webhook_url = 1;
-}
+message RunCheckRequest {}
 
 message RunCheckResponse {
   // Number of workspaces checked

@@ -32,13 +32,12 @@ jobs:
         env:
           RESTATE_URL: ${{ secrets.RESTATE_URL }}
           RESTATE_API_KEY: ${{ secrets.RESTATE_API_KEY }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           curl -sf -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
             "${RESTATE_URL}/hydra.v1.QuotaCheckService/${{ steps.billing.outputs.period }}/RunCheck" \
-            -d "$(jq -n --arg slack "${SLACK_WEBHOOK_URL}" '{slackWebhookUrl: $slack}')"
+            -d '{}'
 
   certificate-renewal:
     if: github.event.schedule == '0 3 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'cert-renewal'

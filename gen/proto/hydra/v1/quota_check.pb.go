@@ -23,11 +23,9 @@ const (
 )
 
 type RunCheckRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Slack webhook URL for notifications. If empty, no notifications are sent.
-	SlackWebhookUrl string `protobuf:"bytes,1,opt,name=slack_webhook_url,json=slackWebhookUrl,proto3" json:"slack_webhook_url,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunCheckRequest) Reset() {
@@ -58,13 +56,6 @@ func (x *RunCheckRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RunCheckRequest.ProtoReflect.Descriptor instead.
 func (*RunCheckRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_quota_check_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *RunCheckRequest) GetSlackWebhookUrl() string {
-	if x != nil {
-		return x.SlackWebhookUrl
-	}
-	return ""
 }
 
 type RunCheckResponse struct {
@@ -134,9 +125,8 @@ var File_hydra_v1_quota_check_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_quota_check_proto_rawDesc = "" +
 	"\n" +
-	"\x1ahydra/v1/quota_check.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"=\n" +
-	"\x0fRunCheckRequest\x12*\n" +
-	"\x11slack_webhook_url\x18\x01 \x01(\tR\x0fslackWebhookUrl\"\xa1\x01\n" +
+	"\x1ahydra/v1/quota_check.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\x11\n" +
+	"\x0fRunCheckRequest\"\xa1\x01\n" +
 	"\x10RunCheckResponse\x12-\n" +
 	"\x12workspaces_checked\x18\x01 \x01(\x05R\x11workspacesChecked\x12/\n" +
 	"\x13workspaces_exceeded\x18\x02 \x01(\x05R\x12workspacesExceeded\x12-\n" +
