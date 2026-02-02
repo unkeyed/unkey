@@ -77,7 +77,7 @@ func withLogging(next http.Handler, ch clickhouse.Bufferer, logger logging.Logge
 		}
 
 		ch.BufferApiRequest(schema.ApiRequestV1{
-			RequestID:       ctxutil.GetRequestId(ctx),
+			RequestID:       ctxutil.GetRequestID(ctx),
 			Time:            start.UnixMilli(),
 			Host:            r.Host,
 			Method:          r.Method,

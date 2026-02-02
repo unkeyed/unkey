@@ -5,6 +5,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
+import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +25,7 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
   const methods = usePersistedForm<CreditsFormValues>(
     `${EDIT_CREDITS_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
-      resolver: zodResolver(creditsSchema),
+      resolver: zodResolver(creditsSchema) as DiscriminatedUnionResolver<typeof creditsSchema>,
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,

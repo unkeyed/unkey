@@ -41,7 +41,14 @@ export const ratelimitNamespaces = createCollection<RatelimitNamespace>(
           };
         },
       });
-      await mutation;
+      const result = await mutation;
+
+      await queryClient.invalidateQueries({ queryKey: ["ratelimitNamespaces"] });
+
+      return {
+        id: result.id,
+        name: newNamespace.name,
+      };
     },
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];

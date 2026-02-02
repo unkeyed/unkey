@@ -1,6 +1,8 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, SettingCard } from "@unkey/ui";
+import type { Resolver } from "react-hook-form";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -18,6 +20,8 @@ const formSchema = z.object({
   workspaceId: z.string(),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 type Props = {
   api: {
     id: string;
@@ -33,8 +37,9 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     control,
     handleSubmit,
     formState: { isValid, isSubmitting, isDirty },
-  } = useForm<z.infer<typeof formSchema>>({
+  } = useForm<FormValues>({
     ...createApiFormConfig(formSchema),
+    resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: {
       apiName: api.name,
       apiId: api.id,

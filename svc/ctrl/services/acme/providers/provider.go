@@ -22,7 +22,7 @@ var _ challenge.Provider = (*Provider)(nil)
 var _ challenge.ProviderTimeout = (*Provider)(nil)
 
 // DNSProvider is the interface for underlying DNS operations.
-// Both lego's cloudflare.DNSProvider and route53.DNSProvider implement this.
+// Lego's route53.DNSProvider implements this.
 type DNSProvider interface {
 	Present(domain, token, keyAuth string) error
 	CleanUp(domain, token, keyAuth string) error

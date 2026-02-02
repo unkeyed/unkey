@@ -1,6 +1,5 @@
-import type React from "react";
 import type { IconProps } from "./props";
 
-export const Icon: React.FC<IconProps> = (props) => {
+export function Icon(props: IconProps) {
   return <svg className={props.className} />;
-};
+}

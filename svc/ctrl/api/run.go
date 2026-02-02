@@ -11,18 +11,21 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
+	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"golang.org/x/net/http2"
@@ -114,6 +117,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
 
+	// Restate admin client for managing invocations
+	restateAdminClient := restateadmin.New(restateadmin.Config{
+		BaseURL: cfg.Restate.AdminURL,
+		APIKey:  cfg.Restate.APIKey,
+	})
+
 	c := cluster.New(cluster.Config{
 		Database: database,
 		Logger:   logger,
@@ -150,7 +159,7 @@ func Run(ctx context.Context, cfg Config) error {
 	mux := http.NewServeMux()
 
 	// Health check endpoint for load balancers and orchestrators
-	mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
@@ -171,6 +180,13 @@ func Run(ctx context.Context, cfg Config) error {
 		ChallengeCache: challengeCache,
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
+	mux.Handle(ctrlv1connect.NewCustomDomainServiceHandler(customdomain.New(customdomain.Config{
+		Database:     database,
+		Restate:      restateClient,
+		RestateAdmin: restateAdminClient,
+		Logger:       logger,
+		CnameDomain:  cfg.CnameDomain,
+	})))
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
@@ -221,6 +237,19 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("Server failed", "error", err)
 		}
 	}()
+
+	// Bootstrap certificates (wildcard domain and renewal cron)
+	if cfg.DefaultDomain != "" {
+		certBootstrap := &certificateBootstrap{
+			logger:         logger,
+			database:       database,
+			defaultDomain:  cfg.DefaultDomain,
+			regionalDomain: cfg.RegionalDomain,
+			regions:        cfg.AvailableRegions,
+			restateClient:  hydrav1.NewCertificateServiceIngressClient(restateClient, "global"),
+		}
+		go certBootstrap.run(ctx)
+	}
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.New(prometheus.Config{

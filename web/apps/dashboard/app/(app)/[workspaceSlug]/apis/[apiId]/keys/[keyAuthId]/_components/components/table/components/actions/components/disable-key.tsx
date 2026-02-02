@@ -11,7 +11,7 @@ import { KeyInfo } from "./key-info";
 
 const updateKeyStatusFormSchema = z.object({
   confirmStatusChange: z.boolean().refine((val) => val === true, {
-    message: "Please confirm that you want to change this key's status",
+    error: "Please confirm that you want to change this key's status",
   }),
 });
 

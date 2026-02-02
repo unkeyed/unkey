@@ -183,6 +183,50 @@ func (ns NullCustomDomainsChallengeType) Value() (driver.Value, error) {
 	return string(ns.CustomDomainsChallengeType), nil
 }
 
+type CustomDomainsVerificationStatus string
+
+const (
+	CustomDomainsVerificationStatusPending   CustomDomainsVerificationStatus = "pending"
+	CustomDomainsVerificationStatusVerifying CustomDomainsVerificationStatus = "verifying"
+	CustomDomainsVerificationStatusVerified  CustomDomainsVerificationStatus = "verified"
+	CustomDomainsVerificationStatusFailed    CustomDomainsVerificationStatus = "failed"
+)
+
+func (e *CustomDomainsVerificationStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CustomDomainsVerificationStatus(s)
+	case string:
+		*e = CustomDomainsVerificationStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CustomDomainsVerificationStatus: %T", src)
+	}
+	return nil
+}
+
+type NullCustomDomainsVerificationStatus struct {
+	CustomDomainsVerificationStatus CustomDomainsVerificationStatus
+	Valid                           bool // Valid is true if CustomDomainsVerificationStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCustomDomainsVerificationStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.CustomDomainsVerificationStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CustomDomainsVerificationStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CustomDomainsVerificationStatus), nil
+}
+
 type DeploymentTopologyDesiredStatus string
 
 const (
@@ -616,90 +660,6 @@ func (ns NullSentinelsHealth) Value() (driver.Value, error) {
 	return string(ns.SentinelsHealth), nil
 }
 
-type StateChangesOp string
-
-const (
-	StateChangesOpUpsert StateChangesOp = "upsert"
-	StateChangesOpDelete StateChangesOp = "delete"
-)
-
-func (e *StateChangesOp) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = StateChangesOp(s)
-	case string:
-		*e = StateChangesOp(s)
-	default:
-		return fmt.Errorf("unsupported scan type for StateChangesOp: %T", src)
-	}
-	return nil
-}
-
-type NullStateChangesOp struct {
-	StateChangesOp StateChangesOp
-	Valid          bool // Valid is true if StateChangesOp is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullStateChangesOp) Scan(value interface{}) error {
-	if value == nil {
-		ns.StateChangesOp, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.StateChangesOp.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullStateChangesOp) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.StateChangesOp), nil
-}
-
-type StateChangesResourceType string
-
-const (
-	StateChangesResourceTypeSentinel   StateChangesResourceType = "sentinel"
-	StateChangesResourceTypeDeployment StateChangesResourceType = "deployment"
-)
-
-func (e *StateChangesResourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = StateChangesResourceType(s)
-	case string:
-		*e = StateChangesResourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for StateChangesResourceType: %T", src)
-	}
-	return nil
-}
-
-type NullStateChangesResourceType struct {
-	StateChangesResourceType StateChangesResourceType
-	Valid                    bool // Valid is true if StateChangesResourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullStateChangesResourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.StateChangesResourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.StateChangesResourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullStateChangesResourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.StateChangesResourceType), nil
-}
-
 type VercelBindingsEnvironment string
 
 const (
@@ -937,13 +897,24 @@ type ClickhouseWorkspaceSetting struct {
 }
 
 type CustomDomain struct {
-	Pk            uint64                     `db:"pk"`
-	ID            string                     `db:"id"`
-	WorkspaceID   string                     `db:"workspace_id"`
-	Domain        string                     `db:"domain"`
-	ChallengeType CustomDomainsChallengeType `db:"challenge_type"`
-	CreatedAt     int64                      `db:"created_at"`
-	UpdatedAt     sql.NullInt64              `db:"updated_at"`
+	Pk                 uint64                          `db:"pk"`
+	ID                 string                          `db:"id"`
+	WorkspaceID        string                          `db:"workspace_id"`
+	ProjectID          string                          `db:"project_id"`
+	EnvironmentID      string                          `db:"environment_id"`
+	Domain             string                          `db:"domain"`
+	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
+	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
+	VerificationToken  string                          `db:"verification_token"`
+	OwnershipVerified  bool                            `db:"ownership_verified"`
+	CnameVerified      bool                            `db:"cname_verified"`
+	TargetCname        string                          `db:"target_cname"`
+	LastCheckedAt      sql.NullInt64                   `db:"last_checked_at"`
+	CheckAttempts      int32                           `db:"check_attempts"`
+	VerificationError  sql.NullString                  `db:"verification_error"`
+	InvocationID       sql.NullString                  `db:"invocation_id"`
+	CreatedAt          int64                           `db:"created_at"`
+	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
 }
 
 type Deployment struct {
@@ -1032,6 +1003,24 @@ type FrontlineRoute struct {
 	Sticky                   FrontlineRoutesSticky `db:"sticky"`
 	CreatedAt                int64                 `db:"created_at"`
 	UpdatedAt                sql.NullInt64         `db:"updated_at"`
+}
+
+type GithubAppInstallation struct {
+	Pk             uint64        `db:"pk"`
+	WorkspaceID    string        `db:"workspace_id"`
+	InstallationID int64         `db:"installation_id"`
+	CreatedAt      int64         `db:"created_at"`
+	UpdatedAt      sql.NullInt64 `db:"updated_at"`
+}
+
+type GithubRepoConnection struct {
+	Pk                 uint64        `db:"pk"`
+	ProjectID          string        `db:"project_id"`
+	InstallationID     int64         `db:"installation_id"`
+	RepositoryID       int64         `db:"repository_id"`
+	RepositoryFullName string        `db:"repository_full_name"`
+	CreatedAt          int64         `db:"created_at"`
+	UpdatedAt          sql.NullInt64 `db:"updated_at"`
 }
 
 type Identity struct {
@@ -1250,15 +1239,6 @@ type Sentinel struct {
 	Version           uint64                `db:"version"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
-}
-
-type StateChange struct {
-	Sequence     uint64                   `db:"sequence"`
-	ResourceType StateChangesResourceType `db:"resource_type"`
-	ResourceID   string                   `db:"resource_id"`
-	Op           StateChangesOp           `db:"op"`
-	Region       string                   `db:"region"`
-	CreatedAt    uint64                   `db:"created_at"`
 }
 
 type VercelBinding struct {

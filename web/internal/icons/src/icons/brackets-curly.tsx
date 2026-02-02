@@ -10,10 +10,9 @@
  * https://nucleoapp.com/license
  */
 
-import type React from "react";
 import { type IconProps, sizeMap } from "../props";
 
-export const BracketsCurly: React.FC<IconProps> = ({ iconSize = "xl-thin", ...props }) => {
+export function BracketsCurly({ iconSize = "xl-thin", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -44,4 +43,4 @@ export const BracketsCurly: React.FC<IconProps> = ({ iconSize = "xl-thin", ...pr
       </g>
     </svg>
   );
-};
+}

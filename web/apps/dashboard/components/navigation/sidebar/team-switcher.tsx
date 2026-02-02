@@ -22,7 +22,7 @@ import Link from "next/link";
 import type React from "react";
 import { useMemo, useState } from "react";
 
-export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
+export const WorkspaceSwitcher: React.FC = () => {
   const { isMobile, state } = useSidebar();
   const workspace = useWorkspaceNavigation();
   // Only collapsed in desktop mode, not in mobile mode

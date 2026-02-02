@@ -58,7 +58,11 @@ k8s_resource('mysql', port_forwards='3306:3306', resource_deps=[], labels=['data
 # ClickHouse service
 docker_build('unkey/clickhouse:local', '..', dockerfile='./Dockerfile.clickhouse')
 k8s_yaml('k8s/manifests/clickhouse.yaml')
-k8s_resource('clickhouse', port_forwards='8123:8123', resource_deps=[], labels=['database'])
+k8s_resource('clickhouse', port_forwards=['8123:8123','9000:9000'], resource_deps=[], labels=['database'])
+
+# Vector Logs (collects logs from krane-managed deployments -> ClickHouse)
+k8s_yaml('k8s/manifests/vector-logs.yaml')
+k8s_resource('vector-logs', resource_deps=['clickhouse', 'rbac'], labels=['observability'])
 
 # S3 (MinIO) service
 k8s_yaml('k8s/manifests/s3.yaml')
@@ -75,7 +79,7 @@ k8s_resource(
 
 # Restate service
 k8s_yaml('k8s/manifests/restate.yaml')
-k8s_resource('restate', port_forwards=['8081:8080', '9070:9070'], resource_deps=[], labels=['database'])
+k8s_resource('restate', port_forwards=['8080:8080', '9070:9070'], resource_deps=[], labels=['database'])
 
 
 # Build Go binaries locally (auto-detect arch from minikube)
@@ -141,7 +145,7 @@ k8s_yaml('k8s/manifests/ctrl-api.yaml')
 k8s_resource(
   'ctrl-api',
   port_forwards='7091:7091',
-  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'vault', 'build-unkey', 'depot-credentials'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -221,7 +225,7 @@ local_resource(
     'dashboard',
     serve_cmd='cd ../web && pnpm --filter=@unkey/dashboard dev',
     deps=[],
-    resource_deps=['planetscale', 'clickhouse', 'agent', 'ctrl'],
+    resource_deps=['planetscale', 'clickhouse', 'agent', 'ctrl-api'],
     labels=['unkey'],
     auto_init=True,
     readiness_probe=probe(http_get=http_get_action(port=3000, path='/'), period_secs=5, failure_threshold=30),

@@ -9,11 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
 
 import { type IconProps, sizeMap } from "../props";
 
-export const CircleXMark: React.FC<IconProps> = ({ iconSize, filled, ...props }) => {
+export function CircleXMark({ iconSize, filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize || "md-regular"];
   return (
     <svg
@@ -59,4 +58,4 @@ export const CircleXMark: React.FC<IconProps> = ({ iconSize, filled, ...props })
       </g>
     </svg>
   );
-};
+}

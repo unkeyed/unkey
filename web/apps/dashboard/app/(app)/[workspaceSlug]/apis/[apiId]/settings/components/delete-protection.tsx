@@ -1,5 +1,6 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, InlineLink, Input, SettingCard } from "@unkey/ui";
 import type React from "react";
@@ -36,6 +37,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
     formState: { isSubmitting },
   } = useForm<FormValues>({
     ...createApiFormConfig(formSchema),
+    resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
       name: "",

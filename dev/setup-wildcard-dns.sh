@@ -81,8 +81,15 @@ if [[ "$OS" == "macos" ]]; then
     fi
 
     # Add our configuration
-    echo "address=/unkey.local/127.0.0.1" > "$DNSMASQ_CONF"
-    echo "Configured dnsmasq to resolve *.unkey.local to 127.0.0.1"
+    {
+        echo "# Resolve all *.unkey.local to localhost"
+        echo "address=/unkey.local/127.0.0.1"
+        echo ""
+        echo "# Resolve all *.cname.unkey.local to localhost"
+        echo "# This handles unique per-project CNAME targets like k3n5p8x2.cname.unkey.local"
+        echo "address=/cname.unkey.local/127.0.0.1"
+    } > "$DNSMASQ_CONF"
+    echo "Configured dnsmasq to resolve *.unkey.local and *.cname.unkey.local to 127.0.0.1"
 
     # Start dnsmasq service
     echo ""
@@ -110,8 +117,12 @@ else
         echo "# Unkey local development DNS configuration"
         echo "# Resolve all *.unkey.local domains to localhost"
         echo "address=/unkey.local/127.0.0.1"
+        echo ""
+        echo "# Resolve all *.cname.unkey.local to localhost"
+        echo "# This handles unique per-project CNAME targets like k3n5p8x2.cname.unkey.local"
+        echo "address=/cname.unkey.local/127.0.0.1"
     } | sudo tee "$DNSMASQ_CONF" > /dev/null
-    echo "Configured dnsmasq to resolve *.unkey.local to 127.0.0.1"
+    echo "Configured dnsmasq to resolve *.unkey.local and *.cname.unkey.local to 127.0.0.1"
 
     # Restart dnsmasq service
     echo ""
@@ -143,6 +154,17 @@ echo "Test your setup with:"
 echo "  dig test.unkey.local"
 echo "  ping my-deployment.unkey.local"
 echo "  curl http://anything.unkey.local"
+echo ""
+echo "Custom Domains (CNAME verification):"
+echo "  Each project gets a unique CNAME target like: k3n5p8x2.cname.unkey.local"
+echo "  All *.cname.unkey.local domains resolve to localhost automatically."
+echo "  Test with: dig anyproject.cname.unkey.local"
+echo ""
+echo "  To test custom domain verification locally:"
+echo "    1. Create a project (it gets a unique cname_target)"
+echo "    2. Add a custom domain in the dashboard"
+echo "    3. The CNAME target will be like: abc123xyz.cname.unkey.local"
+echo "    4. Since *.cname.unkey.local resolves to localhost, verification will succeed"
 echo ""
 echo "To undo these changes:"
 if [[ "$OS" == "macos" ]]; then

@@ -18,7 +18,7 @@ export const updateRootKeyPermissions = workspaceProcedure
     z.object({
       keyId: z.string(),
       permissions: z.array(unkeyPermissionValidation).min(1, {
-        message: "You need to add at least one permission.",
+        error: "You need to add at least one permission.",
       }),
     }),
   )

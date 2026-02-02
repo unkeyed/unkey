@@ -10,11 +10,9 @@
  * https://nucleoapp.com/license
  */
 
-import type React from "react";
-
 import { type IconProps, sizeMap } from "../props";
 
-export const InputSearch: React.FC<IconProps> = ({ iconSize = "xl-medium", ...props }) => {
+export function InputSearch({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
@@ -58,4 +56,4 @@ export const InputSearch: React.FC<IconProps> = ({ iconSize = "xl-medium", ...pr
       </g>
     </svg>
   );
-};
+}

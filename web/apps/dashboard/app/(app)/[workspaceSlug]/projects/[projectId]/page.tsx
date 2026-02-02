@@ -1,13 +1,18 @@
 "use client";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
-import type { ReactNode } from "react";
+import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
+import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
+import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
+import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
+import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./(overview)/details/domain-row";
+import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
+import { useProject } from "./(overview)/layout-provider";
+import { ActiveDeploymentCard } from "./components/active-deployment-card";
+import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
-import { ActiveDeploymentCard } from "./details/active-deployment-card";
-import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./details/domain-row";
-import { EnvironmentVariablesSection } from "./details/env-variables-section";
-import { useProject } from "./layout-provider";
+import { Section, SectionHeader } from "./components/section";
+import { CustomDomainsSection } from "./details/custom-domains-section";
 
 export default function ProjectDetails() {
   const { projectId, collections } = useProject();
@@ -27,6 +32,19 @@ export default function ProjectDetails() {
 
   const { data: environments } = useLiveQuery((q) => q.from({ env: collections.environments }));
 
+  const deployment = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collections.deployments })
+        .where(({ deployment }) => eq(deployment.id, project?.liveDeploymentId)),
+    [project?.liveDeploymentId],
+  );
+  const deploymentStatus = deployment.data.at(0)?.status;
+
+  // If deployment status is not ready it means we gotta keep showing build steps.
+  // Then, user can switch between runtime(not implemented yet) and sentinel logs
+  const showBuildSteps = deploymentStatus !== "ready";
+
   return (
     <ProjectContentWrapper centered>
       <Section>
@@ -34,7 +52,21 @@ export default function ProjectDetails() {
           icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
           title="Live Deployment"
         />
-        <ActiveDeploymentCard deploymentId={project?.liveDeploymentId ?? null} />
+        <DeploymentLogsProvider>
+          <ActiveDeploymentCard
+            deploymentId={project?.liveDeploymentId ?? null}
+            statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
+            trailingContent={<DeploymentLogsTrigger showBuildSteps={showBuildSteps} />}
+            expandableContent={
+              project?.liveDeploymentId ? (
+                <DeploymentLogsContent
+                  deploymentId={project?.liveDeploymentId}
+                  showBuildSteps={showBuildSteps}
+                />
+              ) : null
+            }
+          />
+        </DeploymentLogsProvider>{" "}
       </Section>
       <Section>
         <SectionHeader
@@ -55,6 +87,16 @@ export default function ProjectDetails() {
             <DomainRowEmpty />
           )}
         </div>
+      </Section>
+      <Section>
+        <SectionHeader
+          icon={<Link4 iconSize="md-regular" className="text-gray-9" />}
+          title="Custom Domains"
+        />
+        <CustomDomainsSection
+          projectId={projectId}
+          environments={environments?.map((env) => ({ id: env.id, slug: env.slug })) ?? []}
+        />
       </Section>
       <Section>
         <SectionHeader
@@ -80,17 +122,4 @@ export default function ProjectDetails() {
       </Section>
     </ProjectContentWrapper>
   );
-}
-
-function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
-  return (
-    <div className="flex items-center gap-2.5 py-1.5 px-2">
-      {icon}
-      <div className="text-accent-12 font-medium text-[13px] leading-4">{title}</div>
-    </div>
-  );
-}
-
-function Section({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-1">{children}</div>;
 }

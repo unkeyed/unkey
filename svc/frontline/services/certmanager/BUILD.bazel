@@ -11,10 +11,11 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/vault/v1:vault",
+        "//gen/proto/vault/v1/vaultv1connect",
         "//internal/services/caches",
         "//pkg/cache",
         "//pkg/db",
         "//pkg/otel/logging",
-        "//pkg/vault",
+        "@com_connectrpc_connect//:connect",
     ],
 )

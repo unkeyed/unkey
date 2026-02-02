@@ -164,7 +164,7 @@ export function formatFilterValue(
   return transformed;
 }
 
-export function getFilterFieldIcon(field: string): JSX.Element {
+export function getFilterFieldIcon(field: string): React.ReactElement {
   const Icon = iconsPerField[field] || ChartActivity2;
   return React.createElement(Icon, {
     iconSize: "md-regular",

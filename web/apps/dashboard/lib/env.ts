@@ -6,8 +6,9 @@ export const env = () =>
       VERCEL_ENV: z
         .enum(["development", "preview", "production"])
         .optional()
-        .default("development"),
+        .prefault("development"),
       VERCEL_URL: z.string().optional(),
+      VERCEL_BRANCH_URL: z.string().optional(), // Only set in preview deployments
 
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),
@@ -24,10 +25,10 @@ export const env = () =>
 
       RATELIMIT_DEMO_ROOT_KEY: z.string().optional(),
 
-      AGENT_URL: z.string().url(),
+      AGENT_URL: z.url(),
       AGENT_TOKEN: z.string(),
 
-      CTRL_URL: z.string().url().optional(),
+      CTRL_URL: z.url().optional(),
       CTRL_API_KEY: z.string().optional(),
 
       GITHUB_KEYS_URI: z.string().optional(),
@@ -80,6 +81,14 @@ export const vercelIntegrationSchema = z.object({
 const vercelIntegrationParsed = vercelIntegrationSchema.safeParse(process.env);
 export const vercelIntegrationEnv = () =>
   vercelIntegrationParsed.success ? vercelIntegrationParsed.data : null;
+
+export const githubAppSchema = z.object({
+  GITHUB_APP_ID: z.string(), // needs to be a single line, with \n
+  GITHUB_APP_PRIVATE_KEY: z.string().transform((s) => s.replace(/\\n/g, "\n")),
+});
+
+const githubAppParsed = githubAppSchema.safeParse(process.env);
+export const githubAppEnv = () => (githubAppParsed.success ? githubAppParsed.data : null);
 
 const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),

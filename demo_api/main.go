@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"math"
+	mrand "math/rand/v2"
 	"net/http"
 	"os"
 	"regexp"
@@ -208,6 +209,9 @@ func respondWithValidationError(w http.ResponseWriter, message string, details [
 }
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -303,6 +307,10 @@ func main() {
 		_, _ = fmt.Fprint(w, os.Environ())
 	})
 
+	mux.HandleFunc("/panic", func(w http.ResponseWriter, r *http.Request) {
+		panic("Panic triggered")
+	})
+
 	mux.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -385,6 +393,57 @@ func main() {
 
 	mux.HandleFunc("/v1/timeout", func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(time.Second * 35)
+	})
+
+	mux.HandleFunc("/v1/slow", func(w http.ResponseWriter, r *http.Request) {
+		// Parse sleep duration from query param (default 2s)
+		duration := 2 * time.Second
+		if d := r.URL.Query().Get("duration"); d != "" {
+			if parsed, err := time.ParseDuration(d); err == nil {
+				duration = parsed
+			}
+		}
+
+		time.Sleep(duration)
+
+		response := map[string]interface{}{
+			"message":   fmt.Sprintf("Slept for %v", duration),
+			"timestamp": time.Now().UTC(),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(response)
+	})
+
+	mux.HandleFunc("/v1/log-random", func(w http.ResponseWriter, r *http.Request) {
+		randomData := map[string]any{
+			"request_id":  generateRequestID(),
+			"temperature": 15.0 + mrand.Float64()*20.0,
+			"user_count":  mrand.IntN(1000),
+			"is_active":   mrand.IntN(2) == 1,
+			"tags":        []string{"demo", "random", "test"}[0 : mrand.IntN(3)+1],
+			"metadata": map[string]any{
+				"region":  []string{"us-east-1", "eu-west-1", "ap-south-1"}[mrand.IntN(3)],
+				"version": fmt.Sprintf("v%d.%d.%d", mrand.IntN(5), mrand.IntN(10), mrand.IntN(20)),
+			},
+		}
+
+		slog.Info("random data logged",
+			"request_id", randomData["request_id"],
+			"temperature", randomData["temperature"],
+			"user_count", randomData["user_count"],
+			"is_active", randomData["is_active"],
+			"tags", randomData["tags"],
+			"metadata", randomData["metadata"],
+		)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"message": "random data logged to console",
+			"data":    randomData,
+		})
 	})
 
 	mux.HandleFunc("/v1/protected", func(w http.ResponseWriter, r *http.Request) {
@@ -1268,7 +1327,7 @@ components:
 		_, _ = fmt.Fprint(w, spec)
 	})
 
-	log.Printf("Demo API starting on port %s", port)
+	slog.Info("Demo API starting", "port", port)
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -1277,14 +1336,15 @@ components:
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal("Failed to start server:", err)
+			slog.Error("Failed to start server", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-shutdownChan
-	log.Println("Shutdown signal received, shutting down gracefully...")
+	slog.Info("Shutdown signal received, shutting down gracefully")
 	if err := server.Close(); err != nil {
-		log.Printf("Error during shutdown: %v", err)
+		slog.Error("Error during shutdown", "error", err)
 	}
-	log.Println("Server stopped")
+	slog.Info("Server stopped")
 }

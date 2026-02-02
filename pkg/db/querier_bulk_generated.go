@@ -13,6 +13,7 @@ type BulkQuerier interface {
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
 	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
+	InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error
 	UpsertCustomDomain(ctx context.Context, db DBTX, args []UpsertCustomDomainParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
@@ -40,7 +41,6 @@ type BulkQuerier interface {
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
 	InsertSentinels(ctx context.Context, db DBTX, args []InsertSentinelParams) error
-	InsertStateChanges(ctx context.Context, db DBTX, args []InsertStateChangeParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 	UpsertWorkspace(ctx context.Context, db DBTX, args []UpsertWorkspaceParams) error
 }

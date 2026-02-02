@@ -4,6 +4,7 @@ import { useEditRatelimits } from "@/hooks/use-edit-ratelimits";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { RatelimitFormValues } from "@/lib/schemas/ratelimit";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
+import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
@@ -22,7 +23,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
   const methods = usePersistedForm<RatelimitFormValues>(
     `${EDIT_RATELIMITS_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
-      resolver: zodResolver(ratelimitSchema),
+      resolver: zodResolver(ratelimitSchema) as DiscriminatedUnionResolver<typeof ratelimitSchema>,
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,
