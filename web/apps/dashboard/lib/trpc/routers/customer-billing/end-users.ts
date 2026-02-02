@@ -149,16 +149,32 @@ export const createEndUser = workspaceProcedure
     const now = Date.now();
     const endUserId = newId("billingEndUser");
 
-    // Create real Stripe customer (like Go backend does)
-    const stripe = getStripeClient();
-    const stripeCustomer = await stripe.customers.create({
-      email: input.email,
-      name: input.name,
-      metadata: {
-        workspace_id: ctx.workspace.id,
-        external_id: input.externalId,
-      },
+    // Get connected account for workspace to create customer on connected account
+    const connectedAccount = await db.query.billingConnectedAccounts.findFirst({
+      where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
     });
+    if (!connectedAccount || !connectedAccount.stripeAccountId) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Stripe account not connected",
+      });
+    }
+
+    // Create real Stripe customer on connected account
+    const stripe = getStripeClient();
+    const stripeCustomer = await stripe.customers.create(
+      {
+        email: input.email,
+        name: input.name,
+        metadata: {
+          workspace_id: ctx.workspace.id,
+          external_id: input.externalId,
+        },
+      },
+      {
+        stripeAccount: connectedAccount.stripeAccountId,
+      }
+    );
 
     await db.insert(schema.billingEndUsers).values({
       id: endUserId,
@@ -297,16 +313,21 @@ export const upsertEndUser = workspaceProcedure
 
     const id = newId("billingEndUser");
 
-    // Create real Stripe customer (like Go backend does)
+    // Create real Stripe customer on connected account
     const stripe = getStripeClient();
-    const stripeCustomer = await stripe.customers.create({
-      email: input.email,
-      name: input.name,
-      metadata: {
-        workspace_id: ctx.workspace.id,
-        external_id: input.externalId,
+    const stripeCustomer = await stripe.customers.create(
+      {
+        email: input.email,
+        name: input.name,
+        metadata: {
+          workspace_id: ctx.workspace.id,
+          external_id: input.externalId,
+        },
       },
-    });
+      {
+        stripeAccount: connectedAccount.stripeAccountId,
+      }
+    );
 
     await db.insert(schema.billingEndUsers).values({
       id,
