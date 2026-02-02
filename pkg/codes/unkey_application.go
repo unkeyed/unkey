@@ -17,6 +17,12 @@ type appValidation struct {
 
 	// AssertionFailed indicates a runtime assertion or invariant check failed.
 	AssertionFailed Code
+
+	// MissingBody indicates a request body is required but was not provided.
+	MissingBody Code
+
+	// UnsupportedMediaType indicates the request Content-Type is not supported.
+	UnsupportedMediaType Code
 }
 
 // appProtection defines errors related to resource protection mechanisms.
@@ -57,8 +63,10 @@ var App = UnkeyAppErrors{
 	},
 
 	Validation: appValidation{
-		InvalidInput:    Code{SystemUnkey, CategoryUnkeyApplication, "invalid_input"},
-		AssertionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "assertion_failed"},
+		InvalidInput:         Code{SystemUnkey, CategoryUnkeyApplication, "invalid_input"},
+		AssertionFailed:      Code{SystemUnkey, CategoryUnkeyApplication, "assertion_failed"},
+		MissingBody:          Code{SystemUnkey, CategoryUnkeyApplication, "missing_body"},
+		UnsupportedMediaType: Code{SystemUnkey, CategoryUnkeyApplication, "unsupported_media_type"},
 	},
 
 	Protection: appProtection{

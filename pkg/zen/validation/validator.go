@@ -177,7 +177,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (ValidationEr
 }
 
 // validateSecurity validates security requirements for the operation
-func (v *Validator) validateSecurity(r *http.Request, requirements []SecurityRequirement, requestID string) *UnauthorizedError {
+func (v *Validator) validateSecurity(r *http.Request, requirements []SecurityRequirement, requestID string) *SecurityError {
 	// If no security requirements defined, the operation is public
 	if len(requirements) == 0 {
 		return nil
