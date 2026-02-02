@@ -96,7 +96,7 @@ func (v *Validator) validateContentType(r *http.Request, compiledOp *CompiledOpe
 
 // validateBody validates the request body against the schema
 func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledOp *CompiledOperation) (ValidationErrorResponse, bool) {
-	requestID := ctxutil.GetRequestId(ctx)
+	requestID := ctxutil.GetRequestID(ctx)
 
 	// Check if body is required
 	if compiledOp != nil && compiledOp.BodyRequired {
