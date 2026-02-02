@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/customer"
 	"github.com/stripe/stripe-go/v81/invoice"
 	"github.com/stripe/stripe-go/v81/invoiceitem"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
@@ -432,6 +433,36 @@ func (s *billingService) createStripeInvoice(
 	platformFee int64,
 ) (string, error) {
 	stripe.Key = s.stripeKey
+
+	// Ensure customer exists on connected account
+	// If customer doesn't exist on connected account, create it
+	customerParams := &stripe.CustomerParams{}
+	customerParams.SetStripeAccount(connectedAccount.StripeAccountID)
+	_, err := customer.Get(endUser.StripeCustomerID, customerParams)
+	if err != nil {
+		// Check if error is "resource_missing" (customer doesn't exist)
+		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
+			// Customer doesn't exist on connected account, create it
+			newCustomer, newErr := customer.New(customerParams)
+			if newErr != nil {
+				return "", fault.Wrap(
+					newErr,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal(fmt.Sprintf("failed to create Stripe customer: %v", newErr)),
+					fault.Public("Failed to create customer in Stripe"),
+				)
+			}
+			// Customer created successfully
+			_ = newCustomer.ID // Satisfy linter
+		} else {
+			return "", fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal(fmt.Sprintf("failed to get Stripe customer: %v", err)),
+				fault.Public("Failed to get customer from Stripe"),
+			)
+		}
+	}
 
 	// Create invoice items for verifications
 	if usage.Verifications > 0 {
