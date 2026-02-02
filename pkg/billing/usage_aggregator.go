@@ -85,6 +85,9 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 	endYear := int16(periodEnd.Year())
 	endMonth := int8(periodEnd.Month())
 
+	fmt.Printf("DEBUG: AggregateUsage: workspaceID=%s, startYear=%d, startMonth=%d, endYear=%d, endMonth=%d\n",
+		workspaceID, startYear, startMonth, endYear, endMonth)
+
 	verificationRows, err := u.clickhouse.QueryToMaps(ctx, verificationsQuery,
 		workspaceID,
 		startYear, endYear,   // year >= startYear AND year <= endYear
@@ -93,6 +96,11 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 		endYear, endMonth)     // (year = endYear AND month <= endMonth) - end month
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query verifications for usage aggregation"))
+	}
+
+	fmt.Printf("DEBUG: AggregateUsage: verificationRows=%d\n", len(verificationRows))
+	for i, row := range verificationRows {
+		fmt.Printf("DEBUG: AggregateUsage: verificationRow[%d]=%v\n", i, row)
 	}
 
 	// Query credits for all months in the period
@@ -121,6 +129,8 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query credits for usage aggregation"))
 	}
+
+	fmt.Printf("DEBUG: AggregateUsage: verificationRows=%d, creditRows=%d\n", len(verificationRows), len(creditRows))
 
 	// Process verifications
 	for _, row := range verificationRows {
