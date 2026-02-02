@@ -1,0 +1,82 @@
+---
+title: "unsupported_media_type"
+description: "Request Content-Type is not supported by this endpoint"
+---
+
+<Danger>`err:unkey:application:unsupported_media_type`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Unsupported Content-Type: application/text",
+    "status": 415,
+    "title": "Bad Request",
+    "type": "https://unkey.com/docs/errors/unkey/application/unsupported_media_type",
+    "errors": [
+      {
+        "location": "header.Content-Type",
+        "message": "Content-Type 'application/text' is not supported for this operation",
+        "fix": "Use one of the supported content types: application/json"
+      }
+    ]
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when your request uses a `Content-Type` header that the endpoint doesn't support. Unkey's API endpoints that accept request bodies require `application/json` as the content type.
+
+Common causes include:
+- Missing the `Content-Type` header entirely
+- Using `application/text`, `text/plain`, or other non-JSON content types
+- Typos in the content type (e.g., `application/JSON` or `aplication/json`)
+
+Here's an example of a request that would trigger this error:
+
+```bash
+# Incorrect: Using application/text instead of application/json
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Content-Type: application/text" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{"key": "my_api_key"}'
+```
+
+## How To Fix
+
+Set the `Content-Type` header to `application/json` in your request:
+
+```bash
+# Correct: Using application/json
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{"key": "my_api_key"}'
+```
+
+If you're using an HTTP client library, ensure it's configured to send JSON:
+
+```typescript
+// Using fetch
+fetch("https://api.unkey.com/v2/keys.verifyKey", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer unkey_YOUR_API_KEY"
+  },
+  body: JSON.stringify({ key: "my_api_key" })
+});
+```
+
+## Common Mistakes
+
+- **Forgetting the header**: Some HTTP clients don't automatically set `Content-Type` when sending JSON
+- **Using form encoding**: Setting `application/x-www-form-urlencoded` instead of `application/json`
+- **Case sensitivity issues**: While HTTP headers are case-insensitive, the content type value should be lowercase `application/json`
+
+## Related Errors
+- [err:unkey:application:invalid_input](./invalid_input) - When the request body fails JSON schema validation

@@ -4,7 +4,6 @@ go_library(
     name = "validation",
     srcs = [
         "compiler.go",
-        "content_validation.go",
         "errors.go",
         "matcher.go",
         "parameters.go",
@@ -36,9 +35,7 @@ go_test(
     srcs = [
         "body_test.go",
         "compiler_test.go",
-        "content_test.go",
         "discriminator_test.go",
-        "edge_cases_test.go",
         "errors_test.go",
         "matcher_test.go",
         "parameters_test.go",
