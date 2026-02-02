@@ -1,7 +1,7 @@
 "use client";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Cloud, Earth, FolderCloud, Page2 } from "@unkey/icons";
+import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
 import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
 import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
@@ -12,6 +12,7 @@ import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
+import { CustomDomainsSection } from "./details/custom-domains-section";
 
 export default function ProjectDetails() {
   const { projectId, collections } = useProject();
@@ -86,6 +87,16 @@ export default function ProjectDetails() {
             <DomainRowEmpty />
           )}
         </div>
+      </Section>
+      <Section>
+        <SectionHeader
+          icon={<Link4 iconSize="md-regular" className="text-gray-9" />}
+          title="Custom Domains"
+        />
+        <CustomDomainsSection
+          projectId={projectId}
+          environments={environments?.map((env) => ({ id: env.id, slug: env.slug })) ?? []}
+        />
       </Section>
       <Section>
         <SectionHeader

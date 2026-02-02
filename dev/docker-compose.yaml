@@ -351,6 +351,7 @@ services:
 
       # Restate configuration (ctrl api only needs ingress client, not server)
       UNKEY_RESTATE_INGRESS_URL: "http://restate:8080"
+      UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"
       UNKEY_RESTATE_API_KEY: ""
 
       # Build configuration (for presigned URLs)
@@ -365,6 +366,7 @@ services:
 
       # Certificate bootstrap
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
+      UNKEY_CNAME_DOMAIN: "unkey.local"
 
   ctrl-worker:
     networks:
@@ -409,6 +411,7 @@ services:
 
       # Domain configuration (used by deploy and routing services)
       UNKEY_DEFAULT_DOMAIN: "unkey.local"
+      UNKEY_CNAME_DOMAIN: "unkey.local"
 
       # Restate configuration
       UNKEY_RESTATE_ADMIN_URL: "http://restate:9070"
