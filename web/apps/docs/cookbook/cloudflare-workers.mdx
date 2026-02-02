@@ -16,10 +16,10 @@ npm install @unkey/api
 ## Basic Worker
 
 ```typescript src/index.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
 
 export interface Env {
-  UNKEY_API_ID: string;
+  UNKEY_ROOT_KEY: string;
 }
 
 export default {
@@ -34,12 +34,11 @@ export default {
       );
     }
     
+    const unkey = new Unkey({ rootKey: env.UNKEY_ROOT_KEY });
     const apiKey = authHeader.slice(7);
 
-    // 2. Verify with Unkey (v2 returns { meta, data, error })
-    const { meta, data, error } = await verifyKey({
-      key: apiKey,
-    });
+    // 2. Verify with Unkey (v2 returns { meta, data})
+    const result = await unkey.keys.verifyKey(apiKey);
 
     // 3. Handle errors
     if (error) {
@@ -71,7 +70,7 @@ export default {
 ## Configure Secrets
 
 ```bash
-npx wrangler secret put UNKEY_API_ID
+npx wrangler secret put UNKEY_ROOT_KEY
 # Enter your API ID when prompted
 ```
 
@@ -90,7 +89,7 @@ import { Hono } from "hono";
 import { unkey } from "@unkey/hono";
 
 type Bindings = {
-  UNKEY_API_ID: string;
+  UNKEY_ROOT_KEY: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -139,12 +138,14 @@ export default app;
 Create a clean middleware pattern:
 
 ```typescript src/middleware/auth.ts
-import { verifyKey, VerifyKeyResult } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+import { UnkeyError } from "@unkey/api/models/errors";
+import { V2KeysVerifyKeyResponseData } from "@unkey/api/models/components";
 import { Context, Next } from "hono";
 
 declare module "hono" {
   interface ContextVariableMap {
-    auth: VerifyKeyResult;
+    auth: V2KeysVerifyKeyResponseData;
   }
 }
 
@@ -152,6 +153,10 @@ interface AuthOptions {
   getKey?: (c: Context) => string | null;
   permissions?: string;
 }
+
+type Bindings = {
+  UNKEY_ROOT_KEY: string;
+};
 
 export function authMiddleware(options: AuthOptions = {}) {
   return async (c: Context, next: Next) => {
@@ -164,25 +169,27 @@ export function authMiddleware(options: AuthOptions = {}) {
     if (!apiKey) {
       return c.json({ error: "Missing API key" }, 401);
     }
-
-    const { meta, data, error } = await verifyKey({
-      key: apiKey,
-      permissions: options.permissions,
+    
+    const unkey = new Unkey({
+      rootKey: c.env.UNKEY_ROOT_KEY,
     });
-
-    if (error) {
+    
+    try {
+        const { data } = await unkey.keys.verifyKey({
+          key: authHeader.slice(7),
+        });
+  
+        if (!data.valid) {
+          if (data.code === "INSUFFICIENT_PERMISSIONS") {
+            return c.json({ error: "Forbidden" }, 403);
+          }
+          return c.json({ error: data.code }, { status: 401 });
+        }
+        c.set("auth", data);
+        await next();
+    } catch (err) {
       return c.json({ error: "Service unavailable" }, 503);
     }
-
-    if (!data.valid) {
-      if (data.code === "INSUFFICIENT_PERMISSIONS") {
-        return c.json({ error: "Forbidden" }, 403);
-      }
-      return c.json({ error: data.code }, 401);
-    }
-
-    c.set("auth", data);
-    await next();
   };
 }
 ```
@@ -227,6 +234,11 @@ export default app;
 Add standard rate limit headers:
 
 ```typescript src/middleware/auth.ts
+
+import { Unkey } from "@unkey/api";
+import { UnkeyError } from "@unkey/api/models/errors";
+import { V2KeysVerifyKeyResponseData } from "@unkey/api/models/components";
+
 export function authMiddleware(options: AuthOptions = {}) {
   return async (c: Context, next: Next) => {
     const apiKey = c.req.header("Authorization")?.replace("Bearer ", "");
@@ -234,14 +246,10 @@ export function authMiddleware(options: AuthOptions = {}) {
     if (!apiKey) {
       return c.json({ error: "Missing API key" }, 401);
     }
-
+    try {
     const { meta, data, error } = await verifyKey({
       key: apiKey,
     });
-
-    if (error) {
-      return c.json({ error: "Service unavailable" }, 503);
-    }
 
     // Set rate limit headers (v2 uses ratelimits array)
     if (data.ratelimits?.[0]) {
@@ -262,6 +270,9 @@ export function authMiddleware(options: AuthOptions = {}) {
 
     c.set("auth", data);
     await next();
+    } catch (err) {
+      return c.json({ error: "Service unavailable" }, 503);
+    }
   };
 }
 ```
@@ -273,12 +284,15 @@ export function authMiddleware(options: AuthOptions = {}) {
 For stateful applications with Durable Objects:
 
 ```typescript src/index.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
 import { DurableObject } from "cloudflare:workers";
 
 export interface Env {
   COUNTER: DurableObjectNamespace;
 }
+
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export class Counter extends DurableObject {
   async fetch(request: Request) {
@@ -297,12 +311,11 @@ export default {
     if (!apiKey) {
       return Response.json({ error: "Missing API key" }, { status: 401 });
     }
+    try {
+    const {data,meta} = await unkey.keys.verifyKey({
+      key: apiKey)}
 
-    const { meta, data, error } = await verifyKey({
-      key: apiKey,
-    });
-
-    if (error || !data.valid) {
+    if (!data.valid) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -311,6 +324,9 @@ export default {
     const counter = env.COUNTER.get(id);
     
     return counter.fetch(request);
+  } catch (error) {
+    return Response.json({ error: "Service unavailable" }, { status: 503 });
+  }
   },
 };
 ```
@@ -325,11 +341,11 @@ main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 [vars]
-# Non-sensitive config (API_ID is safe to include)
-# UNKEY_API_ID = "api_..."  # Or use secrets for all
+# Non-sensitive config (UNKEY_ROOT_KEY is safe to include)
+# UNKEY_ROOT_KEY = "unkey_..."  # Or use secrets for all
 
 # Use secrets for sensitive values
-# npx wrangler secret put UNKEY_API_ID
+# npx wrangler secret put UNKEY_ROOT_KEY
 ```
 
 ---

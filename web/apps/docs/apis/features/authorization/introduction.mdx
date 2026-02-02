@@ -49,9 +49,8 @@ Unkey provides Role-Based Access Control (RBAC) that lets you:
 
 ```typescript
 // When verifying, check for required permission
-const { meta, data } = await verifyKey({
+const { meta, data } = await unkey.keys.verifyKey({
   key: "sk_...",
-  apiId: "api_...",
   permissions: "documents.write",  // Key must have this permission
 });
 

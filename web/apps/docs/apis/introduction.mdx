@@ -42,7 +42,11 @@ Here's what verification looks like in practice:
 <CodeGroup>
 
 ```ts TypeScript
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY!
+});
 
 export async function handler(req: Request) {
   // 1. Extract the key from the Authorization header
@@ -51,27 +55,22 @@ export async function handler(req: Request) {
   if (!key) {
     return new Response("Missing API key", { status: 401 });
   }
-
+  
+  try {
   // 2. Verify with Unkey (v2 returns { meta, data, error })
-  const { meta, data, error } = await verifyKey({ key });
-
-  if (error) {
-    // Network error — decide how to handle (fail open/closed)
-    console.error(error);
-    return new Response("Service unavailable", { status: 503 });
-  }
+  const { meta, data } = await unkey.keys.verifyKey({ key });
 
   if (!data.valid) {
     // Key is invalid, expired, rate limited, or has no remaining uses
     return new Response("Unauthorized", { status: 401 });
   }
-
-  // 3. Key is valid — data contains useful metadata
-  console.log(`Request from: ${data.identity?.externalId}`);
-  console.log(`Remaining credits: ${data.remaining}`);
-  
   // Continue with your API logic...
   return new Response("Hello!");
+  } catch (error) {
+    // Network error — decide how to handle (fail open/closed)
+    console.error(error);
+    return new Response("Service unavailable", { status: 503 });
+  }
 }
 ```
 
