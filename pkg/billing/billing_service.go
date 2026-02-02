@@ -28,7 +28,7 @@ const PlatformFeePercent = 0.03 // 3%
 // BillingService manages invoice generation, payment collection, and billing analytics.
 type BillingService interface {
 	// GenerateInvoices generates invoices for monthly billing period (no manual trigger)
-	GenerateInvoices(ctx context.Context, workspaceID string, periodStart, periodEnd time.Time) error
+	GenerateInvoices(ctx context.Context, workspaceID string, periodStart, periodEnd time.Time) (UsageStats, error)
 
 	// GetInvoice retrieves invoice by ID
 	GetInvoice(ctx context.Context, id string) (*Invoice, error)
