@@ -130,96 +130,6 @@ func (x *RunCheckResponse) GetNotificationsSent() int32 {
 	return 0
 }
 
-type SendMonthlySummaryRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Slack webhook URL for the summary notification
-	SlackWebhookUrl string `protobuf:"bytes,1,opt,name=slack_webhook_url,json=slackWebhookUrl,proto3" json:"slack_webhook_url,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *SendMonthlySummaryRequest) Reset() {
-	*x = SendMonthlySummaryRequest{}
-	mi := &file_hydra_v1_quota_check_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendMonthlySummaryRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendMonthlySummaryRequest) ProtoMessage() {}
-
-func (x *SendMonthlySummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_quota_check_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendMonthlySummaryRequest.ProtoReflect.Descriptor instead.
-func (*SendMonthlySummaryRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_quota_check_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *SendMonthlySummaryRequest) GetSlackWebhookUrl() string {
-	if x != nil {
-		return x.SlackWebhookUrl
-	}
-	return ""
-}
-
-type SendMonthlySummaryResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Number of workspaces included in the summary
-	WorkspacesInSummary int32 `protobuf:"varint,1,opt,name=workspaces_in_summary,json=workspacesInSummary,proto3" json:"workspaces_in_summary,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *SendMonthlySummaryResponse) Reset() {
-	*x = SendMonthlySummaryResponse{}
-	mi := &file_hydra_v1_quota_check_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendMonthlySummaryResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendMonthlySummaryResponse) ProtoMessage() {}
-
-func (x *SendMonthlySummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_quota_check_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendMonthlySummaryResponse.ProtoReflect.Descriptor instead.
-func (*SendMonthlySummaryResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_quota_check_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *SendMonthlySummaryResponse) GetWorkspacesInSummary() int32 {
-	if x != nil {
-		return x.WorkspacesInSummary
-	}
-	return 0
-}
-
 var File_hydra_v1_quota_check_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_quota_check_proto_rawDesc = "" +
@@ -230,14 +140,9 @@ const file_hydra_v1_quota_check_proto_rawDesc = "" +
 	"\x10RunCheckResponse\x12-\n" +
 	"\x12workspaces_checked\x18\x01 \x01(\x05R\x11workspacesChecked\x12/\n" +
 	"\x13workspaces_exceeded\x18\x02 \x01(\x05R\x12workspacesExceeded\x12-\n" +
-	"\x12notifications_sent\x18\x03 \x01(\x05R\x11notificationsSent\"G\n" +
-	"\x19SendMonthlySummaryRequest\x12*\n" +
-	"\x11slack_webhook_url\x18\x01 \x01(\tR\x0fslackWebhookUrl\"P\n" +
-	"\x1aSendMonthlySummaryResponse\x122\n" +
-	"\x15workspaces_in_summary\x18\x01 \x01(\x05R\x13workspacesInSummary2\xc1\x01\n" +
+	"\x12notifications_sent\x18\x03 \x01(\x05R\x11notificationsSent2^\n" +
 	"\x11QuotaCheckService\x12C\n" +
-	"\bRunCheck\x12\x19.hydra.v1.RunCheckRequest\x1a\x1a.hydra.v1.RunCheckResponse\"\x00\x12a\n" +
-	"\x12SendMonthlySummary\x12#.hydra.v1.SendMonthlySummaryRequest\x1a$.hydra.v1.SendMonthlySummaryResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
+	"\bRunCheck\x12\x19.hydra.v1.RunCheckRequest\x1a\x1a.hydra.v1.RunCheckResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
 	"\fcom.hydra.v1B\x0fQuotaCheckProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -252,20 +157,16 @@ func file_hydra_v1_quota_check_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_quota_check_proto_rawDescData
 }
 
-var file_hydra_v1_quota_check_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_hydra_v1_quota_check_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_hydra_v1_quota_check_proto_goTypes = []any{
-	(*RunCheckRequest)(nil),            // 0: hydra.v1.RunCheckRequest
-	(*RunCheckResponse)(nil),           // 1: hydra.v1.RunCheckResponse
-	(*SendMonthlySummaryRequest)(nil),  // 2: hydra.v1.SendMonthlySummaryRequest
-	(*SendMonthlySummaryResponse)(nil), // 3: hydra.v1.SendMonthlySummaryResponse
+	(*RunCheckRequest)(nil),  // 0: hydra.v1.RunCheckRequest
+	(*RunCheckResponse)(nil), // 1: hydra.v1.RunCheckResponse
 }
 var file_hydra_v1_quota_check_proto_depIdxs = []int32{
 	0, // 0: hydra.v1.QuotaCheckService.RunCheck:input_type -> hydra.v1.RunCheckRequest
-	2, // 1: hydra.v1.QuotaCheckService.SendMonthlySummary:input_type -> hydra.v1.SendMonthlySummaryRequest
-	1, // 2: hydra.v1.QuotaCheckService.RunCheck:output_type -> hydra.v1.RunCheckResponse
-	3, // 3: hydra.v1.QuotaCheckService.SendMonthlySummary:output_type -> hydra.v1.SendMonthlySummaryResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	1, // 1: hydra.v1.QuotaCheckService.RunCheck:output_type -> hydra.v1.RunCheckResponse
+	1, // [1:2] is the sub-list for method output_type
+	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -282,7 +183,7 @@ func file_hydra_v1_quota_check_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_quota_check_proto_rawDesc), len(file_hydra_v1_quota_check_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

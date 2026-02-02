@@ -27,11 +27,6 @@ type QuotaCheckServiceClient interface {
 	//
 	// Key: billing period in "YYYY-MM" format (e.g., "2026-01")
 	RunCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunCheckRequest, *RunCheckResponse]
-	// SendMonthlySummary sends a summary of all exceeded workspaces for the month.
-	// Intended to be called on the last day of the billing period.
-	//
-	// Key: billing period in "YYYY-MM" format (e.g., "2026-01")
-	SendMonthlySummary(opts ...sdk_go.ClientOption) sdk_go.Client[*SendMonthlySummaryRequest, *SendMonthlySummaryResponse]
 }
 
 type quotaCheckServiceClient struct {
@@ -56,14 +51,6 @@ func (c *quotaCheckServiceClient) RunCheck(opts ...sdk_go.ClientOption) sdk_go.C
 	return sdk_go.WithRequestType[*RunCheckRequest](sdk_go.Object[*RunCheckResponse](c.ctx, "hydra.v1.QuotaCheckService", c.key, "RunCheck", cOpts...))
 }
 
-func (c *quotaCheckServiceClient) SendMonthlySummary(opts ...sdk_go.ClientOption) sdk_go.Client[*SendMonthlySummaryRequest, *SendMonthlySummaryResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*SendMonthlySummaryRequest](sdk_go.Object[*SendMonthlySummaryResponse](c.ctx, "hydra.v1.QuotaCheckService", c.key, "SendMonthlySummary", cOpts...))
-}
-
 // QuotaCheckServiceIngressClient is the ingress client API for hydra.v1.QuotaCheckService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -74,11 +61,6 @@ type QuotaCheckServiceIngressClient interface {
 	//
 	// Key: billing period in "YYYY-MM" format (e.g., "2026-01")
 	RunCheck() ingress.Requester[*RunCheckRequest, *RunCheckResponse]
-	// SendMonthlySummary sends a summary of all exceeded workspaces for the month.
-	// Intended to be called on the last day of the billing period.
-	//
-	// Key: billing period in "YYYY-MM" format (e.g., "2026-01")
-	SendMonthlySummary() ingress.Requester[*SendMonthlySummaryRequest, *SendMonthlySummaryResponse]
 }
 
 type quotaCheckServiceIngressClient struct {
@@ -100,11 +82,6 @@ func (c *quotaCheckServiceIngressClient) RunCheck() ingress.Requester[*RunCheckR
 	return ingress.NewRequester[*RunCheckRequest, *RunCheckResponse](c.client, c.serviceName, "RunCheck", &c.key, &codec)
 }
 
-func (c *quotaCheckServiceIngressClient) SendMonthlySummary() ingress.Requester[*SendMonthlySummaryRequest, *SendMonthlySummaryResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*SendMonthlySummaryRequest, *SendMonthlySummaryResponse](c.client, c.serviceName, "SendMonthlySummary", &c.key, &codec)
-}
-
 // QuotaCheckServiceServer is the server API for hydra.v1.QuotaCheckService service.
 // All implementations should embed UnimplementedQuotaCheckServiceServer
 // for forward compatibility.
@@ -121,11 +98,6 @@ type QuotaCheckServiceServer interface {
 	//
 	// Key: billing period in "YYYY-MM" format (e.g., "2026-01")
 	RunCheck(ctx sdk_go.ObjectContext, req *RunCheckRequest) (*RunCheckResponse, error)
-	// SendMonthlySummary sends a summary of all exceeded workspaces for the month.
-	// Intended to be called on the last day of the billing period.
-	//
-	// Key: billing period in "YYYY-MM" format (e.g., "2026-01")
-	SendMonthlySummary(ctx sdk_go.ObjectContext, req *SendMonthlySummaryRequest) (*SendMonthlySummaryResponse, error)
 }
 
 // UnimplementedQuotaCheckServiceServer should be embedded to have
@@ -137,9 +109,6 @@ type UnimplementedQuotaCheckServiceServer struct{}
 
 func (UnimplementedQuotaCheckServiceServer) RunCheck(ctx sdk_go.ObjectContext, req *RunCheckRequest) (*RunCheckResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunCheck not implemented"), 501)
-}
-func (UnimplementedQuotaCheckServiceServer) SendMonthlySummary(ctx sdk_go.ObjectContext, req *SendMonthlySummaryRequest) (*SendMonthlySummaryResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method SendMonthlySummary not implemented"), 501)
 }
 func (UnimplementedQuotaCheckServiceServer) testEmbeddedByValue() {}
 
@@ -161,6 +130,5 @@ func NewQuotaCheckServiceServer(srv QuotaCheckServiceServer, opts ...sdk_go.Serv
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.QuotaCheckService", sOpts...)
 	router = router.Handler("RunCheck", sdk_go.NewObjectHandler(srv.RunCheck))
-	router = router.Handler("SendMonthlySummary", sdk_go.NewObjectHandler(srv.SendMonthlySummary))
 	return router
 }
