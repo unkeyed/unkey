@@ -93,45 +93,41 @@ func (s *Service) RunCheck(
 				return s.clickhouse.GetBillableVerifications(rc, ws.Workspace.ID, year, month)
 			}, restate.WithName("get verifications "+ws.Workspace.ID))
 			if verErr != nil {
-				s.logger.Error("failed to get verifications", "workspace_id", ws.Workspace.ID, "error", verErr)
-				continue
+				return nil, fmt.Errorf("failed to get verifications: %w", verErr)
 			}
 
 			usedRatelimits, rlErr := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
 				return s.clickhouse.GetBillableRatelimits(rc, ws.Workspace.ID, year, month)
 			}, restate.WithName("get ratelimits "+ws.Workspace.ID))
 			if rlErr != nil {
-				s.logger.Error("failed to get ratelimits", "workspace_id", ws.Workspace.ID, "error", rlErr)
-				continue
+				return nil, fmt.Errorf("failed to get ratelimits: %w", rlErr)
 			}
 
 			usage := usedVerifications + usedRatelimits
 
-			if usage > ws.Quotas.RequestsPerMonth {
-				e := exceededWorkspace{
-					Workspace: ws.Workspace,
-					Quota:     ws.Quotas,
-					Used:      usage,
-				}
-				exceeded = append(exceeded, e)
-
-				// Send notification
-				if req.GetSlackWebhookUrl() != "" {
-					_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-						return restate.Void{}, sendSlackNotification(req.GetSlackWebhookUrl(), e)
-					}, restate.WithName("notify "+ws.Workspace.ID))
-					if notifyErr != nil {
-						s.logger.Error("failed to send slack notification",
-							"workspace_id", ws.Workspace.ID,
-							"error", notifyErr,
-						)
-						continue
-					}
-				}
-
-				notified[ws.Workspace.ID] = true
-				newlyNotified = append(newlyNotified, ws.Workspace.ID)
+			if usage < ws.Quotas.RequestsPerMonth {
+				continue
 			}
+
+			e := exceededWorkspace{
+				Workspace: ws.Workspace,
+				Quota:     ws.Quotas,
+				Used:      usage,
+			}
+
+			// Send notification
+			if req.GetSlackWebhookUrl() != "" {
+				_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+					return restate.Void{}, sendSlackNotification(req.GetSlackWebhookUrl(), e)
+				}, restate.WithName("notify "+ws.Workspace.ID))
+				if notifyErr != nil {
+					return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
+				}
+			}
+
+			exceeded = append(exceeded, e)
+			notified[ws.Workspace.ID] = true
+			newlyNotified = append(newlyNotified, ws.Workspace.ID)
 		}
 	}
 
