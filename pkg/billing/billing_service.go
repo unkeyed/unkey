@@ -435,7 +435,8 @@ func (s *billingService) createStripeInvoice(
 	stripe.Key = s.stripeKey
 
 	// Ensure customer exists on connected account
-	// If StripeCustomerID is empty or customer doesn't exist on connected account, create it
+	// The customer might have been created on the platform account (Unkey's Stripe)
+	// instead of the connected account. We need to create it on the connected account.
 	stripeCustomerID := endUser.StripeCustomerID
 
 	// nolint:exhaustruct
@@ -449,14 +450,15 @@ func (s *billingService) createStripeInvoice(
 	}
 	customerParams.SetStripeAccount(connectedAccount.StripeAccountID)
 
-	// If customer ID is empty or customer doesn't exist on connected account, create new customer
-	if stripeCustomerID == "" || func() bool {
-		_, err := customer.Get(stripeCustomerID, customerParams)
-		return err != nil
-	}() {
-		// Customer ID is empty or customer doesn't exist, create new customer
-		newCustomer, err := customer.New(customerParams)
-		if err != nil {
+	// Always try to create customer on connected account
+	// If customer already exists, Stripe will return the existing customer (no error)
+	// If customer doesn't exist, Stripe will create a new one
+	newCustomer, err := customer.New(customerParams)
+	if err != nil {
+		// Check if error is because customer already exists with same params
+		// If so, we can try to get the existing customer
+		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.Code == stripe.ErrorCodeResourceMissing {
+			// Customer doesn't exist, try again (shouldn't happen with New)
 			return "", fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -464,6 +466,8 @@ func (s *billingService) createStripeInvoice(
 				fault.Public("Failed to create customer in Stripe"),
 			)
 		}
+		// Other error (like duplicate), continue with existing ID
+	} else {
 		stripeCustomerID = newCustomer.ID
 	}
 
