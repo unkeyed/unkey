@@ -3,9 +3,9 @@ package billing
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
-	"github.com/ClickHouse/ch-go/v4/types"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -21,16 +21,32 @@ func extractString(value interface{}) (string, bool) {
 		return v, true
 	case []byte:
 		return string(v), true
-	case types.Variant:
-		// ClickHouse Variant type - extract the underlying value
-		inner := v.Value()
-		if innerStr, ok := inner.(string); ok {
-			return innerStr, true
-		}
-		return "", false
 	default:
-		return "", false
+		return extractStringFromReflect(value)
 	}
+}
+
+// extractStringFromReflect handles non-string types using reflection
+func extractStringFromReflect(value interface{}) (string, bool) {
+	rv := reflect.ValueOf(value)
+	if rv.Kind() == reflect.Interface {
+		rv = rv.Elem()
+	}
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+
+	// Check if it's a struct with a Value field (Variant-like)
+	if rv.Kind() == reflect.Struct {
+		fv := rv.FieldByName("Value")
+		if fv.IsValid() && fv.Kind() == reflect.Interface {
+			inner := fv.Interface()
+			if s, ok := inner.(string); ok {
+				return s, true
+			}
+		}
+	}
+	return "", false
 }
 
 // extractInt64 extracts an int64 from various types returned by ClickHouse queries
@@ -50,16 +66,36 @@ func extractInt64(value interface{}) (int64, bool) {
 		return int64(v), true
 	case uint32:
 		return int64(v), true
-	case types.Variant:
-		// ClickHouse Variant type - extract the underlying value
-		inner := v.Value()
-		if innerInt, ok := inner.(int64); ok {
-			return innerInt, true
-		}
-		return 0, false
 	default:
-		return 0, false
+		return extractInt64FromReflect(value)
 	}
+}
+
+// extractInt64FromReflect handles non-int64 types using reflection
+func extractInt64FromReflect(value interface{}) (int64, bool) {
+	rv := reflect.ValueOf(value)
+	if rv.Kind() == reflect.Interface {
+		rv = rv.Elem()
+	}
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+
+	if rv.Kind() == reflect.Struct {
+		fv := rv.FieldByName("Value")
+		if fv.IsValid() && fv.Kind() == reflect.Interface {
+			inner := fv.Interface()
+			switch inner.(type) {
+			case int64:
+				return inner.(int64), true
+			case int:
+				return int64(inner.(int)), true
+			case uint64:
+				return int64(inner.(uint64)), true
+			}
+		}
+	}
+	return 0, false
 }
 
 // Usage is defined in end_user.go to avoid duplication
