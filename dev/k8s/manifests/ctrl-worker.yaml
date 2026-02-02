@@ -120,6 +120,10 @@ spec:
 
             - name: UNKEY_SENTINEL_IMAGE
               value: "unkey/sentinel:latest"
+
+            # Quota Check Configuration
+            - name: UNKEY_QUOTA_CHECK_HEARTBEAT_URL
+              value: "https://ping.checklyhq.com/c3823200-6dda-4903-97ef-e1c6226c80b8"
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock

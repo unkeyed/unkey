@@ -22,7 +22,7 @@ func NewChecklyHeartbeat(url string) *ChecklyHeartbeat {
 }
 
 // Ping sends a heartbeat to Checkly.
-func (c *ChecklyHeartbeat) Ping(ctx context.Context) error {
+func (c *ChecklyHeartbeat) Ping(ctx context.Context) (err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url, nil)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
@@ -32,7 +32,11 @@ func (c *ChecklyHeartbeat) Ping(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("send heartbeat: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("close response body: %w", closeErr)
+		}
+	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("heartbeat failed: status %d", resp.StatusCode)
