@@ -2,6 +2,7 @@
 import { extractResponseField, safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import type { Log } from "@unkey/clickhouse/src/logs";
@@ -22,7 +23,7 @@ const createPanelStyle = (distanceToTop: number) => ({
 });
 
 export type StandardLogTypes = Log | RatelimitLog;
-export type SupportedLogTypes = StandardLogTypes | KeysOverviewLog | AuditLog;
+export type SupportedLogTypes = StandardLogTypes | KeysOverviewLog | AuditLog | RuntimeLog;
 
 type LogDetailsContextValue = {
   animated: boolean;
@@ -97,6 +98,10 @@ const isStandardLog = (log: SupportedLogTypes): log is Log | RatelimitLog => {
   return "request_headers" in log && "response_headers" in log;
 };
 
+// const isRuntimeLog = (log: SupportedLogTypes): log is RuntimeLog => {
+//   return "deployment_id" in log
+// };
+
 // Main LogDetails component
 type LogDetailsProps = {
   distanceToTop: number;
@@ -151,9 +156,9 @@ export const LogDetails = ({
   const baseClasses = "bg-gray-1 font-mono drop-shadow-2xl z-20";
   const animationClasses = animated
     ? cn(
-        "transition-all duration-300 ease-out",
-        isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
-      )
+      "transition-all duration-300 ease-out",
+      isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
+    )
     : "";
   const staticClasses = animated ? "" : "absolute right-0 overflow-y-auto";
 
@@ -264,9 +269,9 @@ const Spacer = ({ delay = 0 }: { delay?: number }) => {
       className={
         animated
           ? cn(
-              "mt-3 transition-all duration-300 ease-out",
-              isOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
-            )
+            "mt-3 transition-all duration-300 ease-out",
+            isOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
+          )
           : "mt-3"
       }
       style={animated ? { transitionDelay: isOpen ? `${delay}ms` : "0ms" } : undefined}

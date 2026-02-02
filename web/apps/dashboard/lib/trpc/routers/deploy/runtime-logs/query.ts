@@ -38,9 +38,16 @@ export const queryRuntimeLogs = workspaceProcedure
       where: (table, { and, eq }) =>
         and(eq(table.id, input.projectId), eq(table.workspaceId, workspace.id)),
       columns: { id: true },
+      with: {
+        activeDeployment: {
+          columns: {
+            environmentId: true
+          }
+        }
+      }
     });
 
-    if (!project) {
+    if (!project?.activeDeployment?.environmentId) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Project not found or access denied",
@@ -51,6 +58,8 @@ export const queryRuntimeLogs = workspaceProcedure
     const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs({
       ...transformedInputs,
       workspaceId: workspace.id,
+      projectId: project.id,
+      environmentId: project.activeDeployment?.environmentId
     });
 
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);

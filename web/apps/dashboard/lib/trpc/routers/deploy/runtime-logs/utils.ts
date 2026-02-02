@@ -4,7 +4,7 @@ import type { RuntimeLogsRequest } from "@unkey/clickhouse/src/runtime-logs";
 
 export function transformFilters(
   params: RuntimeLogsRequestSchema,
-): Omit<RuntimeLogsRequest, "workspaceId"> {
+): Omit<RuntimeLogsRequest, "workspaceId" | "projectId" | "environmentId"> {
   const severity = params.severity?.filters?.map((f) => f.value) || [];
 
   let startTime = params.startTime;
@@ -17,9 +17,7 @@ export function transformFilters(
   }
 
   return {
-    projectId: params.projectId,
     deploymentId: params.deploymentId,
-    environmentId: params.environmentId,
     limit: params.limit,
     startTime,
     endTime,

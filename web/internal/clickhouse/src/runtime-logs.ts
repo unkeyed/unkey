@@ -23,7 +23,6 @@ export const runtimeLogResponseSchema = z.object({
   severity: z.string(),
   message: z.string(),
   deployment_id: z.string(),
-  k8s_pod_name: z.string(),
   region: z.string(),
   attributes: z.record(z.string(), z.unknown()).nullable(),
 });
@@ -43,14 +42,6 @@ export function getRuntimeLogs(ch: Querier) {
         CASE
           WHEN length({severity: Array(String)}) > 0 THEN
             severity IN {severity: Array(String)}
-          ELSE TRUE
-        END
-      )
-
-      AND (
-        CASE
-          WHEN length({podNames: Array(String)}) > 0 THEN
-            k8s_pod_name IN {podNames: Array(String)}
           ELSE TRUE
         END
       )
@@ -78,7 +69,7 @@ export function getRuntimeLogs(ch: Querier) {
       query: `
         SELECT
           time, severity, message, deployment_id,
-          k8s_pod_name, region, attributes
+          region, attributes
         FROM ${TABLE}
         WHERE ${filterConditions}
           AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})
