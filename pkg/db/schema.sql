@@ -642,6 +642,4 @@ CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
-CREATE INDEX `region_sequence` ON `state_changes` (`region`,`sequence`);
-CREATE INDEX `created_at` ON `state_changes` (`created_at`);
 
