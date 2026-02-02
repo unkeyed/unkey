@@ -437,7 +437,6 @@ func (s *billingService) createStripeInvoice(
 	// Ensure customer exists on connected account
 	// The customer might have been created on the platform account (Unkey's Stripe)
 	// instead of the connected account. We need to create it on the connected account.
-	stripeCustomerID := endUser.StripeCustomerID
 
 	// nolint:exhaustruct
 	customerParams := &stripe.CustomerParams{

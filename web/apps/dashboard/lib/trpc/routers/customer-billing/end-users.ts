@@ -150,10 +150,10 @@ export const createEndUser = workspaceProcedure
     const endUserId = newId("billingEndUser");
 
     // Get connected account for workspace to create customer on connected account
-    const connectedAccount = await db.query.billingConnectedAccounts.findFirst({
+    const billingConnectedAccount = await db.query.billingConnectedAccounts.findFirst({
       where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
     });
-    if (!connectedAccount || !connectedAccount.stripeAccountId) {
+    if (!billingConnectedAccount || !billingConnectedAccount.stripeAccountId) {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "Stripe account not connected",
@@ -172,7 +172,7 @@ export const createEndUser = workspaceProcedure
         },
       },
       {
-        stripeAccount: connectedAccount.stripeAccountId,
+        stripeAccount: billingConnectedAccount.stripeAccountId,
       }
     );
 
