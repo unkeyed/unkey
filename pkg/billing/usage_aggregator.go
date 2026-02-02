@@ -63,7 +63,7 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 	// Build usage map
 	usageMap := make(map[string]*Usage)
 
-	// Query verifications for each month
+	// Query verifications for all months in the period
 	verificationsQuery := `
 		SELECT
 			external_id,
@@ -71,10 +71,11 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 		FROM default.end_user_billable_verifications_per_month_v1
 		WHERE workspace_id = ?
 			AND external_id != ''
+			AND year >= ? AND year <= ?
 			AND (
+				(year > ? AND year < ?) OR
 				(year = ? AND month >= ?) OR
-				(year = ? AND month <= ?) OR
-				(year > ? AND year < ?)
+				(year = ? AND month <= ?)
 			)
 		GROUP BY external_id
 	`
@@ -86,14 +87,15 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 
 	verificationRows, err := u.clickhouse.QueryToMaps(ctx, verificationsQuery,
 		workspaceID,
-		startYear, startMonth,  // Start condition: (year = startYear AND month >= startMonth)
-		endYear, endMonth,      // End condition: (year = endYear AND month <= endMonth)
-		startYear, endYear)     // Middle condition: (year > startYear AND year < endYear)
+		startYear, endYear,   // year >= startYear AND year <= endYear
+		startYear, endYear,    // (year > startYear AND year < endYear) - middle months
+		startYear, startMonth, // (year = startYear AND month >= startMonth) - start month
+		endYear, endMonth)     // (year = endYear AND month <= endMonth) - end month
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query verifications for usage aggregation"))
 	}
 
-	// Query credits for each month
+	// Query credits for all months in the period
 	creditsQuery := `
 		SELECT
 			external_id,
@@ -101,19 +103,21 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 		FROM default.end_user_billable_credits_per_month_v1
 		WHERE workspace_id = ?
 			AND external_id != ''
+			AND year >= ? AND year <= ?
 			AND (
+				(year > ? AND year < ?) OR
 				(year = ? AND month >= ?) OR
-				(year = ? AND month <= ?) OR
-				(year > ? AND year < ?)
+				(year = ? AND month <= ?)
 			)
 		GROUP BY external_id
 	`
 
 	creditRows, err := u.clickhouse.QueryToMaps(ctx, creditsQuery,
 		workspaceID,
-		startYear, startMonth,  // Start condition
-		endYear, endMonth,      // End condition
-		startYear, endYear)     // Middle condition
+		startYear, endYear,    // year >= startYear AND year <= endYear
+		startYear, endYear,     // middle months
+		startYear, startMonth,  // start month
+		endYear, endMonth)      // end month
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query credits for usage aggregation"))
 	}
