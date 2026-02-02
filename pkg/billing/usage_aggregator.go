@@ -42,48 +42,81 @@ func NewUsageAggregator(ch clickhouse.Querier) UsageAggregator {
 //
 // Requirements: 4.1, 4.2, 4.3, 4.4, 4.6
 func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string, periodStart, periodEnd time.Time) (map[string]*Usage, error) {
-	// Get year and month from the period
-	year := int16(periodStart.Year())
-	month := int8(periodStart.Month())
+	// Build list of months to query
+	months := []struct {
+		year  int16
+		month int8
+	}{}
 
-	// Query verifications from the end-user billable aggregated table
+	current := periodStart.Truncate(24 * time.Hour)
+	for !current.After(periodEnd) {
+		months = append(months, struct {
+			year  int16
+			month int8
+		}{
+			year:  int16(current.Year()),
+			month: int8(current.Month()),
+		})
+		current = current.AddDate(0, 1, 0)
+	}
+
+	// Build usage map
+	usageMap := make(map[string]*Usage)
+
+	// Query verifications for each month
 	verificationsQuery := `
 		SELECT
 			external_id,
 			sum(count) as count
 		FROM default.end_user_billable_verifications_per_month_v1
 		WHERE workspace_id = ?
-			AND year = ?
-			AND month = ?
 			AND external_id != ''
+			AND (
+				(year = ? AND month >= ?) OR
+				(year = ? AND month <= ?) OR
+				(year > ? AND year < ?)
+			)
 		GROUP BY external_id
 	`
 
-	verificationRows, err := u.clickhouse.QueryToMaps(ctx, verificationsQuery, workspaceID, year, month)
+	startYear := int16(periodStart.Year())
+	startMonth := int8(periodStart.Month())
+	endYear := int16(periodEnd.Year())
+	endMonth := int8(periodEnd.Month())
+
+	verificationRows, err := u.clickhouse.QueryToMaps(ctx, verificationsQuery,
+		workspaceID,
+		startYear, startMonth,  // Start condition: (year = startYear AND month >= startMonth)
+		endYear, endMonth,      // End condition: (year = endYear AND month <= endMonth)
+		startYear, endYear)     // Middle condition: (year > startYear AND year < endYear)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query verifications for usage aggregation"))
 	}
 
-	// Query credits from the end-user billable aggregated table
+	// Query credits for each month
 	creditsQuery := `
 		SELECT
 			external_id,
 			sum(count) as count
 		FROM default.end_user_billable_credits_per_month_v1
 		WHERE workspace_id = ?
-			AND year = ?
-			AND month = ?
 			AND external_id != ''
+			AND (
+				(year = ? AND month >= ?) OR
+				(year = ? AND month <= ?) OR
+				(year > ? AND year < ?)
+			)
 		GROUP BY external_id
 	`
 
-	creditRows, err := u.clickhouse.QueryToMaps(ctx, creditsQuery, workspaceID, year, month)
+	creditRows, err := u.clickhouse.QueryToMaps(ctx, creditsQuery,
+		workspaceID,
+		startYear, startMonth,  // Start condition
+		endYear, endMonth,      // End condition
+		startYear, endYear)     // Middle condition
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query credits for usage aggregation"))
 	}
-
-	// Build usage map
-	usageMap := make(map[string]*Usage)
 
 	// Process verifications
 	for _, row := range verificationRows {
