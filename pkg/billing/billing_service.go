@@ -437,8 +437,6 @@ func (s *billingService) createStripeInvoice(
 	// Ensure customer exists on connected account
 	// If StripeCustomerID is empty or customer doesn't exist on connected account, create it
 	stripeCustomerID := endUser.StripeCustomerID
-	var newCustomer *stripe.Customer
-	var err error
 
 	// nolint:exhaustruct
 	customerParams := &stripe.CustomerParams{
@@ -451,28 +449,23 @@ func (s *billingService) createStripeInvoice(
 	}
 	customerParams.SetStripeAccount(connectedAccount.StripeAccountID)
 
-	// Try to get customer if ID exists
-	if stripeCustomerID != "" {
-		_, err = customer.Get(stripeCustomerID, customerParams)
-		if err == nil {
-			// Customer exists, use existing ID
-			goto CreateInvoiceItems
+	// If customer ID is empty or customer doesn't exist on connected account, create new customer
+	if stripeCustomerID == "" || func() bool {
+		_, err := customer.Get(stripeCustomerID, customerParams)
+		return err != nil
+	}() {
+		// Customer ID is empty or customer doesn't exist, create new customer
+		newCustomer, err := customer.New(customerParams)
+		if err != nil {
+			return "", fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal(fmt.Sprintf("failed to create Stripe customer: %v", err)),
+				fault.Public("Failed to create customer in Stripe"),
+			)
 		}
+		stripeCustomerID = newCustomer.ID
 	}
-
-	// Customer doesn't exist or ID is empty, create new customer
-	newCustomer, err = customer.New(customerParams)
-	if err != nil {
-		return "", fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal(fmt.Sprintf("failed to create Stripe customer: %v", err)),
-			fault.Public("Failed to create customer in Stripe"),
-		)
-	}
-	stripeCustomerID = newCustomer.ID
-
-CreateInvoiceItems:
 
 	// Create invoice items for verifications
 	if usage.Verifications > 0 {
