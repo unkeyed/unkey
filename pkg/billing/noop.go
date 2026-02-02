@@ -193,8 +193,8 @@ func (s *noopBillingService) GenerateInvoices(
 	ctx context.Context,
 	workspaceID string,
 	periodStart, periodEnd time.Time,
-) error {
-	return fault.Wrap(
+) (UsageStats, error) {
+	return UsageStats{}, fault.Wrap(
 		fault.New("billing not configured"),
 		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 		fault.Public("Billing is not configured"),
