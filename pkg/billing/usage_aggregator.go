@@ -217,8 +217,8 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 	// Query verifications for all months in the period
 	verificationsQuery := `
 		SELECT
-			external_id,
-			sum(count) as count
+			CAST(external_id AS String) as external_id,
+			CAST(sum(count) AS Int64) as count
 		FROM default.end_user_billable_verifications_per_month_v1
 		WHERE workspace_id = ?
 			AND external_id != ''
@@ -257,8 +257,8 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 	// Query credits for all months in the period
 	creditsQuery := `
 		SELECT
-			external_id,
-			sum(count) as count
+			CAST(external_id AS String) as external_id,
+			CAST(sum(count) AS Int64) as count
 		FROM default.end_user_billable_credits_per_month_v1
 		WHERE workspace_id = ?
 			AND external_id != ''
@@ -368,7 +368,7 @@ func (u *usageAggregator) GetEndUserUsage(ctx context.Context, workspaceID, exte
 
 	// Query verifications from the end-user billable aggregated table
 	verificationsQuery := `
-		SELECT sum(count) as count
+		SELECT CAST(sum(count) AS Int64) as count
 		FROM default.end_user_billable_verifications_per_month_v1
 		WHERE workspace_id = ?
 			AND external_id = ?
@@ -376,16 +376,16 @@ func (u *usageAggregator) GetEndUserUsage(ctx context.Context, workspaceID, exte
 			AND month = ?
 	`
 
-	var verificationCount uint64
+	var verificationCount int64
 	err := u.clickhouse.Conn().QueryRow(ctx, verificationsQuery, workspaceID, externalID, year, month).Scan(&verificationCount)
 	if err != nil && err.Error() != "sql: no rows in result set" {
 		return nil, fault.Wrap(err, fault.Internal("failed to query verifications for end user"))
 	}
-	usage.Verifications = int64(verificationCount)
+	usage.Verifications = verificationCount
 
 	// Query credits from the end-user billable aggregated table
 	creditsQuery := `
-		SELECT sum(count) as count
+		SELECT CAST(sum(count) AS Int64) as count
 		FROM default.end_user_billable_credits_per_month_v1
 		WHERE workspace_id = ?
 			AND external_id = ?
@@ -393,12 +393,12 @@ func (u *usageAggregator) GetEndUserUsage(ctx context.Context, workspaceID, exte
 			AND month = ?
 	`
 
-	var creditsCount uint64
+	var creditsCount int64
 	err = u.clickhouse.Conn().QueryRow(ctx, creditsQuery, workspaceID, externalID, year, month).Scan(&creditsCount)
 	if err != nil && err.Error() != "sql: no rows in result set" {
 		return nil, fault.Wrap(err, fault.Internal("failed to query credits for end user"))
 	}
-	usage.Credits = int64(creditsCount)
+	usage.Credits = creditsCount
 
 	return usage, nil
 }
