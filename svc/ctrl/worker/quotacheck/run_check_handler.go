@@ -1,17 +1,15 @@
 package quotacheck
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
@@ -102,6 +100,11 @@ func (s *Service) RunCheck(
 				return nil, fmt.Errorf("failed to get ratelimits: %w", rlErr)
 			}
 
+			// Skip workspaces with no quota set
+			if !ws.RequestsPerMonth.Valid {
+				continue
+			}
+
 			usage := usedVerifications + usedRatelimits
 
 			if usage < ws.RequestsPerMonth.Int64 {
@@ -116,7 +119,7 @@ func (s *Service) RunCheck(
 			// Send notification
 			if req.GetSlackWebhookUrl() != "" {
 				_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-					return restate.Void{}, sendSlackNotification(req.GetSlackWebhookUrl(), e)
+					return restate.Void{}, sendSlackNotification(rc, req.GetSlackWebhookUrl(), e)
 				}, restate.WithName("notify "+ws.ID))
 				if notifyErr != nil {
 					return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
@@ -175,71 +178,31 @@ func parseBillingPeriod(period string) (year, month int, err error) {
 	return year, month, nil
 }
 
-func sendSlackNotification(webhookURL string, e exceededWorkspace) error {
+func sendSlackNotification(ctx context.Context, webhookURL string, e exceededWorkspace) error {
 	printer := message.NewPrinter(language.English)
 
-	payload := map[string]any{
-		"text": fmt.Sprintf("Quota Exceeded: %s", e.Workspace.Name),
-		"blocks": []map[string]any{
-			{
-				"type": "header",
-				"text": map[string]any{
-					"type":  "plain_text",
-					"text":  fmt.Sprintf("Quota Exceeded: %s", e.Workspace.Name),
-					"emoji": true,
-				},
-			},
-			{
-				"type": "section",
-				"fields": []map[string]any{
-					{"type": "mrkdwn", "text": fmt.Sprintf("*Workspace ID:*\n`%s`", e.Workspace.ID)},
-					{"type": "mrkdwn", "text": fmt.Sprintf("*Workspace Name:*\n%s", e.Workspace.Name)},
-					{"type": "mrkdwn", "text": fmt.Sprintf("*Organisation ID:*\n`%s`", e.Workspace.OrgID)},
-					{"type": "mrkdwn", "text": fmt.Sprintf("*Stripe ID:*\n`%s`", e.Workspace.StripeCustomerID.String)},
-				},
-			},
-			{
-				"type": "section",
-				"fields": []map[string]any{
-					{"type": "mrkdwn", "text": fmt.Sprintf("*Tier:*\n%s", e.Workspace.Tier.String)},
-					{"type": "mrkdwn", "text": "*Quota:*\nRequestsPerMonth"},
-				},
-			},
-			{
-				"type": "section",
-				"fields": []map[string]any{
-					{"type": "mrkdwn", "text": fmt.Sprintf("*Limit:*\n%s", printer.Sprint(number.Decimal(e.Workspace.RequestsPerMonth.Int64)))},
-					{"type": "mrkdwn", "text": fmt.Sprintf("*Used:*\n%s", printer.Sprint(number.Decimal(e.Used)))},
-				},
-			},
+	title := fmt.Sprintf("Quota Exceeded: %s", e.Workspace.Name)
+
+	payload := slack.Payload{
+		Text: title,
+		Blocks: []slack.Block{
+			slack.NewHeaderBlock(title),
+			slack.NewSectionBlock(
+				slack.NewMarkdownField(fmt.Sprintf("*Workspace ID:*\n`%s`", e.Workspace.ID)),
+				slack.NewMarkdownField(fmt.Sprintf("*Workspace Name:*\n%s", e.Workspace.Name)),
+				slack.NewMarkdownField(fmt.Sprintf("*Organisation ID:*\n`%s`", e.Workspace.OrgID)),
+				slack.NewMarkdownField(fmt.Sprintf("*Stripe ID:*\n`%s`", e.Workspace.StripeCustomerID.String)),
+			),
+			slack.NewSectionBlock(
+				slack.NewMarkdownField(fmt.Sprintf("*Tier:*\n%s", e.Workspace.Tier.String)),
+				slack.NewMarkdownField("*Quota:*\nRequestsPerMonth"),
+			),
+			slack.NewSectionBlock(
+				slack.NewMarkdownField(fmt.Sprintf("*Limit:*\n%s", printer.Sprint(number.Decimal(e.Workspace.RequestsPerMonth.Int64)))),
+				slack.NewMarkdownField(fmt.Sprintf("*Used:*\n%s", printer.Sprint(number.Decimal(e.Used)))),
+			),
 		},
 	}
 
-	return postSlack(webhookURL, payload)
-}
-
-func postSlack(webhookURL string, payload map[string]any) error {
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, webhookURL, bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("slack returned status %d", resp.StatusCode)
-	}
-
-	return nil
+	return slack.NewClient().Send(ctx, webhookURL, payload)
 }

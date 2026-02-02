@@ -2,6 +2,7 @@ package quotacheck
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
@@ -25,17 +26,21 @@ type Config struct {
 	Clickhouse clickhouse.ClickHouse
 	Logger     logging.Logger
 	// Heartbeat sends health signals after successful quota check runs.
-	// If nil, no heartbeat is sent.
+	// Must not be nil - use healthcheck.NewNoop() if monitoring is not needed.
 	Heartbeat healthcheck.Heartbeat
 }
 
 // New creates a new quota check service.
-func New(cfg Config) *Service {
+func New(cfg Config) (*Service, error) {
+	if err := assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop() if not needed"); err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		UnimplementedQuotaCheckServiceServer: hydrav1.UnimplementedQuotaCheckServiceServer{},
 		db:                                   cfg.DB,
 		clickhouse:                           cfg.Clickhouse,
 		logger:                               cfg.Logger,
 		heartbeat:                            cfg.Heartbeat,
-	}
+	}, nil
 }

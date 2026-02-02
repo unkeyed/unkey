@@ -269,12 +269,16 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.QuotaCheckHeartbeatURL != "" {
 		quotaHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.QuotaCheckHeartbeatURL)
 	}
-	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotacheck.New(quotacheck.Config{
+	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
 		DB:         database,
 		Clickhouse: ch,
 		Logger:     logger,
 		Heartbeat:  quotaHeartbeat,
-	})))
+	})
+	if err != nil {
+		return fmt.Errorf("create quota check service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
 
 	logger.Info("QuotaCheckService enabled")
 
