@@ -5,9 +5,62 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ClickHouse/ch-go/v4/types"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
+
+// extractString extracts a string from various types returned by ClickHouse queries
+func extractString(value interface{}) (string, bool) {
+	if value == nil {
+		return "", false
+	}
+
+	switch v := value.(type) {
+	case string:
+		return v, true
+	case []byte:
+		return string(v), true
+	case types.Variant:
+		// ClickHouse Variant type - extract the underlying value
+		inner := v.Value()
+		if innerStr, ok := inner.(string); ok {
+			return innerStr, true
+		}
+		return "", false
+	default:
+		return "", false
+	}
+}
+
+// extractInt64 extracts an int64 from various types returned by ClickHouse queries
+func extractInt64(value interface{}) (int64, bool) {
+	if value == nil {
+		return 0, false
+	}
+
+	switch v := value.(type) {
+	case int64:
+		return v, true
+	case int:
+		return int64(v), true
+	case uint64:
+		return int64(v), true
+	case int32:
+		return int64(v), true
+	case uint32:
+		return int64(v), true
+	case types.Variant:
+		// ClickHouse Variant type - extract the underlying value
+		inner := v.Value()
+		if innerInt, ok := inner.(int64); ok {
+			return innerInt, true
+		}
+		return 0, false
+	default:
+		return 0, false
+	}
+}
 
 // Usage is defined in end_user.go to avoid duplication
 
@@ -136,15 +189,16 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 	// Process verifications
 	for _, row := range verificationRows {
 		rawExternalID := row["external_id"]
-		fmt.Printf("DEBUG: AggregateUsage: raw external_id type=%T, value=%v\n", rawExternalID, rawExternalID)
-		externalID, ok := row["external_id"].(string)
-		fmt.Printf("DEBUG: AggregateUsage: type assertion ok=%v, externalID=%q\n", ok, externalID)
+		externalID, ok := extractString(rawExternalID)
+		fmt.Printf("DEBUG: AggregateUsage: externalID=%q, ok=%v\n", externalID, ok)
 		if !ok || externalID == "" {
 			fmt.Printf("DEBUG: AggregateUsage: skipping row with invalid external_id\n")
 			continue
 		}
 
-		count, ok := row["count"].(uint64)
+		rawCount := row["count"]
+		count, ok := extractInt64(rawCount)
+		fmt.Printf("DEBUG: AggregateUsage: rawCount type=%T, value=%v, count=%d, ok=%v\n", rawCount, rawCount, count, ok)
 		if !ok {
 			fmt.Printf("DEBUG: AggregateUsage: skipping row with invalid count for external_id=%s\n", externalID)
 			continue
@@ -162,18 +216,20 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 		} else {
 			fmt.Printf("DEBUG: AggregateUsage: updating existing Usage for external_id=%s\n", externalID)
 		}
-		usageMap[externalID].Verifications = int64(count)
+		usageMap[externalID].Verifications = count
 		fmt.Printf("DEBUG: AggregateUsage: usageMap[%s].Verifications = %d\n", externalID, usageMap[externalID].Verifications)
 	}
 
 	// Process credits
 	for _, row := range creditRows {
-		externalID, ok := row["external_id"].(string)
+		rawExternalID := row["external_id"]
+		externalID, ok := extractString(rawExternalID)
 		if !ok || externalID == "" {
 			continue
 		}
 
-		count, ok := row["count"].(uint64)
+		rawCount := row["count"]
+		count, ok := extractInt64(rawCount)
 		if !ok {
 			continue
 		}
@@ -186,7 +242,7 @@ func (u *usageAggregator) AggregateUsage(ctx context.Context, workspaceID string
 				Credits:        0,
 			}
 		}
-		usageMap[externalID].Credits = int64(count)
+		usageMap[externalID].Credits = count
 	}
 
 	fmt.Printf("DEBUG: AggregateUsage: before return: usageMap len=%d\n", len(usageMap))
