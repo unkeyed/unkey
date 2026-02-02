@@ -452,7 +452,7 @@ func (s *billingService) createStripeInvoice(
 	// Always try to create customer on connected account
 	// If customer already exists, Stripe will return the existing customer (no error)
 	// If customer doesn't exist, Stripe will create a new one
-	newCustomer, err := customer.New(customerParams)
+	_, err := customer.New(customerParams)
 	if err != nil {
 		// Check if error is because customer already exists with same params
 		// If so, we can try to get the existing customer
