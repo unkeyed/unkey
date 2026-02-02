@@ -506,6 +506,7 @@ func (s *endUserService) GetUsage(
 		ExternalID:     endUser.ExternalID,
 		Verifications:  verifications,
 		KeysWithAccess: 0,
+		Credits:        0,
 	}, nil
 }
 
