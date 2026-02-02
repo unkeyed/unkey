@@ -189,6 +189,15 @@ func (s *endUserService) CreateEndUser(
 		)
 	}
 
+	// Ensure StripeAccountID is set
+	if connectedAccount.StripeAccountID == "" {
+		return nil, fault.Wrap(
+			fmt.Errorf("stripe account ID is empty"),
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Public("Stripe account ID is missing. Please reconnect your account."),
+		)
+	}
+
 	// Create Stripe customer in connected account
 	stripe.Key = s.stripeKey
 	// nolint:exhaustruct // Stripe params have many optional fields
