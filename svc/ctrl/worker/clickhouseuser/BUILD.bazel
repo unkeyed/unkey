@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "clickhouseuser",
@@ -19,5 +19,15 @@ go_library(
         "//pkg/ptr",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "clickhouseuser_test",
+    srcs = ["configure_user_handler_test.go"],
+    embed = [":clickhouseuser"],
+    deps = [
+        "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
+        "@com_github_stretchr_testify//require",
     ],
 )
