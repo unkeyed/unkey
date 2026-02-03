@@ -43,13 +43,8 @@ func TestProjectNotFound(t *testing.T) {
 		ProjectId:       uid.New(uid.ProjectPrefix), // Non-existent project ID
 		Branch:          "main",
 		EnvironmentSlug: "production",
+		DockerImage:     "nginx:latest",
 	}
-
-	err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-		Image: "nginx:latest",
-	})
-
-	require.NoError(t, err, "failed to set image source")
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
@@ -87,12 +82,8 @@ func TestEnvironmentNotFound(t *testing.T) {
 		ProjectId:       setup.Project.ID,
 		Branch:          "main",
 		EnvironmentSlug: "nonexistent-env", // Non-existent environment
+		DockerImage:     "nginx:latest",
 	}
-
-	err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-		Image: "nginx:latest",
-	})
-	require.NoError(t, err, "failed to set image source")
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)

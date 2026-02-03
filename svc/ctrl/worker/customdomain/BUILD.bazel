@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "customdomain",
+    srcs = [
+        "doc.go",
+        "service.go",
+        "verify_handler.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/dns",
+        "//pkg/fault",
+        "//pkg/otel/logging",
+        "//pkg/uid",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

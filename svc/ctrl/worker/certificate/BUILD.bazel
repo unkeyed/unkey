@@ -16,6 +16,7 @@ go_library(
         "//gen/proto/vault/v1:vault",
         "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/db",
+        "//pkg/healthcheck",
         "//pkg/otel/logging",
         "//pkg/uid",
         "//svc/ctrl/services/acme",

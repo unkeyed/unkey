@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/deployment.proto.
  */
 export const file_ctrl_v1_deployment: GenFile = /*@__PURE__*/
-  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEimQIKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhIKCnByb2plY3RfaWQYAiABKAkSDgoGYnJhbmNoGAMgASgJEhgKEGVudmlyb25tZW50X3NsdWcYBCABKAkSLgoNYnVpbGRfY29udGV4dBgFIAEoCzIVLmN0cmwudjEuQnVpbGRDb250ZXh0SAASFgoMZG9ja2VyX2ltYWdlGAYgASgJSAASLwoKZ2l0X2NvbW1pdBgHIAEoCzIWLmN0cmwudjEuR2l0Q29tbWl0SW5mb0gBiAEBEhgKC2tleXNwYWNlX2lkGAggASgJSAKIAQFCCAoGc291cmNlQg0KC19naXRfY29tbWl0Qg4KDF9rZXlzcGFjZV9pZEoECAEQAiJcCgxCdWlsZENvbnRleHQSGgoSYnVpbGRfY29udGV4dF9wYXRoGAEgASgJEhwKD2RvY2tlcmZpbGVfcGF0aBgCIAEoCUgAiAEBQhIKEF9kb2NrZXJmaWxlX3BhdGgigAEKDUdpdENvbW1pdEluZm8SEgoKY29tbWl0X3NoYRgBIAEoCRIWCg5jb21taXRfbWVzc2FnZRgCIAEoCRIVCg1hdXRob3JfaGFuZGxlGAMgASgJEhkKEWF1dGhvcl9hdmF0YXJfdXJsGAQgASgJEhEKCXRpbWVzdGFtcBgFIAEoAyJcChhDcmVhdGVEZXBsb3ltZW50UmVzcG9uc2USFQoNZGVwbG95bWVudF9pZBgBIAEoCRIpCgZzdGF0dXMYAiABKA4yGS5jdHJsLnYxLkRlcGxveW1lbnRTdGF0dXMiLQoUR2V0RGVwbG95bWVudFJlcXVlc3QSFQoNZGVwbG95bWVudF9pZBgBIAEoCSJAChVHZXREZXBsb3ltZW50UmVzcG9uc2USJwoKZGVwbG95bWVudBgBIAEoCzITLmN0cmwudjEuRGVwbG95bWVudCKIBQoKRGVwbG95bWVudBIKCgJpZBgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSEgoKcHJvamVjdF9pZBgDIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgEIAEoCRIWCg5naXRfY29tbWl0X3NoYRgFIAEoCRISCgpnaXRfYnJhbmNoGAYgASgJEikKBnN0YXR1cxgHIAEoDjIZLmN0cmwudjEuRGVwbG95bWVudFN0YXR1cxIVCg1lcnJvcl9tZXNzYWdlGAggASgJEkwKFWVudmlyb25tZW50X3ZhcmlhYmxlcxgJIAMoCzItLmN0cmwudjEuRGVwbG95bWVudC5FbnZpcm9ubWVudFZhcmlhYmxlc0VudHJ5EiMKCHRvcG9sb2d5GAogASgLMhEuY3RybC52MS5Ub3BvbG9neRISCgpjcmVhdGVkX2F0GAsgASgDEhIKCnVwZGF0ZWRfYXQYDCABKAMSEQoJaG9zdG5hbWVzGA0gAygJEhcKD3Jvb3Rmc19pbWFnZV9pZBgOIAEoCRIQCghidWlsZF9pZBgPIAEoCRImCgVzdGVwcxgQIAMoCzIXLmN0cmwudjEuRGVwbG95bWVudFN0ZXASGgoSZ2l0X2NvbW1pdF9tZXNzYWdlGBEgASgJEiAKGGdpdF9jb21taXRfYXV0aG9yX2hhbmRsZRgSIAEoCRIkChxnaXRfY29tbWl0X2F1dGhvcl9hdmF0YXJfdXJsGBMgASgJEhwKFGdpdF9jb21taXRfdGltZXN0YW1wGBQgASgDGjsKGUVudmlyb25tZW50VmFyaWFibGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJcCg5EZXBsb3ltZW50U3RlcBIOCgZzdGF0dXMYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIVCg1lcnJvcl9tZXNzYWdlGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAMipwEKCFRvcG9sb2d5EhYKDmNwdV9taWxsaWNvcmVzGAEgASgFEhIKCm1lbW9yeV9taWIYAiABKAUSKAoHcmVnaW9ucxgDIAMoCzIXLmN0cmwudjEuUmVnaW9uYWxDb25maWcSHAoUaWRsZV90aW1lb3V0X3NlY29uZHMYBCABKAUSGQoRaGVhbHRoX2NoZWNrX3BhdGgYBSABKAkSDAoEcG9ydBgGIAEoBSJOCg5SZWdpb25hbENvbmZpZxIOCgZyZWdpb24YASABKAkSFQoNbWluX2luc3RhbmNlcxgCIAEoBRIVCg1tYXhfaW5zdGFuY2VzGAMgASgFIk0KD1JvbGxiYWNrUmVxdWVzdBIcChRzb3VyY2VfZGVwbG95bWVudF9pZBgBIAEoCRIcChR0YXJnZXRfZGVwbG95bWVudF9pZBgCIAEoCSISChBSb2xsYmFja1Jlc3BvbnNlIi4KDlByb21vdGVSZXF1ZXN0EhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAEgASgJIhEKD1Byb21vdGVSZXNwb25zZSrvAQoQRGVwbG95bWVudFN0YXR1cxIhCh1ERVBMT1lNRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEh0KGURFUExPWU1FTlRfU1RBVFVTX1BFTkRJTkcQARIeChpERVBMT1lNRU5UX1NUQVRVU19CVUlMRElORxACEh8KG0RFUExPWU1FTlRfU1RBVFVTX0RFUExPWUlORxADEh0KGURFUExPWU1FTlRfU1RBVFVTX05FVFdPUksQBBIbChdERVBMT1lNRU5UX1NUQVRVU19SRUFEWRAFEhwKGERFUExPWU1FTlRfU1RBVFVTX0ZBSUxFRBAGKloKClNvdXJjZVR5cGUSGwoXU09VUkNFX1RZUEVfVU5TUEVDSUZJRUQQABITCg9TT1VSQ0VfVFlQRV9HSVQQARIaChZTT1VSQ0VfVFlQRV9DTElfVVBMT0FEEAIywwIKEURlcGxveW1lbnRTZXJ2aWNlElkKEENyZWF0ZURlcGxveW1lbnQSIC5jdHJsLnYxLkNyZWF0ZURlcGxveW1lbnRSZXF1ZXN0GiEuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVzcG9uc2UiABJQCg1HZXREZXBsb3ltZW50Eh0uY3RybC52MS5HZXREZXBsb3ltZW50UmVxdWVzdBoeLmN0cmwudjEuR2V0RGVwbG95bWVudFJlc3BvbnNlIgASQQoIUm9sbGJhY2sSGC5jdHJsLnYxLlJvbGxiYWNrUmVxdWVzdBoZLmN0cmwudjEuUm9sbGJhY2tSZXNwb25zZSIAEj4KB1Byb21vdGUSFy5jdHJsLnYxLlByb21vdGVSZXF1ZXN0GhguY3RybC52MS5Qcm9tb3RlUmVzcG9uc2UiAEKOAQoLY29tLmN0cmwudjFCD0RlcGxveW1lbnRQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
+  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi7gEKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhIKCnByb2plY3RfaWQYAiABKAkSDgoGYnJhbmNoGAMgASgJEhgKEGVudmlyb25tZW50X3NsdWcYBCABKAkSFAoMZG9ja2VyX2ltYWdlGAYgASgJEi8KCmdpdF9jb21taXQYByABKAsyFi5jdHJsLnYxLkdpdENvbW1pdEluZm9IAIgBARIYCgtrZXlzcGFjZV9pZBgIIAEoCUgBiAEBEg8KB2NvbW1hbmQYCSADKAlCDQoLX2dpdF9jb21taXRCDgoMX2tleXNwYWNlX2lkSgQIARACIoABCg1HaXRDb21taXRJbmZvEhIKCmNvbW1pdF9zaGEYASABKAkSFgoOY29tbWl0X21lc3NhZ2UYAiABKAkSFQoNYXV0aG9yX2hhbmRsZRgDIAEoCRIZChFhdXRob3JfYXZhdGFyX3VybBgEIAEoCRIRCgl0aW1lc3RhbXAYBSABKAMiXAoYQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSKQoGc3RhdHVzGAIgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQiiAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSFgoOZ2l0X2NvbW1pdF9zaGEYBSABKAkSEgoKZ2l0X2JyYW5jaBgGIAEoCRIpCgZzdGF0dXMYByABKA4yGS5jdHJsLnYxLkRlcGxveW1lbnRTdGF0dXMSFQoNZXJyb3JfbWVzc2FnZRgIIAEoCRJMChVlbnZpcm9ubWVudF92YXJpYWJsZXMYCSADKAsyLS5jdHJsLnYxLkRlcGxveW1lbnQuRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRIjCgh0b3BvbG9neRgKIAEoCzIRLmN0cmwudjEuVG9wb2xvZ3kSEgoKY3JlYXRlZF9hdBgLIAEoAxISCgp1cGRhdGVkX2F0GAwgASgDEhEKCWhvc3RuYW1lcxgNIAMoCRIXCg9yb290ZnNfaW1hZ2VfaWQYDiABKAkSEAoIYnVpbGRfaWQYDyABKAkSJgoFc3RlcHMYECADKAsyFy5jdHJsLnYxLkRlcGxveW1lbnRTdGVwEhoKEmdpdF9jb21taXRfbWVzc2FnZRgRIAEoCRIgChhnaXRfY29tbWl0X2F1dGhvcl9oYW5kbGUYEiABKAkSJAocZ2l0X2NvbW1pdF9hdXRob3JfYXZhdGFyX3VybBgTIAEoCRIcChRnaXRfY29tbWl0X3RpbWVzdGFtcBgUIAEoAxo7ChlFbnZpcm9ubWVudFZhcmlhYmxlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiXAoORGVwbG95bWVudFN0ZXASDgoGc3RhdHVzGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSFQoNZXJyb3JfbWVzc2FnZRgDIAEoCRISCgpjcmVhdGVkX2F0GAQgASgDIqcBCghUb3BvbG9neRIWCg5jcHVfbWlsbGljb3JlcxgBIAEoBRISCgptZW1vcnlfbWliGAIgASgFEigKB3JlZ2lvbnMYAyADKAsyFy5jdHJsLnYxLlJlZ2lvbmFsQ29uZmlnEhwKFGlkbGVfdGltZW91dF9zZWNvbmRzGAQgASgFEhkKEWhlYWx0aF9jaGVja19wYXRoGAUgASgJEgwKBHBvcnQYBiABKAUiTgoOUmVnaW9uYWxDb25maWcSDgoGcmVnaW9uGAEgASgJEhUKDW1pbl9pbnN0YW5jZXMYAiABKAUSFQoNbWF4X2luc3RhbmNlcxgDIAEoBSJNCg9Sb2xsYmFja1JlcXVlc3QSHAoUc291cmNlX2RlcGxveW1lbnRfaWQYASABKAkSHAoUdGFyZ2V0X2RlcGxveW1lbnRfaWQYAiABKAkiEgoQUm9sbGJhY2tSZXNwb25zZSIuCg5Qcm9tb3RlUmVxdWVzdBIcChR0YXJnZXRfZGVwbG95bWVudF9pZBgBIAEoCSIRCg9Qcm9tb3RlUmVzcG9uc2Uq7wEKEERlcGxveW1lbnRTdGF0dXMSIQodREVQTE9ZTUVOVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1NUQVRVU19QRU5ESU5HEAESHgoaREVQTE9ZTUVOVF9TVEFUVVNfQlVJTERJTkcQAhIfChtERVBMT1lNRU5UX1NUQVRVU19ERVBMT1lJTkcQAxIdChlERVBMT1lNRU5UX1NUQVRVU19ORVRXT1JLEAQSGwoXREVQTE9ZTUVOVF9TVEFUVVNfUkVBRFkQBRIcChhERVBMT1lNRU5UX1NUQVRVU19GQUlMRUQQBipaCgpTb3VyY2VUeXBlEhsKF1NPVVJDRV9UWVBFX1VOU1BFQ0lGSUVEEAASEwoPU09VUkNFX1RZUEVfR0lUEAESGgoWU09VUkNFX1RZUEVfQ0xJX1VQTE9BRBACMsMCChFEZXBsb3ltZW50U2VydmljZRJZChBDcmVhdGVEZXBsb3ltZW50EiAuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVxdWVzdBohLmN0cmwudjEuQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlIgASUAoNR2V0RGVwbG95bWVudBIdLmN0cmwudjEuR2V0RGVwbG95bWVudFJlcXVlc3QaHi5jdHJsLnYxLkdldERlcGxveW1lbnRSZXNwb25zZSIAEkEKCFJvbGxiYWNrEhguY3RybC52MS5Sb2xsYmFja1JlcXVlc3QaGS5jdHJsLnYxLlJvbGxiYWNrUmVzcG9uc2UiABI+CgdQcm9tb3RlEhcuY3RybC52MS5Qcm9tb3RlUmVxdWVzdBoYLmN0cmwudjEuUHJvbW90ZVJlc3BvbnNlIgBCjgEKC2NvbS5jdHJsLnYxQg9EZXBsb3ltZW50UHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message ctrl.v1.CreateDeploymentRequest
@@ -32,25 +32,14 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
   environmentSlug: string;
 
   /**
-   * Build source, we can either build it from scratch or accept prebuilt image
+   * Build source - currently only prebuilt docker images are supported via API
+   * GitHub source builds are triggered automatically via webhook
    *
-   * @generated from oneof ctrl.v1.CreateDeploymentRequest.source
+   * Prebuilt image reference
+   *
+   * @generated from field: string docker_image = 6;
    */
-  source: {
-    /**
-     * @generated from field: ctrl.v1.BuildContext build_context = 5;
-     */
-    value: BuildContext;
-    case: "buildContext";
-  } | {
-    /**
-     * Prebuilt image reference
-     *
-     * @generated from field: string docker_image = 6;
-     */
-    value: string;
-    case: "dockerImage";
-  } | { case: undefined; value?: undefined };
+  dockerImage: string;
 
   /**
    * Git information
@@ -65,6 +54,14 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
    * @generated from field: optional string keyspace_id = 8;
    */
   keyspaceId?: string;
+
+  /**
+   * Container command override (e.g., ["./app", "serve"])
+   * If not specified, the container's default entrypoint/cmd is used
+   *
+   * @generated from field: repeated string command = 9;
+   */
+  command: string[];
 };
 
 /**
@@ -73,32 +70,6 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
  */
 export const CreateDeploymentRequestSchema: GenMessage<CreateDeploymentRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 0);
-
-/**
- * @generated from message ctrl.v1.BuildContext
- */
-export type BuildContext = Message<"ctrl.v1.BuildContext"> & {
-  /**
-   * S3 key for uploaded build context
-   *
-   * @generated from field: string build_context_path = 1;
-   */
-  buildContextPath: string;
-
-  /**
-   * Path to Dockerfile within context (default: "Dockerfile")
-   *
-   * @generated from field: optional string dockerfile_path = 2;
-   */
-  dockerfilePath?: string;
-};
-
-/**
- * Describes the message ctrl.v1.BuildContext.
- * Use `create(BuildContextSchema)` to create a new message.
- */
-export const BuildContextSchema: GenMessage<BuildContext> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 1);
 
 /**
  * @generated from message ctrl.v1.GitCommitInfo
@@ -137,7 +108,7 @@ export type GitCommitInfo = Message<"ctrl.v1.GitCommitInfo"> & {
  * Use `create(GitCommitInfoSchema)` to create a new message.
  */
 export const GitCommitInfoSchema: GenMessage<GitCommitInfo> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 2);
+  messageDesc(file_ctrl_v1_deployment, 1);
 
 /**
  * @generated from message ctrl.v1.CreateDeploymentResponse
@@ -149,7 +120,7 @@ export type CreateDeploymentResponse = Message<"ctrl.v1.CreateDeploymentResponse
   deploymentId: string;
 
   /**
-   * Will be PENDING or BUILDING
+   * Will be PENDING or DEPLOYING
    *
    * @generated from field: ctrl.v1.DeploymentStatus status = 2;
    */
@@ -161,7 +132,7 @@ export type CreateDeploymentResponse = Message<"ctrl.v1.CreateDeploymentResponse
  * Use `create(CreateDeploymentResponseSchema)` to create a new message.
  */
 export const CreateDeploymentResponseSchema: GenMessage<CreateDeploymentResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 3);
+  messageDesc(file_ctrl_v1_deployment, 2);
 
 /**
  * @generated from message ctrl.v1.GetDeploymentRequest
@@ -178,7 +149,7 @@ export type GetDeploymentRequest = Message<"ctrl.v1.GetDeploymentRequest"> & {
  * Use `create(GetDeploymentRequestSchema)` to create a new message.
  */
 export const GetDeploymentRequestSchema: GenMessage<GetDeploymentRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 4);
+  messageDesc(file_ctrl_v1_deployment, 3);
 
 /**
  * @generated from message ctrl.v1.GetDeploymentResponse
@@ -195,7 +166,7 @@ export type GetDeploymentResponse = Message<"ctrl.v1.GetDeploymentResponse"> & {
  * Use `create(GetDeploymentResponseSchema)` to create a new message.
  */
 export const GetDeploymentResponseSchema: GenMessage<GetDeploymentResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 5);
+  messageDesc(file_ctrl_v1_deployment, 4);
 
 /**
  * @generated from message ctrl.v1.Deployment
@@ -331,7 +302,7 @@ export type Deployment = Message<"ctrl.v1.Deployment"> & {
  * Use `create(DeploymentSchema)` to create a new message.
  */
 export const DeploymentSchema: GenMessage<Deployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 6);
+  messageDesc(file_ctrl_v1_deployment, 5);
 
 /**
  * @generated from message ctrl.v1.DeploymentStep
@@ -363,7 +334,7 @@ export type DeploymentStep = Message<"ctrl.v1.DeploymentStep"> & {
  * Use `create(DeploymentStepSchema)` to create a new message.
  */
 export const DeploymentStepSchema: GenMessage<DeploymentStep> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 7);
+  messageDesc(file_ctrl_v1_deployment, 6);
 
 /**
  * @generated from message ctrl.v1.Topology
@@ -411,7 +382,7 @@ export type Topology = Message<"ctrl.v1.Topology"> & {
  * Use `create(TopologySchema)` to create a new message.
  */
 export const TopologySchema: GenMessage<Topology> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 8);
+  messageDesc(file_ctrl_v1_deployment, 7);
 
 /**
  * @generated from message ctrl.v1.RegionalConfig
@@ -438,7 +409,7 @@ export type RegionalConfig = Message<"ctrl.v1.RegionalConfig"> & {
  * Use `create(RegionalConfigSchema)` to create a new message.
  */
 export const RegionalConfigSchema: GenMessage<RegionalConfig> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 9);
+  messageDesc(file_ctrl_v1_deployment, 8);
 
 /**
  * @generated from message ctrl.v1.RollbackRequest
@@ -460,7 +431,7 @@ export type RollbackRequest = Message<"ctrl.v1.RollbackRequest"> & {
  * Use `create(RollbackRequestSchema)` to create a new message.
  */
 export const RollbackRequestSchema: GenMessage<RollbackRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 10);
+  messageDesc(file_ctrl_v1_deployment, 9);
 
 /**
  * @generated from message ctrl.v1.RollbackResponse
@@ -473,7 +444,7 @@ export type RollbackResponse = Message<"ctrl.v1.RollbackResponse"> & {
  * Use `create(RollbackResponseSchema)` to create a new message.
  */
 export const RollbackResponseSchema: GenMessage<RollbackResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 11);
+  messageDesc(file_ctrl_v1_deployment, 10);
 
 /**
  * @generated from message ctrl.v1.PromoteRequest
@@ -490,7 +461,7 @@ export type PromoteRequest = Message<"ctrl.v1.PromoteRequest"> & {
  * Use `create(PromoteRequestSchema)` to create a new message.
  */
 export const PromoteRequestSchema: GenMessage<PromoteRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 12);
+  messageDesc(file_ctrl_v1_deployment, 11);
 
 /**
  * @generated from message ctrl.v1.PromoteResponse
@@ -503,7 +474,7 @@ export type PromoteResponse = Message<"ctrl.v1.PromoteResponse"> & {
  * Use `create(PromoteResponseSchema)` to create a new message.
  */
 export const PromoteResponseSchema: GenMessage<PromoteResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 13);
+  messageDesc(file_ctrl_v1_deployment, 12);
 
 /**
  * Deployment status enum
@@ -586,7 +557,7 @@ export const SourceTypeSchema: GenEnum<SourceType> = /*@__PURE__*/
  */
 export const DeploymentService: GenService<{
   /**
-   * Create a new deployment
+   * Create a new deployment with a prebuilt docker image
    *
    * @generated from rpc ctrl.v1.DeploymentService.CreateDeployment
    */

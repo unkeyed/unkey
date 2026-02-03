@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "acme.pb.go",
         "cluster.pb.go",
+        "custom_domain.pb.go",
         "deployment.pb.go",
         "environment.pb.go",
         "openapi.pb.go",
