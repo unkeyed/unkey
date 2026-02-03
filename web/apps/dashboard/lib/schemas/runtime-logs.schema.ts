@@ -1,13 +1,5 @@
+import { runtimeLog } from "@unkey/clickhouse/src/runtime-logs";
 import { z } from "zod";
-
-export const runtimeLog = z.object({
-  time: z.number().int(),
-  severity: z.string(),
-  message: z.string(),
-  deployment_id: z.string(),
-  region: z.string(),
-  attributes: z.record(z.string(), z.unknown()).nullable(),
-});
 
 export type RuntimeLog = z.infer<typeof runtimeLog>;
 

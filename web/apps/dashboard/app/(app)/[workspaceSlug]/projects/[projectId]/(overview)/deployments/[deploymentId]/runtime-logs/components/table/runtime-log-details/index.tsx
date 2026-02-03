@@ -2,11 +2,11 @@
 
 import { LogDetails as SharedLogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
-import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
-import { formatTimestamp, safeParseAttributes } from "../../../utils";
-import { RuntimeLogHeader } from "./runtime-log-header";
 import { TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
+import { safeParseAttributes } from "../../../utils";
+import { RuntimeLogHeader } from "./runtime-log-header";
 
 type Props = {
   distanceToTop: number;
@@ -26,7 +26,7 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
   const attributes = safeParseAttributes(log);
 
   return (
-    <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} >
+    <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <SharedLogDetails.Section>
         <RuntimeLogHeader log={log} onClose={handleClose} />
       </SharedLogDetails.Section>
@@ -40,9 +40,7 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
                 <span className="text-grayA-11">Time:</span>{" "}
                 <TimestampInfo
                   value={log.time}
-                  className={cn(
-                    "font-mono underline decoration-dotted",
-                  )}
+                  className={cn("font-mono underline decoration-dotted")}
                 />
               </div>
               <div>

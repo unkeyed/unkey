@@ -18,7 +18,7 @@ export const runtimeLogsRequestSchema = z.object({
 
 export type RuntimeLogsRequest = z.infer<typeof runtimeLogsRequestSchema>;
 
-export const runtimeLogResponseSchema = z.object({
+export const runtimeLog = z.object({
   time: z.int(),
   severity: z.string(),
   message: z.string(),
@@ -27,7 +27,7 @@ export const runtimeLogResponseSchema = z.object({
   attributes: z.record(z.string(), z.unknown()).nullable(),
 });
 
-export type RuntimeLogResponse = z.infer<typeof runtimeLogResponseSchema>;
+export type RuntimeLog = z.infer<typeof runtimeLog>;
 
 export function getRuntimeLogs(ch: Querier) {
   return async (args: RuntimeLogsRequest) => {
@@ -76,7 +76,7 @@ export function getRuntimeLogs(ch: Querier) {
         ORDER BY time DESC
         LIMIT {limit: Int}`,
       params: runtimeLogsRequestSchema,
-      schema: runtimeLogResponseSchema,
+      schema: runtimeLog,
     });
 
     return {
