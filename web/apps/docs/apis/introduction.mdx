@@ -56,13 +56,7 @@ export async function handler(req: Request) {
 
   try {
     // 2. Verify with Unkey
-    const { meta, data, error } = await unkey.keys.verifyKey({ key });
-
-    if (error) {
-      // Network error — decide how to handle (fail open/closed)
-      console.error(error);
-      return new Response("Service unavailable", { status: 503 });
-    }
+    const { meta, data } = await unkey.keys.verifyKey({ key });
 
     if (!data.valid) {
       // Key is invalid, expired, rate limited, or has no remaining uses
@@ -70,8 +64,8 @@ export async function handler(req: Request) {
     }
     // Continue with your API logic...
     return new Response("Hello!");
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     return new Response("Service unavailable", { status: 503 });
   }
 }
