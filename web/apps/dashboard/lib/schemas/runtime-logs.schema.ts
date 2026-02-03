@@ -20,7 +20,7 @@ export const runtimeLogsRequestSchema = z.object({
       ),
     })
     .nullable(),
-  searchText: z.string().nullable(),
+  message: z.string().nullable(),
   cursor: z.number().nullable().optional(),
 });
 

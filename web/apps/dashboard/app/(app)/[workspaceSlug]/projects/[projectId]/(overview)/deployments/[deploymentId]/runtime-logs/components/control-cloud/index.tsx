@@ -12,8 +12,8 @@ const formatFieldName = (field: string): string => {
       return "End time";
     case "severity":
       return "Severity";
-    case "searchText":
-      return "Search";
+    case "message":
+      return "Message";
     case "since":
       return "";
     default:

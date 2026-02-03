@@ -12,7 +12,7 @@ export const runtimeLogsRequestSchema = z.object({
   startTime: z.int(),
   endTime: z.int(),
   severity: z.array(z.string()).nullable(),
-  searchText: z.string().nullable(),
+  message: z.string().nullable(),
   cursorTime: z.int().nullable(),
 });
 
@@ -46,14 +46,11 @@ export function getRuntimeLogs(ch: Querier) {
         END
       )
 
-      AND (
-        CASE
-          WHEN {searchText: Nullable(String)} IS NOT NULL THEN
-            position(message, {searchText: Nullable(String)}) > 0
-            OR position(attributes_text, {searchText: Nullable(String)}) > 0
-          ELSE TRUE
-        END
-      )
+    AND (
+      {message: Nullable(String)} IS NULL
+      OR {message: Nullable(String)} = ''
+      OR positionCaseInsensitive(message, assumeNotNull({message: Nullable(String)})) > 0
+    )
     `;
 
     const totalQuery = ch.query({

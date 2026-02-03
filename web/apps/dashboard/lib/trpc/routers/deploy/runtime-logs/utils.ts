@@ -22,7 +22,7 @@ export function transformFilters(
     startTime,
     endTime,
     severity,
-    searchText: params.searchText,
+    message: params.message,
     cursorTime: params.cursor ?? null,
   };
 }

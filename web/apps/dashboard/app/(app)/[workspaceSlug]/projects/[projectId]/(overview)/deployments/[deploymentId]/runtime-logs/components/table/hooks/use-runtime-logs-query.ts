@@ -20,7 +20,7 @@ export function useRuntimeLogsQuery({ limit = DEFAULT_LIMIT, filters }: UseRunti
       .filter((f) => f.field === "severity")
       .map((f) => ({ operator: "is" as const, value: String(f.value) }));
 
-    const searchTextFilter = filters.find((f) => f.field === "searchText");
+    const messageFilter = filters.find((f) => f.field === "message");
     const startTimeFilter = filters.find((f) => f.field === "startTime");
     const endTimeFilter = filters.find((f) => f.field === "endTime");
     const sinceFilter = filters.find((f) => f.field === "since");
@@ -33,7 +33,7 @@ export function useRuntimeLogsQuery({ limit = DEFAULT_LIMIT, filters }: UseRunti
       endTime: endTimeFilter ? Number(endTimeFilter.value) : Date.now(),
       since: sinceFilter ? String(sinceFilter.value) : "6h",
       severity: severityFilters.length > 0 ? { filters: severityFilters } : null,
-      searchText: searchTextFilter ? String(searchTextFilter.value) : null,
+      message: messageFilter ? String(messageFilter.value) : null,
     };
   }, [filters, limit, params]);
 

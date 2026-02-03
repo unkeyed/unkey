@@ -35,7 +35,7 @@ export function RuntimeLogsDateTime() {
         if (since !== undefined) {
           updateFilters({
             severity: filters.filter((f) => f.field === "severity").map((f) => String(f.value)),
-            searchText: filters.find((f) => f.field === "searchText")?.value as string | undefined,
+            message: filters.find((f) => f.field === "message")?.value as string | undefined,
             since,
             startTime: undefined,
             endTime: undefined,
@@ -45,7 +45,7 @@ export function RuntimeLogsDateTime() {
         if (since === undefined && startTime) {
           updateFilters({
             severity: filters.filter((f) => f.field === "severity").map((f) => String(f.value)),
-            searchText: filters.find((f) => f.field === "searchText")?.value as string | undefined,
+            message: filters.find((f) => f.field === "message")?.value as string | undefined,
             startTime,
             endTime,
             since: undefined,

@@ -10,7 +10,7 @@ const parseAsFilterValueArray = parseAsArrayOf(parseAsString, ",").withDefault([
 export function useRuntimeLogsFilters() {
   const [queryParams, setQueryParams] = useQueryStates({
     severity: parseAsFilterValueArray,
-    searchText: parseAsString.withDefault(""),
+    message: parseAsString.withDefault(""),
     startTime: parseAsInteger,
     endTime: parseAsInteger,
     since: parseAsString.withDefault("6h"),
@@ -32,13 +32,13 @@ export function useRuntimeLogsFilters() {
         },
       });
     }
-    // Search text filter
-    if (queryParams.searchText) {
+    // Message filter
+    if (queryParams.message) {
       result.push({
-        id: "searchText",
-        field: "searchText",
+        id: "message",
+        field: "message",
         operator: "is",
-        value: queryParams.searchText,
+        value: queryParams.message,
       });
     }
 
@@ -81,8 +81,8 @@ export function useRuntimeLogsFilters() {
 
     if (filter.field === "severity") {
       updates.severity = queryParams.severity.filter((v) => v !== filter.value);
-    } else if (filter.field === "searchText") {
-      updates.searchText = "";
+    } else if (filter.field === "message") {
+      updates.message = "";
     } else if (filter.field === "startTime") {
       updates.startTime = null;
     } else if (filter.field === "endTime") {
@@ -102,8 +102,8 @@ export function useRuntimeLogsFilters() {
   const updateFiltersFromArray = (newFilters: RuntimeLogsFilter[]) => {
     const updates: Partial<typeof queryParams> = {
       severity: newFilters.filter((f) => f.field === "severity").map((f) => String(f.value)),
-      searchText:
-        (newFilters.find((f) => f.field === "searchText")?.value as string | undefined) || "",
+      message:
+        (newFilters.find((f) => f.field === "message")?.value as string | undefined) || "",
       startTime: Number(newFilters.find((f) => f.field === "startTime")?.value) || undefined,
       endTime: Number(newFilters.find((f) => f.field === "endTime")?.value) || undefined,
       since: String(newFilters.find((f) => f.field === "since")?.value) || "6h",
