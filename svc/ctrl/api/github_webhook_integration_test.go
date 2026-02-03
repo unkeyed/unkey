@@ -21,20 +21,10 @@ import (
 
 const testRepoFullName = "acme/repo"
 
-type mockGitHubService struct {
-	hydrav1.UnimplementedGitHubServiceServer
-	requests chan *hydrav1.HandlePushRequest
-}
-
-func (m *mockGitHubService) HandlePush(ctx restate.WorkflowSharedContext, req *hydrav1.HandlePushRequest) (*hydrav1.HandlePushResponse, error) {
-	m.requests <- req
-	return &hydrav1.HandlePushResponse{DeploymentId: "dep_test"}, nil
-}
-
-func TestGitHubWebhook_Push_TriggersRestateInvocation(t *testing.T) {
-	requests := make(chan *hydrav1.HandlePushRequest, 1)
+func TestGitHubWebhook_Push_TriggersDeployWorkflow(t *testing.T) {
+	deployRequests := make(chan *hydrav1.DeployRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewGitHubServiceServer(&mockGitHubService{requests: requests})},
+		Services: []restate.ServiceDefinition{hydrav1.NewDeploymentServiceServer(&mockDeploymentService{requests: deployRequests})},
 	})
 	projectID := insertRepoConnection(t, harness, testRepoFullName, 101, 202)
 
@@ -44,22 +34,23 @@ func TestGitHubWebhook_Push_TriggersRestateInvocation(t *testing.T) {
 	_ = resp.Body.Close()
 
 	select {
-	case req := <-requests:
-		require.Equal(t, projectID, req.GetProjectId())
-		require.Equal(t, int64(101), req.InstallationId)
-		require.Equal(t, testRepoFullName, req.RepositoryFullName)
-		require.Equal(t, "refs/heads/main", req.Ref)
-		require.Equal(t, "main", req.DefaultBranch)
-		require.Equal(t, "hello", req.GetGitCommit().GetCommitMessage())
+	case req := <-deployRequests:
+		require.NotEmpty(t, req.GetDeploymentId())
+		gitSource := req.GetGit()
+		require.NotNil(t, gitSource, "expected GitSource in deploy request")
+		require.Equal(t, int64(101), gitSource.GetInstallationId())
+		require.Equal(t, testRepoFullName, gitSource.GetRepository())
+		require.Equal(t, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", gitSource.GetCommitSha())
+		_ = projectID // projectID is stored in the deployment record, not passed to workflow
 	case <-time.After(10 * time.Second):
-		t.Fatal("expected restate invocation")
+		t.Fatal("expected deploy workflow invocation")
 	}
 }
 
 func TestGitHubWebhook_InvalidSignature(t *testing.T) {
-	requests := make(chan *hydrav1.HandlePushRequest, 1)
+	deployRequests := make(chan *hydrav1.DeployRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewGitHubServiceServer(&mockGitHubService{requests: requests})},
+		Services: []restate.ServiceDefinition{hydrav1.NewDeploymentServiceServer(&mockDeploymentService{requests: deployRequests})},
 	})
 	_ = insertRepoConnection(t, harness, testRepoFullName, 101, 202)
 
@@ -69,8 +60,8 @@ func TestGitHubWebhook_InvalidSignature(t *testing.T) {
 	_ = resp.Body.Close()
 
 	select {
-	case <-requests:
-		t.Fatal("unexpected restate invocation")
+	case <-deployRequests:
+		t.Fatal("unexpected deploy workflow invocation")
 	case <-time.After(1 * time.Second):
 	}
 }
@@ -86,6 +77,17 @@ func insertRepoConnection(t *testing.T, harness *webhookHarness, repoFullName st
 		Slug:             uid.New("slug"),
 		GitRepositoryURL: fmt.Sprintf("https://github.com/%s", repoFullName),
 		DefaultBranch:    "main",
+		DeleteProtection: false,
+	})
+
+	// Create production environment (required for webhook handler to find environment by slug)
+	harness.Seed.CreateEnvironment(harness.ctx, seed.CreateEnvironmentRequest{
+		ID:               uid.New("env"),
+		WorkspaceID:      harness.Seed.Resources.UserWorkspace.ID,
+		ProjectID:        project.ID,
+		Slug:             "production",
+		Description:      "",
+		SentinelConfig:   []byte("{}"),
 		DeleteProtection: false,
 	})
 

@@ -1,0 +1,21 @@
+type: object
+required:
+  - deploymentId
+  - buildContextPath
+  - dockerfilePath
+properties:
+  deploymentId:
+    type: string
+    minLength: 1
+    description: Deployment identifier returned by createDeployment
+    example: "d_abc123"
+  buildContextPath:
+    type: string
+    minLength: 1
+    description: S3 path to the uploaded build context
+    example: "proj_123/build_abc.tar.gz"
+  dockerfilePath:
+    type: string
+    minLength: 1
+    description: Dockerfile path within the build context
+    example: "Dockerfile"

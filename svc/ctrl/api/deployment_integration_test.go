@@ -56,9 +56,7 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 	resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
 		ProjectId:       project.ID,
 		EnvironmentSlug: environment.Slug,
-		Source: &ctrlv1.CreateDeploymentRequest_DockerImage{
-			DockerImage: "nginx:latest",
-		},
+		DockerImage:     "nginx:latest",
 	}))
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Msg.GetDeploymentId())
@@ -67,8 +65,9 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 	select {
 	case req := <-requests:
 		require.Equal(t, resp.Msg.GetDeploymentId(), req.GetDeploymentId())
-		require.Equal(t, "nginx:latest", req.GetDockerImage())
-		require.Empty(t, req.GetBuildContextPath())
+		dockerImage, ok := req.GetSource().(*hydrav1.DeployRequest_DockerImage)
+		require.True(t, ok, "expected DockerImage source")
+		require.Equal(t, "nginx:latest", dockerImage.DockerImage.GetImage())
 	case <-time.After(10 * time.Second):
 		t.Fatal("expected deployment workflow invocation")
 	}

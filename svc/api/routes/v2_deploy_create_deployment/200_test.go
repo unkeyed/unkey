@@ -62,47 +62,6 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
 	})
 
-	t.Run("create deployment with build context", func(t *testing.T) {
-		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-			ProjectName:     "test-build-project",
-			ProjectSlug:     "staging",
-			EnvironmentSlug: "staging",
-			Permissions:     []string{"project.*.create_deployment"},
-		})
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
-		}
-
-		req := handler.Request{
-			ProjectId:       setup.Project.ID,
-			Branch:          "develop",
-			EnvironmentSlug: "staging",
-		}
-		err := req.FromV2DeployBuildSource(openapi.V2DeployBuildSource{
-			Build: struct {
-				Context    string  `json:"context"`
-				Dockerfile *string `json:"dockerfile,omitempty"`
-			}{
-				Context:    "s3://bucket/path/to/context.tar.gz",
-				Dockerfile: ptr.P("./Dockerfile"),
-			},
-		})
-		require.NoError(t, err, "failed to set build source")
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 201, res.Status, "expected 201, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
-	})
-
 	t.Run("create deployment with git commit info", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 			ProjectName: "test-git-project",

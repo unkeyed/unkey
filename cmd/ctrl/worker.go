@@ -45,14 +45,6 @@ var workerCmd = &cli.Command{
 		),
 
 		// Build Configuration
-		cli.String("build-s3-url", "S3 Compatible Endpoint URL for build contexts",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
-		cli.String("build-s3-bucket", "S3 bucket name for build contexts",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_BUCKET")),
-		cli.String("build-s3-access-key-id", "S3 access key ID for build contexts",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_ID")),
-		cli.String("build-s3-access-key-secret", "S3 secret access key for build contexts",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
 		cli.String("build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
 			cli.Default("linux/amd64"), cli.EnvVar("UNKEY_BUILD_PLATFORM")),
 
@@ -104,7 +96,7 @@ var workerCmd = &cli.Command{
 		// GitHub App Configuration
 		cli.Int64("github-app-id", "GitHub App ID for webhook-triggered deployments", cli.EnvVar("UNKEY_GITHUB_APP_ID")),
 		cli.String("github-private-key-pem", "GitHub App private key in PEM format", cli.EnvVar("UNKEY_GITHUB_PRIVATE_KEY_PEM")),
-		cli.String("repofetch-image", "Container image for GitHub tarball fetch jobs", cli.Default("unkey/repofetch:latest"), cli.EnvVar("UNKEY_REPOFETCH_IMAGE")),
+		cli.String("repofetch-image", "Container image for GitHub tarball fetch jobs", cli.Default("ghcr.io/unkeyed/unkey:latest"), cli.EnvVar("UNKEY_REPOFETCH_IMAGE")),
 	},
 	Action: workerAction,
 }
@@ -126,13 +118,6 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		VaultToken: cmd.String("vault-token"),
 
 		// Build configuration
-		BuildS3: worker.S3Config{
-			URL:             cmd.String("build-s3-url"),
-			Bucket:          cmd.String("build-s3-bucket"),
-			AccessKeyID:     cmd.String("build-s3-access-key-id"),
-			AccessKeySecret: cmd.String("build-s3-access-key-secret"),
-			ExternalURL:     "",
-		},
 		BuildPlatform: cmd.String("build-platform"),
 
 		// Registry configuration

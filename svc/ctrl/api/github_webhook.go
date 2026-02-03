@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
@@ -79,10 +81,6 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-}
-
-func (s *GitHubWebhook) githubClient(projectID string) hydrav1.GitHubServiceIngressClient {
-	return hydrav1.NewGitHubServiceIngressClient(s.restate, projectID)
 }
 
 type pushPayload struct {
@@ -166,33 +164,88 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		defaultBranch = project.DefaultBranch.String
 	}
 
-	s.logger.Info("Starting deployment workflow for push",
-		"repository", payload.Repository.FullName,
-		"projectId", project.ID,
-		"commitSha", payload.After,
-		"branch", branch,
-		"default_branch", defaultBranch,
-	)
-
-	req := &hydrav1.HandlePushRequest{
-		InstallationId:     repoConnection.InstallationID,
-		RepositoryFullName: payload.Repository.FullName,
-		Ref:                payload.Ref,
-		CommitSha:          payload.After,
-		ProjectId:          project.ID,
-		GitCommit:          s.buildGitCommitInfo(&payload, branch),
-		DefaultBranch:      defaultBranch,
+	// Determine environment based on branch
+	envSlug := "preview"
+	if branch == defaultBranch {
+		envSlug = "production"
 	}
 
-	invocation, err := s.githubClient(project.ID).HandlePush().Send(ctx, req)
+	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
+		WorkspaceID: project.WorkspaceID,
+		ProjectID:   project.ID,
+		Slug:        envSlug,
+	})
 	if err != nil {
-		s.logger.Error("failed to start GitHub push workflow", "error", err)
+		s.logger.Error("failed to find environment", "error", err, "projectId", project.ID, "envSlug", envSlug)
+		http.Error(w, "failed to find environment", http.StatusInternalServerError)
+		return
+	}
+
+	// Create deployment record
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	now := time.Now().UnixMilli()
+	gitCommit := s.extractGitCommitInfo(&payload, branch)
+
+	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
+		ID:                            deploymentID,
+		K8sName:                       uid.DNS1035(12),
+		WorkspaceID:                   project.WorkspaceID,
+		ProjectID:                     project.ID,
+		EnvironmentID:                 env.ID,
+		SentinelConfig:                env.SentinelConfig,
+		EncryptedEnvironmentVariables: []byte{},
+		Command:                       []byte("[]"),
+		Status:                        db.DeploymentsStatusPending,
+		CreatedAt:                     now,
+		UpdatedAt:                     sql.NullInt64{Valid: false},
+		GitCommitSha:                  toNullString(payload.After),
+		GitBranch:                     toNullString(branch),
+		GitCommitMessage:              toNullString(gitCommit.message),
+		GitCommitAuthorHandle:         toNullString(gitCommit.authorHandle),
+		GitCommitAuthorAvatarUrl:      toNullString(gitCommit.authorAvatarURL),
+		GitCommitTimestamp:            toNullInt64(gitCommit.timestamp),
+		OpenapiSpec:                   sql.NullString{Valid: false},
+		CpuMillicores:                 256,
+		MemoryMib:                     256,
+	})
+	if err != nil {
+		s.logger.Error("failed to insert deployment", "error", err)
+		http.Error(w, "failed to create deployment", http.StatusInternalServerError)
+		return
+	}
+
+	s.logger.Info("Created deployment record",
+		"deployment_id", deploymentID,
+		"project_id", project.ID,
+		"repository", payload.Repository.FullName,
+		"commit_sha", payload.After,
+		"branch", branch,
+		"environment", envSlug,
+	)
+
+	// Start deploy workflow with GitSource
+	deployClient := hydrav1.NewDeploymentServiceIngressClient(s.restate, deploymentID)
+	invocation, err := deployClient.Deploy().Send(ctx, &hydrav1.DeployRequest{
+		DeploymentId: deploymentID,
+		Source: &hydrav1.DeployRequest_Git{
+			Git: &hydrav1.GitSource{
+				InstallationId: repoConnection.InstallationID,
+				Repository:     payload.Repository.FullName,
+				CommitSha:      payload.After,
+				ContextPath:    ".",
+				DockerfilePath: "Dockerfile",
+			},
+		},
+	})
+	if err != nil {
+		s.logger.Error("failed to start deployment workflow", "error", err)
 		http.Error(w, "failed to start workflow", http.StatusInternalServerError)
 		return
 	}
 
-	s.logger.Info("GitHub push workflow started",
+	s.logger.Info("Deployment workflow started",
 		"invocation_id", invocation.Id,
+		"deployment_id", deploymentID,
 		"project_id", project.ID,
 		"repository", payload.Repository.FullName,
 		"commit_sha", payload.After,
@@ -209,7 +262,14 @@ func extractBranchFromRef(ref string) string {
 	return strings.TrimPrefix(ref, prefix)
 }
 
-func (s *GitHubWebhook) buildGitCommitInfo(payload *pushPayload, branch string) *hydrav1.GitCommitInfo {
+type gitCommitInfo struct {
+	message         string
+	authorHandle    string
+	authorAvatarURL string
+	timestamp       int64
+}
+
+func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload, branch string) gitCommitInfo {
 	headCommit := payload.HeadCommit
 	if headCommit == nil && len(payload.Commits) > 0 {
 		c := payload.Commits[0]
@@ -230,7 +290,12 @@ func (s *GitHubWebhook) buildGitCommitInfo(payload *pushPayload, branch string) 
 	}
 
 	if headCommit == nil {
-		return nil
+		return gitCommitInfo{
+			message:         "",
+			authorHandle:    "",
+			authorAvatarURL: "",
+			timestamp:       0,
+		}
 	}
 
 	authorHandle := headCommit.Author.Username
@@ -248,12 +313,24 @@ func (s *GitHubWebhook) buildGitCommitInfo(payload *pushPayload, branch string) 
 		message = message[:idx]
 	}
 
-	return &hydrav1.GitCommitInfo{
-		CommitSha:       payload.After,
-		CommitMessage:   message,
-		AuthorHandle:    authorHandle,
-		AuthorAvatarUrl: payload.Sender.AvatarURL,
-		Timestamp:       timestamp,
-		Branch:          branch,
+	return gitCommitInfo{
+		message:         message,
+		authorHandle:    authorHandle,
+		authorAvatarURL: payload.Sender.AvatarURL,
+		timestamp:       timestamp,
 	}
+}
+
+func toNullString(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: s, Valid: true}
+}
+
+func toNullInt64(v int64) sql.NullInt64 {
+	if v == 0 {
+		return sql.NullInt64{Valid: false}
+	}
+	return sql.NullInt64{Int64: v, Valid: true}
 }

@@ -161,10 +161,6 @@ func (c *Client) buildJobSpec(jobName string, params FetchParams) *batchv1.Job {
 							{Name: "UNKEY_SHA", Value: params.SHA},
 							{Name: "UNKEY_UPLOAD_URL", Value: params.UploadURL},
 						},
-						VolumeMounts: []corev1.VolumeMount{{
-							Name:      "tmp",
-							MountPath: "/tmp",
-						}},
 						SecurityContext: &corev1.SecurityContext{
 							AllowPrivilegeEscalation: ptr.P(false),
 							ReadOnlyRootFilesystem:   ptr.P(true),

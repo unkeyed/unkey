@@ -86,40 +86,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// Get docker image from request - only image deployments are supported via API
+	imageSource, imageErr := req.AsV2DeployImageSource()
+	if imageErr != nil || imageSource.Image == "" {
+		return fault.New("docker_image is required",
+			fault.Internal("failed to parse image source or empty image"),
+			fault.Public("A docker_image must be provided. Build from source is only supported via GitHub integration."),
+		)
+	}
+
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       req.ProjectId,
 		Branch:          req.Branch,
 		EnvironmentSlug: req.EnvironmentSlug,
+		DockerImage:     imageSource.Image,
 		GitCommit:       &ctrlv1.GitCommitInfo{},
 	}
 
 	// Add optional keyspace ID for authentication
 	if req.KeyspaceId != nil {
 		ctrlReq.KeyspaceId = req.KeyspaceId
-	}
-
-	// Handle source (build vs image) using oneOf union type
-	buildSource, buildErr := req.AsV2DeployBuildSource()
-
-	if buildErr == nil && buildSource.Build.Context != "" {
-		// Build source
-		// nolint: exhaustruct // optional proto fields, only setting whats provided
-		buildContext := &ctrlv1.BuildContext{
-			BuildContextPath: buildSource.Build.Context,
-		}
-		if buildSource.Build.Dockerfile != nil {
-			buildContext.DockerfilePath = buildSource.Build.Dockerfile
-		}
-		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_BuildContext{
-			BuildContext: buildContext,
-		}
-	} else {
-		// Image source
-		imageSource, _ := req.AsV2DeployImageSource()
-		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_DockerImage{
-			DockerImage: imageSource.Image,
-		}
 	}
 
 	// Handle optional git commit info

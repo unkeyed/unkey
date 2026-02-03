@@ -386,6 +386,36 @@ components:
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
+        V2DeployCompleteUploadRequestBody:
+            type: object
+            required:
+                - deploymentId
+                - buildContextPath
+                - dockerfilePath
+            properties:
+                deploymentId:
+                    type: string
+                    minLength: 1
+                    description: Deployment identifier returned by createDeployment
+                    example: "d_abc123"
+                buildContextPath:
+                    type: string
+                    minLength: 1
+                    description: S3 path to the uploaded build context
+                    example: "proj_123/build_abc.tar.gz"
+                dockerfilePath:
+                    type: string
+                    minLength: 1
+                    description: Dockerfile path within the build context
+                    example: "Dockerfile"
+        V2DeployCompleteUploadResponseBody:
+            type: object
+            description: Empty response object. A successful response indicates the upload completion was accepted.
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+            required:
+                - meta
         V2DeployCreateDeploymentRequestBody:
             allOf:
                 - type: object
@@ -4269,6 +4299,62 @@ paths:
             tags:
                 - apis
             x-speakeasy-name-override: listKeys
+    /v2/deploy.completeUpload:
+        post:
+            description: |
+                Signals that a deployment build context upload completed.
+
+                **Authentication**: Requires a valid root key with appropriate permissions.
+            operationId: deploy.completeUpload
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2DeployCompleteUploadRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2DeployCompleteUploadResponseBody'
+                    description: Upload completion accepted
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Complete upload
+            tags:
+                - deploy
+            x-speakeasy-name-override: completeUpload
     /v2/deploy.createDeployment:
         post:
             description: |

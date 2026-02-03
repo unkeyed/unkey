@@ -23,8 +23,6 @@ go_library(
         "//pkg/retry",
         "//pkg/rpc/interceptor",
         "//pkg/shutdown",
-        "//svc/ctrl/pkg/build",
-        "//svc/ctrl/pkg/s3",
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/certificate",
         "//svc/ctrl/worker/clickhouseuser",

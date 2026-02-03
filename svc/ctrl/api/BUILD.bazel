@@ -24,7 +24,6 @@ go_library(
         "//pkg/tls",
         "//pkg/uid",
         "//pkg/version",
-        "//svc/ctrl/pkg/s3",
         "//svc/ctrl/services/acme",
         "//svc/ctrl/services/cluster",
         "//svc/ctrl/services/ctrl",

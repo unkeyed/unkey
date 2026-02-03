@@ -87,8 +87,6 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	ctrlAddr := pickAddr(t)
 	ctrlPort := ctrlAddr.Port
 
-	s3cfg := dockertest.S3(t)
-
 	secret := cfg.WebhookSecret
 	if secret == "" {
 		secret = uid.New("whsec")
@@ -107,13 +105,6 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		Restate: RestateConfig{
 			URL:    restateCfg.IngressURL,
 			APIKey: "",
-		},
-		BuildS3: S3Config{
-			URL:             s3cfg.URL,
-			Bucket:          "build-contexts",
-			AccessKeyID:     s3cfg.AccessKeyID,
-			AccessKeySecret: s3cfg.SecretAccessKey,
-			ExternalURL:     s3cfg.URL,
 		},
 		AvailableRegions:    []string{"local.dev"},
 		GitHubWebhookSecret: secret,

@@ -721,6 +721,24 @@ type V2DeployBuildSource struct {
 	} `json:"build"`
 }
 
+// V2DeployCompleteUploadRequestBody defines model for V2DeployCompleteUploadRequestBody.
+type V2DeployCompleteUploadRequestBody struct {
+	// BuildContextPath S3 path to the uploaded build context
+	BuildContextPath string `json:"buildContextPath"`
+
+	// DeploymentId Deployment identifier returned by createDeployment
+	DeploymentId string `json:"deploymentId"`
+
+	// DockerfilePath Dockerfile path within the build context
+	DockerfilePath string `json:"dockerfilePath"`
+}
+
+// V2DeployCompleteUploadResponseBody Empty response object. A successful response indicates the upload completion was accepted.
+type V2DeployCompleteUploadResponseBody struct {
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2DeployCreateDeploymentRequestBody Deployment source - either build from source or use prebuilt image
 type V2DeployCreateDeploymentRequestBody struct {
 	// Branch Git branch name
@@ -2418,6 +2436,9 @@ type ApisGetApiJSONRequestBody = V2ApisGetApiRequestBody
 
 // ApisListKeysJSONRequestBody defines body for ApisListKeys for application/json ContentType.
 type ApisListKeysJSONRequestBody = V2ApisListKeysRequestBody
+
+// DeployCompleteUploadJSONRequestBody defines body for DeployCompleteUpload for application/json ContentType.
+type DeployCompleteUploadJSONRequestBody = V2DeployCompleteUploadRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody

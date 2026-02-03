@@ -8,33 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
-// S3Config holds S3 configuration for storage backends.
-//
-// This configuration is used by vault, build storage, and other services
-// that need to store data in S3-compatible object storage.
-type S3Config struct {
-	// URL is the S3 endpoint URL including protocol and region.
-	// Examples: "https://s3.amazonaws.com" or "https://s3.us-west-2.amazonaws.com".
-	URL string
-
-	// Bucket is the S3 bucket name for storing objects.
-	// Must exist and be accessible with the provided credentials.
-	Bucket string
-
-	// AccessKeyID is the AWS access key ID for S3 authentication.
-	// Must have appropriate permissions for bucket operations.
-	AccessKeyID string
-
-	// AccessKeySecret is the AWS secret access key for S3 authentication.
-	// Should be stored securely and rotated regularly.
-	AccessKeySecret string
-
-	// ExternalURL is the public-facing URL for accessing S3 objects.
-	// Used when objects need to be accessed from outside the AWS network.
-	// Optional - can be empty for internal-only access.
-	ExternalURL string
-}
-
 // Route53Config holds AWS Route53 configuration for ACME DNS-01 challenges.
 //
 // This configuration enables automatic DNS record creation for wildcard
@@ -184,10 +157,6 @@ type Config struct {
 	// Restate configures workflow engine integration.
 	// Enables asynchronous deployment and certificate renewal workflows.
 	Restate RestateConfig
-
-	// BuildS3 configures storage for build artifacts and outputs.
-	// Used by both Depot and Docker build backends.
-	BuildS3 S3Config
 
 	// BuildPlatform defines the target architecture for container builds.
 	// Format: "linux/amd64", "linux/arm64". Only "linux" OS supported.
@@ -353,10 +322,6 @@ func (c Config) Validate() error {
 		assert.NotEmpty(c.RegistryUsername, "registry username is required"),
 		assert.NotEmpty(c.RegistryPassword, "registry password is required"),
 		assert.NotEmpty(c.BuildPlatform, "build platform is required"),
-		assert.NotEmpty(c.BuildS3.URL, "build S3 URL is required"),
-		assert.NotEmpty(c.BuildS3.Bucket, "build S3 bucket is required"),
-		assert.NotEmpty(c.BuildS3.AccessKeyID, "build S3 access key ID is required"),
-		assert.NotEmpty(c.BuildS3.AccessKeySecret, "build S3 access key secret is required"),
 		assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required"),
 		assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required"),
 	)

@@ -4,7 +4,7 @@ load('ext://secret', 'secret_create_generic')
 
 cfg = config.parse()
 
-update_settings(suppress_unused_image_warnings=["unkey/repofetch:latest", "unkey/sentinel:latest"])
+update_settings(suppress_unused_image_warnings=["unkey/sentinel:latest"])
 
 local_resource(
   'namespace',
@@ -35,6 +35,14 @@ local_resource(
     'kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -',
     resource_deps=['namespace'],
     deps=['./.env.depot'],
+    labels=['setup'],
+)
+
+local_resource(
+    'github-credentials',
+    'kubectl -n unkey create secret generic github-credentials --from-env-file=.env.github -o yaml --dry-run=client | kubectl apply -f -',
+    resource_deps=['namespace'],
+    deps=['.env.github'],
     labels=['setup'],
 )
 
@@ -156,7 +164,7 @@ k8s_yaml('k8s/manifests/ctrl-worker.yaml')
 k8s_resource(
   'ctrl-worker',
   port_forwards=['7092:7092'],
-  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials', 'github-credentials'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -219,13 +227,6 @@ local_resource(
     labels=['build'],
 )
 
-# Repo fetch image
-local_resource(
-    'build-repofetch-image',
-    'docker build -t unkey/repofetch:latest -f ../Dockerfile.repofetch .. && minikube image load unkey/repofetch:latest',
-    deps=['../Dockerfile.repofetch'],
-    labels=['build'],
-)
 
 
 # Dashboard - runs locally with HMR (env loaded from web/apps/dashboard/.env)
