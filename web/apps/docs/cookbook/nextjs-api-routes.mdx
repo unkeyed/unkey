@@ -119,10 +119,10 @@ export async function POST(req: NextRequest) {
   }
   const apiKey = authHeader.slice(7);
 
-  // 2. Verify with Unkey 
+  // 2. Verify with Unkey
   try {
     const { meta, data } = await unkey.keys.verifyKey({
-      key: "api_key",
+      key: apiKey,
     });
 
     // You can reject the request because the key is invalid.

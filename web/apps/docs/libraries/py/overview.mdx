@@ -30,12 +30,12 @@ uv add unkey.py
 ### Initialize the client
 
 ```python
+import os
 from unkey import Unkey
 
 unkey = Unkey(root_key="unkey_...")
 
 # Or use environment variable
-import os
 unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 ```
 
@@ -50,11 +50,12 @@ Never expose your root key in client-side code or commit it to version control.
 Check if a user's API key is valid:
 
 ```python
+from typing import Optional
 from unkey import Unkey, ApiError
 
 unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 
-def verify_request(api_key: str) -> dict | None:
+def verify_request(api_key: str) -> Optional[dict]:
     """Verify an API key and return the result or None if invalid."""
     try:
         result = unkey.keys.verify_key(key=api_key)

@@ -92,7 +92,7 @@ For example:
 const unkey = useUnkey();
 
 try {
-  const { meta, data, error } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.create({
     apiId: "api_7oKUUscTZy22jmVf9THxDA",
     prefix: "xyz",
     byteLength: 16,
@@ -107,11 +107,7 @@ try {
     },
   });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  console.log(created.key);
+  console.log(data.key);
 } catch (err) {
   console.error(err);
   throw err;

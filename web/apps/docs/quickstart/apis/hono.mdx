@@ -285,6 +285,6 @@ unkey({
     ```bash
     npx wrangler secret put UNKEY_ROOT_KEY
     ```
-    Then access via `process.env.UNKEY_ROOT_KEY` in your code.
+    Then access it from your Hono bindings. Add `UNKEY_ROOT_KEY` to your `Bindings` type and read it via `ctx.env.UNKEY_ROOT_KEY` or `env.UNKEY_ROOT_KEY` in your handlers.
   </Accordion>
 </AccordionGroup>

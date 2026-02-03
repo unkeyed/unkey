@@ -36,9 +36,8 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
         )
     
     try:
-        result = unkey.keys.verify_key(
+        result = await unkey.keys.verify_key_async(
             key=api_key,
-            api_id=os.environ["UNKEY_API_ID"]
         )
     except Exception as e:
         raise HTTPException(
@@ -114,9 +113,9 @@ from models.auth import AuthResult
 async def verify_api_key(api_key: str = Security(api_key_header)) -> AuthResult:
     if not api_key:
         raise HTTPException(status_code=401, detail="Missing API key")
-    
-    result = unkey.keys.verify_key(key=api_key)
-    
+
+    result = await unkey.keys.verify_key_async(key=api_key)
+
     if not result.valid:
         raise HTTPException(status_code=401, detail=result.code)
     
@@ -153,9 +152,8 @@ def require_permission(permission: str):
             raise HTTPException(status_code=401, detail="Missing API key")
         
         # Include permission check in verification
-        result = unkey.keys.verify_key(
+        result = await unkey.keys.verify_key_async(
             key=api_key,
-            api_id=os.environ["UNKEY_API_ID"],
             permissions=permission,
         )
         
@@ -211,16 +209,16 @@ async def verify_api_key(
     if not api_key:
         raise HTTPException(status_code=401, detail="Missing API key")
     
-    result = unkey.keys.verify_key(
+    result = await unkey.keys.verify_key_async(
         key=api_key,
-        api_id=os.environ["UNKEY_API_ID"]
     )
-    
+
     # Add rate limit headers
-    if result.ratelimit:
-        response.headers["X-RateLimit-Limit"] = str(result.ratelimit.limit)
-        response.headers["X-RateLimit-Remaining"] = str(result.ratelimit.remaining)
-        response.headers["X-RateLimit-Reset"] = str(result.ratelimit.reset)
+    if result.ratelimits:
+        rl = result.ratelimits[0]
+        response.headers["X-RateLimit-Limit"] = str(rl.limit)
+        response.headers["X-RateLimit-Remaining"] = str(rl.remaining)
+        response.headers["X-RateLimit-Reset"] = str(rl.reset)
     
     # Add credits header
     if result.credits is not None:
@@ -310,7 +308,7 @@ async def get_auth(
     if not api_key:
         raise HTTPException(status_code=401, detail="Missing API key")
     
-    result = unkey.keys.verify_key(key=api_key)
+    result = await unkey.keys.verify_key_async(key=api_key)
     
     if result.credits is not None:
         response.headers["X-Credits-Remaining"] = str(result.credits)

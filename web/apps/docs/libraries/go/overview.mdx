@@ -250,7 +250,7 @@ import (
 
 func main() {
     ctx := context.Background()
-    
+
     client := unkey.New(
         unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
     )
@@ -268,7 +268,9 @@ func main() {
         ExternalID: &externalID,
         Name:       &name,
         Expires:    &expires,
-        Remaining:  &remaining,
+        Credits: &components.KeyCreditsData{
+            Remaining: &remaining,
+        },
         Meta: map[string]any{
             "plan": "pro",
         },

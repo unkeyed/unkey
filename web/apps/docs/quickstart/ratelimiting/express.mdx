@@ -179,6 +179,28 @@ async function rateLimit(req, res, next) {
 module.exports = { rateLimit };
 ```
 
+### createMiddleware helper
+
+Create an Express middleware from a Ratelimit instance:
+
+```js
+function createMiddleware(limiter) {
+  return async (req, res, next) => {
+    const identifier = req.ip ?? req.headers["x-forwarded-for"] ?? "unknown";
+    const { success, remaining, reset } = await limiter.limit(identifier);
+
+    if (!success) {
+      res.set("Retry-After", Math.ceil((reset - Date.now()) / 1000).toString());
+      res.set("X-RateLimit-Remaining", "0");
+      return res.status(429).json({ error: "Too many requests" });
+    }
+
+    res.set("X-RateLimit-Remaining", remaining.toString());
+    next();
+  };
+}
+```
+
 Use on any route:
 
 ```js

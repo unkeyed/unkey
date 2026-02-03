@@ -231,7 +231,10 @@ const isValid = await myDatabase.verifyKey(apiKey);
 // After: Unkey verification
 const response = await fetch("https://api.unkey.com/v2/keys.verifyKey", {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  headers: { 
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + process.env.UNKEY_ROOT_KEY 
+  },
   body: JSON.stringify({ key: apiKey }),
 });
 const { data } = await response.json();

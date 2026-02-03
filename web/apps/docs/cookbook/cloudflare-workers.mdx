@@ -22,20 +22,18 @@ export interface Env {
   UNKEY_ROOT_KEY: string;
 }
 
-const unkey = new Unkey({ rootKey: env.UNKEY_ROOT_KEY });
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     // 1. Extract API key
     const authHeader = request.headers.get("Authorization");
-    
+
     if (!authHeader?.startsWith("Bearer ")) {
       return Response.json(
         { error: "Missing API key" },
         { status: 401 }
       );
     }
-    
+
     const unkey = new Unkey({ rootKey: env.UNKEY_ROOT_KEY });
     const apiKey = authHeader.slice(7);
 
@@ -183,7 +181,8 @@ export function authMiddleware(options: AuthOptions = {}) {
     }
 
     try {
-      const { data, error } = await c.env.UNKEY.keys.verifyKey({
+      const unkey = new Unkey({ apiKey: c.env.UNKEY_ROOT_KEY });
+      const { data, error } = await unkey.verifyKey({
         key: apiKey,
         permissions: options.permissions,
       });
@@ -262,7 +261,8 @@ export function authMiddleware(options: AuthOptions = {}) {
     }
 
     try {
-      const { meta, data, error } = await c.env.UNKEY.keys.verifyKey({
+      const unkey = new Unkey({ apiKey: c.env.UNKEY_ROOT_KEY });
+      const { meta, data, error } = await unkey.verifyKey({
         key: apiKey,
       });
 
@@ -303,11 +303,8 @@ import { Unkey } from "@unkey/api";
 import { DurableObject } from "cloudflare:workers";
 
 export interface Env {
-  UNKEY: Unkey;
+  UNKEY_ROOT_KEY: string;
 }
-
-
-const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export class Counter extends DurableObject {
   async fetch(request: Request) {
@@ -320,14 +317,16 @@ export class Counter extends DurableObject {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const unkey = new Unkey({ rootKey: env.UNKEY_ROOT_KEY });
+
     // Verify API key first
     const apiKey = request.headers.get("Authorization")?.slice(7);
-    
+
     if (!apiKey) {
       return Response.json({ error: "Missing API key" }, { status: 401 });
     }
     try {
-      const { meta, data, error } = await env.UNKEY.keys.verifyKey({
+      const { meta, data, error } = await unkey.keys.verifyKey({
         key: apiKey,
       });
 
@@ -356,11 +355,7 @@ name = "my-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
-[vars]
-# Non-sensitive config (UNKEY_ROOT_KEY is safe to include)
-# UNKEY_ROOT_KEY = "unkey_..."  # Or use secrets for all
-
-# Use secrets for sensitive values
+# Store UNKEY_ROOT_KEY as a secret, not in config
 # npx wrangler secret put UNKEY_ROOT_KEY
 ```
 

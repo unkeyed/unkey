@@ -97,29 +97,34 @@ package main
 import (
     "context"
     "net/http"
+    "os"
+    "strings"
     unkey "github.com/unkeyed/sdks/api/go/v2"
+    "github.com/unkeyed/sdks/api/go/v2/components"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    key := r.Header.Get("Authorization")
-    
+    auth := r.Header.Get("Authorization")
+    key := strings.TrimPrefix(strings.TrimSpace(auth), "Bearer ")
+
     client := unkey.New(unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")))
-    
+
     res, err := client.Keys.VerifyKey(context.Background(), components.V2KeysVerifyKeyRequestBody{
         Key: key,
     })
-    
+
     if err != nil || !res.Valid {
         http.Error(w, "Unauthorized", http.StatusUnauthorized)
         return
     }
-    
+
     w.Write([]byte("Hello!"))
 }
 ```
 
 ```bash cURL
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
   -H "Content-Type: application/json" \
   -d '{"key": "sk_1234..."}'
 ```
