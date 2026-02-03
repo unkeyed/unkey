@@ -4,6 +4,7 @@ import type { Column } from "@/components/virtual-table/types";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
+import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
 import { Loading } from "@unkey/ui";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
@@ -183,17 +184,15 @@ export const DeploymentsList = () => {
               <Cube className="text-gray-12" iconSize="sm-regular" />
               <div className="flex gap-1">
                 <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12 tabular-nums">
-                    {deployment.cpuMillicores / 1024}
+                  <span className="font-semibold text-grayA-12">
+                    {formatCpu(deployment.cpuMillicores)}
                   </span>
-                  <span>vCPU</span>
                 </div>
                 <span> / </span>
                 <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12 tabular-nums">
-                    {deployment.memoryMib}
+                  <span className="font-semibold text-grayA-12">
+                    {formatMemory(deployment.memoryMib)}
                   </span>
-                  <span>MiB</span>
                 </div>
               </div>
             </div>

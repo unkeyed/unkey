@@ -298,12 +298,12 @@ export function AddEnvVars({
       </div>
 
       <div className="px-4 py-2 flex items-center justify-between border-t border-gray-4 sticky bottom-0 bg-gray-2">
-        <Button size="sm" variant="ghost" onClick={addEntry} className="text-xs text-gray-11 gap-1">
+        <Button size="sm" variant="ghost" onClick={addEntry} className="text-xs gap-1">
           <Plus className="!size-3" />
           Add more
         </Button>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
+          <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSubmitting} className="text-xs">
             Cancel
           </Button>
           <Button
@@ -312,6 +312,7 @@ export function AddEnvVars({
             onClick={handleSave}
             disabled={validEntries.length === 0 || isSubmitting}
             loading={isSubmitting}
+            className="text-xs"
           >
             Save {validEntries.length > 0 && `(${validEntries.length})`}
           </Button>

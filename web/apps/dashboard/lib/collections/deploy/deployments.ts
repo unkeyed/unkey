@@ -21,6 +21,7 @@ const schema = z.object({
   instances: z.array(
     z.object({
       id: z.string(),
+      region: z.string(),
     }),
   ),
   cpuMillicores: z.number().int(),

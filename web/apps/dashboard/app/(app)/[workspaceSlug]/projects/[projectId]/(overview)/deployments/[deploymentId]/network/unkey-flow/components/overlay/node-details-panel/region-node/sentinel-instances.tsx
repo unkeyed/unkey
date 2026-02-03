@@ -1,6 +1,6 @@
 import { Bolt, ChartActivity, CircleCheck, Focus, Heart, Layers2 } from "@unkey/icons";
+import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import type { DeploymentNode } from "../../../nodes";
-import { formatCpu, formatMemory } from "../../../nodes/components/card-footer";
 import { MetricPill } from "../../../nodes/components/metric-pill";
 import { StatusIndicator } from "../../../nodes/status/status-indicator";
 

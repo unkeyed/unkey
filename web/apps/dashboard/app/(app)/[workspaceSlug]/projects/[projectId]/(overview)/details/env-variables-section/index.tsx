@@ -58,7 +58,7 @@ export function EnvironmentVariablesSection({
       <div className={cn("px-4 pt-3 flex justify-between items-center", isExpanded ? "" : "pb-3")}>
         <div className="flex items-center">
           {icon}
-          <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
+          <div className="text-gray-12 font-medium text-xs ml-3 mr-2 capitalize">
             {title} {envVars.length > 0 && `(${envVars.length})`}
           </div>
         </div>

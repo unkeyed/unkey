@@ -30,6 +30,7 @@ export const listDeployments = workspaceProcedure
           instances: {
             columns: {
               id: true,
+              region: true,
             },
           },
         },
