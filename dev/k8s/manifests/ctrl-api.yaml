@@ -60,6 +60,8 @@ spec:
             # Restate Configuration (ctrl-api only needs ingress client)
             - name: UNKEY_RESTATE_INGRESS_URL
               value: "http://restate:8080"
+            - name: UNKEY_RESTATE_ADMIN_URL
+              value: "http://restate:9070"
             - name: UNKEY_RESTATE_API_KEY
               value: ""
 
@@ -69,6 +71,8 @@ spec:
 
             # Certificate bootstrap
             - name: UNKEY_DEFAULT_DOMAIN
+              value: "unkey.local"
+            - name: UNKEY_CNAME_DOMAIN
               value: "unkey.local"
 
             # GitHub webhook

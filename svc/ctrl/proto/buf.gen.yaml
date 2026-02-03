@@ -13,3 +13,5 @@ plugins:
     opt:
       - paths=import
       - module=github.com/unkeyed/unkey/gen/proto
+
+  # TypeScript for ctrl protos is generated separately via buf.gen.ts.yaml
