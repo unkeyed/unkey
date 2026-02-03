@@ -570,7 +570,7 @@ type CreateWorkspaceWithQuotaRequest struct {
 }
 
 // CreateWorkspaceWithQuota creates a workspace with an associated quota.
-// Returns the workspace ID for use in tests.
+// Returns the created db.Workspace for use in tests.
 func (s *Seeder) CreateWorkspaceWithQuota(ctx context.Context, req CreateWorkspaceWithQuotaRequest) db.Workspace {
 	ws := s.CreateWorkspace(ctx)
 

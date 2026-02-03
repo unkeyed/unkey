@@ -102,8 +102,7 @@ func applySchemaFiles(t *testing.T, ctx context.Context, conn ch.Conn, dir strin
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		// Directory might not exist, that's ok
-		return
+		t.Fatalf("failed to read ClickHouse schema directory %q: %v", dir, err)
 	}
 
 	// Sort files by name to ensure correct order (000_, 001_, etc.)
