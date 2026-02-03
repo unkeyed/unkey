@@ -4,30 +4,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/tls"
 )
 
-// S3Config holds S3 configuration for storage backends.
-type S3Config struct {
-	// URL is the S3 endpoint URL including protocol and region.
-	// Examples: "https://s3.amazonaws.com" or "https://s3.us-west-2.amazonaws.com".
-	URL string
-
-	// Bucket is the S3 bucket name for storing objects.
-	// Must exist and be accessible with the provided credentials.
-	Bucket string
-
-	// AccessKeyID is the AWS access key ID for S3 authentication.
-	// Must have appropriate permissions for bucket operations.
-	AccessKeyID string
-
-	// AccessKeySecret is the AWS secret access key for S3 authentication.
-	// Should be stored securely and rotated regularly.
-	AccessKeySecret string
-
-	// ExternalURL is the public-facing URL for accessing S3 objects.
-	// Used when objects need to be accessed from outside the AWS network.
-	// Optional - can be empty for internal-only access.
-	ExternalURL string
-}
-
 // RestateConfig holds configuration for Restate workflow engine integration.
 //
 // The API is a Restate client that invokes workflows. It only needs the
@@ -94,12 +70,13 @@ type Config struct {
 	// The API invokes workflows via Restate ingress.
 	Restate RestateConfig
 
-	// BuildS3 configures storage for build artifacts and outputs.
-	BuildS3 S3Config
-
 	// AvailableRegions is a list of available regions for deployments.
 	// Typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
+
+	// GitHubWebhookSecret is the secret used to verify webhook signatures.
+	// Configured in the GitHub App webhook settings.
+	GitHubWebhookSecret string
 
 	// DefaultDomain is the fallback domain for system operations.
 	// Used for wildcard certificate bootstrapping. When set, the API will

@@ -19,27 +19,15 @@ var _ ctrlv1connect.DeploymentServiceClient = (*MockDeploymentClient)(nil)
 //
 // This mock is safe for concurrent use. All call recording is protected by a mutex.
 type MockDeploymentClient struct {
-	mu                     sync.Mutex
-	CreateS3UploadURLFunc  func(context.Context, *connect.Request[ctrlv1.CreateS3UploadURLRequest]) (*connect.Response[ctrlv1.CreateS3UploadURLResponse], error)
-	CreateDeploymentFunc   func(context.Context, *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error)
-	GetDeploymentFunc      func(context.Context, *connect.Request[ctrlv1.GetDeploymentRequest]) (*connect.Response[ctrlv1.GetDeploymentResponse], error)
-	RollbackFunc           func(context.Context, *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error)
-	PromoteFunc            func(context.Context, *connect.Request[ctrlv1.PromoteRequest]) (*connect.Response[ctrlv1.PromoteResponse], error)
-	CreateS3UploadURLCalls []*ctrlv1.CreateS3UploadURLRequest
-	CreateDeploymentCalls  []*ctrlv1.CreateDeploymentRequest
-	GetDeploymentCalls     []*ctrlv1.GetDeploymentRequest
-	RollbackCalls          []*ctrlv1.RollbackRequest
-	PromoteCalls           []*ctrlv1.PromoteRequest
-}
-
-func (m *MockDeploymentClient) CreateS3UploadURL(ctx context.Context, req *connect.Request[ctrlv1.CreateS3UploadURLRequest]) (*connect.Response[ctrlv1.CreateS3UploadURLResponse], error) {
-	m.mu.Lock()
-	m.CreateS3UploadURLCalls = append(m.CreateS3UploadURLCalls, req.Msg)
-	m.mu.Unlock()
-	if m.CreateS3UploadURLFunc != nil {
-		return m.CreateS3UploadURLFunc(ctx, req)
-	}
-	return connect.NewResponse(&ctrlv1.CreateS3UploadURLResponse{}), nil
+	mu                    sync.Mutex
+	CreateDeploymentFunc  func(context.Context, *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error)
+	GetDeploymentFunc     func(context.Context, *connect.Request[ctrlv1.GetDeploymentRequest]) (*connect.Response[ctrlv1.GetDeploymentResponse], error)
+	RollbackFunc          func(context.Context, *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error)
+	PromoteFunc           func(context.Context, *connect.Request[ctrlv1.PromoteRequest]) (*connect.Response[ctrlv1.PromoteResponse], error)
+	CreateDeploymentCalls []*ctrlv1.CreateDeploymentRequest
+	GetDeploymentCalls    []*ctrlv1.GetDeploymentRequest
+	RollbackCalls         []*ctrlv1.RollbackRequest
+	PromoteCalls          []*ctrlv1.PromoteRequest
 }
 
 func (m *MockDeploymentClient) CreateDeployment(ctx context.Context, req *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {

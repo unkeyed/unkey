@@ -195,9 +195,8 @@ func (s *Service) ProcessChallenge(
 	}, nil
 }
 
-// globalAcmeUserID identifies the single shared ACME account used for all certificate
-// requests. Using one account avoids per-workspace ACME account registration and
-// simplifies key management, while staying well under Let's Encrypt's account limits.
+// globalAcmeUserID identifies the shared ACME account used for all certificate
+// requests to avoid per-workspace account creation and stay under account limits.
 const globalAcmeUserID = "acme"
 
 // isWildcard reports whether domain is a wildcard domain pattern. Wildcard domains
@@ -207,6 +206,8 @@ func isWildcard(domain string) bool {
 	return len(domain) > 2 && domain[0] == '*' && domain[1] == '.'
 }
 
+// getOrCreateAcmeClient returns a configured ACME client for the domain's
+// challenge type using the shared account.
 func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*lego.Client, error) {
 	// Use a single global ACME user for all certificates
 	client, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
@@ -243,6 +244,7 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*le
 	return client, nil
 }
 
+// obtainCertificate requests a certificate and encrypts the private key for storage.
 func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.CustomDomain, domain string) (EncryptedCertificate, error) {
 	s.logger.Info("creating ACME client", "domain", domain)
 	client, err := s.getOrCreateAcmeClient(ctx, domain)
@@ -310,6 +312,7 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 	}, nil
 }
 
+// persistCertificate stores the certificate and reuses the existing ID on renewals.
 func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, domain string, cert EncryptedCertificate) (string, error) {
 	now := time.Now().UnixMilli()
 
@@ -342,6 +345,7 @@ func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, d
 	return certID, nil
 }
 
+// markChallengeFailed marks a challenge as failed during cleanup.
 func (s *Service) markChallengeFailed(ctx restate.ObjectContext, domainID string) {
 	_, _ = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		if updateErr := db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{

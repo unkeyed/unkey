@@ -22,6 +22,9 @@ type certificateBootstrap struct {
 	regions        []string
 }
 
+// run bootstraps wildcard certificates for all configured domains and starts
+// the renewal cron. It waits briefly for dependent services to initialize
+// before issuing certificate requests.
 func (c *certificateBootstrap) run(ctx context.Context) {
 	// Wait for services to be ready
 	time.Sleep(5 * time.Second)

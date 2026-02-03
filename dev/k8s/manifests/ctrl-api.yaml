@@ -44,35 +44,7 @@ spec:
             # Observability - DISABLED for development
             - name: UNKEY_OTEL
               value: "false"
-            # Control Plane Specific
-            # Vault Configuration (required)
-            - name: UNKEY_VAULT_URL
-              value: http://vault:8060
-            - name: UNKEY_VAULT_TOKEN
-              value: vault-test-token-123
-            - name: UNKEY_BUILD_S3_URL
-              valueFrom:
-                secretKeyRef:
-                  name: depot-credentials
-                  key: UNKEY_BUILD_S3_URL
-            - name: UNKEY_BUILD_S3_EXTERNAL_URL
-              valueFrom:
-                secretKeyRef:
-                  name: depot-credentials
-                  key: UNKEY_BUILD_S3_URL
-            - name: UNKEY_BUILD_S3_BUCKET
-              value: "build-contexts"
-            - name: UNKEY_BUILD_S3_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: depot-credentials
-                  key: UNKEY_BUILD_S3_ACCESS_KEY_ID
-            - name: UNKEY_BUILD_S3_ACCESS_KEY_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: depot-credentials
-                  key: UNKEY_BUILD_S3_ACCESS_KEY_SECRET
-            # Registry Configuration (used by both Docker and Depot backends)
+
             #kubectl create secret docker-registry depot-registry \
             # --docker-server=registry.depot.dev \
             # --docker-username=x-token \
@@ -97,6 +69,13 @@ spec:
             - name: UNKEY_CNAME_DOMAIN
               value: "unkey.local"
 
+            # GitHub webhook
+            - name: UNKEY_GITHUB_APP_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: UNKEY_GITHUB_APP_WEBHOOK_SECRET
+
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36
@@ -104,7 +83,7 @@ spec:
             [
               "sh",
               "-c",
-              "until nc -z mysql 3306 && nc -z s3 3902 && nc -z restate 8080 && nc -z vault 8060; do echo waiting for dependencies; sleep 2; done;",
+              "until nc -z mysql 3306 && nc -z restate 8080 && nc -z vault 8060; do echo waiting for dependencies; sleep 2; done;",
             ]
 
 ---

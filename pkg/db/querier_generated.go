@@ -316,6 +316,20 @@ type Querier interface {
 	//    AND sticky IN (/*SLICE:sticky*/?)
 	//  ORDER BY created_at ASC
 	FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
+	//FindGithubRepoConnection
+	//
+	//  SELECT
+	//      pk,
+	//      project_id,
+	//      installation_id,
+	//      repository_id,
+	//      repository_full_name,
+	//      created_at,
+	//      updated_at
+	//  FROM github_repo_connections
+	//  WHERE installation_id = ?
+	//    AND repository_id = ?
+	FindGithubRepoConnection(ctx context.Context, db DBTX, arg FindGithubRepoConnectionParams) (GithubRepoConnection, error)
 	//FindIdentities
 	//
 	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -1260,6 +1274,25 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertFrontlineRoute(ctx context.Context, db DBTX, arg InsertFrontlineRouteParams) error
+	//InsertGithubRepoConnection
+	//
+	//  INSERT INTO github_repo_connections (
+	//      project_id,
+	//      installation_id,
+	//      repository_id,
+	//      repository_full_name,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertGithubRepoConnection(ctx context.Context, db DBTX, arg InsertGithubRepoConnectionParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (

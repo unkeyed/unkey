@@ -46,14 +46,6 @@ var workerCmd = &cli.Command{
 		),
 
 		// Build Configuration
-		cli.String("build-s3-url", "S3 Compatible Endpoint URL for build contexts",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
-		cli.String("build-s3-bucket", "S3 bucket name for build contexts",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_BUCKET")),
-		cli.String("build-s3-access-key-id", "S3 access key ID for build contexts",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_ID")),
-		cli.String("build-s3-access-key-secret", "S3 secret access key for build contexts",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
 		cli.String("build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
 			cli.Default("linux/amd64"), cli.EnvVar("UNKEY_BUILD_PLATFORM")),
 
@@ -105,6 +97,10 @@ var workerCmd = &cli.Command{
 		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
 		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
 
+		// GitHub App Configuration
+		cli.Int64("github-app-id", "GitHub App ID for webhook-triggered deployments", cli.EnvVar("UNKEY_GITHUB_APP_ID")),
+		cli.String("github-private-key-pem", "GitHub App private key in PEM format", cli.EnvVar("UNKEY_GITHUB_PRIVATE_KEY_PEM")),
+
 		// Healthcheck heartbeat URLs
 		cli.String("cert-renewal-heartbeat-url", "Checkly heartbeat URL for certificate renewal", cli.EnvVar("UNKEY_CERT_RENEWAL_HEARTBEAT_URL")),
 		cli.String("quota-check-heartbeat-url", "Checkly heartbeat URL for quota checks", cli.EnvVar("UNKEY_QUOTA_CHECK_HEARTBEAT_URL")),
@@ -132,13 +128,6 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		VaultToken: cmd.String("vault-token"),
 
 		// Build configuration
-		BuildS3: worker.S3Config{
-			URL:             cmd.String("build-s3-url"),
-			Bucket:          cmd.String("build-s3-bucket"),
-			AccessKeyID:     cmd.String("build-s3-access-key-id"),
-			AccessKeySecret: cmd.String("build-s3-access-key-secret"),
-			ExternalURL:     "",
-		},
 		BuildPlatform: cmd.String("build-platform"),
 
 		// Registry configuration
@@ -179,15 +168,19 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		ClickhouseURL:      cmd.String("clickhouse-url"),
 		ClickhouseAdminURL: cmd.String("clickhouse-admin-url"),
 
-		// Common
-		Clock: clock.New(),
-
 		// Sentinel configuration
 		SentinelImage:    cmd.String("sentinel-image"),
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
 
+		// GitHub configuration
+		GitHub: worker.GitHubConfig{
+			AppID:         cmd.Int64("github-app-id"),
+			PrivateKeyPEM: cmd.String("github-private-key-pem"),
+		},
 		// Custom domain configuration
 		CnameDomain: strings.TrimSuffix(strings.TrimSpace(cmd.RequireString("cname-domain")), "."),
+
+		Clock: clock.New(),
 
 		// Healthcheck heartbeat URLs
 		CertRenewalHeartbeatURL: cmd.String("cert-renewal-heartbeat-url"),

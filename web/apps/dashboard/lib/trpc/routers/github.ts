@@ -123,7 +123,6 @@ export const githubRouter = t.router({
           message: "GitHub App not configured",
         });
       }
-
       let parsedState: z.infer<typeof state> | null = null;
       try {
         const result = state.safeParse(JSON.parse(input.state));
@@ -143,7 +142,13 @@ export const githubRouter = t.router({
         ctx.workspace.id,
         projectId,
         input.installationId,
-      );
+      ).catch((err) => {
+        console.error(err);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to load project installation",
+        });
+      });
 
       if (!projectInstallation) {
         throw new TRPCError({
@@ -165,7 +170,8 @@ export const githubRouter = t.router({
             updatedAt: Date.now(),
           },
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error(err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to save GitHub installation",
@@ -229,12 +235,15 @@ export const githubRouter = t.router({
       }> = [];
 
       for (const installation of githubContext.installations) {
-        const repos = await getInstallationRepositories(installation.installationId).catch(() => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to load GitHub repositories",
-          });
-        });
+        const repos = await getInstallationRepositories(installation.installationId).catch(
+          (err) => {
+            console.error(err);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to load GitHub repositories",
+            });
+          },
+        );
         for (const repo of repos) {
           allRepos.push({
             id: repo.id,
