@@ -70,6 +70,10 @@ type containerConfig struct {
 	// If nil, the image's default CMD is used.
 	Cmd []string
 
+	// Tmpfs mounts tmpfs (RAM-backed) filesystems in the container.
+	// Keys are mount paths, values are mount options (e.g., "rw,noexec,size=256m").
+	Tmpfs map[string]string
+
 	// WaitStrategy determines how to detect container readiness.
 	// If nil, the container is considered ready immediately after starting.
 	WaitStrategy WaitStrategy
@@ -194,6 +198,7 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 		&container.HostConfig{
 			PortBindings: portBindings,
 			AutoRemove:   false, // We handle removal in t.Cleanup
+			Tmpfs:        cfg.Tmpfs,
 		},
 		nil, // NetworkingConfig
 		nil, // Platform

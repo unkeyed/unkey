@@ -41,7 +41,7 @@ func (c *clickhouse) GetBillableUsageAboveThreshold(ctx context.Context, year, m
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query billable usage above threshold"))
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	usage := make(map[string]int64)
 	for rows.Next() {
