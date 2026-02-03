@@ -50,11 +50,6 @@ rules:
     resources: ["deployments", "replicasets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-  # Jobs management for build/fetch jobs
-  - apiGroups: ["batch"]
-    resources: ["jobs"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
   # StatefulSets management for gateway workloads
   - apiGroups: ["apps"]
     resources: ["statefulsets"]
