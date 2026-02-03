@@ -469,5 +469,8 @@
   "theme": "linden",
   "fonts": {
     "family": "Geist"
+  },
+  "metadata": {
+    "timestamp": true
   }
 }
