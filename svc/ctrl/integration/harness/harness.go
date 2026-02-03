@@ -42,8 +42,11 @@ type Harness struct {
 	// DB is the MySQL database connection.
 	DB db.Database
 
-	// Seed provides methods to create test entities in the database.
+	// Seed provides methods to create test entities in MySQL.
 	Seed *seed.Seeder
+
+	// ClickHouseSeed provides methods to insert test data in ClickHouse.
+	ClickHouseSeed *seed.ClickHouseSeeder
 
 	// ClickHouse is the ClickHouse client for analytics queries.
 	ClickHouse clickhouse.ClickHouse
@@ -165,6 +168,7 @@ func New(t *testing.T) *Harness {
 		Ctx:            ctx,
 		DB:             database,
 		Seed:           seeder,
+		ClickHouseSeed: seed.NewClickHouseSeeder(t, conn),
 		ClickHouse:     chClient,
 		ClickHouseConn: conn,
 		ClickHouseDSN:  chDSN,

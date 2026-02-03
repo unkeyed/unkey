@@ -3,7 +3,6 @@ package quotacheck_test
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -11,9 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -35,16 +32,16 @@ func TestRunCheck_Integration(t *testing.T) {
 
 		// Insert usage data into ClickHouse
 		// ws1: 200k (exceeds 100k quota)
-		insertBillableVerifications(t, h.Ctx, h.ClickHouseConn, ws1.ID, 200_000, now)
+		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws1.ID, 200_000, now, "VALID")
 		// ws2: 300k (below 500k quota)
-		insertBillableVerifications(t, h.Ctx, h.ClickHouseConn, ws2.ID, 300_000, now)
+		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws2.ID, 300_000, now, "VALID")
 		// ws3: 250k (exceeds 200k quota)
-		insertBillableVerifications(t, h.Ctx, h.ClickHouseConn, ws3.ID, 250_000, now)
+		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws3.ID, 250_000, now, "VALID")
 
 		// Wait for materialized views
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws1.ID, 200_000)
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws2.ID, 300_000)
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws3.ID, 250_000)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws1.ID, 200_000, year, month)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws2.ID, 300_000, year, month)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws3.ID, 250_000, year, month)
 
 		// Call RunCheck via Restate
 		resp, err := callRunCheck(h, billingPeriod)
@@ -61,9 +58,9 @@ func TestRunCheck_Integration(t *testing.T) {
 		ws := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 50_000})
 
 		// Insert only 100k usage (below 150k threshold)
-		insertBillableVerifications(t, h.Ctx, h.ClickHouseConn, ws.ID, 100_000, now)
+		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 100_000, now, "VALID")
 
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 100_000)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 100_000, year, month)
 
 		// Call RunCheck - this workspace should be skipped
 		resp, err := callRunCheck(h, billingPeriod)
@@ -79,11 +76,11 @@ func TestRunCheck_Integration(t *testing.T) {
 		ws := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 300_000})
 
 		// Insert 200k verifications + 150k ratelimits = 350k total (exceeds 300k)
-		insertBillableVerifications(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000, now)
-		insertBillableRatelimits(t, h.Ctx, h.ClickHouseConn, ws.ID, 150_000, now)
+		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 200_000, now, "VALID")
+		h.ClickHouseSeed.InsertRatelimits(h.Ctx, ws.ID, 150_000, now, true)
 
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000)
-		waitForRatelimitCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 150_000)
+		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000, year, month)
+		waitForRatelimitCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 150_000, year, month)
 
 		resp, err := callRunCheck(h, billingPeriod)
 		require.NoError(t, err)
@@ -104,8 +101,8 @@ func TestRunCheck_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Insert 200k usage (would exceed quota if enabled)
-		insertBillableVerifications(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000, now)
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000)
+		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 200_000, now, "VALID")
+		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000, year, month)
 
 		// Call RunCheck - disabled workspace should be skipped
 		resp, err := callRunCheck(h, billingPeriod)
@@ -120,8 +117,8 @@ func TestRunCheck_Integration(t *testing.T) {
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 
 		// Insert usage
-		insertBillableVerifications(t, h.Ctx, h.ClickHouseConn, ws.ID, 500_000, now)
-		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 500_000)
+		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 500_000, now, "VALID")
+		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 500_000, year, month)
 
 		// Call RunCheck
 		resp, err := callRunCheck(h, billingPeriod)
@@ -132,82 +129,7 @@ func TestRunCheck_Integration(t *testing.T) {
 	})
 }
 
-// Helper functions
-
-func insertBillableVerifications(t *testing.T, ctx context.Context, conn ch.Conn, workspaceID string, count int, baseTime time.Time) {
-	const batchSize = 10_000
-	for i := 0; i < count; i += batchSize {
-		batchCount := min(batchSize, count-i)
-		verifications := make([]schema.KeyVerification, batchCount)
-		for j := range batchCount {
-			verifications[j] = schema.KeyVerification{
-				RequestID:    uid.New(uid.RequestPrefix),
-				Time:         baseTime.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
-				WorkspaceID:  workspaceID,
-				KeySpaceID:   uid.New(uid.KeySpacePrefix),
-				IdentityID:   "",
-				ExternalID:   "",
-				KeyID:        uid.New(uid.KeyPrefix),
-				Region:       "us-east-1",
-				Outcome:      "VALID", // Only VALID verifications are billable
-				Tags:         []string{},
-				SpentCredits: 0,
-				Latency:      rand.Float64() * 100,
-			}
-		}
-
-		batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.key_verifications_raw_v2")
-		require.NoError(t, err)
-
-		for _, v := range verifications {
-			err = batch.AppendStruct(&v)
-			require.NoError(t, err)
-		}
-
-		err = batch.Send()
-		require.NoError(t, err)
-	}
-}
-
-func insertBillableRatelimits(t *testing.T, ctx context.Context, conn ch.Conn, workspaceID string, count int, baseTime time.Time) {
-	const batchSize = 10_000
-	for i := 0; i < count; i += batchSize {
-		batchCount := min(batchSize, count-i)
-		ratelimits := make([]schema.Ratelimit, batchCount)
-		for j := range batchCount {
-			ratelimits[j] = schema.Ratelimit{
-				RequestID:   uid.New(uid.RequestPrefix),
-				Time:        baseTime.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
-				WorkspaceID: workspaceID,
-				NamespaceID: uid.New(uid.RatelimitNamespacePrefix),
-				Identifier:  uid.New(uid.IdentityPrefix),
-				Passed:      true, // Only passed ratelimits are billable
-				Latency:     rand.Float64() * 10,
-				OverrideID:  "",
-				Limit:       100,
-				Remaining:   50,
-				ResetAt:     baseTime.Add(time.Minute).UnixMilli(),
-			}
-		}
-
-		batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.ratelimits_raw_v2")
-		require.NoError(t, err)
-
-		for _, r := range ratelimits {
-			err = batch.AppendStruct(&r)
-			require.NoError(t, err)
-		}
-
-		err = batch.Send()
-		require.NoError(t, err)
-	}
-}
-
-func waitForVerificationCount(t *testing.T, ctx context.Context, conn ch.Conn, workspaceID string, expectedCount int) {
-	now := time.Now()
-	year := now.Year()
-	month := int(now.Month())
-
+func waitForVerificationCount(t *testing.T, ctx context.Context, conn ch.Conn, workspaceID string, expectedCount, year, month int) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		var count int64
 		err := conn.QueryRow(ctx,
@@ -218,11 +140,7 @@ func waitForVerificationCount(t *testing.T, ctx context.Context, conn ch.Conn, w
 	}, 2*time.Minute, time.Second)
 }
 
-func waitForRatelimitCount(t *testing.T, ctx context.Context, conn ch.Conn, workspaceID string, expectedCount int) {
-	now := time.Now()
-	year := now.Year()
-	month := int(now.Month())
-
+func waitForRatelimitCount(t *testing.T, ctx context.Context, conn ch.Conn, workspaceID string, expectedCount, year, month int) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		var count int64
 		err := conn.QueryRow(ctx,
