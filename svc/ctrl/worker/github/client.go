@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -22,7 +23,11 @@ import (
 
 // installationTokenCache caches GitHub installation tokens in-memory.
 // It is keyed by installation ID and scoped to the current process.
-var installationTokenCache cache.Cache[int64, *InstallationToken]
+var (
+	installationTokenCache     cache.Cache[int64, InstallationToken]
+	installationTokenCacheOnce sync.Once
+	installationTokenCacheErr  error
+)
 
 // ClientConfig holds configuration for creating a [Client] instance.
 type ClientConfig struct {
@@ -54,19 +59,21 @@ type Client struct {
 func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
 	// Initialize installation token cache once per process.
 	// Tokens are valid for ~1 hour, so we use a conservative freshness window.
-	if installationTokenCache == nil {
-		c, err := cache.New(cache.Config[int64, *InstallationToken]{
-			Fresh:    55 * time.Minute,
-			Stale:    55 * time.Minute,
-			MaxSize:  10_000,
-			Logger:   logger,
-			Resource: "github_installation_token",
-			Clock: &clock.RealClock{},
-		})
-		if err != nil {
-			return nil, err
-		}
-		installationTokenCache = c
+	installationTokenCacheOnce.Do(func() {
+		installationTokenCache, installationTokenCacheErr = cache.New(
+			cache.Config[int64, InstallationToken]{
+				Fresh:    55 * time.Minute,
+				Stale:    55 * time.Minute,
+				MaxSize:  10_000,
+				Logger:   logger,
+				Resource: "github_installation_token",
+				Clock:    clock.New(),
+			},
+		)
+	})
+
+	if installationTokenCacheErr != nil {
+		return nil, installationTokenCacheErr
 	}
 
 	signer, err := jwt.NewRS256Signer[jwt.RegisteredClaims](config.PrivateKeyPEM)
@@ -81,7 +88,6 @@ func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
 		logger:     logger,
 	}, nil
 }
-
 
 // generateJWT creates a short-lived JWT for GitHub App authentication.
 func (c *Client) generateJWT() (string, error) {
@@ -114,18 +120,19 @@ func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken,
 	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
 		return nil, err
 	}
+
 	// 1. Try cache first
 	if installationTokenCache != nil {
-		if token, hit := installationTokenCache.Get(context.Background(), installationID); hit != cache.Miss {
-			// Defensive check: ensure token is still valid
-			if time.Now().Before(token.ExpiresAt) {
-				c.logger.Debug(
-					"Using cached GitHub installation token",
-					"installation_id", installationID,
-					"expires_at", token.ExpiresAt,
-				)
-				return token, nil
-			}
+		if cached, hit := installationTokenCache.Get(context.Background(), installationID); hit != cache.Miss {
+			c.logger.Debug(
+				"Using cached GitHub installation token",
+				"installation_id", installationID,
+				"expires_at", cached.ExpiresAt,
+			)
+
+			// Return a copy to avoid aliasing
+			token := cached
+			return &token, nil
 		}
 	}
 
@@ -175,9 +182,9 @@ func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken,
 		return nil, fault.Wrap(err, fault.Internal("failed to decode installation token"))
 	}
 
-	// 3. Cache the token
+	// 3. Cache the token (by value)
 	if installationTokenCache != nil {
-		installationTokenCache.Set(context.Background(), installationID, &installToken)
+		installationTokenCache.Set(context.Background(), installationID, installToken)
 		c.logger.Debug(
 			"Cached GitHub installation token",
 			"installation_id", installationID,
@@ -187,6 +194,7 @@ func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken,
 
 	return &installToken, nil
 }
+
 
 // DownloadRepoTarball downloads a repository tarball for a specific ref.
 // The repoFullName should be in "owner/repo" format. The ref can be a branch
