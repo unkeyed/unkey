@@ -12,7 +12,10 @@ go_library(
         "s3.go",
         "wait.go",
     ],
-    data = ["//pkg/db:schema.sql"],
+    data = [
+        "//pkg/clickhouse/schema:schema_files",  # keep
+        "//pkg/db:schema.sql",  # keep
+    ],
     importpath = "github.com/unkeyed/unkey/pkg/dockertest",
     visibility = ["//visibility:public"],
     deps = [
