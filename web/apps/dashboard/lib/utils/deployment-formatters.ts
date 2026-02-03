@@ -2,26 +2,23 @@ export function formatCpu(millicores: number): string {
   if (millicores === 0) {
     return "—";
   }
-  // Fractional vCPU allocations (using 1000-based scale)
-  if (millicores === 250) {
+  if (millicores === 256) {
     return "1/4 vCPU";
   }
-  if (millicores === 500) {
+  if (millicores === 512) {
     return "1/2 vCPU";
   }
-  if (millicores === 750) {
+  if (millicores === 768) {
     return "3/4 vCPU";
   }
-  if (millicores === 1000) {
+  if (millicores === 1024) {
     return "1 vCPU";
   }
 
-  // Whole vCPUs
-  if (millicores >= 1000 && millicores % 1000 === 0) {
-    return `${millicores / 1000} vCPU`;
+  if (millicores >= 1024 && millicores % 1024 === 0) {
+    return `${millicores / 1024} vCPU`;
   }
 
-  // Non-standard values - show as millicores
   return `${millicores}m vCPU`;
 }
 
