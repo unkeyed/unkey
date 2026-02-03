@@ -5,8 +5,8 @@ import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui"
 import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 export const RuntimeLogsSearch = () => {
-  const { filters, updateFiltersFromArray } = useRuntimeLogsFilters();
-  const queryLLMForStructuredOutput = trpc.logs.llmSearch.useMutation({
+  const { filters, updateFilters } = useRuntimeLogsFilters();
+  const queryLLMForStructuredOutput = trpc.deploy.runtimeLogs.llmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -30,7 +30,7 @@ export const RuntimeLogsSearch = () => {
         },
         filters.filter((f) => f.field !== "message"),
       ) as typeof filters;
-      updateFiltersFromArray(transformedFilters);
+      updateFilters(transformedFilters);
     },
     onError(error) {
       const errorMessage = `Unable to process your search request${
@@ -51,9 +51,9 @@ export const RuntimeLogsSearch = () => {
   return (
     <LLMSearch
       exampleQueries={[
-        "Show failed requests today",
-        "Show auth errors in the last 3h",
-        "Show API calls from a path that includes api/v1/",
+        "Show errors in the last hour",
+        "Show warnings containing 'timeout'",
+        "Show all debug logs from yesterday",
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"

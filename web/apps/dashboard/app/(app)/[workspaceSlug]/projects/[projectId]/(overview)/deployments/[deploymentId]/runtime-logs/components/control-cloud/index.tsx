@@ -26,7 +26,7 @@ const formatValue = (value: string | number, field: string): string => {
     return format(value, "MMM d, yyyy HH:mm:ss");
   }
   if (field === "severity") {
-    return value.toString().toUpperCase()
+    return value.toString().toUpperCase();
   }
   return String(value);
 };

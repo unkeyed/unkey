@@ -3,7 +3,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
-import { DEFAULT_LIMIT } from "../../../constants";
 import type { RuntimeLogsFilter } from "../../../types";
 
 type UseRuntimeLogsQueryParams = {
