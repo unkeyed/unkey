@@ -1,6 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { auth as authProvider } from "@/lib/auth/server";
-import { InsertWorkspace, type Workspace, db, schema } from "@/lib/db";
+import { type InsertWorkspace, db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { freeTierQuotas } from "@/lib/quotas";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
