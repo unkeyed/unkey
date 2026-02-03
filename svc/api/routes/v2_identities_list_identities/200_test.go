@@ -204,7 +204,7 @@ func TestSuccess(t *testing.T) {
 
 		// Soft delete the identity
 		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
-			IdentityID:    deletedIdentityID,
+			IdentityID:  deletedIdentityID,
 			WorkspaceID: workspaceID,
 		})
 		require.NoError(t, err)
