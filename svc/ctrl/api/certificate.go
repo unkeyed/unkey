@@ -6,23 +6,20 @@ import (
 	"fmt"
 	"time"
 
-	restate "github.com/restatedev/sdk-go"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// certificateBootstrap handles ACME certificate bootstrapping and renewal.
-// This ensures wildcard certificates exist for the default domain,
-// regional apex domains, and starts the certificate renewal cron job.
+// certificateBootstrap handles ACME certificate bootstrapping.
+// This ensures wildcard certificates exist for the default domain
+// and regional apex domains.
 type certificateBootstrap struct {
 	logger         logging.Logger
 	database       db.Database
 	defaultDomain  string
 	regionalDomain string
 	regions        []string
-	restateClient  hydrav1.CertificateServiceIngressClient
 }
 
 func (c *certificateBootstrap) run(ctx context.Context) {
@@ -41,23 +38,6 @@ func (c *certificateBootstrap) run(ctx context.Context) {
 			c.bootstrapDomain(ctx, domain)
 		}
 	}
-
-	c.startCertRenewalCron(ctx)
-}
-
-func (c *certificateBootstrap) startCertRenewalCron(ctx context.Context) {
-	_, err := c.restateClient.RenewExpiringCertificates().Send(
-		ctx,
-		&hydrav1.RenewExpiringCertificatesRequest{
-			DaysBeforeExpiry: 30,
-		},
-		restate.WithIdempotencyKey("cert-renewal-cron-startup"),
-	)
-	if err != nil {
-		c.logger.Warn("failed to start certificate renewal cron", "error", err)
-		return
-	}
-	c.logger.Info("Certificate renewal cron job started")
 }
 
 // bootstrapDomain ensures a wildcard domain and ACME challenge exist for the given domain.

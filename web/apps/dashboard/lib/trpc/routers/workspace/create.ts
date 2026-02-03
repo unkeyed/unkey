@@ -1,6 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { auth as authProvider } from "@/lib/auth/server";
-import { type Workspace, db, schema } from "@/lib/db";
+import { type InsertWorkspace, db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { freeTierQuotas } from "@/lib/quotas";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
@@ -62,7 +62,7 @@ export const createWorkspace = protectedProcedure
           userId,
         });
 
-        const workspace: Workspace = {
+        const workspace: InsertWorkspace = {
           id: newId("workspace"),
           orgId: orgId,
           name: input.name,

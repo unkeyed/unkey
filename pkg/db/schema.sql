@@ -216,6 +216,7 @@ CREATE TABLE `ratelimit_overrides` (
 );
 
 CREATE TABLE `workspaces` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
@@ -234,7 +235,8 @@ CREATE TABLE `workspaces` (
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
-	CONSTRAINT `workspaces_id` PRIMARY KEY(`id`),
+	CONSTRAINT `workspaces_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `workspaces_id_unique` UNIQUE(`id`),
 	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`),
 	CONSTRAINT `workspaces_slug_unique` UNIQUE(`slug`),
 	CONSTRAINT `workspaces_k8s_namespace_unique` UNIQUE(`k8s_namespace`)

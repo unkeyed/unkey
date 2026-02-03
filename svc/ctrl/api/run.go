@@ -11,7 +11,6 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -238,7 +237,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	// Bootstrap certificates (wildcard domain and renewal cron)
+	// Bootstrap certificates (wildcard domain records)
 	if cfg.DefaultDomain != "" {
 		certBootstrap := &certificateBootstrap{
 			logger:         logger,
@@ -246,7 +245,6 @@ func Run(ctx context.Context, cfg Config) error {
 			defaultDomain:  cfg.DefaultDomain,
 			regionalDomain: cfg.RegionalDomain,
 			regions:        cfg.AvailableRegions,
-			restateClient:  hydrav1.NewCertificateServiceIngressClient(restateClient, "global"),
 		}
 		go certBootstrap.run(ctx)
 	}
