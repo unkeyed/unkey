@@ -55,6 +55,11 @@ func (n *noop) GetBillableRatelimits(ctx context.Context, workspaceID string, ye
 	return 0, nil
 }
 
+// GetBillableUsageAboveThreshold implements the Querier interface but always returns an empty map.
+func (n *noop) GetBillableUsageAboveThreshold(ctx context.Context, year, month int, minUsage int64) (map[string]int64, error) {
+	return make(map[string]int64), nil
+}
+
 func (n *noop) Conn() ch.Conn {
 	return nil
 }

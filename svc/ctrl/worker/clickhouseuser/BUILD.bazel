@@ -24,9 +24,15 @@ go_library(
 
 go_test(
     name = "clickhouseuser_test",
-    srcs = ["configure_user_handler_test.go"],
+    srcs = [
+        "configure_user_handler_test.go",
+        "configure_user_integration_test.go",
+    ],
     embed = [":clickhouseuser"],
     deps = [
+        "//pkg/db",
+        "//svc/ctrl/integration/harness",
+        "//svc/ctrl/integration/seed",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
         "@com_github_stretchr_testify//require",
     ],
