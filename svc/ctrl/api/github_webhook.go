@@ -19,7 +19,9 @@ import (
 
 const maxWebhookBodySize = 2 * 1024 * 1024 // 2 MB
 
-// GitHubWebhook handles GitHub webhook HTTP requests and triggers Restate workflows.
+// GitHubWebhook handles incoming GitHub App webhook events and triggers
+// deployment workflows via Restate. It validates webhook signatures using
+// the configured secret before processing any events.
 type GitHubWebhook struct {
 	db            db.Database
 	logger        logging.Logger
@@ -27,7 +29,9 @@ type GitHubWebhook struct {
 	webhookSecret string
 }
 
-// ServeHTTP processes GitHub webhook events.
+// ServeHTTP validates the webhook signature and dispatches to event-specific
+// handlers. Currently supports push events for triggering deployments.
+// Unknown event types are acknowledged with 200 OK but not processed.
 func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.logger.Info("GitHub webhook request received",
 		"method", r.Method,
@@ -83,40 +87,9 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-type pushPayload struct {
-	Ref          string `json:"ref"`
-	After        string `json:"after"`
-	Installation struct {
-		ID int64 `json:"id"`
-	} `json:"installation"`
-	Repository struct {
-		ID       int64  `json:"id"`
-		FullName string `json:"full_name"`
-	} `json:"repository"`
-	Commits []struct {
-		ID        string `json:"id"`
-		Message   string `json:"message"`
-		Timestamp string `json:"timestamp"`
-		Author    struct {
-			Name     string `json:"name"`
-			Username string `json:"username"`
-		} `json:"author"`
-	} `json:"commits"`
-	HeadCommit *struct {
-		ID        string `json:"id"`
-		Message   string `json:"message"`
-		Timestamp string `json:"timestamp"`
-		Author    struct {
-			Name     string `json:"name"`
-			Username string `json:"username"`
-		} `json:"author"`
-	} `json:"head_commit"`
-	Sender struct {
-		Login     string `json:"login"`
-		AvatarURL string `json:"avatar_url"`
-	} `json:"sender"`
-}
-
+// handlePush processes push events by creating a deployment record and
+// starting the deploy workflow. Maps branches to environments: the project's
+// default branch deploys to production, all others to preview.
 func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, body []byte) {
 	var payload pushPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -198,12 +171,12 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
-		GitCommitSha:                  toNullString(payload.After),
-		GitBranch:                     toNullString(branch),
-		GitCommitMessage:              toNullString(gitCommit.message),
-		GitCommitAuthorHandle:         toNullString(gitCommit.authorHandle),
-		GitCommitAuthorAvatarUrl:      toNullString(gitCommit.authorAvatarURL),
-		GitCommitTimestamp:            toNullInt64(gitCommit.timestamp),
+		GitCommitSha:                  sql.NullString{String: payload.After, Valid: payload.After != ""},
+		GitBranch:                     sql.NullString{String: branch, Valid: branch != ""},
+		GitCommitMessage:              sql.NullString{String: gitCommit.message, Valid: gitCommit.message != ""},
+		GitCommitAuthorHandle:         sql.NullString{String: gitCommit.authorHandle, Valid: gitCommit.authorHandle != ""},
+		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.authorAvatarURL, Valid: gitCommit.authorAvatarURL != ""},
+		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.timestamp, Valid: gitCommit.timestamp != 0},
 		OpenapiSpec:                   sql.NullString{Valid: false},
 		CpuMillicores:                 256,
 		MemoryMib:                     256,
@@ -254,6 +227,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 	w.WriteHeader(http.StatusOK)
 }
 
+// extractBranchFromRef extracts the branch name from a Git ref.
+// Returns empty string for non-branch refs (e.g., tags).
 func extractBranchFromRef(ref string) string {
 	const prefix = "refs/heads/"
 	if !strings.HasPrefix(ref, prefix) {
@@ -262,6 +237,7 @@ func extractBranchFromRef(ref string) string {
 	return strings.TrimPrefix(ref, prefix)
 }
 
+// gitCommitInfo holds extracted commit metadata for deployment records.
 type gitCommitInfo struct {
 	message         string
 	authorHandle    string
@@ -269,19 +245,13 @@ type gitCommitInfo struct {
 	timestamp       int64
 }
 
+// extractGitCommitInfo extracts commit metadata from the push payload,
+// preferring HeadCommit when available and falling back to the first commit.
 func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload, branch string) gitCommitInfo {
 	headCommit := payload.HeadCommit
 	if headCommit == nil && len(payload.Commits) > 0 {
 		c := payload.Commits[0]
-		headCommit = &struct {
-			ID        string `json:"id"`
-			Message   string `json:"message"`
-			Timestamp string `json:"timestamp"`
-			Author    struct {
-				Name     string `json:"name"`
-				Username string `json:"username"`
-			} `json:"author"`
-		}{
+		headCommit = &pushCommit{
 			ID:        c.ID,
 			Message:   c.Message,
 			Timestamp: c.Timestamp,
@@ -319,18 +289,4 @@ func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload, branch string
 		authorAvatarURL: payload.Sender.AvatarURL,
 		timestamp:       timestamp,
 	}
-}
-
-func toNullString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{Valid: false}
-	}
-	return sql.NullString{String: s, Valid: true}
-}
-
-func toNullInt64(v int64) sql.NullInt64 {
-	if v == 0 {
-		return sql.NullInt64{Valid: false}
-	}
-	return sql.NullInt64{Int64: v, Valid: true}
 }

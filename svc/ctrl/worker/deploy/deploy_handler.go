@@ -16,10 +16,12 @@ import (
 )
 
 const (
-	// sentinelNamespace is the Kubernetes namespace where sentinel containers are deployed.
+	// sentinelNamespace isolates sentinel resources from tenant namespaces to
+	// simplify RBAC and keep routing infrastructure separate from workloads.
 	sentinelNamespace = "sentinel"
 
-	// sentinelPort is the port that sentinel containers listen on for traffic routing.
+	// sentinelPort is the port exposed by sentinel services for frontline traffic
+	// and must match the container port and service configuration.
 	sentinelPort = 8040
 )
 

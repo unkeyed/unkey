@@ -38,14 +38,16 @@ const (
 	defaultCacheKeepDays = 14
 )
 
-// buildResult contains the result of a Docker image build.
+// buildResult contains the output of a Docker image build, including the image
+// name and identifiers needed to trace builds in Depot.
 type buildResult struct {
 	ImageName      string
 	DepotBuildID   string
 	DepotProjectID string
 }
 
-// gitBuildParams contains parameters for building from a Git repository.
+// gitBuildParams holds the inputs for building a container image from a Git
+// repository, including the exact commit and the build context location.
 type gitBuildParams struct {
 	InstallationID int64
 	Repository     string
@@ -190,7 +192,9 @@ func (w *Workflow) buildDockerImageFromGit(
 	}, restate.WithName("build docker image from git"))
 }
 
-// buildSolverOptions constructs the buildkit solver configuration for a build with URL context.
+// buildSolverOptions constructs the BuildKit solver configuration for URL-based
+// contexts, including registry auth and image export settings. Use
+// [Workflow.buildGitSolverOptions] when the context requires GitHub credentials.
 func (w *Workflow) buildSolverOptions(
 	platform, contextURL, dockerfilePath, imageName string,
 ) client.SolveOpt {

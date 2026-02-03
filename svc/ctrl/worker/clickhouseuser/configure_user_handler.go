@@ -16,22 +16,31 @@ import (
 )
 
 const (
-	defaultQuotaDurationSeconds      = 3600       // 1 hour
-	defaultMaxQueriesPerWindow       = 1000       // queries
-	defaultMaxExecutionTimePerWindow = 1800       // 30 minutes
-	defaultMaxQueryExecutionTime     = 30         // seconds
-	defaultMaxQueryMemoryBytes       = 1000000000 // 1 GB
-	defaultMaxQueryResultRows        = 10000000   // 10 million rows
-	passwordLength                   = 64
+	// defaultQuotaDurationSeconds defines the quota window used for rate limits.
+	defaultQuotaDurationSeconds = 3600
+	// defaultMaxQueriesPerWindow caps queries per quota window.
+	defaultMaxQueriesPerWindow = 1000
+	// defaultMaxExecutionTimePerWindow caps total query runtime per window.
+	defaultMaxExecutionTimePerWindow = 1800
+	// defaultMaxQueryExecutionTime caps runtime per query to avoid long-running scans.
+	defaultMaxQueryExecutionTime = 30
+	// defaultMaxQueryMemoryBytes caps memory per query to avoid exhausting the cluster.
+	defaultMaxQueryMemoryBytes = 1000000000
+	// defaultMaxQueryResultRows caps result size to prevent accidental full exports.
+	defaultMaxQueryResultRows = 10000000
+	// passwordLength defines the generated ClickHouse password length.
+	passwordLength = 64
 )
 
-// existingUserResult wraps the DB lookup to avoid Restate error serialization issues.
+// existingUserResult wraps the DB lookup to avoid Restate error serialization issues
+// when journaling results with sql.Null fields.
 type existingUserResult struct {
 	Row   db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow
 	Found bool
 }
 
-// quotaSettings holds resolved quota configuration with defaults applied.
+// quotaSettings holds resolved quota configuration with defaults applied and
+// non-zero values enforced.
 type quotaSettings struct {
 	quotaDurationSeconds      int32
 	maxQueriesPerWindow       int32
@@ -42,6 +51,11 @@ type quotaSettings struct {
 }
 
 // ConfigureUser creates or updates a ClickHouse user for a workspace.
+//
+// For new workspaces, it generates credentials, encrypts them with Vault, and
+// persists the encrypted values before provisioning ClickHouse. For existing
+// workspaces, it preserves credentials while updating quota settings. The flow
+// is idempotent and safe to retry after partial failures.
 func (s *Service) ConfigureUser(
 	ctx restate.ObjectContext,
 	req *hydrav1.ConfigureUserRequest,

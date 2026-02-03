@@ -25,6 +25,9 @@ type certificateBootstrap struct {
 	restateClient  hydrav1.CertificateServiceIngressClient
 }
 
+// run bootstraps wildcard certificates for all configured domains and starts
+// the renewal cron. It waits briefly for dependent services to initialize
+// before issuing certificate requests.
 func (c *certificateBootstrap) run(ctx context.Context) {
 	// Wait for services to be ready
 	time.Sleep(5 * time.Second)
@@ -45,6 +48,9 @@ func (c *certificateBootstrap) run(ctx context.Context) {
 	c.startCertRenewalCron(ctx)
 }
 
+// startCertRenewalCron triggers the Restate workflow that periodically renews
+// certificates approaching expiration. Failures are logged but not fatal since
+// certificates can be renewed on subsequent runs.
 func (c *certificateBootstrap) startCertRenewalCron(ctx context.Context) {
 	_, err := c.restateClient.RenewExpiringCertificates().Send(
 		ctx,
