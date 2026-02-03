@@ -1,5 +1,6 @@
 import { Bolt, ChartActivity, CircleCheck, Focus, Heart, Layers2 } from "@unkey/icons";
 import type { DeploymentNode } from "../../../nodes";
+import { formatCpu, formatMemory } from "../../../nodes/components/card-footer";
 import { MetricPill } from "../../../nodes/components/metric-pill";
 import { StatusIndicator } from "../../../nodes/status/status-indicator";
 
@@ -8,21 +9,21 @@ type SentinelInstancesProps = {
 };
 
 export function SentinelInstances({ instances }: SentinelInstancesProps) {
-  const sentinelInstances = instances.filter((node) => node.metadata.type === "sentinel");
+  const instanceNodes = instances.filter((node) => node.metadata.type === "instance");
 
-  if (sentinelInstances.length === 0) {
+  if (instanceNodes.length === 0) {
     return null;
   }
 
   return (
     <div className="flex px-4 w-full mt-4 flex-col">
       <div className="flex items-center gap-3 w-full">
-        <div className="text-gray-9 text-xs whitespace-nowrap">Sentinel instances</div>
+        <div className="text-gray-9 text-xs whitespace-nowrap">Instances</div>
         <div className="h-0.5 bg-grayA-3 rounded-sm flex-1 min-w-[115px]" />
       </div>
       <div className="flex flex-col gap-6 mt-5">
-        {sentinelInstances.map((instance) => {
-          if (instance.metadata.type !== "sentinel") {
+        {instanceNodes.map((instance) => {
+          if (instance.metadata.type !== "instance") {
             return null;
           }
 
@@ -40,18 +41,18 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
                 <div className="flex items-center gap-2">
                   <MetricPill
                     icon={<ChartActivity iconSize="sm-medium" className="shrink-0" />}
-                    value={rps ?? 0}
-                    tooltip="Requests per second handled by this sentinel instance"
+                    value={`${rps ?? 0} RPS`}
+                    tooltip="Avg. RPS over last 15 min (updated every 5s)"
                   />
                   <MetricPill
                     icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
-                    value={`${cpu ?? 0}%`}
-                    tooltip="CPU usage percentage"
+                    value={formatCpu(cpu ?? 0)}
+                    tooltip="CPU allocated to this instance"
                   />
                   <MetricPill
                     icon={<Focus iconSize="sm-medium" className="shrink-0" />}
-                    value={`${memory ?? 0}%`}
-                    tooltip="Memory usage percentage"
+                    value={formatMemory(memory ?? 0)}
+                    tooltip="Memory allocated to this instance"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -59,13 +60,13 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
                     orientation="horizontal"
                     icon={<CircleCheck className="text-gray-9" iconSize="sm-regular" />}
                     healthStatus={health}
-                    tooltip="Sentinel is online and serving traffic"
+                    tooltip="Instance is online and serving traffic"
                   />
                   <StatusIndicator
                     orientation="horizontal"
                     icon={<Heart className="text-success-9" iconSize="sm-regular" />}
                     healthStatus={health}
-                    tooltip="Sentinel health status"
+                    tooltip="Instance health status"
                     showGlow={health !== "normal"}
                   />
                 </div>
