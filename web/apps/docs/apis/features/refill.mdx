@@ -55,14 +55,19 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 ```
 
 ```typescript TypeScript
-const { meta, data } = await unkey.keys.create({
-  apiId: "api_...",
-  remaining: 10000,
-  refill: {
-    interval: "monthly",
-    amount: 10000,
-  },
-});
+try {
+  const { data, meta } = await unkey.keys.create({
+    apiId: "api_...",
+    remaining: 10000,
+    refill: {
+      interval: "monthly",
+      amount: 10000,
+    },
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>
@@ -114,14 +119,19 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 ```
 
 ```typescript TypeScript
-const { meta, data } = await unkey.keys.create({
-  apiId: "api_...",
-  remaining: 100,
-  refill: {
-    interval: "daily",
-    amount: 100,
-  },
-});
+try {
+  const { data, meta } = await unkey.keys.create({
+    apiId: "api_...",
+    remaining: 100,
+    refill: {
+      interval: "daily",
+      amount: 100,
+    },
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>
@@ -168,19 +178,34 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 
 ```typescript
 // Free tier: 100/day
-await unkey.keys.create({
-  apiId,
-  credits: { remaining: 100, refill: { interval: "daily", amount: 100 } },
-});
+try {
+  await unkey.keys.create({
+    apiId,
+    credits: { remaining: 100, refill: { interval: "daily", amount: 100 } },
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 
 // Pro tier: 50,000/month
-await unkey.keys.create({
-  apiId,
-  credits: { remaining: 50000, refill: { interval: "monthly", amount: 50000 } },
-});
+try {
+  await unkey.keys.create({
+    apiId,
+    credits: { remaining: 50000, refill: { interval: "monthly", amount: 50000 } },
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 
 // Enterprise: Unlimited (no credits object)
-await unkey.keys.create({ apiId });
+try {
+  await unkey.keys.create({ apiId });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 ### Upgrade a user's plan
@@ -189,16 +214,21 @@ When a user upgrades, update their key:
 
 ```typescript
 // User upgraded from Free to Pro mid-month
-await unkey.keys.update({
-  keyId: "key_...",
-  credits: {
-    remaining: 50000,  // Give them the new allocation immediately
-    refill: {
-      interval: "monthly",
-      amount: 50000,
+try {
+  await unkey.keys.update({
+    keyId: "key_...",
+    credits: {
+      remaining: 50000,  // Give them the new allocation immediately
+      refill: {
+        interval: "monthly",
+        amount: 50000,
+      },
     },
-  },
-});
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 ## Refill vs manual credit management

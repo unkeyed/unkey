@@ -79,8 +79,10 @@ export async function createBillingKey(options: CreateBillingKeyOptions) {
 
 ```typescript
 // app/api/route.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
 import { NextResponse } from "next/server";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export async function POST(request: Request) {
   const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -89,9 +91,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing API key" }, { status: 401 });
   }
 
-  const { meta, data, error } = await verifyKey({
+  const { meta, data, error } = await unkey.keys.verifyKey({
     key: apiKey,
-    apiId: process.env.UNKEY_API_ID!,
   });
 
   if (error) {

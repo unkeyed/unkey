@@ -41,10 +41,15 @@ import { Unkey } from "@unkey/api";
 
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
-await unkey.keys.update({
-  keyId: "key_...",
-  enabled: false,
-});
+try {
+  await unkey.keys.update({
+    keyId: "key_...",
+    enabled: false,
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>
@@ -80,10 +85,15 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 ```
 
 ```typescript TypeScript
-await unkey.keys.update({
-  keyId: "key_...",
-  enabled: true,
-});
+try {
+  await unkey.keys.update({
+    keyId: "key_...",
+    enabled: true,
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>

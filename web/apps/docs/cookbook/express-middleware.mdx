@@ -14,14 +14,16 @@ npm install @unkey/api express
 ## Basic Middleware
 
 ```typescript middleware/auth.ts
-import { verifyKey, VerifyKeyResult } from "@unkey/api";
+import { Unkey } from "@unkey/api";
 import { Request, Response, NextFunction } from "express";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 // Extend Express Request type
 declare global {
   namespace Express {
     interface Request {
-      unkey?: VerifyKeyResult;
+      unkey?: V2KeysVerifyKeyResponseData;
     }
   }
 }
@@ -40,10 +42,9 @@ export async function unkeyAuth(
   
   const apiKey = authHeader.slice(7);
 
-  // 2. Verify with Unkey (v2 returns { meta, data, error })
-  const { meta, data, error } = await verifyKey({
+  // 2. Verify with Unkey
+  const { meta, data, error } = await unkey.keys.verifyKey({
     key: apiKey,
-    apiId: process.env.UNKEY_API_ID!,
   });
 
   // 3. Handle errors
@@ -125,9 +126,8 @@ export async function unkeyAuth(
     return res.status(401).json({ error: "Missing API key" });
   }
 
-  const { meta, data, error } = await verifyKey({
+  const { meta, data, error } = await unkey.keys.verifyKey({
     key: authHeader.slice(7),
-    apiId: process.env.UNKEY_API_ID!,
   });
 
   if (error) {
@@ -166,8 +166,10 @@ export async function unkeyAuth(
 Create middleware that requires specific permissions:
 
 ```typescript middleware/permissions.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
 import { Request, Response, NextFunction } from "express";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export function requirePermission(permission: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -177,9 +179,8 @@ export function requirePermission(permission: string) {
       return res.status(401).json({ error: "Missing API key" });
     }
 
-    const { meta, data, error } = await verifyKey({
+    const { meta, data, error } = await unkey.keys.verifyKey({
       key: authHeader.slice(7),
-      apiId: process.env.UNKEY_API_ID!,
       permissions: permission,  // Check for this permission
     });
 
@@ -223,20 +224,20 @@ app.get("/api/invoices", requirePermission("billing.read"), getInvoices);
 Create a flexible middleware that can be configured per-route:
 
 ```typescript middleware/auth.ts
-import { verifyKey, VerifyKeyResult } from "@unkey/api";
+import { Unkey } from "@unkey/api";
 import { Request, Response, NextFunction } from "express";
 
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+
 interface AuthOptions {
-  apiId?: string;
   permissions?: string;
   getKey?: (req: Request) => string | null;
   onError?: (req: Request, res: Response, error: Error) => void;
-  onInvalid?: (req: Request, res: Response, result: VerifyKeyResult) => void;
+  onInvalid?: (req: Request, res: Response, result: V2KeysVerifyKeyResponseData) => void;
 }
 
 export function createAuthMiddleware(options: AuthOptions = {}) {
   const {
-    apiId = process.env.UNKEY_API_ID!,
     permissions,
     getKey = (req) => req.headers.authorization?.slice(7) ?? null,
     onError = (req, res) => res.status(503).json({ error: "Service unavailable" }),
@@ -250,9 +251,8 @@ export function createAuthMiddleware(options: AuthOptions = {}) {
       return res.status(401).json({ error: "Missing API key" });
     }
 
-    const { meta, data, error } = await verifyKey({
+    const { meta, data, error } = await unkey.keys.verifyKey({
       key: apiKey,
-      apiId,
       permissions,
     });
 
@@ -302,9 +302,8 @@ export async function unkeyAuth(
   }
 
   try {
-    const { meta, data, error } = await verifyKey({
+    const { meta, data, error } = await unkey.keys.verifyKey({
       key: apiKey,
-      apiId: process.env.UNKEY_API_ID!,
     });
 
     if (error) {
@@ -338,12 +337,12 @@ export async function unkeyAuth(
 ## TypeScript Setup
 
 ```typescript types/express.d.ts
-import { VerifyKeyResult } from "@unkey/api";
+import { V2KeysVerifyKeyResponseData } from "@unkey/api/models/components";
 
 declare global {
   namespace Express {
     interface Request {
-      unkey?: VerifyKeyResult;
+      unkey?: V2KeysVerifyKeyResponseData;
     }
   }
 }

@@ -79,15 +79,20 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ```typescript TypeScript
-const { meta, data } = await verifyKey({
-  key: "sk_...",
-  apiId: "api_...",
-  tags: [
-    "path=/v1/posts.create",
-    "postId=post_abc123",
-    "region=us-east-1",
-  ],
-});
+try {
+  const { data, meta } = await verifyKey({
+    key: "sk_...",
+    apiId: "api_...",
+    tags: [
+      "path=/v1/posts.create",
+      "postId=post_abc123",
+      "region=us-east-1",
+    ],
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>
@@ -130,12 +135,17 @@ const tags = [
 When keys are linked to an [identity](/concepts/identities/overview), you can track usage across all keys belonging to that identity. This is useful when users have multiple keys (e.g., different environments or applications).
 
 ```typescript
-await unkey.keys.create({
-  apiId: "api_...",
-  identity: {
-    externalId: "user_123",  // Links to this user
-  },
-});
+try {
+  await unkey.keys.create({
+    apiId: "api_...",
+    identity: {
+      externalId: "user_123",  // Links to this user
+    },
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 Now analytics can be viewed per-user, aggregating all their keys.
@@ -146,11 +156,16 @@ Analytics can be queried via the API for building custom dashboards:
 
 ```typescript
 // Get verification stats for a key
-const stats = await unkey.analytics.getKeyStats({
-  keyId: "key_...",
-  start: Date.now() - 30 * 24 * 60 * 60 * 1000, // Last 30 days
-  end: Date.now(),
-});
+try {
+  const stats = await unkey.analytics.getKeyStats({
+    keyId: "key_...",
+    start: Date.now() - 30 * 24 * 60 * 60 * 1000, // Last 30 days
+    end: Date.now(),
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 <Note>

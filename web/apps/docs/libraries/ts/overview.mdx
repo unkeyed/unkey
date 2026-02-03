@@ -60,7 +60,9 @@ Never expose your root key in client-side code. These SDKs are for server-side u
 The most common operation — check if a user's API key is valid:
 
 ```typescript
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 async function handleRequest(request: Request) {
   const apiKey = request.headers.get("x-api-key");
@@ -69,8 +71,7 @@ async function handleRequest(request: Request) {
     return new Response("Missing API key", { status: 401 });
   }
 
-  // v2 returns { meta, data, error }
-  const { meta, data, error } = await verifyKey({
+  const { meta, data, error } = await unkey.keys.verifyKey({
     key: apiKey,
   });
 
@@ -111,7 +112,7 @@ async function handleRequest(request: Request) {
 ### Check permissions during verification
 
 ```typescript
-const { data } = await verifyKey({
+const { data } = await unkey.keys.verifyKey({
   key: apiKey,
   permissions: "documents.write",  // Required permission
 });
@@ -285,11 +286,13 @@ console.log("Request ID:", meta.requestId);
 For production, handle edge cases:
 
 ```typescript
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 async function verifyApiKey(key: string): Promise<VerifyResult | null> {
   try {
-    const { meta, data, error } = await verifyKey({ key });
+    const { meta, data, error } = await unkey.keys.verifyKey({ key });
     
     if (error) {
       // Log but don't crash — decide if you want to allow or deny

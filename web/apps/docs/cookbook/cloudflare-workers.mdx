@@ -22,6 +22,8 @@ export interface Env {
   UNKEY_ROOT_KEY: string;
 }
 
+const unkey = new Unkey({ rootKey: env.UNKEY_ROOT_KEY });
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     // 1. Extract API key
@@ -37,32 +39,42 @@ export default {
     const unkey = new Unkey({ rootKey: env.UNKEY_ROOT_KEY });
     const apiKey = authHeader.slice(7);
 
-    // 2. Verify with Unkey (v2 returns { meta, data})
-    const result = await unkey.keys.verifyKey(apiKey);
+    try {
+      // 2. Verify with Unkey
+      const { meta, data, error } = await unkey.keys.verifyKey({
+        key: apiKey,
+      });
 
-    // 3. Handle errors
-    if (error) {
+      // 3. Handle errors
+      if (error) {
+        console.error("Unkey error:", error);
+        return Response.json(
+          { error: "Authentication service unavailable" },
+          { status: 503 }
+        );
+      }
+
+      // 4. Check validity
+      if (!data.valid) {
+        return Response.json(
+          { error: data.code },
+          { status: data.code === "RATE_LIMITED" ? 429 : 401 }
+        );
+      }
+
+      // 5. Request is authenticated
+      return Response.json({
+        message: "Access granted",
+        user: data.identity?.externalId,
+        remaining: data.credits,
+      });
+    } catch (error) {
       console.error("Unkey error:", error);
       return Response.json(
         { error: "Authentication service unavailable" },
         { status: 503 }
       );
     }
-
-    // 4. Check validity
-    if (!data.valid) {
-      return Response.json(
-        { error: data.code },
-        { status: data.code === "RATE_LIMITED" ? 429 : 401 }
-      );
-    }
-
-    // 5. Request is authenticated
-    return Response.json({
-      message: "Access granted",
-      user: data.identity?.externalId,
-      remaining: data.credits,
-    });
   },
 };
 ```
@@ -160,33 +172,35 @@ type Bindings = {
 
 export function authMiddleware(options: AuthOptions = {}) {
   return async (c: Context, next: Next) => {
-    const getKey = options.getKey ?? ((c) => 
+    const getKey = options.getKey ?? ((c) =>
       c.req.header("Authorization")?.replace("Bearer ", "") ?? null
     );
-    
+
     const apiKey = getKey(c);
-    
+
     if (!apiKey) {
       return c.json({ error: "Missing API key" }, 401);
     }
-    
-    const unkey = new Unkey({
-      rootKey: c.env.UNKEY_ROOT_KEY,
-    });
-    
+
     try {
-        const { data } = await unkey.keys.verifyKey({
-          key: authHeader.slice(7),
-        });
-  
-        if (!data.valid) {
-          if (data.code === "INSUFFICIENT_PERMISSIONS") {
-            return c.json({ error: "Forbidden" }, 403);
-          }
-          return c.json({ error: data.code }, { status: 401 });
+      const { data, error } = await c.env.UNKEY.keys.verifyKey({
+        key: apiKey,
+        permissions: options.permissions,
+      });
+
+      if (error) {
+        console.error("Unkey error:", error);
+        return c.json({ error: "Service unavailable" }, 503);
+      }
+
+      if (!data.valid) {
+        if (data.code === "INSUFFICIENT_PERMISSIONS") {
+          return c.json({ error: "Forbidden" }, 403);
         }
-        c.set("auth", data);
-        await next();
+        return c.json({ error: data.code }, { status: 401 });
+      }
+      c.set("auth", data);
+      await next();
     } catch (err) {
       return c.json({ error: "Service unavailable" }, 503);
     }
@@ -246,30 +260,31 @@ export function authMiddleware(options: AuthOptions = {}) {
     if (!apiKey) {
       return c.json({ error: "Missing API key" }, 401);
     }
+
     try {
-    const { meta, data, error } = await verifyKey({
-      key: apiKey,
-    });
+      const { meta, data, error } = await c.env.UNKEY.keys.verifyKey({
+        key: apiKey,
+      });
 
-    // Set rate limit headers (v2 uses ratelimits array)
-    if (data.ratelimits?.[0]) {
-      const rl = data.ratelimits[0];
-      c.header("X-RateLimit-Limit", rl.limit.toString());
-      c.header("X-RateLimit-Remaining", rl.remaining.toString());
-      c.header("X-RateLimit-Reset", rl.reset.toString());
-    }
+      // Set rate limit headers (v2 uses ratelimits array)
+      if (data.ratelimits?.[0]) {
+        const rl = data.ratelimits[0];
+        c.header("X-RateLimit-Limit", rl.limit.toString());
+        c.header("X-RateLimit-Remaining", rl.remaining.toString());
+        c.header("X-RateLimit-Reset", rl.reset.toString());
+      }
 
-    if (data.credits !== undefined) {
-      c.header("X-Credits-Remaining", data.credits.toString());
-    }
+      if (data.credits !== undefined) {
+        c.header("X-Credits-Remaining", data.credits.toString());
+      }
 
-    if (!data.valid) {
-      const status = data.code === "RATE_LIMITED" ? 429 : 401;
-      return c.json({ error: data.code }, status);
-    }
+      if (!data.valid) {
+        const status = data.code === "RATE_LIMITED" ? 429 : 401;
+        return c.json({ error: data.code }, status);
+      }
 
-    c.set("auth", data);
-    await next();
+      c.set("auth", data);
+      await next();
     } catch (err) {
       return c.json({ error: "Service unavailable" }, 503);
     }
@@ -288,7 +303,7 @@ import { Unkey } from "@unkey/api";
 import { DurableObject } from "cloudflare:workers";
 
 export interface Env {
-  COUNTER: DurableObjectNamespace;
+  UNKEY: Unkey;
 }
 
 
@@ -312,21 +327,22 @@ export default {
       return Response.json({ error: "Missing API key" }, { status: 401 });
     }
     try {
-    const {data,meta} = await unkey.keys.verifyKey({
-      key: apiKey)}
+      const { meta, data, error } = await env.UNKEY.keys.verifyKey({
+        key: apiKey,
+      });
 
-    if (!data.valid) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      if (error || !data.valid) {
+        return Response.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      // Use external ID as Durable Object ID for per-user state
+      const id = env.COUNTER.idFromName(data.identity?.externalId ?? "anonymous");
+      const counter = env.COUNTER.get(id);
+
+      return counter.fetch(request);
+    } catch (error) {
+      return Response.json({ error: "Service unavailable" }, { status: 503 });
     }
-
-    // Use external ID as Durable Object ID for per-user state
-    const id = env.COUNTER.idFromName(data.identity?.externalId ?? "anonymous");
-    const counter = env.COUNTER.get(id);
-    
-    return counter.fetch(request);
-  } catch (error) {
-    return Response.json({ error: "Service unavailable" }, { status: 503 });
-  }
   },
 };
 ```

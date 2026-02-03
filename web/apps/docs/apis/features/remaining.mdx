@@ -50,12 +50,17 @@ import { Unkey } from "@unkey/api";
 
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
-const { meta, data } = await unkey.keys.create({
-  apiId: "api_...",
-  remaining: 1000,
-});
+try {
+  const { data, meta } = await unkey.keys.create({
+    apiId: "api_...",
+    remaining: 1000,
+  });
 
-console.log(data.keyId); // Give this key to your user
+  console.log(data.keyId); // Give this key to your user
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>
@@ -114,11 +119,16 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ```typescript TypeScript
-const { meta, data } = await verifyKey({
-  key: "sk_...",
-  apiId: "api_...",
-  cost: 10,  // Deduct 10 credits for this request
-});
+try {
+  const { data, meta } = await verifyKey({
+    key: "sk_...",
+    apiId: "api_...",
+    cost: 10,  // Deduct 10 credits for this request
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>
@@ -156,11 +166,16 @@ curl -X POST https://api.unkey.com/v2/keys.updateCredits \
 ```
 
 ```typescript TypeScript
-await unkey.keys.updateCredits({
-  keyId: "key_...",
-  operation: "increment",
-  value: 5000,
-});
+try {
+  await unkey.keys.updateCredits({
+    keyId: "key_...",
+    operation: "increment",
+    value: 5000,
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>

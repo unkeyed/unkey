@@ -22,16 +22,21 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ```typescript TypeScript
-const { meta, data } = await verifyKey({
-  key: "sk_...",
-  permissions: "documents.read",
-});
+try {
+  const { data, meta } = await verifyKey({
+    key: "sk_...",
+    permissions: "documents.read",
+  });
 
-if (!data.valid) {
-  if (data.code === "INSUFFICIENT_PERMISSIONS") {
-    // Key is valid but lacks the permission
+  if (!data.valid) {
+    if (data.code === "INSUFFICIENT_PERMISSIONS") {
+      // Key is valid but lacks the permission
+    }
+    // Handle other cases (invalid, expired, etc.)
   }
-  // Handle other cases (invalid, expired, etc.)
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
 }
 ```
 
@@ -79,10 +84,15 @@ Key must have `admin` **OR** have both `documents.read` and `documents.write`.
 // User wants to delete a document
 // They need: admin OR (documents.delete AND owner of this document)
 
-const { meta, data } = await verifyKey({
-  key: request.apiKey,
-  permissions: "admin OR documents.delete",
-});
+try {
+  const { data, meta } = await verifyKey({
+    key: request.apiKey,
+    permissions: "admin OR documents.delete",
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 ## Response structure
@@ -123,15 +133,20 @@ Sometimes you need to check permissions after loading data from your database (e
     Verify without permission requirements to get the key's permissions list.
     
     ```typescript
-    const { meta, data } = await verifyKey({
-      key: "sk_...",
-    });
-    
-    if (!data.valid) {
-      return unauthorized();
+    try {
+      const { data, meta } = await verifyKey({
+        key: "sk_...",
+      });
+
+      if (!data.valid) {
+        return unauthorized();
+      }
+
+      const permissions = data.permissions ?? [];
+    } catch (error) {
+      console.error(error);
+      return Response.json({ error: "Internal error" }, { status: 500 });
     }
-    
-    const permissions = data.permissions ?? [];
     ```
   </Step>
   
@@ -167,10 +182,15 @@ Permissions support wildcards for broader access:
 // Key has: ["documents.*"]
 // This grants: documents.read, documents.write, documents.delete, etc.
 
-const { meta, data } = await verifyKey({
-  key: "sk_...",
-  permissions: "documents.read",  // ✅ Passes (matched by documents.*)
-});
+try {
+  const { data, meta } = await verifyKey({
+    key: "sk_...",
+    permissions: "documents.read",  // ✅ Passes (matched by documents.*)
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 Common wildcard patterns:
