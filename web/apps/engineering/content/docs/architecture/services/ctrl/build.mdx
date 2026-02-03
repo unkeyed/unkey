@@ -5,91 +5,159 @@ description: Container image building for customer deployments
 
 import { Mermaid } from "@/app/components/mermaid"
 
+The build system supports two deployment paths: GitHub-triggered builds and CLI deployments with pre-built images.
 
-When a customer deploys their application, the following process occurs:
+## GitHub-Triggered Builds
 
-The CLI first requests a deployment from the control plane, which returns a presigned S3 URL. The CLI packages the source code into a tarball and uploads it directly to S3, bypassing the control plane for efficient transfer. Once uploaded, the CLI triggers the build by sending the S3 path to the control plane.
+When a customer pushes to a GitHub repository connected to their Unkey project, the following process occurs:
 
-The control plane retrieves or creates a dedicated Depot project for the customer, then initiates a build with Depot. Depot provisions an isolated BuildKit machine, downloads the build context from S3, executes the Docker build, and pushes the resulting image to its registry. The image name is returned to the control plane.
+GitHub sends a webhook to the control plane, which validates the signature and maps the repository to an Unkey project. The control plane creates a deployment record and triggers the deploy workflow.
 
-With the built image ready, the control plane instructs Krane to create a deployment with specified resources (replicas, CPU, memory). Krane creates the necessary Kubernetes resources (StatefulSet and Service) and K8s begins scheduling pods.
+The deploy workflow uses BuildKit's native git context support to build directly from GitHub. BuildKit fetches the repository at the specified commit SHA, authenticated via a GitHub App installation token. This eliminates the need for intermediate storage (S3) and provides efficient builds with automatic layer caching through Depot.
 
-The control plane polls Krane every second (for up to 5 minutes) to check instance status. As instances become ready, their details are registered in the database. Once all instances are running, the control plane attempts to scrape an OpenAPI specification from the deployed service.
+Depot provisions an isolated BuildKit machine, fetches the repository directly from GitHub, executes the Docker build, and pushes the resulting image to its registry. The image name is returned to the control plane.
 
-Finally, the control plane calls the RoutingService to atomically assign domains and create sentinel configurations, and marks the deployment as ready in the database. Meanwhile, the CLI continuously polls the control plane every 2 seconds to check the deployment status until it becomes ready.
+With the built image ready, the control plane creates deployment topologies for target regions. Krane agents pull these changes and create the necessary Kubernetes resources. The control plane polls for instance readiness, registers instances in the database, and finally assigns domains via the routing service.
 
 <Mermaid chart={`sequenceDiagram
     autonumber
-    participant CLI
+    participant GH as GitHub
     participant Ctrl as Ctrl Plane
-    participant S3
     participant Depot
+    participant GitHub as GitHub API
     participant Krane
     participant K8s as Kubernetes
     participant DB as Database
     
-    CLI->>Ctrl: Create Deployment
-    Ctrl->>CLI: Presigned S3 upload URL
-    CLI->>S3: PUT tar file directly
-    S3->>CLI: Upload complete
+    GH->>Ctrl: Push Webhook
+    Ctrl->>DB: Create Deployment (status: pending)
+    Ctrl->>Ctrl: Trigger Deploy Workflow
     
-    CLI->>Ctrl: CreateBuild(s3_path)
+    Ctrl->>GitHub: Get Installation Token
+    GitHub->>Ctrl: Token (1 hour TTL)
+    
     Ctrl->>Depot: Get/Create Depot Project
     Depot->>Ctrl: Project ID
-    Ctrl->>Depot: Create Build
-    Depot->>Ctrl: Build ID
+    Ctrl->>Depot: Create Build with Git Context
     
-    Depot->>S3: Download build context
+    Depot->>GitHub: Fetch repo at commit SHA
     Depot->>Depot: Execute Docker build & push to registry
     Depot->>Ctrl: Image name & build ID
     
-    Ctrl->>Krane: CreateDeployment(image, replicas, resources)
+    Ctrl->>DB: Update deployment image
+    Ctrl->>DB: Create deployment topologies
+    
+    Krane->>Ctrl: Pull deployment changes
     Krane->>K8s: Create StatefulSet & Service
     K8s->>K8s: Schedule & start pods
     
     loop Poll until ready (max 5 min)
-        Ctrl->>Krane: GetDeployment()
-        Krane->>K8s: AppsV1.StatefulSets.Get
-        K8s->>Krane: Instances: [{id, addr, status}]
+        Ctrl->>Krane: Check deployment status
         Krane->>Ctrl: Instances: [{id, addr, status}]
-        Ctrl->>DB: Upsert VM records
+        Ctrl->>DB: Upsert instance records
     end
     
-    K8s->>K8s: Pods running
+    Ctrl->>K8s: HTTP GET /openapi.yaml
+    K8s->>Ctrl: OpenAPI spec (optional)
+    
+    Ctrl->>Ctrl: AssignFrontlineRoutes (RoutingService)
+    Ctrl->>DB: Update deployment status: READY
+`} />
+
+## CLI Deployments (Pre-built Images)
+
+For CLI deployments, customers provide pre-built Docker images directly. This bypasses the build system entirely:
+
+<Mermaid chart={`sequenceDiagram
+    autonumber
+    participant CLI
+    participant API
+    participant Ctrl as Ctrl Plane
+    participant Krane
+    participant K8s as Kubernetes
+    participant DB as Database
+    
+    CLI->>API: CreateDeployment(dockerImage)
+    API->>DB: Create Deployment (status: pending)
+    API->>Ctrl: Trigger Deploy Workflow
+    
+    Ctrl->>DB: Create deployment topologies
+    
+    Krane->>Ctrl: Pull deployment changes
+    Krane->>K8s: Create StatefulSet & Service
+    K8s->>K8s: Schedule & start pods
+    
+    loop Poll until ready (max 5 min)
+        Ctrl->>Krane: Check deployment status
+        Krane->>Ctrl: Instances: [{id, addr, status}]
+        Ctrl->>DB: Upsert instance records
+    end
     
     Ctrl->>K8s: HTTP GET /openapi.yaml
-    K8s->>Ctrl: OpenAPI spec
+    K8s->>Ctrl: OpenAPI spec (optional)
     
-    Ctrl->>Ctrl: AssignFrontlineRoutes (RoutingService)<br/>- Update frontline routes<br/>- Point to new deployment
-    
+    Ctrl->>Ctrl: AssignFrontlineRoutes (RoutingService)
     Ctrl->>DB: Update deployment status: READY
     
     loop CLI polls every 2s
-        CLI->>Ctrl: GetDeployment()
-        Ctrl->>CLI: Deployment status
+        CLI->>API: GetDeployment()
+        API->>CLI: Deployment status
     end
     
     CLI->>CLI: Status = READY, deployment complete
 `} />
 
-## Build Backends
+## Build Backend: Depot
 
-We support two build backends, configurable via the `BUILD_BACKEND` environment variable.
+Depot.dev provides isolated, cached, and high-performance container builds:
 
-### Depot (Production)
+- **Fast builds**: Persistent layer caching across builds
+- **Isolated environments**: Each customer project gets its own cache
+- **No local Docker daemon**: Builds run on remote BuildKit machines
+- **Multi-architecture support**: Build for both amd64 and arm64
+- **Native git context**: BuildKit fetches repositories directly from GitHub
+- **Built-in registry**: Images pushed directly to Depot's registry
 
-Depot.dev provides isolated, cached, and high-performance container builds. Builds are fast thanks to persistent layer caching across builds. Each customer project gets an isolated build environment with its own cache. No local Docker daemon is required since builds run on remote BuildKit machines. Multi-architecture support allows building for both amd64 and arm64. Registry integration is built-in, pushing images directly to Depot's registry after the build completes.
+**Location:** `svc/ctrl/worker/deploy/build.go`
 
-**Location:** `go/apps/ctrl/services/build/backend/depot/`
+## GitHub Authentication
 
-### Docker (Local Development)
+For private repositories, BuildKit authenticates using GitHub App installation tokens:
 
-The Docker backend uses standard Docker builds for local testing. It connects to the local Docker daemon and builds images on the host machine. This backend is simpler to set up for development but lacks the caching and isolation benefits of Depot.
+1. The control plane creates a JWT signed with the GitHub App's private key
+2. Exchanges the JWT for an installation token via GitHub API
+3. Passes the token to BuildKit via the `GIT_AUTH_TOKEN.github.com` secret
+4. BuildKit uses the token for HTTPS authentication when fetching the repository
 
-**Location:** `go/apps/ctrl/services/build/backend/docker/`
+Installation tokens are short-lived (~1 hour) and scoped to repositories where the GitHub App is installed.
 
-## Storage
+**Location:** `svc/ctrl/worker/github/client.go`
 
-Build contexts are stored in S3-compatible storage. The upload process gives customers presigned URLs to directly upload their build context, bypassing the control plane for efficient transfer. During the build, Depot receives presigned download URLs to fetch the context from S3. Build contexts are retained for the lifecycle of the deployment, allowing rebuilds and rollbacks when needed.
+## Depot Project Management
 
-**Location:** `go/apps/ctrl/services/build/storage/s3.go`
+Each Unkey project gets a corresponding Depot project for caching:
+
+```go
+func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
+    project, _ := db.Query.FindProjectById(ctx, w.db.RO(), unkeyProjectID)
+    
+    if project.DepotProjectID.Valid {
+        return project.DepotProjectID.String, nil
+    }
+    
+    // Create new Depot project with cache policy
+    createResp, _ := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
+        Name:     fmt.Sprintf("unkey-%s", unkeyProjectID),
+        RegionId: w.depotConfig.ProjectRegion,
+        CachePolicy: &corev1.CachePolicy{
+            KeepGb:   50,
+            KeepDays: 14,
+        },
+    }))
+    
+    // Store Depot project ID in database for future builds
+    db.Query.UpdateProjectDepotID(ctx, w.db.RW(), ...)
+    
+    return createResp.Msg.GetProject().GetProjectId(), nil
+}
+```

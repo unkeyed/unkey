@@ -44,7 +44,6 @@ use_repo(
     "com_github_moby_buildkit",
     "com_github_oapi_codegen_nullable",
     "com_github_oapi_codegen_oapi_codegen_v2",
-    "com_github_oapi_codegen_runtime",
     "com_github_oasdiff_oasdiff",
     "com_github_opencontainers_go_digest",
     "com_github_pb33f_libopenapi",
