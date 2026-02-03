@@ -14,8 +14,23 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	c.initFlagMap()
 
 	var commandArgs []string
+	// stopFlags indicates we should stop parsing flags (after -- or first positional arg when AcceptsArgs)
+	stopFlags := false
+
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
+
+		// Handle -- separator: everything after is positional arguments
+		if arg == "--" && !stopFlags {
+			stopFlags = true
+			continue
+		}
+
+		// If we've stopped parsing flags, collect remaining as positional args
+		if stopFlags {
+			commandArgs = append(commandArgs, arg)
+			continue
+		}
 
 		// Handle help flags first - these short-circuit normal processing
 		if arg == "-h" || arg == "--help" || arg == "help" {
@@ -49,7 +64,8 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 		}
 
 		// Check for subcommands (non-flag arguments)
-		if !strings.HasPrefix(arg, "-") {
+		// Note: single "-" is treated as a positional arg (commonly means stdin)
+		if !strings.HasPrefix(arg, "-") || arg == "-" {
 			// Look for matching subcommand
 			for _, subcmd := range c.Commands {
 				if subcmd.Name == arg {
@@ -73,7 +89,14 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 					arg, strings.Join(availableCommands, ", "))
 			}
 
-			// If no subcommands defined, treat as regular argument
+			// If command accepts args, first positional arg stops flag parsing
+			// This ensures subsequent args (like "nginx -g daemon off") aren't parsed as flags
+			if c.AcceptsArgs {
+				commandArgs = append(commandArgs, args[i:]...)
+				break
+			}
+
+			// Otherwise just collect this arg and continue
 			commandArgs = append(commandArgs, arg)
 			continue
 		}
