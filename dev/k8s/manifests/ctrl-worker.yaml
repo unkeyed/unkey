@@ -101,6 +101,8 @@ spec:
             # Domain configuration (used by deploy and routing services)
             - name: UNKEY_DEFAULT_DOMAIN
               value: "unkey.local"
+            - name: UNKEY_CNAME_DOMAIN
+              value: "unkey.local"
 
             # Restate Configuration
             - name: UNKEY_RESTATE_ADMIN_URL
@@ -113,9 +115,16 @@ spec:
             # ClickHouse Configuration
             - name: UNKEY_CLICKHOUSE_URL
               value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+            - name: UNKEY_CLICKHOUSE_ADMIN_URL
+              value: "clickhouse://unkey_user_admin:C57RqT5EPZBqCJkMxN9mEZZEzMPcw9yBlwhIizk99t7kx6uLi9rYmtWObsXzdl@clickhouse:9000?secure=false&skip_verify=true"
 
             - name: UNKEY_SENTINEL_IMAGE
               value: "unkey/sentinel:latest"
+          envFrom:
+            # Optional webhooks (heartbeat URLs, Slack webhooks)
+            - configMapRef:
+                name: ctrl-worker-webhooks
+                optional: true
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock

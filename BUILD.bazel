@@ -9,12 +9,10 @@ go_library(
     importpath = "github.com/unkeyed/unkey",
     visibility = ["//visibility:private"],
     deps = [
-        "//cmd/create-clickhouse-user",
         "//cmd/deploy",
         "//cmd/dev",
         "//cmd/frontline",
         "//cmd/healthcheck",
-        "//cmd/quotacheck",
         "//cmd/run",
         "//cmd/version",
         "//pkg/cli",

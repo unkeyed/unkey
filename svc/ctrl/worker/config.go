@@ -89,6 +89,10 @@ type RestateConfig struct {
 	// Example: "http://restate:9070".
 	AdminURL string
 
+	// APIKey is the optional authentication key for Restate admin API requests.
+	// If set, this key will be sent with all requests to the Restate admin API.
+	APIKey string
+
 	// HttpPort is the port where the worker listens for Restate requests.
 	// This is the internal Restate server port, not the health check port.
 	HttpPort int
@@ -212,6 +216,14 @@ type Config struct {
 	// Used for analytics and operational metrics storage.
 	ClickhouseURL string
 
+	// ClickhouseAdminURL is the connection string for the ClickHouse admin user.
+	// Used by ClickhouseUserService to create/configure workspace users.
+	// The admin user requires limited permissions: CREATE/ALTER/DROP for USER,
+	// QUOTA, ROW POLICY, and SETTINGS PROFILE, plus GRANT OPTION on analytics tables.
+	// Optional - if not set, ClickhouseUserService will not be enabled.
+	// Example: "clickhouse://unkey_user_admin:C57RqT5EPZBqCJkMxN9mEZZEzMPcw9yBlwhIizk99t7kx6uLi9rYmtWObsXzdl@clickhouse:9000/default"
+	ClickhouseAdminURL string
+
 	// SentinelImage is the container image used for new sentinel deployments.
 	// Overrides default sentinel image with custom build or registry.
 	SentinelImage string
@@ -220,9 +232,30 @@ type Config struct {
 	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
 
+	// CnameDomain is the base domain for custom domain CNAME targets.
+	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
+	// For production: "unkey-dns.com"
+	// For local: "unkey.local"
+	CnameDomain string
+
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.RealClock{} for production deployments.
 	Clock clock.Clock
+
+	// CertRenewalHeartbeatURL is the Checkly heartbeat URL for certificate renewal.
+	// When set, a heartbeat is sent after successful certificate renewal runs.
+	// Optional - if empty, no heartbeat is sent.
+	CertRenewalHeartbeatURL string
+
+	// QuotaCheckHeartbeatURL is the Checkly heartbeat URL for quota checks.
+	// When set, a heartbeat is sent after successful quota check runs.
+	// Optional - if empty, no heartbeat is sent.
+	QuotaCheckHeartbeatURL string
+
+	// QuotaCheckSlackWebhookURL is the Slack webhook URL for quota exceeded notifications.
+	// When set, Slack notifications are sent when workspaces exceed their quota.
+	// Optional - if empty, no Slack notifications are sent.
+	QuotaCheckSlackWebhookURL string
 }
 
 // parseBuildPlatform validates and parses a build platform string.
