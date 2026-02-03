@@ -8,7 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const insertDeployment = `-- name: InsertDeployment :exec
@@ -59,26 +60,26 @@ VALUES (
 `
 
 type InsertDeploymentParams struct {
-	ID                            string            `db:"id"`
-	K8sName                       string            `db:"k8s_name"`
-	WorkspaceID                   string            `db:"workspace_id"`
-	ProjectID                     string            `db:"project_id"`
-	EnvironmentID                 string            `db:"environment_id"`
-	GitCommitSha                  sql.NullString    `db:"git_commit_sha"`
-	GitBranch                     sql.NullString    `db:"git_branch"`
-	SentinelConfig                []byte            `db:"sentinel_config"`
-	GitCommitMessage              sql.NullString    `db:"git_commit_message"`
-	GitCommitAuthorHandle         sql.NullString    `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl      sql.NullString    `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp            sql.NullInt64     `db:"git_commit_timestamp"`
-	OpenapiSpec                   sql.NullString    `db:"openapi_spec"`
-	EncryptedEnvironmentVariables []byte            `db:"encrypted_environment_variables"`
-	Command                       json.RawMessage   `db:"command"`
-	Status                        DeploymentsStatus `db:"status"`
-	CpuMillicores                 int32             `db:"cpu_millicores"`
-	MemoryMib                     int32             `db:"memory_mib"`
-	CreatedAt                     int64             `db:"created_at"`
-	UpdatedAt                     sql.NullInt64     `db:"updated_at"`
+	ID                            string             `db:"id"`
+	K8sName                       string             `db:"k8s_name"`
+	WorkspaceID                   string             `db:"workspace_id"`
+	ProjectID                     string             `db:"project_id"`
+	EnvironmentID                 string             `db:"environment_id"`
+	GitCommitSha                  sql.NullString     `db:"git_commit_sha"`
+	GitBranch                     sql.NullString     `db:"git_branch"`
+	SentinelConfig                []byte             `db:"sentinel_config"`
+	GitCommitMessage              sql.NullString     `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString     `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString     `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64      `db:"git_commit_timestamp"`
+	OpenapiSpec                   sql.NullString     `db:"openapi_spec"`
+	EncryptedEnvironmentVariables []byte             `db:"encrypted_environment_variables"`
+	Command                       dbtype.StringSlice `db:"command"`
+	Status                        DeploymentsStatus  `db:"status"`
+	CpuMillicores                 int32              `db:"cpu_millicores"`
+	MemoryMib                     int32              `db:"memory_mib"`
+	CreatedAt                     int64              `db:"created_at"`
+	UpdatedAt                     sql.NullInt64      `db:"updated_at"`
 }
 
 // InsertDeployment

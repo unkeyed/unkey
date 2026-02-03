@@ -3,7 +3,6 @@ package deployment
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -175,20 +175,13 @@ func (s *Service) CreateDeployment(
 	}
 
 	// Determine command: CLI override > project default > empty array
-	var commandJSON []byte
+	var command dbtype.StringSlice
 	if len(req.Msg.GetCommand()) > 0 {
 		// CLI provided command override
-		commandJSON, err = json.Marshal(req.Msg.GetCommand())
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("failed to serialize command: %w", err))
-		}
-	} else if len(project.Command) > 0 && string(project.Command) != "[]" {
+		command = req.Msg.GetCommand()
+	} else if len(project.Command) > 0 {
 		// Use project's default command
-		commandJSON = project.Command
-	} else {
-		// No command specified, use empty array
-		commandJSON = []byte("[]")
+		command = project.Command
 	}
 
 	// Insert deployment into database
@@ -201,7 +194,7 @@ func (s *Service) CreateDeployment(
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                env.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
-		Command:                       commandJSON,
+		Command:                       command,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
