@@ -91,7 +91,7 @@ Unkey offers two ways to rate limit:
 
 | Approach | Best for | How it works |
 |----------|----------|--------------|
-| **Standalone** | Any endpoint, public or private | You call `ratelimit.limit()` with any identifier |
+| **Standalone** | Any endpoint, public or private | You call `limiter.limit()` with any identifier |
 | **Key-attached** | API key authenticated endpoints | Rate limits are configured per-key and checked during `keys.verify()` |
 
 **Standalone** is what this section covers — it works anywhere, with or without API keys.

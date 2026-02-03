@@ -16,7 +16,7 @@ pip install unkey.py fastapi uvicorn
 ```python dependencies/auth.py
 from fastapi import HTTPException, Security
 from fastapi.security import APIKeyHeader
-from unkey import Unkey
+from unkey.py import Unkey
 import os
 
 # Configure API key header
@@ -138,7 +138,7 @@ Create dependencies for different permission levels:
 ```python dependencies/auth.py
 from fastapi import HTTPException, Security
 from fastapi.security import APIKeyHeader
-from unkey import Unkey
+from unkey.py import Unkey
 import os
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -241,7 +241,7 @@ For better performance with async FastAPI:
 
 ```python dependencies/auth.py
 from contextlib import asynccontextmanager
-from unkey import Unkey
+from unkey.py import Unkey
 import os
 
 # Global client (initialized on startup)
@@ -261,7 +261,6 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
     # Use async method
     result = await unkey_client.keys.verify_key_async(
         key=api_key,
-        api_id=os.environ["UNKEY_API_ID"]
     )
     
     if not result.valid:
@@ -285,7 +284,7 @@ app = FastAPI(lifespan=lifespan)
 from fastapi import FastAPI, Depends, HTTPException, Security, Response
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
-from unkey import Unkey
+from unkey.py import Unkey
 import os
 
 app = FastAPI(title="My API")
@@ -339,5 +338,5 @@ if __name__ == "__main__":
 Run with:
 
 ```bash
-UNKEY_ROOT_KEY=... UNKEY_API_ID=... uvicorn main:app --reload
+UNKEY_ROOT_KEY=... uvicorn main:app --reload
 ```

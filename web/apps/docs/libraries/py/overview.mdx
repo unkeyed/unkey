@@ -246,6 +246,7 @@ All methods have async variants with `_async` suffix:
 
 ```python
 import asyncio
+import os
 from unkey import Unkey
 
 async def main():
@@ -291,6 +292,7 @@ async def protected_route(x_api_key: str = Header(...)):
 ## Error Handling
 
 ```python
+import os
 from unkey import Unkey, ApiError
 
 unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])

@@ -258,7 +258,8 @@ async function verifyKey(apiKey) {
   const legacyResult = await verifyWithLegacy(apiKey);
   
   if (legacyResult.valid) {
-    console.log("Key found in legacy, not yet migrated:", apiKey);
+    const maskedKey = apiKey.slice(0, 5) + "..." + apiKey.slice(-5);
+    console.log("Key found in legacy, not yet migrated:", maskedKey);
   }
   
   return legacyResult;

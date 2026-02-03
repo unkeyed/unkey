@@ -222,8 +222,8 @@ After verification, `c.get("unkey")` contains:
 | `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
 | `credits` | `number?` | Remaining uses (if usage limits set) |
 | `enabled` | `boolean` | Whether the key is enabled |
-| `roles` | `string[]?` | Permissions attached to the key |
-| `permissions` | `string[]?` | Permissions attached to the key |
+| `roles` | `string[]?` | Named role(s) assigned to the key, each representing a set of permissions |
+| `permissions` | `string[]?` | List of individual permissions granted to the key |
 | `identity` | `object?` | Identity info if `externalId` was set when creating the key |
 | `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
 
