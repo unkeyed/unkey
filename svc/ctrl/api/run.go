@@ -11,7 +11,6 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -21,7 +20,6 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
@@ -84,18 +82,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.TLSConfig != nil {
 		logger.Info("TLS is enabled, server will use HTTPS")
-	}
-
-	buildStorage, err := s3.NewS3(s3.S3Config{
-		S3PresignURL:      "",
-		S3URL:             cfg.BuildS3.URL,
-		S3Bucket:          cfg.BuildS3.Bucket,
-		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
-		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
-		Logger:            logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create build storage backend: %w", err)
 	}
 
 	// Initialize database
@@ -169,7 +155,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:          restateClient,
 		Logger:           logger,
 		AvailableRegions: cfg.AvailableRegions,
-		BuildStorage:     buildStorage,
 	})))
 
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
@@ -187,6 +172,18 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:       logger,
 		CnameDomain:  cfg.CnameDomain,
 	})))
+
+	if cfg.GitHubWebhookSecret != "" {
+		mux.Handle("POST /webhooks/github", &GitHubWebhook{
+			db:            database,
+			logger:        logger,
+			restate:       restateClient,
+			webhookSecret: cfg.GitHubWebhookSecret,
+		})
+		logger.Info("GitHub webhook handler registered")
+	} else {
+		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
+	}
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
@@ -238,7 +235,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	// Bootstrap certificates (wildcard domain and renewal cron)
+	// Bootstrap certificates (wildcard domain records)
 	if cfg.DefaultDomain != "" {
 		certBootstrap := &certificateBootstrap{
 			logger:         logger,
@@ -246,7 +243,6 @@ func Run(ctx context.Context, cfg Config) error {
 			defaultDomain:  cfg.DefaultDomain,
 			regionalDomain: cfg.RegionalDomain,
 			regions:        cfg.AvailableRegions,
-			restateClient:  hydrav1.NewCertificateServiceIngressClient(restateClient, "global"),
 		}
 		go certBootstrap.run(ctx)
 	}

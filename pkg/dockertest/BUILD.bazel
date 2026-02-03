@@ -5,10 +5,13 @@ go_library(
     srcs = [
         "doc.go",
         "docker.go",
+        "mysql.go",
         "redis.go",
+        "restate.go",
         "s3.go",
         "wait.go",
     ],
+    data = ["//pkg/db:schema.sql"],
     importpath = "github.com/unkeyed/unkey/pkg/dockertest",
     visibility = ["//visibility:public"],
     deps = [
@@ -16,6 +19,7 @@ go_library(
         "@com_github_docker_docker//api/types/image",
         "@com_github_docker_docker//client",
         "@com_github_docker_go_connections//nat",
+        "@com_github_go_sql_driver_mysql//:mysql",
         "@com_github_stretchr_testify//require",
     ],
 )
@@ -25,6 +29,7 @@ go_test(
     size = "large",
     srcs = [
         "redis_test.go",
+        "restate_test.go",
         "s3_test.go",
     ],
     deps = [

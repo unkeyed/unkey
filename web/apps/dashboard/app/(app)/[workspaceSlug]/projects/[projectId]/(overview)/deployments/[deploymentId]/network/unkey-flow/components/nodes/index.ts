@@ -8,8 +8,8 @@ export * from "./origin-node";
 
 export {
   isOriginNode,
-  isRegionNode,
   isSentinelNode,
+  isInstanceNode,
   isSkeletonNode,
   type DeploymentNode,
 } from "./types";

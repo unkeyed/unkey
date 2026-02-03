@@ -86,6 +86,8 @@ func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) 
 	return nil
 }
 
+// ensureInfraDomain creates infrastructure domain records and triggers
+// [Service.ProcessChallenge] if a certificate is missing.
 func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate *restateIngress.Client) error {
 	// Check if domain already has a cert via JOIN
 	existingDomain, err := db.Query.FindCustomDomainWithCertByDomain(ctx, s.db.RO(), domain)
