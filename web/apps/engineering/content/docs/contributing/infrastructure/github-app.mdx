@@ -13,7 +13,15 @@ This guide walks through creating a GitHub App for local development. The GitHub
 
 ## Prerequisites
 
-GitHub needs to reach your local ctrl-api to deliver webhooks. Set up a tunnel to expose port 8787 (ctrl-api) and note the HTTPS URL - you'll need it for the webhook configuration.
+GitHub needs to reach your local ctrl-api to deliver webhooks. Use [ngrok](https://ngrok.com) (free tier works fine):
+
+1. [Install ngrok](https://ngrok.com/download)
+2. Start tunnel to ctrl-api:
+   ```bash
+   ngrok http 7091
+   ```
+
+Copy the HTTPS URL (e.g., `https://abc123.ngrok-free.app`) - you'll need it for the webhook configuration.
 
 ## Overview
 
