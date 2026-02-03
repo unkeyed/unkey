@@ -81,7 +81,6 @@ export function DeploymentInfoSection() {
         statusBadge={
           <DeploymentStatusBadge
             status={deploymentStatus}
-            className="text-successA-11 font-medium"
           />
         }
       />

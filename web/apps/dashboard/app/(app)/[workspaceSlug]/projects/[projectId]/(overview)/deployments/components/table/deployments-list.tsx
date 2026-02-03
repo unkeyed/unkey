@@ -137,13 +137,13 @@ export const DeploymentsList = () => {
       {
         key: "status",
         header: "Status",
-        width: "12%",
+        width: "15%",
         render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
       },
       {
         key: "domains",
         header: "Domains",
-        width: "20%",
+        width: "25%",
         render: ({ deployment }) => (
           <div className="flex items-center min-h-[52px]">
             <DomainList
@@ -157,6 +157,8 @@ export const DeploymentsList = () => {
         key: "instances" as const,
         header: "Instances",
         width: "10%",
+        headerClassName: "hidden 2xl:table-cell",
+        cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
             <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
@@ -175,6 +177,8 @@ export const DeploymentsList = () => {
         key: "size" as const,
         header: "Size",
         width: "15%",
+        headerClassName: "hidden 2xl:table-cell",
+        cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
             <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
@@ -201,8 +205,9 @@ export const DeploymentsList = () => {
       {
         key: "source",
         header: "Source",
-        width: "13%",
-        headerClassName: "pl-[18px]",
+        width: "auto",
+        headerClassName: "hidden 2xl:table-cell",
+        cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }) => {
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
@@ -258,6 +263,8 @@ export const DeploymentsList = () => {
         key: "author" as const,
         header: "Author",
         width: "10%",
+        headerClassName: "hidden 2xl:table-cell",
+        cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
             <div className="flex items-center gap-2">
@@ -347,7 +354,7 @@ export const DeploymentsList = () => {
         columns.map((column) => (
           <td
             key={column.key}
-            className="text-xs align-middle whitespace-nowrap"
+            className={cn("text-xs align-middle whitespace-nowrap", column.cellClassName)}
             style={{ height: `${rowHeight}px` }}
           >
             {column.key === "deployment_id" && <DeploymentIdColumnSkeleton />}

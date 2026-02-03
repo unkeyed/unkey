@@ -8,7 +8,16 @@ export const RuntimeLogsSearch = () => {
   const { filters, updateFilters } = useRuntimeLogsFilters();
   const queryLLMForStructuredOutput = trpc.deploy.runtimeLogs.llmSearch.useMutation({
     onSuccess(data) {
-      if (data?.filters.length === 0 || !data) {
+      const typedData = data as
+        | {
+            filters: Array<{
+              field: string;
+              filters: Array<{ operator: string; value: string | number }>;
+            }>;
+          }
+        | undefined;
+
+      if (!typedData || typedData.filters.length === 0) {
         toast.error(
           "Please provide more specific search criteria. Your query requires additional details for accurate results.",
           {
@@ -22,12 +31,7 @@ export const RuntimeLogsSearch = () => {
         return;
       }
       const transformedFilters = transformStructuredOutputToFilters(
-        data as {
-          filters: Array<{
-            field: string;
-            filters: Array<{ operator: string; value: string | number }>;
-          }>;
-        },
+        typedData,
         filters.filter((f) => f.field !== "message"),
       ) as typeof filters;
       updateFilters(transformedFilters);

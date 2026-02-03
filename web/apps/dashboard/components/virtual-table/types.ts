@@ -15,6 +15,7 @@ export type Column<TTableData> = {
   header?: string;
   width: ColumnWidth;
   headerClassName?: string;
+  cellClassName?: string;
   render: (item: TTableData) => React.ReactNode;
   sort?: {
     sortable?: boolean;
