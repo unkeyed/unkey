@@ -21,11 +21,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
+	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
@@ -109,12 +111,14 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
-		ch, err = clickhouse.New(clickhouse.Config{
+		chClient, chErr := clickhouse.New(clickhouse.Config{
 			URL:    cfg.ClickhouseURL,
 			Logger: logger,
 		})
-		if err != nil {
-			return fmt.Errorf("unable to create clickhouse: %w", err)
+		if chErr != nil {
+			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
+		} else {
+			ch = chClient
 		}
 	}
 
@@ -142,6 +146,21 @@ func Run(ctx context.Context, cfg Config) error {
 	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
+
+	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
+		DB:          database,
+		Logger:      logger,
+		CnameDomain: cfg.CnameDomain,
+	}),
+		// Retry every 1 minute for up to 24 hours (1440 attempts)
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(1*time.Minute),
+			restate.WithExponentiationFactor(1.0), // Fixed interval, no exponential backoff
+			restate.WithMaxInterval(1*time.Minute),
+			restate.WithMaxAttempts(1440),
+			restate.KillOnMaxAttempts(),
+		),
+	))
 
 	// Initialize domain cache for ACME providers
 	clk := clock.New()
@@ -276,12 +295,18 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register with Restate admin API (only if RegisterAs is configured)
 	// In k8s environments, registration is handled externally
 	if cfg.Restate.RegisterAs != "" {
-		reg := &restateRegistration{
-			logger:     logger,
-			adminURL:   cfg.Restate.AdminURL,
-			registerAs: cfg.Restate.RegisterAs,
-		}
-		go reg.register(ctx)
+		adminClient := restateadmin.New(restateadmin.Config{
+			BaseURL: cfg.Restate.AdminURL,
+			APIKey:  cfg.Restate.APIKey,
+		})
+		go func() {
+			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
+			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs); err != nil {
+				logger.Error("failed to register with Restate", "error", err)
+				return
+			}
+			logger.Info("Successfully registered with Restate")
+		}()
 	} else {
 		logger.Info("Skipping Restate registration (restate-register-as not configured)")
 	}

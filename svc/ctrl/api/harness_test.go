@@ -109,7 +109,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		AvailableRegions:    []string{"local.dev"},
 		GitHubWebhookSecret: secret,
 		DefaultDomain:       "",
-		RegionalApexDomain:  "",
+		RegionalDomain:      "",
 	}
 
 	ctrlCtx, ctrlCancel := context.WithCancel(ctx)

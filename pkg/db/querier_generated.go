@@ -16,6 +16,10 @@ type Querier interface {
 	//  SET token = ?, authorization = ?, updated_at = ?
 	//  WHERE domain_id = ?
 	ClearAcmeChallengeTokens(ctx context.Context, db DBTX, arg ClearAcmeChallengeTokensParams) error
+	//DeleteAcmeChallengeByDomainID
+	//
+	//  DELETE FROM acme_challenges WHERE domain_id = ?
+	DeleteAcmeChallengeByDomainID(ctx context.Context, db DBTX, domainID string) error
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -26,11 +30,19 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ?
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
+	//DeleteCustomDomainByID
+	//
+	//  DELETE FROM custom_domains WHERE id = ?
+	DeleteCustomDomainByID(ctx context.Context, db DBTX, id string) error
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
 	//  WHERE deployment_id = ? AND region = ?
 	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
+	//DeleteFrontlineRouteByFQDN
+	//
+	//  DELETE FROM frontline_routes WHERE fully_qualified_domain_name = ?
+	DeleteFrontlineRouteByFQDN(ctx context.Context, db DBTX, fqdn string) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
@@ -176,13 +188,13 @@ type Querier interface {
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	//FindCustomDomainByDomain
 	//
-	//  SELECT pk, id, workspace_id, domain, challenge_type, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
 	//  FROM custom_domains
 	//  WHERE domain = ?
 	FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error)
 	//FindCustomDomainByDomainOrWildcard
 	//
-	//  SELECT pk, id, workspace_id, domain, challenge_type, created_at, updated_at FROM custom_domains
+	//  SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at FROM custom_domains
 	//  WHERE domain IN (?, ?)
 	//  ORDER BY
 	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
@@ -190,14 +202,14 @@ type Querier interface {
 	FindCustomDomainByDomainOrWildcard(ctx context.Context, db DBTX, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
-	//  SELECT pk, id, workspace_id, domain, challenge_type, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
 	//  FROM custom_domains
 	//  WHERE id = ?
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
 	//FindCustomDomainWithCertByDomain
 	//
 	//  SELECT
-	//      cd.pk, cd.id, cd.workspace_id, cd.domain, cd.challenge_type, cd.created_at, cd.updated_at,
+	//      cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.verification_token, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.invocation_id, cd.created_at, cd.updated_at,
 	//      c.id AS certificate_id
 	//  FROM custom_domains cd
 	//  LEFT JOIN certificates c ON c.hostname = cd.domain
@@ -1150,6 +1162,13 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, db DBTX, arg InsertClickhouseWorkspaceSettingsParams) error
+	//InsertCustomDomain
+	//
+	//  INSERT INTO custom_domains (
+	//      id, workspace_id, project_id, environment_id, domain,
+	//      challenge_type, verification_status, verification_token, target_cname, invocation_id, created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -1651,6 +1670,13 @@ type Querier interface {
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	//ListCustomDomainsByProjectID
+	//
+	//  SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
+	//  FROM custom_domains
+	//  WHERE project_id = ?
+	//  ORDER BY created_at DESC
+	ListCustomDomainsByProjectID(ctx context.Context, db DBTX, projectID string) ([]CustomDomain, error)
 	// ListDeploymentTopologyByRegion returns deployment topologies for a region with version > after_version.
 	// Used by WatchDeployments to stream deployment state changes to krane agents.
 	//
@@ -2027,6 +2053,17 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	ReassignFrontlineRoute(ctx context.Context, db DBTX, arg ReassignFrontlineRouteParams) error
+	//ResetCustomDomainVerification
+	//
+	//  UPDATE custom_domains
+	//  SET verification_status = ?,
+	//      check_attempts = ?,
+	//      verification_error = NULL,
+	//      last_checked_at = NULL,
+	//      invocation_id = ?,
+	//      updated_at = ?
+	//  WHERE domain = ?
+	ResetCustomDomainVerification(ctx context.Context, db DBTX, arg ResetCustomDomainVerificationParams) error
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`
@@ -2125,6 +2162,42 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, db DBTX, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
+	//UpdateCustomDomainCheckAttempt
+	//
+	//  UPDATE custom_domains
+	//  SET check_attempts = ?,
+	//      last_checked_at = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateCustomDomainCheckAttempt(ctx context.Context, db DBTX, arg UpdateCustomDomainCheckAttemptParams) error
+	//UpdateCustomDomainFailed
+	//
+	//  UPDATE custom_domains
+	//  SET verification_status = ?,
+	//      verification_error = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateCustomDomainFailed(ctx context.Context, db DBTX, arg UpdateCustomDomainFailedParams) error
+	//UpdateCustomDomainInvocationID
+	//
+	//  UPDATE custom_domains
+	//  SET invocation_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateCustomDomainInvocationID(ctx context.Context, db DBTX, arg UpdateCustomDomainInvocationIDParams) error
+	//UpdateCustomDomainOwnership
+	//
+	//  UPDATE custom_domains
+	//  SET ownership_verified = ?, cname_verified = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateCustomDomainOwnership(ctx context.Context, db DBTX, arg UpdateCustomDomainOwnershipParams) error
+	//UpdateCustomDomainVerificationStatus
+	//
+	//  UPDATE custom_domains
+	//  SET verification_status = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateCustomDomainVerificationStatus(ctx context.Context, db DBTX, arg UpdateCustomDomainVerificationStatusParams) error
 	//UpdateDeploymentBuildID
 	//
 	//  UPDATE deployments
@@ -2302,11 +2375,18 @@ type Querier interface {
 	UpdateWorkspacePlan(ctx context.Context, db DBTX, arg UpdateWorkspacePlanParams) error
 	//UpsertCustomDomain
 	//
-	//  INSERT INTO custom_domains (id, workspace_id, domain, challenge_type, created_at)
-	//  VALUES (?, ?, ?, ?, ?)
+	//  INSERT INTO custom_domains (
+	//      id, workspace_id, project_id, environment_id, domain,
+	//      challenge_type, verification_status, verification_token, target_cname, created_at
+	//  )
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      workspace_id = VALUES(workspace_id),
+	//      project_id = VALUES(project_id),
+	//      environment_id = VALUES(environment_id),
 	//      challenge_type = VALUES(challenge_type),
+	//      verification_status = VALUES(verification_status),
+	//      target_cname = VALUES(target_cname),
 	//      updated_at = ?
 	UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCustomDomainParams) error
 	//UpsertEnvironment
