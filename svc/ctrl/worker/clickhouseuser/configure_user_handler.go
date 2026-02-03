@@ -3,7 +3,6 @@ package clickhouseuser
 import (
 	"crypto/rand"
 	"database/sql"
-	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -222,11 +221,47 @@ func resolveQuotaSettings(req *hydrav1.ConfigureUserRequest) quotaSettings {
 	}
 }
 
+const (
+	upper   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	lower   = "abcdefghijklmnopqrstuvwxyz"
+	digits  = "0123456789"
+	special = "-_.~" // RFC 3986 unreserved chars only - safe in DSN userinfo
+	all     = upper + lower + digits + special
+)
+
+// generateSecurePassword creates a password that satisfies ClickHouse Cloud requirements:
+// - At least 12 characters long
+// - At least 1 numeric character
+// - At least 1 uppercase character
+// - At least 1 lowercase character
+// - At least 1 special character
 func generateSecurePassword(length int) (string, error) {
-	b := make([]byte, length)
-	if _, err := rand.Read(b); err != nil {
+	length = max(length, 12)
+
+	// Get all random bytes upfront
+	randomBytes := make([]byte, length*2) // extra for shuffle
+	if _, err := rand.Read(randomBytes); err != nil {
 		return "", err
 	}
 
-	return base64.RawURLEncoding.EncodeToString(b)[:length], nil
+	password := make([]byte, length)
+
+	// Guarantee one from each required charset
+	required := []string{upper, lower, digits, special}
+	for i, charset := range required {
+		password[i] = charset[int(randomBytes[i])%len(charset)]
+	}
+
+	// Fill rest from all characters
+	for i := len(required); i < length; i++ {
+		password[i] = all[int(randomBytes[i])%len(all)]
+	}
+
+	// Fisher-Yates shuffle
+	for i := length - 1; i > 0; i-- {
+		j := int(randomBytes[length+i]) % (i + 1)
+		password[i], password[j] = password[j], password[i]
+	}
+
+	return string(password), nil
 }

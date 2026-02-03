@@ -1,6 +1,7 @@
 package certificate
 
 import (
+	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -8,31 +9,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
-const (
-	// renewalInterval determines how frequently the certificate renewal cron runs.
-	// Set to 24 hours because Let's Encrypt certificates are valid for 90 days and
-	// we trigger renewal 30 days before expiry, giving ample time for retries.
-	renewalInterval = 24 * time.Hour
-
-	// renewalKey is the Restate virtual object key for the singleton renewal job.
-	// Using a fixed key ensures only one renewal job runs globally, preventing
-	// duplicate work across service instances.
-	renewalKey = "global"
-)
-
-// RenewExpiringCertificates is a self-scheduling Restate cron that renews certificates
-// before they expire.
+// RenewExpiringCertificates renews certificates before they expire.
 //
 // This handler queries for certificates expiring within 30 days (based on the
 // acme_challenges table) and triggers [Service.ProcessChallenge] for each one via
 // fire-and-forget Restate calls. The ProcessChallenge handler handles actual renewal.
 //
-// The cron pattern works by scheduling itself to run again after [renewalInterval]
-// at the end of each execution. To bootstrap the cron, call this handler once with
-// key "global" - it will then reschedule itself indefinitely. The idempotency key
-// includes the next run date to prevent duplicate schedules if the handler is called
-// multiple times on the same day.
-//
+// This handler is intended to be called on a schedule via GitHub Actions.
 // A 100ms delay is inserted between renewal triggers to avoid overwhelming the system
 // when many certificates need renewal simultaneously.
 func (s *Service) RenewExpiringCertificates(
@@ -94,20 +77,13 @@ func (s *Service) RenewExpiringCertificates(
 		"failed", len(failedDomains),
 	)
 
-	// Schedule next run - this creates the Restate cron pattern
-	// The job will run again after renewalInterval
-	// Use idempotency key based on the next run date to prevent duplicate schedules
-	nextRunDate := time.Now().Add(renewalInterval).Format("2006-01-02")
-	selfClient := hydrav1.NewCertificateServiceClient(ctx, renewalKey)
-	selfClient.RenewExpiringCertificates().Send(
-		&hydrav1.RenewExpiringCertificatesRequest{
-			DaysBeforeExpiry: 30,
-		},
-		restate.WithDelay(renewalInterval),
-		restate.WithIdempotencyKey("cert-renewal-"+nextRunDate),
-	)
-
-	s.logger.Info("scheduled next certificate renewal check", "delay", renewalInterval)
+	// Send heartbeat to indicate successful completion
+	_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, s.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat"))
+	if err != nil {
+		return nil, fmt.Errorf("send heartbeat: %w", err)
+	}
 
 	return &hydrav1.RenewExpiringCertificatesResponse{
 		CertificatesChecked: int32(len(challenges)),
