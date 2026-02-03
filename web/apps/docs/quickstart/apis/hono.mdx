@@ -66,16 +66,16 @@ bun add @unkey/hono
 
 </Step>
 
-<Step title="Add your API ID">
+<Step title="Add your root key">
 
 Create a `.env` file:
 
 ```bash .env
-UNKEY_API_ID="api_..."
+UNKEY_ROOT_KEY="unkey_..."
 ```
 
 <Note>
-The Hono middleware doesn't need a root key — it verifies keys directly against your API ID.
+The Hono middleware verifies keys directly against your root key.
 </Note>
 
 </Step>
@@ -270,7 +270,6 @@ unkey({
 
 <AccordionGroup>
   <Accordion title="Getting 401 even with a valid key?">
-    - Check that `UNKEY_API_ID` matches the API where you created the key
     - Ensure the key hasn't expired or been revoked
     - Verify the header format: `Authorization: Bearer YOUR_KEY`
   </Accordion>
@@ -282,10 +281,10 @@ unkey({
   </Accordion>
   
   <Accordion title="Deploying to Cloudflare Workers?">
-    Use wrangler secrets for your API ID:
+    Use wrangler secrets for your root key:
     ```bash
-    npx wrangler secret put UNKEY_API_ID
+    npx wrangler secret put UNKEY_ROOT_KEY
     ```
-    Then access via `c.env.UNKEY_API_ID` instead of `process.env`.
+    Then access via `process.env.UNKEY_ROOT_KEY` in your code.
   </Accordion>
 </AccordionGroup>

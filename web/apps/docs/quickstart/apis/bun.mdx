@@ -44,7 +44,6 @@ Create a `.env` file with your credentials from the [Unkey dashboard](https://ap
 
 ```bash .env
 UNKEY_ROOT_KEY="unkey_..."
-UNKEY_API_ID="api_..."
 ```
 
 </Step>
@@ -65,29 +64,28 @@ const server = Bun.serve({
       return Response.json({ error: "Missing API key" }, { status: 401 });
     }
 
-    // 2. Verify with Unkey (v2 returns { meta, data, error })
-    const { meta, data, error } = await verifyKey({ key });
+    // 2. Verify with Unkey
+    try {
+      const { meta, data } = await verifyKey({ key });
 
-    if (error) {
-      // Network error or Unkey service issue
-      console.error(error.message);
+      if (!data.valid) {
+        // Key is invalid, expired, rate limited, etc.
+        return Response.json(
+          { error: "Invalid API key", code: data.code },
+          { status: 401 }
+        );
+      }
+
+      // 3. Key is valid — return your response
+      return Response.json({
+        message: "Hello from protected endpoint!",
+        keyId: data.keyId,
+        identity: data.identity,
+      });
+    } catch (err) {
+      console.error(err);
       return Response.json({ error: "Verification failed" }, { status: 500 });
     }
-
-    if (!data.valid) {
-      // Key is invalid, expired, rate limited, etc.
-      return Response.json(
-        { error: "Invalid API key", code: data.code },
-        { status: 401 }
-      );
-    }
-
-    // 3. Key is valid — return your response
-    return Response.json({
-      message: "Hello from protected endpoint!",
-      keyId: data.keyId,
-      identity: data.identity,
-    });
   },
   port: 3000,
 });
@@ -170,10 +168,13 @@ async function authenticate(req: Request) {
   const key = req.headers.get("Authorization")?.replace("Bearer ", "");
   if (!key) return { valid: false, error: "Missing API key" };
 
-  const { meta, data, error } = await verifyKey({ key });
-
-  if (error) return { valid: false, error: "Verification failed" };
-  return data;
+  try {
+    const { meta, data } = await verifyKey({ key });
+    return data;
+  } catch (err) {
+    console.error(err);
+    return { valid: false, error: "Verification failed" };
+  }
 }
 
 const server = Bun.serve({
@@ -230,7 +231,6 @@ const server = Bun.serve({
 
 <AccordionGroup>
   <Accordion title="Getting 401 even with a valid key?">
-    - Check that `UNKEY_API_ID` in `.env` matches the API where you created the key
     - Ensure the key hasn't expired or been revoked
     - Verify the header format: `Authorization: Bearer YOUR_KEY` (note the space)
   </Accordion>

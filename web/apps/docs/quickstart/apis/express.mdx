@@ -37,7 +37,6 @@ Get a root key from [Settings → Root Keys](https://app.unkey.com/settings/root
 
 ```bash .env
 UNKEY_ROOT_KEY="unkey_..."
-UNKEY_API_ID="api_..."
 ```
 
 <Warning>
@@ -73,30 +72,29 @@ app.get("/secret", async (req, res) => {
     return res.status(401).json({ error: "Missing API key" });
   }
 
-  // 2. Verify with Unkey (v2 returns { meta, data, error })
-  const { meta, data, error } = await verifyKey({ key });
+  // 2. Verify with Unkey
+  try {
+    const { meta, data } = await verifyKey({ key });
 
-  if (error) {
-    // Network error or Unkey service issue
-    console.error(error.message);
+    if (!data.valid) {
+      // Key is invalid, expired, rate limited, etc.
+      return res.status(401).json({ 
+        error: "Invalid API key",
+        code: data.code 
+      });
+    }
+
+    // 3. Key is valid — return protected data
+    res.json({
+      message: "Welcome to the secret route!",
+      keyId: data.keyId,
+      // Include any metadata you attached to the key
+      identity: data.identity,
+    });
+  } catch (err) {
+    console.error(err);
     return res.status(500).json({ error: "Could not verify key" });
   }
-
-  if (!data.valid) {
-    // Key is invalid, expired, rate limited, etc.
-    return res.status(401).json({ 
-      error: "Invalid API key",
-      code: data.code 
-    });
-  }
-
-  // 3. Key is valid — return protected data
-  res.json({
-    message: "Welcome to the secret route!",
-    keyId: data.keyId,
-    // Include any metadata you attached to the key
-    identity: data.identity,
-  });
 });
 
 app.listen(port, () => {
@@ -181,15 +179,20 @@ async function unkeyAuth(req, res, next) {
     return res.status(401).json({ error: "Missing API key" });
   }
 
-  const { meta, data, error } = await verifyKey({ key });
+  try {
+    const { meta, data } = await verifyKey({ key });
 
-  if (error || !data.valid) {
-    return res.status(401).json({ error: "Invalid API key" });
+    if (!data.valid) {
+      return res.status(401).json({ error: "Invalid API key" });
+    }
+
+    // Attach key info to request for use in route handlers
+    req.unkey = data;
+    next();
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Could not verify key" });
   }
-
-  // Attach key info to request for use in route handlers
-  req.unkey = data;
-  next();
 }
 
 module.exports = { unkeyAuth };
