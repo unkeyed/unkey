@@ -7,9 +7,9 @@
     }
   },
   "colors": {
-    "dark": "#18181b",
-    "light": "#EAE6E0",
-    "primary": "#09090b"
+    "dark": "#27272a",
+    "light": "#d4d4d8",
+    "primary": "#2563eb"
   },
   "contextual": {
     "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
