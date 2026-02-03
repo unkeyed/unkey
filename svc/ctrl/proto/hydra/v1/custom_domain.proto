@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// CustomDomainService manages domain verification workflows
+service CustomDomainService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // VerifyDomain starts the CNAME verification workflow for a custom domain.
+  // Uses exponential backoff to check DNS records over ~24 hours.
+  // Key: domain name (ensures only one verification per domain at a time)
+  rpc VerifyDomain(VerifyDomainRequest) returns (VerifyDomainResponse) {}
+
+  // RetryVerification resets and restarts verification for a failed domain.
+  // Key: domain name
+  rpc RetryVerification(RetryVerificationRequest) returns (RetryVerificationResponse) {}
+}
+
+// Empty request - domain is the virtual object key (ctx.Key())
+message VerifyDomainRequest {}
+
+// Empty response - success means verified, errors are returned to Restate
+message VerifyDomainResponse {}
+
+// Empty request - domain is the virtual object key (ctx.Key())
+message RetryVerificationRequest {}
+
+// Empty response - just triggers a new verification workflow
+message RetryVerificationResponse {}

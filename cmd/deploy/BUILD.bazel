@@ -15,7 +15,6 @@ go_library(
         "//pkg/otel/logging",
         "@com_github_unkeyed_sdks_api_go_v2//:go",
         "@com_github_unkeyed_sdks_api_go_v2//models/components",
-        "@com_github_unkeyed_sdks_api_go_v2//models/operations",
         "@org_golang_x_text//cases",
         "@org_golang_x_text//language",
     ],

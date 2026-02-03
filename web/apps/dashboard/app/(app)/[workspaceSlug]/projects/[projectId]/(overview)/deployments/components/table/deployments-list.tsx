@@ -5,7 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
-import { Loading, useIsMobile } from "@unkey/ui";
+import { Loading } from "@unkey/ui";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
@@ -42,16 +42,11 @@ const DeploymentListTableActions = dynamic(
   },
 );
 
-const COMPACT_BREAKPOINT = 1200;
-
 export const DeploymentsList = () => {
   const [selectedDeployment, setSelectedDeployment] = useState<{
     deployment: Deployment;
     environment?: Environment;
   } | null>(null);
-  // Default to false (wide view) to prevent hydration mismatches
-  const isCompactView = useIsMobile({ breakpoint: COMPACT_BREAKPOINT, defaultValue: false });
-
   const { liveDeployment, deployments, project } = useDeployments();
 
   const selectedDeploymentId = selectedDeployment?.deployment.id;
@@ -78,7 +73,7 @@ export const DeploymentsList = () => {
       {
         key: "deployment_id",
         header: "Deployment ID",
-        width: "10%",
+        width: "15%",
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
           const isLive = liveDeployment?.id === deployment.id;
@@ -87,7 +82,7 @@ export const DeploymentsList = () => {
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
                 {navigatingId === deployment.id ? (
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
                       <div className="size-[12px] items-center justify-center flex">
                         <Loading size={18} />
@@ -95,9 +90,9 @@ export const DeploymentsList = () => {
                     </div>
                   </div>
                 ) : (
-                  iconContainer
+                  <div className="flex-shrink-0">{iconContainer}</div>
                 )}
-                <div className="w-[200px]">
+                <div className="min-w-0 flex-1">
                   <Link
                     title={`View details for ${deployment.id}`}
                     className="font-mono group-hover:underline decoration-dotted"
@@ -114,11 +109,13 @@ export const DeploymentsList = () => {
                         {shortenId(deployment.id)}
                       </div>
                       {isLive ? (
-                        project?.isRolledBack ? (
-                          <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
-                        ) : (
-                          <EnvStatusBadge variant="live" text="Live" />
-                        )
+                        <div className="flex-shrink-0">
+                          {project?.isRolledBack ? (
+                            <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
+                          ) : (
+                            <EnvStatusBadge variant="live" text="Live" />
+                          )}
+                        </div>
                       ) : null}
                     </div>
                   </Link>
@@ -140,13 +137,13 @@ export const DeploymentsList = () => {
       {
         key: "status",
         header: "Status",
-        width: "10%",
+        width: "12%",
         render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
       },
       {
         key: "domains",
         header: "Domains",
-        width: "25%",
+        width: "20%",
         render: ({ deployment }) => (
           <div className="flex items-center min-h-[52px]">
             <DomainList
@@ -156,59 +153,55 @@ export const DeploymentsList = () => {
           </div>
         ),
       },
-      ...(isCompactView
-        ? []
-        : [
-            {
-              key: "instances" as const,
-              header: "Instances",
-              width: "10%",
-              render: ({ deployment }: { deployment: Deployment }) => {
-                return (
-                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-                    <Cube className="text-gray-12" iconSize="sm-regular" />
-                    <div className="flex gap-0.5">
-                      <span className="font-semibold text-grayA-12 tabular-nums">
-                        {deployment.instances.length}
-                      </span>
-                      <span>VMs</span>
-                    </div>
-                  </div>
-                );
-              },
-            },
-            {
-              key: "size" as const,
-              header: "Size",
-              width: "10%",
-              render: ({ deployment }: { deployment: Deployment }) => {
-                return (
-                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-                    <Cube className="text-gray-12" iconSize="sm-regular" />
-                    <div className="flex gap-1">
-                      <div className="flex gap-0.5">
-                        <span className="font-semibold text-grayA-12 tabular-nums">
-                          {deployment.cpuMillicores / 1024}
-                        </span>
-                        <span>vCPU</span>
-                      </div>
-                      <span> / </span>
-                      <div className="flex gap-0.5">
-                        <span className="font-semibold text-grayA-12 tabular-nums">
-                          {deployment.memoryMib}
-                        </span>
-                        <span>MiB</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              },
-            },
-          ]),
+      {
+        key: "instances" as const,
+        header: "Instances",
+        width: "10%",
+        render: ({ deployment }: { deployment: Deployment }) => {
+          return (
+            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+              <Cube className="text-gray-12" iconSize="sm-regular" />
+              <div className="flex gap-0.5">
+                <span className="font-semibold text-grayA-12 tabular-nums">
+                  {deployment.instances.length}
+                </span>
+                <span>VMs</span>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: "size" as const,
+        header: "Size",
+        width: "15%",
+        render: ({ deployment }: { deployment: Deployment }) => {
+          return (
+            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+              <Cube className="text-gray-12" iconSize="sm-regular" />
+              <div className="flex gap-1">
+                <div className="flex gap-0.5">
+                  <span className="font-semibold text-grayA-12 tabular-nums">
+                    {deployment.cpuMillicores / 1024}
+                  </span>
+                  <span>vCPU</span>
+                </div>
+                <span> / </span>
+                <div className="flex gap-0.5">
+                  <span className="font-semibold text-grayA-12 tabular-nums">
+                    {deployment.memoryMib}
+                  </span>
+                  <span>MiB</span>
+                </div>
+              </div>
+            </div>
+          );
+        },
+      },
       {
         key: "source",
         header: "Source",
-        width: "15%",
+        width: "13%",
         headerClassName: "pl-[18px]",
         render: ({ deployment }) => {
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
@@ -226,8 +219,8 @@ export const DeploymentsList = () => {
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
-                {iconContainer}
-                <div className="w-[200px]">
+                <div className="flex-shrink-0">{iconContainer}</div>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
@@ -247,74 +240,38 @@ export const DeploymentsList = () => {
           );
         },
       },
-      ...(isCompactView
-        ? [
-            {
-              key: "author_created" as const,
-              header: "Author / Created",
-              width: "10%",
-              render: ({ deployment }: { deployment: Deployment }) => {
-                return (
-                  <div className="flex flex-col items-start pr-[18px] py-1.5">
-                    <div className="flex gap-3 items-center w-full">
-                      <Avatar
-                        src={deployment.gitCommitAuthorAvatarUrl}
-                        alt={deployment.gitCommitAuthorHandle ?? "Author"}
-                      />
-
-                      <div className="w-[200px]">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-grayA-12 text-xs">
-                            {deployment.gitCommitAuthorHandle || "—"}
-                          </span>
-                        </div>
-                        <div className={cn("font-mono text-xs mt-1", "text-gray-9")}>
-                          <TimestampInfo
-                            value={deployment.createdAt}
-                            className="font-mono text-xs text-gray-9"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              },
-            },
-          ]
-        : [
-            {
-              key: "created_at" as const,
-              header: "Created",
-              width: "10%",
-              render: ({ deployment }: { deployment: Deployment }) => {
-                return (
-                  <TimestampInfo
-                    value={deployment.createdAt}
-                    displayType="relative"
-                    className="font-mono group-hover:underline decoration-dotted"
-                  />
-                );
-              },
-            },
-            {
-              key: "author" as const,
-              header: "Author",
-              width: "10%",
-              render: ({ deployment }: { deployment: Deployment }) => {
-                return (
-                  <div className="flex items-center gap-2">
-                    <Avatar
-                      src={deployment.gitCommitAuthorAvatarUrl}
-                      alt={deployment.gitCommitAuthorHandle ?? "Author"}
-                    />
-                    <span className="font-medium text-grayA-12 text-xs">
-                      {deployment.gitCommitAuthorHandle || "—"}
-                    </span>
-                  </div>
-                );
-              },
-            },
-          ]),
+      {
+        key: "created_at" as const,
+        header: "Created",
+        width: "10%",
+        render: ({ deployment }: { deployment: Deployment }) => {
+          return (
+            <TimestampInfo
+              value={deployment.createdAt}
+              displayType="relative"
+              className="font-mono group-hover:underline decoration-dotted"
+            />
+          );
+        },
+      },
+      {
+        key: "author" as const,
+        header: "Author",
+        width: "10%",
+        render: ({ deployment }: { deployment: Deployment }) => {
+          return (
+            <div className="flex items-center gap-2">
+              <Avatar
+                src={deployment.gitCommitAuthorAvatarUrl}
+                alt={deployment.gitCommitAuthorHandle ?? "Author"}
+              />
+              <span className="font-medium text-grayA-12 text-xs">
+                {deployment.gitCommitAuthorHandle || "—"}
+              </span>
+            </div>
+          );
+        },
+      },
       {
         key: "action",
         header: "",
@@ -338,7 +295,7 @@ export const DeploymentsList = () => {
         },
       },
     ];
-  }, [selectedDeploymentId, isCompactView, liveDeployment, project]);
+  }, [selectedDeploymentId, liveDeployment, project]);
 
   return (
     <VirtualTable

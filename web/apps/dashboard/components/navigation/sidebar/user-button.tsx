@@ -70,7 +70,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
         {user?.email && (
           <>
             <DropdownMenuLabel className="font-normal">
-              <span title={user.email} className="text-accent-11 text-xs truncate max-w-44">
+              <span title={user.email} className="text-accent-11 text-xs truncate max-w-44 secret">
                 {user.email}
               </span>
             </DropdownMenuLabel>

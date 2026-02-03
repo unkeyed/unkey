@@ -10,15 +10,18 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 const (
-	// sentinelNamespace is the Kubernetes namespace where sentinel containers are deployed.
+	// sentinelNamespace isolates sentinel resources from tenant namespaces to
+	// simplify RBAC and keep routing infrastructure separate from workloads.
 	sentinelNamespace = "sentinel"
 
-	// sentinelPort is the port that sentinel containers listen on for traffic routing.
+	// sentinelPort is the port exposed by sentinel services for frontline traffic
+	// and must match the container port and service configuration.
 	sentinelPort = 8040
 )
 
@@ -52,8 +55,17 @@ const (
 func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	finishedSuccessfully := false
 
-	deployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.GetDeploymentId())
+	err := assert.All(
+		assert.NotEmpty(req.GetDeploymentId(), "deployment_id is required"),
+	)
+	if err != nil {
+		return nil, restate.TerminalError(err)
+	}
+
+	w.logger.Info("deployment workflow started", "req", fmt.Sprintf("%+v", req))
+
+	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
+		return db.Query.FindDeploymentById(runCtx, w.db.RW(), req.GetDeploymentId())
 	}, restate.WithName("finding deployment"))
 	if err != nil {
 		return nil, err
@@ -100,55 +112,44 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err != nil {
 		return nil, err
 	}
-	project, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindProjectByIdRow, error) {
-		return db.Query.FindProjectById(stepCtx, w.db.RW(), deployment.ProjectID)
+	project, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindProjectByIdRow, error) {
+		return db.Query.FindProjectById(runCtx, w.db.RW(), deployment.ProjectID)
 	}, restate.WithName("finding project"))
 	if err != nil {
 		return nil, err
 	}
-	environment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
-		return db.Query.FindEnvironmentById(stepCtx, w.db.RW(), deployment.EnvironmentID)
+	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
+		return db.Query.FindEnvironmentById(runCtx, w.db.RW(), deployment.EnvironmentID)
 	}, restate.WithName("finding environment"))
 	if err != nil {
 		return nil, err
 	}
 
-	var dockerImage string
+	dockerImage := ""
 
-	if req.GetBuildContextPath() != "" {
-		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusBuilding); err != nil {
-			return nil, err
-		}
-
-		s3DownloadURL, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-			return w.buildStorage.GenerateDownloadURL(stepCtx, req.GetBuildContextPath(), 1*time.Hour)
-		}, restate.WithName("generate s3 download url"))
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate s3 download url: %w", err)
-		}
-
-		w.logger.Info("starting docker build",
-			"deployment_id", deployment.ID,
-			"build_context_path", req.GetBuildContextPath())
-
-		build, err := hydrav1.NewBuildServiceClient(ctx).BuildDockerImage().Request(&hydrav1.BuildDockerImageRequest{
-			S3Url:            s3DownloadURL,
-			BuildContextPath: req.GetBuildContextPath(),
-			DockerfilePath:   req.GetDockerfilePath(),
-			ProjectId:        deployment.ProjectID,
-			DeploymentId:     deployment.ID,
-			WorkspaceId:      deployment.WorkspaceID,
+	switch source := req.GetSource().(type) {
+	case *hydrav1.DeployRequest_DockerImage:
+		dockerImage = source.DockerImage.GetImage()
+	case *hydrav1.DeployRequest_Git:
+		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{
+			InstallationID: source.Git.GetInstallationId(),
+			Repository:     source.Git.GetRepository(),
+			CommitSHA:      source.Git.GetCommitSha(),
+			ContextPath:    source.Git.GetContextPath(),
+			DockerfilePath: source.Git.GetDockerfilePath(),
+			ProjectID:      deployment.ProjectID,
+			DeploymentID:   deployment.ID,
+			WorkspaceID:    deployment.WorkspaceID,
 		})
-
 		if err != nil {
-			return nil, fmt.Errorf("failed to build docker image: %w", err)
+			return nil, fmt.Errorf("failed to build docker image from git: %w", err)
 		}
-		dockerImage = build.GetImageName()
+		dockerImage = build.ImageName
 
-		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-			return db.Query.UpdateDeploymentBuildID(stepCtx, w.db.RW(), db.UpdateDeploymentBuildIDParams{
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return db.Query.UpdateDeploymentBuildID(runCtx, w.db.RW(), db.UpdateDeploymentBuildIDParams{
 				ID:        deployment.ID,
-				BuildID:   sql.NullString{Valid: true, String: build.GetDepotBuildId()},
+				BuildID:   sql.NullString{Valid: true, String: build.DepotBuildID},
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 		})
@@ -156,13 +157,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			return nil, fmt.Errorf("failed to update deployment build ID: %w", err)
 		}
 
-	} else if req.GetDockerImage() != "" {
-		dockerImage = req.GetDockerImage()
-		w.logger.Info("using prebuilt docker image",
-			"deployment_id", deployment.ID,
-			"image", dockerImage)
-	} else {
-		return nil, fmt.Errorf("either build_context_path or docker_image must be specified")
+	default:
+		return nil, restate.TerminalError(fmt.Errorf("unknown source type: %T", source))
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -329,12 +325,12 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	existingRouteIDs := make([]string, 0)
 
 	for _, domain := range allDomains {
-		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-			return db.TxWithResultRetry(stepCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
+		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
 				found, err := db.Query.FindFrontlineRouteByFQDN(txCtx, tx, domain.domain)
 				if err != nil {
 					if db.IsNotFound(err) {
-						err = db.Query.InsertFrontlineRoute(stepCtx, tx, db.InsertFrontlineRouteParams{
+						err = db.Query.InsertFrontlineRoute(runCtx, tx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
 							ProjectID:                project.ID,
 							DeploymentID:             deployment.ID,
@@ -361,6 +357,27 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
+	// Fetch sticky routes for this environment
+	stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
+	if !project.IsRolledBack && environment.Slug == "production" {
+		// Only reassign live routes when not rolled back - rollbacks keep live routes on the previous deployment
+		stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
+	}
+
+	stickyRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
+		return db.Query.FindFrontlineRouteForPromotion(stepCtx, w.db.RO(), db.FindFrontlineRouteForPromotionParams{
+			EnvironmentID: deployment.EnvironmentID,
+			Sticky:        stickyTypes,
+		})
+	}, restate.WithName("finding sticky routes"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to find sticky routes: %w", err)
+	}
+
+	for _, route := range stickyRoutes {
+		existingRouteIDs = append(existingRouteIDs, route.ID)
+	}
+
 	_, err = hydrav1.NewRoutingServiceClient(ctx, project.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
@@ -375,8 +392,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	if !project.IsRolledBack && environment.Slug == "production" {
-		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
+		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
+			return restate.Void{}, db.Query.UpdateProjectDeployments(runCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
 				IsRolledBack:     false,
 				ID:               deployment.ProjectID,
 				LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},

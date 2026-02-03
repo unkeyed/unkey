@@ -65,6 +65,7 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 	if targetDeployment.EnvironmentID != sourceDeployment.EnvironmentID {
 		return nil, restate.TerminalError(fmt.Errorf("deployments must be in the same environment"), 400)
 	}
+
 	if targetDeployment.ProjectID != sourceDeployment.ProjectID {
 		return nil, restate.TerminalError(fmt.Errorf("deployments must be in the same project"), 400)
 	}
