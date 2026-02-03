@@ -8,33 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
-// S3Config holds S3 configuration for storage backends.
-//
-// This configuration is used by vault, build storage, and other services
-// that need to store data in S3-compatible object storage.
-type S3Config struct {
-	// URL is the S3 endpoint URL including protocol and region.
-	// Examples: "https://s3.amazonaws.com" or "https://s3.us-west-2.amazonaws.com".
-	URL string
-
-	// Bucket is the S3 bucket name for storing objects.
-	// Must exist and be accessible with the provided credentials.
-	Bucket string
-
-	// AccessKeyID is the AWS access key ID for S3 authentication.
-	// Must have appropriate permissions for bucket operations.
-	AccessKeyID string
-
-	// AccessKeySecret is the AWS secret access key for S3 authentication.
-	// Should be stored securely and rotated regularly.
-	AccessKeySecret string
-
-	// ExternalURL is the public-facing URL for accessing S3 objects.
-	// Used when objects need to be accessed from outside the AWS network.
-	// Optional - can be empty for internal-only access.
-	ExternalURL string
-}
-
 // Route53Config holds AWS Route53 configuration for ACME DNS-01 challenges.
 //
 // This configuration enables automatic DNS record creation for wildcard
@@ -88,6 +61,10 @@ type RestateConfig struct {
 	// Used by the worker to register its workflow services.
 	// Example: "http://restate:9070".
 	AdminURL string
+
+	// APIKey is the optional authentication key for Restate admin API requests.
+	// If set, this key will be sent with all requests to the Restate admin API.
+	APIKey string
 
 	// HttpPort is the port where the worker listens for Restate requests.
 	// This is the internal Restate server port, not the health check port.
@@ -185,10 +162,6 @@ type Config struct {
 	// Enables asynchronous deployment and certificate renewal workflows.
 	Restate RestateConfig
 
-	// BuildS3 configures storage for build artifacts and outputs.
-	// Used by both Depot and Docker build backends.
-	BuildS3 S3Config
-
 	// BuildPlatform defines the target architecture for container builds.
 	// Format: "linux/amd64", "linux/arm64". Only "linux" OS supported.
 	BuildPlatform string
@@ -228,9 +201,48 @@ type Config struct {
 	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
 
+	// CnameDomain is the base domain for custom domain CNAME targets.
+	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
+	// For production: "unkey-dns.com"
+	// For local: "unkey.local"
+	CnameDomain string
+
+	// GitHub configures GitHub App integration for webhook-triggered deployments.
+	GitHub GitHubConfig
+
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.RealClock{} for production deployments.
 	Clock clock.Clock
+
+	// CertRenewalHeartbeatURL is the Checkly heartbeat URL for certificate renewal.
+	// When set, a heartbeat is sent after successful certificate renewal runs.
+	// Optional - if empty, no heartbeat is sent.
+	CertRenewalHeartbeatURL string
+
+	// QuotaCheckHeartbeatURL is the Checkly heartbeat URL for quota checks.
+	// When set, a heartbeat is sent after successful quota check runs.
+	// Optional - if empty, no heartbeat is sent.
+	QuotaCheckHeartbeatURL string
+
+	// QuotaCheckSlackWebhookURL is the Slack webhook URL for quota exceeded notifications.
+	// When set, Slack notifications are sent when workspaces exceed their quota.
+	// Optional - if empty, no Slack notifications are sent.
+	QuotaCheckSlackWebhookURL string
+}
+
+// GitHubConfig holds configuration for GitHub App integration.
+type GitHubConfig struct {
+	// AppID is the GitHub App ID for authentication.
+	AppID int64
+
+	// PrivateKeyPEM is the GitHub App private key in PEM format.
+	PrivateKeyPEM string
+}
+
+// Enabled returns true only if ALL required GitHub App fields are configured.
+// This ensures we never register the workflow with partial/insecure config.
+func (c GitHubConfig) Enabled() bool {
+	return c.AppID != 0 && c.PrivateKeyPEM != ""
 }
 
 // parseBuildPlatform validates and parses a build platform string.
@@ -324,15 +336,14 @@ func (c Config) Validate() error {
 	// Validate build platform format
 	_, platformErr := parseBuildPlatform(c.BuildPlatform)
 
-	// Validate registry configuration
-	registryErr := assert.All(
+	// Validate build configuration (Depot backend)
+	return assert.All(
+		platformErr,
 		assert.NotEmpty(c.RegistryURL, "registry URL is required"),
 		assert.NotEmpty(c.RegistryUsername, "registry username is required"),
 		assert.NotEmpty(c.RegistryPassword, "registry password is required"),
-	)
-
-	return assert.All(
-		platformErr,
-		registryErr,
+		assert.NotEmpty(c.BuildPlatform, "build platform is required"),
+		assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required"),
+		assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required"),
 	)
 }

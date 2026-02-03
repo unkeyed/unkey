@@ -4,19 +4,19 @@ import { useState } from "react";
 import {
   type DeploymentNode,
   InfiniteCanvas,
+  InstanceNode,
   InternalDevTreeGenerator,
   LiveIndicator,
   NodeDetailsPanel,
   OriginNode,
   ProjectDetails,
-  RegionNode,
   SKELETON_TREE,
   SentinelNode,
   SkeletonNode,
   TreeConnectionLine,
   TreeLayout,
+  isInstanceNode,
   isOriginNode,
-  isRegionNode,
   isSentinelNode,
   isSkeletonNode,
 } from "./unkey-flow";
@@ -37,14 +37,19 @@ export function DeploymentNetworkView({
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
 
-  const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery();
+  const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery(
+    {
+      deploymentId: deploymentId ?? "",
+    },
+    { enabled: Boolean(deploymentId) },
+  );
 
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;
   const isShowingSkeleton = isLoading && !generatedTree;
 
   return (
     <InfiniteCanvas
-      defaultZoom={0.85}
+      defaultZoom={1}
       overlay={
         <>
           {showNodeDetails && (
@@ -68,7 +73,7 @@ export function DeploymentNetworkView({
         data={currentTree}
         nodeSpacing={{ x: 10, y: 75 }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
-        renderNode={(node, parent) => renderDeploymentNode(node, parent)}
+        renderNode={(node, parent) => renderDeploymentNode(node, parent, deploymentId ?? undefined)}
         renderConnection={(path, parent, child) => (
           <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />
         )}
@@ -78,7 +83,11 @@ export function DeploymentNetworkView({
 }
 
 // renderDeployment function does not narrow types without type guards.
-function renderDeploymentNode(node: DeploymentNode, parent?: DeploymentNode): React.ReactNode {
+function renderDeploymentNode(
+  node: DeploymentNode,
+  parent?: DeploymentNode,
+  deploymentId?: string,
+): React.ReactNode {
   if (isSkeletonNode(node)) {
     return <SkeletonNode />;
   }
@@ -87,15 +96,17 @@ function renderDeploymentNode(node: DeploymentNode, parent?: DeploymentNode): Re
     return <OriginNode node={node} />;
   }
 
-  if (isRegionNode(node)) {
-    return <RegionNode node={node} />;
+  if (isSentinelNode(node)) {
+    return <SentinelNode node={node} deploymentId={deploymentId} />;
   }
 
-  if (isSentinelNode(node)) {
-    if (!parent || !isRegionNode(parent)) {
-      throw new Error("Sentinel node requires parent region");
+  if (isInstanceNode(node)) {
+    if (!parent || !isSentinelNode(parent)) {
+      throw new Error("Instance node requires parent sentinel");
     }
-    return <SentinelNode node={node} flagCode={parent.metadata.flagCode} />;
+    return (
+      <InstanceNode node={node} flagCode={parent.metadata.flagCode} deploymentId={deploymentId} />
+    );
   }
 
   // This will yell at you if you don't handle a node type

@@ -3,7 +3,6 @@ package clickhouseuser
 import (
 	"crypto/rand"
 	"database/sql"
-	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -17,22 +16,31 @@ import (
 )
 
 const (
-	defaultQuotaDurationSeconds      = 3600       // 1 hour
-	defaultMaxQueriesPerWindow       = 1000       // queries
-	defaultMaxExecutionTimePerWindow = 1800       // 30 minutes
-	defaultMaxQueryExecutionTime     = 30         // seconds
-	defaultMaxQueryMemoryBytes       = 1000000000 // 1 GB
-	defaultMaxQueryResultRows        = 10000000   // 10 million rows
-	passwordLength                   = 64
+	// defaultQuotaDurationSeconds defines the quota window used for rate limits.
+	defaultQuotaDurationSeconds = 3600
+	// defaultMaxQueriesPerWindow caps queries per quota window.
+	defaultMaxQueriesPerWindow = 1000
+	// defaultMaxExecutionTimePerWindow caps total query runtime per window.
+	defaultMaxExecutionTimePerWindow = 1800
+	// defaultMaxQueryExecutionTime caps runtime per query to avoid long-running scans.
+	defaultMaxQueryExecutionTime = 30
+	// defaultMaxQueryMemoryBytes caps memory per query to avoid exhausting the cluster.
+	defaultMaxQueryMemoryBytes = 1000000000
+	// defaultMaxQueryResultRows caps result size to prevent accidental full exports.
+	defaultMaxQueryResultRows = 10000000
+	// passwordLength defines the generated ClickHouse password length.
+	passwordLength = 64
 )
 
-// existingUserResult wraps the DB lookup to avoid Restate error serialization issues.
+// existingUserResult wraps the DB lookup to avoid Restate error serialization issues
+// when journaling results with sql.Null fields.
 type existingUserResult struct {
 	Row   db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow
 	Found bool
 }
 
-// quotaSettings holds resolved quota configuration with defaults applied.
+// quotaSettings holds resolved quota configuration with defaults applied and
+// non-zero values enforced.
 type quotaSettings struct {
 	quotaDurationSeconds      int32
 	maxQueriesPerWindow       int32
@@ -43,6 +51,11 @@ type quotaSettings struct {
 }
 
 // ConfigureUser creates or updates a ClickHouse user for a workspace.
+//
+// For new workspaces, it generates credentials, encrypts them with Vault, and
+// persists the encrypted values before provisioning ClickHouse. For existing
+// workspaces, it preserves credentials while updating quota settings. The flow
+// is idempotent and safe to retry after partial failures.
 func (s *Service) ConfigureUser(
 	ctx restate.ObjectContext,
 	req *hydrav1.ConfigureUserRequest,
@@ -222,11 +235,47 @@ func resolveQuotaSettings(req *hydrav1.ConfigureUserRequest) quotaSettings {
 	}
 }
 
+const (
+	upper   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	lower   = "abcdefghijklmnopqrstuvwxyz"
+	digits  = "0123456789"
+	special = "-_.~" // RFC 3986 unreserved chars only - safe in DSN userinfo
+	all     = upper + lower + digits + special
+)
+
+// generateSecurePassword creates a password that satisfies ClickHouse Cloud requirements:
+// - At least 12 characters long
+// - At least 1 numeric character
+// - At least 1 uppercase character
+// - At least 1 lowercase character
+// - At least 1 special character
 func generateSecurePassword(length int) (string, error) {
-	b := make([]byte, length)
-	if _, err := rand.Read(b); err != nil {
+	length = max(length, 12)
+
+	// Get all random bytes upfront
+	randomBytes := make([]byte, length*2) // extra for shuffle
+	if _, err := rand.Read(randomBytes); err != nil {
 		return "", err
 	}
 
-	return base64.RawURLEncoding.EncodeToString(b)[:length], nil
+	password := make([]byte, length)
+
+	// Guarantee one from each required charset
+	required := []string{upper, lower, digits, special}
+	for i, charset := range required {
+		password[i] = charset[int(randomBytes[i])%len(charset)]
+	}
+
+	// Fill rest from all characters
+	for i := len(required); i < length; i++ {
+		password[i] = all[int(randomBytes[i])%len(all)]
+	}
+
+	// Fisher-Yates shuffle
+	for i := length - 1; i > 0; i-- {
+		j := int(randomBytes[length+i]) % (i + 1)
+		password[i], password[j] = password[j], password[i]
+	}
+
+	return string(password), nil
 }

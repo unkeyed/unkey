@@ -1,33 +1,35 @@
-allOf:
-  - type: object
-    required:
-      - projectId
-      - branch
-      - environmentSlug
-    properties:
-      projectId:
-        type: string
-        minLength: 1
-        description: Unkey project ID
-        example: "proj_123abc"
-        pattern: "^proj_[a-zA-Z0-9]+$"
-      keyspaceId:
-        type: string
-        description: Optional keyspace ID for authentication context
-        example: "key_abc123"
-      branch:
-        type: string
-        minLength: 1
-        description: Git branch name
-        example: "main"
-      environmentSlug:
-        type: string
-        minLength: 1
-        description: Environment slug (e.g., "production", "staging")
-        example: "production"
-      gitCommit:
-        $ref: "./V2DeployGitCommit.yaml"
-    oneOf:
-      - $ref: "./V2DeployBuildSource.yaml"
-      - $ref: "./V2DeployImageSource.yaml"
-    description: Deployment source - either build from source or use prebuilt image
+type: object
+required:
+  - projectId
+  - branch
+  - environmentSlug
+  - dockerImage
+properties:
+  projectId:
+    type: string
+    minLength: 1
+    description: Unkey project ID
+    example: "proj_123abc"
+    pattern: "^proj_[a-zA-Z0-9]+$"
+  keyspaceId:
+    type: string
+    description: Optional keyspace ID for authentication context
+    example: "key_abc123"
+  branch:
+    type: string
+    minLength: 1
+    description: Git branch name
+    example: "main"
+  environmentSlug:
+    type: string
+    minLength: 1
+    description: Environment slug (e.g., "production", "staging")
+    example: "production"
+  dockerImage:
+    type: string
+    minLength: 1
+    description: Docker image reference to deploy
+    example: "ghcr.io/user/app:v1.0.0"
+  gitCommit:
+    $ref: "./V2DeployGitCommit.yaml"
+description: Create a deployment from a pre-built Docker image

@@ -74,7 +74,7 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 		}
 
 		pem, err := s.vault.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
-			Keyring:   "unkey_internal",
+			Keyring:   bestRow.WorkspaceID,
 			Encrypted: bestRow.EncryptedPrivateKey,
 		}))
 		if err != nil {

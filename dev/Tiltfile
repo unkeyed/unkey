@@ -38,6 +38,15 @@ local_resource(
     labels=['setup'],
 )
 
+local_resource(
+    'webhooks-config',
+    'if [ -f ./.env.webhooks ]; then kubectl -n unkey create configmap ctrl-worker-webhooks --from-env-file=./.env.webhooks -o yaml --dry-run=client | kubectl apply -f -; else kubectl -n unkey delete configmap ctrl-worker-webhooks --ignore-not-found; fi',
+    resource_deps=['namespace'],
+    deps=['./.env.webhooks'],
+    labels=['setup'],
+    allow_parallel=True,
+)
+
 # Frontline TLS certificates - generates certs with mkcert if they don't exist
 local_resource(
     'frontline-certs',
@@ -156,7 +165,7 @@ k8s_yaml('k8s/manifests/ctrl-worker.yaml')
 k8s_resource(
   'ctrl-worker',
   port_forwards=['7092:7092'],
-  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials', 'webhooks-config'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -218,6 +227,7 @@ local_resource(
     resource_deps=['build-unkey'],
     labels=['build'],
 )
+
 
 
 # Dashboard - runs locally with HMR (env loaded from web/apps/dashboard/.env)

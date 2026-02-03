@@ -19,16 +19,19 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/build"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
+	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
 	"golang.org/x/net/http2"
@@ -98,41 +101,31 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns.Register(database.Close)
 
-	imageStore, err := s3.NewS3(s3.S3Config{
-		Logger:            logger,
-		S3URL:             cfg.BuildS3.URL,
-		S3PresignURL:      cfg.BuildS3.ExternalURL,
-		S3Bucket:          cfg.BuildS3.Bucket,
-		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
-		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
-	})
+	// Create GitHub client for deploy workflow
+	ghClient, err := githubclient.NewClient(githubclient.ClientConfig{
+		AppID:         cfg.GitHub.AppID,
+		PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+		WebhookSecret: "",
+	}, logger)
 	if err != nil {
-		return fmt.Errorf("unable to create build storage: %w", err)
+		return fmt.Errorf("failed to create GitHub client: %w", err)
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
-		ch, err = clickhouse.New(clickhouse.Config{
+		chClient, chErr := clickhouse.New(clickhouse.Config{
 			URL:    cfg.ClickhouseURL,
 			Logger: logger,
 		})
-		if err != nil {
-			return fmt.Errorf("unable to create clickhouse: %w", err)
+		if chErr != nil {
+			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
+		} else {
+			ch = chClient
 		}
 	}
 
 	// Restate Server
 	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
-
-	restateSrv.Bind(hydrav1.NewBuildServiceServer(build.New(build.Config{
-		InstanceID:     cfg.InstanceID,
-		DB:             database,
-		RegistryConfig: build.RegistryConfig(cfg.GetRegistryConfig()),
-		BuildPlatform:  build.BuildPlatform(cfg.GetBuildPlatform()),
-		DepotConfig:    build.DepotConfig(cfg.GetDepotConfig()),
-		Clickhouse:     ch,
-		Logger:         logger,
-	})))
 
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
 		Logger:           logger,
@@ -141,7 +134,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:            vaultClient,
 		SentinelImage:    cfg.SentinelImage,
 		AvailableRegions: cfg.AvailableRegions,
-		BuildStorage:     imageStore,
+		GitHub:           ghClient,
+		RegistryConfig:   deploy.RegistryConfig(cfg.GetRegistryConfig()),
+		BuildPlatform:    deploy.BuildPlatform(cfg.GetBuildPlatform()),
+		DepotConfig:      deploy.DepotConfig(cfg.GetDepotConfig()),
+		Clickhouse:       ch,
 	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
@@ -152,8 +149,26 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
 
+	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
+		DB:          database,
+		Logger:      logger,
+		CnameDomain: cfg.CnameDomain,
+	}),
+		// Retry every 1 minute for up to 24 hours (1440 attempts)
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(1*time.Minute),
+			restate.WithExponentiationFactor(1.0), // Fixed interval, no exponential backoff
+			restate.WithMaxInterval(1*time.Minute),
+			restate.WithMaxAttempts(1440),
+			restate.KillOnMaxAttempts(),
+		),
+	))
+
 	// Initialize domain cache for ACME providers
-	clk := clock.New()
+	clk := cfg.Clock
+	if clk == nil {
+		clk = clock.New()
+	}
 	domainCache, domainCacheErr := cache.New(cache.Config[string, db.CustomDomain]{
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
@@ -203,6 +218,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Certificate service needs a longer timeout for ACME DNS-01 challenges
 	// which can take 5-10 minutes for DNS propagation
+	var certHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.CertRenewalHeartbeatURL != "" {
+		certHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.CertRenewalHeartbeatURL)
+	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
 		Logger:        logger,
 		DB:            database,
@@ -211,6 +230,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DefaultDomain: cfg.DefaultDomain,
 		DNSProvider:   dnsProvider,
 		HTTPProvider:  httpProvider,
+		Heartbeat:     certHeartbeat,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
 
 	// ClickHouse user provisioning service (optional - requires admin URL and vault)
@@ -237,6 +257,25 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Info("ClickhouseUserService enabled")
 		}
 	}
+
+	// Quota check service for monitoring workspace usage
+	var quotaHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.QuotaCheckHeartbeatURL != "" {
+		quotaHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.QuotaCheckHeartbeatURL)
+	}
+	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
+		DB:              database,
+		Clickhouse:      ch,
+		Logger:          logger,
+		Heartbeat:       quotaHeartbeat,
+		SlackWebhookURL: cfg.QuotaCheckSlackWebhookURL,
+	})
+	if err != nil {
+		return fmt.Errorf("create quota check service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
+
+	logger.Info("QuotaCheckService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
@@ -285,12 +324,18 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register with Restate admin API (only if RegisterAs is configured)
 	// In k8s environments, registration is handled externally
 	if cfg.Restate.RegisterAs != "" {
-		reg := &restateRegistration{
-			logger:     logger,
-			adminURL:   cfg.Restate.AdminURL,
-			registerAs: cfg.Restate.RegisterAs,
-		}
-		go reg.register(ctx)
+		adminClient := restateadmin.New(restateadmin.Config{
+			BaseURL: cfg.Restate.AdminURL,
+			APIKey:  cfg.Restate.APIKey,
+		})
+		go func() {
+			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
+			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs); err != nil {
+				logger.Error("failed to register with Restate", "error", err)
+				return
+			}
+			logger.Info("Successfully registered with Restate")
+		}()
 	} else {
 		logger.Info("Skipping Restate registration (restate-register-as not configured)")
 	}

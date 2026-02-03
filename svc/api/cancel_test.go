@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault/keys"
 	"github.com/unkeyed/unkey/svc/api"
@@ -20,8 +19,8 @@ import (
 func TestContextCancellation(t *testing.T) {
 
 	// Use testcontainers for dynamic service management
-	mysqlCfg := containers.MySQL(t)
-	dbDsn := mysqlCfg.FormatDSN()
+	mysqlCfg := dockertest.MySQL(t)
+	dbDsn := mysqlCfg.DSN
 	redisUrl := dockertest.Redis(t)
 
 	// Create ephemeral listener
