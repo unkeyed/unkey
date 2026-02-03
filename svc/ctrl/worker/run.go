@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -31,6 +32,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
 	"golang.org/x/net/http2"
@@ -222,6 +224,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Certificate service needs a longer timeout for ACME DNS-01 challenges
 	// which can take 5-10 minutes for DNS propagation
+	var certHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.CertRenewalHeartbeatURL != "" {
+		certHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.CertRenewalHeartbeatURL)
+	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
 		Logger:        logger,
 		DB:            database,
@@ -230,6 +236,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DefaultDomain: cfg.DefaultDomain,
 		DNSProvider:   dnsProvider,
 		HTTPProvider:  httpProvider,
+		Heartbeat:     certHeartbeat,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
 
 	// ClickHouse user provisioning service (optional - requires admin URL and vault)
@@ -256,6 +263,25 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Info("ClickhouseUserService enabled")
 		}
 	}
+
+	// Quota check service for monitoring workspace usage
+	var quotaHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.QuotaCheckHeartbeatURL != "" {
+		quotaHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.QuotaCheckHeartbeatURL)
+	}
+	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
+		DB:              database,
+		Clickhouse:      ch,
+		Logger:          logger,
+		Heartbeat:       quotaHeartbeat,
+		SlackWebhookURL: cfg.QuotaCheckSlackWebhookURL,
+	})
+	if err != nil {
+		return fmt.Errorf("create quota check service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
+
+	logger.Info("QuotaCheckService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
