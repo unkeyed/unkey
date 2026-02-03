@@ -138,9 +138,17 @@ const response = await fetch("https://api.unkey.com/v2/keys.migrateKeys", {
   }),
 });
 
-const result = await response.json();
-console.log("Migrated:", result.data.migrated.length);
-console.log("Failed:", result.data.failed.length);
+  const result = await response.json();
+  if (!response.ok) {
+    console.error("Migration failed:", result?.error || `HTTP ${response.status}`);
+    return;
+  }
+  if (!result?.data) {
+    console.error("Migration response missing data");
+    return;
+  }
+  console.log("Migrated:", result.data.migrated.length);
+  console.log("Failed:", result.data.failed.length);
 ```
 
 ## Response
@@ -210,10 +218,23 @@ async function migrateAll(allKeys) {
     });
     
     const result = await response.json();
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    
+    if (!response.ok) {
+      console.error(`Batch ${batchNum} failed:`, result?.error || `HTTP ${response.status}`);
+      results.failed += batch.length;
+      continue;
+    }
+    if (!result?.data) {
+      console.error(`Batch ${batchNum} missing data`);
+      results.failed += batch.length;
+      continue;
+    }
+    
     results.migrated += result.data.migrated.length;
     results.failed += result.data.failed.length;
     
-    console.log(`Batch ${i / BATCH_SIZE + 1}: ${result.data.migrated.length} migrated`);
+    console.log(`Batch ${batchNum}: ${result.data.migrated.length} migrated`);
   }
   
   return results;

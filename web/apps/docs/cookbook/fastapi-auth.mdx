@@ -113,7 +113,10 @@ async def verify_api_key(api_key: str = Security(api_key_header)) -> AuthResult:
     if not api_key:
         raise HTTPException(status_code=401, detail="Missing API key")
 
-    result = await unkey.keys.verify_key_async(key=api_key)
+    try:
+        result = await unkey.keys.verify_key_async(key=api_key)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail="Unkey service unavailable")
 
     if not result.valid:
         raise HTTPException(status_code=401, detail=result.code)
