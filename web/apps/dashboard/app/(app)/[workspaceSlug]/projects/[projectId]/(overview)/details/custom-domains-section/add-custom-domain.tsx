@@ -117,7 +117,7 @@ export function AddCustomDomain({
     try {
       await mutation;
       onSuccess();
-    } catch { }
+    } catch {}
   };
 
   return (
@@ -162,9 +162,7 @@ export function AddCustomDomain({
           <Button variant="ghost" onClick={onCancel} disabled={isSubmitting} className="text-xs">
             Cancel
           </Button>
-
         </div>
-
       </div>
       {error && <p className="text-xs text-error-9 mt-1">{error}</p>}
     </div>

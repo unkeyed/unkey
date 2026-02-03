@@ -65,8 +65,6 @@ export const DeploymentsList = () => {
     [router, workspace.slug, project?.id],
   );
 
-
-
   const columns: Column<{
     deployment: Deployment;
     environment?: Environment;
@@ -147,11 +145,11 @@ export const DeploymentsList = () => {
         header: "Domains",
         width: "25%",
         render: ({ deployment }) => {
-          return <div className="flex items-center min-h-[52px]">
-            <DomainList
-              deploymentId={deployment.id}
-            />
-          </div>
+          return (
+            <div className="flex items-center min-h-[52px]">
+              <DomainList deploymentId={deployment.id} />
+            </div>
+          );
         },
       },
       {
@@ -346,7 +344,7 @@ export const DeploymentsList = () => {
         layoutMode: "grid",
         rowBorders: true,
         containerPadding: "px-0",
-        tableLayout: "auto"
+        tableLayout: "auto",
       }}
       renderSkeletonRow={({ columns, rowHeight }) =>
         columns.map((column) => (

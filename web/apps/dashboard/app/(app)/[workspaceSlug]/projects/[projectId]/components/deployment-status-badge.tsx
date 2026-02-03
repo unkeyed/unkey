@@ -1,4 +1,4 @@
-import { CircleCheck, CircleWarning } from "@unkey/icons";
+import { CircleWarning } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 

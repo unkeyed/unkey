@@ -22,7 +22,12 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
   const cancelAdding = () => setIsAddingNew(false);
 
   return (
-    <div className={cn("border border-gray-4 rounded-lg overflow-hidden", customDomains.length === 0 && !isAddingNew && !isLoading && "border-dashed")}>
+    <div
+      className={cn(
+        "border border-gray-4 rounded-lg overflow-hidden",
+        customDomains.length === 0 && !isAddingNew && !isLoading && "border-dashed",
+      )}
+    >
       {/* Domain list */}
       <div className="divide-y divide-gray-4">
         {isLoading ? (

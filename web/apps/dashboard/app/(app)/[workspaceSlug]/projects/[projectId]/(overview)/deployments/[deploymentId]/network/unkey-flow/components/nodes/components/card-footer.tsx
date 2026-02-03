@@ -1,5 +1,5 @@
-import { Bolt, ChartActivity, Focus } from "@unkey/icons";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
+import { Bolt, ChartActivity, Focus } from "@unkey/icons";
 import type { SentinelNode } from "../types";
 import { MetricPill } from "./metric-pill";
 

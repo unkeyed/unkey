@@ -78,11 +78,7 @@ export function DeploymentInfoSection() {
             </InfoTooltip>
           </div>
         }
-        statusBadge={
-          <DeploymentStatusBadge
-            status={deploymentStatus}
-          />
-        }
+        statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
       />
     </Section>
   );

@@ -36,7 +36,7 @@ export async function getStructuredSearchFromLLM(
         json_schema: {
           name: "runtime-logs-ai-search",
           strict: true,
-          schema: z.toJSONSchema(runtimeLogsFilterOutputSchema, { target: 'draft-7' }),
+          schema: z.toJSONSchema(runtimeLogsFilterOutputSchema, { target: "draft-7" }),
         },
       },
     });
@@ -87,8 +87,9 @@ export const getSystemPrompt = (usersReferenceMS: number) => {
       if (field === "severity") {
         constraints = " and must be one of: ERROR, WARN, INFO, DEBUG";
       }
-      return `- ${field} accepts ${operators} operator${config.operators.length > 1 ? "s" : ""
-        }${constraints}`;
+      return `- ${field} accepts ${operators} operator${
+        config.operators.length > 1 ? "s" : ""
+      }${constraints}`;
     })
     .join("\n");
 

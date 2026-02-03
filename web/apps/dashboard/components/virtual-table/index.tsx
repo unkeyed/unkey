@@ -89,7 +89,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       "w-full",
       isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
       "table-auto xl:table-fixed",
-      config.tableLayout === "fixed" ? "!table-fixed" : "!table-auto"
+      config.tableLayout === "fixed" ? "!table-fixed" : "!table-auto",
     );
 
     const containerClassName = cn(
@@ -119,10 +119,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           <table className={tableClassName}>
             <colgroup>
               {columns.map((_, idx) => (
-                <col
-                  key={idx}
-                  style={{ width: colWidths[idx].width }}
-                />
+                <col key={idx} style={{ width: colWidths[idx].width }} />
               ))}
             </colgroup>
             <thead className="sticky top-0 z-10 bg-white dark:bg-black">
@@ -166,10 +163,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           <table className={tableClassName}>
             <colgroup>
               {columns.map((_, idx) => (
-                <col
-                  key={idx}
-                  style={{ width: colWidths[idx].width }}
-                />
+                <col key={idx} style={{ width: colWidths[idx].width }} />
               ))}
             </colgroup>
             <thead className="sticky top-0 z-10 bg-white dark:bg-black">
@@ -231,10 +225,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       style={{ height: `${config.rowHeight}px` }}
                     >
                       {columns.map((column) => (
-                        <td
-                          key={column.key}
-                          className={cn("pr-4", column.cellClassName)}
-                        >
+                        <td key={column.key} className={cn("pr-4", column.cellClassName)}>
                           <div className="h-4 bg-accent-3 rounded animate-pulse" />
                         </td>
                       ))}
@@ -403,10 +394,11 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               })}
               <tr
                 style={{
-                  height: `${virtualizer.getTotalSize() -
+                  height: `${
+                    virtualizer.getTotalSize() -
                     (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end ||
                       0)
-                    }px`,
+                  }px`,
                 }}
               />
             </tbody>

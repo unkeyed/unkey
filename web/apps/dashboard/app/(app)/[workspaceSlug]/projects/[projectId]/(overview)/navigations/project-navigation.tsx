@@ -218,7 +218,6 @@ export const ProjectNavigation = ({
             </Button>
           </InfoTooltip>
         )}
-
       </div>
     </Navbar>
   );

@@ -15,7 +15,7 @@ import {
   MessageWriting,
   User,
 } from "@unkey/icons";
-import { Badge, TimestampInfo } from "@unkey/ui";
+import { TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { RepoDisplay } from "../../../../_components/list/repo-display";
 import { Avatar } from "../../../components/git-avatar";
@@ -147,12 +147,16 @@ export const createDetailSections = (
         {
           icon: <Bolt className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "CPU",
-          content: <span className="text-gray-12 font-medium">{formatCpu(details.cpuMillicores)}</span>,
+          content: (
+            <span className="text-gray-12 font-medium">{formatCpu(details.cpuMillicores)}</span>
+          ),
         },
         {
           icon: <Grid className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Memory",
-          content: <span className="text-gray-12 font-medium">{formatMemory(details.memoryMib)}</span>,
+          content: (
+            <span className="text-gray-12 font-medium">{formatMemory(details.memoryMib)}</span>
+          ),
         },
         {
           icon: <Harddrive className="size-[14px] text-gray-12" iconSize="md-regular" />,

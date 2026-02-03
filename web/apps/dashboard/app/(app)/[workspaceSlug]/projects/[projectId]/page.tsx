@@ -5,6 +5,7 @@ import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
 import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
 import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
+import { CustomDomainsSection } from "./(overview)/details/custom-domains-section";
 import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./(overview)/details/domain-row";
 import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
 import { useProject } from "./(overview)/layout-provider";
@@ -12,7 +13,6 @@ import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
-import { CustomDomainsSection } from "./(overview)/details/custom-domains-section";
 
 export default function ProjectDetails() {
   const { projectId, collections, liveDeploymentId } = useProject();
@@ -41,10 +41,6 @@ export default function ProjectDetails() {
   );
   const deploymentStatus = deployment.data.at(0)?.status;
 
-  // If deployment status is not ready it means we gotta keep showing build steps.
-  // Then, user can switch between runtime(not implemented yet) and sentinel logs
-  const showBuildSteps = deploymentStatus !== "ready";
-
   return (
     <ProjectContentWrapper centered>
       <Section>
@@ -56,12 +52,12 @@ export default function ProjectDetails() {
           <ActiveDeploymentCard
             deploymentId={project?.liveDeploymentId ?? null}
             statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
-            trailingContent={<DeploymentLogsTrigger showBuildSteps={showBuildSteps} />}
+            trailingContent={<DeploymentLogsTrigger />}
             expandableContent={
               project?.liveDeploymentId ? (
                 <DeploymentLogsContent
+                  projectId={projectId}
                   deploymentId={project?.liveDeploymentId}
-                  showBuildSteps={showBuildSteps}
                 />
               ) : null
             }

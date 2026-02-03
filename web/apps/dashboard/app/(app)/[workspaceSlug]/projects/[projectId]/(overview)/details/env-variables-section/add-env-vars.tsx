@@ -303,7 +303,13 @@ export function AddEnvVars({
           Add more
         </Button>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSubmitting} className="text-xs">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="text-xs"
+          >
             Cancel
           </Button>
           <Button
