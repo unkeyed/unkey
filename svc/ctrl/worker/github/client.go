@@ -97,14 +97,6 @@ func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken,
 		return nil, err
 	}
 
-	tokenPreview := ""
-	if len(token) > 20 {
-		tokenPreview = token[:8] + "..." + token[len(token)-8:]
-	} else {
-		tokenPreview = "<too_short>"
-	}
-	c.logger.Info("Generated JWT for GitHub API", "jwt_preview", tokenPreview)
-
 	url := fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installationID)
 	c.logger.Info("Calling GitHub API", "url", url)
 	req, err := http.NewRequest(http.MethodPost, url, nil)
