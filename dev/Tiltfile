@@ -39,6 +39,14 @@ local_resource(
 )
 
 local_resource(
+    'github-credentials',
+    'kubectl -n unkey create secret generic github-credentials --from-env-file=./.env.github -o yaml --dry-run=client | kubectl apply -f -',
+    resource_deps=['namespace'],
+    deps=['./.env.github'],
+    labels=['setup'],
+)
+
+local_resource(
     'webhooks-config',
     'if [ -f ./.env.webhooks ]; then kubectl -n unkey create configmap ctrl-worker-webhooks --from-env-file=./.env.webhooks -o yaml --dry-run=client | kubectl apply -f -; else kubectl -n unkey delete configmap ctrl-worker-webhooks --ignore-not-found; fi',
     resource_deps=['namespace'],
