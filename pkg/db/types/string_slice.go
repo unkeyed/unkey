@@ -39,10 +39,15 @@ func (s *StringSlice) Scan(value interface{}) error {
 // Value implements driver.Valuer for writing JSON arrays to the database.
 func (s StringSlice) Value() (driver.Value, error) {
 	if s == nil {
-		return []byte("[]"), nil
+		return "[]", nil
 	}
 
-	return json.Marshal(s)
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return string(bytes), nil
 }
 
 // MarshalJSON implements json.Marshaler.

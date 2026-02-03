@@ -44,7 +44,7 @@ func TestStringSlice_Value_NilReturnsEmptyArray(t *testing.T) {
 	var s StringSlice
 	val, err := s.Value()
 	require.NoError(t, err)
-	require.Equal(t, []byte("[]"), val)
+	require.Equal(t, "[]", val)
 }
 
 func TestStringSlice_JSON(t *testing.T) {
