@@ -5,6 +5,8 @@ import { LogSection } from "@/components/logs/details/log-details/components/log
 import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
 import { formatTimestamp, safeParseAttributes } from "../../../utils";
 import { RuntimeLogHeader } from "./runtime-log-header";
+import { TimestampInfo } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 
 type Props = {
   distanceToTop: number;
@@ -36,11 +38,16 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
             <div className="space-y-2 text-xs">
               <div>
                 <span className="text-grayA-11">Time:</span>{" "}
-                <span className="font-mono">{formatTimestamp(log.time)}</span>
+                <TimestampInfo
+                  value={log.time}
+                  className={cn(
+                    "font-mono underline decoration-dotted",
+                  )}
+                />
               </div>
               <div>
                 <span className="text-grayA-11">Severity:</span>{" "}
-                <span className="font-mono">{log.severity}</span>
+                <span className="font-mono uppercase">{log.severity}</span>
               </div>
               <div>
                 <span className="text-grayA-11">Message:</span>{" "}

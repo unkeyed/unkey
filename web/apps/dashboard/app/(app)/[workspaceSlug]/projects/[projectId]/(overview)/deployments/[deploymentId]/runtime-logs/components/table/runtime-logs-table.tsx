@@ -9,7 +9,64 @@ import { useRuntimeLogs } from "../../context/runtime-logs-provider";
 import { useRuntimeLogsFilters } from "../../hooks/use-runtime-logs-filters";
 import type { RuntimeLog } from "../../types";
 import { useRuntimeLogsQuery } from "./hooks/use-runtime-logs-query";
-import { getRowClass } from "./utils/get-row-class";
+
+type StatusStyle = {
+  base: string;
+  hover: string;
+  selected: string;
+  badge: {
+    default: string;
+    selected: string;
+  };
+  focusRing: string;
+};
+
+const STATUS_STYLES: Record<"success" | "warning" | "error", StatusStyle> = {
+  success: {
+    base: "text-grayA-9",
+    hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
+    selected: "text-accent-12 bg-grayA-3 hover:text-accent-12",
+    badge: {
+      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
+      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
+    },
+    focusRing: "focus:ring-accent-7",
+  },
+  warning: {
+    base: "text-warning-11 bg-warning-2",
+    hover: "hover:bg-warning-3",
+    selected: "bg-warning-3",
+    badge: {
+      default: "bg-warning-4 text-warning-11 group-hover:bg-warning-5",
+      selected: "bg-warning-5 text-warning-11 hover:bg-warning-5",
+    },
+    focusRing: "focus:ring-warning-7",
+  },
+  error: {
+    base: "text-error-11 bg-error-2",
+    hover: "hover:bg-error-3",
+    selected: "bg-error-3",
+    badge: {
+      default: "bg-error-4 text-error-11 group-hover:bg-error-5",
+      selected: "bg-error-5 text-error-11 hover:bg-error-5",
+    },
+    focusRing: "focus:ring-error-7",
+  },
+};
+
+const getSeverityStyle = (severity: string): StatusStyle => {
+  const upper = severity.toUpperCase();
+  if (upper === "ERROR") return STATUS_STYLES.error;
+  if (upper === "WARN" || upper === "WARNING") return STATUS_STYLES.warning;
+  return STATUS_STYLES.success;
+};
+
+const getLogKey = (log: RuntimeLog): string => `${log.time}-${log.region}-${log.message}`;
+
+const getSelectedClassName = (log: RuntimeLog, isSelected: boolean): string => {
+  if (!isSelected) return "";
+  return getSeverityStyle(log.severity).selected;
+};
 
 export function RuntimeLogsTable() {
   const { filters } = useRuntimeLogsFilters();
@@ -18,17 +75,25 @@ export function RuntimeLogsTable() {
     filters,
   });
 
+  const selectedLogKey = selectedLog ? getLogKey(selectedLog) : null;
+
   const columns: Column<RuntimeLog>[] = useMemo(
     () => [
       {
         key: "time",
         header: "Time",
-        width: "15%",
+        width: "12%",
+        headerClassName: "pl-4",
         render: (log) => (
-          <TimestampInfo
-            value={log.time}
-            className="font-mono group-hover:underline decoration-dotted"
-          />
+          <div className="pl-4">
+            <TimestampInfo
+              value={log.time}
+              className={cn(
+                "font-mono group-hover:underline decoration-dotted",
+                selectedLogKey && selectedLogKey !== getLogKey(log) && "pointer-events-none",
+              )}
+            />
+          </div>
         ),
       },
       {
@@ -36,50 +101,74 @@ export function RuntimeLogsTable() {
         header: "Severity",
         width: "10%",
         render: (log) => {
-          const variant =
-            log.severity === "ERROR" ? "error" : log.severity === "WARN" ? "warning" : "success";
+          const style = getSeverityStyle(log.severity);
+          const isSelected = selectedLogKey === getLogKey(log);
           return (
-            <Badge variant={variant} className="uppercase px-2 rounded-md font-mono">
+            <Badge
+              className={cn(
+                "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
+                isSelected ? style.badge.selected : style.badge.default,
+              )}
+            >
               {log.severity}
             </Badge>
           );
         },
       },
       {
-        key: "message",
-        header: "Message",
-        width: "30%",
-        render: (log) => (
-          <span className="truncate block font-mono text-xs max-w-[350px]">{log.message}</span>
-        ),
-      },
-      {
         key: "region",
         header: "Region",
-        width: "15%",
+        width: "10%",
         render: (log) => (
           <div className="font-mono pr-4 truncate uppercase" title={log.region}>
             {log.region}
           </div>
         ),
       },
+      {
+        key: "message",
+        header: "Message",
+        width: "20%",
+        render: (log) => (
+          <div className="font-mono truncate pr-4 max-w-[300px]" title={log.message}>
+            {log.message}
+          </div>
+        ),
+      },
+      {
+        key: "attributes",
+        header: "Attributes",
+        width: "auto",
+        render: (log) => {
+          const attrStr = log.attributes ? JSON.stringify(log.attributes) : "";
+          return (
+            <div className="font-mono truncate text-xs max-w-[500px]" title={attrStr}>
+              {attrStr || "—"}
+            </div>
+          );
+        },
+      },
     ],
-    [],
+    [selectedLogKey],
   );
 
-  const getRowClassName = (log: RuntimeLog) => {
-    const isSelected = selectedLog?.time === log.time;
-    const baseClass = getRowClass(log.severity);
+  const getRowClassName = (log: RuntimeLog): string => {
+    const style = getSeverityStyle(log.severity);
+    const isSelected = selectedLogKey === getLogKey(log);
+
     return cn(
-      baseClass,
-      isSelected && "bg-accent-3 text-accent-12",
-      selectedLog && !isSelected && "opacity-50",
+      style.base,
+      style.hover,
+      "group rounded-md",
+      "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+      style.focusRing,
+      isSelected && style.selected,
+      selectedLogKey && {
+        "opacity-50 z-0": !isSelected,
+        "opacity-100 z-10": isSelected,
+      },
     );
   };
-
-  if (isLoading) {
-    return <div className="p-8 text-center text-grayA-11">Loading logs...</div>;
-  }
 
   return (
     <VirtualTable
@@ -90,8 +179,9 @@ export function RuntimeLogsTable() {
       columns={columns}
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
-      keyExtractor={(log) => `${log.time}-${log.k8s_pod_name}`}
+      keyExtractor={getLogKey}
       rowClassName={getRowClassName}
+      selectedClassName={getSelectedClassName}
       loadMoreFooterProps={{
         hide: isLoading,
         buttonText: "Load more logs",
