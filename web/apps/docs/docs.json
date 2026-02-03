@@ -1,15 +1,9 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "background": {
-    "color": {
-      "dark": "#0c0a09",
-      "light": "#fafaf9"
-    }
-  },
   "colors": {
-    "dark": "#27272a",
-    "light": "#EAE6E0",
-    "primary": "#09090b"
+    "primary": "#999999",
+    "light": "#999999",
+    "dark": "#999999"
   },
   "contextual": {
     "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
@@ -19,6 +13,14 @@
   "logo": {
     "dark": "/unkey-white.png",
     "light": "/unkey-black.png"
+  },
+  "footer": {
+    "socials": {
+      "discord": "https://unkey.com/discord",
+      "x-twitter": "https://x.com/unkeydev",
+      "github": "https://github.com/unkeyed/unkey",
+      "linkedin": "https://linkedin/company/unkeyed"
+    }
   },
   "navbar": {
     "links": [
