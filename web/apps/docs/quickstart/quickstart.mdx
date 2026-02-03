@@ -49,12 +49,16 @@ import { Unkey } from "@unkey/api";
 
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
-const { meta, data, error } = await unkey.keys.create({
-  apiId: "api_xxxx",
-  name: "My First Key",
-});
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_xxxx",
+    name: "My First Key",
+  });
 
-console.log(data.key); // This is the key to give to your user
+  console.log(data.key); // This is the key to give to your user
+} catch (err) {
+  console.error(err);
+}
 ```
 
 ```python Python
@@ -92,23 +96,21 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```typescript TypeScript
 import { verifyKey } from "@unkey/api";
 
-// v2 returns { meta, data, error }
-const { meta, data, error } = await verifyKey({
-  key: "THE_KEY_FROM_STEP_3",
-});
+try {
+  const { meta, data } = await verifyKey({
+    key: "THE_KEY_FROM_STEP_3",
+  });
 
-if (error) {
-  // Handle network error
-  console.error(error.message);
+  if (!data.valid) {
+    // Key is invalid, expired, rate limited, etc.
+    console.log("Denied:", data.code);
+  }
+
+  // Key is valid — continue with your API logic
+  console.log("Key ID:", data.keyId);
+} catch (err) {
+  console.error(err);
 }
-
-if (!data.valid) {
-  // Key is invalid, expired, rate limited, etc.
-  console.log("Denied:", data.code);
-}
-
-// Key is valid — continue with your API logic
-console.log("Key ID:", data.keyId);
 ```
 
 ```python Python
