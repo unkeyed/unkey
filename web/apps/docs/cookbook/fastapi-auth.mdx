@@ -82,7 +82,7 @@ async def get_users(auth = Depends(verify_api_key)):
 Create a Pydantic model for the auth result:
 
 ```python models/auth.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, Any
 
 class Identity(BaseModel):
@@ -102,9 +102,8 @@ class AuthResult(BaseModel):
     enabled: bool = True
     permissions: Optional[list[str]] = None
     roles: Optional[list[str]] = None
-    
-    class Config:
-        extra = "allow"  # Allow additional fields from Unkey
+
+    model_config = ConfigDict(extra="allow")  # Allow additional fields from Unkey
 ```
 
 ```python dependencies/auth.py
