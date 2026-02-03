@@ -24,7 +24,7 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
   return (
     <div
       className={cn(
-        "border border-gray-4 rounded-lg overflow-hidden",
+        "border border-gray-4 rounded-[14px] overflow-hidden",
         customDomains.length === 0 && !isAddingNew && !isLoading && "border-dashed",
       )}
     >

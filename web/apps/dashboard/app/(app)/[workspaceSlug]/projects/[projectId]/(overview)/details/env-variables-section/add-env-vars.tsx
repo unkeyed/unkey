@@ -207,9 +207,8 @@ export function AddEnvVars({
 
     toast.promise(mutation, {
       loading: "Adding environment variables...",
-      success: `Added ${validEntries.length} environment variable${
-        validEntries.length > 1 ? "s" : ""
-      }`,
+      success: `Added ${validEntries.length} environment variable${validEntries.length > 1 ? "s" : ""
+        }`,
       error: (err) => ({
         message: "Failed to add environment variables",
         description: err.message || "Please try again",
@@ -219,7 +218,7 @@ export function AddEnvVars({
     try {
       await mutation;
       onSuccess();
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -298,7 +297,7 @@ export function AddEnvVars({
       </div>
 
       <div className="px-4 py-2 flex items-center justify-between border-t border-gray-4 sticky bottom-0 bg-gray-2">
-        <Button size="sm" variant="ghost" onClick={addEntry} className="text-xs gap-1">
+        <Button size="sm" variant="ghost" onClick={addEntry} className="text-xs gap-1 px-3">
           <Plus className="!size-3" />
           Add more
         </Button>
@@ -308,7 +307,7 @@ export function AddEnvVars({
             variant="ghost"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="text-xs"
+            className="text-xs px-3"
           >
             Cancel
           </Button>
@@ -318,7 +317,7 @@ export function AddEnvVars({
             onClick={handleSave}
             disabled={validEntries.length === 0 || isSubmitting}
             loading={isSubmitting}
-            className="text-xs"
+            className="text-xs px-3"
           >
             Save {validEntries.length > 0 && `(${validEntries.length})`}
           </Button>

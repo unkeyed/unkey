@@ -111,9 +111,9 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
 
   return (
     <div className="border-b border-gray-4 last:border-b-0 group hover:bg-gray-2 transition-colors">
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-3 h-12">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Link4 className="text-gray-9 !size-4 flex-shrink-0" />
+          <Link4 className="text-gray-9 !size-[14px] flex-shrink-0" />
           <a
             href={`https://${domain.domain}`}
             target="_blank"
@@ -135,13 +135,13 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
               <TooltipTrigger asChild>
                 <Button
                   size="icon"
-                  variant="ghost"
+                  variant="outline"
                   onClick={handleRetry}
                   disabled={isLoading}
                   className="size-7 text-gray-9 hover:text-gray-11"
                 >
                   <Refresh3
-                    className={cn("!size-3.5", retryMutation.isLoading && "animate-spin")}
+                    className={cn("!size-[14px]", retryMutation.isLoading && "animate-spin")}
                   />
                 </Button>
               </TooltipTrigger>
@@ -161,12 +161,12 @@ export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: Custom
           <Button
             ref={deleteButtonRef}
             size="icon"
-            variant="ghost"
+            variant="outline"
             disabled={isLoading}
             onClick={() => setIsConfirmOpen(true)}
             className="size-7 text-gray-9 hover:text-error-9 opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <Trash className="!size-3.5" />
+            <Trash className="!size-[14px]" />
           </Button>
 
           {deleteButtonRef.current && (

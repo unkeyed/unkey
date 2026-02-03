@@ -117,11 +117,11 @@ export function AddCustomDomain({
     try {
       await mutation;
       onSuccess();
-    } catch {}
+    } catch { }
   };
 
   return (
-    <div ref={containerRef} className="px-4 py-3 border-b border-gray-4">
+    <div ref={containerRef} className="px-4 py-3 border-gray-4 bg-gray-2">
       <div className="flex items-center gap-2">
         <Input
           ref={inputRef}
@@ -136,12 +136,12 @@ export function AddCustomDomain({
         />
         <div className="w-[120px]">
           <Select value={environmentId} onValueChange={setEnvironmentId}>
-            <SelectTrigger className="h-8 w-[120px]">
+            <SelectTrigger className="h-8 text-xs py-1.5 w-[120px] font-mono">
               <SelectValue placeholder="Environment" />
             </SelectTrigger>
             <SelectContent>
               {environments.map((env) => (
-                <SelectItem key={env.id} value={env.id}>
+                <SelectItem key={env.id} value={env.id} className="font-mono">
                   {env.slug}
                 </SelectItem>
               ))}
@@ -153,13 +153,13 @@ export function AddCustomDomain({
           <Button
             variant="primary"
             onClick={handleSave}
-            className="text-xs"
+            className="h-8 text-xs px-3"
             disabled={!isValid || isSubmitting}
             loading={isSubmitting}
           >
             Add
           </Button>
-          <Button variant="ghost" onClick={onCancel} disabled={isSubmitting} className="text-xs">
+          <Button variant="ghost" onClick={onCancel} disabled={isSubmitting} className="h-8 text-xs px-3">
             Cancel
           </Button>
         </div>
