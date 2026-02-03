@@ -53,16 +53,16 @@ func TestGetBillableUsageAboveThreshold(t *testing.T) {
 
 		// Insert verifications
 		// Workspace 1: 100 VALID verifications
-		verifications := createVerifications(workspace1, 100, now)
-		verifications = append(verifications, createVerifications(workspace2, 50, now)...)
-		verifications = append(verifications, createVerifications(workspace3, 200, now)...)
+		verifications := createVerifications(workspace1, 100, now, "VALID")
+		verifications = append(verifications, createVerifications(workspace2, 50, now, "VALID")...)
+		verifications = append(verifications, createVerifications(workspace3, 200, now, "VALID")...)
 
 		insertVerifications(t, ctx, conn, verifications)
 
 		// Insert ratelimits
 		// Workspace 1: 30 passed ratelimits
-		ratelimits := createRatelimits(workspace1, 30, now)
-		ratelimits = append(ratelimits, createRatelimits(workspace2, 70, now)...)
+		ratelimits := createRatelimits(workspace1, 30, now, true)
+		ratelimits = append(ratelimits, createRatelimits(workspace2, 70, now, true)...)
 		// No ratelimits for workspace3
 
 		insertRatelimits(t, ctx, conn, ratelimits)
@@ -83,7 +83,7 @@ func TestGetBillableUsageAboveThreshold(t *testing.T) {
 
 	t.Run("workspace with only verifications", func(t *testing.T) {
 		workspace := uid.New(uid.WorkspacePrefix)
-		verifications := createVerifications(workspace, 75, now)
+		verifications := createVerifications(workspace, 75, now, "VALID")
 		insertVerifications(t, ctx, conn, verifications)
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -95,7 +95,7 @@ func TestGetBillableUsageAboveThreshold(t *testing.T) {
 
 	t.Run("workspace with only ratelimits", func(t *testing.T) {
 		workspace := uid.New(uid.WorkspacePrefix)
-		ratelimits := createRatelimits(workspace, 42, now)
+		ratelimits := createRatelimits(workspace, 42, now, true)
 		insertRatelimits(t, ctx, conn, ratelimits)
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -119,11 +119,11 @@ func TestGetBillableUsageAboveThreshold(t *testing.T) {
 		wsHigh := uid.New(uid.WorkspacePrefix)
 
 		// Low: 50 verifications
-		insertVerifications(t, ctx, conn, createVerifications(wsLow, 50, now))
+		insertVerifications(t, ctx, conn, createVerifications(wsLow, 50, now, "VALID"))
 		// Mid: 150 verifications
-		insertVerifications(t, ctx, conn, createVerifications(wsMid, 150, now))
+		insertVerifications(t, ctx, conn, createVerifications(wsMid, 150, now, "VALID"))
 		// High: 300 verifications
-		insertVerifications(t, ctx, conn, createVerifications(wsHigh, 300, now))
+		insertVerifications(t, ctx, conn, createVerifications(wsHigh, 300, now, "VALID"))
 
 		// Wait for data to be available
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -161,17 +161,11 @@ func TestGetBillableUsageAboveThreshold(t *testing.T) {
 		startOfMonth := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 		midMonth := time.Date(year, time.Month(month), 15, 12, 0, 0, 0, time.UTC)
 
-		verifications1 := createVerificationsAtTime(workspace, 25, startOfMonth)
-		verifications2 := createVerificationsAtTime(workspace, 35, midMonth)
+		insertVerifications(t, ctx, conn, createVerifications(workspace, 25, startOfMonth, "VALID"))
+		insertVerifications(t, ctx, conn, createVerifications(workspace, 35, midMonth, "VALID"))
 
-		insertVerifications(t, ctx, conn, verifications1)
-		insertVerifications(t, ctx, conn, verifications2)
-
-		ratelimits1 := createRatelimitsAtTime(workspace, 10, startOfMonth)
-		ratelimits2 := createRatelimitsAtTime(workspace, 15, midMonth)
-
-		insertRatelimits(t, ctx, conn, ratelimits1)
-		insertRatelimits(t, ctx, conn, ratelimits2)
+		insertRatelimits(t, ctx, conn, createRatelimits(workspace, 10, startOfMonth, true))
+		insertRatelimits(t, ctx, conn, createRatelimits(workspace, 15, midMonth, true))
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			usage, err := client.GetBillableUsageAboveThreshold(ctx, year, month, 0)
@@ -185,13 +179,9 @@ func TestGetBillableUsageAboveThreshold(t *testing.T) {
 		workspace := uid.New(uid.WorkspacePrefix)
 
 		// Create a mix of verification outcomes
-		validVerifications := createVerifications(workspace, 50, now)
-		invalidVerifications := createVerificationsWithOutcome(workspace, 30, now, "INVALID")
-		expiredVerifications := createVerificationsWithOutcome(workspace, 20, now, "EXPIRED")
-
-		insertVerifications(t, ctx, conn, validVerifications)
-		insertVerifications(t, ctx, conn, invalidVerifications)
-		insertVerifications(t, ctx, conn, expiredVerifications)
+		insertVerifications(t, ctx, conn, createVerifications(workspace, 50, now, "VALID"))
+		insertVerifications(t, ctx, conn, createVerifications(workspace, 30, now, "INVALID"))
+		insertVerifications(t, ctx, conn, createVerifications(workspace, 20, now, "EXPIRED"))
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			usage, err := client.GetBillableUsageAboveThreshold(ctx, year, month, 0)
@@ -204,13 +194,9 @@ func TestGetBillableUsageAboveThreshold(t *testing.T) {
 	t.Run("only counts passed ratelimits", func(t *testing.T) {
 		workspace := uid.New(uid.WorkspacePrefix)
 
-		// Create passed ratelimits
-		passedRatelimits := createRatelimits(workspace, 40, now)
-		// Create failed ratelimits (not passed)
-		failedRatelimits := createFailedRatelimits(workspace, 25, now)
-
-		insertRatelimits(t, ctx, conn, passedRatelimits)
-		insertRatelimits(t, ctx, conn, failedRatelimits)
+		// Create passed and failed ratelimits
+		insertRatelimits(t, ctx, conn, createRatelimits(workspace, 40, now, true))
+		insertRatelimits(t, ctx, conn, createRatelimits(workspace, 25, now, false))
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			usage, err := client.GetBillableUsageAboveThreshold(ctx, year, month, 0)
@@ -223,19 +209,7 @@ func TestGetBillableUsageAboveThreshold(t *testing.T) {
 
 // Helper functions to create test data
 
-func createVerifications(workspaceID string, count int, baseTime time.Time) []schema.KeyVerification {
-	return createVerificationsWithOutcome(workspaceID, count, baseTime, "VALID")
-}
-
-func createVerificationsAtTime(workspaceID string, count int, timestamp time.Time) []schema.KeyVerification {
-	return createVerificationsWithOutcomeAtTime(workspaceID, count, timestamp, "VALID")
-}
-
-func createVerificationsWithOutcome(workspaceID string, count int, baseTime time.Time, outcome string) []schema.KeyVerification {
-	return createVerificationsWithOutcomeAtTime(workspaceID, count, baseTime, outcome)
-}
-
-func createVerificationsWithOutcomeAtTime(workspaceID string, count int, timestamp time.Time, outcome string) []schema.KeyVerification {
+func createVerifications(workspaceID string, count int, timestamp time.Time, outcome string) []schema.KeyVerification {
 	verifications := make([]schema.KeyVerification, count)
 	for i := range count {
 		verifications[i] = schema.KeyVerification{
@@ -256,12 +230,12 @@ func createVerificationsWithOutcomeAtTime(workspaceID string, count int, timesta
 	return verifications
 }
 
-func createRatelimits(workspaceID string, count int, baseTime time.Time) []schema.Ratelimit {
-	return createRatelimitsAtTime(workspaceID, count, baseTime)
-}
-
-func createRatelimitsAtTime(workspaceID string, count int, timestamp time.Time) []schema.Ratelimit {
+func createRatelimits(workspaceID string, count int, timestamp time.Time, passed bool) []schema.Ratelimit {
 	ratelimits := make([]schema.Ratelimit, count)
+	var remaining uint64 = 50
+	if !passed {
+		remaining = 0
+	}
 	for i := range count {
 		ratelimits[i] = schema.Ratelimit{
 			RequestID:   uid.New(uid.RequestPrefix),
@@ -269,32 +243,12 @@ func createRatelimitsAtTime(workspaceID string, count int, timestamp time.Time) 
 			WorkspaceID: workspaceID,
 			NamespaceID: uid.New(uid.RatelimitNamespacePrefix),
 			Identifier:  uid.New(uid.IdentityPrefix),
-			Passed:      true,
+			Passed:      passed,
 			Latency:     rand.Float64() * 10,
 			OverrideID:  "",
 			Limit:       100,
-			Remaining:   50,
+			Remaining:   remaining,
 			ResetAt:     timestamp.Add(time.Minute).UnixMilli(),
-		}
-	}
-	return ratelimits
-}
-
-func createFailedRatelimits(workspaceID string, count int, baseTime time.Time) []schema.Ratelimit {
-	ratelimits := make([]schema.Ratelimit, count)
-	for i := range count {
-		ratelimits[i] = schema.Ratelimit{
-			RequestID:   uid.New(uid.RequestPrefix),
-			Time:        baseTime.Add(time.Duration(i) * time.Second).UnixMilli(),
-			WorkspaceID: workspaceID,
-			NamespaceID: uid.New(uid.RatelimitNamespacePrefix),
-			Identifier:  uid.New(uid.IdentityPrefix),
-			Passed:      false, // Failed ratelimit
-			Latency:     rand.Float64() * 10,
-			OverrideID:  "",
-			Limit:       100,
-			Remaining:   0,
-			ResetAt:     baseTime.Add(time.Minute).UnixMilli(),
 		}
 	}
 	return ratelimits

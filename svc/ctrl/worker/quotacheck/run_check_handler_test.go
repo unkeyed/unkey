@@ -8,7 +8,6 @@ import (
 	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -21,9 +20,6 @@ import (
 
 func TestRunCheck_Integration(t *testing.T) {
 	h := harness.New(t)
-
-	// Create ingress client for calling Restate services
-	ingressClient := ingress.NewClient(h.RestateIngress)
 
 	// Use current year/month for billing period
 	now := time.Now()
@@ -51,7 +47,7 @@ func TestRunCheck_Integration(t *testing.T) {
 		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws3.ID, 250_000)
 
 		// Call RunCheck via Restate
-		resp, err := callRunCheck(h.Ctx, ingressClient, billingPeriod)
+		resp, err := callRunCheck(h, billingPeriod)
 		require.NoError(t, err)
 
 		// Should have checked workspaces and found 2 exceeded (ws1 and ws3)
@@ -70,7 +66,7 @@ func TestRunCheck_Integration(t *testing.T) {
 		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 100_000)
 
 		// Call RunCheck - this workspace should be skipped
-		resp, err := callRunCheck(h.Ctx, ingressClient, billingPeriod)
+		resp, err := callRunCheck(h, billingPeriod)
 		require.NoError(t, err)
 
 		// The workspace should be checked but not exceeded (skipped due to threshold)
@@ -89,7 +85,7 @@ func TestRunCheck_Integration(t *testing.T) {
 		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000)
 		waitForRatelimitCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 150_000)
 
-		resp, err := callRunCheck(h.Ctx, ingressClient, billingPeriod)
+		resp, err := callRunCheck(h, billingPeriod)
 		require.NoError(t, err)
 
 		// The workspace should be detected as exceeded
@@ -101,7 +97,10 @@ func TestRunCheck_Integration(t *testing.T) {
 		ws := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 100_000})
 
 		// Disable the workspace
-		err := disableWorkspace(h.Ctx, h.DB, ws.ID)
+		_, err := db.Query.UpdateWorkspaceEnabled(h.Ctx, h.DB.RW(), db.UpdateWorkspaceEnabledParams{
+			Enabled: false,
+			ID:      ws.ID,
+		})
 		require.NoError(t, err)
 
 		// Insert 200k usage (would exceed quota if enabled)
@@ -109,7 +108,7 @@ func TestRunCheck_Integration(t *testing.T) {
 		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 200_000)
 
 		// Call RunCheck - disabled workspace should be skipped
-		resp, err := callRunCheck(h.Ctx, ingressClient, billingPeriod)
+		resp, err := callRunCheck(h, billingPeriod)
 		require.NoError(t, err)
 
 		// Verify it was processed but not flagged (disabled workspaces are skipped)
@@ -125,7 +124,7 @@ func TestRunCheck_Integration(t *testing.T) {
 		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 500_000)
 
 		// Call RunCheck
-		resp, err := callRunCheck(h.Ctx, ingressClient, billingPeriod)
+		resp, err := callRunCheck(h, billingPeriod)
 		require.NoError(t, err)
 
 		// Should not flag workspace without quota
@@ -134,11 +133,6 @@ func TestRunCheck_Integration(t *testing.T) {
 }
 
 // Helper functions
-
-func disableWorkspace(ctx context.Context, database db.Database, wsID string) error {
-	_, err := database.RW().ExecContext(ctx, "UPDATE workspaces SET enabled = false WHERE id = ?", wsID)
-	return err
-}
 
 func insertBillableVerifications(t *testing.T, ctx context.Context, conn ch.Conn, workspaceID string, count int, baseTime time.Time) {
 	const batchSize = 10_000
@@ -239,7 +233,7 @@ func waitForRatelimitCount(t *testing.T, ctx context.Context, conn ch.Conn, work
 	}, 2*time.Minute, time.Second)
 }
 
-func callRunCheck(ctx context.Context, ingressClient *ingress.Client, billingPeriod string) (*hydrav1.RunCheckResponse, error) {
-	client := hydrav1.NewQuotaCheckServiceIngressClient(ingressClient, billingPeriod)
-	return client.RunCheck().Request(ctx, &hydrav1.RunCheckRequest{})
+func callRunCheck(h *harness.Harness, billingPeriod string) (*hydrav1.RunCheckResponse, error) {
+	client := hydrav1.NewQuotaCheckServiceIngressClient(h.Restate, billingPeriod)
+	return client.RunCheck().Request(h.Ctx, &hydrav1.RunCheckRequest{})
 }

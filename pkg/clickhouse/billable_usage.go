@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 
+	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
@@ -20,19 +21,23 @@ func (c *clickhouse) GetBillableUsageAboveThreshold(ctx context.Context, year, m
 	FROM (
 		SELECT workspace_id, sum(count) as count
 		FROM default.billable_verifications_per_month_v2
-		WHERE year = ? AND month = ?
+		WHERE year = {year:Int32} AND month = {month:Int32}
 		GROUP BY workspace_id
 		UNION ALL
 		SELECT workspace_id, sum(count) as count
 		FROM default.billable_ratelimits_per_month_v2
-		WHERE year = ? AND month = ?
+		WHERE year = {year:Int32} AND month = {month:Int32}
 		GROUP BY workspace_id
 	)
 	GROUP BY workspace_id
-	HAVING total >= ?
+	HAVING total >= {min_usage:Int64}
 	`
 
-	rows, err := c.conn.Query(ctx, query, year, month, year, month, minUsage)
+	rows, err := c.conn.Query(ctx, query,
+		ch.Named("year", year),
+		ch.Named("month", month),
+		ch.Named("min_usage", minUsage),
+	)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query billable usage above threshold"))
 	}

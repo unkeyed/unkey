@@ -4,7 +4,6 @@
 package harness
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
@@ -58,6 +59,9 @@ type Harness struct {
 
 	// VaultToken is the bearer token for the vault service.
 	VaultToken string
+
+	// Restate is the ingress client for calling Restate services.
+	Restate *ingress.Client
 
 	// RestateIngress is the URL for calling Restate handlers.
 	RestateIngress string
@@ -153,7 +157,9 @@ func New(t *testing.T) *Harness {
 	require.True(t, ok, "listener address must be TCP")
 	workerPort := tcpAddr.Port
 	registerAs := fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)
-	require.NoError(t, registerWithRestate(ctx, restateCfg.AdminURL, registerAs))
+
+	adminClient := restateadmin.New(restateadmin.Config{BaseURL: restateCfg.AdminURL})
+	require.NoError(t, adminClient.RegisterDeployment(ctx, registerAs))
 
 	return &Harness{
 		Ctx:            ctx,
@@ -164,33 +170,10 @@ func New(t *testing.T) *Harness {
 		ClickHouseDSN:  chDSN,
 		VaultClient:    testVault.Client,
 		VaultToken:     testVault.Token,
+		Restate:        ingress.NewClient(restateCfg.IngressURL),
 		RestateIngress: restateCfg.IngressURL,
 		RestateAdmin:   restateCfg.AdminURL,
 	}
-}
-
-// registerWithRestate registers the worker with Restate's admin API.
-func registerWithRestate(ctx context.Context, adminURL, registerAs string) error {
-	registerURL := adminURL + "/deployments"
-	payload := []byte(`{"uri": "` + registerAs + `"}`)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, registerURL, bytes.NewReader(payload))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("registration failed with status: %d", resp.StatusCode)
-	}
-	return nil
 }
 
 // dockerHost returns the hostname to use for connecting from Docker containers.

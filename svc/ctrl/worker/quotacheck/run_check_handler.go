@@ -95,11 +95,7 @@ func (s *Service) RunCheck(
 
 	// Fetch workspaces in batches to avoid large IN clauses
 	for i := 0; i < len(workspaceIDs); i += batchSize {
-		end := i + batchSize
-		if end > len(workspaceIDs) {
-			end = len(workspaceIDs)
-		}
-		batchIDs := workspaceIDs[i:end]
+		batchIDs := workspaceIDs[i:min(i+batchSize, len(workspaceIDs))]
 
 		batch, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.GetWorkspacesForQuotaCheckByIDsRow, error) {
 			return db.Query.GetWorkspacesForQuotaCheckByIDs(rc, s.db.RO(), batchIDs)

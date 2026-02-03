@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -16,16 +15,13 @@ import (
 func TestConfigureUser_Integration(t *testing.T) {
 	h := harness.New(t)
 
-	// Create ingress client for calling Restate services
-	ingressClient := ingress.NewClient(h.RestateIngress)
-
 	t.Run("creates new user with default settings", func(t *testing.T) {
 		ws := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{
 			RequestsPerMonth:  1_000_000,
 			LogsRetentionDays: 30,
 		})
 
-		client := hydrav1.NewClickhouseUserServiceIngressClient(ingressClient, ws.ID)
+		client := hydrav1.NewClickhouseUserServiceIngressClient(h.Restate, ws.ID)
 		_, err := client.ConfigureUser().Request(h.Ctx, &hydrav1.ConfigureUserRequest{})
 		require.NoError(t, err)
 
@@ -63,7 +59,7 @@ func TestConfigureUser_Integration(t *testing.T) {
 			LogsRetentionDays: 30,
 		})
 
-		client := hydrav1.NewClickhouseUserServiceIngressClient(ingressClient, ws.ID)
+		client := hydrav1.NewClickhouseUserServiceIngressClient(h.Restate, ws.ID)
 
 		// Create user first time
 		_, err := client.ConfigureUser().Request(h.Ctx, &hydrav1.ConfigureUserRequest{})
