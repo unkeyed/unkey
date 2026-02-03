@@ -81,10 +81,14 @@ func New(t *testing.T) *Harness {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	t.Cleanup(cancel)
 
+	start := time.Now()
+
 	// Start Restate container
 	restateCfg := dockertest.Restate(t)
+	t.Logf("Restate started in %s", time.Since(start))
 
 	// Start MySQL container
+	mysqlStart := time.Now()
 	mysqlCfg := dockertest.MySQL(t)
 	database, err := db.New(db.Config{
 		Logger:      logging.NewNoop(),
@@ -93,8 +97,10 @@ func New(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	t.Logf("MySQL started in %s", time.Since(mysqlStart))
 
 	// Start ClickHouse container
+	chStart := time.Now()
 	chCfg := dockertest.ClickHouse(t)
 	chDSN := chCfg.DSN
 	chClient, err := clickhouse.New(clickhouse.Config{
@@ -103,6 +109,7 @@ func New(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, chClient.Close()) })
+	t.Logf("ClickHouse started in %s", time.Since(chStart))
 
 	// Get direct connection for inserting test data
 	opts, err := ch.ParseDSN(chDSN)
@@ -112,7 +119,9 @@ func New(t *testing.T) *Harness {
 	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 
 	// Start real vault
+	vaultStart := time.Now()
 	testVault := vaulttestutil.StartTestVault(t)
+	t.Logf("Vault started in %s", time.Since(vaultStart))
 
 	// Create seeder for test data
 	seeder := seed.New(t, database, testVault.Client)
@@ -161,8 +170,11 @@ func New(t *testing.T) *Harness {
 	workerPort := tcpAddr.Port
 	registerAs := fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)
 
+	registerStart := time.Now()
 	adminClient := restateadmin.New(restateadmin.Config{BaseURL: restateCfg.AdminURL})
 	require.NoError(t, adminClient.RegisterDeployment(ctx, registerAs))
+	t.Logf("Restate registration in %s", time.Since(registerStart))
+	t.Logf("Total harness setup in %s", time.Since(start))
 
 	return &Harness{
 		Ctx:            ctx,

@@ -230,40 +230,6 @@ services:
       start_period: 15s
       interval: 5s
 
-  api:
-    networks:
-      - default
-    container_name: api
-    build:
-      context: ..
-      dockerfile: ./web/apps/api/Dockerfile
-    ports:
-      - 8787:8787
-    command:
-      [
-        "pnpm",
-        "wrangler",
-        "dev",
-        "--ip=0.0.0.0",
-        "--var=VERSION:1",
-        "--var=DATABASE_HOST:planetscale:3900",
-        "--var=DATABASE_USERNAME:unkey",
-        "--var=DATABASE_PASSWORD:password",
-        "--var=AGENT_URL:http://agent:8080",
-        "--var=AGENT_TOKEN:agent-auth-secret",
-        "--var=EMIT_METRICS_LOGS:false",
-        "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
-        "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
-        "--var=CLICKHOUSE_INSERT_URL:http://apiv2:7070",
-        "--var=CLICKHOUSE_PROXY_TOKEN:chproxy-test-token-123",
-        "--var=UNKEY_ROOT_KEY:$UNKEY_ROOT_KEY",
-      ]
-    depends_on:
-      - planetscale
-      - agent
-      - clickhouse
-      - apiv2
-
   krane:
     build:
       context: ../

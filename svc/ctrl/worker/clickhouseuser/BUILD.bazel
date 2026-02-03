@@ -30,7 +30,9 @@ go_test(
     ],
     embed = [":clickhouseuser"],
     deps = [
+        "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
+        "//pkg/ptr",
         "//svc/ctrl/integration/harness",
         "//svc/ctrl/integration/seed",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
