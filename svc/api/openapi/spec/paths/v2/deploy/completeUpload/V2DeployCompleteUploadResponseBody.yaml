@@ -1,7 +1,0 @@
-type: object
-description: Empty response object. A successful response indicates the upload completion was accepted.
-properties:
-  meta:
-    $ref: "../../../../common/Meta.yaml"
-required:
-  - meta

@@ -232,8 +232,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 				InstallationId: repoConnection.InstallationID,
 				Repository:     payload.Repository.FullName,
 				CommitSha:      payload.After,
-				ContextPath:    ".",
-				DockerfilePath: "Dockerfile",
+				ContextPath:    ".",          // TODO read from project settings
+				DockerfilePath: "Dockerfile", // TODO read from project settings
 			},
 		},
 	})

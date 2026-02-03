@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/clock"
 )
 
 // Route53Config holds AWS Route53 configuration for ACME DNS-01 challenges.
@@ -197,16 +196,8 @@ type Config struct {
 	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
 	AvailableRegions []string
 
-	// Clock provides time operations for testing and scheduling.
-	// Use clock.RealClock{} for production deployments.
-	Clock clock.Clock
-
 	// GitHub configures GitHub App integration for webhook-triggered deployments.
 	GitHub GitHubConfig
-
-	// RepoFetchImage is the container image used for GitHub tarball fetch jobs.
-	// These jobs run with gVisor isolation in the builds namespace.
-	RepoFetchImage string
 }
 
 // GitHubConfig holds configuration for GitHub App integration.

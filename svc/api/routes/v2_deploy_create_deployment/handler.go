@@ -86,21 +86,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Get docker image from request - only image deployments are supported via API
-	imageSource, imageErr := req.AsV2DeployImageSource()
-	if imageErr != nil || imageSource.Image == "" {
-		return fault.New("docker_image is required",
-			fault.Internal("failed to parse image source or empty image"),
-			fault.Public("A docker_image must be provided. Build from source is only supported via GitHub integration."),
-		)
-	}
-
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       req.ProjectId,
 		Branch:          req.Branch,
 		EnvironmentSlug: req.EnvironmentSlug,
-		DockerImage:     imageSource.Image,
+		DockerImage:     req.DockerImage,
 		GitCommit:       &ctrlv1.GitCommitInfo{},
 	}
 

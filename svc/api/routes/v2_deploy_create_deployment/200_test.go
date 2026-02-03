@@ -44,11 +44,8 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			ProjectId:       setup.Project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
+			DockerImage:     "nginx:latest",
 		}
-		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-			Image: "nginx:latest",
-		})
-		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
@@ -77,6 +74,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			ProjectId:       setup.Project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
+			DockerImage:     "nginx:latest",
 			GitCommit: &openapi.V2DeployGitCommit{
 				AuthorAvatarUrl: ptr.P("https://avatar.example.com/johndoe.jpg"),
 				AuthorHandle:    ptr.P("johndoe"),
@@ -85,10 +83,6 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 				Timestamp:       ptr.P(int64(1704067200000)),
 			},
 		}
-		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-			Image: "nginx:latest",
-		})
-		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
@@ -132,11 +126,8 @@ func TestCreateDeploymentWithWildcardPermission(t *testing.T) {
 		ProjectId:       setup.Project.ID,
 		Branch:          "main",
 		EnvironmentSlug: "production",
+		DockerImage:     "nginx:latest",
 	}
-	err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-		Image: "nginx:latest",
-	})
-	require.NoError(t, err, "failed to set image source")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusCreated, res.Status, "Expected 201, got: %d", res.Status)
@@ -174,11 +165,8 @@ func TestCreateDeploymentWithSpecificProjectPermission(t *testing.T) {
 		ProjectId:       setup.Project.ID,
 		Branch:          "main",
 		EnvironmentSlug: "production",
+		DockerImage:     "nginx:latest",
 	}
-	err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-		Image: "nginx:latest",
-	})
-	require.NoError(t, err, "failed to set image source")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusCreated, res.Status, "Expected 201, got: %d", res.Status)

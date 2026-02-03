@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/worker"
 )
@@ -96,7 +95,6 @@ var workerCmd = &cli.Command{
 		// GitHub App Configuration
 		cli.Int64("github-app-id", "GitHub App ID for webhook-triggered deployments", cli.EnvVar("UNKEY_GITHUB_APP_ID")),
 		cli.String("github-private-key-pem", "GitHub App private key in PEM format", cli.EnvVar("UNKEY_GITHUB_PRIVATE_KEY_PEM")),
-		cli.String("repofetch-image", "Container image for GitHub tarball fetch jobs", cli.Default("ghcr.io/unkeyed/unkey:latest"), cli.EnvVar("UNKEY_REPOFETCH_IMAGE")),
 	},
 	Action: workerAction,
 }
@@ -157,9 +155,6 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		ClickhouseURL:      cmd.String("clickhouse-url"),
 		ClickhouseAdminURL: cmd.String("clickhouse-admin-url"),
 
-		// Common
-		Clock: clock.New(),
-
 		// Sentinel configuration
 		SentinelImage:    cmd.String("sentinel-image"),
 		AvailableRegions: cmd.RequireStringSlice("available-regions"),
@@ -169,7 +164,6 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 			AppID:         cmd.Int64("github-app-id"),
 			PrivateKeyPEM: cmd.String("github-private-key-pem"),
 		},
-		RepoFetchImage: cmd.String("repofetch-image"),
 	}
 
 	err := config.Validate()

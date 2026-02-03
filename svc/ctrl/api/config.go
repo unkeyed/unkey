@@ -19,13 +19,6 @@ type RestateConfig struct {
 	APIKey string
 }
 
-// GitHubConfig holds configuration for GitHub App integration.
-//
-// This configuration enables receiving GitHub webhooks and authenticating
-// with the GitHub API to download repository tarballs for deployment.
-type GitHubConfig struct {
-}
-
 // Config holds configuration for the control plane API server.
 //
 // The API server handles Connect RPC requests and delegates workflow

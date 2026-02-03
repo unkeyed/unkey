@@ -65,9 +65,6 @@ var apiCmd = &cli.Command{
 		cli.String("restate-api-key", "API key for Restate ingress requests",
 			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
 
-		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
-			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
-
 		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
 
 		// Certificate bootstrap configuration

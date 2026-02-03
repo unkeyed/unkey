@@ -139,10 +139,6 @@ paths:
     $ref: "./spec/paths/v2/deploy/createDeployment/index.yaml"
   /v2/deploy.getDeployment:
     $ref: "./spec/paths/v2/deploy/getDeployment/index.yaml"
-  /v2/deploy.completeUpload:
-    $ref: "./spec/paths/v2/deploy/completeUpload/index.yaml"
-  /v2/deploy.generateUploadUrl:
-    $ref: "./spec/paths/v2/deploy/generateUploadUrl/index.yaml"
 
   # Identity Endpoints
   /v2/identities.createIdentity:
