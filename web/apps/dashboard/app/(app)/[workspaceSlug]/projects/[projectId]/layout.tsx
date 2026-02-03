@@ -40,17 +40,15 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   );
 
   const liveDeploymentId = projects.data.at(0)?.liveDeploymentId;
-  const lastestDeploymentId = projects.data.at(0)?.latestDeploymentId;
 
-  // We just wanna refetch domains as soon as lastestCommitTimestamp changes.
-  // We could use the liveDeploymentId for that but when user make `env=preview` this doesn't refetch properly.
+  // Refetch domains when live deployment changes to show domains for the currently active deployment.
   // biome-ignore lint/correctness/useExhaustiveDependencies: Read above.
   useEffect(() => {
     //@ts-expect-error Without this we can't refetch domains on-demand. It's either this or we do `refetchInternal` on domains collection level.
     // Second approach causing too any re-renders. This is fine because data is partitioned and centralized in this context.
     // Until they introduce a way to invalidate collections properly we stick to this.
     collections.domains.utils.refetch();
-  }, [lastestDeploymentId]);
+  }, [liveDeploymentId]);
 
   return (
     <ProjectLayoutContext.Provider

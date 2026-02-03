@@ -1,6 +1,7 @@
 "use client";
-import { Plus } from "@unkey/icons";
+import { Link4, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import { AddCustomDomain } from "./add-custom-domain";
 import { CustomDomainRow, CustomDomainRowSkeleton } from "./custom-domain-row";
@@ -21,7 +22,7 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
   const cancelAdding = () => setIsAddingNew(false);
 
   return (
-    <div className="border border-gray-4 rounded-lg overflow-hidden">
+    <div className={cn("border border-gray-4 rounded-lg overflow-hidden", customDomains.length === 0 && !isAddingNew && !isLoading && "border-dashed")}>
       {/* Domain list */}
       <div className="divide-y divide-gray-4">
         {isLoading ? (
@@ -74,16 +75,39 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
 
 function EmptyState({ onAdd, hasEnvironments }: { onAdd: () => void; hasEnvironments: boolean }) {
   return (
-    <div className="px-4 py-8 text-center flex flex-col items-center gap-3">
-      <p className="text-gray-9 text-sm">No custom domains configured</p>
-      {hasEnvironments ? (
-        <Button size="sm" variant="outline" onClick={onAdd} className="gap-1.5">
-          <Plus className="!size-3" />
-          Add domain
-        </Button>
-      ) : (
-        <p className="text-gray-8 text-xs">Create an environment first to add custom domains</p>
-      )}
+    <div className="px-4 py-8 flex justify-center items-center min-h-[150px] relative group">
+      <div className="flex flex-col items-center gap-3 text-center">
+        {/* Icon with subtle animation */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300 animate-pulse" />
+          <div className="relative bg-gray-3 rounded-full p-3 group-hover:bg-gray-4 transition-all duration-200">
+            <Link4
+              className="text-gray-9 size-6 group-hover:text-gray-11 transition-all duration-200 animate-pulse"
+              style={{ animationDuration: "2s" }}
+            />
+          </div>
+        </div>
+        {/* Content */}
+        <div className="space-y-2">
+          <h3 className="text-gray-12 font-medium text-sm">No custom domains configured</h3>
+          {hasEnvironments ? (
+            <p className="text-gray-9 text-xs max-w-[280px] leading-relaxed">
+              Add a custom domain to serve your application from your own domain.
+            </p>
+          ) : (
+            <p className="text-gray-8 text-xs max-w-[280px] leading-relaxed">
+              Create an environment first to add custom domains
+            </p>
+          )}
+        </div>
+        {/* Button */}
+        {hasEnvironments && (
+          <Button size="sm" variant="primary" onClick={onAdd} className="gap-1.5 mt-1">
+            <Plus className="!size-3" />
+            Add domain
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

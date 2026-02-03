@@ -15,7 +15,7 @@ import { Section, SectionHeader } from "./components/section";
 import { CustomDomainsSection } from "./details/custom-domains-section";
 
 export default function ProjectDetails() {
-  const { projectId, collections } = useProject();
+  const { projectId, collections, liveDeploymentId } = useProject();
 
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
@@ -26,8 +26,8 @@ export default function ProjectDetails() {
     (q) =>
       q
         .from({ domain: collections.domains })
-        .where(({ domain }) => eq(domain.deploymentId, project?.liveDeploymentId)),
-    [project?.liveDeploymentId],
+        .where(({ domain }) => eq(domain.deploymentId, liveDeploymentId)),
+    [liveDeploymentId],
   );
 
   const { data: environments } = useLiveQuery((q) => q.from({ env: collections.environments }));

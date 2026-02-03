@@ -64,6 +64,8 @@ export const DeploymentsList = () => {
     [router, workspace.slug, project?.id],
   );
 
+
+
   const columns: Column<{
     deployment: Deployment;
     environment?: Environment;
@@ -143,14 +145,13 @@ export const DeploymentsList = () => {
         key: "domains",
         header: "Domains",
         width: "25%",
-        render: ({ deployment }) => (
-          <div className="flex items-center min-h-[52px]">
+        render: ({ deployment }) => {
+          return <div className="flex items-center min-h-[52px]">
             <DomainList
-              key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}-${project?.latestDeploymentId}`}
               deploymentId={deployment.id}
             />
           </div>
-        ),
+        },
       },
       {
         key: "instances" as const,

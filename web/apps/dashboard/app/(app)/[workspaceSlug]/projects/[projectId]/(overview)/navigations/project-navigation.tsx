@@ -197,27 +197,28 @@ export const ProjectNavigation = ({
             <Button className="size-7" variant="outline">
               <Dots iconSize="sm-regular" />
             </Button>
-            {!isOnDeploymentDetail && (
-              <InfoTooltip
-                asChild
-                content={getTooltipContent()}
-                position={{
-                  side: "bottom",
-                  align: "end",
-                }}
-              >
-                <Button
-                  variant="outline"
-                  className="size-7"
-                  disabled={!liveDeploymentId}
-                  onClick={onClick}
-                >
-                  <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
-                </Button>
-              </InfoTooltip>
-            )}
           </div>
         </DisabledWrapper>
+        {!isOnDeploymentDetail && (
+          <InfoTooltip
+            asChild
+            content={getTooltipContent()}
+            position={{
+              side: "bottom",
+              align: "end",
+            }}
+          >
+            <Button
+              variant="outline"
+              className="size-7"
+              disabled={!liveDeploymentId}
+              onClick={onClick}
+            >
+              <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
+            </Button>
+          </InfoTooltip>
+        )}
+
       </div>
     </Navbar>
   );
