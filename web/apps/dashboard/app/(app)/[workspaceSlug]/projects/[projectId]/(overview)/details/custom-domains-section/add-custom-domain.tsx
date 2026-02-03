@@ -117,7 +117,7 @@ export function AddCustomDomain({
     try {
       await mutation;
       onSuccess();
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -130,13 +130,13 @@ export function AddCustomDomain({
           value={domain}
           onChange={(e) => setDomain(extractDomain(e.target.value))}
           onKeyDown={handleKeyDown}
-          className={cn("min-h-[32px] text-sm flex-1", error && "border-red-6 focus:border-red-7")}
+          className={cn("h-8 text-xs flex-1 font-mono", error && "border-red-6 focus:border-red-7")}
           autoComplete="off"
           spellCheck={false}
         />
         <div className="w-[120px]">
           <Select value={environmentId} onValueChange={setEnvironmentId}>
-            <SelectTrigger className="min-h-[32px] w-[120px]">
+            <SelectTrigger className="h-8 w-[120px]">
               <SelectValue placeholder="Environment" />
             </SelectTrigger>
             <SelectContent>
@@ -148,18 +148,23 @@ export function AddCustomDomain({
             </SelectContent>
           </Select>
         </div>
-        <Button
-          size="sm"
-          variant="primary"
-          onClick={handleSave}
-          disabled={!isValid || isSubmitting}
-          loading={isSubmitting}
-        >
-          Add
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
-        </Button>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            className="text-xs"
+            disabled={!isValid || isSubmitting}
+            loading={isSubmitting}
+          >
+            Add
+          </Button>
+          <Button variant="ghost" onClick={onCancel} disabled={isSubmitting} className="text-xs">
+            Cancel
+          </Button>
+
+        </div>
+
       </div>
       {error && <p className="text-xs text-error-9 mt-1">{error}</p>}
     </div>

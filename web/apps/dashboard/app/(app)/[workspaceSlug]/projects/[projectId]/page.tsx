@@ -12,7 +12,7 @@ import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
-import { CustomDomainsSection } from "./details/custom-domains-section";
+import { CustomDomainsSection } from "./(overview)/details/custom-domains-section";
 
 export default function ProjectDetails() {
   const { projectId, collections, liveDeploymentId } = useProject();
