@@ -34,6 +34,7 @@ func Restate(t *testing.T) RestateConfig {
 		WaitTimeout:  30 * time.Second,
 		Env:          map[string]string{},
 		Cmd:          []string{},
+		Tmpfs:        nil,
 	})
 
 	return RestateConfig{

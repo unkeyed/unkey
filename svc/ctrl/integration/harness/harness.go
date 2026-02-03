@@ -196,7 +196,7 @@ func New(t *testing.T) *Harness {
 	workerPort := tcpAddr.Port
 	registerAs := fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)
 
-	adminClient := restateadmin.New(restateadmin.Config{BaseURL: restateCfg.AdminURL})
+	adminClient := restateadmin.New(restateadmin.Config{BaseURL: restateCfg.AdminURL, APIKey: ""})
 	require.NoError(t, adminClient.RegisterDeployment(ctx, registerAs))
 	t.Logf("Total harness setup in %s", time.Since(start))
 

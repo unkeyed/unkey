@@ -49,7 +49,8 @@ func ClickHouse(t *testing.T) ClickHouseConfig {
 			"CLICKHOUSE_USER":     clickhouseUser,
 			"CLICKHOUSE_PASSWORD": clickhousePassword,
 		},
-		Cmd: []string{},
+		Cmd:   []string{},
+		Tmpfs: nil,
 	})
 
 	port := ctr.Port(clickhousePort)
