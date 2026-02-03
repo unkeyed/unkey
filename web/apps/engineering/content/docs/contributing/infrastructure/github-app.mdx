@@ -1,0 +1,227 @@
+---
+title: GitHub App Setup
+description: Creating and configuring a GitHub App for local development
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+This guide walks through creating a GitHub App for local development. The GitHub App enables the deployment workflow triggered by push events.
+
+<Callout type="info">
+  Required if you're working on the GitHub integration or deployment features locally.
+</Callout>
+
+## Prerequisites
+
+GitHub needs to reach your local ctrl-api to deliver webhooks. Set up a tunnel to expose port 8787 (ctrl-api) and note the HTTPS URL - you'll need it for the webhook configuration.
+
+## Overview
+
+The GitHub App serves two purposes:
+1. **Webhooks**: Receives push events to trigger deployments
+2. **API Access**: Fetches repository contents via installation tokens for building Docker images
+
+<Steps>
+
+<Step>
+  ### Create a new GitHub App
+
+  Go to [GitHub Developer Settings](https://github.com/settings/apps/new) to create a new GitHub App.
+
+  For organization-owned apps, go to `https://github.com/organizations/<org>/settings/apps/new`
+</Step>
+
+<Step>
+  ### Basic Information
+
+  | Field | Value |
+  |-------|-------|
+  | **GitHub App name** | `unkey-dev-<your-name>` |
+  | **Description** | `Unkey local development` |
+  | **Homepage URL** | `http://localhost:3000` |
+</Step>
+
+<Step>
+  ### Identifying and authorizing users
+
+  | Field | Value |
+  |-------|-------|
+  | **Callback URL** | Leave empty |
+  | **Expire user authorization tokens** | Disabled (unchecked) |
+  | **Request user authorization (OAuth) during installation** | Disabled (unchecked) |
+  | **Enable Device Flow** | Disabled (unchecked) |
+</Step>
+
+<Step>
+  ### Post installation
+
+  | Field | Value |
+  |-------|-------|
+  | **Setup URL** | `http://localhost:3000/integrations/github/callback` |
+  | **Redirect on update** | Enabled (checked) |
+
+  This is where GitHub redirects after app installation to link the installation to your project.
+</Step>
+
+<Step>
+  ### Webhook Configuration
+
+  | Field | Value |
+  |-------|-------|
+  | **Active** | Enabled (checked) |
+  | **Webhook URL** | `https://<your-tunnel-url>/github/webhook` |
+  | **Webhook secret** | Use `openssl rand -hex 32` to generate |
+
+  Use the tunnel URL from the Prerequisites section.
+
+  <Callout type="warn">
+    Save the webhook secret - you'll need it for the `UNKEY_GITHUB_APP_WEBHOOK_SECRET` environment variable.
+  </Callout>
+</Step>
+
+<Step>
+  ### Repository Permissions
+
+  Set the following **Repository permissions**:
+
+  | Permission | Access Level | Purpose |
+  |------------|--------------|---------|
+  | **Contents** | Read-only | Clone repository for builds |
+  | **Metadata** | Read-only | List repositories, get repo info |
+
+  All other repository permissions should remain "No access".
+</Step>
+
+<Step>
+  ### Organization Permissions
+
+  No organization permissions are required. Leave all as "No access".
+</Step>
+
+<Step>
+  ### Account Permissions
+
+  No account permissions are required. Leave all as "No access".
+</Step>
+
+<Step>
+  ### Subscribe to Events
+
+  Subscribe to these webhook events:
+
+  | Event | Purpose |
+  |-------|---------|
+  | **Push** | Triggers deployments on code push |
+
+  Optional events (acknowledged but not processed):
+  - **Installation** - Logged for debugging
+</Step>
+
+<Step>
+  ### Installation Target
+
+  Select **Only on this account** for local development.
+</Step>
+
+<Step>
+  ### Create the App
+
+  Click **Create GitHub App** to finish.
+</Step>
+
+<Step>
+  ### Generate Private Key
+
+  After creating the app:
+
+  1. Go to your new GitHub App's settings
+  2. Scroll to **Private keys**
+  3. Click **Generate a private key**
+  4. A `.pem` file will be downloaded
+
+  <Callout type="warn">
+    Store this private key securely. You cannot download it again.
+  </Callout>
+</Step>
+
+<Step>
+  ### Note the App ID
+
+  On the GitHub App settings page, find the **App ID** in the "About" section. You'll need this for configuration.
+</Step>
+
+</Steps>
+
+## Environment Variables
+
+After creating the GitHub App, configure these environment variables:
+
+### Dashboard (`web/apps/dashboard`)
+
+```bash
+# The GitHub App name (slug) - must match your GitHub App's URL name
+NEXT_PUBLIC_GITHUB_APP_NAME="unkey-dev-yourname"
+```
+
+### Control Plane (`cmd/ctrl`)
+
+In `/dev/.env.github`:
+```bash
+UNKEY_GITHUB_APP_ID=123456
+UNKEY_GITHUB_APP_WEBHOOK_SECRET="your-webhook-secret"
+NEXT_PUBLIC_GITHUB_APP_NAME="unkey-dev-yourname"
+```
+
+Save your private key as `/dev/.github-private-key.pem` (the downloaded `.pem` file from GitHub).
+
+<Callout>
+  Copy `/dev/.env.github.example` to `/dev/.env.github` and fill in your values.
+</Callout>
+
+## Testing the Integration
+
+### 1. Install the App
+
+1. Go to your GitHub App's public page: `https://github.com/apps/<app-name>`
+2. Click **Install**
+3. Select a repository
+4. You'll be redirected to your dashboard callback URL
+
+### 2. Verify Webhook Delivery
+
+1. Go to your GitHub App settings
+2. Click **Advanced** in the sidebar
+3. Check **Recent Deliveries**
+4. Push to an installed repository
+5. Verify the push event shows a successful delivery (green checkmark)
+
+### 3. Check Logs
+
+Monitor ctrl-api logs for webhook processing. Look for "GitHub webhook" messages in your terminal output.
+
+## Troubleshooting
+
+### Webhook signature verification failed
+
+- Verify `UNKEY_GITHUB_APP_WEBHOOK_SECRET` matches the secret in GitHub App settings
+- Check for extra whitespace or encoding issues
+
+### "No repo connection found" in logs
+
+This is expected if the repository isn't linked to an Unkey project. The webhook is received but ignored.
+
+### Installation callback fails
+
+- Verify `NEXT_PUBLIC_GITHUB_APP_NAME` matches your GitHub App's slug (URL name)
+- Check the **Setup URL** (not Callback URL) is set to `http://localhost:3000/integrations/github/callback`
+- Ensure the dashboard can reach the database to store the installation
+
+### Private repository builds fail
+
+- Verify the GitHub App has **Contents: Read-only** permission
+- Check the installation has access to the specific repository
+- Verify `UNKEY_GITHUB_PRIVATE_KEY_PEM` is correctly formatted (PEM with newlines)
+
+## Architecture Reference
+
+For details on how webhooks trigger deployments, see [GitHub Deployments](/docs/architecture/workflows/github-deployments).

@@ -302,7 +302,7 @@ services:
     networks:
       - default
     container_name: restate
-    image: docker.io/restatedev/restate:1.5.3
+    image: docker.io/restatedev/restate:1.6.0
     ports:
       - "8081:8080" # Frontline endpoint (host:container)
       - "9070:9070" # Admin endpoint and UI
