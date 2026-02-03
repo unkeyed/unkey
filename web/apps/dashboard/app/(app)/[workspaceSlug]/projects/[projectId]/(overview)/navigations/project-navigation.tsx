@@ -17,6 +17,7 @@ import {
 import { Button, InfoTooltip, Separator } from "@unkey/ui";
 import { useRef } from "react";
 import { RepoDisplay } from "../../../_components/list/repo-display";
+import { DisabledWrapper } from "../../components/disabled-wrapper";
 import { useBreadcrumbConfig } from "./use-breadcrumb-config";
 
 const BORDER_OFFSET = 1;
@@ -184,37 +185,39 @@ export const ProjectNavigation = ({
             <Separator orientation="vertical" className="h-5 mx-2 bg-grayA-5" />
           </>
         )}
-        <div className="gap-2.5 items-center flex">
-          <NavbarActionButton title="Visit Project URL">Visit Project URL</NavbarActionButton>
-          <Button className="size-7" variant="outline">
-            <ListRadio iconSize="sm-regular" />
-          </Button>
-          <Button className="size-7" variant="outline">
-            <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
-          </Button>
-          <Button className="size-7" variant="outline">
-            <Dots iconSize="sm-regular" />
-          </Button>
-          {!isOnDeploymentDetail && (
-            <InfoTooltip
-              asChild
-              content={getTooltipContent()}
-              position={{
-                side: "bottom",
-                align: "end",
-              }}
-            >
-              <Button
-                variant="outline"
-                className="size-7"
-                disabled={!liveDeploymentId}
-                onClick={onClick}
+        <DisabledWrapper tooltipContent="Actions coming soon">
+          <div className="gap-2.5 items-center flex">
+            <NavbarActionButton title="Visit Project URL">Visit Project URL</NavbarActionButton>
+            <Button className="size-7" variant="outline">
+              <ListRadio iconSize="sm-regular" />
+            </Button>
+            <Button className="size-7" variant="outline">
+              <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
+            </Button>
+            <Button className="size-7" variant="outline">
+              <Dots iconSize="sm-regular" />
+            </Button>
+            {!isOnDeploymentDetail && (
+              <InfoTooltip
+                asChild
+                content={getTooltipContent()}
+                position={{
+                  side: "bottom",
+                  align: "end",
+                }}
               >
-                <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
-              </Button>
-            </InfoTooltip>
-          )}
-        </div>
+                <Button
+                  variant="outline"
+                  className="size-7"
+                  disabled={!liveDeploymentId}
+                  onClick={onClick}
+                >
+                  <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
+                </Button>
+              </InfoTooltip>
+            )}
+          </div>
+        </DisabledWrapper>
       </div>
     </Navbar>
   );
