@@ -17,7 +17,6 @@ import (
 const (
 	// Default configuration values
 	DefaultBranch      = "main"
-	DefaultDockerfile  = "Dockerfile"
 	DefaultEnvironment = "preview"
 )
 
@@ -25,10 +24,8 @@ const (
 type DeployOptions struct {
 	ProjectID   string
 	KeyspaceID  string
-	Context     string
 	DockerImage string
 	Branch      string
-	Dockerfile  string
 	Commit      string
 	Environment string
 	RootKey     string
@@ -38,12 +35,9 @@ type DeployOptions struct {
 var DeployFlags = []cli.Flag{
 	// Required flags
 	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
-	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar("UNKEY_KEYSPACE_ID")),
 	// Optional flags with defaults
-	cli.String("context", "Build context path", cli.Default(".")),
+	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar("UNKEY_KEYSPACE_ID")),
 	cli.String("branch", "Git branch", cli.Default(DefaultBranch)),
-	cli.String("docker-image", "Pre-built docker image"),
-	cli.String("dockerfile", "Path to Dockerfile", cli.Default(DefaultDockerfile)),
 	cli.String("commit", "Git commit SHA"),
 	cli.String("env", "Environment slug to deploy to", cli.Default(DefaultEnvironment)),
 	// Authentication flag
@@ -52,52 +46,52 @@ var DeployFlags = []cli.Flag{
 	cli.String("api-base-url", "API base URL for local testing", cli.EnvVar("UNKEY_API_BASE_URL")),
 }
 
-// Cmd is the deploy command that builds and deploys application versions to Unkey infrastructure.
-// It handles Docker image building, registry pushing, and deployment lifecycle management.
+// Cmd is the deploy command that deploys pre-built Docker images to Unkey infrastructure.
+// It handles deployment lifecycle management with real-time status updates.
 var Cmd = &cli.Command{
-	Version:  "",
-	Commands: []*cli.Command{},
-	Aliases:  []string{},
-	Name:     "deploy",
-	Usage:    "Deploy a new version",
-	Description: `Build and deploy a new version of your application.
+	Version:     "",
+	Commands:    []*cli.Command{},
+	Aliases:     []string{},
+	Name:        "deploy",
+	Usage:       "Deploy a pre-built Docker image",
+	AcceptsArgs: true,
+	Description: `Deploy a pre-built Docker image to Unkey infrastructure.
 
-The deploy command handles the complete deployment lifecycle: from building Docker images to deploying them on Unkey's infrastructure. It automatically detects your Git context, builds containers, and manages the deployment process with real-time status updates.
+The deploy command handles the deployment lifecycle: from creating a deployment
+to monitoring its status until it's ready. It automatically detects your Git
+context for metadata.
+
+USAGE:
+  unkey deploy <docker-image> [flags]
 
 DEPLOYMENT PROCESS:
-1. Build Docker image from your application
-2. Push image to container registry
-3. Create deployment version on Unkey platform
-4. Monitor deployment status until active
+1. Create deployment with pre-built Docker image
+2. Monitor deployment status until active
 
 EXAMPLES:
-unkey deploy --project-id=proj_123           # Deploy with project ID
-unkey deploy --context=./api                 # Deploy with custom build context
-unkey deploy --docker-image=ghcr.io/user/app:v1.0.0 # Deploy pre-built image`,
+unkey deploy ghcr.io/user/app:v1.0.0 --project-id=proj_123
+unkey deploy myregistry.io/app:latest --project-id=proj_123 --env=production`,
 	Flags:  DeployFlags,
 	Action: DeployAction,
 }
 
 func DeployAction(ctx context.Context, cmd *cli.Command) error {
-	// Validate required fields
+	args := cmd.Args()
+	if len(args) == 0 {
+		return fmt.Errorf("docker image is required\n\nUsage: unkey deploy <docker-image> [flags]")
+	}
+	dockerImage := args[0]
+
 	projectID := cmd.String("project-id")
 	if projectID == "" {
 		return fmt.Errorf("project ID is required (use --project-id flag or UNKEY_PROJECT_ID env var)")
 	}
 
-	// Build context defaults to current directory if not specified
-	context := cmd.String("context")
-	if context == "" {
-		context = "."
-	}
-
 	opts := DeployOptions{
 		ProjectID:   projectID,
 		KeyspaceID:  cmd.String("keyspace-id"),
-		Context:     context,
-		DockerImage: cmd.String("docker-image"),
+		DockerImage: dockerImage,
 		Branch:      cmd.String("branch"),
-		Dockerfile:  cmd.String("dockerfile"),
 		Commit:      cmd.String("commit"),
 		Environment: cmd.String("env"),
 		RootKey:     cmd.String("root-key"),
@@ -127,41 +121,15 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 
 	controlPlane := NewControlPlaneClient(opts)
 
-	var deploymentID string
-	var err error
-
-	// Determine deployment source: prebuilt image or build from context
-	if opts.DockerImage != "" {
-		// Use prebuilt Docker image
-		terminal.StartSpinner("Creating deployment")
-		deploymentID, err = controlPlane.CreateDeployment(ctx, "", opts.DockerImage)
-		if err != nil {
-			terminal.StopSpinner("Failed to create deployment", false)
-			terminal.PrintErrorDetails(err.Error())
-			return err
-		}
-		terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
-	} else {
-		// Build from context
-		terminal.StartSpinner("Uploading build context")
-		var buildContextPath string
-		buildContextPath, err = controlPlane.UploadBuildContext(ctx, opts.Context)
-		if err != nil {
-			terminal.StopSpinner("Failed to upload build context", false)
-			terminal.PrintErrorDetails(err.Error())
-			return err
-		}
-		terminal.StopSpinner(fmt.Sprintf("Build context uploaded: %s", buildContextPath), true)
-
-		terminal.StartSpinner("Creating deployment")
-		deploymentID, err = controlPlane.CreateDeployment(ctx, buildContextPath, "")
-		if err != nil {
-			terminal.StopSpinner("Failed to create deployment", false)
-			terminal.PrintErrorDetails(err.Error())
-			return err
-		}
-		terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
+	// Create deployment with pre-built Docker image
+	terminal.StartSpinner("Creating deployment")
+	deploymentID, err := controlPlane.CreateDeployment(ctx, opts.DockerImage)
+	if err != nil {
+		terminal.StopSpinner("Failed to create deployment", false)
+		terminal.PrintErrorDetails(err.Error())
+		return err
 	}
+	terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
 
 	// Track final deployment for completion info
 	var finalDeployment *components.V2DeployGetDeploymentResponseData
@@ -219,12 +187,7 @@ func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
 		fmt.Printf("    Commit: %s\n", commitInfo)
 	}
 
-	if opts.DockerImage != "" {
-		fmt.Printf("    Image: %s\n", opts.DockerImage)
-	} else {
-		fmt.Printf("    Context: %s\n", opts.Context)
-	}
-
+	fmt.Printf("    Image: %s\n", opts.DockerImage)
 	fmt.Printf("\n")
 }
 
