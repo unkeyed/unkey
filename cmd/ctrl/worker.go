@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/worker"
 )
@@ -99,6 +100,13 @@ var workerCmd = &cli.Command{
 		// GitHub App Configuration
 		cli.Int64("github-app-id", "GitHub App ID for webhook-triggered deployments", cli.EnvVar("UNKEY_GITHUB_APP_ID")),
 		cli.String("github-private-key-pem", "GitHub App private key in PEM format", cli.EnvVar("UNKEY_GITHUB_PRIVATE_KEY_PEM")),
+
+		// Healthcheck heartbeat URLs
+		cli.String("cert-renewal-heartbeat-url", "Checkly heartbeat URL for certificate renewal", cli.EnvVar("UNKEY_CERT_RENEWAL_HEARTBEAT_URL")),
+		cli.String("quota-check-heartbeat-url", "Checkly heartbeat URL for quota checks", cli.EnvVar("UNKEY_QUOTA_CHECK_HEARTBEAT_URL")),
+
+		// Slack notifications
+		cli.String("quota-check-slack-webhook-url", "Slack webhook URL for quota exceeded notifications", cli.EnvVar("UNKEY_QUOTA_CHECK_SLACK_WEBHOOK_URL")),
 	},
 	Action: workerAction,
 }
@@ -171,6 +179,15 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		},
 		// Custom domain configuration
 		CnameDomain: strings.TrimSuffix(strings.TrimSpace(cmd.RequireString("cname-domain")), "."),
+
+		Clock: clock.New(),
+
+		// Healthcheck heartbeat URLs
+		CertRenewalHeartbeatURL: cmd.String("cert-renewal-heartbeat-url"),
+		QuotaCheckHeartbeatURL:  cmd.String("quota-check-heartbeat-url"),
+
+		// Slack notifications
+		QuotaCheckSlackWebhookURL: cmd.String("quota-check-slack-webhook-url"),
 	}
 
 	err := config.Validate()

@@ -114,6 +114,11 @@ spec:
 
             - name: UNKEY_SENTINEL_IMAGE
               value: "unkey/sentinel:latest"
+          envFrom:
+            # Optional webhooks (heartbeat URLs, Slack webhooks)
+            - configMapRef:
+                name: ctrl-worker-webhooks
+                optional: true
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock

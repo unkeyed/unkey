@@ -12,6 +12,7 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
@@ -167,7 +168,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		EnvironmentID:                 env.ID,
 		SentinelConfig:                env.SentinelConfig,
 		EncryptedEnvironmentVariables: []byte{},
-		Command:                       []byte("[]"),
+		Command:                       dbtype.StringSlice{},
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false},

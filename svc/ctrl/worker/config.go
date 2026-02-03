@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/clock"
 )
 
 // Route53Config holds AWS Route53 configuration for ACME DNS-01 challenges.
@@ -208,6 +209,25 @@ type Config struct {
 
 	// GitHub configures GitHub App integration for webhook-triggered deployments.
 	GitHub GitHubConfig
+
+	// Clock provides time operations for testing and scheduling.
+	// Use clock.RealClock{} for production deployments.
+	Clock clock.Clock
+
+	// CertRenewalHeartbeatURL is the Checkly heartbeat URL for certificate renewal.
+	// When set, a heartbeat is sent after successful certificate renewal runs.
+	// Optional - if empty, no heartbeat is sent.
+	CertRenewalHeartbeatURL string
+
+	// QuotaCheckHeartbeatURL is the Checkly heartbeat URL for quota checks.
+	// When set, a heartbeat is sent after successful quota check runs.
+	// Optional - if empty, no heartbeat is sent.
+	QuotaCheckHeartbeatURL string
+
+	// QuotaCheckSlackWebhookURL is the Slack webhook URL for quota exceeded notifications.
+	// When set, Slack notifications are sent when workspaces exceed their quota.
+	// Optional - if empty, no Slack notifications are sent.
+	QuotaCheckSlackWebhookURL string
 }
 
 // GitHubConfig holds configuration for GitHub App integration.

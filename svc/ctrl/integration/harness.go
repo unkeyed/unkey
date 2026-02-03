@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -132,7 +131,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		MemoryMib:                     128,
 		CreatedAt:                     h.Now(),
 		UpdatedAt:                     sql.NullInt64{Valid: false},
-		Command:                       json.RawMessage([]byte("[]")),
+		Command:                       nil,
 	})
 	require.NoError(h.t, err)
 

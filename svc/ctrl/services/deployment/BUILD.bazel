@@ -17,6 +17,7 @@ go_library(
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
+        "//pkg/db/types",
         "//pkg/otel/logging",
         "//pkg/uid",
         "@com_connectrpc_connect//:connect",

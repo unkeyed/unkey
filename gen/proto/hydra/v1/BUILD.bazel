@@ -11,6 +11,8 @@ go_library(
         "custom_domain_restate.pb.go",
         "deployment.pb.go",
         "deployment_restate.pb.go",
+        "quota_check.pb.go",
+        "quota_check_restate.pb.go",
         "routing.pb.go",
         "routing_restate.pb.go",
         "versioning.pb.go",

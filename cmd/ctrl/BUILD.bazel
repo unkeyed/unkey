@@ -12,6 +12,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/cli",
+        "//pkg/clock",
         "//pkg/tls",
         "//pkg/uid",
         "//svc/ctrl/api",

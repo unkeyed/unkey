@@ -18,6 +18,7 @@ go_library(
         "//pkg/cache",
         "//pkg/clock",
         "//pkg/db",
+        "//pkg/db/types",
         "//pkg/otel",
         "//pkg/otel/logging",
         "//pkg/prometheus",

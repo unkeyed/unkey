@@ -259,6 +259,7 @@ go_library(
         "workspace_hard_delete.sql_generated.go",
         "workspace_insert.sql_generated.go",
         "workspace_list.sql_generated.go",
+        "workspace_quota_check.sql_generated.go",
         "workspace_set_k8s_namespace.sql_generated.go",
         "workspace_soft_delete.sql_generated.go",
         "workspace_update_enabled.sql_generated.go",
