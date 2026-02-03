@@ -89,6 +89,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       "w-full",
       isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
       "table-auto xl:table-fixed",
+      config.tableLayout === "fixed" ? "!table-fixed" : "!table-auto"
     );
 
     const containerClassName = cn(
@@ -117,7 +118,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         >
           <table className={tableClassName}>
             <colgroup>
-              {columns.map((col, idx) => (
+              {columns.map((_, idx) => (
                 <col
                   key={idx}
                   style={{ width: colWidths[idx].width }}
@@ -164,7 +165,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         >
           <table className={tableClassName}>
             <colgroup>
-              {columns.map((col, idx) => (
+              {columns.map((_, idx) => (
                 <col
                   key={idx}
                   style={{ width: colWidths[idx].width }}

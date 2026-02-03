@@ -133,7 +133,6 @@ export const DeploymentsList = () => {
           );
         },
       },
-
       {
         key: "status",
         header: "Status",
@@ -177,8 +176,6 @@ export const DeploymentsList = () => {
         key: "size" as const,
         header: "Size",
         width: "15%",
-        headerClassName: "hidden 2xl:table-cell",
-        cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
             <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
@@ -205,7 +202,7 @@ export const DeploymentsList = () => {
       {
         key: "source",
         header: "Source",
-        width: "auto",
+        width: "15%",
         headerClassName: "hidden 2xl:table-cell",
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }) => {
@@ -222,7 +219,7 @@ export const DeploymentsList = () => {
             </div>
           );
           return (
-            <div className="flex flex-col items-start px-[18px] py-1.5">
+            <div className="flex flex-col items-start py-1.5">
               <div className="flex gap-3 items-center w-full">
                 <div className="flex-shrink-0">{iconContainer}</div>
                 <div className="min-w-0 flex-1">
@@ -349,6 +346,7 @@ export const DeploymentsList = () => {
         layoutMode: "grid",
         rowBorders: true,
         containerPadding: "px-0",
+        tableLayout: "auto"
       }}
       renderSkeletonRow={({ columns, rowHeight }) =>
         columns.map((column) => (

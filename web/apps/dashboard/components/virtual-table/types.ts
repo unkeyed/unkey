@@ -32,6 +32,7 @@ export interface TableConfig {
   overscan: number;
   throttleDelay: number;
   headerHeight: number;
+  tableLayout?: "fixed" | "auto"
 
   // Layout options
   layoutMode?: TableLayoutMode; // 'classic' or 'grid'
