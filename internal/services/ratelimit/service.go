@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // service implements distributed rate limiting using a sliding window algorithm.
@@ -239,13 +240,16 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 
 	// If all passed, increment all counters (still holding locks!)
 	if allPassed {
+		spanCtx := trace.SpanContextFromContext(ctx)
 		for _, rwk := range reqsWithKeys {
 			bucket := bucketMap[rwk.key]
 			currentWindow, _ := bucket.getCurrentWindow(rwk.req.Time)
 			currentWindow.counter += rwk.req.Cost
 
-			// Buffer for async replay to Redis
-			s.replayBuffer.Buffer(rwk.req)
+			// Buffer for async replay to Redis, capturing span context for trace linking
+			reqWithSpan := rwk.req
+			reqWithSpan.SpanContext = spanCtx
+			s.replayBuffer.Buffer(reqWithSpan)
 		}
 	} else {
 
@@ -302,6 +306,8 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	if res.Success {
 		currentWindow, _ := b.getCurrentWindow(req.Time)
 		currentWindow.counter += req.Cost
+		// Capture span context for trace linking in async replay
+		req.SpanContext = trace.SpanContextFromContext(ctx)
 		s.replayBuffer.Buffer(req)
 	}
 
