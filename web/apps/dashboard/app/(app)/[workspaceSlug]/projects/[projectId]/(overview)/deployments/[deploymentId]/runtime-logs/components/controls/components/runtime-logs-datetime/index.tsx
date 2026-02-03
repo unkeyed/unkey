@@ -20,11 +20,11 @@ export function RuntimeLogsDateTime() {
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
     .reduce(
-      (acc, f) => ({
-        ...acc,
-        [f.field]: f.value,
-      }),
-      {},
+      (acc, f) => {
+        acc[f.field] = f.value;
+        return acc;
+      },
+      {} as Record<string, string | number>,
     );
 
   return (
@@ -32,25 +32,36 @@ export function RuntimeLogsDateTime() {
       maxDate={new Date()}
       initialTimeValues={timeValues}
       onDateTimeChange={(startTime, endTime, since) => {
+        const nonTimeFilters = filters.filter(
+          (f) => !["since", "startTime", "endTime"].includes(f.field),
+        );
+        const newFilters = [...nonTimeFilters];
+
         if (since !== undefined) {
-          updateFilters({
-            severity: filters.filter((f) => f.field === "severity").map((f) => String(f.value)),
-            message: filters.find((f) => f.field === "message")?.value as string | undefined,
-            since,
-            startTime: undefined,
-            endTime: undefined,
+          newFilters.push({
+            id: crypto.randomUUID(),
+            field: "since" as const,
+            operator: "is" as const,
+            value: since,
           });
-          return;
-        }
-        if (since === undefined && startTime) {
-          updateFilters({
-            severity: filters.filter((f) => f.field === "severity").map((f) => String(f.value)),
-            message: filters.find((f) => f.field === "message")?.value as string | undefined,
-            startTime,
-            endTime,
-            since: undefined,
+        } else if (startTime) {
+          newFilters.push({
+            id: crypto.randomUUID(),
+            field: "startTime" as const,
+            operator: "is" as const,
+            value: startTime,
           });
+          if (endTime) {
+            newFilters.push({
+              id: crypto.randomUUID(),
+              field: "endTime" as const,
+              operator: "is" as const,
+              value: endTime,
+            });
+          }
         }
+
+        updateFilters(newFilters);
       }}
       initialTitle={title ?? ""}
       onSuggestionChange={setTitle}

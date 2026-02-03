@@ -6,10 +6,25 @@ import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filter
 const OPTIONS = [{ id: "contains" as const, label: "contains" }];
 
 export const RuntimeLogsMessageFilter = () => {
-  const { queryParams, updateFilters } = useRuntimeLogsFilters();
+  const { filters, updateFilters } = useRuntimeLogsFilters();
+
+  const messageFilter = filters.find((f) => f.field === "message");
+  const defaultText = messageFilter ? String(messageFilter.value) : "";
 
   const handleApply = (_operator: string, text: string) => {
-    updateFilters({ message: text });
+    const otherFilters = filters.filter((f) => f.field !== "message");
+    const newFilters = text
+      ? [
+          ...otherFilters,
+          {
+            id: crypto.randomUUID(),
+            field: "message" as const,
+            operator: "contains" as const,
+            value: text,
+          },
+        ]
+      : otherFilters;
+    updateFilters(newFilters);
   };
 
   return (
@@ -17,7 +32,7 @@ export const RuntimeLogsMessageFilter = () => {
       label="Message"
       options={OPTIONS}
       defaultOption="contains"
-      defaultText={queryParams.message}
+      defaultText={defaultText}
       onApply={handleApply}
     />
   );

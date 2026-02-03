@@ -28,9 +28,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
 export function RuntimeLogsFilters() {
   const { filters } = useRuntimeLogsFilters();
 
-  const filterCount = filters.filter(
-    (f) => f.field === "severity" || f.field === "message",
-  ).length;
+  const filterCount = filters.filter((f) => f.field === "severity" || f.field === "message").length;
 
   return (
     <FiltersPopover items={FILTER_ITEMS} activeFilters={filters}>

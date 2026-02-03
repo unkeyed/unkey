@@ -6,6 +6,7 @@ import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filter
 type SeverityOption = {
   id: number;
   severity: string;
+  display: string;
   label: string;
   color: string;
   checked: boolean;
@@ -14,28 +15,32 @@ type SeverityOption = {
 const options: SeverityOption[] = [
   {
     id: 1,
-    severity: "ERROR",
+    severity: "error",
+    display: "ERROR",
     label: "Error",
     color: "bg-error-9",
     checked: false,
   },
   {
     id: 2,
-    severity: "WARN",
+    severity: "warn",
+    display: "WARN",
     label: "Warning",
     color: "bg-warning-8",
     checked: false,
   },
   {
     id: 3,
-    severity: "INFO",
+    display: "INFO",
+    severity: "info",
     label: "Info",
     color: "bg-info-9",
     checked: false,
   },
   {
     id: 4,
-    severity: "DEBUG",
+    severity: "debug",
+    display: "DEBUG",
     label: "Debug",
     color: "bg-grayA-9",
     checked: false,
@@ -43,7 +48,7 @@ const options: SeverityOption[] = [
 ];
 
 export function RuntimeLogsSeverityFilter() {
-  const { filters, updateFiltersFromArray } = useRuntimeLogsFilters();
+  const { filters, updateFilters } = useRuntimeLogsFilters();
 
   return (
     <FilterCheckbox
@@ -64,7 +69,7 @@ export function RuntimeLogsSeverityFilter() {
         },
       })}
       filters={filters}
-      updateFilters={updateFiltersFromArray}
+      updateFilters={updateFilters}
     />
   );
 }

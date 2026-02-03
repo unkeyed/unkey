@@ -1,121 +1,148 @@
 "use client";
 
-import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import { useMemo } from "react";
-import type { RuntimeLogsFilter } from "../types";
-import { getSeverityColorClass } from "../utils";
+import {
+  parseAsFilterValueArray,
+  parseAsRelativeTime,
+} from "@/components/logs/validation/utils/nuqs-parsers";
+import {
+  type RuntimeLogsFilterField,
+  type RuntimeLogsFilterOperator,
+  type RuntimeLogsFilterUrlValue,
+  type RuntimeLogsFilterValue,
+  type RuntimeLogsQuerySearchParams,
+  runtimeLogsFilterFieldConfig,
+} from "@/lib/schemas/runtime-logs.filter.schema";
+import { parseAsInteger, useQueryStates } from "nuqs";
+import { useCallback, useEffect, useMemo } from "react";
 
-const parseAsFilterValueArray = parseAsArrayOf(parseAsString, ",").withDefault([]);
+const parseAsFilterValArray = parseAsFilterValueArray<RuntimeLogsFilterOperator>([
+  "is",
+  "contains",
+]);
+
+export const queryParamsPayload = {
+  severity: parseAsFilterValArray,
+  message: parseAsFilterValArray,
+  startTime: parseAsInteger,
+  endTime: parseAsInteger,
+  since: parseAsRelativeTime,
+} as const;
 
 export function useRuntimeLogsFilters() {
-  const [queryParams, setQueryParams] = useQueryStates({
-    severity: parseAsFilterValueArray,
-    message: parseAsString.withDefault(""),
-    startTime: parseAsInteger,
-    endTime: parseAsInteger,
-    since: parseAsString.withDefault("6h"),
+  const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
+    history: "push",
   });
 
-  const filters = useMemo(() => {
-    const result: RuntimeLogsFilter[] = [];
+  // Initialize default "6h" filter on mount if no time filter exists
+  useEffect(() => {
+    if (
+      searchParams.since === null &&
+      searchParams.startTime === null &&
+      searchParams.endTime === null
+    ) {
+      setSearchParams({ since: "6h" });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Severity filters
-    for (const value of queryParams.severity) {
-      result.push({
-        id: `severity-${value}`,
+  const filters = useMemo(() => {
+    const activeFilters: RuntimeLogsFilterValue[] = [];
+
+    searchParams.severity?.forEach((severity) => {
+      activeFilters.push({
+        id: crypto.randomUUID(),
         field: "severity",
-        operator: "is",
-        value,
+        operator: severity.operator,
+        value: severity.value,
         metadata: {
-          label: value,
-          colorClass: getSeverityColorClass(value),
+          colorClass: runtimeLogsFilterFieldConfig.severity.getColorClass?.(
+            severity.value as string,
+          ),
         },
       });
-    }
-    // Message filter
-    if (queryParams.message) {
-      result.push({
-        id: "message",
+    });
+
+    searchParams.message?.forEach((msg) => {
+      activeFilters.push({
+        id: crypto.randomUUID(),
         field: "message",
-        operator: "is",
-        value: queryParams.message,
+        operator: msg.operator,
+        value: msg.value,
       });
-    }
+    });
 
-    // Time range filters
-    if (queryParams.startTime) {
-      result.push({
-        id: "startTime",
-        field: "startTime",
-        operator: "is",
-        value: queryParams.startTime,
+    ["startTime", "endTime", "since"].forEach((field) => {
+      const value = searchParams[field as keyof RuntimeLogsQuerySearchParams];
+      if (value !== null && value !== undefined) {
+        activeFilters.push({
+          id: crypto.randomUUID(),
+          field: field as RuntimeLogsFilterField,
+          operator: "is",
+          value: value as string | number,
+        });
+      }
+    });
+
+    return activeFilters;
+  }, [searchParams]);
+
+  const updateFilters = useCallback(
+    (newFilters: RuntimeLogsFilterValue[]) => {
+      const newParams: Partial<RuntimeLogsQuerySearchParams> = {
+        severity: null,
+        message: null,
+        startTime: null,
+        endTime: null,
+        since: null,
+      };
+
+      // Group filters by field
+      const severityFilters: RuntimeLogsFilterUrlValue[] = [];
+      const messageFilters: RuntimeLogsFilterUrlValue[] = [];
+
+      newFilters.forEach((filter) => {
+        switch (filter.field) {
+          case "severity":
+            severityFilters.push({
+              value: filter.value,
+              operator: filter.operator,
+            });
+            break;
+          case "message":
+            messageFilters.push({
+              value: filter.value,
+              operator: filter.operator,
+            });
+            break;
+          case "startTime":
+          case "endTime":
+            newParams[filter.field] = filter.value as number;
+            break;
+          case "since":
+            newParams.since = filter.value as string;
+            break;
+        }
       });
-    }
 
-    if (queryParams.endTime) {
-      result.push({
-        id: "endTime",
-        field: "endTime",
-        operator: "is",
-        value: queryParams.endTime,
-      });
-    }
+      // Set arrays to null when empty, otherwise use the filtered values
+      newParams.severity = severityFilters.length > 0 ? severityFilters : null;
+      newParams.message = messageFilters.length > 0 ? messageFilters : null;
 
-    if (queryParams.since && queryParams.since !== "") {
-      result.push({
-        id: "since",
-        field: "since",
-        operator: "is",
-        value: queryParams.since,
-      });
-    }
+      setSearchParams(newParams);
+    },
+    [setSearchParams],
+  );
 
-    return result;
-  }, [queryParams]);
-
-  const removeFilter = (filterId: string) => {
-    const filter = filters.find((f) => f.id === filterId);
-    if (!filter) return;
-
-    const updates: Record<string, unknown> = {};
-
-    if (filter.field === "severity") {
-      updates.severity = queryParams.severity.filter((v) => v !== filter.value);
-    } else if (filter.field === "message") {
-      updates.message = "";
-    } else if (filter.field === "startTime") {
-      updates.startTime = null;
-    } else if (filter.field === "endTime") {
-      updates.endTime = null;
-    } else if (filter.field === "since") {
-      updates.since = "6h"; // Reset to default
-    }
-
-    setQueryParams(updates);
-  };
-
-  const updateFiltersFromParams = (newFilters: Partial<typeof queryParams>) => {
-    setQueryParams(newFilters);
-  };
-
-  // For ControlCloud compatibility - converts filter array to params
-  const updateFiltersFromArray = (newFilters: RuntimeLogsFilter[]) => {
-    const updates: Partial<typeof queryParams> = {
-      severity: newFilters.filter((f) => f.field === "severity").map((f) => String(f.value)),
-      message:
-        (newFilters.find((f) => f.field === "message")?.value as string | undefined) || "",
-      startTime: Number(newFilters.find((f) => f.field === "startTime")?.value) || undefined,
-      endTime: Number(newFilters.find((f) => f.field === "endTime")?.value) || undefined,
-      since: String(newFilters.find((f) => f.field === "since")?.value) || "6h",
-    };
-    setQueryParams(updates);
-  };
+  const removeFilter = useCallback(
+    (id: string) => {
+      const newFilters = filters.filter((f) => f.id !== id);
+      updateFilters(newFilters);
+    },
+    [filters, updateFilters],
+  );
 
   return {
     filters,
-    queryParams,
     removeFilter,
-    updateFilters: updateFiltersFromParams,
-    updateFiltersFromArray,
+    updateFilters,
   };
 }

@@ -56,15 +56,21 @@ const STATUS_STYLES: Record<"success" | "warning" | "error", StatusStyle> = {
 
 const getSeverityStyle = (severity: string): StatusStyle => {
   const upper = severity.toUpperCase();
-  if (upper === "ERROR") return STATUS_STYLES.error;
-  if (upper === "WARN" || upper === "WARNING") return STATUS_STYLES.warning;
+  if (upper === "ERROR") {
+    return STATUS_STYLES.error;
+  }
+  if (upper === "WARN" || upper === "WARNING") {
+    return STATUS_STYLES.warning;
+  }
   return STATUS_STYLES.success;
 };
 
 const getLogKey = (log: RuntimeLog): string => `${log.time}-${log.region}-${log.message}`;
 
 const getSelectedClassName = (log: RuntimeLog, isSelected: boolean): string => {
-  if (!isSelected) return "";
+  if (!isSelected) {
+    return "";
+  }
   return getSeverityStyle(log.severity).selected;
 };
 

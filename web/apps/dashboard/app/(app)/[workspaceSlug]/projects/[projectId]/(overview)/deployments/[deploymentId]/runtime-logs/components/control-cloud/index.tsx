@@ -25,11 +25,14 @@ const formatValue = (value: string | number, field: string): string => {
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
     return format(value, "MMM d, yyyy HH:mm:ss");
   }
+  if (field === "severity") {
+    return value.toString().toUpperCase()
+  }
   return String(value);
 };
 
 export function RuntimeLogsControlCloud() {
-  const { filters, removeFilter, updateFiltersFromArray } = useRuntimeLogsFilters();
+  const { filters, removeFilter, updateFilters } = useRuntimeLogsFilters();
 
   return (
     <ControlCloud
@@ -37,7 +40,7 @@ export function RuntimeLogsControlCloud() {
       formatFieldName={formatFieldName}
       filters={filters}
       removeFilter={removeFilter}
-      updateFilters={updateFiltersFromArray}
+      updateFilters={updateFilters}
     />
   );
 }

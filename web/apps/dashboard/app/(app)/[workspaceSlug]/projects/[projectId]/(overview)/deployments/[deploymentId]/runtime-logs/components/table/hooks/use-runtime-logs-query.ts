@@ -11,7 +11,7 @@ type UseRuntimeLogsQueryParams = {
   filters: RuntimeLogsFilter[];
 };
 
-export function useRuntimeLogsQuery({ limit = DEFAULT_LIMIT, filters }: UseRuntimeLogsQueryParams) {
+export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQueryParams) {
   const params = useParams<{ projectId: string; deploymentId: string }>();
 
   // Transform filters to tRPC input format
