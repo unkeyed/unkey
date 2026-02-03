@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
   // 2. Verify with Unkey 
   try {
-    const {data} = await unkey.keys.verifyKey({
+    const { meta, data } = await unkey.keys.verifyKey({
       key: "api_key",
     });
 
@@ -178,7 +178,7 @@ export function withAuth(handler: AuthenticatedHandler) {
       return NextResponse.json({ error: "Missing API key" }, { status: 401 });
     }
     try {
-      const { data } = await unkey.keys.verifyKey({
+      const { meta, data } = await unkey.keys.verifyKey({
         key: authHeader.slice(7),
       });
 

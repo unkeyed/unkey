@@ -40,7 +40,7 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
     Issue API keys to your users, verify them on every request, and automatically reject invalid or expired keys.
     
     ```ts
-    const { data } = await unkey.keys.verify({ key: "sk_123..." });
+    const { meta, data } = await unkey.keys.verify({ key: "sk_123..." });
     if (!data.valid) return new Response("Unauthorized", { status: 401 });
     ```
   </Accordion>
@@ -59,13 +59,18 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
     
     ```ts
     // Create a key with 1000 credits/month that refills automatically
-    await unkey.keys.create({
-      apiId: "api_...",
-      credits: {
-        remaining: 1000,
-        refill: { interval: "monthly", amount: 1000 }
-      }
-    });
+    try {
+      const { meta, data } = await unkey.keys.create({
+        apiId: "api_...",
+        credits: {
+          remaining: 1000,
+          refill: { interval: "monthly", amount: 1000 }
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
     ```
   </Accordion>
   
@@ -74,11 +79,16 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
     
     ```ts
     // All keys for this identity share the same rate limit pool
-    await unkey.keys.create({
-      apiId: "api_...",
-      externalId: "org_acme",
-      ratelimits: [{ name: "requests", limit: 10000, duration: 3600000 }]
-    });
+    try {
+      const { meta, data } = await unkey.keys.create({
+        apiId: "api_...",
+        externalId: "org_acme",
+        ratelimits: [{ name: "requests", limit: 10000, duration: 3600000 }]
+      });
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
     ```
   </Accordion>
 </AccordionGroup>

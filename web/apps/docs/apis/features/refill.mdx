@@ -56,7 +56,7 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 
 ```typescript TypeScript
 try {
-  const { data, meta } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.create({
     apiId: "api_...",
     remaining: 10000,
     refill: {
@@ -64,6 +64,7 @@ try {
       amount: 10000,
     },
   });
+  console.log(data.keyId);
 } catch (error) {
   console.error(error);
   return Response.json({ error: "Internal error" }, { status: 500 });
@@ -120,7 +121,7 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 
 ```typescript TypeScript
 try {
-  const { data, meta } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.create({
     apiId: "api_...",
     remaining: 100,
     refill: {
@@ -128,6 +129,7 @@ try {
       amount: 100,
     },
   });
+  console.log(data.keyId);
 } catch (error) {
   console.error(error);
   return Response.json({ error: "Internal error" }, { status: 500 });
@@ -179,10 +181,12 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 ```typescript
 // Free tier: 100/day
 try {
-  await unkey.keys.create({
+  const { meta, data } = await unkey.keys.create({
     apiId,
-    credits: { remaining: 100, refill: { interval: "daily", amount: 100 } },
+    remaining: 100,
+    refill: { interval: "daily", amount: 100 },
   });
+  console.log(data.keyId);
 } catch (error) {
   console.error(error);
   return Response.json({ error: "Internal error" }, { status: 500 });
@@ -190,10 +194,12 @@ try {
 
 // Pro tier: 50,000/month
 try {
-  await unkey.keys.create({
+  const { meta, data } = await unkey.keys.create({
     apiId,
-    credits: { remaining: 50000, refill: { interval: "monthly", amount: 50000 } },
+    remaining: 50000,
+    refill: { interval: "monthly", amount: 50000 },
   });
+  console.log(data.keyId);
 } catch (error) {
   console.error(error);
   return Response.json({ error: "Internal error" }, { status: 500 });
@@ -201,7 +207,8 @@ try {
 
 // Enterprise: Unlimited (no credits object)
 try {
-  await unkey.keys.create({ apiId });
+  const { meta, data } = await unkey.keys.create({ apiId });
+  console.log(data.keyId);
 } catch (error) {
   console.error(error);
   return Response.json({ error: "Internal error" }, { status: 500 });
@@ -215,7 +222,7 @@ When a user upgrades, update their key:
 ```typescript
 // User upgraded from Free to Pro mid-month
 try {
-  await unkey.keys.update({
+  const { meta, data } = await unkey.keys.update({
     keyId: "key_...",
     credits: {
       remaining: 50000,  // Give them the new allocation immediately

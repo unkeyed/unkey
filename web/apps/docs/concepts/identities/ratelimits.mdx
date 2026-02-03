@@ -53,7 +53,7 @@ import { Unkey } from "@unkey/api";
 
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
-const { data } = await unkey.identities.create({
+const { meta, data } = await unkey.identities.create({
   externalId: "user_123",
   ratelimits: [
     {
@@ -86,17 +86,22 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 
 ```typescript TypeScript
 // All keys with the same externalId share the identity's rate limits
-await unkey.keys.create({
-  apiId: "api_...",
-  externalId: "user_123",  // Links to the identity
-  name: "Production Key",
-});
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_...",
+    externalId: "user_123",  // Links to the identity
+    name: "Production Key",
+  });
 
-await unkey.keys.create({
-  apiId: "api_...",
-  externalId: "user_123",  // Same identity
-  name: "Staging Key",
-});
+  await unkey.keys.create({
+    apiId: "api_...",
+    externalId: "user_123",  // Same identity
+    name: "Staging Key",
+  });
+} catch (err) {
+  console.error(err);
+  throw err;
+}
 ```
 
 </CodeGroup>
@@ -106,7 +111,7 @@ await unkey.keys.create({
 When you verify any key linked to the identity, the shared rate limit is enforced:
 
 ```typescript
-const { data } = await verifyKey({ key: "sk_prod_..." });
+const { meta, data } = await verifyKey({ key: "sk_prod_..." });
 
 // If the identity is rate limited, data.valid will be false
 if (!data.valid && data.code === "RATE_LIMITED") {
@@ -121,28 +126,33 @@ if (!data.valid && data.code === "RATE_LIMITED") {
 You can set multiple limits on an identity — useful for different resource types:
 
 ```typescript
-await unkey.identities.create({
-  externalId: "user_123",
-  ratelimits: [
-    {
-      name: "requests",
-      limit: 500,
-      duration: 3600000,  // 500 requests per hour
-    },
-    {
-      name: "tokens",
-      limit: 20000,
-      duration: 86400000,  // 20k tokens per day
-    },
-  ],
-});
+try {
+  const { meta, data } = await unkey.identities.create({
+    externalId: "user_123",
+    ratelimits: [
+      {
+        name: "requests",
+        limit: 500,
+        duration: 3600000,  // 500 requests per hour
+      },
+      {
+        name: "tokens",
+        limit: 20000,
+        duration: 86400000,  // 20k tokens per day
+      },
+    ],
+  });
+} catch (err) {
+  console.error(err);
+  throw err;
+}
 ```
 
 Then specify which limit to check during verification:
 
 ```typescript
 // Check the "tokens" limit and consume 150 tokens
-const { data } = await verifyKey({
+const { meta, data } = await verifyKey({
   key: "sk_...",
   ratelimits: [
     { name: "tokens", cost: 150 },

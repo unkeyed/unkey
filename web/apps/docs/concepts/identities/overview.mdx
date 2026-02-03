@@ -27,26 +27,33 @@ All these keys belong to the same customer. With identities:
 
 ```ts
 // Create an identity for the customer
-const identity = await unkey.identities.create({
-  externalId: "customer_acme_123",  // Your internal customer ID
-  meta: {
-    plan: "pro",
-    company: "Acme Corp"
-  }
-});
+try {
+  const { meta, data, error } = await unkey.identities.create({
+    externalId: "customer_acme_123",  // Your internal customer ID
+    meta: {
+      plan: "pro",
+      company: "Acme Corp"
+    }
+  });
 
-// All keys for this customer share the identity
-await unkey.keys.create({
-  apiId: "api_xxx",
-  identityId: identity.id,
-  name: "Production Key"
-});
+  if (error) throw error;
 
-await unkey.keys.create({
-  apiId: "api_xxx", 
-  identityId: identity.id,
-  name: "Test Key"
-});
+  // All keys for this customer share the identity
+  await unkey.keys.create({
+    apiId: "api_xxx",
+    identityId: data.id,
+    name: "Production Key"
+  });
+
+  await unkey.keys.create({
+    apiId: "api_xxx", 
+    identityId: data.id,
+    name: "Test Key"
+  });
+} catch (err) {
+  console.error(err);
+  throw err;
+}
 ```
 
 Now when you verify any of these keys, you get the identity metadata:

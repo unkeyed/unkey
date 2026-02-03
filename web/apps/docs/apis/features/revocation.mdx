@@ -45,9 +45,14 @@ curl -X POST https://api.unkey.com/v2/keys.deleteKey \
 ```
 
 ```typescript TypeScript
-await unkey.keys.delete({
-  keyId: "key_...",
-});
+try {
+  const { meta, data } = await unkey.keys.delete({
+    keyId: "key_...",
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>
@@ -75,10 +80,15 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 ```
 
 ```typescript TypeScript
-await unkey.keys.update({
-  keyId: "key_...",
-  enabled: false,
-});
+try {
+  const { meta, data } = await unkey.keys.update({
+    keyId: "key_...",
+    enabled: false,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>
@@ -98,10 +108,15 @@ Verification response when disabled:
 ## Re-enable a disabled key
 
 ```typescript
-await unkey.keys.update({
-  keyId: "key_...",
-  enabled: true,
-});
+try {
+  const { meta, data } = await unkey.keys.update({
+    keyId: "key_...",
+    enabled: true,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 The key works again immediately.
@@ -121,15 +136,20 @@ For immediate revocation of a compromised key, you may want to also:
 To revoke all keys for a specific user, query their keys first:
 
 ```typescript
-// Get all keys for a user
-const { meta, data } = await unkey.keys.list({
-  apiId: "api_...",
-  externalId: "user_123",
-});
+try {
+  // Get all keys for a user
+  const { meta, data } = await unkey.keys.list({
+    apiId: "api_...",
+    externalId: "user_123",
+  });
 
-// Delete them all
-for (const key of data.keys) {
-  await unkey.keys.delete({ keyId: key.id });
+  // Delete them all
+  for (const key of data.keys) {
+    await unkey.keys.delete({ keyId: key.id });
+  }
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
 }
 ```
 

@@ -58,13 +58,13 @@ The cursor to use for pagination
 
 <RequestExample>
 ```ts
-const overrides = await unkey.listOverrides({
+const { meta, data } = await unkey.listOverrides({
     namespaceName: "email.outbound"
 });
 ```
 
 ```ts
-const overrides = await unkey.listOverrides({
+const { meta, data } = await unkey.listOverrides({
     nameSpaceId:"rlns_12345",
 });
 ```

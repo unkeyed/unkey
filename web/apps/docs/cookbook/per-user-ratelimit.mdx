@@ -199,17 +199,26 @@ import { Unkey } from "@unkey/api";
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 // Create a Pro tier key with higher limits
-await unkey.keys.create({
-  apiId: "api_xxx",
-  name: "Pro User Key",
-  ratelimit: {
-    limit: 1000,
-    duration: 3600000, // 1 hour in ms
-  },
-  meta: {
-    tier: "pro",
-  },
-});
+try {
+  const { meta, data, error } = await unkey.keys.create({
+    apiId: "api_xxx",
+    name: "Pro User Key",
+    ratelimit: {
+      limit: 1000,
+      duration: 3600000, // 1 hour in ms
+    },
+    meta: {
+      tier: "pro",
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+} catch (err) {
+  console.error(err);
+  throw err;
+}
 
 // Verification automatically enforces the key's rate limit
 const { meta, data } = await unkey.keys.verify({ key: userKey });

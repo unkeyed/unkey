@@ -104,21 +104,26 @@ Response:
 ## Handle environments in your API
 
 ```typescript
-const { meta, data } = await verifyKey({ key: request.apiKey });
+try {
+  const { meta, data } = await verifyKey({ key: request.apiKey });
 
-if (!data.valid) {
-  return unauthorized();
+  if (!data.valid) {
+    return unauthorized();
+  }
+
+  const environment = data.meta?.environment ?? "production";
+
+  if (environment === "test") {
+    // Use test database, sandbox resources, etc.
+    return handleTestRequest(request);
+  }
+
+  // Production request
+  return handleLiveRequest(request);
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
 }
-
-const environment = data.meta?.environment ?? "production";
-
-if (environment === "test") {
-  // Use test database, sandbox resources, etc.
-  return handleTestRequest(request);
-}
-
-// Production request
-return handleLiveRequest(request);
 ```
 
 ## Common patterns
@@ -131,12 +136,17 @@ const ratelimits = environment === "test"
   ? [{ name: "requests", limit: 100, duration: 60000 }]
   : [{ name: "requests", limit: 10000, duration: 60000 }];
 
-await unkey.keys.create({
-  apiId,
-  prefix: environment === "test" ? "sk_test" : "sk_live",
-  meta: { environment },
-  ratelimits,
-});
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId,
+    prefix: environment === "test" ? "sk_test" : "sk_live",
+    meta: { environment },
+    ratelimits,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 ### Sandbox vs real resources
@@ -151,8 +161,13 @@ if (data.meta?.environment === "test") {
 }
 
 // Real billing, real data
-await chargeUser(data.identity.externalId, amount);
-return { charged: true, response: realResponse };
+try {
+  await chargeUser(data.identity.externalId, amount);
+  return { charged: true, response: realResponse };
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 ### Block test keys from production endpoint
@@ -164,6 +179,8 @@ if (data.meta?.environment === "test" && isProductionEndpoint) {
     { status: 403 }
   );
 }
+
+// Continue with your API logic
 ```
 
 ## Next steps

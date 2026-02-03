@@ -52,10 +52,15 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 // Key expires in 24 hours
 const expires = Date.now() + 24 * 60 * 60 * 1000;
 
-const { meta, data } = await unkey.keys.create({
-  apiId: "api_...",
-  expires,
-});
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_...",
+    expires,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 ```python Python
@@ -118,10 +123,15 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 
 ```typescript TypeScript
 // Extend by 7 more days from now
-await unkey.keys.update({
-  keyId: "key_...",
-  expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
-});
+try {
+  const { meta, data } = await unkey.keys.update({
+    keyId: "key_...",
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 </CodeGroup>
@@ -146,18 +156,23 @@ Temporary keys work with all other key features:
 
 ```typescript
 // 7-day trial with 1000 requests and rate limiting
-await unkey.keys.create({
-  apiId: "api_...",
-  expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  credits: {
-    remaining: 1000,
-  },
-  ratelimits: [{
-    name: "requests",
-    limit: 100,
-    duration: 60000,  // 100 per minute
-  }],
-});
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_...",
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+    credits: {
+      remaining: 1000,
+    },
+    ratelimits: [{
+      name: "requests",
+      limit: 100,
+      duration: 60000,  // 100 per minute
+    }],
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
 ## Temporary vs usage-limited keys
