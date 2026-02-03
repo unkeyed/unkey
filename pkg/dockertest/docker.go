@@ -37,6 +37,16 @@ type Container struct {
 	Ports map[string]string
 }
 
+// HostURL returns a URL for the container using the provided scheme and port.
+// The containerPort should be in the format "port/protocol" (e.g., "8080/tcp").
+func (c *Container) HostURL(scheme, containerPort string) string {
+	port := c.Port(containerPort)
+	if port == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s://%s:%s", scheme, c.Host, port)
+}
+
 // Port returns the mapped host port for a given container port.
 // The containerPort should be in the format "port/protocol" (e.g., "6379/tcp").
 // Returns an empty string if the port is not mapped.

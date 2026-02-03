@@ -1,0 +1,366 @@
+---
+title: GitHub Deployments
+description: How GitHub push webhooks trigger deployments via BuildKit git context
+---
+
+# GitHub Deployments
+
+When users connect a GitHub repository to their Unkey project, push events automatically trigger deployments. This document explains the complete flow from webhook to running containers.
+
+## Architecture Overview
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  GitHub Push    │────▶│  ctrl-api       │────▶│  Restate        │
+│  Webhook        │     │  webhook handler│     │  Deploy Workflow│
+└─────────────────┘     └────────┬────────┘     └────────┬────────┘
+                                 │                       │
+                                 ▼                       ▼
+                        ┌─────────────────┐     ┌─────────────────┐
+                        │  MySQL          │     │  Depot BuildKit │
+                        │  (deployment)   │     │  (git context)  │
+                        └─────────────────┘     └────────┬────────┘
+                                                         │
+                                                         ▼
+                                                ┌─────────────────┐
+                                                │  Container      │
+                                                │  Registry       │
+                                                └─────────────────┘
+```
+
+BuildKit fetches the repository directly from GitHub using its native git context support. Authentication for private repositories is handled via a GitHub App installation token passed through BuildKit's secret provider.
+
+## Webhook Handler
+
+**Location:** `svc/ctrl/api/github_webhook.go`
+
+The webhook handler is intentionally thin—it validates, maps, creates a deployment record, and delegates to the durable workflow.
+
+### Request Flow
+
+1. **Validate HTTP request**
+   - Must be `POST`
+   - Requires `X-GitHub-Event` header
+   - Requires `X-Hub-Signature-256` header
+
+2. **Verify signature**
+   - Uses HMAC-SHA256 with the webhook secret
+   - Implemented in `githubclient.VerifyWebhookSignature()`
+
+3. **Parse push payload**
+   - Extracts branch from `refs/heads/<branch>`
+   - Non-branch refs (tags) are ignored
+
+4. **Map repository to project**
+   - Looks up `github_repo_connections` table using `(installation_id, repository_id)`
+   - Returns 200 OK if no connection exists (repo not linked to any project)
+
+5. **Determine environment**
+   - If pushed branch equals project's default branch → `production`
+   - Otherwise → `preview`
+
+6. **Create deployment record**
+
+```go
+db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
+    ID:          deploymentID,
+    Status:      db.DeploymentsStatusPending,
+    GitCommitSha: payload.After,
+    GitBranch:   branch,
+    // ... other fields
+})
+```
+
+7. **Trigger workflow**
+
+```go
+deployClient := hydrav1.NewDeploymentServiceIngressClient(s.restate, deploymentID)
+invocation, err := deployClient.Deploy().Send(ctx, &hydrav1.DeployRequest{
+    DeploymentId: deploymentID,
+    Source: &hydrav1.DeployRequest_Git{
+        Git: &hydrav1.GitSource{
+            InstallationId: repoConnection.InstallationID,
+            Repository:     payload.Repository.FullName,
+            CommitSha:      payload.After,
+            ContextPath:    "./sub",
+            DockerfilePath: "Dockerfile",
+        },
+    },
+})
+```
+
+## Deploy Workflow
+
+**Location:** `svc/ctrl/worker/deploy/deploy_handler.go`
+
+The Restate workflow orchestrates the complete deployment lifecycle. It handles two source types:
+
+- `GitSource`: Build from GitHub repository (via webhook)
+- `DockerImage`: Use pre-built image (via CLI/API)
+
+### Workflow Steps
+
+<Mermaid chart={`flowchart TD
+    Start([Deploy Request]) --> LoadMeta[Load Deployment/Project/Environment]
+    LoadMeta --> CheckSource{Source Type?}
+    
+    CheckSource -->|GitSource| BuildGit[Build from Git]
+    CheckSource -->|DockerImage| UseImage[Use Pre-built Image]
+    
+    BuildGit --> UpdateImage[Update Deployment Image]
+    UseImage --> UpdateImage
+    
+    UpdateImage --> StatusDeploying[Status: Deploying]
+    StatusDeploying --> CreateTopology[Create Regional Topologies]
+    CreateTopology --> EnsureSentinels[Ensure Sentinels Exist]
+    EnsureSentinels --> WaitReady[Wait for Instances Ready]
+    WaitReady --> CreateRoutes[Create Frontline Routes]
+    CreateRoutes --> AssignRoutes[Assign Routes to Deployment]
+    AssignRoutes --> StatusReady[Status: Ready]
+    StatusReady --> UpdateLive[Update Live Deployment]
+    UpdateLive --> End([Complete])
+    
+    style BuildGit fill:#e1f5fe
+    style StatusReady fill:#c8e6c9
+`} />
+
+### Failure Handling
+
+The workflow uses a deferred handler to ensure deployments are marked as failed on any error:
+
+```go
+finishedSuccessfully := false
+
+defer func() {
+    if finishedSuccessfully {
+        return
+    }
+    w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed)
+}()
+
+// ... workflow steps ...
+
+finishedSuccessfully = true
+```
+
+## Git-Based Build
+
+**Location:** `svc/ctrl/worker/deploy/build.go`
+
+The `buildDockerImageFromGit()` function builds container images using BuildKit's native git context support.
+
+### BuildKit Git Context
+
+The build context is passed to BuildKit as a git URL:
+
+```go
+// Format: https://github.com/owner/repo.git#<sha>[:<subdir>]
+gitContextURL := fmt.Sprintf("https://github.com/%s.git#%s", repo, sha)
+if contextPath != "" {
+    gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", repo, sha, contextPath)
+}
+```
+
+BuildKit fetches the repository at the specified commit SHA and uses it as the build context.
+
+### GitHub Token Authentication
+
+For private repositories, BuildKit needs authentication. We use BuildKit's secret provider with the well-known secret name `GIT_AUTH_TOKEN.github.com`:
+
+```go
+solverOptions := client.SolveOpt{
+    Frontend: "dockerfile.v0",
+    FrontendAttrs: map[string]string{
+        "platform": platform,
+        "context":  gitContextURL,
+        "filename": dockerfilePath,
+    },
+    Session: []session.Attachable{
+        // Registry auth for pushing images
+        authprovider.NewDockerAuthProvider(...),
+        
+        // GitHub token for fetching private repos
+        secretsprovider.FromMap(map[string][]byte{
+            "GIT_AUTH_TOKEN.github.com": []byte(githubToken),
+        }),
+    },
+    Exports: []client.ExportEntry{{
+        Type:  "image",
+        Attrs: map[string]string{
+            "name": imageName,
+            "push": "true",
+        },
+    }},
+}
+```
+
+When BuildKit fetches from `github.com`, it looks for a secret named `GIT_AUTH_TOKEN.github.com` and uses it for HTTP authentication.
+
+### Token Acquisition
+
+**Location:** `svc/ctrl/worker/github/client.go`
+
+The GitHub App client generates installation tokens:
+
+1. Create a JWT signed with the App's private key
+2. Call GitHub API: `POST /app/installations/:id/access_tokens`
+3. Receive a short-lived installation token (~1 hour)
+
+```go
+ghToken, err := w.github.GetInstallationToken(params.InstallationID)
+// Token is passed to BuildKit via secretsprovider
+```
+
+Installation tokens are scoped to the repositories where the GitHub App is installed, providing a good security boundary.
+
+## Depot Integration
+
+**Location:** `svc/ctrl/worker/deploy/build.go`
+
+Depot provides remote BuildKit builders with persistent caching.
+
+### Build Flow
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Get/Create     │────▶│  Create Depot   │────▶│  Acquire        │
+│  Depot Project  │     │  Build          │     │  BuildKit       │
+└─────────────────┘     └─────────────────┘     └────────┬────────┘
+                                                         │
+                                                         ▼
+                                                ┌─────────────────┐
+                                                │  Execute        │
+                                                │  buildClient.   │
+                                                │  Solve()        │
+                                                └────────┬────────┘
+                                                         │
+                                                         ▼
+                                                ┌─────────────────┐
+                                                │  Push to        │
+                                                │  Registry       │
+                                                └─────────────────┘
+```
+
+### Depot Project Management
+
+Each Unkey project gets a corresponding Depot project for caching:
+
+```go
+func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
+    project, _ := db.Query.FindProjectById(ctx, w.db.RO(), unkeyProjectID)
+    
+    if project.DepotProjectID.Valid {
+        return project.DepotProjectID.String, nil
+    }
+    
+    // Create new Depot project
+    createResp, _ := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
+        Name:     fmt.Sprintf("unkey-%s", unkeyProjectID),
+        RegionId: w.depotConfig.ProjectRegion,
+        CachePolicy: &corev1.CachePolicy{
+            KeepGb:   50,
+            KeepDays: 14,
+        },
+    }))
+    
+    // Store Depot project ID in database
+    db.Query.UpdateProjectDepotID(ctx, w.db.RW(), db.UpdateProjectDepotIDParams{
+        DepotProjectID: sql.NullString{String: createResp.Msg.GetProject().GetProjectId(), Valid: true},
+        ID:             unkeyProjectID,
+    })
+    
+    return createResp.Msg.GetProject().GetProjectId(), nil
+}
+```
+
+### Build Execution
+
+```go
+// Create Depot build session
+depotBuild, _ := build.NewBuild(ctx, &cliv1.CreateBuildRequest{
+    ProjectId: depotProjectID,
+}, w.registryConfig.Password)
+defer func() { depotBuild.Finish(err) }()
+
+// Acquire remote BuildKit machine
+buildkit, _ := machine.Acquire(ctx, depotBuild.ID, depotBuild.Token, architecture)
+defer buildkit.Release()
+
+// Connect to BuildKit
+buildClient, _ := buildkit.Connect(ctx)
+defer buildClient.Close()
+
+// Execute build
+_, err = buildClient.Solve(ctx, nil, solverOptions, buildStatusCh)
+```
+
+### Build Observability
+
+Build status events are streamed to ClickHouse for monitoring:
+
+```go
+buildStatusCh := make(chan *client.SolveStatus, 100)
+go w.processBuildStatus(buildStatusCh, workspaceID, projectID, deploymentID)
+
+// Each completed vertex is logged
+w.clickhouse.BufferBuildStep(schema.BuildStepV1{
+    WorkspaceID:  workspaceID,
+    ProjectID:    projectID,
+    DeploymentID: deploymentID,
+    StepID:       vertex.Digest.String(),
+    Name:         vertex.Name,
+    Cached:       vertex.Cached,
+    // ...
+})
+```
+
+## Proto Definitions
+
+**Location:** `proto/hydra/v1/deployment.proto`
+
+```protobuf
+message GitSource {
+  int64 installation_id = 1;  // GitHub App installation ID
+  string repository = 2;       // "owner/repo" format
+  string commit_sha = 3;       // Full 40-character SHA
+  string context_path = 4;     // Subdirectory for build context
+  string dockerfile_path = 5;  // Path to Dockerfile
+}
+
+message DeployRequest {
+  string deployment_id = 1;
+  optional string key_auth_id = 2;
+
+  oneof source {
+    GitSource git = 3;
+    DockerImage docker_image = 4;
+  }
+}
+```
+
+## Important Constraints
+
+### Commit SHA
+BuildKit requires the **full 40-character commit SHA** for reliable builds. Short SHAs may fail or fetch unexpected objects.
+
+### Private Submodules
+Private submodules using SSH URLs won't work with this approach. The `GIT_AUTH_TOKEN` only provides HTTPS authentication. For SSH submodules, you'd need SSH key forwarding through BuildKit.
+
+### Context Path
+The context path is normalized before use:
+- Whitespace trimmed
+- Leading `/` stripped
+- `.` treated as repository root
+
+### External API
+The external API (`ctrlv1.CreateDeploymentRequest`) only supports pre-built Docker images. Git-based builds are only triggered via the GitHub webhook integration.
+
+## Workflow Orchestration Patterns
+
+The Deploy workflow demonstrates several Restate patterns:
+
+1. **Idempotent state loading**: Deployment ID as stable external key
+2. **Deferred failure handler**: Crashes converge to correct terminal status
+3. **Side effects in `restate.Run`**: Deterministic replay + retry semantics
+4. **Unique constraints for idempotency**: Sentinel creation uses DB unique index
+5. **Fan-out/join**: Parallel region operations with barrier wait

@@ -1,7 +1,5 @@
 import { ClickHouse } from "@unkey/clickhouse";
-import { mysqlDrizzle, schema } from "@unkey/db";
-import { Resend } from "@unkey/resend";
-import { WorkOS } from "@workos-inc/node";
+import { type Workspace, mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
 async function main() {
@@ -16,11 +14,6 @@ async function main() {
   await conn.ping();
   const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
-  const workos = new WorkOS(process.env.WORKOS_API_KEY);
-
-  const resend = new Resend({
-    apiKey: process.env.RESEND_API_KEY,
-  });
   console.log("starting");
 
   const rows = await ch.querier.query({
@@ -32,7 +25,7 @@ async function main() {
     WHERE startsWith(path, '/v1/')
     AND workspace_id != ''
     AND workspace_id != 'ws_2vUFz88G6TuzMQHZaUhXADNyZWMy' // filter out special workspaces
-    AND time >= (now() - INTERVAL 30 DAY)
+    AND time >= (now() - INTERVAL 1 DAY)
     GROUP BY workspace_id, path`,
     schema: z.object({
       workspace_id: z.string(),
@@ -44,62 +37,31 @@ async function main() {
     process.exit(1);
   }
 
-  let emailsSent = 0;
+  const workspaces: Record<string, Workspace> = {};
 
-  console.log(
-    `Found ${
-      new Set(rows.val.map((r) => r.workspace_id)).size
-    } workspaces across ${rows.val.length} paths`,
-  );
-  const workspaceToPaths = new Map<string, string[]>();
   for (const row of rows.val) {
-    if (row.workspace_id.startsWith("test_")) {
+    if (workspaces[row.workspace_id]) {
       continue;
     }
-    const paths = workspaceToPaths.get(row.workspace_id) || [];
-    paths.push(row.path);
-    workspaceToPaths.set(row.workspace_id, paths);
-  }
-
-  for (const [workspaceId, paths] of workspaceToPaths.entries()) {
-    if (paths.includes("/v1/analytics.getVerifications")) {
-      console.warn(
-        `Skipping workspace ${workspaceId} due to analytics endpoint: ${paths.join(", ")}`,
-      );
-      continue;
-    }
-    console.log(workspaceId, paths);
 
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq }) => eq(table.id, workspaceId),
+      where: (table, { eq }) => eq(table.id, row.workspace_id),
     });
     if (!workspace) {
-      console.error(`Workspace ${workspaceId} not found`);
+      console.error(`Workspace ${row.workspace_id} not found`);
       continue;
     }
-
-    console.log(workspace.name);
-
-    const members = await workos.userManagement.listOrganizationMemberships({
-      organizationId: workspace.orgId,
-      limit: 100,
-    });
-
-    for (const member of members.data) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const user = await workos.userManagement.getUser(member.userId);
-      console.log(`User: ${user.email}`);
-      await resend.sendApiV1MigrationEmail({
-        email: user.email,
-        name: user.firstName,
-        workspace: workspace.name,
-        deprecatedEndpoints: paths,
-      });
-      emailsSent++;
-    }
+    workspaces[workspace.id] = workspace;
   }
 
-  console.info(`Emails sent: ${emailsSent}`);
+  console.table(
+    Object.values(workspaces).map((ws) => ({
+      id: ws.id,
+      name: ws.name,
+      org: ws.orgId,
+      sub: ws.stripeSubscriptionId,
+    })),
+  );
 }
 
 main();

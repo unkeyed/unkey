@@ -6,21 +6,12 @@
 //
 // # Architecture
 //
-// The control plane sits at the center of Unkey's infrastructure, coordinating between:
-//   - Sentinel instances that run customer workloads
-//   - Restate for durable async workflow execution
-//   - S3-compatible storage for build artifacts
-//   - ACME providers for automatic TLS certificates
-//
-// # Services
-//
-// The server exposes several Connect RPC services:
-//
-//   - [ctrl.Ctrl] - Core control plane operations
-//   - [deployment.Deployment] - Application deployment workflows
-//   - [acme.Acme] - ACME certificate management and HTTP-01 challenges
-//   - [openapi.OpenApi] - OpenAPI specification management
-//   - [cluster.Cluster] - Cluster coordination and sentinel management
+// The control plane sits at the center of Unkey's infrastructure. It coordinates
+// sentinel instances that run customer workloads, Restate for durable workflow
+// execution, build artifact storage, and ACME providers for automatic TLS
+// certificates. Connect RPC services are exposed for core control plane
+// operations, deployment workflows, ACME management, OpenAPI specs, and cluster
+// coordination.
 //
 // # Usage
 //
@@ -30,7 +21,6 @@
 //	    InstanceID:      "ctrl-1",
 //	    HttpPort:        8080,
 //	    DatabasePrimary: "postgres://...",
-//	    Clock:           clock.RealClock{},
 //	    Restate: api.RestateConfig{
 //	        URL:      "http://restate:8080",
 //	        AdminURL: "http://restate:9070",

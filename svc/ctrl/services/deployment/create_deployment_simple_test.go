@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // validateTimestamp applies the same validation logic as the CreateDeployment service
@@ -161,12 +160,7 @@ func TestCreateDeploymentTimestampValidation_InvalidSecondsFormat(t *testing.T) 
 		ProjectId:       "proj_test456",
 		Branch:          "main",
 		EnvironmentSlug: "production",
-		Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
-			BuildContext: &ctrlv1.BuildContext{
-				BuildContextPath: "test-key",
-				DockerfilePath:   ptr.P("Dockerfile"),
-			},
-		},
+		DockerImage:     "registry.example.com/app:v1.0.0",
 		GitCommit: &ctrlv1.GitCommitInfo{
 			CommitSha: "abc123def456",
 			Timestamp: time.Now().Unix(), // This is in seconds - should be rejected
@@ -264,12 +258,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 				ProjectId:       "proj_test456",
 				Branch:          "feature/test-branch",
 				EnvironmentSlug: "production",
-				Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
-					BuildContext: &ctrlv1.BuildContext{
-						BuildContextPath: "test-key",
-						DockerfilePath:   ptr.P("Dockerfile"),
-					},
-				},
+				DockerImage:     "registry.example.com/app:v1.0.0",
 				GitCommit: &ctrlv1.GitCommitInfo{
 					CommitSha:       "abc123def456789",
 					CommitMessage:   "feat: implement new feature",
@@ -312,12 +301,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 				ProjectId:       "proj_test456",
 				Branch:          "main",
 				EnvironmentSlug: "production",
-				Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
-					BuildContext: &ctrlv1.BuildContext{
-						BuildContextPath: "test-key",
-						DockerfilePath:   ptr.P("Dockerfile"),
-					},
-				},
+				DockerImage:     "registry.example.com/app:v1.0.0",
 				GitCommit: &ctrlv1.GitCommitInfo{
 					CommitSha:       "",
 					CommitMessage:   "",
@@ -360,12 +344,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 				ProjectId:       "proj_test456",
 				Branch:          "hotfix/urgent-fix",
 				EnvironmentSlug: "production",
-				Source: &ctrlv1.CreateDeploymentRequest_BuildContext{
-					BuildContext: &ctrlv1.BuildContext{
-						BuildContextPath: "test-key",
-						DockerfilePath:   ptr.P("Dockerfile"),
-					},
-				},
+				DockerImage:     "registry.example.com/app:v1.0.0",
 				GitCommit: &ctrlv1.GitCommitInfo{
 					CommitSha:       "xyz789abc123",
 					CommitMessage:   "fix: critical security issue",

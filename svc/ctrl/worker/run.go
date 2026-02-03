@@ -25,13 +25,12 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/build"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
@@ -102,16 +101,14 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns.Register(database.Close)
 
-	imageStore, err := s3.NewS3(s3.S3Config{
-		Logger:            logger,
-		S3URL:             cfg.BuildS3.URL,
-		S3PresignURL:      cfg.BuildS3.ExternalURL,
-		S3Bucket:          cfg.BuildS3.Bucket,
-		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
-		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
-	})
+	// Create GitHub client for deploy workflow
+	ghClient, err := githubclient.NewClient(githubclient.ClientConfig{
+		AppID:         cfg.GitHub.AppID,
+		PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+		WebhookSecret: "",
+	}, logger)
 	if err != nil {
-		return fmt.Errorf("unable to create build storage: %w", err)
+		return fmt.Errorf("failed to create GitHub client: %w", err)
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
@@ -130,16 +127,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Restate Server
 	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
 
-	restateSrv.Bind(hydrav1.NewBuildServiceServer(build.New(build.Config{
-		InstanceID:     cfg.InstanceID,
-		DB:             database,
-		RegistryConfig: build.RegistryConfig(cfg.GetRegistryConfig()),
-		BuildPlatform:  build.BuildPlatform(cfg.GetBuildPlatform()),
-		DepotConfig:    build.DepotConfig(cfg.GetDepotConfig()),
-		Clickhouse:     ch,
-		Logger:         logger,
-	})))
-
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
 		Logger:           logger,
 		DB:               database,
@@ -147,7 +134,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:            vaultClient,
 		SentinelImage:    cfg.SentinelImage,
 		AvailableRegions: cfg.AvailableRegions,
-		BuildStorage:     imageStore,
+		GitHub:           ghClient,
+		RegistryConfig:   deploy.RegistryConfig(cfg.GetRegistryConfig()),
+		BuildPlatform:    deploy.BuildPlatform(cfg.GetBuildPlatform()),
+		DepotConfig:      deploy.DepotConfig(cfg.GetDepotConfig()),
+		Clickhouse:       ch,
 	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
@@ -174,7 +165,10 @@ func Run(ctx context.Context, cfg Config) error {
 	))
 
 	// Initialize domain cache for ACME providers
-	clk := clock.New()
+	clk := cfg.Clock
+	if clk == nil {
+		clk = clock.New()
+	}
 	domainCache, domainCacheErr := cache.New(cache.Config[string, db.CustomDomain]{
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,

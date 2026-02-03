@@ -6,6 +6,7 @@
   "pages": [
     "index",
     "deployment-service",
+    "github-deployments",
     "deployment-workflow-pull-based",
     "routing-service",
     "creating-services"

@@ -6,7 +6,6 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 )
 
 // Service implements the DeploymentService ConnectRPC API. It coordinates
@@ -18,7 +17,6 @@ type Service struct {
 	restate          *restateingress.Client
 	logger           logging.Logger
 	availableRegions []string
-	buildStorage     s3.Storage
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeploymentService
@@ -37,8 +35,6 @@ type Config struct {
 	Logger logging.Logger
 	// AvailableRegions lists the regions where deployments can be created.
 	AvailableRegions []string
-	// BuildStorage provides presigned URL generation for build context uploads.
-	BuildStorage s3.Storage
 }
 
 // New creates a new [Service] with the given configuration. All fields in
@@ -50,6 +46,5 @@ func New(cfg Config) *Service {
 		restate:                               cfg.Restate,
 		logger:                                cfg.Logger,
 		availableRegions:                      cfg.AvailableRegions,
-		buildStorage:                          cfg.BuildStorage,
 	}
 }

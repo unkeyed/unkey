@@ -14,7 +14,6 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -27,8 +26,7 @@ const (
 )
 
 // CreateDeployment creates a new deployment record and initiates an async Restate
-// workflow. The deployment source must be either a build context (S3 path to a
-// tar.gz archive with an optional Dockerfile path) or a prebuilt Docker image.
+// workflow. The deployment source must be a prebuilt Docker image.
 //
 // The method looks up the project to infer the workspace, validates the
 // environment exists, fetches environment variables, and persists the deployment
@@ -45,6 +43,12 @@ func (s *Service) CreateDeployment(
 	if req.Msg.GetProjectId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("project_id is required"))
+	}
+
+	dockerImage := req.Msg.GetDockerImage()
+	if dockerImage == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("docker_image is required"))
 	}
 
 	// Lookup project and infer workspace from it
@@ -141,38 +145,9 @@ func (s *Service) CreateDeployment(
 		gitCommitTimestamp = gitCommit.GetTimestamp()
 	}
 
-	var buildContextKey string
-	var dockerfilePath string
-	var dockerImage *string
-
-	switch source := req.Msg.GetSource().(type) {
-	case *ctrlv1.CreateDeploymentRequest_BuildContext:
-		buildContextKey = source.BuildContext.GetBuildContextPath()
-		dockerfilePath = source.BuildContext.GetDockerfilePath()
-		if dockerfilePath == "" {
-			dockerfilePath = "./Dockerfile"
-		}
-
-	case *ctrlv1.CreateDeploymentRequest_DockerImage:
-		image := source.DockerImage
-		dockerImage = &image
-
-	default:
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("source must be specified (either build_context or docker_image)"))
-	}
-
-	// Log deployment source
-	if buildContextKey != "" {
-		s.logger.Info("deployment will build from source",
-			"deployment_id", deploymentID,
-			"context_key", buildContextKey,
-			"dockerfile", dockerfilePath)
-	} else {
-		s.logger.Info("deployment will use prebuilt image",
-			"deployment_id", deploymentID,
-			"image", *dockerImage)
-	}
+	s.logger.Info("deployment will use prebuilt image",
+		"deployment_id", deploymentID,
+		"image", dockerImage)
 
 	// Determine command: CLI override > project default > empty array
 	var command dbtype.StringSlice
@@ -217,7 +192,6 @@ func (s *Service) CreateDeployment(
 		"workspace_id", workspaceID,
 		"project_id", req.Msg.GetProjectId(),
 		"environment", env.ID,
-		"context_key", buildContextKey,
 		"docker_image", dockerImage,
 	)
 
@@ -229,20 +203,14 @@ func (s *Service) CreateDeployment(
 	}
 
 	deployReq := &hydrav1.DeployRequest{
-		BuildContextPath: nil,
-		DockerfilePath:   nil,
-		DockerImage:      nil,
-		DeploymentId:     deploymentID,
-		KeyAuthId:        keySpaceID,
-		Command:          req.Msg.GetCommand(),
-	}
-
-	switch source := req.Msg.GetSource().(type) {
-	case *ctrlv1.CreateDeploymentRequest_BuildContext:
-		deployReq.BuildContextPath = proto.String(source.BuildContext.GetBuildContextPath())
-		deployReq.DockerfilePath = source.BuildContext.DockerfilePath
-	case *ctrlv1.CreateDeploymentRequest_DockerImage:
-		deployReq.DockerImage = proto.String(source.DockerImage)
+		DeploymentId: deploymentID,
+		KeyAuthId:    keySpaceID,
+		Command:      req.Msg.GetCommand(),
+		Source: &hydrav1.DeployRequest_DockerImage{
+			DockerImage: &hydrav1.DockerImage{
+				Image: dockerImage,
+			},
+		},
 	}
 
 	// Send deployment request asynchronously (fire-and-forget)
