@@ -12,7 +12,7 @@ go_library(
     deps = [
         "//pkg/otel/logging",
         "//pkg/otel/tracing",
-        "//pkg/shutdown",
+        "//pkg/runner",
         "//pkg/version",
         "@com_github_shirou_gopsutil_v4//cpu",
         "@com_github_shirou_gopsutil_v4//mem",

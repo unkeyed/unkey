@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/cleanup"
@@ -26,6 +27,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger := logging.New().With(slog.String("service", "preflight"))
+	r := runner.New(logger)
+	defer r.Recover()
 
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
@@ -102,6 +105,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
 
-	logger.Info("starting preflight server", "addr", addr)
-	return server.Serve(ctx, ln)
+	r.DeferCtx(server.Shutdown)
+	r.Go(func(ctx context.Context) error {
+		logger.Info("starting preflight server", "addr", addr)
+		return server.Serve(ctx, ln)
+	})
+
+	return r.Wait(ctx)
 }

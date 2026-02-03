@@ -22,7 +22,7 @@ go_library(
         "//pkg/prometheus",
         "//pkg/restate/admin",
         "//pkg/rpc/interceptor",
-        "//pkg/shutdown",
+        "//pkg/runner",
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/certificate",
         "//svc/ctrl/worker/clickhouseuser",

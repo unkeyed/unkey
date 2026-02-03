@@ -3,11 +3,11 @@ package frontline
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
-	"runtime/debug"
 	"time"
 
 	"connectrpc.com/connect"
@@ -20,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	pkgtls "github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -56,17 +56,8 @@ func Run(ctx context.Context, cfg Config) error {
 		logger = logger.With(slog.String("version", version.Version))
 	}
 
-	// Catch any panics now after we have a logger but before we start the server
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("panic",
-				"panic", r,
-				"stack", string(debug.Stack()),
-			)
-		}
-	}()
-
-	shutdowns := shutdown.New()
+	r := runner.New(logger)
+	defer r.Recover()
 
 	// Create cached clock with millisecond resolution for efficient time tracking
 	clk := clock.New()
@@ -81,7 +72,7 @@ func Run(ctx context.Context, cfg Config) error {
 				CloudRegion:     cfg.Region,
 				TraceSampleRate: cfg.OtelTraceSamplingRate,
 			},
-			shutdowns,
+			r,
 		)
 
 		if grafanaErr != nil {
@@ -97,16 +88,19 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
 
-		go func() {
-			promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-			if listenErr != nil {
-				panic(listenErr)
-			}
+		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		if listenErr != nil {
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
+		}
+
+		r.DeferCtx(prom.Shutdown)
+		r.Go(func(ctx context.Context) error {
 			promListenErr := prom.Serve(ctx, promListener)
-			if promListenErr != nil {
-				panic(promListenErr)
+			if promListenErr != nil && !errors.Is(promListenErr, context.Canceled) {
+				return fmt.Errorf("prometheus server failed: %w", promListenErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	var vaultClient vaultv1connect.VaultServiceClient
@@ -131,7 +125,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
 	}
-	shutdowns.Register(db.Close)
+	r.Defer(db.Close)
 
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
@@ -239,7 +233,8 @@ func Run(ctx context.Context, cfg Config) error {
 		if httpsErr != nil {
 			return fmt.Errorf("unable to create HTTPS server: %w", httpsErr)
 		}
-		shutdowns.RegisterCtx(httpsSrv.Shutdown)
+		r.RegisterHealth(httpsSrv.Mux(), "/_unkey/internal/health")
+		r.DeferCtx(httpsSrv.Shutdown)
 
 		// Register all frontline routes on HTTPS server
 		routes.Register(httpsSrv, svcs)
@@ -249,13 +244,14 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create HTTPS listener: %w", httpsListenErr)
 		}
 
-		go func() {
+		r.Go(func(ctx context.Context) error {
 			logger.Info("HTTPS frontline server started", "addr", httpsListener.Addr().String())
 			serveErr := httpsSrv.Serve(ctx, httpsListener)
-			if serveErr != nil {
-				logger.Error("HTTPS server error", "error", serveErr)
+			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("https server error: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	// Start HTTP challenge server (ACME only for Let's Encrypt)
@@ -272,7 +268,8 @@ func Run(ctx context.Context, cfg Config) error {
 		if httpErr != nil {
 			return fmt.Errorf("unable to create HTTP server: %w", httpErr)
 		}
-		shutdowns.RegisterCtx(httpSrv.Shutdown)
+		r.RegisterHealth(httpSrv.Mux(), "/_unkey/internal/health")
+		r.DeferCtx(httpSrv.Shutdown)
 
 		// Register only ACME challenge routes on HTTP server
 		routes.RegisterChallengeServer(httpSrv, svcs)
@@ -282,19 +279,20 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create HTTP listener: %w", httpListenErr)
 		}
 
-		go func() {
+		r.Go(func(ctx context.Context) error {
 			logger.Info("HTTP challenge server started", "addr", httpListener.Addr().String())
 			serveErr := httpSrv.Serve(ctx, httpListener)
-			if serveErr != nil {
-				logger.Error("HTTP server error", "error", serveErr)
+			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("http server error: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	logger.Info("Frontline server initialized", "region", cfg.Region, "apexDomain", cfg.ApexDomain)
 
 	// Wait for either OS signals or context cancellation, then shutdown
-	if err := shutdowns.WaitForSignal(ctx, 0); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 

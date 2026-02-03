@@ -9,7 +9,7 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/bridges/prometheus"
@@ -88,7 +88,7 @@ type Config struct {
 //	for _, err := range errs {
 //	    log.Printf("Shutdown error: %v", err)
 //	}
-func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdowns) error {
+func InitGrafana(ctx context.Context, config Config, r *runner.Runner) error {
 	// Create a resource with common attributes
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
@@ -110,11 +110,11 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	if err != nil {
 		return fmt.Errorf("failed to create log exporter: %w", err)
 	}
-	shutdowns.RegisterCtx(logExporter.Shutdown)
+	r.DeferCtx(logExporter.Shutdown)
 
 	var processor log.Processor = log.NewBatchProcessor(logExporter, log.WithExportBufferSize(512), log.WithExportInterval(15*time.Second))
 	processor = minsev.NewLogProcessor(processor, minsev.SeverityInfo)
-	shutdowns.RegisterCtx(processor.Shutdown)
+	r.DeferCtx(processor.Shutdown)
 
 	//	if config.LogDebug {
 	//		processor = minsev.NewLogProcessor(processor, minsev.SeverityDebug)
@@ -124,7 +124,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		log.WithResource(res),
 		log.WithProcessor(processor),
 	)
-	shutdowns.RegisterCtx(logProvider.Shutdown)
+	r.DeferCtx(logProvider.Shutdown)
 
 	logging.AddHandler(otelslog.NewHandler(
 		config.Application,
@@ -144,7 +144,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	}
 
 	// Register shutdown function for trace exporter
-	shutdowns.RegisterCtx(traceExporter.Shutdown)
+	r.DeferCtx(traceExporter.Shutdown)
 
 	var sampler trace.Sampler
 
@@ -175,7 +175,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	)
 
 	// Register shutdown function for trace provider
-	shutdowns.RegisterCtx(traceProvider.Shutdown)
+	r.DeferCtx(traceProvider.Shutdown)
 
 	// Set the global trace provider
 	otel.SetTracerProvider(traceProvider)
@@ -190,16 +190,16 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		return fmt.Errorf("failed to create metric exporter: %w", err)
 	}
 
-	shutdowns.RegisterCtx(metricExporter.Shutdown)
+	r.DeferCtx(metricExporter.Shutdown)
 
 	bridge := prometheus.NewMetricProducer()
 
 	reader := metricsdk.NewPeriodicReader(metricExporter, metricsdk.WithProducer(bridge), metricsdk.WithInterval(60*time.Second))
-	shutdowns.RegisterCtx(reader.Shutdown)
+	r.DeferCtx(reader.Shutdown)
 
 	// Create and register the metric provider globally
 	meterProvider := metricsdk.NewMeterProvider(metricsdk.WithReader(reader), metricsdk.WithResource(res))
-	shutdowns.RegisterCtx(meterProvider.Shutdown)
+	r.DeferCtx(meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
 	err = registerSystemMetrics(meterProvider.Meter(config.Application))

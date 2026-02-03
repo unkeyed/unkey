@@ -125,14 +125,14 @@ spec:
               memory: 128Mi
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /health/live
               port: 8443
               scheme: HTTPS
             initialDelaySeconds: 5
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /health/ready
               port: 8443
               scheme: HTTPS
             initialDelaySeconds: 5

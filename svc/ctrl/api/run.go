@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -18,7 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -52,23 +53,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := shutdown.New()
-
-	if cfg.OtelEnabled {
-		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application:     "ctrl",
-			Version:         pkgversion.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
-		},
-			shutdowns,
-		)
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
-		}
-	}
-
 	logger := logging.New()
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
@@ -84,6 +68,24 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("TLS is enabled, server will use HTTPS")
 	}
 
+	r := runner.New(logger)
+	defer r.Recover()
+
+	if cfg.OtelEnabled {
+		grafanaErr := otel.InitGrafana(ctx, otel.Config{
+			Application:     "ctrl",
+			Version:         pkgversion.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		},
+			r,
+		)
+		if grafanaErr != nil {
+			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
+		}
+	}
+
 	// Initialize database
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
@@ -94,7 +96,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	shutdowns.Register(database.Close)
+	r.Defer(database.Close)
 
 	// Restate ingress client for invoking workflows
 	restateClientOpts := []restate.IngressClientOption{}
@@ -144,10 +146,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	// Health check endpoint for load balancers and orchestrators
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r.RegisterHealth(mux)
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
@@ -214,10 +213,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Register server shutdown
-	shutdowns.RegisterCtx(server.Shutdown)
+	r.DeferCtx(server.Shutdown)
 
 	// Start server
-	go func() {
+	r.Go(func(ctx context.Context) error {
 		logger.Info("Starting ctrl server", "addr", addr, "tls", cfg.TLSConfig != nil)
 
 		var err error
@@ -231,9 +230,10 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		if err != nil && err != http.ErrServerClosed {
-			logger.Error("Server failed", "error", err)
+			return fmt.Errorf("server failed: %w", err)
 		}
-	}()
+		return nil
+	})
 
 	// Bootstrap certificates (wildcard domain records)
 	if cfg.DefaultDomain != "" {
@@ -255,22 +255,24 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}
 
-		shutdowns.RegisterCtx(prom.Shutdown)
 		ln, lnErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 		if lnErr != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, lnErr)
 		}
-		go func() {
+
+		r.DeferCtx(prom.Shutdown)
+		r.Go(func(ctx context.Context) error {
 			logger.Info("prometheus started", "port", cfg.PrometheusPort)
-			if serveErr := prom.Serve(ctx, ln); serveErr != nil {
-				logger.Error("failed to start prometheus server", "error", serveErr)
+			if serveErr := prom.Serve(ctx, ln); serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("failed to start prometheus server: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	// Wait for signal and handle shutdown
 	logger.Info("Ctrl server started successfully")
-	if err := shutdowns.WaitForSignal(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}

@@ -57,7 +57,7 @@ spec:
               readOnly: true
           readinessProbe:
             httpGet:
-              path: /_unkey/internal/health
+              path: /health/ready
               port: 7070
             initialDelaySeconds: 5
             periodSeconds: 5

@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//pkg/assert",
         "//pkg/otel/logging",
+        "//pkg/runner",
         "//pkg/tls",
         "//pkg/zen",
         "//svc/preflight/internal/services/cleanup",
