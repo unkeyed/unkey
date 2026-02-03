@@ -2,10 +2,9 @@
 
 import { LogDetails as SharedLogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
-import { formatTimestamp, safeParseAttributes } from "../../../utils";
 import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
+import { formatTimestamp, safeParseAttributes } from "../../../utils";
 import { RuntimeLogHeader } from "./runtime-log-header";
-
 
 type Props = {
   distanceToTop: number;
@@ -25,12 +24,12 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
   const attributes = safeParseAttributes(log);
 
   return (
-    <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
-      <SharedLogDetails.Section delay={100}>
+    <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} >
+      <SharedLogDetails.Section>
         <RuntimeLogHeader log={log} onClose={handleClose} />
       </SharedLogDetails.Section>
 
-      <SharedLogDetails.CustomSections startDelay={150} staggerDelay={50}>
+      <SharedLogDetails.CustomSections>
         <LogSection
           title="Log Information"
           details={

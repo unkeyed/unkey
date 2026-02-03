@@ -41,10 +41,10 @@ export const queryRuntimeLogs = workspaceProcedure
       with: {
         activeDeployment: {
           columns: {
-            environmentId: true
-          }
-        }
-      }
+            environmentId: true,
+          },
+        },
+      },
     });
 
     if (!project?.activeDeployment?.environmentId) {
@@ -59,7 +59,7 @@ export const queryRuntimeLogs = workspaceProcedure
       ...transformedInputs,
       workspaceId: workspace.id,
       projectId: project.id,
-      environmentId: project.activeDeployment?.environmentId
+      environmentId: project.activeDeployment?.environmentId,
     });
 
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);

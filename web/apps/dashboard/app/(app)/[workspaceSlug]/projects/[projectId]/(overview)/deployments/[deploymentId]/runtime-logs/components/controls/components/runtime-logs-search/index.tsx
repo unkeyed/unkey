@@ -1,8 +1,8 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
 import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
-import { trpc } from "@/lib/trpc/client";
 
 export const RuntimeLogsSearch = () => {
   const { filters, updateFilters } = useRuntimeLogsFilters();
@@ -33,8 +33,9 @@ export const RuntimeLogsSearch = () => {
       updateFilters(transformedFilters);
     },
     onError(error) {
-      const errorMessage = `Unable to process your search request${error.message ? `' ${error.message} '` : "."
-        } Please try again or refine your search criteria.`;
+      const errorMessage = `Unable to process your search request${
+        error.message ? `' ${error.message} '` : "."
+      } Please try again or refine your search criteria.`;
 
       toast.error(errorMessage, {
         duration: 8000,

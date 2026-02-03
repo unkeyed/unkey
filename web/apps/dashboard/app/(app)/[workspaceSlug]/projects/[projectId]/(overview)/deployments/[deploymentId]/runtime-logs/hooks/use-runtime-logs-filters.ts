@@ -2,8 +2,8 @@
 
 import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import { useMemo } from "react";
-import { getSeverityColorClass } from "../utils";
 import type { RuntimeLogsFilter } from "../types";
+import { getSeverityColorClass } from "../utils";
 
 const parseAsFilterValueArray = parseAsArrayOf(parseAsString, ",").withDefault([]);
 
@@ -102,7 +102,8 @@ export function useRuntimeLogsFilters() {
   const updateFiltersFromArray = (newFilters: RuntimeLogsFilter[]) => {
     const updates: Partial<typeof queryParams> = {
       severity: newFilters.filter((f) => f.field === "severity").map((f) => String(f.value)),
-      searchText: newFilters.find((f) => f.field === "searchText")?.value as string | undefined || "",
+      searchText:
+        (newFilters.find((f) => f.field === "searchText")?.value as string | undefined) || "",
       startTime: Number(newFilters.find((f) => f.field === "startTime")?.value) || undefined,
       endTime: Number(newFilters.find((f) => f.field === "endTime")?.value) || undefined,
       since: String(newFilters.find((f) => f.field === "since")?.value) || "6h",

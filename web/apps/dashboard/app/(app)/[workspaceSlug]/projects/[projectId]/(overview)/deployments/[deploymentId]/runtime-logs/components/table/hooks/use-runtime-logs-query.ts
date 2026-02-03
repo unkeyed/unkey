@@ -37,19 +37,10 @@ export function useRuntimeLogsQuery({ limit = DEFAULT_LIMIT, filters }: UseRunti
     };
   }, [filters, limit, params]);
 
-  const {
-    data,
-    isLoading,
-    error,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = trpc.deploy.runtimeLogs.query.useInfiniteQuery(
-    queryInput,
-    {
+  const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    trpc.deploy.runtimeLogs.query.useInfiniteQuery(queryInput, {
       getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
-    }
-  );
+    });
 
   const logs = useMemo(() => {
     return data?.pages.flatMap((page) => page.logs) ?? [];

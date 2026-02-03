@@ -37,11 +37,7 @@ export function RuntimeLogsTable() {
         width: "10%",
         render: (log) => {
           const variant =
-            log.severity === "ERROR"
-              ? "error"
-              : log.severity === "WARN"
-                ? "warning"
-                : "success";
+            log.severity === "ERROR" ? "error" : log.severity === "WARN" ? "warning" : "success";
           return (
             <Badge variant={variant} className="uppercase px-2 rounded-md font-mono">
               {log.severity}
@@ -66,10 +62,9 @@ export function RuntimeLogsTable() {
             {log.region}
           </div>
         ),
-
       },
     ],
-    []
+    [],
   );
 
   const getRowClassName = (log: RuntimeLog) => {
@@ -78,7 +73,7 @@ export function RuntimeLogsTable() {
     return cn(
       baseClass,
       isSelected && "bg-accent-3 text-accent-12",
-      selectedLog && !isSelected && "opacity-50"
+      selectedLog && !isSelected && "opacity-50",
     );
   };
 
@@ -104,9 +99,7 @@ export function RuntimeLogsTable() {
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span>
-            <span className="text-accent-12">
-              {new Intl.NumberFormat().format(logs.length)}
-            </span>
+            <span className="text-accent-12">{new Intl.NumberFormat().format(logs.length)}</span>
             <span>of</span>
             <span className="text-accent-12">{new Intl.NumberFormat().format(total)}</span>
             <span>logs</span>
