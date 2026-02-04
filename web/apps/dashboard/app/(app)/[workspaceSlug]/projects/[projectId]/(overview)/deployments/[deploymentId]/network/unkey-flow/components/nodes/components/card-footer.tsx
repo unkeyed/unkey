@@ -1,3 +1,4 @@
+import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import { Bolt, ChartActivity, Focus } from "@unkey/icons";
 import type { SentinelNode } from "../types";
@@ -27,11 +28,7 @@ export function CardFooter(props: CardFooterProps) {
 
   return (
     <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-[14px]">
-      {flagCode && (
-        <div className="size-[22px] bg-grayA-3 rounded-full p-[3px] flex items-center justify-center mr-1.5">
-          <img src={`/images/flags/${flagCode}.svg`} alt={flagCode} className="size-4" />
-        </div>
-      )}
+      {flagCode && <RegionFlag flagCode={flagCode} size="sm" shape="circle" className="mr-1.5" />}
       {rps !== undefined && (
         <MetricPill
           icon={<ChartActivity iconSize="sm-medium" className="shrink-0" />}

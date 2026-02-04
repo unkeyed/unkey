@@ -1,9 +1,9 @@
 "use client";
 
+import { TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useRuntimeLogs } from "../hooks/use-runtime-logs";
 import { useDeploymentLogsContext } from "../providers/deployment-logs-provider";
-import { TimestampInfo } from "@unkey/ui";
 
 const ANIMATION_STYLES = {
   expand: "transition-all duration-400 ease-in",
@@ -82,9 +82,7 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
                     <span>
                       <TimestampInfo
                         value={log.time}
-                        className={cn(
-                          "font-mono underline decoration-dotted p-0 text-[11px]",
-                        )}
+                        className={cn("font-mono underline decoration-dotted p-0 text-[11px]")}
                       />
                     </span>
                     <span
@@ -99,9 +97,7 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
                     >
                       [{SEVERITY_ABBR[severity] ?? "LOG"}]
                     </span>
-                    <span className="shrink-0 font-medium  text-grayA-9">
-                      {log.region}
-                    </span>
+                    <span className="shrink-0 font-medium  text-grayA-9">{log.region}</span>
                     <span className="max-w-[300px] min-w-0 truncate">{log.message}</span>
                     <span className="max-w-[300px] truncate">{JSON.stringify(log.attributes)}</span>
                   </div>

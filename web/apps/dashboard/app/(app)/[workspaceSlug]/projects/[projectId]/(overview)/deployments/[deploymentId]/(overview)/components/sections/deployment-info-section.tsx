@@ -8,6 +8,7 @@ import { ActiveDeploymentCard } from "../../../../../../components/active-deploy
 import { DeploymentStatusBadge } from "../../../../../../components/deployment-status-badge";
 import { DisabledWrapper } from "../../../../../../components/disabled-wrapper";
 import { InfoChip } from "../../../../../../components/info-chip";
+import { RegionFlags } from "../../../../../../components/region-flags";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { useProject } from "../../../../../layout-provider";
 
@@ -24,9 +25,8 @@ export function DeploymentInfoSection() {
     [deploymentId],
   );
 
-  const deployment = data.at(0)
+  const deployment = data.at(0);
   const deploymentStatus = deployment?.status;
-  const deploymentRegions = deployment?.instances.map(i => i.flagCode) ?? [];
 
   return (
     <Section>
@@ -40,7 +40,7 @@ export function DeploymentInfoSection() {
           <div className="flex gap-1.5 items-center">
             <DisabledWrapper
               tooltipContent="Resource metrics coming soon"
-              className="flex gap-1.5 items-center"
+              className="2xl:flex gap-1.5 items-center hidden"
             >
               <InfoChip icon={Bolt}>
                 <div className="text-grayA-10 text-xs">
@@ -58,13 +58,7 @@ export function DeploymentInfoSection() {
                 </div>
               </InfoChip>
             </DisabledWrapper>
-            <div className="gap-1 flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3 p-1.5 h-[22px] rounded-md">
-              {deploymentRegions.map(r =>
-                <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
-                  <img src={`/images/flags/${r}.svg`} alt={r} className="size-4" />
-                </div>
-              )}
-            </div>
+            <RegionFlags instances={deployment?.instances ?? []} />
             <InfoTooltip asChild content="Show deployment details">
               <Button
                 variant="ghost"

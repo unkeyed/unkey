@@ -207,8 +207,9 @@ export function AddEnvVars({
 
     toast.promise(mutation, {
       loading: "Adding environment variables...",
-      success: `Added ${validEntries.length} environment variable${validEntries.length > 1 ? "s" : ""
-        }`,
+      success: `Added ${validEntries.length} environment variable${
+        validEntries.length > 1 ? "s" : ""
+      }`,
       error: (err) => ({
         message: "Failed to add environment variables",
         description: err.message || "Please try again",
@@ -218,7 +219,7 @@ export function AddEnvVars({
     try {
       await mutation;
       onSuccess();
-    } catch { }
+    } catch {}
   };
 
   return (

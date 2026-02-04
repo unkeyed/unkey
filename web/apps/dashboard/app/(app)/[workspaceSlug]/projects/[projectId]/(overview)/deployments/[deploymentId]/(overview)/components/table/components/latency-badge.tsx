@@ -9,9 +9,7 @@ export const LatencyBadge = ({ log }: { log: SentinelLogsResponse }) => {
 
   return (
     <InfoTooltip content={tooltipText}>
-      <Badge
-        className={cn("px-[6px] rounded-md font-mono whitespace-nowrap tabular-nums", style)}
-      >
+      <Badge className={cn("px-[6px] rounded-md font-mono whitespace-nowrap tabular-nums", style)}>
         {formatLatency(log.total_latency)}
       </Badge>
     </InfoTooltip>

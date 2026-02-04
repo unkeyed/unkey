@@ -19,6 +19,7 @@ import { TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { RepoDisplay } from "../../../../_components/list/repo-display";
 import { Avatar } from "../../../components/git-avatar";
+import { RegionFlags } from "../../../components/region-flags";
 import { OpenApiDiff } from "./sections/open-api-diff";
 
 export type DetailItem = {
@@ -133,13 +134,7 @@ export const createDetailSections = (
           alignment: "start",
           content: (
             <div className="w-fit">
-              <div className="gap-1 flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3 p-1.5 h-[22px] rounded-md">
-                {details.instances.map(r =>
-                  <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
-                    <img src={`/images/flags/${r.flagCode}.svg`} alt={r.flagCode} className="size-4" />
-                  </div>
-                )}
-              </div>
+              <RegionFlags instances={details.instances} />
             </div>
           ),
         },

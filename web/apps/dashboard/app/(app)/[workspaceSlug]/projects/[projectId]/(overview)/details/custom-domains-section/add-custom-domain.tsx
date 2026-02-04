@@ -117,7 +117,7 @@ export function AddCustomDomain({
     try {
       await mutation;
       onSuccess();
-    } catch { }
+    } catch {}
   };
 
   return (
@@ -159,7 +159,12 @@ export function AddCustomDomain({
           >
             Add
           </Button>
-          <Button variant="ghost" onClick={onCancel} disabled={isSubmitting} className="h-8 text-xs px-3">
+          <Button
+            variant="ghost"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="h-8 text-xs px-3"
+          >
             Cancel
           </Button>
         </div>
