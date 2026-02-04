@@ -332,10 +332,13 @@ func Run(ctx context.Context, cfg Config) error {
 		PprofPassword:              cfg.PprofPassword,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
+		WideSuccessSampleRate:     cfg.WideSuccessSampleRate,
+		WideSlowThresholdMs:       cfg.WideSlowThresholdMs,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,
 			Region: cfg.Region,
+			Image:  cfg.Image,
 		})
 
 	if cfg.Listener == nil {

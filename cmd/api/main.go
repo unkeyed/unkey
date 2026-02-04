@@ -209,6 +209,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 
 		// Debug configuration
 		DebugCacheHeaders: cmd.Bool("debug-cache-headers"),
+
+		// Wide configuration (use defaults)
+		WideSuccessSampleRate: 0,
+		WideSlowThresholdMs:   0,
 	}
 
 	err := config.Validate()

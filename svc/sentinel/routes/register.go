@@ -13,23 +13,33 @@ import (
 
 func Register(srv *zen.Server, svc *Services) {
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
-	withObservability := middleware.WithObservability(svc.Logger, svc.EnvironmentID, svc.Region)
 	withSentinelLogging := middleware.WithSentinelLogging(svc.ClickHouse, svc.Clock, svc.SentinelID, svc.Region)
 	withProxyErrorHandling := middleware.WithProxyErrorHandling()
-	withLogging := zen.WithLogging(svc.Logger)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
+
+	// Create wide-enabled observability middleware
+	withWideObservability := middleware.WithWideObservability(middleware.WideObservabilityConfig{
+		Logger:         svc.Logger,
+		EnvironmentID:  svc.EnvironmentID,
+		Region:         svc.Region,
+		ServiceVersion: svc.Image,
+		Sampler:        zen.NewTailSamplerFromConfig(svc.WideSuccessSampleRate, svc.WideSlowThresholdMs),
+	})
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
-		withObservability,
+		withWideObservability,
 		withSentinelLogging,
 		withProxyErrorHandling,
-		withLogging,
 		withTimeout,
 	}
 
+	// Health check uses simple wide middleware
 	srv.RegisterRoute(
-		[]zen.Middleware{withLogging},
+		[]zen.Middleware{
+			withPanicRecovery,
+			zen.WithWide(zen.NewWideConfig(svc.Logger, "sentinel", svc.Image, svc.Region)),
+		},
 		&internalHealth.Handler{
 			Logger: svc.Logger,
 		},

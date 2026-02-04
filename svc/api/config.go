@@ -128,6 +128,17 @@ type Config struct {
 	// When enabled, cache operations add headers showing hit/miss status and latency.
 	// Should typically only be enabled in development or specific production debugging.
 	DebugCacheHeaders bool
+
+	// --- Wide configuration ---
+
+	// WideSuccessSampleRate is the sampling rate for successful requests (0.0 - 1.0).
+	// Errors, 5xx responses, and slow requests are always logged.
+	// Default is 0.01 (1%).
+	WideSuccessSampleRate float64
+
+	// WideSlowThresholdMs is the threshold in milliseconds above which a request
+	// is considered slow and always logged. Default is 500.
+	WideSlowThresholdMs int
 }
 
 func (c Config) Validate() error {

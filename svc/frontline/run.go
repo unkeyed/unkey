@@ -216,12 +216,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	acmeClient := ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr)
 	svcs := &routes.Services{
-		Logger:        logger,
-		Region:        cfg.Region,
-		RouterService: routerSvc,
-		ProxyService:  proxySvc,
-		Clock:         clk,
-		AcmeClient:    acmeClient,
+		Logger:                 logger,
+		Region:                 cfg.Region,
+		RouterService:          routerSvc,
+		ProxyService:           proxySvc,
+		Clock:                  clk,
+		AcmeClient:             acmeClient,
+		WideSuccessSampleRate: cfg.WideSuccessSampleRate,
+		WideSlowThresholdMs:   cfg.WideSlowThresholdMs,
+		Image:                  cfg.Image,
 	}
 
 	// Start HTTPS frontline server (main proxy server)

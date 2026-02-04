@@ -132,15 +132,18 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	svcs := &routes.Services{
-		Logger:             logger,
-		RouterService:      routerSvc,
-		Clock:              clk,
-		WorkspaceID:        cfg.WorkspaceID,
-		EnvironmentID:      cfg.EnvironmentID,
-		SentinelID:         cfg.SentinelID,
-		Region:             cfg.Region,
-		ClickHouse:         ch,
-		MaxRequestBodySize: maxRequestBodySize,
+		Logger:                 logger,
+		RouterService:          routerSvc,
+		Clock:                  clk,
+		WorkspaceID:            cfg.WorkspaceID,
+		EnvironmentID:          cfg.EnvironmentID,
+		SentinelID:             cfg.SentinelID,
+		Region:                 cfg.Region,
+		ClickHouse:             ch,
+		MaxRequestBodySize:     maxRequestBodySize,
+		WideSuccessSampleRate: cfg.WideSuccessSampleRate,
+		WideSlowThresholdMs:   cfg.WideSlowThresholdMs,
+		Image:                  "", // TODO: add Image to sentinel config
 	}
 
 	srv, err := zen.New(zen.Config{

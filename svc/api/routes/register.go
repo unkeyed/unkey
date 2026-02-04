@@ -81,17 +81,25 @@ import (
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
-	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
 	withErrorHandling := middleware.WithErrorHandling(svc.Logger)
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
 
+	// Create wide middleware with tail sampler
+	withWide := zen.WithWide(zen.WideConfig{
+		Logger:         svc.Logger,
+		Sampler:        zen.NewTailSamplerFromConfig(svc.WideSuccessSampleRate, svc.WideSlowThresholdMs),
+		ServiceName:    "api",
+		ServiceVersion: info.Image,
+		Region:         info.Region,
+	})
+
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withObservability,
 		withMetrics,
-		withLogging,
+		withWide,
 		withErrorHandling,
 		withTimeout,
 		withValidation,
@@ -105,7 +113,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	if svc.ChproxyToken != "" {
 		chproxyMiddlewares := []zen.Middleware{
 			withMetrics,
-			withLogging,
+			withWide,
 			withObservability,
 			withPanicRecovery,
 			withErrorHandling,
@@ -138,7 +146,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	if svc.PprofEnabled {
 		pprofMiddlewares := []zen.Middleware{
-			withLogging,
+			withWide,
 			withObservability,
 			withPanicRecovery,
 			withErrorHandling,
@@ -651,7 +659,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	miscMiddlewares := []zen.Middleware{
 		withObservability,
 		withMetrics,
-		withLogging,
+		withWide,
 		withPanicRecovery,
 		withErrorHandling,
 	}

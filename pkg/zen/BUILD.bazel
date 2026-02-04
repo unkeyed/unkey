@@ -10,6 +10,7 @@ go_library(
         "instance.go",
         "middleware.go",
         "middleware_errors.go",
+        "middleware_evlog.go",
         "middleware_logger.go",
         "middleware_metrics.go",
         "middleware_observability.go",
@@ -28,6 +29,7 @@ go_library(
     deps = [
         "//pkg/clickhouse/schema",
         "//pkg/codes",
+        "//pkg/evlog",
         "//pkg/fault",
         "//pkg/otel/logging",
         "//pkg/otel/tracing",

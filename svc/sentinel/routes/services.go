@@ -18,4 +18,15 @@ type Services struct {
 	Region             string
 	ClickHouse         clickhouse.ClickHouse
 	MaxRequestBodySize int64
+
+	// --- Wide configuration ---
+
+	// WideSuccessSampleRate is the sampling rate for successful requests (0.0 - 1.0).
+	WideSuccessSampleRate float64
+
+	// WideSlowThresholdMs is the threshold in milliseconds for slow request logging.
+	WideSlowThresholdMs int
+
+	// Image is the service version/image identifier.
+	Image string
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -30,6 +31,14 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 			if !ok {
 				urn = codes.App.Internal.UnexpectedError.URN()
 			}
+
+			// Add error context to evlog for observability
+			wide.Set(ctx, wide.FieldErrorCode, urn)
+			wide.Set(ctx, wide.FieldErrorInternal, fault.InternalMessage(err))
+			if locations := fault.LocationChain(err); len(locations) > 0 {
+				wide.Set(ctx, wide.FieldErrorLocations, locations)
+			}
+			wide.MarkError(ctx)
 
 			code, parseErr := codes.ParseURN(urn)
 			if parseErr != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
@@ -34,14 +35,28 @@ const (
 //		return db.Query.SomeOperation(ctx, db.RO(), params)
 //	})
 func WithRetryContext[T any](ctx context.Context, fn func() (T, error)) (T, error) {
+	attempt := 0
 	return retry.DoWithResultContext(
 		retry.New(
 			retry.Attempts(DefaultAttempts),
 			retry.Backoff(backoffStrategy),
-			retry.ShouldRetry(shouldRetryError),
+			retry.ShouldRetry(func(err error) bool {
+				shouldRetry := shouldRetryError(err)
+				if shouldRetry {
+					// Track retry reason for debugging
+					wide.Set(ctx, wide.FieldDBRetryReason, ClassifyDBError(err))
+				}
+				return shouldRetry
+			}),
 		),
 		ctx,
-		fn,
+		func() (T, error) {
+			attempt++
+			if attempt > 1 {
+				wide.Set(ctx, wide.FieldDBRetryAttempt, attempt)
+			}
+			return fn()
+		},
 	)
 }
 
@@ -111,14 +126,25 @@ func shouldRetryError(err error) bool {
 //		return &Result{}, nil
 //	})
 func TxWithResultRetry[T any](ctx context.Context, db *Replica, fn func(context.Context, DBTX) (T, error)) (T, error) {
+	attempt := 0
 	return retry.DoWithResultContext(
 		retry.New(
 			retry.Attempts(DefaultAttempts),
 			retry.Backoff(backoffStrategy),
-			retry.ShouldRetry(shouldRetryError),
+			retry.ShouldRetry(func(err error) bool {
+				shouldRetry := shouldRetryError(err)
+				if shouldRetry {
+					wide.Set(ctx, wide.FieldDBRetryReason, ClassifyDBError(err))
+				}
+				return shouldRetry
+			}),
 		),
 		ctx,
 		func() (T, error) {
+			attempt++
+			if attempt > 1 {
+				wide.Set(ctx, wide.FieldDBRetryAttempt, attempt)
+			}
 			return TxWithResult(ctx, db, fn)
 		},
 	)

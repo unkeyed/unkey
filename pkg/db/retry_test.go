@@ -14,6 +14,62 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+func TestClassifyDBError(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected string
+	}{
+		{
+			name:     "nil error",
+			err:      nil,
+			expected: "",
+		},
+		{
+			name:     "not found error",
+			err:      sql.ErrNoRows,
+			expected: DBErrorTypeNotFound,
+		},
+		{
+			name:     "duplicate key error",
+			err:      &mysql.MySQLError{Number: 1062, Message: "Duplicate entry"},
+			expected: DBErrorTypeDuplicateKey,
+		},
+		{
+			name:     "deadlock error",
+			err:      &mysql.MySQLError{Number: 1213, Message: "Deadlock found"},
+			expected: DBErrorTypeDeadlock,
+		},
+		{
+			name:     "lock wait timeout error",
+			err:      &mysql.MySQLError{Number: 1205, Message: "Lock wait timeout"},
+			expected: DBErrorTypeLockTimeout,
+		},
+		{
+			name:     "too many connections error",
+			err:      &mysql.MySQLError{Number: 1040, Message: "Too many connections"},
+			expected: DBErrorTypeTooManyConnections,
+		},
+		{
+			name:     "server gone error",
+			err:      &mysql.MySQLError{Number: 2006, Message: "Server has gone away"},
+			expected: DBErrorTypeConnection,
+		},
+		{
+			name:     "unknown MySQL error",
+			err:      &mysql.MySQLError{Number: 9999, Message: "Unknown error"},
+			expected: DBErrorTypeUnknown,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ClassifyDBError(tt.err)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestWithRetryContext_Success(t *testing.T) {
 	ctx := context.Background()
 	callCount := 0

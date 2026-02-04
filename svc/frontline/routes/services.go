@@ -15,4 +15,15 @@ type Services struct {
 	ProxyService  proxy.Service
 	Clock         clock.Clock
 	AcmeClient    ctrlv1connect.AcmeServiceClient
+
+	// --- Wide configuration ---
+
+	// WideSuccessSampleRate is the sampling rate for successful requests (0.0 - 1.0).
+	WideSuccessSampleRate float64
+
+	// WideSlowThresholdMs is the threshold in milliseconds for slow request logging.
+	WideSlowThresholdMs int
+
+	// Image is the service version/image identifier.
+	Image string
 }

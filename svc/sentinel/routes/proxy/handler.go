@@ -12,6 +12,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -56,6 +57,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	}
 
+	// Log deployment context early so it's available even if errors occur later
+	wide.Set(ctx, wide.FieldDeploymentID, deploymentID)
+
 	deployment, err := h.RouterService.GetDeployment(ctx, deploymentID)
 	if err != nil {
 		return err
@@ -65,6 +69,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	// Log instance context for debugging proxy issues
+	wide.Set(ctx, wide.FieldInstanceID, instance.ID)
+	wide.Set(ctx, wide.FieldUpstreamHost, instance.Address)
 
 	var requestBody []byte
 	if req.Body != nil {

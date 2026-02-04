@@ -237,3 +237,47 @@ func InternalMessage(err error) string {
 
 	return strings.Join(errs, ": ")
 }
+
+// LocationChain returns all locations in the error chain, from newest to oldest.
+// This is useful for debugging to see the full path an error traveled through the codebase.
+//
+// Returns nil if:
+//   - The input error is nil
+//   - The error is not a wrapped error
+//   - No locations were captured in the error chain
+//
+// Example usage:
+//
+//	err := fault.New("base error")
+//	wrapped := fault.Wrap(err, fault.WithDesc("ctx", "public"))
+//	locations := fault.LocationChain(wrapped)
+//	// locations might be: ["handler.go:42", "service.go:100", "repository.go:55"]
+func LocationChain(err error) []string {
+	if err == nil {
+		return nil
+	}
+
+	current, ok := err.(*wrapped)
+	if !ok {
+		return nil
+	}
+
+	locations := []string{}
+	for current != nil {
+		if current.location != "" {
+			locations = append(locations, current.location)
+		}
+
+		if current.err == nil {
+			break
+		}
+
+		next, ok := current.err.(*wrapped)
+		if !ok {
+			break
+		}
+		current = next
+	}
+
+	return locations
+}

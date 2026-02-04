@@ -272,6 +272,7 @@ go_library(
         "//pkg/assert",
         "//pkg/codes",
         "//pkg/db/types",
+        "//pkg/evlog",
         "//pkg/fault",
         "//pkg/otel/logging",
         "//pkg/otel/tracing",

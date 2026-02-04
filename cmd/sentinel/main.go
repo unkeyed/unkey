@@ -75,5 +75,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelEnabled:           cmd.Bool("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 		PrometheusPort:        cmd.Int("prometheus-port"),
+
+		// Wide configuration (use defaults)
+		WideSuccessSampleRate: 0,
+		WideSlowThresholdMs:   0,
 	})
 }

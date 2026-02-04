@@ -70,6 +70,17 @@ type Config struct {
 
 	// VaultToken is the authentication token for the vault service
 	VaultToken string
+
+	// --- Wide configuration ---
+
+	// WideSuccessSampleRate is the sampling rate for successful requests (0.0 - 1.0).
+	// Errors, 5xx responses, and slow requests are always logged.
+	// Default is 0.01 (1%).
+	WideSuccessSampleRate float64
+
+	// WideSlowThresholdMs is the threshold in milliseconds above which a request
+	// is considered slow and always logged. Default is 500.
+	WideSlowThresholdMs int
 }
 
 func (c Config) Validate() error {

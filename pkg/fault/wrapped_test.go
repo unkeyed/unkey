@@ -153,6 +153,49 @@ func TestErrorChainUnwrapping(t *testing.T) {
 	unwrapped = errors.Unwrap(unwrapped)
 	require.Nil(t, unwrapped)
 }
+func TestLocationChain(t *testing.T) {
+	t.Run("nil error", func(t *testing.T) {
+		locations := LocationChain(nil)
+		require.Nil(t, locations)
+	})
+
+	t.Run("non-wrapped error", func(t *testing.T) {
+		err := errors.New("plain error")
+		locations := LocationChain(err)
+		require.Nil(t, locations)
+	})
+
+	t.Run("single wrapped error", func(t *testing.T) {
+		err := New("base error")
+		locations := LocationChain(err)
+		require.Len(t, locations, 1)
+		require.Contains(t, locations[0], "wrapped_test.go:")
+	})
+
+	t.Run("deeply nested error chain", func(t *testing.T) {
+		base := New("base")
+		wrapped1 := Wrap(base, Internal("level 1"))
+		wrapped2 := Wrap(wrapped1, Internal("level 2"))
+
+		locations := LocationChain(wrapped2)
+		require.Len(t, locations, 3)
+		// All locations should be from this test file
+		for _, loc := range locations {
+			require.Contains(t, loc, "wrapped_test.go:")
+		}
+	})
+
+	t.Run("mixed wrapped and non-wrapped", func(t *testing.T) {
+		base := errors.New("standard error")
+		wrapped1 := Wrap(base, Internal("level 1"))
+		wrapped2 := Wrap(wrapped1, Internal("level 2"))
+
+		locations := LocationChain(wrapped2)
+		// Should have 2 locations (only for the wrapped parts)
+		require.Len(t, locations, 2)
+	})
+}
+
 func TestUserFacingMessage(t *testing.T) {
 
 	t.Run("basic error chain", func(t *testing.T) {

@@ -110,6 +110,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Vault configuration
 		VaultURL:   cmd.String("vault-url"),
 		VaultToken: cmd.String("vault-token"),
+
+		// Wide configuration (use defaults)
+		WideSuccessSampleRate: 0,
+		WideSlowThresholdMs:   0,
 	}
 
 	err := config.Validate()

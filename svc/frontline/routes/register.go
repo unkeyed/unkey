@@ -12,20 +12,29 @@ import (
 
 // Register registers all frontline routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
-	withLogging := zen.WithLogging(svc.Logger)
 	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
-	withObservability := middleware.WithObservability(svc.Logger, svc.Region)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
+
+	// Create wide-enabled observability middleware
+	withWideObservability := middleware.WithWideObservability(middleware.WideObservabilityConfig{
+		Logger:         svc.Logger,
+		Region:         svc.Region,
+		ServiceVersion: svc.Image,
+		Sampler:        zen.NewTailSamplerFromConfig(svc.WideSuccessSampleRate, svc.WideSlowThresholdMs),
+	})
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
-		withLogging,
-		withObservability,
+		withWideObservability,
 		withTimeout,
 	}
 
+	// Health check uses simple wide middleware (no error handling complexity)
 	srv.RegisterRoute(
-		[]zen.Middleware{withLogging},
+		[]zen.Middleware{
+			withPanicRecovery,
+			zen.WithWide(zen.NewWideConfig(svc.Logger, "frontline", svc.Image, svc.Region)),
+		},
 		&internalHealth.Handler{
 			Logger: svc.Logger,
 		},
@@ -46,11 +55,22 @@ func Register(srv *zen.Server, svc *Services) {
 
 // RegisterChallengeServer registers routes for the HTTP challenge server (Let's Encrypt ACME)
 func RegisterChallengeServer(srv *zen.Server, svc *Services) {
-	withLogging := zen.WithLogging(svc.Logger)
+	withPanicRecovery := zen.WithPanicRecovery(svc.Logger)
+
+	// Create wide-enabled observability middleware
+	withWideObservability := middleware.WithWideObservability(middleware.WideObservabilityConfig{
+		Logger:         svc.Logger,
+		Region:         svc.Region,
+		ServiceVersion: svc.Image,
+		Sampler:        zen.NewTailSamplerFromConfig(svc.WideSuccessSampleRate, svc.WideSlowThresholdMs),
+	})
 
 	// Health check endpoint
 	srv.RegisterRoute(
-		[]zen.Middleware{withLogging},
+		[]zen.Middleware{
+			withPanicRecovery,
+			zen.WithWide(zen.NewWideConfig(svc.Logger, "frontline", svc.Image, svc.Region)),
+		},
 		&internalHealth.Handler{
 			Logger: svc.Logger,
 		},
@@ -59,9 +79,8 @@ func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 	// Catches /.well-known/acme-challenge/{token} so we can forward to ctrl plane.
 	srv.RegisterRoute(
 		[]zen.Middleware{
-			zen.WithPanicRecovery(svc.Logger),
-			withLogging,
-			middleware.WithObservability(svc.Logger, svc.Region),
+			withPanicRecovery,
+			withWideObservability,
 		},
 		&acme.Handler{
 			Logger:        svc.Logger,

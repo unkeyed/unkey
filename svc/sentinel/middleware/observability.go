@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
@@ -269,6 +270,134 @@ func WithObservability(logger logging.Logger, environmentID, region string) zen.
 
 			sentinelRequestsTotal.WithLabelValues(statusStr, errorType, environmentID, region).Inc()
 			sentinelRequestDuration.WithLabelValues(statusStr, errorType, environmentID, region).Observe(duration)
+
+			return nil
+		}
+	}
+}
+
+// WideObservabilityConfig holds configuration for wide-enabled observability.
+type WideObservabilityConfig struct {
+	Logger         logging.Logger
+	EnvironmentID  string
+	Region         string
+	ServiceVersion string
+	Sampler        wide.Sampler
+}
+
+// WithWideObservability returns an observability middleware that uses wide for wide event logging.
+// This replaces the standard logging with a single comprehensive log per request.
+func WithWideObservability(config WideObservabilityConfig) zen.Middleware {
+	return func(next zen.HandleFunc) zen.HandleFunc {
+		return func(ctx context.Context, s *zen.Session) error {
+			// Create EventContext with logger and sampler
+			ctx, ev := wide.WithEventContext(ctx, wide.EventConfig{
+				Logger:  config.Logger,
+				Sampler: config.Sampler,
+			})
+
+			// Capture initial request metadata
+			ev.SetMany(map[string]any{
+				wide.FieldRequestID:      s.RequestID(),
+				wide.FieldMethod:         s.Request().Method,
+				wide.FieldPath:           s.Request().URL.Path,
+				wide.FieldHost:           s.Request().Host,
+				wide.FieldUserAgent:      s.UserAgent(),
+				wide.FieldIPAddress:      s.Location(),
+				wide.FieldServiceName:    "sentinel",
+				wide.FieldServiceVersion: config.ServiceVersion,
+				wide.FieldEnvironmentID:  config.EnvironmentID,
+				wide.FieldRegion:         config.Region,
+			})
+
+			// Start trace span for the request
+			ctx, span := tracing.Start(ctx, "sentinel.proxy")
+			span.SetAttributes(
+				attribute.String("request_id", s.RequestID()),
+				attribute.String("host", s.Request().Host),
+				attribute.String("method", s.Request().Method),
+				attribute.String("path", s.Request().URL.Path),
+				attribute.String("environment_id", config.EnvironmentID),
+				attribute.String("region", config.Region),
+			)
+			defer span.End()
+
+			sentinelActiveRequests.WithLabelValues(config.EnvironmentID, config.Region).Inc()
+			defer sentinelActiveRequests.WithLabelValues(config.EnvironmentID, config.Region).Dec()
+
+			err := next(ctx, s)
+
+			statusCode := s.StatusCode()
+			var errorType string
+			var urn codes.URN
+			hasError := err != nil
+
+			if hasError {
+				tracing.RecordError(span, err)
+				ev.MarkError()
+
+				var ok bool
+				urn, ok = fault.GetCode(err)
+				if !ok {
+					urn = codes.Sentinel.Internal.InternalServerError.URN()
+				}
+
+				code, parseErr := codes.ParseURN(urn)
+				if parseErr != nil {
+					config.Logger.Error("failed to parse error code", "error", parseErr.Error())
+					code = codes.Sentinel.Internal.InternalServerError
+				}
+
+				pageInfo := getErrorPageInfo(urn)
+				statusCode = pageInfo.Status
+
+				errorType = categorizeErrorType(urn, statusCode, hasError)
+
+				userMessage := pageInfo.Message
+				if userMessage == "" {
+					userMessage = fault.UserFacingMessage(err)
+				}
+
+				// Add error details to wide
+				ev.Set(wide.FieldError, userMessage)
+				ev.Set(wide.FieldErrorCode, string(code.URN()))
+				ev.Set(wide.FieldErrorInternal, err.Error())
+
+				s.ResponseWriter().Header().Set("X-Unkey-Error-Source", "sentinel")
+
+				writeErr := s.JSON(pageInfo.Status, ErrorResponse{
+					Error: ErrorDetail{
+						Code:    string(code.URN()),
+						Message: userMessage,
+					},
+				})
+				if writeErr != nil {
+					config.Logger.Error("failed to write error response", "error", writeErr.Error())
+				}
+			} else {
+				errorType = categorizeErrorType("", statusCode, hasError)
+			}
+
+			duration := ev.Duration()
+			durationSeconds := duration.Seconds()
+			statusStr := strconv.Itoa(statusCode)
+
+			// Add final metrics to wide
+			ev.Set(wide.FieldStatusCode, statusCode)
+			ev.Set(wide.FieldDurationMs, duration.Milliseconds())
+			ev.Set(wide.FieldErrorType, errorType)
+
+			// Add final status to span
+			span.SetAttributes(
+				attribute.Int("status_code", statusCode),
+				attribute.String("error_type", errorType),
+			)
+
+			// Emit the event (sampling is handled internally)
+			ev.Emit()
+
+			sentinelRequestsTotal.WithLabelValues(statusStr, errorType, config.EnvironmentID, config.Region).Inc()
+			sentinelRequestDuration.WithLabelValues(statusStr, errorType, config.EnvironmentID, config.Region).Observe(durationSeconds)
 
 			return nil
 		}

@@ -78,4 +78,12 @@ type Services struct {
 	// AnalyticsConnectionManager manages connections to analytics backends
 	// for retrieving verification and usage data.
 	AnalyticsConnectionManager analytics.ConnectionManager
+
+	// --- Wide configuration ---
+
+	// WideSuccessSampleRate is the sampling rate for successful requests (0.0 - 1.0).
+	WideSuccessSampleRate float64
+
+	// WideSlowThresholdMs is the threshold in milliseconds for slow request logging.
+	WideSlowThresholdMs int
 }

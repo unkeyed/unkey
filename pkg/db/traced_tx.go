@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
@@ -14,6 +15,13 @@ const (
 	statusSuccess = "success"
 	statusError   = "error"
 )
+
+// setDBErrorContext sets the db_error_type evlog field when a database error occurs.
+func setDBErrorContext(ctx context.Context, err error) {
+	if err != nil {
+		wide.Set(ctx, wide.FieldDBErrorType, ClassifyDBError(err))
+	}
+}
 
 // WrapTxWithContext wraps a standard sql.Tx with our DBTx interface for tracing, using the provided context
 func WrapTxWithContext(tx *sql.Tx, mode string, ctx context.Context) DBTx {
@@ -50,6 +58,7 @@ func (t *TracedTx) ExecContext(ctx context.Context, query string, args ...any) (
 	status := statusSuccess
 	if err != nil {
 		status = statusError
+		setDBErrorContext(ctx, err)
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "exec", status).Observe(duration)
@@ -75,6 +84,7 @@ func (t *TracedTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 	status := statusSuccess
 	if err != nil {
 		status = statusError
+		setDBErrorContext(ctx, err)
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "prepare", status).Observe(duration)
@@ -100,6 +110,7 @@ func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...any) 
 	status := statusSuccess
 	if err != nil {
 		status = statusError
+		setDBErrorContext(ctx, err)
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "query", status).Observe(duration)
@@ -142,6 +153,7 @@ func (t *TracedTx) Commit() error {
 	status := statusSuccess
 	if err != nil {
 		status = statusError
+		setDBErrorContext(t.ctx, err)
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "commit", status).Observe(duration)
@@ -163,6 +175,7 @@ func (t *TracedTx) Rollback() error {
 	status := statusSuccess
 	if err != nil {
 		status = statusError
+		setDBErrorContext(t.ctx, err)
 	}
 
 	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "rollback", status).Observe(duration)

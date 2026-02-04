@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
@@ -38,6 +39,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	// Log deployment context early so it's available even if errors occur later
+	wide.Set(ctx, wide.FieldDeploymentID, route.DeploymentID)
 
 	// Find Local sentinel or nearest NLB
 	decision, err := h.RouterService.SelectSentinel(route, sentinels)
