@@ -36,7 +36,7 @@ var triggerWebhookCmd = &cli.Command{
 		// Optional
 		cli.String("branch", "Branch name", cli.Default("main")),
 		cli.String("webhook-url", "Ctrl-api webhook endpoint", cli.Default("http://localhost:7091/webhooks/github")),
-		cli.String("webhook-secret", "Secret for signing", cli.Default("local-dev-secret"), cli.EnvVar("UNKEY_GITHUB_APP_WEBHOOK_SECRET")),
+		cli.String("webhook-secret", "Secret for signing", cli.Default("supersecret"), cli.EnvVar("UNKEY_GITHUB_APP_WEBHOOK_SECRET")),
 		cli.String("database-url", "MySQL connection string", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 	},
 	Action: triggerWebhook,
@@ -75,12 +75,9 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	payload := buildPushPayload(pushPayloadInput{
 		Branch:         branch,
 		CommitSHA:      commitSHA,
-		CommitMessage:  "Manual deployment trigger",
 		InstallationID: installationID,
 		RepositoryID:   repositoryID,
 		Repository:     repository,
-		AuthorName:     "Developer",
-		AuthorUsername: "dev",
 	})
 
 	// Serialize to JSON
@@ -124,7 +121,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 		fmt.Println()
 		fmt.Printf("Repository: %s\n", repository)
 		fmt.Printf("Branch: %s\n", branch)
-		fmt.Printf("Commit: %s (%s)\n", commitSHA[:min(8, len(commitSHA))], "Manual deployment trigger")
+		fmt.Printf("Commit: %s\n", commitSHA[:min(8, len(commitSHA))])
 
 		// Determine environment
 		env := "preview"
@@ -219,11 +216,4 @@ func fetchRepositoryID(ctx context.Context, repository string) (int64, error) {
 	}
 
 	return result.ID, nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

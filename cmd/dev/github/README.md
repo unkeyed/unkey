@@ -39,15 +39,23 @@ go run . dev github trigger-webhook \
 
 ## Prerequisites
 
-1. **Local dev environment running**:
+1. **Configure webhook secret** in `.env.github`:
+
+   ```bash
+   UNKEY_GITHUB_APP_WEBHOOK_SECRET=supersecret
+   ```
+
+   This enables the webhook endpoint in ctrl-api.
+
+2. **Local dev environment running**:
 
    ```bash
    make dev  # Starts Tilt with ctrl-api
    ```
 
-2. **Public repository**: The repository must be publicly accessible on GitHub (for local dev without authentication)
+3. **Public repository**: The repository must be publicly accessible on GitHub (for local dev without authentication)
 
-3. **Project exists**: Create a project in your local Unkey instance first
+4. **Project exists**: Create a project in your local Unkey instance first
 
 ## Flags
 
@@ -61,7 +69,7 @@ go run . dev github trigger-webhook \
 
 - `--branch` - Branch name (default: `main`)
 - `--webhook-url` - Webhook endpoint (default: `http://localhost:7091/webhooks/github`)
-- `--webhook-secret` - HMAC signing secret (default: `local-dev-secret`)
+- `--webhook-secret` - HMAC signing secret (default: `supersecret`)
 - `--database-url` - MySQL DSN (default: `unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true`)
 
 ## How It Works
@@ -94,7 +102,7 @@ go run . dev github trigger-webhook \
 ### ✗ Webhook rejected: invalid signature
 
 - Check `UNKEY_GITHUB_APP_WEBHOOK_SECRET` matches ctrl-api config
-- Default for local dev: `local-dev-secret`
+- Default for local dev: `supersecret`
 
 ### ✗ Failed to fetch repository ID
 
