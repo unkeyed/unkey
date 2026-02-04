@@ -16,6 +16,7 @@ go_library(
         "//pkg/restate/admin",
         "//svc/ctrl/integration/seed",
         "//svc/ctrl/worker/clickhouseuser",
+        "//svc/ctrl/worker/keyrefill",
         "//svc/ctrl/worker/quotacheck",
         "//svc/vault/testutil",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",

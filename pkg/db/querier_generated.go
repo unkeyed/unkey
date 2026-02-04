@@ -1876,6 +1876,27 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListKeysByKeySpaceIDParams) ([]ListKeysByKeySpaceIDRow, error)
+	// ListKeysForRefill returns keys that need their remaining_requests refilled.
+	// Uses idx_keys_refill index for efficient lookup.
+	// Keys are selected if:
+	//   - refill_day is NULL (daily refill)
+	//   - refill_day matches today's day of month
+	//   - refill_day > today's day AND today is the last day of month (catch-up for short months)
+	// Keys are skipped if remaining_requests >= refill_amount (already full).
+	//
+	//  SELECT id, workspace_id, refill_amount, remaining_requests, name
+	//  FROM `keys`
+	//  WHERE refill_amount IS NOT NULL
+	//    AND deleted_at_m IS NULL
+	//    AND (remaining_requests IS NULL OR refill_amount > remaining_requests)
+	//    AND (
+	//        refill_day IS NULL
+	//        OR refill_day = ?
+	//        OR (? = 1 AND refill_day > ?)
+	//    )
+	//  ORDER BY id
+	//  LIMIT ? OFFSET ?
+	ListKeysForRefill(ctx context.Context, db DBTX, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error)
 	//ListLiveKeysByKeySpaceID
 	//
 	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
@@ -2155,6 +2176,16 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	ReassignFrontlineRoute(ctx context.Context, db DBTX, arg ReassignFrontlineRouteParams) error
+	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
+	// This is a bulk operation to minimize database round trips.
+	//
+	//  UPDATE `keys`
+	//  SET remaining_requests = refill_amount,
+	//      last_refill_at = NOW(3),
+	//      updated_at_m = ?
+	//  WHERE id IN (/*SLICE:ids*/?)
+	//    AND deleted_at_m IS NULL
+	RefillKeysByIDs(ctx context.Context, db DBTX, arg RefillKeysByIDsParams) error
 	//ResetCustomDomainVerification
 	//
 	//  UPDATE custom_domains

@@ -185,6 +185,7 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		// Healthcheck heartbeat URLs
 		CertRenewalHeartbeatURL: cmd.String("cert-renewal-heartbeat-url"),
 		QuotaCheckHeartbeatURL:  cmd.String("quota-check-heartbeat-url"),
+		KeyRefillHeartbeatURL:   cmd.String("key-refill-heartbeat-url"),
 
 		// Slack notifications
 		QuotaCheckSlackWebhookURL: cmd.String("quota-check-slack-webhook-url"),

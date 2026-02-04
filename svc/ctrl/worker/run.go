@@ -31,6 +31,7 @@ import (
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
@@ -281,8 +282,23 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("create quota check service: %w", err)
 	}
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
-
 	logger.Info("QuotaCheckService enabled")
+
+	// Key refill service for scheduled key usage limit refills
+	var keyRefillHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.KeyRefillHeartbeatURL != "" {
+		keyRefillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.KeyRefillHeartbeatURL)
+	}
+	keyRefillSvc, err := keyrefill.New(keyrefill.Config{
+		DB:        database,
+		Logger:    logger,
+		Heartbeat: keyRefillHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create key refill service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
+	logger.Info("KeyRefillService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

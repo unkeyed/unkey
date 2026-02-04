@@ -28,6 +28,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 	"golang.org/x/net/http2"
@@ -169,11 +170,19 @@ func New(t *testing.T) *Harness {
 		Logger:     logging.NewNoop(),
 	})
 
+	keyRefillSvc, err := keyrefill.New(keyrefill.Config{
+		DB:        database,
+		Logger:    logging.NewNoop(),
+		Heartbeat: healthcheck.NewNoop(),
+	})
+	require.NoError(t, err)
+
 	// Set up Restate server with all services
 	// Use the proto-generated wrappers (same as run.go) to get correct service names
 	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
+	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
 
 	restateHandler, err := restateSrv.Handler()
 	require.NoError(t, err)
