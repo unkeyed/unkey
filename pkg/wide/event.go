@@ -31,6 +31,7 @@ import (
 // This matches the common structured logging pattern.
 type Logger interface {
 	Info(msg string, args ...any)
+	Error(msg string, args ...any)
 }
 
 // EventConfig holds configuration for creating an EventContext.
@@ -195,7 +196,11 @@ func (e *EventContext) Emit() bool {
 		e.Set(FieldSampleReason, decision.Reason)
 	}
 
-	// Emit the wide event
-	e.logger.Info(e.name, e.Fields()...)
+	// Emit the wide event at appropriate level
+	if e.hasError {
+		e.logger.Error(e.name, e.Fields()...)
+	} else {
+		e.logger.Info(e.name, e.Fields()...)
+	}
 	return true
 }

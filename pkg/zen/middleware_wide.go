@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/wide"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/wide"
 )
 
 // WideConfig holds configuration for the wide middleware.
@@ -110,6 +111,9 @@ func WithWide(config WideConfig) Middleware {
 			// Mark error if handler returned an error
 			if nextErr != nil {
 				ev.Set(wide.FieldError, nextErr.Error())
+				if publicMsg := fault.UserFacingMessage(nextErr); publicMsg != "" {
+					ev.Set(wide.FieldErrorPublic, publicMsg)
+				}
 				ev.MarkError()
 			}
 

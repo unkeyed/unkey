@@ -292,7 +292,12 @@ func (c *cache[K, V]) revalidate(
 	v, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
-		c.logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
+		c.logger.Warn("cache revalidation failed",
+			"resource", c.resource,
+			"key", key,
+			"error", err.Error(),
+			"error_type", db.ClassifyDBError(err),
+		)
 	}
 
 	switch op(err) {
@@ -548,7 +553,11 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
-		c.logger.Warn("failed to revalidate with canonical key", "error", err.Error())
+		c.logger.Warn("cache revalidation failed",
+			"resource", c.resource,
+			"error", err.Error(),
+			"error_type", db.ClassifyDBError(err),
+		)
 		return
 	}
 
@@ -595,7 +604,12 @@ func (c *cache[K, V]) revalidateMany(
 	values, err := refreshFromOrigin(ctx, keysToRefresh)
 
 	if err != nil && !db.IsNotFound(err) {
-		c.logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keysToRefresh)
+		c.logger.Warn("cache revalidation failed",
+			"resource", c.resource,
+			"key_count", len(keysToRefresh),
+			"error", err.Error(),
+			"error_type", db.ClassifyDBError(err),
+		)
 	}
 
 	switch op(err) {

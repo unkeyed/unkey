@@ -343,12 +343,6 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 				// Fall through to default 500 error
 			}
 
-			logger.Error("api error",
-				"error", err.Error(),
-				"requestId", s.RequestID(),
-				"publicMessage", fault.UserFacingMessage(err),
-			)
-
 			return s.JSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: s.RequestID(),

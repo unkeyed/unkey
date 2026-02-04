@@ -79,6 +79,9 @@ const (
 	// FieldErrorInternal is the internal error message (not user-facing).
 	FieldErrorInternal = "error_internal"
 
+	// FieldErrorPublic is the user-facing error message returned in the API response.
+	FieldErrorPublic = "error_public"
+
 	// FieldErrorType categorizes the error source (none, user, customer, platform).
 	FieldErrorType = "error_type"
 
