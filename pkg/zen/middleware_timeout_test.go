@@ -121,16 +121,15 @@ func TestWithTimeout(t *testing.T) {
 		require.Equal(t, nil, err)
 	})
 
-	t.Run("wrapped context error with existing code is reclassified as timeout", func(t *testing.T) {
-		// This tests the scenario where application code (e.g., DB operations) wraps
-		// a context error with a service-specific code like ServiceUnavailable.
-		// The middleware should reclassify it as RequestTimeout, not pass through the 500.
+	t.Run("server timeout with existing code is reclassified as timeout", func(t *testing.T) {
+		// Server-side timeouts should always be reclassified as RequestTimeout,
+		// even if application code wrapped the error with a different code.
 		middleware := WithTimeout(50 * time.Millisecond)
 
 		handler := middleware(func(ctx context.Context, s *Session) error {
 			select {
 			case <-ctx.Done():
-				// Simulate what audit log insertion does: wrap context.Canceled with ServiceUnavailable
+				// Simulate what audit log insertion does: wrap context.DeadlineExceeded with ServiceUnavailable
 				return fault.Wrap(ctx.Err(),
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database failed to insert audit logs"),
