@@ -14,7 +14,7 @@ import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bar, BarChart, ReferenceArea, YAxis } from "recharts";
+import { Bar, BarChart, ReferenceArea, YAxis, type ChartMouseEvent } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
 
@@ -29,15 +29,6 @@ type TimeseriesData = {
   originalTimestamp: number;
   total: number;
   [key: string]: unknown;
-};
-
-export type ChartMouseEvent = {
-  activeLabel?: string | number;
-  activeIndex?: number;
-  activePayload?: ReadonlyArray<{
-    payload: TimeseriesData;
-    index?: number;
-  }>;
 };
 
 type LogsTimeseriesBarChartProps = {
