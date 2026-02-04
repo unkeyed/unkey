@@ -42,7 +42,7 @@ export function useRuntimeLogsFilters() {
     ) {
       setSearchParams({ since: "6h" });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const filters = useMemo(() => {
     const activeFilters: RuntimeLogsFilterValue[] = [];

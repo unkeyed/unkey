@@ -5,7 +5,6 @@ import { LogSection } from "@/components/logs/details/log-details/components/log
 import { TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
-import { safeParseAttributes } from "../../../utils";
 import { RuntimeLogHeader } from "./runtime-log-header";
 
 type Props = {
@@ -22,8 +21,6 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
   const handleClose = () => {
     setSelectedLog(null);
   };
-
-  const attributes = safeParseAttributes(log);
 
   return (
     <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
@@ -71,10 +68,10 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
           }
         />
 
-        {attributes && (
+        {log.attributes && (
           <LogSection
             title="Attributes"
-            details={<pre className="text-xs">{JSON.stringify(attributes, null, 2)}</pre>}
+            details={<pre className="text-xs">{JSON.stringify(log.attributes, null, 2)}</pre>}
           />
         )}
       </SharedLogDetails.CustomSections>
