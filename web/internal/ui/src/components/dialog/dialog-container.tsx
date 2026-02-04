@@ -3,7 +3,7 @@
 import * as React from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 import { cn } from "../../lib/utils";
-import { Dialog, DialogContent } from "./dialog";
+import { Dialog, DialogContent, DialogPortal } from "./dialog";
 import {
   DefaultDialogContentArea,
   DefaultDialogFooter,
@@ -36,28 +36,32 @@ const DialogContainer = ({
   preventAutoFocus = false,
   showCloseWarning = false,
   onAttemptClose,
-  modal = false,
+  modal = true,
 }: DialogContainerProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange} modal={modal}>
-      <DialogContent
-        className={cn(
-          "drop-shadow-2xl transform-gpu border-gray-4 max-h-[90vh] overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col flex-grow",
-          "w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[600px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]",
-          className,
-        )}
-        onOpenAutoFocus={(e) => {
-          if (preventAutoFocus) {
-            e.preventDefault();
-          }
-        }}
-        showCloseWarning={showCloseWarning}
-        onAttemptClose={onAttemptClose}
-      >
-        <DefaultDialogHeader title={title} subTitle={subTitle} />
-        <DefaultDialogContentArea className={contentClassName}>{children}</DefaultDialogContentArea>
-        {footer && <DefaultDialogFooter>{footer}</DefaultDialogFooter>}
-      </DialogContent>
+      <DialogPortal>
+        <DialogContent
+          className={cn(
+            "drop-shadow-2xl transform-gpu border-gray-4 max-h-[90vh] overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col flex-grow",
+            "w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[600px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]",
+            className,
+          )}
+          onOpenAutoFocus={(e) => {
+            if (preventAutoFocus) {
+              e.preventDefault();
+            }
+          }}
+          showCloseWarning={showCloseWarning}
+          onAttemptClose={onAttemptClose}
+        >
+          <DefaultDialogHeader title={title} subTitle={subTitle} />
+          <DefaultDialogContentArea className={contentClassName}>
+            {children}
+          </DefaultDialogContentArea>
+          {footer && <DefaultDialogFooter>{footer}</DefaultDialogFooter>}
+        </DialogContent>
+      </DialogPortal>
     </Dialog>
   );
 };

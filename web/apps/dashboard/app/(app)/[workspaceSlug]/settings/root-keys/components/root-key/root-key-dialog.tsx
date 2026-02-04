@@ -6,6 +6,7 @@ import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import * as React from "react";
 import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
@@ -45,6 +46,8 @@ export const RootKeyDialog = ({
   editMode = false,
   existingKey,
 }: RootKeyDialogProps) => {
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
   const {
     name,
     setName,
@@ -98,6 +101,8 @@ export const RootKeyDialog = ({
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             editMode={editMode}
+            open={isSheetOpen}
+            onOpenChange={setIsSheetOpen}
           >
             <Button
               type="button"
@@ -173,6 +178,7 @@ export const RootKeyDialog = ({
           className="max-w-[460px]"
           subTitle={subTitle}
           footer={footerContent}
+          modal={!isSheetOpen}
         >
           {dialogContent}
         </DynamicDialogContainer>
