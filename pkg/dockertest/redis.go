@@ -29,6 +29,7 @@ func Redis(t *testing.T) string {
 		WaitTimeout:  30 * time.Second,
 		Env:          map[string]string{},
 		Cmd:          []string{},
+		Tmpfs:        nil,
 	})
 
 	port := ctr.Port(redisPort)

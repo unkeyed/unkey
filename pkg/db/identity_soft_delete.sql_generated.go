@@ -10,24 +10,24 @@ import (
 )
 
 const softDeleteIdentity = `-- name: SoftDeleteIdentity :exec
-UPDATE identities 
-SET deleted = 1 
-WHERE workspace_id = ?
- AND (id = ? OR external_id = ?)
+UPDATE identities
+SET deleted = 1
+WHERE id = ?
+  AND workspace_id = ?
 `
 
 type SoftDeleteIdentityParams struct {
+	IdentityID  string `db:"identity_id"`
 	WorkspaceID string `db:"workspace_id"`
-	Identity    string `db:"identity"`
 }
 
 // SoftDeleteIdentity
 //
 //	UPDATE identities
 //	SET deleted = 1
-//	WHERE workspace_id = ?
-//	 AND (id = ? OR external_id = ?)
+//	WHERE id = ?
+//	  AND workspace_id = ?
 func (q *Queries) SoftDeleteIdentity(ctx context.Context, db DBTX, arg SoftDeleteIdentityParams) error {
-	_, err := db.ExecContext(ctx, softDeleteIdentity, arg.WorkspaceID, arg.Identity, arg.Identity)
+	_, err := db.ExecContext(ctx, softDeleteIdentity, arg.IdentityID, arg.WorkspaceID)
 	return err
 }
