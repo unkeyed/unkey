@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // ClientConfig holds configuration for creating a [Client] instance.
@@ -176,8 +177,7 @@ func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken,
 	}
 
 	// Return a copy to avoid aliasing
-	token := value
-	return &token, nil
+	return ptr.P(value), nil
 }
 
 // DownloadRepoTarball downloads a repository tarball for a specific ref.
