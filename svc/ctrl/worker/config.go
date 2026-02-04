@@ -333,17 +333,26 @@ func (c Config) Validate() error {
 		return err
 	}
 
-	// Validate build platform format
-	_, platformErr := parseBuildPlatform(c.BuildPlatform)
+	// Validate build platform format (only if configured)
+	if c.BuildPlatform != "" {
+		if _, err := parseBuildPlatform(c.BuildPlatform); err != nil {
+			return err
+		}
+	}
 
-	// Validate build configuration (Depot backend)
-	return assert.All(
-		platformErr,
-		assert.NotEmpty(c.RegistryURL, "registry URL is required"),
-		assert.NotEmpty(c.RegistryUsername, "registry username is required"),
-		assert.NotEmpty(c.RegistryPassword, "registry password is required"),
-		assert.NotEmpty(c.BuildPlatform, "build platform is required"),
-		assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required"),
-		assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required"),
-	)
+	// Validate build configuration (Depot backend) - only if registry password is provided
+	// The registry password is the depot token, which is required for builds.
+	// URL and username may be hardcoded in k8s manifests, password comes from secrets.
+	if c.RegistryPassword != "" {
+		if err := assert.All(
+			assert.NotEmpty(c.RegistryURL, "registry URL is required when registry password is configured"),
+			assert.NotEmpty(c.RegistryUsername, "registry username is required when registry password is configured"),
+			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when registry password is configured"),
+			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when registry password is configured"),
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

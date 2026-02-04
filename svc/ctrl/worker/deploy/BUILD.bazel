@@ -4,6 +4,7 @@ go_library(
     name = "deploy",
     srcs = [
         "build.go",
+        "cilium_policy.go",
         "deploy_handler.go",
         "doc.go",
         "domains.go",
@@ -26,9 +27,13 @@ go_library(
         "//pkg/ptr",
         "//pkg/uid",
         "//svc/ctrl/worker/github",
+        "//svc/krane/pkg/labels",
         "@build_buf_gen_go_depot_api_connectrpc_go//depot/core/v1/corev1connect",
         "@build_buf_gen_go_depot_api_protocolbuffers_go//depot/core/v1:core",
         "@com_connectrpc_connect//:connect",
+        "@com_github_cilium_cilium//pkg/k8s/apis/cilium.io/v2:cilium_io",
+        "@com_github_cilium_cilium//pkg/k8s/slim/k8s/apis/meta/v1:meta",
+        "@com_github_cilium_cilium//pkg/policy/api",
         "@com_github_depot_depot_go//build",
         "@com_github_depot_depot_go//machine",
         "@com_github_depot_depot_go//proto/depot/cli/v1:cli",
@@ -40,5 +45,6 @@ go_library(
         "@com_github_moby_buildkit//session/secrets/secretsprovider",
         "@com_github_opencontainers_go_digest//:go-digest",
         "@com_github_restatedev_sdk_go//:sdk-go",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
     ],
 )

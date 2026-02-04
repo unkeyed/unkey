@@ -101,14 +101,21 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns.Register(database.Close)
 
-	// Create GitHub client for deploy workflow
-	ghClient, err := githubclient.NewClient(githubclient.ClientConfig{
-		AppID:         cfg.GitHub.AppID,
-		PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
-		WebhookSecret: "",
-	}, logger)
-	if err != nil {
-		return fmt.Errorf("failed to create GitHub client: %w", err)
+	// Create GitHub client for deploy workflow (optional)
+	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
+	if cfg.GitHub.Enabled() {
+		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
+			AppID:         cfg.GitHub.AppID,
+			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			WebhookSecret: "",
+		}, logger)
+		if ghErr != nil {
+			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
+		}
+		ghClient = client
+		logger.Info("GitHub client initialized")
+	} else {
+		logger.Info("GitHub client disabled (credentials not configured)")
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
