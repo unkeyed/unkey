@@ -29,6 +29,41 @@ local_resource(
 )
 
 local_resource(
+  'registry',
+  '''
+  REGISTRY_IP=$(docker inspect ctlptl-registry --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' | awk '{print $NF}')
+  echo "Registry IP: $REGISTRY_IP"
+  cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: ctlptl-registry
+  namespace: unkey
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ctlptl-registry
+  namespace: unkey
+  labels:
+    kubernetes.io/service-name: ctlptl-registry
+addressType: IPv4
+endpoints:
+  - addresses:
+      - "$REGISTRY_IP"
+ports:
+  - port: 5000
+EOF
+  ''',
+  resource_deps=['namespace'],
+  labels=['setup'],
+)
+
+local_resource(
   'cilium-policies',
   'kubectl apply -f k8s/manifests/cilium-policies.yaml',
   labels=['setup'],

@@ -27,6 +27,10 @@ var Cmd = &cli.Command{
 			cli.Default("http://krane.unkey.svc.cluster.local:8070"), cli.EnvVar("UNKEY_KRANE_ENDPOINT")),
 		cli.String("depot-token", "Depot API token for fetching on-demand pull tokens (optional)",
 			cli.EnvVar("UNKEY_DEPOT_TOKEN")),
+		cli.StringSlice("insecure-registries", "Comma-separated list of insecure (HTTP) registries",
+			cli.EnvVar("UNKEY_INSECURE_REGISTRIES")),
+		cli.StringSlice("registry-aliases", "Comma-separated list of registry aliases (from=to)",
+			cli.EnvVar("UNKEY_REGISTRY_ALIASES")),
 	},
 	Action: action,
 }
@@ -40,6 +44,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		InjectImagePullPolicy: cmd.String("inject-image-pull-policy"),
 		KraneEndpoint:         cmd.String("krane-endpoint"),
 		DepotToken:            cmd.String("depot-token"),
+		InsecureRegistries:    cmd.StringSlice("insecure-registries"),
+		RegistryAliases:       cmd.StringSlice("registry-aliases"),
 	}
 
 	if err := config.Validate(); err != nil {
