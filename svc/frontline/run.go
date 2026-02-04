@@ -43,6 +43,28 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	shutdowns := shutdown.New()
+
+	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
+	if cfg.OtelEnabled {
+		grafanaErr := otel.InitGrafana(
+			ctx,
+			otel.Config{
+				Application:     "frontline",
+				Version:         version.Version,
+				InstanceID:      cfg.FrontlineID,
+				CloudRegion:     cfg.Region,
+				TraceSampleRate: cfg.OtelTraceSamplingRate,
+			},
+			shutdowns,
+		)
+
+		if grafanaErr != nil {
+			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
+		}
+	}
+
+	// Create logger after InitGrafana so it picks up the OTLP handler
 	logger := logging.New()
 	if cfg.FrontlineID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.FrontlineID))
@@ -66,28 +88,8 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}()
 
-	shutdowns := shutdown.New()
-
 	// Create cached clock with millisecond resolution for efficient time tracking
 	clk := clock.New()
-
-	if cfg.OtelEnabled {
-		grafanaErr := otel.InitGrafana(
-			ctx,
-			otel.Config{
-				Application:     "frontline",
-				Version:         version.Version,
-				InstanceID:      cfg.FrontlineID,
-				CloudRegion:     cfg.Region,
-				TraceSampleRate: cfg.OtelTraceSamplingRate,
-			},
-			shutdowns,
-		)
-
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
-		}
-	}
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.New(prometheus.Config{
