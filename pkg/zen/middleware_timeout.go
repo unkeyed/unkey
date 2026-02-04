@@ -33,8 +33,8 @@ func WithTimeout(timeout time.Duration) Middleware {
 				return nil
 			}
 
-			// Client disconnected - this takes precedence over any other error classification
-			if ctx.Err() != nil {
+			// Client disconnected - the parent context was canceled (not deadline exceeded)
+			if errors.Is(ctx.Err(), context.Canceled) {
 				return fault.Wrap(err,
 					fault.Code(codes.User.BadRequest.ClientClosedRequest.URN()),
 					fault.Internal("The client closed the connection before the request completed"),
