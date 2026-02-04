@@ -59,7 +59,7 @@ export const PermissionSheet = ({
   });
 
   return (
-    <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
+    <Sheet modal={open} open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetPortal>
         <SheetContent

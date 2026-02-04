@@ -178,7 +178,7 @@ export const RootKeyDialog = ({
           className="max-w-[460px]"
           subTitle={subTitle}
           footer={footerContent}
-          modal={!isSheetOpen}
+          modal={true}
         >
           {dialogContent}
         </DynamicDialogContainer>
