@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -92,9 +93,20 @@ func (w *Workflow) buildDockerImageFromGit(
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
 		// Get GitHub installation token for BuildKit to fetch the repo
-		ghToken, err := w.github.GetInstallationToken(params.InstallationID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+		// For local dev (installation_id=1), skip token for public repos
+		var ghToken *githubclient.InstallationToken
+		if params.InstallationID != 1 {
+			// Production - get real installation token for private repo access
+			token, err := w.github.GetInstallationToken(params.InstallationID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+			}
+			ghToken = token
+		} else {
+			// Local dev mode - skip GitHub authentication (public repos only)
+			w.logger.Info("Local dev mode: skipping GitHub authentication for public repo",
+				"installation_id", params.InstallationID,
+				"repository", params.Repository)
 		}
 
 		depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
@@ -175,7 +187,14 @@ func (w *Workflow) buildDockerImageFromGit(
 		buildStatusCh := make(chan *client.SolveStatus, 100)
 		go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
 
-		solverOptions := w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token)
+		// For local dev, use solver options without GitHub auth (public repos only)
+		// For production, include GitHub installation token for private repo access
+		var solverOptions client.SolveOpt
+		if params.InstallationID == 1 {
+			solverOptions = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName)
+		} else {
+			solverOptions = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token)
+		}
 
 		_, err = buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
 		if err != nil {
