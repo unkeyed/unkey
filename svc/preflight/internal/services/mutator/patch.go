@@ -112,11 +112,14 @@ func (m *Mutator) buildContainerPatches(
 		"value": []string{injectBinary},
 	})
 
+	// Always prepend "--" to prevent user-controlled args from being parsed
+	// as inject flags. This ensures malicious commands like ["--token", "evil", "/bin/sh"]
+	// cannot override inject's environment-based configuration.
 	if len(args) > 0 {
 		patches = append(patches, map[string]interface{}{
 			"op":    "add",
 			"path":  fmt.Sprintf("%s/args", basePath),
-			"value": args,
+			"value": append([]string{"--"}, args...),
 		})
 	}
 

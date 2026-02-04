@@ -556,6 +556,38 @@ type CreatePermissionRequest struct {
 	WorkspaceID string
 }
 
+// CreateWorkspaceWithQuotaRequest configures the workspace and quota to create.
+type CreateWorkspaceWithQuotaRequest struct {
+	// RequestsPerMonth is the maximum number of requests allowed per month.
+	// Use 0 or negative to skip quota creation.
+	RequestsPerMonth int64
+	// LogsRetentionDays is the number of days to retain logs. Defaults to 0.
+	LogsRetentionDays int32
+	// AuditLogsRetentionDays is the number of days to retain audit logs. Defaults to 0.
+	AuditLogsRetentionDays int32
+	// Team indicates if the workspace has team features enabled.
+	Team bool
+}
+
+// CreateWorkspaceWithQuota creates a workspace with an associated quota.
+// Returns the created db.Workspace for use in tests.
+func (s *Seeder) CreateWorkspaceWithQuota(ctx context.Context, req CreateWorkspaceWithQuotaRequest) db.Workspace {
+	ws := s.CreateWorkspace(ctx)
+
+	if req.RequestsPerMonth > 0 {
+		err := db.Query.UpsertQuota(ctx, s.DB.RW(), db.UpsertQuotaParams{
+			WorkspaceID:            ws.ID,
+			RequestsPerMonth:       req.RequestsPerMonth,
+			AuditLogsRetentionDays: req.AuditLogsRetentionDays,
+			LogsRetentionDays:      req.LogsRetentionDays,
+			Team:                   req.Team,
+		})
+		require.NoError(s.t, err)
+	}
+
+	return ws
+}
+
 func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionRequest) db.Permission {
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.Name, "Permission Name must be set"))

@@ -98,7 +98,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 
 		// Soft delete the identity directly in DB
 		err = db.Query.SoftDeleteIdentity(t.Context(), h.DB.RW(), db.SoftDeleteIdentityParams{
-			Identity:    identityId,
+			IdentityID:  identityId,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 		})
 		require.NoError(t, err)
