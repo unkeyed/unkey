@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "dockertest",
     srcs = [
+        "clickhouse.go",
         "doc.go",
         "docker.go",
         "mysql.go",
@@ -11,10 +12,14 @@ go_library(
         "s3.go",
         "wait.go",
     ],
-    data = ["//pkg/db:schema.sql"],
+    data = [
+        "//pkg/clickhouse/schema:schema_files",  # keep
+        "//pkg/db:schema.sql",  # keep
+    ],
     importpath = "github.com/unkeyed/unkey/pkg/dockertest",
     visibility = ["//visibility:public"],
     deps = [
+        "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
         "@com_github_docker_docker//api/types/container",
         "@com_github_docker_docker//api/types/image",
         "@com_github_docker_docker//client",

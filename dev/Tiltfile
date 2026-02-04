@@ -40,9 +40,14 @@ local_resource(
 
 local_resource(
     'github-credentials',
-    'kubectl -n unkey create secret generic github-credentials --from-env-file=./.env.github -o yaml --dry-run=client | kubectl apply -f -',
+    '''set -a && source ./.env.github && set +a && kubectl -n unkey create secret generic github-credentials \
+      --from-literal=UNKEY_GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID" \
+      --from-literal=UNKEY_GITHUB_APP_WEBHOOK_SECRET="$UNKEY_GITHUB_APP_WEBHOOK_SECRET" \
+      --from-literal=NEXT_PUBLIC_GITHUB_APP_NAME="$NEXT_PUBLIC_GITHUB_APP_NAME" \
+      --from-file=UNKEY_GITHUB_PRIVATE_KEY_PEM=./.github-private-key.pem \
+      -o yaml --dry-run=client | kubectl apply -f -''',
     resource_deps=['namespace'],
-    deps=['./.env.github'],
+    deps=['./.env.github', './.github-private-key.pem'],
     labels=['setup'],
 )
 
@@ -238,10 +243,18 @@ local_resource(
 
 
 
-# Dashboard - runs locally with HMR (env loaded from web/apps/dashboard/.env)
+# Dashboard - runs locally with HMR
+# Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
 local_resource(
     'dashboard',
-    serve_cmd='cd ../web && pnpm --filter=@unkey/dashboard dev',
+    serve_cmd='''
+      set -a
+      [ -f ./.env.github ] && source ./.env.github
+      [ -f ./.github-private-key.pem ] && export UNKEY_GITHUB_PRIVATE_KEY_PEM="$(cat ./.github-private-key.pem)"
+      export GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID"
+      set +a
+      cd ../web && pnpm --filter=@unkey/dashboard dev
+    ''',
     deps=[],
     resource_deps=['planetscale', 'clickhouse', 'agent', 'ctrl-api'],
     labels=['unkey'],

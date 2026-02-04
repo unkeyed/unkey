@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	restateImage     = "restatedev/restate:1.5.3"
+	restateImage     = "restatedev/restate:1.6.0"
 	restatePort      = "8080/tcp"
 	restateAdminPort = "9070/tcp"
 )
@@ -34,6 +34,7 @@ func Restate(t *testing.T) RestateConfig {
 		WaitTimeout:  30 * time.Second,
 		Env:          map[string]string{},
 		Cmd:          []string{},
+		Tmpfs:        nil,
 	})
 
 	return RestateConfig{

@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "testutil",
+    srcs = ["testutil.go"],
+    importpath = "github.com/unkeyed/unkey/svc/vault/testutil",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1/vaultv1connect",
+        "//pkg/dockertest",
+        "//pkg/otel/logging",
+        "//svc/vault/internal/keys",
+        "//svc/vault/internal/storage",
+        "//svc/vault/internal/vault",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+
+go_test(
+    name = "testutil_test",
+    srcs = ["testutil_test.go"],
+    deps = [
+        ":testutil",
+        "//gen/proto/vault/v1:vault",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_stretchr_testify//require",
+    ],
+)

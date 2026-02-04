@@ -8,7 +8,86 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 )
+
+const getWorkspacesForQuotaCheckByIDs = `-- name: GetWorkspacesForQuotaCheckByIDs :many
+SELECT
+   w.id,
+   w.org_id,
+   w.name,
+   w.stripe_customer_id,
+   w.tier,
+   w.enabled,
+   q.requests_per_month
+FROM ` + "`" + `workspaces` + "`" + ` w
+LEFT JOIN quota q ON w.id = q.workspace_id
+WHERE w.id IN (/*SLICE:workspace_ids*/?)
+`
+
+type GetWorkspacesForQuotaCheckByIDsRow struct {
+	ID               string         `db:"id"`
+	OrgID            string         `db:"org_id"`
+	Name             string         `db:"name"`
+	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
+	Tier             sql.NullString `db:"tier"`
+	Enabled          bool           `db:"enabled"`
+	RequestsPerMonth sql.NullInt64  `db:"requests_per_month"`
+}
+
+// GetWorkspacesForQuotaCheckByIDs
+//
+//	SELECT
+//	   w.id,
+//	   w.org_id,
+//	   w.name,
+//	   w.stripe_customer_id,
+//	   w.tier,
+//	   w.enabled,
+//	   q.requests_per_month
+//	FROM `workspaces` w
+//	LEFT JOIN quota q ON w.id = q.workspace_id
+//	WHERE w.id IN (/*SLICE:workspace_ids*/?)
+func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error) {
+	query := getWorkspacesForQuotaCheckByIDs
+	var queryParams []interface{}
+	if len(workspaceIds) > 0 {
+		for _, v := range workspaceIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:workspace_ids*/?", strings.Repeat(",?", len(workspaceIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:workspace_ids*/?", "NULL", 1)
+	}
+	rows, err := db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWorkspacesForQuotaCheckByIDsRow
+	for rows.Next() {
+		var i GetWorkspacesForQuotaCheckByIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.StripeCustomerID,
+			&i.Tier,
+			&i.Enabled,
+			&i.RequestsPerMonth,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const listWorkspacesForQuotaCheck = `-- name: ListWorkspacesForQuotaCheck :many
 SELECT
