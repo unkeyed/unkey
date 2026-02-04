@@ -39,17 +39,10 @@ func (s *Service) GetDesiredCiliumNetworkPolicyState(
 		CiliumNetworkPolicyID: policyID,
 	})
 	if err != nil {
-		if !db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeInternal, err)
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
 		}
-		return connect.NewResponse(&ctrlv1.CiliumNetworkPolicyState{
-			State: &ctrlv1.CiliumNetworkPolicyState_Delete{
-				Delete: &ctrlv1.DeleteCiliumNetworkPolicy{
-					K8SNamespace: policy.K8sNamespace.String,
-					K8SName:      policy.CiliumNetworkPolicy.K8sName,
-				},
-			},
-		}), nil
+		return nil, connect.NewError(connect.CodeInternal, err)
 
 	}
 

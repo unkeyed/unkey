@@ -46,6 +46,16 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					CiliumNetworkPolicyId: policyID,
 				}))
 				if err != nil {
+					if connect.CodeOf(err) == connect.CodeNotFound {
+						if err := c.DeleteCiliumNetworkPolicy(ctx, &ctrlv1.DeleteCiliumNetworkPolicy{
+							K8SNamespace: policy.GetNamespace(),
+							K8SName:      policy.GetName(),
+						}); err != nil {
+							c.logger.Error("unable to delete cilium network policy", "error", err.Error(), "policy_id", policyID)
+							continue
+						}
+					}
+
 					c.logger.Error("unable to get desired cilium network policy state", "error", err.Error(), "policy_id", policyID)
 					continue
 				}
