@@ -1,25 +1,27 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "evlog",
+    name = "wide",
     srcs = [
         "context.go",
         "event.go",
         "fields.go",
         "sampler.go",
+        "sanitize.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/wide",
     visibility = ["//visibility:public"],
 )
 
 go_test(
-    name = "evlog_test",
+    name = "wide_test",
     srcs = [
         "context_test.go",
         "event_test.go",
         "sampler_test.go",
+        "sanitize_test.go",
     ],
-    embed = [":evlog"],
+    embed = [":wide"],
     deps = [
         "//pkg/uid",
         "@com_github_stretchr_testify//assert",

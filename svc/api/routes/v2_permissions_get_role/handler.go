@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -81,6 +82,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("database error"), fault.Public("Failed to retrieve role information."),
 		)
 	}
+	wide.Set(ctx, "role_id", role.ID)
 
 	roleResponse := openapi.Role{
 		Id:          role.ID,

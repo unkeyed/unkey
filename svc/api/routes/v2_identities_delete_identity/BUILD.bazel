@@ -14,6 +14,7 @@ go_library(
         "//pkg/fault",
         "//pkg/otel/logging",
         "//pkg/rbac",
+        "//pkg/wide",
         "//pkg/zen",
         "//svc/api/openapi",
     ],

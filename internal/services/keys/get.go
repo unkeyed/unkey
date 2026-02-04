@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -60,6 +61,8 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 
 	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
 	sess.WorkspaceID = key.AuthorizedWorkspaceID
+	wide.Set(ctx, wide.FieldWorkspaceID, key.AuthorizedWorkspaceID)
+	wide.Set(ctx, wide.FieldRootKeyID, key.Key.ID)
 
 	return key, log, nil
 }

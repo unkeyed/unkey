@@ -17,5 +17,6 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/otel/logging",
+        "//pkg/wide",
     ],
 )

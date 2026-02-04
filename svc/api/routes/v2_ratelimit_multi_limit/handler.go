@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -213,6 +214,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for i, check := range req {
 		cacheKey := cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: check.Namespace}
 		namespace := namespaces[cacheKey]
+
+		wide.Set(ctx, wide.FieldRateLimitNamespace, namespace.Name)
+		wide.Set(ctx, wide.FieldRateLimitIdentifier, wide.SanitizeIdentifier(check.Identifier))
 
 		if namespace.DeletedAtM.Valid {
 			return fault.New("namespace was deleted",

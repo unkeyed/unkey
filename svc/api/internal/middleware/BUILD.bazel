@@ -7,9 +7,9 @@ go_library(
     visibility = ["//svc/api:__subpackages__"],
     deps = [
         "//pkg/codes",
-        "//pkg/evlog",
         "//pkg/fault",
         "//pkg/otel/logging",
+        "//pkg/wide",
         "//pkg/zen",
         "//svc/api/openapi",
     ],

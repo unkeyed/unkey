@@ -34,6 +34,7 @@ go_library(
         "//pkg/prometheus/metrics",
         "//pkg/ptr",
         "//pkg/rbac",
+        "//pkg/wide",
         "//pkg/zen",
         "//svc/api/openapi",
     ],

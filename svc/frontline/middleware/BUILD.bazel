@@ -7,10 +7,10 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/codes",
-        "//pkg/evlog",
         "//pkg/fault",
         "//pkg/otel/logging",
         "//pkg/otel/tracing",
+        "//pkg/wide",
         "//pkg/zen",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promauto",

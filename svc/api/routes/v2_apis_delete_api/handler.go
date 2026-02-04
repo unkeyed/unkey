@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -103,6 +104,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
+
+	wide.Set(ctx, wide.FieldAPIID, api.ID)
 
 	// 5. Check delete protection
 	if api.DeleteProtection.Valid && api.DeleteProtection.Bool {

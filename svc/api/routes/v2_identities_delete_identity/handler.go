@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -89,6 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("database failed to find the identity"), fault.Public("Error finding the identity."),
 		)
 	}
+	wide.Set(ctx, wide.FieldIdentityID, identity.ID)
 
 	// Parse ratelimits JSON
 	var ratelimits []db.RatelimitInfo

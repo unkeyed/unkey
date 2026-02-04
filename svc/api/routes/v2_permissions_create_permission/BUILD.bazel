@@ -17,6 +17,7 @@ go_library(
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/uid",
+        "//pkg/wide",
         "//pkg/zen",
         "//svc/api/openapi",
     ],

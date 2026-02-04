@@ -11,10 +11,10 @@ go_library(
     deps = [
         "//pkg/clock",
         "//pkg/codes",
-        "//pkg/evlog",
         "//pkg/fault",
         "//pkg/otel/logging",
         "//pkg/uid",
+        "//pkg/wide",
         "//pkg/zen",
         "//svc/sentinel/services/router",
     ],

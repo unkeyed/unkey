@@ -96,7 +96,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if key.Status != keys.StatusNotFound {
 		wide.Set(ctx, wide.FieldKeyID, key.Key.ID)
-		wide.Set(ctx, wide.FieldAPIID, key.Key.ApiID)
 	}
 
 	// Validate key belongs to authorized workspace

@@ -68,7 +68,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	wide.Set(ctx, wide.FieldAPIID, req.ApiId)
 
 	// 3. Permission check
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
@@ -126,6 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 5. Generate key using key service
 	keyID := uid.New(uid.KeyPrefix)
+	wide.Set(ctx, wide.FieldKeyID, keyID)
 	keyResult, err := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
 		Prefix:     ptr.SafeDeref(req.Prefix),
 		ByteLength: ptr.SafeDeref(req.ByteLength, 16),

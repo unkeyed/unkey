@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -132,6 +133,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("This namespace does not exist."),
 		)
 	}
+
+	wide.Set(ctx, wide.FieldRateLimitNamespace, namespace.Name)
+	wide.Set(ctx, wide.FieldRateLimitIdentifier, wide.SanitizeIdentifier(req.Identifier))
 
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{

@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -130,6 +131,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("We're unable to retrieve the identity."),
 		)
 	}
+	wide.Set(ctx, wide.FieldIdentityID, identityRow.ID)
 
 	// Parse existing ratelimits from JSON
 	var existingRatelimits []db.RatelimitInfo

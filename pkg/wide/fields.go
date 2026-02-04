@@ -53,6 +53,9 @@ const (
 	// FieldKeyID is the key identifier (for key operations).
 	FieldKeyID = "key_id"
 
+	// FieldRootKeyID is the root key used for authentication.
+	FieldRootKeyID = "root_key_id"
+
 	// FieldIdentityID is the identity identifier.
 	FieldIdentityID = "identity_id"
 

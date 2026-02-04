@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -74,6 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 4. Prepare role creation
 	roleID := uid.New(uid.RolePrefix)
+	wide.Set(ctx, "role_id", roleID)
 	description := ptr.SafeDeref(req.Description)
 
 	// 5. Create role in a transaction with audit log

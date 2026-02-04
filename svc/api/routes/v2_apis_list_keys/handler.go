@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/vault"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -126,6 +127,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
+
+	wide.Set(ctx, wide.FieldAPIID, api.ID)
 
 	if ptr.SafeDeref(req.Decrypt, false) {
 		if h.Vault == nil {
