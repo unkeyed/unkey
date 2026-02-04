@@ -105,10 +105,10 @@ func Run(ctx context.Context, cfg Config) error {
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
 	if cfg.GitHub.Enabled() {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
-			AppID:         cfg.GitHub.AppID,
-			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
-			WebhookSecret: "",
-      InstallationTokenCache: nil,
+			AppID:                  cfg.GitHub.AppID,
+			PrivateKeyPEM:          cfg.GitHub.PrivateKeyPEM,
+			WebhookSecret:          "",
+			InstallationTokenCache: nil,
 		}, logger)
 		if ghErr != nil {
 			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
