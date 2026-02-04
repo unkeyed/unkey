@@ -39,11 +39,10 @@ func WithTimeout(timeout time.Duration) Middleware {
 				return err
 			}
 
-			// Check if the error already has a code set (e.g., from proxy, sentinel)
-			// If so, don't rewrap it - let it pass through with its specific error code
-			if _, hasCode := fault.GetCode(err); hasCode {
-				return err
-			}
+			// For context errors, always reclassify them properly regardless of any existing code.
+			// This handles cases where application code (e.g., DB operations) wrapped a context error
+			// with a service-specific code like ServiceUnavailable. Context cancellation should always
+			// be classified as either ClientClosedRequest or RequestTimeout, not as a server error.
 
 			// Check if the original request context was canceled (client closed connection)
 			if ctx.Err() != nil {
