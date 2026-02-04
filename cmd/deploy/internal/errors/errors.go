@@ -111,67 +111,30 @@ func formatValidationError(apiErr *apierrors.BadRequestErrorResponse) string {
 	return msg.String()
 }
 
-// tryFormatPermission handles permission errors
-func tryFormatPermission(err error) (string, bool) {
-	var forbiddenErr *apierrors.ForbiddenErrorResponse
-	if errors.As(err, &forbiddenErr) {
-		return formatPermissionError(forbiddenErr), true
-	}
-	return "", false
-}
-
-// tryFormatAuth handles authentication errors
-func tryFormatAuth(err error) (string, bool) {
-	var unauthorizedErr *apierrors.UnauthorizedErrorResponse
-	if errors.As(err, &unauthorizedErr) {
-		return formatAuthenticationError(unauthorizedErr), true
-	}
-	return "", false
-}
-
-// tryFormatNotFound handles not found errors
-func tryFormatNotFound(err error) (string, bool) {
-	var notFoundErr *apierrors.NotFoundErrorResponse
-	if errors.As(err, &notFoundErr) {
-		return formatNotFoundError(notFoundErr), true
-	}
-	return "", false
-}
-
-// tryFormatValidation handles validation errors
-func tryFormatValidation(err error) (string, bool) {
-	var badRequestErr *apierrors.BadRequestErrorResponse
-	if errors.As(err, &badRequestErr) {
-		return formatValidationError(badRequestErr), true
-	}
-	return "", false
-}
-
-// formatDefault handles all other error types
-func formatDefault(err error) string {
-	var msg strings.Builder
-	msg.WriteString(err.Error())
-	return msg.String()
-}
-
-// FormatError formats an error for display, extracting structured info if available
 func FormatError(err error) string {
 	if err == nil {
 		return ""
 	}
 
-	formatters := []func(error) (string, bool){
-		tryFormatPermission,
-		tryFormatAuth,
-		tryFormatNotFound,
-		tryFormatValidation,
+	var forbiddenErr *apierrors.ForbiddenErrorResponse
+	if errors.As(err, &forbiddenErr) {
+		return formatPermissionError(forbiddenErr)
 	}
 
-	for _, formatter := range formatters {
-		if result, handled := formatter(err); handled {
-			return result
-		}
+	var unauthorizedErr *apierrors.UnauthorizedErrorResponse
+	if errors.As(err, &unauthorizedErr) {
+		return formatAuthenticationError(unauthorizedErr)
 	}
 
-	return formatDefault(err)
+	var notFoundErr *apierrors.NotFoundErrorResponse
+	if errors.As(err, &notFoundErr) {
+		return formatNotFoundError(notFoundErr)
+	}
+
+	var badRequestErr *apierrors.BadRequestErrorResponse
+	if errors.As(err, &badRequestErr) {
+		return formatValidationError(badRequestErr)
+	}
+
+	return err.Error()
 }
