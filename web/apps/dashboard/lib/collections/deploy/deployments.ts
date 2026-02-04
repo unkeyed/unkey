@@ -1,4 +1,5 @@
 "use client";
+import { flagCodes } from "@/lib/trpc/routers/deploy/network/utils";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
@@ -21,6 +22,8 @@ const schema = z.object({
   instances: z.array(
     z.object({
       id: z.string(),
+      region: z.string(),
+      flagCode: z.enum(flagCodes),
     }),
   ),
   cpuMillicores: z.number().int(),
