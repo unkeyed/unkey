@@ -63,7 +63,7 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
         apiId: "api_...",
         credits: {
           remaining: 1000,
-          refill: { interval: "monthly", amount: 1000 }
+          refill: { amount: 1000, refillDay: 1 }
         }
       });
     } catch (err) {

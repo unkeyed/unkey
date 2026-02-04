@@ -19,7 +19,7 @@
       "discord": "https://unkey.com/discord",
       "x-twitter": "https://x.com/unkeydev",
       "github": "https://github.com/unkeyed/unkey",
-      "linkedin": "https://linkedin/company/unkeyed"
+      "linkedin": "https://www.linkedin.com/company/unkeyed"
     }
   },
   "navbar": {
@@ -411,15 +411,15 @@
   "redirects": [
     {
       "source": "/quickstart/onboarding/onboarding-api",
-      "destination": "/quickstart/index"
+      "destination": "/quickstart/quickstart"
     },
     {
       "source": "/onboarding/onboarding-api",
-      "destination": "/quickstart/index"
+      "destination": "/quickstart/quickstart"
     },
     {
       "source": "/onboarding",
-      "destination": "/quickstart/index"
+      "destination": "/quickstart/quickstart"
     },
     {
       "source": "/onboarding/onboarding-ratelimiting",
@@ -435,7 +435,7 @@
     },
     {
       "source": "/quickstart",
-      "destination": "/quickstart/index"
+      "destination": "/quickstart/quickstart"
     },
     {
       "source": "/libraries",
