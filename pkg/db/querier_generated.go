@@ -46,8 +46,8 @@ type Querier interface {
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
-	//  WHERE workspace_id = ?
-	//    AND (id = ? OR external_id = ?)
+	//  WHERE id = ?
+	//    AND workspace_id = ?
 	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
 	//DeleteInstance
 	//
@@ -2110,8 +2110,8 @@ type Querier interface {
 	//
 	//  UPDATE identities
 	//  SET deleted = 1
-	//  WHERE workspace_id = ?
-	//   AND (id = ? OR external_id = ?)
+	//  WHERE id = ?
+	//    AND workspace_id = ?
 	SoftDeleteIdentity(ctx context.Context, db DBTX, arg SoftDeleteIdentityParams) error
 	//SoftDeleteKeyByID
 	//
