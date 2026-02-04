@@ -20,7 +20,7 @@ func (c *Controller) listCiliumNetworkPolicies(ctx context.Context, cursor strin
 	}
 
 	selector := labels.New().ManagedByKrane().ToString()
-	return c.dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{
+	return c.dynamicClient.Resource(gvr).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
 		LabelSelector: selector,
 		Continue:      cursor,
 	})
