@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 export const getInstanceRps = workspaceProcedure
-  .use(withRatelimit(ratelimit.create))
+  .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
       instanceId: z.string(),

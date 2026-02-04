@@ -3,10 +3,30 @@ package deploy
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
+
+// BuildPlatform specifies the target platform for container builds.
+type BuildPlatform struct {
+	Platform     string
+	Architecture string
+}
+
+// DepotConfig holds configuration for connecting to the Depot.dev API.
+type DepotConfig struct {
+	APIUrl        string
+	ProjectRegion string
+}
+
+// RegistryConfig holds credentials for the container registry.
+type RegistryConfig struct {
+	URL      string
+	Username string
+	Password string
+}
 
 // Workflow orchestrates deployment lifecycle operations.
 //
@@ -27,7 +47,13 @@ type Workflow struct {
 	vault            vaultv1connect.VaultServiceClient
 	sentinelImage    string
 	availableRegions []string
-	buildStorage     s3.Storage
+	github           *githubclient.Client
+
+	// Build dependencies
+	depotConfig    DepotConfig
+	registryConfig RegistryConfig
+	buildPlatform  BuildPlatform
+	clickhouse     clickhouse.ClickHouse
 }
 
 var _ hydrav1.DeploymentServiceServer = (*Workflow)(nil)
@@ -52,8 +78,20 @@ type Config struct {
 	// AvailableRegions is the list of available regions for deployments.
 	AvailableRegions []string
 
-	// BuildStorage provides access to S3-compatible storage for build context archives.
-	BuildStorage s3.Storage
+	// GitHub provides access to GitHub API for downloading tarballs.
+	GitHub *githubclient.Client
+
+	// DepotConfig configures the Depot API connection.
+	DepotConfig DepotConfig
+
+	// RegistryConfig provides credentials for the container registry.
+	RegistryConfig RegistryConfig
+
+	// BuildPlatform specifies the target platform for all builds.
+	BuildPlatform BuildPlatform
+
+	// Clickhouse receives build step telemetry for observability.
+	Clickhouse clickhouse.ClickHouse
 }
 
 // New creates a new deployment workflow instance.
@@ -66,6 +104,10 @@ func New(cfg Config) *Workflow {
 		vault:                                cfg.Vault,
 		sentinelImage:                        cfg.SentinelImage,
 		availableRegions:                     cfg.AvailableRegions,
-		buildStorage:                         cfg.BuildStorage,
+		github:                               cfg.GitHub,
+		depotConfig:                          cfg.DepotConfig,
+		registryConfig:                       cfg.RegistryConfig,
+		buildPlatform:                        cfg.BuildPlatform,
+		clickhouse:                           cfg.Clickhouse,
 	}
 }

@@ -37,6 +37,16 @@ type Container struct {
 	Ports map[string]string
 }
 
+// HostURL returns a URL for the container using the provided scheme and port.
+// The containerPort should be in the format "port/protocol" (e.g., "8080/tcp").
+func (c *Container) HostURL(scheme, containerPort string) string {
+	port := c.Port(containerPort)
+	if port == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s://%s:%s", scheme, c.Host, port)
+}
+
 // Port returns the mapped host port for a given container port.
 // The containerPort should be in the format "port/protocol" (e.g., "6379/tcp").
 // Returns an empty string if the port is not mapped.
@@ -59,6 +69,10 @@ type containerConfig struct {
 	// Cmd overrides the default command for the container image.
 	// If nil, the image's default CMD is used.
 	Cmd []string
+
+	// Tmpfs mounts tmpfs (RAM-backed) filesystems in the container.
+	// Keys are mount paths, values are mount options (e.g., "rw,noexec,size=256m").
+	Tmpfs map[string]string
 
 	// WaitStrategy determines how to detect container readiness.
 	// If nil, the container is considered ready immediately after starting.
@@ -184,6 +198,7 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 		&container.HostConfig{
 			PortBindings: portBindings,
 			AutoRemove:   false, // We handle removal in t.Cleanup
+			Tmpfs:        cfg.Tmpfs,
 		},
 		nil, // NetworkingConfig
 		nil, // Platform

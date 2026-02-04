@@ -68,29 +68,18 @@ var apiCmd = &cli.Command{
 		cli.String("restate-api-key", "API key for Restate ingress requests",
 			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
 
-		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Recommended for production. Example: clickhouse://user:pass@host:9000/unkey",
-			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
-
-		// Build S3 configuration
-		cli.String("build-s3-url", "S3 URL for build storage",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_URL")),
-		cli.String("build-s3-external-url", "External S3 URL for presigned URLs",
-			cli.EnvVar("UNKEY_BUILD_S3_EXTERNAL_URL")),
-		cli.String("build-s3-bucket", "S3 bucket for build storage",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_BUCKET")),
-		cli.String("build-s3-access-key-id", "S3 access key ID",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_ID")),
-		cli.String("build-s3-access-key-secret", "S3 access key secret",
-			cli.Required(), cli.EnvVar("UNKEY_BUILD_S3_ACCESS_KEY_SECRET")),
-
 		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
 
 		// Certificate bootstrap configuration
 		cli.String("default-domain", "Default domain for wildcard certificate bootstrapping (e.g., unkey.app)", cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
+
 		cli.String("regional-domain", "Domain for cross-region communication. Per-region wildcards created as *.{region}.{domain} (e.g., unkey.cloud)", cli.EnvVar("UNKEY_REGIONAL_DOMAIN")),
 
 		// Custom domain configuration
 		cli.String("cname-domain", "Base domain for custom domain CNAME targets (e.g., unkey-dns.com)", cli.Required(), cli.EnvVar("UNKEY_CNAME_DOMAIN")),
+
+		// GitHub webhook configuration
+		cli.String("github-app-webhook-secret", "Secret for verifying GitHub webhook signatures", cli.EnvVar("UNKEY_GITHUB_APP_WEBHOOK_SECRET")),
 	},
 	Action: apiAction,
 }
@@ -137,15 +126,6 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		// Control Plane Specific
 		AuthToken: cmd.String("auth-token"),
 
-		// Build configuration
-		BuildS3: ctrlapi.S3Config{
-			URL:             cmd.String("build-s3-url"),
-			ExternalURL:     cmd.String("build-s3-external-url"),
-			Bucket:          cmd.String("build-s3-bucket"),
-			AccessKeySecret: cmd.String("build-s3-access-key-secret"),
-			AccessKeyID:     cmd.String("build-s3-access-key-id"),
-		},
-
 		// Restate configuration (API is a client, only needs ingress URL)
 		Restate: ctrlapi.RestateConfig{
 			URL:      cmd.String("restate-url"),
@@ -161,6 +141,9 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 
 		// Custom domain configuration
 		CnameDomain: strings.TrimSuffix(strings.TrimSpace(cmd.RequireString("cname-domain")), "."),
+
+		// GitHub webhook
+		GitHubWebhookSecret: cmd.String("github-app-webhook-secret"),
 	}
 
 	err := config.Validate()

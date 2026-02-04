@@ -36,7 +36,7 @@ const SQL = {
 
 export const percentileSchema = z.enum(["p50", "p75", "p90", "p95", "p99"]).default("p50");
 
-const PERCENTILE_VALUES = {
+export const PERCENTILE_VALUES = {
   p50: 0.5,
   p75: 0.75,
   p90: 0.9,

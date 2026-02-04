@@ -39,7 +39,7 @@ function generateAppJWT(): string {
 
   const sign = crypto.createSign("RSA-SHA256");
   sign.update(signatureInput);
-  const signature = sign.sign(env.GITHUB_APP_PRIVATE_KEY, "base64url");
+  const signature = sign.sign(env.UNKEY_GITHUB_PRIVATE_KEY_PEM, "base64url");
 
   return `${signatureInput}.${signature}`;
 }

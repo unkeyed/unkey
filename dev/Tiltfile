@@ -38,6 +38,28 @@ local_resource(
     labels=['setup'],
 )
 
+local_resource(
+    'github-credentials',
+    '''set -a && source ./.env.github && set +a && kubectl -n unkey create secret generic github-credentials \
+      --from-literal=UNKEY_GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID" \
+      --from-literal=UNKEY_GITHUB_APP_WEBHOOK_SECRET="$UNKEY_GITHUB_APP_WEBHOOK_SECRET" \
+      --from-literal=NEXT_PUBLIC_GITHUB_APP_NAME="$NEXT_PUBLIC_GITHUB_APP_NAME" \
+      --from-file=UNKEY_GITHUB_PRIVATE_KEY_PEM=./.github-private-key.pem \
+      -o yaml --dry-run=client | kubectl apply -f -''',
+    resource_deps=['namespace'],
+    deps=['./.env.github', './.github-private-key.pem'],
+    labels=['setup'],
+)
+
+local_resource(
+    'webhooks-config',
+    'if [ -f ./.env.webhooks ]; then kubectl -n unkey create configmap ctrl-worker-webhooks --from-env-file=./.env.webhooks -o yaml --dry-run=client | kubectl apply -f -; else kubectl -n unkey delete configmap ctrl-worker-webhooks --ignore-not-found; fi',
+    resource_deps=['namespace'],
+    deps=['./.env.webhooks'],
+    labels=['setup'],
+    allow_parallel=True,
+)
+
 # Frontline TLS certificates - generates certs with mkcert if they don't exist
 local_resource(
     'frontline-certs',
@@ -156,7 +178,7 @@ k8s_yaml('k8s/manifests/ctrl-worker.yaml')
 k8s_resource(
   'ctrl-worker',
   port_forwards=['7092:7092'],
-  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials'],
+  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials', 'webhooks-config'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -220,10 +242,19 @@ local_resource(
 )
 
 
-# Dashboard - runs locally with HMR (env loaded from web/apps/dashboard/.env)
+
+# Dashboard - runs locally with HMR
+# Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
 local_resource(
     'dashboard',
-    serve_cmd='cd ../web && pnpm --filter=@unkey/dashboard dev',
+    serve_cmd='''
+      set -a
+      [ -f ./.env.github ] && source ./.env.github
+      [ -f ./.github-private-key.pem ] && export UNKEY_GITHUB_PRIVATE_KEY_PEM="$(cat ./.github-private-key.pem)"
+      export GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID"
+      set +a
+      cd ../web && pnpm --filter=@unkey/dashboard dev
+    ''',
     deps=[],
     resource_deps=['planetscale', 'clickhouse', 'agent', 'ctrl-api'],
     labels=['unkey'],

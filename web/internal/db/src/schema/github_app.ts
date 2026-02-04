@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -18,18 +18,22 @@ export const githubAppInstallationsRelations = relations(githubAppInstallations,
   }),
 }));
 
-export const githubRepoConnections = mysqlTable("github_repo_connections", {
-  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-  projectId: varchar("project_id", { length: 64 }).notNull().unique(),
-  installationId: bigint("installation_id", {
-    mode: "number",
-  }).notNull(),
-  repositoryId: bigint("repository_id", { mode: "number" }).notNull(),
-  repositoryFullName: varchar("repository_full_name", {
-    length: 500,
-  }).notNull(),
-  ...lifecycleDates,
-});
+export const githubRepoConnections = mysqlTable(
+  "github_repo_connections",
+  {
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    projectId: varchar("project_id", { length: 64 }).notNull().unique(),
+    installationId: bigint("installation_id", {
+      mode: "number",
+    }).notNull(),
+    repositoryId: bigint("repository_id", { mode: "number" }).notNull(),
+    repositoryFullName: varchar("repository_full_name", {
+      length: 500,
+    }).notNull(),
+    ...lifecycleDates,
+  },
+  (table) => [index("installation_id_idx").on(table.installationId)],
+);
 
 export const githubRepoConnectionsRelations = relations(githubRepoConnections, ({ one }) => ({
   project: one(projects, {

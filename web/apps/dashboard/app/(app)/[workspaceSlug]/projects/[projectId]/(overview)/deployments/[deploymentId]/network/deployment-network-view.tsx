@@ -37,9 +37,13 @@ export function DeploymentNetworkView({
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
 
-  const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery({
-    deploymentId: deploymentId ?? "",
-  });
+  const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery(
+    {
+      deploymentId: deploymentId ?? "",
+    },
+    { enabled: Boolean(deploymentId) },
+  );
+
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;
   const isShowingSkeleton = isLoading && !generatedTree;
 

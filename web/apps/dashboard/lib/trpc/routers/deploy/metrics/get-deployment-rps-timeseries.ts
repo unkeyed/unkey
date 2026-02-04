@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 export const getDeploymentRpsTimeseries = workspaceProcedure
-  .use(withRatelimit(ratelimit.create))
+  .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
       deploymentId: z.string(),

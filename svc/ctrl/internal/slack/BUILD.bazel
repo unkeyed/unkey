@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "slack",
+    srcs = ["webhook.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/slack",
+    visibility = ["//svc/ctrl:__subpackages__"],
+)

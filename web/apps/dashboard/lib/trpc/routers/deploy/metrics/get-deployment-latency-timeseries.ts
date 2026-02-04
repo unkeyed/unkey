@@ -6,7 +6,7 @@ import { percentileSchema } from "@unkey/clickhouse/src/sentinel";
 import { z } from "zod";
 
 export const getDeploymentLatencyTimeseries = workspaceProcedure
-  .use(withRatelimit(ratelimit.create))
+  .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
       deploymentId: z.string(),
