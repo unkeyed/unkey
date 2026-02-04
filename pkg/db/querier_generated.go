@@ -1005,6 +1005,20 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND deleted_at_m IS NULL
 	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
+	//GetWorkspacesForQuotaCheckByIDs
+	//
+	//  SELECT
+	//     w.id,
+	//     w.org_id,
+	//     w.name,
+	//     w.stripe_customer_id,
+	//     w.tier,
+	//     w.enabled,
+	//     q.requests_per_month
+	//  FROM `workspaces` w
+	//  LEFT JOIN quota q ON w.id = q.workspace_id
+	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
+	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
 	//HardDeleteWorkspace
 	//
 	//  DELETE FROM `workspaces`
