@@ -81,7 +81,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					Description: fmt.Sprintf("Allow ingress from sentinel for workspace %s environment %s", workspace.ID, environment.ID),
 					EndpointSelector: api.EndpointSelector{
 						LabelSelector: &slim_metav1.LabelSelector{
-							MatchLabels: labels.New().ManagedByKrane().ComponentDeployment(),
+							MatchLabels: labels.New().ManagedByKrane().ComponentDeployment().EnvironmentID(environment.ID),
 						},
 					},
 
