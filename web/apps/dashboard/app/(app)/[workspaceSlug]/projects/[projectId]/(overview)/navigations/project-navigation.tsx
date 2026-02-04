@@ -142,7 +142,7 @@ export const ProjectNavigation = ({
   }
 
   return (
-    <Navbar ref={handleRef}>
+    <Navbar ref={handleRef} className="h-[65px]">
       <Navbar.Breadcrumbs icon={<Cube />}>
         {breadcrumbs.map((breadcrumb) => (
           <Navbar.Breadcrumbs.Link
@@ -197,27 +197,27 @@ export const ProjectNavigation = ({
             <Button className="size-7" variant="outline">
               <Dots iconSize="sm-regular" />
             </Button>
-            {!isOnDeploymentDetail && (
-              <InfoTooltip
-                asChild
-                content={getTooltipContent()}
-                position={{
-                  side: "bottom",
-                  align: "end",
-                }}
-              >
-                <Button
-                  variant="outline"
-                  className="size-7"
-                  disabled={!liveDeploymentId}
-                  onClick={onClick}
-                >
-                  <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
-                </Button>
-              </InfoTooltip>
-            )}
           </div>
         </DisabledWrapper>
+        {!isOnDeploymentDetail && (
+          <InfoTooltip
+            asChild
+            content={getTooltipContent()}
+            position={{
+              side: "bottom",
+              align: "end",
+            }}
+          >
+            <Button
+              variant="outline"
+              className="size-7"
+              disabled={!liveDeploymentId}
+              onClick={onClick}
+            >
+              <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
+            </Button>
+          </InfoTooltip>
+        )}
       </div>
     </Navbar>
   );
