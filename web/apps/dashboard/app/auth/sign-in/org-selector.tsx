@@ -35,6 +35,13 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
   const [clientReady, setClientReady] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const [hasInitialized, setHasInitialized] = useState(false);
+
+  const handleAttemptClose = useCallback(() => {
+    if (!isLoading && onClose) {
+      onClose();
+      setIsOpen(false);
+    }
+  }, [isLoading, onClose]);
   // Set client ready after hydration
   useEffect(() => {
     setClientReady(true);
@@ -118,7 +125,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
         // Ignore backdrop clicks that would close the dialog
         // The user must explicitly select a workspace
       }}
-      onAttemptClose={!isLoading ? onClose : undefined}
+      onAttemptClose={handleAttemptClose}
       title="Select your workspace"
       footer={
         <div className="flex items-center justify-center text-sm w-full text-content-subtle">
