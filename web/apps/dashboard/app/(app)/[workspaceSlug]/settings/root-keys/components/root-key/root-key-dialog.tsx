@@ -48,6 +48,10 @@ export const RootKeyDialog = ({
 }: RootKeyDialogProps) => {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
+  const handleOpenSheet = () => {
+    setIsSheetOpen(true);
+  };
+
   const {
     name,
     setName,
@@ -93,31 +97,20 @@ export const RootKeyDialog = ({
           <Label className="text-[13px] font-regular text-gray-10">
             {ROOT_KEY_MESSAGES.DESCRIPTIONS.PERMISSIONS}
           </Label>
-          <PermissionSheet
-            selectedPermissions={selectedPermissions}
-            apis={allApis}
-            onChange={handlePermissionChange}
-            loadMore={fetchMoreApis}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            editMode={editMode}
-            open={isSheetOpen}
-            onOpenChange={setIsSheetOpen}
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="rounded-lg font-light text-grayA-8 text-[13px] border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
+            disabled={isBusy}
+            onClick={handleOpenSheet}
           >
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="rounded-lg font-light text-grayA-8 text-[13px] border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
-              disabled={isBusy}
-            >
-              {isBusy
-                ? ROOT_KEY_MESSAGES.UI.LOADING
-                : editMode
-                  ? ROOT_KEY_MESSAGES.UI.EDIT_PERMISSIONS
-                  : ROOT_KEY_MESSAGES.UI.SELECT_PERMISSIONS}
-            </Button>
-          </PermissionSheet>
+            {isBusy
+              ? ROOT_KEY_MESSAGES.UI.LOADING
+              : editMode
+                ? ROOT_KEY_MESSAGES.UI.EDIT_PERMISSIONS
+                : ROOT_KEY_MESSAGES.UI.SELECT_PERMISSIONS}
+          </Button>
         </div>
       </div>
       <ScrollArea className="w-full overflow-y-auto pt-0 mb-4">
@@ -178,11 +171,23 @@ export const RootKeyDialog = ({
           className="max-w-[460px]"
           subTitle={subTitle}
           footer={footerContent}
-          modal={!isSheetOpen}
+          modal={true}
+          preventOutsideClose={isSheetOpen}
         >
           {dialogContent}
         </DynamicDialogContainer>
       )}
+      <PermissionSheet
+        selectedPermissions={selectedPermissions}
+        apis={allApis}
+        onChange={handlePermissionChange}
+        loadMore={fetchMoreApis}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        editMode={editMode}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+      />
       <RootKeySuccess keyValue={key.data?.key} onClose={handleClose} />
     </>
   );
