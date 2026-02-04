@@ -20,8 +20,7 @@ export function OnboardingContent() {
 
   const stepInfo = {
     title: "Create Company Workspace",
-    description:
-      "Customize your workspace name. This is how it'll appear in your dashboard.",
+    description: "Customize your workspace name. This is how it'll appear in your dashboard.",
   };
 
   return (

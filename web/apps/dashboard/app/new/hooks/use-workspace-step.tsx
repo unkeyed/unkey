@@ -118,11 +118,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
           ),
         });
       } else if (error.data?.code === "CONFLICT") {
-        form.setError(
-          "slug",
-          { message: error.message },
-          { shouldFocus: true },
-        );
+        form.setError("slug", { message: error.message }, { shouldFocus: true });
       } else {
         toast.error(`Failed to create workspace: ${error.message}`);
       }
@@ -144,14 +140,12 @@ export const useWorkspaceStep = (): OnboardingStep => {
   const workspaceName = form.watch("workspaceName");
   const slug = form.watch("slug");
 
-  const validFieldCount = (["workspaceName", "slug"] as const).filter(
-    (fieldName) => {
-      const hasError = Boolean(form.formState.errors[fieldName]);
-      const value = fieldName === "workspaceName" ? workspaceName : slug;
-      const hasValue = Boolean(value);
-      return !hasError && hasValue;
-    },
-  ).length;
+  const validFieldCount = (["workspaceName", "slug"] as const).filter((fieldName) => {
+    const hasError = Boolean(form.formState.errors[fieldName]);
+    const value = fieldName === "workspaceName" ? workspaceName : slug;
+    const hasValue = Boolean(value);
+    return !hasError && hasValue;
+  }).length;
 
   const isLoading = createWorkspace.isLoading || workspaceCreated;
   return {
