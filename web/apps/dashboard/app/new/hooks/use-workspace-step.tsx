@@ -153,7 +153,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
     },
   ).length;
 
-  const isLoading = createWorkspace.isLoading;
+  const isLoading = createWorkspace.isLoading || workspaceCreated;
   return {
     name: "Workspace",
     icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
@@ -216,9 +216,9 @@ export const useWorkspaceStep = (): OnboardingStep => {
     kind: "required" as const,
     validFieldCount,
     requiredFieldCount: 2,
-    buttonText: workspaceCreated ? "Go to Dashboard" : "Create workspace",
+    buttonText: "Create workspace",
     description: workspaceCreated
-      ? "Workspace created successfully, redirecting to dashboard..."
+      ? "Redirecting to dashboard..."
       : "Set up your workspace to get started",
     onStepNext: () => {
       if (workspaceCreated && createdSlug) {
