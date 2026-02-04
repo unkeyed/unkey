@@ -22,6 +22,7 @@ type DialogContainerProps = PropsWithChildren<{
   showCloseWarning?: boolean;
   onAttemptClose?: () => void;
   modal?: boolean;
+  preventOutsideClose?: boolean;
 }>;
 
 const DialogContainer = ({
@@ -37,6 +38,7 @@ const DialogContainer = ({
   showCloseWarning = false,
   onAttemptClose,
   modal = true,
+  preventOutsideClose = false,
 }: DialogContainerProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange} modal={modal}>
@@ -54,6 +56,7 @@ const DialogContainer = ({
           }}
           showCloseWarning={showCloseWarning}
           onAttemptClose={onAttemptClose}
+          preventOutsideClose={preventOutsideClose}
         >
           <DefaultDialogHeader title={title} subTitle={subTitle} />
           <DefaultDialogContentArea className={contentClassName}>

@@ -5,20 +5,19 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetOverlay,
   SheetPortal,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
-import { type ReactElement, useRef } from "react";
+import { useRef } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissionSheet } from "../hooks/use-permission-sheet";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
 
 type PermissionSheetProps = {
-  children: ReactElement<{ asChild?: boolean }>;
   apis: { id: string; name: string }[];
   selectedPermissions: UnkeyPermission[];
   onChange: (permissions: UnkeyPermission[]) => void;
@@ -26,12 +25,11 @@ type PermissionSheetProps = {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   editMode?: boolean;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 export const PermissionSheet = ({
-  children,
   apis,
   selectedPermissions,
   onChange,
@@ -59,9 +57,9 @@ export const PermissionSheet = ({
   });
 
   return (
-    <Sheet modal={open} open={open} onOpenChange={onOpenChange}>
-      <SheetTrigger asChild>{children}</SheetTrigger>
+    <Sheet modal={true} open={open} onOpenChange={onOpenChange}>
       <SheetPortal>
+        <SheetOverlay className="bg-black/30 backdrop-blur-sm" />
         <SheetContent
           disableClose={false}
           className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-gray-1 dark:bg-black"
