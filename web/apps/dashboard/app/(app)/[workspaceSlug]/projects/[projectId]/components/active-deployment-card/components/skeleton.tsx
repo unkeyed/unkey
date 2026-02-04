@@ -55,8 +55,14 @@ export const ActiveDeploymentCardSkeleton = () => (
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="text-grayA-9 text-xs">Build logs</div>
-          <Button size="icon" variant="ghost" disabled>
+          <button className="text-xs text-grayA-9" type="button">
+            Sentinel logs
+          </button>
+          <span className="text-grayA-6">|</span>
+          <button className="text-xs text-grayA-9" type="button">
+            Runtime logs
+          </button>
+          <Button size="icon" variant="ghost">
             <ChevronDown className={cn("text-grayA-9 !size-3 transition-transform duration-200")} />
           </Button>
         </div>

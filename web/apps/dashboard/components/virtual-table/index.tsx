@@ -11,6 +11,7 @@ import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
 const MOBILE_TABLE_HEIGHT = 400;
+
 const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
   return columns.map((column) => {
     let width = "auto";
@@ -87,15 +88,15 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const tableClassName = cn(
       "w-full",
       isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
-      "table-fixed", // Add fixed table layout for proper column width control
+      "table-auto xl:table-fixed",
+      config.tableLayout === "fixed" ? "!table-fixed" : "!table-auto",
     );
 
     const containerClassName = cn(
       "overflow-auto relative pb-4 bg-white dark:bg-black ",
-      config.containerPadding || "px-2", // Default to px-2 if containerPadding is not specified
+      config.containerPadding || "px-2",
     );
 
-    // Expose refs and methods to parent components. Primarily used for anchoring log details.
     // biome-ignore lint/correctness/useExhaustiveDependencies: refs are stable and shouldn't be in deps
     useImperativeHandle(
       ref,
@@ -116,6 +117,11 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           ref={containerRef}
         >
           <table className={tableClassName}>
+            <colgroup>
+              {columns.map((_, idx) => (
+                <col key={idx} style={{ width: colWidths[idx].width }} />
+              ))}
+            </colgroup>
             <thead className="sticky top-0 z-10 bg-white dark:bg-black">
               <tr>
                 {columns.map((column) => (
@@ -124,6 +130,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     className={cn(
                       "text-sm font-medium text-accent-12 py-1 text-left",
                       column.headerClassName,
+                      column.cellClassName,
                     )}
                   >
                     <div className="truncate text-accent-12">{column.header}</div>
@@ -155,9 +162,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         >
           <table className={tableClassName}>
             <colgroup>
-              {colWidths.map((col, idx) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                <col key={idx} style={{ width: col.width }} />
+              {columns.map((_, idx) => (
+                <col key={idx} style={{ width: colWidths[idx].width }} />
               ))}
             </colgroup>
             <thead className="sticky top-0 z-10 bg-white dark:bg-black">
@@ -168,6 +174,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     className={cn(
                       "text-sm font-medium text-accent-12 py-1 text-left relative",
                       column.headerClassName,
+                      column.cellClassName,
                     )}
                   >
                     <HeaderCell column={column} />
@@ -218,7 +225,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       style={{ height: `${config.rowHeight}px` }}
                     >
                       {columns.map((column) => (
-                        <td key={column.key} className="pr-4">
+                        <td key={column.key} className={cn("pr-4", column.cellClassName)}>
                           <div className="h-4 bg-accent-3 rounded animate-pulse" />
                         </td>
                       ))}
@@ -254,7 +261,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   : false;
 
                 if (isGridLayout) {
-                  // Grid layout: single row with optional border
                   return (
                     <tr
                       key={`content-${virtualRow.key}`}
@@ -307,6 +313,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                             "text-xs align-middle whitespace-nowrap pr-4",
                             idx === 0 ? "rounded-l-md" : "",
                             idx === columns.length - 1 ? "rounded-r-md" : "",
+                            column.cellClassName,
                           )}
                         >
                           {column.render(typedItem)}
@@ -315,7 +322,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     </tr>
                   );
                 }
-                // Classic layout: fragment with configurable spacer row
+
                 return (
                   <Fragment key={`row-group-${virtualRow.key}`}>
                     {(config.rowSpacing ?? 4) > 0 && (
@@ -362,7 +369,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       }}
                       className={cn(
                         "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
-                        config.rowBorders && "border-b border-gray-4", // Still allow borders in classic mode
+                        config.rowBorders && "border-b border-gray-4",
                         rowClassName?.(typedItem),
                         selectedClassName?.(typedItem, isSelected),
                       )}
@@ -375,6 +382,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                             "text-xs align-middle whitespace-nowrap pr-4",
                             idx === 0 ? "rounded-l-md" : "",
                             idx === columns.length - 1 ? "rounded-r-md" : "",
+                            column.cellClassName,
                           )}
                         >
                           {column.render(typedItem)}
@@ -395,7 +403,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
-          {/* Without this check bottom status section blinks in the UI and disappears */}
           {loadMoreFooterProps && (
             <LoadMoreFooter
               {...loadMoreFooterProps}
