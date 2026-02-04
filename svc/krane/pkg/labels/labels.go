@@ -8,15 +8,18 @@ import (
 // Label key constants for krane resources.
 // These are the single source of truth for label keys used across the codebase.
 const (
-	LabelKeyWorkspaceID   = "unkey.com/workspace.id"
-	LabelKeyProjectID     = "unkey.com/project.id"
-	LabelKeyEnvironmentID = "unkey.com/environment.id"
-	LabelKeyDeploymentID  = "unkey.com/deployment.id"
-	LabelKeyBuildID       = "unkey.com/build.id"
-	LabelKeySentinelID    = "unkey.com/sentinel.id"
-	LabelKeyInject        = "unkey.com/inject"
-	LabelKeyManagedBy     = "app.kubernetes.io/managed-by"
-	LabelKeyComponent     = "app.kubernetes.io/component"
+	LabelKeyWorkspaceID           = "unkey.com/workspace.id"
+	LabelKeyProjectID             = "unkey.com/project.id"
+	LabelKeyEnvironmentID         = "unkey.com/environment.id"
+	LabelKeyDeploymentID          = "unkey.com/deployment.id"
+	LabelKeyBuildID               = "unkey.com/build.id"
+	LabelKeySentinelID            = "unkey.com/sentinel.id"
+	LabelKeyNetworkPolicyID       = "unkey.com/networkpolicy.id"
+	LabelKeyCiliumNetworkPolicyID = "unkey.com/cilium.network-policy.id"
+	LabelKeyInject                = "unkey.com/inject"
+	LabelKeyManagedBy             = "app.kubernetes.io/managed-by"
+	LabelKeyComponent             = "app.kubernetes.io/component"
+	LabelKeyNamespace             = "io.kubernetes.pod.namespace"
 )
 
 // Labels represents a map of Kubernetes labels for krane resources.
@@ -33,6 +36,16 @@ type Labels map[string]string
 // Returns an empty label map ready for method chaining.
 func New() Labels {
 	return Labels{}
+}
+
+// Namespace adds namespace label to the label set.
+//
+// This method sets the "io.kubernetes.pod.namespace" label to specify
+// the Kubernetes namespace of the resource. Returns the same Labels
+// instance for method chaining.
+func (l Labels) Namespace(namespace string) Labels {
+	l[LabelKeyNamespace] = namespace
+	return l
 }
 
 // WorkspaceID adds workspace ID label to the label set.
@@ -75,6 +88,16 @@ func (l Labels) SentinelID(id string) Labels {
 	return l
 }
 
+// NetworkPolicyID adds network policy ID label to the label set.
+//
+// This method sets the "unkey.com/networkpolicy.id" label for identifying
+// the specific network policy resource. Returns the same Labels instance
+// for method chaining.
+func (l Labels) NetworkPolicyID(id string) Labels {
+	l[LabelKeyNetworkPolicyID] = id
+	return l
+}
+
 // ComponentSentinel adds component label for sentinel resources.
 //
 // This method sets "app.kubernetes.io/component" label to "sentinel"
@@ -92,6 +115,16 @@ func (l Labels) ComponentSentinel() Labels {
 // Labels instance for method chaining.
 func (l Labels) ComponentDeployment() Labels {
 	l[LabelKeyComponent] = "deployment"
+	return l
+}
+
+// ComponentCiliumNetworkPolicy adds component label for Cilium network policy resources.
+//
+// This method sets "app.kubernetes.io/component" label to "ciliumnetworkpolicy"
+// to identify resource as a Cilium network policy component. Returns the same
+// Labels instance for method chaining.
+func (l Labels) ComponentCiliumNetworkPolicy() Labels {
+	l[LabelKeyComponent] = "ciliumnetworkpolicy"
 	return l
 }
 
@@ -177,5 +210,14 @@ func GetDeploymentID(l map[string]string) (string, bool) {
 // whether the label was found.
 func GetEnvironmentID(l map[string]string) (string, bool) {
 	v, ok := l[LabelKeyEnvironmentID]
+	return v, ok
+}
+
+// GetCiliumNetworkPolicyID extracts cilium network policy ID from Kubernetes label map.
+//
+// This helper function retrieves the "unkey.com/cilium.network-policy.id" label from
+// a Kubernetes resource's labels. Returns ID and a boolean indicating whether the label was found.
+func GetCiliumNetworkPolicyID(l map[string]string) (string, bool) {
+	v, ok := l[LabelKeyCiliumNetworkPolicyID]
 	return v, ok
 }

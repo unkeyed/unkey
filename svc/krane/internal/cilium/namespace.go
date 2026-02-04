@@ -1,4 +1,4 @@
-package deployment
+package cilium
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 
 // ensureNamespaceExists creates the namespace if it doesn't already exist and
 // configures network policies for customer workloads.
-//
 // The method is idempotent: calling it for an existing namespace succeeds without error.
 func (c *Controller) ensureNamespaceExists(ctx context.Context, namespace string) error {
 	_, err := c.clientSet.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
