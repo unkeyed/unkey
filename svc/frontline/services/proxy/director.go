@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -54,12 +55,7 @@ func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) fun
 		currentHops++
 		req.Header.Set(HeaderFrontlineHops, strconv.Itoa(currentHops))
 
-		if currentHops >= s.maxHops-1 {
-			s.logger.Warn("approaching max hops limit",
-				"currentHops", currentHops,
-				"maxHops", s.maxHops,
-				"hostname", req.Host,
-			)
-		}
+		// Log hop count to wide event for observability
+		wide.Set(req.Context(), wide.FieldProxyHops, currentHops)
 	}
 }

@@ -113,6 +113,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	}
 
+	// Log upstream URL for debugging proxy issues
+	wide.Set(ctx, wide.FieldUpstreamURL, targetURL.String())
+
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{

@@ -16,7 +16,7 @@ const (
 	statusError   = "error"
 )
 
-// setDBErrorContext sets the db_error_type evlog field when a database error occurs.
+// setDBErrorContext sets the db_error_type wide field when a database error occurs.
 func setDBErrorContext(ctx context.Context, err error) {
 	if err != nil {
 		wide.Set(ctx, wide.FieldDBErrorType, ClassifyDBError(err))

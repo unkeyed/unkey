@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -9,10 +10,12 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
 type forwardConfig struct {
+	ctx          context.Context
 	targetURL    *url.URL
 	startTime    time.Time
 	directorFunc func(*http.Request)
@@ -21,6 +24,8 @@ type forwardConfig struct {
 }
 
 func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
+	// Log upstream URL early so it's available in wide event even if errors occur
+	wide.Set(cfg.ctx, wide.FieldUpstreamURL, cfg.targetURL.String())
 	sess.ResponseWriter().Header().Set(HeaderFrontlineID, s.frontlineID)
 	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
@@ -84,14 +89,9 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			// Capture the error for middleware to handle
+			// Wide event logging is handled by middleware - no separate log needed here
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
-
-				s.logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.logTarget),
-					"error", err.Error(),
-					"target", cfg.targetURL.String(),
-					"hostname", r.Host,
-				)
 			}
 		},
 	}

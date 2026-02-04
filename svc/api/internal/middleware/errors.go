@@ -32,7 +32,7 @@ func WithErrorHandling(logger logging.Logger) zen.Middleware {
 				urn = codes.App.Internal.UnexpectedError.URN()
 			}
 
-			// Add error context to evlog for observability
+			// Add error context to wide for observability
 			wide.Set(ctx, wide.FieldErrorCode, urn)
 			wide.Set(ctx, wide.FieldErrorInternal, fault.InternalMessage(err))
 			if locations := fault.LocationChain(err); len(locations) > 0 {

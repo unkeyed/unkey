@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"golang.org/x/net/http2"
 )
@@ -119,6 +120,7 @@ func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sent
 	}
 
 	return s.forward(sess, forwardConfig{
+		ctx:          ctx,
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeSentinelDirector(sess, deploymentID, startTime),
@@ -131,18 +133,17 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
 	if hopCountStr := sess.Request().Header.Get(HeaderFrontlineHops); hopCountStr != "" {
-		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops >= s.maxHops {
-			s.logger.Error("too many frontline hops - rejecting request",
-				"hops", hops,
-				"maxHops", s.maxHops,
-				"hostname", sess.Request().Host,
-				"requestID", sess.RequestID(),
-			)
-			return fault.New("too many frontline hops",
-				fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-				fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
-				fault.Public("Request routing limit exceeded"),
-			)
+		if hops, err := strconv.Atoi(hopCountStr); err == nil {
+			// Log hop count for observability - will be visible in wide event
+			wide.Set(ctx, wide.FieldProxyHops, hops)
+
+			if hops >= s.maxHops {
+				return fault.New("too many frontline hops",
+					fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+					fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
+					fault.Public("Request routing limit exceeded"),
+				)
+			}
 		}
 	}
 
@@ -155,6 +156,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 	}
 
 	return s.forward(sess, forwardConfig{
+		ctx:          ctx,
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeRegionDirector(sess, startTime),

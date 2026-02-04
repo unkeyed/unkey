@@ -149,6 +149,9 @@ const (
 
 	// --- Proxy fields (frontline/sentinel) ---
 
+	// FieldUpstreamURL is the full upstream URL for proxy requests (e.g., "http://sentinel:8040").
+	FieldUpstreamURL = "upstream_url"
+
 	// FieldUpstreamHost is the upstream host for proxy requests.
 	FieldUpstreamHost = "upstream_host"
 
