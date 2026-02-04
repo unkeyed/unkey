@@ -66,7 +66,7 @@ func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
 	if tokenCache == nil {
 		tokenCache, err = cache.New(cache.Config[int64, InstallationToken]{
 			Fresh:    55 * time.Minute,
-			Stale:    55 * time.Minute,
+			Stale:    5 * time.Minute,
 			MaxSize:  10_000,
 			Logger:   logger,
 			Resource: "github_installation_token",
