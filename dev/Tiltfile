@@ -6,6 +6,10 @@ cfg = config.parse()
 
 update_settings(suppress_unused_image_warnings=["unkey/sentinel:latest"])
 
+# Check which optional credential files exist
+has_depot_credentials = os.path.exists('./.env.depot')
+has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
+
 local_resource(
   'namespace',
   'kubectl apply -f k8s/manifests/namespace.yaml',
@@ -32,23 +36,25 @@ local_resource(
 
 local_resource(
     'depot-credentials',
-    'kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -',
+    'if [ -f ./.env.depot ]; then kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping depot-credentials (no .env.depot file)"; fi',
     resource_deps=['namespace'],
     deps=['./.env.depot'],
     labels=['setup'],
+    allow_parallel=True,
 )
 
 local_resource(
     'github-credentials',
-    '''set -a && source ./.env.github && set +a && kubectl -n unkey create secret generic github-credentials \
+    '''if [ -f ./.env.github ] && [ -f ./.github-private-key.pem ]; then set -a && source ./.env.github && set +a && kubectl -n unkey create secret generic github-credentials \
       --from-literal=UNKEY_GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID" \
       --from-literal=UNKEY_GITHUB_APP_WEBHOOK_SECRET="$UNKEY_GITHUB_APP_WEBHOOK_SECRET" \
       --from-literal=NEXT_PUBLIC_GITHUB_APP_NAME="$NEXT_PUBLIC_GITHUB_APP_NAME" \
       --from-file=UNKEY_GITHUB_PRIVATE_KEY_PEM=./.github-private-key.pem \
-      -o yaml --dry-run=client | kubectl apply -f -''',
+      -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping github-credentials (missing .env.github or .github-private-key.pem)"; fi''',
     resource_deps=['namespace'],
     deps=['./.env.github', './.github-private-key.pem'],
     labels=['setup'],
+    allow_parallel=True,
 )
 
 local_resource(
@@ -164,10 +170,15 @@ k8s_resource(
 
 # Ctrl service
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'build-unkey']
+if has_depot_credentials:
+    ctrl_api_deps.append('depot-credentials')
+if has_github_credentials:
+    ctrl_api_deps.append('github-credentials')
 k8s_resource(
   'ctrl-api',
   port_forwards='7091:7091',
-  resource_deps=['mysql', 'clickhouse', 'restate', 'vault', 'build-unkey', 'depot-credentials'],
+  resource_deps=ctrl_api_deps,
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -175,10 +186,15 @@ k8s_resource(
 
 # Worker service (Restate workflow handlers)
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'build-unkey', 'webhooks-config']
+if has_depot_credentials:
+    ctrl_worker_deps.append('depot-credentials')
+if has_github_credentials:
+    ctrl_worker_deps.append('github-credentials')
 k8s_resource(
   'ctrl-worker',
   port_forwards=['7092:7092'],
-  resource_deps=['mysql', 'clickhouse', 'restate', 'build-unkey', 'depot-credentials', 'webhooks-config'],
+  resource_deps=ctrl_worker_deps,
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -222,10 +238,13 @@ local_resource(
 )
 
 k8s_yaml('k8s/manifests/preflight.yaml')
+preflight_deps = ['build-unkey', 'build-inject']
+if has_depot_credentials:
+    preflight_deps.append('depot-credentials')
 k8s_resource(
   'preflight',
   port_forwards='8090:8080',
-  resource_deps=['build-unkey', 'build-inject'],
+  resource_deps=preflight_deps,
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO

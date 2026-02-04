@@ -109,6 +109,7 @@ spec:
                 secretKeyRef:
                   name: depot-credentials
                   key: UNKEY_DEPOT_TOKEN
+                  optional: true
           ports:
             - containerPort: 8443
               name: https
