@@ -57,10 +57,16 @@ spec:
               readOnly: true
           readinessProbe:
             httpGet:
-              path: /_unkey/internal/ready
+              path: /_unkey/internal/health/ready
               port: 7070
             initialDelaySeconds: 5
             periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /_unkey/internal/health/live
+              port: 7070
+            initialDelaySeconds: 10
+            periodSeconds: 10
       volumes:
         - name: tls-certs
           configMap:

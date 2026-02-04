@@ -195,6 +195,8 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 
 	}
+	
+	
 	// Wait for signal and handle shutdown
 	logger.Info("Krane server started successfully")
 	if err := r.Wait(ctx); err != nil {

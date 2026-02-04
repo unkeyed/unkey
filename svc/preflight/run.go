@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/mutator"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry/credentials"
-	"github.com/unkeyed/unkey/svc/preflight/routes/healthz"
 	"github.com/unkeyed/unkey/svc/preflight/routes/mutate"
 )
 
@@ -71,6 +70,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
 
+	r.RegisterHealth(server.Mux())
+
 	m := mutator.New(mutator.Config{
 		Logger:                  logger,
 		Registry:                reg,
@@ -86,7 +87,6 @@ func Run(ctx context.Context, cfg Config) error {
 		zen.WithLogging(logger),
 	}
 
-	server.RegisterRoute(middlewares, &healthz.Handler{})
 	server.RegisterRoute(middlewares, &mutate.Handler{
 		Logger:  logger,
 		Mutator: m,

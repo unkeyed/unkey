@@ -18,7 +18,6 @@ go_library(
         "//svc/preflight/internal/services/mutator",
         "//svc/preflight/internal/services/registry",
         "//svc/preflight/internal/services/registry/credentials",
-        "//svc/preflight/routes/healthz",
         "//svc/preflight/routes/mutate",
         "@io_k8s_client_go//kubernetes",
         "@io_k8s_client_go//rest",
