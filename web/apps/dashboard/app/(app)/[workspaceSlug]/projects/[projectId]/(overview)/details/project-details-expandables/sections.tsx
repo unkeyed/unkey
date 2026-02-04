@@ -132,15 +132,14 @@ export const createDetailSections = (
           label: "Regions",
           alignment: "start",
           content: (
-            <div className="flex flex-wrap gap-1 font-medium">
-              {Array.from(new Set(details.instances.map((i) => i.region))).map((region) => (
-                <span
-                  key={region}
-                  className="px-1.5 py-1 bg-grayA-3 rounded text-gray-12 text-xs font-mono"
-                >
-                  {region}
-                </span>
-              ))}
+            <div className="w-fit">
+              <div className="gap-1 flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3 p-1.5 h-[22px] rounded-md">
+                {details.instances.map(r =>
+                  <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
+                    <img src={`/images/flags/${r.flagCode}.svg`} alt={r.flagCode} className="size-4" />
+                  </div>
+                )}
+              </div>
             </div>
           ),
         },

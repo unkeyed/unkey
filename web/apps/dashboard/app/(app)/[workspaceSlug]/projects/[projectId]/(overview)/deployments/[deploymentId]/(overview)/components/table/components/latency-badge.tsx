@@ -1,23 +1,21 @@
 import { cn } from "@/lib/utils";
+import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
-import { Badge } from "@unkey/ui";
+import { Badge, InfoTooltip } from "@unkey/ui";
 
 export const LatencyBadge = ({ log }: { log: SentinelLogsResponse }) => {
   const style = getLatencyStyle(log.total_latency);
   const tooltipText = `Total: ${log.total_latency}ms | Instance: ${log.instance_latency}ms | Sentinel: ${log.sentinel_latency}ms`;
 
   return (
-    <Badge
-      className={cn("px-[6px] rounded-md font-mono whitespace-nowrap tabular-nums", style)}
-      title={tooltipText}
-    >
-      {formatLatency(log.total_latency)}
-    </Badge>
+    <InfoTooltip content={tooltipText}>
+      <Badge
+        className={cn("px-[6px] rounded-md font-mono whitespace-nowrap tabular-nums", style)}
+      >
+        {formatLatency(log.total_latency)}
+      </Badge>
+    </InfoTooltip>
   );
-};
-
-const formatLatency = (latency: number): string => {
-  return `${latency}ms`;
 };
 
 /**

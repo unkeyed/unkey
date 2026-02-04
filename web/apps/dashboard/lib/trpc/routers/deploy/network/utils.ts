@@ -1,7 +1,8 @@
 import type { HealthStatus } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
 import type { Instance, Sentinel } from "@/lib/db";
 
-type FlagCode = "us" | "de" | "au" | "jp" | "in" | "br";
+export const flagCodes = ["us", "de", "au", "jp", "in", "br"] as const
+export type FlagCode = typeof flagCodes[number]
 
 export function mapInstanceStatusToHealth(status: Instance["status"]): HealthStatus {
   switch (status) {

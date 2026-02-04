@@ -16,14 +16,17 @@ export function DeploymentInfoSection() {
   const deploymentId = params?.deploymentId as string;
 
   const { collections, setIsDetailsOpen, isDetailsOpen } = useProject();
-  const deployment = useLiveQuery(
+  const { data } = useLiveQuery(
     (q) =>
       q
         .from({ deployment: collections.deployments })
         .where(({ deployment }) => eq(deployment.id, deploymentId)),
     [deploymentId],
   );
-  const deploymentStatus = deployment.data.at(0)?.status;
+
+  const deployment = data.at(0)
+  const deploymentStatus = deployment?.status;
+  const deploymentRegions = deployment?.instances.map(i => i.flagCode) ?? [];
 
   return (
     <Section>
@@ -56,15 +59,11 @@ export function DeploymentInfoSection() {
               </InfoChip>
             </DisabledWrapper>
             <div className="gap-1 flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3 p-1.5 h-[22px] rounded-md">
-              <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
-                <img src={"/images/flags/us.svg"} alt="us-flag" className="size-4" />
-              </div>
-              <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
-                <img src={"/images/flags/de.svg"} alt="de-flag" className="size-4" />
-              </div>
-              <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
-                <img src={"/images/flags/in.svg"} alt="in-flag" className="size-4" />
-              </div>
+              {deploymentRegions.map(r =>
+                <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
+                  <img src={`/images/flags/${r}.svg`} alt={r} className="size-4" />
+                </div>
+              )}
             </div>
             <InfoTooltip asChild content="Show deployment details">
               <Button

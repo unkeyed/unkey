@@ -3,6 +3,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { flagCodes } from "@/lib/trpc/routers/deploy/network/utils";
 
 const schema = z.object({
   id: z.string(),
@@ -22,6 +23,7 @@ const schema = z.object({
     z.object({
       id: z.string(),
       region: z.string(),
+      flagCode: z.enum(flagCodes),
     }),
   ),
   cpuMillicores: z.number().int(),
