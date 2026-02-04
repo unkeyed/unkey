@@ -5,10 +5,12 @@ go_library(
     srcs = [
         "auth.go",
         "doc.go",
+        "rpc_get_desired_cilium_network_policy_state.go",
         "rpc_get_desired_deployment_state.go",
         "rpc_get_desired_sentinel_state.go",
         "rpc_report_deployment_status.go",
         "rpc_report_sentinel_status.go",
+        "rpc_watch_cilium_network_policies.go",
         "rpc_watch_deployments.go",
         "rpc_watch_sentinels.go",
         "service.go",
