@@ -47,7 +47,7 @@ type Workflow struct {
 	vault            vaultv1connect.VaultServiceClient
 	sentinelImage    string
 	availableRegions []string
-	github           *githubclient.Client
+	github           githubclient.GitHubClient
 
 	// Build dependencies
 	depotConfig    DepotConfig
@@ -79,7 +79,7 @@ type Config struct {
 	AvailableRegions []string
 
 	// GitHub provides access to GitHub API for downloading tarballs.
-	GitHub *githubclient.Client
+	GitHub githubclient.GitHubClient
 
 	// DepotConfig configures the Depot API connection.
 	DepotConfig DepotConfig

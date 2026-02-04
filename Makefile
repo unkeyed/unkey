@@ -119,6 +119,22 @@ nuke: ## Delete minikube cluster entirely
 local-dashboard: install build ## Run local development setup for dashboard
 	pnpm --dir=web/apps/dashboard local
 
+.PHONY: build-local-image
+build-local-image: ## Build and push image to local registry (usage: make build-local-image DOCKERFILE=./path/to/Dockerfile NAME=myapp TAG=latest)
+	@if [ -z "$(DOCKERFILE)" ]; then echo "Error: DOCKERFILE is required (e.g., DOCKERFILE=./examples/demo_api/Dockerfile)"; exit 1; fi
+	@if [ -z "$(NAME)" ]; then echo "Error: NAME is required (e.g., NAME=demo_api)"; exit 1; fi
+	$(eval TAG ?= latest)
+	$(eval CONTEXT ?= $(dir $(DOCKERFILE)))
+	$(eval REGISTRY := $(shell kubectl get configmap local-registry-hosting -n kube-public -o jsonpath='{.data.localRegistryHosting\.v1}' 2>/dev/null | grep '^host:' | awk '{print $$2}'))
+	@if [ -z "$(REGISTRY)" ]; then echo "Error: Could not find local registry. Is minikube running with ctlptl?"; exit 1; fi
+	@echo "Building $(NAME):$(TAG) from $(DOCKERFILE) (context: $(CONTEXT))"
+	@echo "Pushing to $(REGISTRY)/$(NAME):$(TAG)"
+	docker build -t $(REGISTRY)/$(NAME):$(TAG) -f $(DOCKERFILE) $(CONTEXT)
+	docker push $(REGISTRY)/$(NAME):$(TAG)
+	@echo ""
+	@echo "Image pushed successfully!"
+	@echo "Use in pod spec: ctlptl-registry:5000/$(NAME):$(TAG)"
+
 .PHONY: fuzz
 fuzz: ## Run fuzz tests
 	@files=$$(grep -r --include='*_test.go' -l 'func Fuzz' .); \
