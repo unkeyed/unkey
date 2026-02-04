@@ -82,7 +82,6 @@ func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
 	}, nil
 }
 
-
 // generateJWT creates a short-lived JWT for GitHub App authentication.
 func (c *Client) generateJWT() (string, error) {
 	now := time.Now()
@@ -180,8 +179,6 @@ func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken,
 	token := value
 	return &token, nil
 }
-
-
 
 // DownloadRepoTarball downloads a repository tarball for a specific ref.
 // The repoFullName should be in "owner/repo" format. The ref can be a branch
