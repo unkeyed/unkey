@@ -12,15 +12,29 @@ service DeploymentService {
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
 }
 
+message DockerImage {
+  string image = 1;
+}
+
+message GitSource {
+  int64 installation_id = 1;
+  string repository = 2;
+  string commit_sha = 3;
+  string context_path = 4;
+  string dockerfile_path = 5;
+}
+
 message DeployRequest {
   string deployment_id = 1;
   optional string key_auth_id = 2;
-  // Build source fields, exactly one of (context_key, docker_image) must be set
-  optional string build_context_path = 3;
-  optional string dockerfile_path = 4;
-  optional string docker_image = 5;
+
+  oneof source {
+    GitSource git = 3;
+    DockerImage docker_image = 4;
+  }
+
   // Container command override (e.g., ["./app", "serve"])
-  repeated string command = 6;
+  repeated string command = 5;
 }
 
 message DeployResponse {}

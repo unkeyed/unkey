@@ -8,6 +8,7 @@ export const env = () =>
         .optional()
         .prefault("development"),
       VERCEL_URL: z.string().optional(),
+      VERCEL_BRANCH_URL: z.string().optional(), // Only set in preview deployments
 
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),
@@ -80,6 +81,14 @@ export const vercelIntegrationSchema = z.object({
 const vercelIntegrationParsed = vercelIntegrationSchema.safeParse(process.env);
 export const vercelIntegrationEnv = () =>
   vercelIntegrationParsed.success ? vercelIntegrationParsed.data : null;
+
+export const githubAppSchema = z.object({
+  GITHUB_APP_ID: z.string().transform((s) => Number.parseInt(s, 10)),
+  UNKEY_GITHUB_PRIVATE_KEY_PEM: z.string().transform((s) => s.replace(/\\n/g, "\n")), // needs to be a single line, with \n
+});
+
+const githubAppParsed = githubAppSchema.safeParse(process.env);
+export const githubAppEnv = () => (githubAppParsed.success ? githubAppParsed.data : null);
 
 const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),

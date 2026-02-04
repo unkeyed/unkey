@@ -14,7 +14,7 @@ import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bar, BarChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
+import { Bar, BarChart, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
 
@@ -159,7 +159,7 @@ export function LogsTimeseriesBarChart({
   }
 
   return (
-    <div className="w-full relative" ref={chartRef}>
+    <div className="w-full relative" ref={chartRef} style={{ height: `${height}px` }}>
       <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between pointer-events-none">
         {data
           ? calculateTimePoints(
@@ -172,86 +172,87 @@ export function LogsTimeseriesBarChart({
             ))
           : null}
       </div>
-      <ResponsiveContainer width="100%" height={height} className="border-b border-gray-4">
-        <ChartContainer config={config}>
-          <BarChart
-            data={data}
-            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-            barCategoryGap={0.5}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
-            <YAxis domain={[0, (dataMax: number) => dataMax * 1.5]} hide />
-            <ChartTooltip
-              position={{ y: 50 }}
-              isAnimationActive
-              wrapperStyle={{ zIndex: 1000 }}
-              cursor={{
-                fill: "hsl(var(--accent-3))",
-                strokeWidth: 1,
-                strokeDasharray: "5 5",
-                strokeOpacity: 0.7,
-              }}
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
-                  return null;
-                }
-                return (
-                  <ChartTooltipContent
-                    payload={payload}
-                    label={label}
-                    active={active}
-                    bottomExplainer={
-                      <div className="grid gap-1.5 pt-2 border-t border-gray-4">
-                        <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
-                          <Grid className="text-gray-6" />
-                          <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
-                            <div className="flex gap-4 items-center min-w-[80px]">
-                              <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
-                                All
-                              </span>
-                              <span className="capitalize text-accent-12 text-xs">Total</span>
-                            </div>
-                            <div className="ml-auto">
-                              <span className="font-mono tabular-nums text-accent-12">
-                                {formatNumber(payload[0]?.payload?.total)}
-                              </span>
-                            </div>
+      <ChartContainer
+        config={config}
+        className="w-full aspect-auto border-b border-gray-4"
+        style={{ height: `${height}px` }}
+      >
+        <BarChart
+          data={data}
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          barCategoryGap={0.5}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          <YAxis domain={[0, (dataMax: number) => dataMax * 1.5]} hide />
+          <ChartTooltip
+            position={{ y: 50 }}
+            isAnimationActive
+            wrapperStyle={{ zIndex: 1000 }}
+            cursor={{
+              fill: "hsl(var(--accent-3))",
+              strokeWidth: 1,
+              strokeDasharray: "5 5",
+              strokeOpacity: 0.7,
+            }}
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
+                return null;
+              }
+              return (
+                <ChartTooltipContent
+                  payload={payload}
+                  label={label}
+                  active={active}
+                  bottomExplainer={
+                    <div className="grid gap-1.5 pt-2 border-t border-gray-4">
+                      <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
+                        <Grid className="text-gray-6" />
+                        <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
+                          <div className="flex gap-4 items-center min-w-[80px]">
+                            <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
+                              All
+                            </span>
+                            <span className="capitalize text-accent-12 text-xs">Total</span>
+                          </div>
+                          <div className="ml-auto">
+                            <span className="font-mono tabular-nums text-accent-12">
+                              {formatNumber(payload[0]?.payload?.total)}
+                            </span>
                           </div>
                         </div>
                       </div>
-                    }
-                    className="rounded-lg shadow-lg border border-gray-4"
-                    labelFormatter={(_, tooltipPayload) => {
-                      const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
-                      return formatTooltipInterval(
-                        payloadTimestamp,
-                        data || [],
-                        granularity,
-                        timestampToIndexMap,
-                      );
-                    }}
-                  />
-                );
-              }}
+                    </div>
+                  }
+                  className="rounded-lg shadow-lg border border-gray-4"
+                  labelFormatter={(_, tooltipPayload) => {
+                    const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
+                    return formatTooltipInterval(
+                      payloadTimestamp,
+                      data || [],
+                      granularity,
+                      timestampToIndexMap,
+                    );
+                  }}
+                />
+              );
+            }}
+          />
+          {Object.keys(config).map((key) => (
+            <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
+          ))}
+          {enableSelection && selection.start !== undefined && selection.end !== undefined && (
+            <ReferenceArea
+              x1={Math.min(selection.start, selection.end)}
+              x2={Math.max(selection.start, selection.end)}
+              fill="hsl(var(--chart-selection))"
+              radius={[4, 4, 0, 0]}
             />
-            {Object.keys(config).map((key) => (
-              <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
-            ))}
-            {enableSelection && selection.start !== undefined && selection.end !== undefined && (
-              <ReferenceArea
-                isAnimationActive
-                x1={Math.min(selection.start, selection.end)}
-                x2={Math.max(selection.start, selection.end)}
-                fill="hsl(var(--chart-selection))"
-                radius={[4, 4, 0, 0]}
-              />
-            )}
-          </BarChart>
-        </ChartContainer>
-      </ResponsiveContainer>
+          )}
+        </BarChart>
+      </ChartContainer>
     </div>
   );
 }

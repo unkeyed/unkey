@@ -1,0 +1,55 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+// Custom domain verification status
+enum CustomDomainStatus {
+  CUSTOM_DOMAIN_STATUS_UNSPECIFIED = 0;
+  CUSTOM_DOMAIN_STATUS_PENDING = 1;
+  CUSTOM_DOMAIN_STATUS_VERIFYING = 2;
+  CUSTOM_DOMAIN_STATUS_VERIFIED = 3;
+  CUSTOM_DOMAIN_STATUS_FAILED = 4;
+}
+
+message AddCustomDomainRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string environment_id = 3;
+  string domain = 4;
+}
+
+message AddCustomDomainResponse {
+  string domain_id = 1;
+  string target_cname = 2; // CNAME target user must configure (e.g., "xxxx.unkey-dns.com")
+  CustomDomainStatus status = 3;
+}
+
+message DeleteCustomDomainRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string domain = 3;
+}
+
+message DeleteCustomDomainResponse {}
+
+message RetryVerificationRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string domain = 3;
+}
+
+message RetryVerificationResponse {
+  CustomDomainStatus status = 1;
+}
+
+service CustomDomainService {
+  // Add a new custom domain and start verification
+  rpc AddCustomDomain(AddCustomDomainRequest) returns (AddCustomDomainResponse) {}
+
+  // Delete a custom domain
+  rpc DeleteCustomDomain(DeleteCustomDomainRequest) returns (DeleteCustomDomainResponse) {}
+
+  // Retry verification for a failed domain
+  rpc RetryVerification(RetryVerificationRequest) returns (RetryVerificationResponse) {}
+}

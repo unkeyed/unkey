@@ -7,23 +7,15 @@
 //
 // # Architecture
 //
-// The worker acts as a Restate service host, binding multiple workflow services that handle
-// distinct operational concerns. Each service is implemented as a separate sub-package:
-//
-//   - [deploy] handles container deployments across multiple regions
-//   - [certificate] manages TLS certificates via ACME (Let's Encrypt)
-//   - [routing] configures traffic routing for custom domains
-//   - [versioning] manages application version lifecycle
-//
-// The worker maintains connections to several infrastructure components: the primary database
-// for persistent state, two separate vault services (one for application secrets, one for
-// ACME certificates), S3-compatible storage for build artifacts, and ClickHouse for analytics.
+// The worker acts as a Restate service host, binding workflow services that handle container
+// deployments, TLS certificate management, traffic routing, and versioning. It maintains
+// connections to the primary database for persistent state, vault services for secrets and
+// ACME certificates, S3-compatible storage for build artifacts, and ClickHouse for analytics.
 //
 // # Configuration
 //
-// Configuration is provided through the [Config] struct, which validates all settings on startup.
-// The worker supports two build backends ("depot" for cloud builds and "docker" for local builds),
-// each with different requirements validated by [Config.Validate].
+// Configuration is provided through [Config], which validates settings on startup. The worker
+// supports multiple build backends and validates their requirements in [Config.Validate].
 //
 // # Usage
 //

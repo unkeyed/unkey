@@ -194,10 +194,24 @@ export const Calendar = ({
   };
 
   if (mode === "range") {
-    return <DayPicker {...commonProps} mode="range" selected={date} onSelect={handleRangeChange} />;
+    return (
+      <DayPicker
+        {...commonProps}
+        mode="range"
+        selected={date}
+        onSelect={handleRangeChange}
+        hideNavigation
+      />
+    );
   }
 
   return (
-    <DayPicker {...commonProps} mode="single" selected={date?.from} onSelect={handleSingleChange} />
+    <DayPicker
+      {...commonProps}
+      mode="single"
+      selected={date?.from}
+      onSelect={handleSingleChange}
+      hideNavigation
+    />
   );
 };

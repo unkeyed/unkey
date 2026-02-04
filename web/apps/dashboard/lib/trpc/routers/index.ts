@@ -38,6 +38,11 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { addCustomDomain } from "./deploy/custom-domains/add";
+import { checkDns } from "./deploy/custom-domains/check-dns";
+import { deleteCustomDomain } from "./deploy/custom-domains/delete";
+import { listCustomDomains } from "./deploy/custom-domains/list";
+import { retryVerification } from "./deploy/custom-domains/retry";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
@@ -50,12 +55,19 @@ import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
+import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
+import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
+import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
+import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-timeseries";
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
+import { getInstanceRps } from "./deploy/network/get-instance-rps";
+import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
 import { createProject } from "./deploy/project/create";
 import { listProjects } from "./deploy/project/list";
 import { querySentinelLogs } from "./deploy/sentinel-logs/query";
 import { listEnvironments } from "./environment/list";
+import { githubRouter } from "./github";
 import { createIdentity } from "./identity/create";
 import { deleteIdentity } from "./identity/delete";
 import { getIdentityById } from "./identity/getById";
@@ -245,6 +257,7 @@ export const router = t.router({
     updateWorkspaceStripeCustomer,
   }),
   vercel: vercelRouter,
+  github: githubRouter,
   plain: t.router({
     createIssue: createPlainIssue,
   }),
@@ -364,6 +377,8 @@ export const router = t.router({
     network: t.router({
       generate: generateDeploymentTree,
       get: getDeploymentTree,
+      getSentinelRps,
+      getInstanceRps,
     }),
     project: t.router({
       list: listProjects,
@@ -382,6 +397,13 @@ export const router = t.router({
     domain: t.router({
       list: listDomains,
     }),
+    customDomain: t.router({
+      add: addCustomDomain,
+      list: listCustomDomains,
+      delete: deleteCustomDomain,
+      retry: retryVerification,
+      checkDns: checkDns,
+    }),
     deployment: t.router({
       list: listDeployments,
       buildSteps: getDeploymentBuildSteps,
@@ -392,6 +414,12 @@ export const router = t.router({
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,
+    }),
+    metrics: t.router({
+      getDeploymentRps,
+      getDeploymentRpsTimeseries,
+      getDeploymentLatency,
+      getDeploymentLatencyTimeseries,
     }),
   }),
 });

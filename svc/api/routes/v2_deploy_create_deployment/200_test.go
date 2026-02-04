@@ -44,52 +44,8 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			ProjectId:       setup.Project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
+			DockerImage:     "nginx:latest",
 		}
-		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-			Image: "nginx:latest",
-		})
-		require.NoError(t, err, "failed to set image source")
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 201, res.Status, "expected 201, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
-	})
-
-	t.Run("create deployment with build context", func(t *testing.T) {
-		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-			ProjectName:     "test-build-project",
-			ProjectSlug:     "staging",
-			EnvironmentSlug: "staging",
-			Permissions:     []string{"project.*.create_deployment"},
-		})
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", setup.RootKey)},
-		}
-
-		req := handler.Request{
-			ProjectId:       setup.Project.ID,
-			Branch:          "develop",
-			EnvironmentSlug: "staging",
-		}
-		err := req.FromV2DeployBuildSource(openapi.V2DeployBuildSource{
-			Build: struct {
-				Context    string  `json:"context"`
-				Dockerfile *string `json:"dockerfile,omitempty"`
-			}{
-				Context:    "s3://bucket/path/to/context.tar.gz",
-				Dockerfile: ptr.P("./Dockerfile"),
-			},
-		})
-		require.NoError(t, err, "failed to set build source")
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
@@ -118,6 +74,7 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			ProjectId:       setup.Project.ID,
 			Branch:          "main",
 			EnvironmentSlug: "production",
+			DockerImage:     "nginx:latest",
 			GitCommit: &openapi.V2DeployGitCommit{
 				AuthorAvatarUrl: ptr.P("https://avatar.example.com/johndoe.jpg"),
 				AuthorHandle:    ptr.P("johndoe"),
@@ -126,10 +83,6 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 				Timestamp:       ptr.P(int64(1704067200000)),
 			},
 		}
-		err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-			Image: "nginx:latest",
-		})
-		require.NoError(t, err, "failed to set image source")
 
 		res := testutil.CallRoute[handler.Request, handler.Response](
 			h,
@@ -173,11 +126,8 @@ func TestCreateDeploymentWithWildcardPermission(t *testing.T) {
 		ProjectId:       setup.Project.ID,
 		Branch:          "main",
 		EnvironmentSlug: "production",
+		DockerImage:     "nginx:latest",
 	}
-	err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-		Image: "nginx:latest",
-	})
-	require.NoError(t, err, "failed to set image source")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusCreated, res.Status, "Expected 201, got: %d", res.Status)
@@ -215,11 +165,8 @@ func TestCreateDeploymentWithSpecificProjectPermission(t *testing.T) {
 		ProjectId:       setup.Project.ID,
 		Branch:          "main",
 		EnvironmentSlug: "production",
+		DockerImage:     "nginx:latest",
 	}
-	err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-		Image: "nginx:latest",
-	})
-	require.NoError(t, err, "failed to set image source")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusCreated, res.Status, "Expected 201, got: %d", res.Status)

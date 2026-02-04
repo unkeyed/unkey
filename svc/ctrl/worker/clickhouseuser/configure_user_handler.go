@@ -1,0 +1,281 @@
+package clickhouseuser
+
+import (
+	"crypto/rand"
+	"database/sql"
+	"fmt"
+	"time"
+
+	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/ptr"
+)
+
+const (
+	// defaultQuotaDurationSeconds defines the quota window used for rate limits.
+	defaultQuotaDurationSeconds = 3600
+	// defaultMaxQueriesPerWindow caps queries per quota window.
+	defaultMaxQueriesPerWindow = 1000
+	// defaultMaxExecutionTimePerWindow caps total query runtime per window.
+	defaultMaxExecutionTimePerWindow = 1800
+	// defaultMaxQueryExecutionTime caps runtime per query to avoid long-running scans.
+	defaultMaxQueryExecutionTime = 30
+	// defaultMaxQueryMemoryBytes caps memory per query to avoid exhausting the cluster.
+	defaultMaxQueryMemoryBytes = 1000000000
+	// defaultMaxQueryResultRows caps result size to prevent accidental full exports.
+	defaultMaxQueryResultRows = 10000000
+	// passwordLength defines the generated ClickHouse password length.
+	passwordLength = 64
+)
+
+// existingUserResult wraps the DB lookup to avoid Restate error serialization issues
+// when journaling results with sql.Null fields.
+type existingUserResult struct {
+	Row   db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow
+	Found bool
+}
+
+// quotaSettings holds resolved quota configuration with defaults applied and
+// non-zero values enforced.
+type quotaSettings struct {
+	quotaDurationSeconds      int32
+	maxQueriesPerWindow       int32
+	maxExecutionTimePerWindow int32
+	maxQueryExecutionTime     int32
+	maxQueryMemoryBytes       int64
+	maxQueryResultRows        int32
+}
+
+// ConfigureUser creates or updates a ClickHouse user for a workspace.
+//
+// For new workspaces, it generates credentials, encrypts them with Vault, and
+// persists the encrypted values before provisioning ClickHouse. For existing
+// workspaces, it preserves credentials while updating quota settings. The flow
+// is idempotent and safe to retry after partial failures.
+func (s *Service) ConfigureUser(
+	ctx restate.ObjectContext,
+	req *hydrav1.ConfigureUserRequest,
+) (*hydrav1.ConfigureUserResponse, error) {
+	workspaceID := restate.Key(ctx)
+	s.logger.Info("configuring clickhouse user", "workspace_id", workspaceID)
+
+	quotas := resolveQuotaSettings(req)
+
+	// Check if user exists
+	result, err := restate.Run(ctx, func(rc restate.RunContext) (existingUserResult, error) {
+		row, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, s.db.RO(), workspaceID)
+		if db.IsNotFound(err) {
+			//nolint:exhaustruct // zero value is intentional for not-found case
+			return existingUserResult{Found: false}, nil
+		}
+
+		if err != nil {
+			//nolint:exhaustruct // zero value is intentional for error case
+			return existingUserResult{Found: false}, err
+		}
+
+		return existingUserResult{Row: row, Found: true}, nil
+	}, restate.WithName("check existing"))
+	if err != nil {
+		return nil, fmt.Errorf("check existing user: %w", err)
+	}
+
+	var encryptedPassword string
+	var retentionDays int32
+
+	if !result.Found {
+		s.logger.Info("creating new user", "workspace_id", workspaceID)
+
+		// Fetch retention days from workspace quota
+		quota, err := restate.Run(ctx, func(rc restate.RunContext) (db.Quotum, error) {
+			return db.Query.FindQuotaByWorkspaceID(rc, s.db.RO(), workspaceID)
+		}, restate.WithName("fetch quota"))
+		if err != nil {
+			return nil, fmt.Errorf("fetch quota: %w", err)
+		}
+		retentionDays = quota.LogsRetentionDays
+
+		// Generate, encrypt, and store credentials in one step to avoid journaling plaintext
+		encryptedPassword, err = restate.Run(ctx, func(rc restate.RunContext) (string, error) {
+			password, err := generateSecurePassword(passwordLength)
+			if err != nil {
+				return "", fmt.Errorf("generate password: %w", err)
+			}
+
+			resp, err := s.vault.Encrypt(rc, connect.NewRequest(&vaultv1.EncryptRequest{
+				Keyring: workspaceID,
+				Data:    password,
+			}))
+			if err != nil {
+				return "", fmt.Errorf("encrypt password: %w", err)
+			}
+			encrypted := resp.Msg.GetEncrypted()
+
+			now := time.Now().UnixMilli()
+			err = db.Query.InsertClickhouseWorkspaceSettings(rc, s.db.RW(), db.InsertClickhouseWorkspaceSettingsParams{
+				WorkspaceID:               workspaceID,
+				Username:                  workspaceID,
+				PasswordEncrypted:         encrypted,
+				QuotaDurationSeconds:      quotas.quotaDurationSeconds,
+				MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
+				MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
+				MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
+				MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
+				MaxQueryResultRows:        quotas.maxQueryResultRows,
+				CreatedAt:                 now,
+				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+			})
+			if err != nil {
+				// Handle crash-recovery: if we inserted but didn't journal, fetch existing
+				// Use RW to avoid replica lag, then update quotas to ensure they're current
+				if db.IsDuplicateKeyError(err) {
+					existing, fetchErr := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, s.db.RW(), workspaceID)
+					if fetchErr != nil {
+						return "", fmt.Errorf("fetch after duplicate: %w", fetchErr)
+					}
+
+					// Update quota fields in case they changed since the original insert
+					updateErr := db.Query.UpdateClickhouseWorkspaceSettingsLimits(rc, s.db.RW(), db.UpdateClickhouseWorkspaceSettingsLimitsParams{
+						WorkspaceID:               workspaceID,
+						QuotaDurationSeconds:      quotas.quotaDurationSeconds,
+						MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
+						MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
+						MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
+						MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
+						MaxQueryResultRows:        quotas.maxQueryResultRows,
+						UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+					})
+					if updateErr != nil {
+						return "", fmt.Errorf("update limits after duplicate: %w", updateErr)
+					}
+
+					return existing.ClickhouseWorkspaceSetting.PasswordEncrypted, nil
+				}
+
+				return "", fmt.Errorf("insert settings: %w", err)
+			}
+
+			return encrypted, nil
+		}, restate.WithName("store credentials"))
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		s.logger.Info("updating existing user", "workspace_id", workspaceID)
+		retentionDays = result.Row.Quotas.LogsRetentionDays
+		encryptedPassword = result.Row.ClickhouseWorkspaceSetting.PasswordEncrypted
+
+		now := time.Now().UnixMilli()
+		_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+			return restate.Void{}, db.Query.UpdateClickhouseWorkspaceSettingsLimits(rc, s.db.RW(), db.UpdateClickhouseWorkspaceSettingsLimitsParams{
+				WorkspaceID:               workspaceID,
+				QuotaDurationSeconds:      quotas.quotaDurationSeconds,
+				MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
+				MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
+				MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
+				MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
+				MaxQueryResultRows:        quotas.maxQueryResultRows,
+				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+			})
+		}, restate.WithName("update limits"))
+		if err != nil {
+			return nil, fmt.Errorf("update limits: %w", err)
+		}
+	}
+
+	// Configure ClickHouse - decrypt inside step to avoid journaling plaintext
+	_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+		resp, err := s.vault.Decrypt(rc, connect.NewRequest(&vaultv1.DecryptRequest{
+			Keyring:   workspaceID,
+			Encrypted: encryptedPassword,
+		}))
+		if err != nil {
+			return restate.Void{}, fmt.Errorf("decrypt password: %w", err)
+		}
+
+		return restate.Void{}, s.clickhouse.ConfigureUser(rc, clickhouse.UserConfig{
+			WorkspaceID:               workspaceID,
+			Username:                  workspaceID,
+			Password:                  resp.Msg.GetPlaintext(),
+			AllowedTables:             clickhouse.DefaultAllowedTables(),
+			QuotaDurationSeconds:      quotas.quotaDurationSeconds,
+			MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
+			MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
+			MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
+			MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
+			MaxQueryResultRows:        quotas.maxQueryResultRows,
+			RetentionDays:             retentionDays,
+		})
+	}, restate.WithName("configure clickhouse"))
+	if err != nil {
+		return nil, fmt.Errorf("configure clickhouse: %w", err)
+	}
+
+	s.logger.Info("configured clickhouse user", "workspace_id", workspaceID, "retention_days", retentionDays)
+
+	return &hydrav1.ConfigureUserResponse{}, nil
+}
+
+// resolveQuotaSettings applies defaults to unset quota fields.
+// Note: We intentionally reject 0 values (which ClickHouse treats as "unlimited")
+// to prevent unbounded resource consumption.
+func resolveQuotaSettings(req *hydrav1.ConfigureUserRequest) quotaSettings {
+	return quotaSettings{
+		quotaDurationSeconds:      ptr.PositiveOr(req.QuotaDurationSeconds, defaultQuotaDurationSeconds),
+		maxQueriesPerWindow:       ptr.PositiveOr(req.MaxQueriesPerWindow, defaultMaxQueriesPerWindow),
+		maxExecutionTimePerWindow: ptr.PositiveOr(req.MaxExecutionTimePerWindow, defaultMaxExecutionTimePerWindow),
+		maxQueryExecutionTime:     ptr.PositiveOr(req.MaxQueryExecutionTime, defaultMaxQueryExecutionTime),
+		maxQueryMemoryBytes:       ptr.PositiveOr(req.MaxQueryMemoryBytes, defaultMaxQueryMemoryBytes),
+		maxQueryResultRows:        ptr.PositiveOr(req.MaxQueryResultRows, defaultMaxQueryResultRows),
+	}
+}
+
+const (
+	upper   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	lower   = "abcdefghijklmnopqrstuvwxyz"
+	digits  = "0123456789"
+	special = "-_.~" // RFC 3986 unreserved chars only - safe in DSN userinfo
+	all     = upper + lower + digits + special
+)
+
+// generateSecurePassword creates a password that satisfies ClickHouse Cloud requirements:
+// - At least 12 characters long
+// - At least 1 numeric character
+// - At least 1 uppercase character
+// - At least 1 lowercase character
+// - At least 1 special character
+func generateSecurePassword(length int) (string, error) {
+	length = max(length, 12)
+
+	// Get all random bytes upfront
+	randomBytes := make([]byte, length*2) // extra for shuffle
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", err
+	}
+
+	password := make([]byte, length)
+
+	// Guarantee one from each required charset
+	required := []string{upper, lower, digits, special}
+	for i, charset := range required {
+		password[i] = charset[int(randomBytes[i])%len(charset)]
+	}
+
+	// Fill rest from all characters
+	for i := len(required); i < length; i++ {
+		password[i] = all[int(randomBytes[i])%len(all)]
+	}
+
+	// Fisher-Yates shuffle
+	for i := length - 1; i > 0; i-- {
+		j := int(randomBytes[length+i]) % (i + 1)
+		password[i], password[j] = password[j], password[i]
+	}
+
+	return string(password), nil
+}

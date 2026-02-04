@@ -175,8 +175,22 @@ export function getBaseUrl() {
     return "";
   }
 
+  // Production: VERCEL_ENV=production, VERCEL_URL=app.unkey.com (custom domain)
+  // Preview: VERCEL_ENV=preview, VERCEL_BRANCH_URL=stable branch URL, VERCEL_URL=SHA-specific URL
+  // Development: VERCEL_ENV=development (local)
+
+  if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_URL) {
+    // In production, VERCEL_URL is your custom domain (app.unkey.com)
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  if (process.env.VERCEL_BRANCH_URL) {
+    // Use stable branch URL for preview deployments (e.g., your-app-git-branch-team.vercel.app)
+    return `https://${process.env.VERCEL_BRANCH_URL}`;
+  }
+
   if (process.env.VERCEL_URL) {
-    // reference for vercel.com
+    // Fallback to deployment-specific URL if branch URL not available
     return `https://${process.env.VERCEL_URL}`;
   }
 

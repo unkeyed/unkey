@@ -43,9 +43,11 @@ When resources are created, updated, or deleted, the deploy workflow updates the
 
 ### Build Service
 
-The build service manages container image building for customer deployments. It supports two backends: Depot for production deployments, which provides remote BuildKit with persistent layer caching for fast rebuilds, and Docker for local development, which uses standard Docker builds on the local machine.
+The build service manages container image building for customer deployments through Depot, which provides remote BuildKit with persistent layer caching for fast rebuilds.
 
-The service provides two key operations. `GenerateUploadURL` returns a presigned S3 URL where the CLI can upload a tarball of the build context. `CreateBuild` then builds a Docker image from that uploaded source, coordinating with either Depot or Docker depending on configuration.
+For GitHub-connected repositories, builds are triggered automatically via webhooks. BuildKit fetches the repository directly from GitHub using its native git context support, authenticated via GitHub App installation tokens. This eliminates the need for intermediate storage and provides efficient builds with automatic layer caching.
+
+For CLI deployments, users provide pre-built Docker images directly, bypassing the build service entirely.
 
 [Read detailed Build System docs →](./build)
 

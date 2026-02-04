@@ -6,6 +6,7 @@ import { workspaces } from "./workspaces";
 
 import { deployments } from "./deployments";
 import { frontlineRoutes } from "./frontline_routes";
+import { githubRepoConnections } from "./github_app";
 export const projects = mysqlTable(
   "projects",
   {
@@ -46,5 +47,9 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     references: [deployments.id],
   }),
   frontlineRoutes: many(frontlineRoutes),
+  githubRepoConnection: one(githubRepoConnections, {
+    fields: [projects.id],
+    references: [githubRepoConnections.projectId],
+  }),
   // environments: many(projectEnvironments),
 }));

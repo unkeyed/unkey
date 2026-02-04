@@ -1,1 +1,3 @@
-!.env.depot.example
+!.env.*.example
+*.pem
+.env.seed

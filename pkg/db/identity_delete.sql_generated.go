@@ -10,22 +10,22 @@ import (
 )
 
 const deleteIdentity = `-- name: DeleteIdentity :exec
-DELETE FROM identities 
-WHERE workspace_id = ? 
-  AND (id = ? OR external_id = ?)
+DELETE FROM identities
+WHERE id = ?
+  AND workspace_id = ?
 `
 
 type DeleteIdentityParams struct {
+	IdentityID  string `db:"identity_id"`
 	WorkspaceID string `db:"workspace_id"`
-	Identity    string `db:"identity"`
 }
 
 // DeleteIdentity
 //
 //	DELETE FROM identities
-//	WHERE workspace_id = ?
-//	  AND (id = ? OR external_id = ?)
+//	WHERE id = ?
+//	  AND workspace_id = ?
 func (q *Queries) DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error {
-	_, err := db.ExecContext(ctx, deleteIdentity, arg.WorkspaceID, arg.Identity, arg.Identity)
+	_, err := db.ExecContext(ctx, deleteIdentity, arg.IdentityID, arg.WorkspaceID)
 	return err
 }

@@ -24,13 +24,13 @@ type BootstrapConfig struct {
 	// customer subdomains.
 	DefaultDomain string
 
-	// RegionalApexDomain is the base domain for cross-region communication between
+	// RegionalDomain is the base domain for cross-region communication between
 	// frontline instances. Combined with each entry in Regions to create per-region
 	// wildcard certificates.
-	RegionalApexDomain string
+	RegionalDomain string
 
 	// Regions lists all deployment regions. For each region, a wildcard certificate
-	// is created as "*.{region}.{RegionalApexDomain}" to secure inter-region traffic.
+	// is created as "*.{region}.{RegionalDomain}" to secure inter-region traffic.
 	Regions []string
 
 	// Restate is the ingress client used to trigger [Service.ProcessChallenge] workflows.
@@ -66,9 +66,9 @@ func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) 
 	}
 
 	// Per-region wildcards (e.g., *.us-west-2.aws.unkey.cloud)
-	if cfg.RegionalApexDomain != "" {
+	if cfg.RegionalDomain != "" {
 		for _, region := range cfg.Regions {
-			domains = append(domains, fmt.Sprintf("*.%s.%s", region, cfg.RegionalApexDomain))
+			domains = append(domains, fmt.Sprintf("*.%s.%s", region, cfg.RegionalDomain))
 		}
 	}
 
@@ -86,6 +86,8 @@ func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) 
 	return nil
 }
 
+// ensureInfraDomain creates infrastructure domain records and triggers
+// [Service.ProcessChallenge] if a certificate is missing.
 func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate *restateIngress.Client) error {
 	// Check if domain already has a cert via JOIN
 	existingDomain, err := db.Query.FindCustomDomainWithCertByDomain(ctx, s.db.RO(), domain)
@@ -105,12 +107,17 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate 
 		now := time.Now().UnixMilli()
 
 		err = db.Query.UpsertCustomDomain(ctx, s.db.RW(), db.UpsertCustomDomainParams{
-			ID:            domainID,
-			WorkspaceID:   InfraWorkspaceID,
-			Domain:        domain,
-			ChallengeType: db.CustomDomainsChallengeTypeDNS01,
-			CreatedAt:     now,
-			UpdatedAt:     sql.NullInt64{Int64: now, Valid: true},
+			ID:                 domainID,
+			WorkspaceID:        InfraWorkspaceID,
+			ProjectID:          InfraWorkspaceID,
+			EnvironmentID:      InfraWorkspaceID,
+			Domain:             domain,
+			ChallengeType:      db.CustomDomainsChallengeTypeDNS01,
+			VerificationStatus: db.CustomDomainsVerificationStatusVerified, // Pre-verified for infra domains
+			VerificationToken:  "",                                         // Not needed for infra domains (already verified)
+			TargetCname:        uid.DNS1035(16),                            // Unique target (not used for DNS-01 but required for uniqueness)
+			CreatedAt:          now,
+			UpdatedAt:          sql.NullInt64{Int64: now, Valid: true},
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create custom domain record: %w", err)
