@@ -39,6 +39,9 @@ type ClientConfig struct {
 	InstallationTokenCache cache.Cache[int64, InstallationToken]
 }
 
+// Ensure Client implements GitHubClient
+var _ GitHubClient = (*Client)(nil)
+
 // Client provides access to GitHub API using App authentication.
 //
 // Client handles JWT generation for App-level authentication and installation
@@ -93,17 +96,6 @@ func (c *Client) generateJWT() (string, error) {
 		Issuer:    fmt.Sprintf("%d", c.config.AppID),
 	}
 	return c.signer.Sign(claims)
-}
-
-// InstallationToken represents a GitHub installation access token. The token
-// provides repository access for a specific App installation and expires after
-// 1 hour.
-type InstallationToken struct {
-	// Token is the installation access token for API requests.
-	Token string `json:"token"`
-
-	// ExpiresAt indicates when the token expires, typically 1 hour from issuance.
-	ExpiresAt time.Time `json:"expires_at"`
 }
 
 // GetInstallationToken retrieves an access token for a specific installation.

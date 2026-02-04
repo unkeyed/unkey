@@ -27,3 +27,4 @@ export * from "./instances";
 export * from "./certificates";
 export * from "./frontline_routes";
 export * from "./github_app";
+export * from "./cilium";
