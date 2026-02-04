@@ -69,12 +69,13 @@ spec:
             - name: UNKEY_CNAME_DOMAIN
               value: "unkey.local"
 
-            # GitHub webhook
+            # GitHub webhook (optional)
             - name: UNKEY_GITHUB_APP_WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:
                   name: github-credentials
                   key: UNKEY_GITHUB_APP_WEBHOOK_SECRET
+                  optional: true
 
       initContainers:
         - name: wait-for-dependencies
