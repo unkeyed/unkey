@@ -21,7 +21,7 @@ type RouteDecision struct {
 
 type Service interface {
 	LookupByHostname(ctx context.Context, hostname string) (*db.FrontlineRoute, []db.Sentinel, error)
-	SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error)
+	SelectSentinel(ctx context.Context, route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error)
 }
 
 type Config struct {

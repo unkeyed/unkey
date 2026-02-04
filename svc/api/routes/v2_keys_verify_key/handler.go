@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -91,6 +92,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if key.Status != keys.StatusNotFound {
+		wide.Set(ctx, wide.FieldKeyID, key.Key.ID)
+		wide.Set(ctx, wide.FieldAPIID, key.Key.ApiID)
 	}
 
 	// Validate key belongs to authorized workspace

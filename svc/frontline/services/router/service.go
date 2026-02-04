@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/wide"
 )
 
 // regionProximity maps regions to their closest regions in order of proximity.
@@ -96,7 +97,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 	return &route, sentinels, nil
 }
 
-func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error) {
+func (s *service) SelectSentinel(ctx context.Context, route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error) {
 	decision := &RouteDecision{
 		DeploymentID:     route.DeploymentID,
 		LocalSentinel:    nil,
@@ -113,6 +114,9 @@ func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentin
 		healthyByRegion[gw.Region] = gw
 	}
 
+	wide.Set(ctx, wide.FieldSentinelsTotal, len(sentinels))
+	wide.Set(ctx, wide.FieldSentinelsHealthy, len(healthyByRegion))
+
 	if len(healthyByRegion) == 0 {
 		return nil, fault.New("no healthy sentinels",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
@@ -123,12 +127,14 @@ func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentin
 
 	if localGw, ok := healthyByRegion[s.region]; ok {
 		decision.LocalSentinel = localGw
+		wide.Set(ctx, wide.FieldSelectedRegion, s.region)
 		return decision, nil
 	}
 
 	nearestRegion := s.findNearestRegion(healthyByRegion)
 	if nearestRegion != "" {
 		decision.NearestNLBRegion = nearestRegion
+		wide.Set(ctx, wide.FieldSelectedRegion, nearestRegion)
 	}
 
 	return decision, nil

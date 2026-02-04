@@ -57,7 +57,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	}
 
-	// Log deployment context early so it's available even if errors occur later
 	wide.Set(ctx, wide.FieldDeploymentID, deploymentID)
 
 	deployment, err := h.RouterService.GetDeployment(ctx, deploymentID)
@@ -70,7 +69,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err
 	}
 
-	// Log instance context for debugging proxy issues
 	wide.Set(ctx, wide.FieldInstanceID, instance.ID)
 	wide.Set(ctx, wide.FieldUpstreamHost, instance.Address)
 
@@ -85,6 +83,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			)
 		}
 		req.Body = io.NopCloser(bytes.NewReader(requestBody))
+		wide.Set(ctx, wide.FieldRequestBodySize, len(requestBody))
 	}
 
 	// Populate tracking context
@@ -113,7 +112,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	}
 
-	// Log upstream URL for debugging proxy issues
 	wide.Set(ctx, wide.FieldUpstreamURL, targetURL.String())
 
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())

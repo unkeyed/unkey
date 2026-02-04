@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -66,6 +67,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	wide.Set(ctx, wide.FieldAPIID, req.ApiId)
 
 	// 3. Permission check
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(

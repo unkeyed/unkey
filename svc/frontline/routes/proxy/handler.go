@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/services/router"
@@ -40,19 +40,21 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err
 	}
 
-	// Log deployment context early so it's available even if errors occur later
 	wide.Set(ctx, wide.FieldDeploymentID, route.DeploymentID)
+	wide.Set(ctx, wide.FieldEnvironmentID, route.EnvironmentID)
 
-	// Find Local sentinel or nearest NLB
-	decision, err := h.RouterService.SelectSentinel(route, sentinels)
+	// Find Local sentinel or nearest NLB (also logs sentinel counts and selected region)
+	decision, err := h.RouterService.SelectSentinel(ctx, route, sentinels)
 	if err != nil {
 		return err
 	}
 
 	// We obviously prefer a local sentinel if available
 	if decision.LocalSentinel != nil {
+		wide.Set(ctx, wide.FieldTransportType, "h2c")
 		return h.ProxyService.ForwardToSentinel(ctx, sess, decision.LocalSentinel, decision.DeploymentID)
 	}
 
+	wide.Set(ctx, wide.FieldTransportType, "https")
 	return h.ProxyService.ForwardToRegion(ctx, sess, decision.NearestNLBRegion)
 }

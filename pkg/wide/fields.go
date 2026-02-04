@@ -163,6 +163,35 @@ const (
 
 	// FieldProxyHops is the number of proxy hops for the request.
 	FieldProxyHops = "proxy_hops"
+
+	// FieldSentinelsTotal is the total number of sentinels for the environment.
+	FieldSentinelsTotal = "sentinels_total"
+
+	// FieldSentinelsHealthy is the number of healthy sentinels available.
+	FieldSentinelsHealthy = "sentinels_healthy"
+
+	// FieldInstancesTotal is the total number of instances for the deployment.
+	FieldInstancesTotal = "instances_total"
+
+	// FieldInstancesRunning is the number of running instances available.
+	FieldInstancesRunning = "instances_running"
+
+	// FieldSelectedRegion is the region selected for routing.
+	FieldSelectedRegion = "selected_region"
+
+	// FieldTransportType is the transport used for proxying (h2c, https).
+	FieldTransportType = "transport_type"
+
+	// FieldRequestBodySize is the size of the request body in bytes.
+	FieldRequestBodySize = "request_body_size"
+
+	// --- Rate limiting fields ---
+
+	// FieldRateLimitNamespace is the rate limit namespace being checked.
+	FieldRateLimitNamespace = "ratelimit_namespace"
+
+	// FieldRateLimitIdentifier is the identifier being rate limited.
+	FieldRateLimitIdentifier = "ratelimit_identifier"
 )
 
 // Error types for FieldErrorType.

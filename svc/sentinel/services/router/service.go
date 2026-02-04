@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/wide"
 )
 
 var _ Service = (*service)(nil)
@@ -85,19 +86,17 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 	}
 
 	if deployment.EnvironmentID != s.environmentID {
-		s.logger.Warn("deployment does not belong to this environment",
-			"deploymentID", deploymentID,
-			"deploymentEnv", deployment.EnvironmentID,
-			"sentinelEnv", s.environmentID,
-		)
+		wide.Set(ctx, "deployment_actual_env", deployment.EnvironmentID)
+		wide.Set(ctx, "sentinel_env", s.environmentID)
 
-		// Return as not found to avoid leaking information about deployments in other environments
 		return db.Deployment{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
 			fault.Internal(fmt.Sprintf("deployment %s belongs to environment %s, but sentinel serves %s", deploymentID, deployment.EnvironmentID, s.environmentID)),
 			fault.Public("Deployment not found"),
 		)
 	}
+
+	wide.Set(ctx, wide.FieldWorkspaceID, deployment.WorkspaceID)
 
 	return deployment, nil
 }
@@ -135,6 +134,9 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 			runningInstances = append(runningInstances, instance)
 		}
 	}
+
+	wide.Set(ctx, wide.FieldInstancesTotal, len(instances))
+	wide.Set(ctx, wide.FieldInstancesRunning, len(runningInstances))
 
 	if len(runningInstances) == 0 {
 		return db.Instance{}, fault.New("no running instances",

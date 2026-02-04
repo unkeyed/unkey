@@ -24,7 +24,6 @@ type forwardConfig struct {
 }
 
 func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
-	// Log upstream URL early so it's available in wide event even if errors occur
 	wide.Set(cfg.ctx, wide.FieldUpstreamURL, cfg.targetURL.String())
 	sess.ResponseWriter().Header().Set(HeaderFrontlineID, s.frontlineID)
 	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
