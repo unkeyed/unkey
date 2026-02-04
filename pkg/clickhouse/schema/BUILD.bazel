@@ -6,3 +6,9 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/clickhouse/schema",
     visibility = ["//visibility:public"],
 )
+
+filegroup(
+    name = "schema_files",
+    srcs = glob(["*.sql"]),
+    visibility = ["//visibility:public"],
+)

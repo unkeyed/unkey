@@ -38,6 +38,7 @@ type MySQLConfig struct {
 func MySQL(t *testing.T) MySQLConfig {
 	t.Helper()
 
+	containerStart := time.Now()
 	ctr := startContainer(t, containerConfig{
 		Image:        mysqlImage,
 		ExposedPorts: []string{mysqlPort},
@@ -49,8 +50,27 @@ func MySQL(t *testing.T) MySQLConfig {
 			"MYSQL_USER":          mysqlUser,
 			"MYSQL_PASSWORD":      mysqlPassword,
 		},
-		Cmd: []string{},
+		Cmd: []string{
+			// Disable binary logging (not needed for tests)
+			"--skip-log-bin",
+			"--disable-log-bin",
+			// Disable durability for faster writes (crash safety not needed in tests)
+			"--innodb-doublewrite=0",
+			"--innodb-flush-log-at-trx-commit=0",
+			"--innodb-flush-method=nosync",
+			// Reduce buffer sizes for faster startup
+			"--innodb-buffer-pool-size=32M",
+			"--innodb-log-buffer-size=1M",
+			// Disable performance schema (overhead not needed for tests)
+			"--performance-schema=OFF",
+			// Skip name resolution for faster connections
+			"--skip-name-resolve",
+		},
+		Tmpfs: map[string]string{
+			"/var/lib/mysql": "rw,noexec,nosuid,size=256m",
+		},
 	})
+	t.Logf("  MySQL container started in %s", time.Since(containerStart))
 
 	port := ctr.Port(mysqlPort)
 	addr := fmt.Sprintf("%s:%s", ctr.Host, port)
@@ -74,6 +94,7 @@ func MySQL(t *testing.T) MySQLConfig {
 	dockerCfg.ParseTime = true
 	dockerCfg.Logger = &mysql.NopLogger{}
 
+	pingStart := time.Now()
 	hostDB, err := sql.Open("mysql", hostCfg.FormatDSN())
 	require.NoError(t, err)
 	defer func() { require.NoError(t, hostDB.Close()) }()
@@ -81,12 +102,15 @@ func MySQL(t *testing.T) MySQLConfig {
 		pingErr := hostDB.PingContext(context.Background())
 		return pingErr == nil
 	}, 60*time.Second, 500*time.Millisecond)
+	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
 
+	schemaStart := time.Now()
 	schemaPath := schemaSQLPath()
 	schemaBytes, err := os.ReadFile(schemaPath)
 	require.NoError(t, err)
 	_, err = hostDB.ExecContext(context.Background(), string(schemaBytes))
 	require.NoError(t, err)
+	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
 
 	return MySQLConfig{
 		DSN:       hostCfg.FormatDSN(),
