@@ -56,6 +56,43 @@ service ClusterService {
   // ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
+
+  // WatchCiliumNetworkPolicies streams Cilium network policy state changes from the control plane.
+  // Each cilium controller maintains its own version cursor for resumable streaming.
+  rpc WatchCiliumNetworkPolicies(WatchCiliumNetworkPoliciesRequest) returns (stream CiliumNetworkPolicyState);
+
+  // GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
+  // Used by the resync loop to verify consistency for existing resources.
+  rpc GetDesiredCiliumNetworkPolicyState(GetDesiredCiliumNetworkPolicyStateRequest) returns (CiliumNetworkPolicyState);
+}
+
+message WatchCiliumNetworkPoliciesRequest {
+  string region = 1;
+  uint64 version_last_seen = 2;
+}
+
+message ApplyCiliumNetworkPolicy {
+  string k8s_namespace = 1;
+  string k8s_name = 2;
+  string cilium_network_policy_id = 3;
+  bytes policy = 4;
+}
+
+message DeleteCiliumNetworkPolicy {
+  string k8s_namespace = 1;
+  string k8s_name = 2;
+}
+message CiliumNetworkPolicyState {
+  uint64 version = 3;
+
+  oneof state {
+    ApplyCiliumNetworkPolicy apply = 1;
+
+    DeleteCiliumNetworkPolicy delete = 2;
+  }
+}
+message GetDesiredCiliumNetworkPolicyStateRequest {
+  string cilium_network_policy_id = 1;
 }
 
 message GetDesiredSentinelStateRequest {

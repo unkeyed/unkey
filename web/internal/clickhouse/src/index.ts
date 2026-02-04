@@ -70,7 +70,16 @@ import {
   insertRatelimit,
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
-import { getSentinelLogs } from "./sentinel";
+import { getRuntimeLogs } from "./runtime-logs";
+import {
+  getDeploymentLatency,
+  getDeploymentLatencyTimeseries,
+  getDeploymentRps,
+  getDeploymentRpsTimeseries,
+  getInstanceRps,
+  getSentinelLogs,
+  getSentinelRps,
+} from "./sentinel";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
@@ -305,6 +314,21 @@ export class ClickHouse {
   public get sentinel() {
     return {
       logs: getSentinelLogs(this.querier),
+      rps: {
+        bySentinel: getSentinelRps(this.querier),
+        byInstance: getInstanceRps(this.querier),
+        byDeployment: getDeploymentRps(this.querier),
+        timeseries: getDeploymentRpsTimeseries(this.querier),
+      },
+      latency: {
+        byDeployment: getDeploymentLatency(this.querier),
+        timeseries: getDeploymentLatencyTimeseries(this.querier),
+      },
+    };
+  }
+  public get runtimeLogs() {
+    return {
+      logs: getRuntimeLogs(this.querier),
     };
   }
 }

@@ -41,6 +41,8 @@
 // # Available Services
 //
 // Currently supported:
+//   - [MySQL]: MySQL with dev schema preloaded
 //   - [Redis]: Redis 8.0 container
 //   - [S3]: MinIO S3-compatible object storage
+//   - [Restate]: Restate server (ingress + admin)
 package dockertest

@@ -16,6 +16,8 @@ type Config struct {
 	InjectImagePullPolicy string
 	KraneEndpoint         string
 	DepotToken            string
+	InsecureRegistries    []string
+	RegistryAliases       []string
 }
 
 func (c *Config) Validate() error {

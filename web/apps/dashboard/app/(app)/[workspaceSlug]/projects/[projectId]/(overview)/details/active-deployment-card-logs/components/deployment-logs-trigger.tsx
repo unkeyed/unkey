@@ -5,17 +5,27 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useDeploymentLogsContext } from "../providers/deployment-logs-provider";
 
-type Props = {
-  showBuildSteps: boolean;
-};
-
-export function DeploymentLogsTrigger({ showBuildSteps }: Props) {
-  const { isExpanded, toggleExpanded } = useDeploymentLogsContext();
+export function DeploymentLogsTrigger() {
+  const { isExpanded, toggleExpanded, logType, setLogType } = useDeploymentLogsContext();
 
   return (
-    <button className="flex items-center gap-1.5" onClick={toggleExpanded} type="button">
-      <div className="text-grayA-9 text-xs">{showBuildSteps ? "Build logs" : "Sentinel logs"}</div>
-      <Button size="icon" variant="ghost">
+    <div className="flex items-center gap-1.5">
+      <button
+        onClick={() => setLogType("sentinel")}
+        className={cn("text-xs", logType === "sentinel" ? "text-accent-12" : "text-grayA-9")}
+        type="button"
+      >
+        Sentinel logs
+      </button>
+      <span className="text-grayA-6">|</span>
+      <button
+        onClick={() => setLogType("runtime")}
+        className={cn("text-xs", logType === "runtime" ? "text-accent-12" : "text-grayA-9")}
+        type="button"
+      >
+        Runtime logs
+      </button>
+      <Button size="icon" variant="ghost" onClick={toggleExpanded}>
         <ChevronDown
           className={cn(
             "text-grayA-9 !size-3 transition-transform duration-200",
@@ -23,6 +33,6 @@ export function DeploymentLogsTrigger({ showBuildSteps }: Props) {
           )}
         />
       </Button>
-    </button>
+    </div>
   );
 }

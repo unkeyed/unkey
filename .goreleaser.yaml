@@ -38,12 +38,13 @@ upx:
     ids:
       - unkey
     goos:
-      - linux  # UPX doesn't support macOS
+      - linux # UPX doesn't support macOS
     compress: best
     lzma: true
 
 archives:
-  - formats: [tar.gz]
+  - id: unkey
+    formats: [tar.gz]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -56,6 +57,15 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
+
+npms:
+  - name: "unkey"
+    ids:
+      - unkey
+    description: "Unkey CLI"
+    homepage: "https://unkey.com"
+    repository: "https://github.com/unkeyed/unkey"
+    license: "AGPL-3.0-only"
 
 kos:
   - repositories:

@@ -30,6 +30,7 @@ export const NodeDetailsPanelHeader = ({
       </div>
       <div className="flex items-center justify-between w-full px-3 py-4">
         <CardHeader
+          type={subSection.type}
           variant="panel"
           icon={subSection.icon}
           title={subSection.title}

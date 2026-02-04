@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { useDeploymentLogs } from "../hooks/use-deployment-logs";
 import { useDeploymentLogsContext } from "../providers/deployment-logs-provider";
 import { FilterButton } from "./filter-button";
+import { RuntimeLogsContent } from "./runtime-logs-content";
 
 const ANIMATION_STYLES = {
   expand: "transition-all duration-400 ease-in",
@@ -15,12 +16,12 @@ const ANIMATION_STYLES = {
 } as const;
 
 type Props = {
+  projectId: string;
   deploymentId: string;
-  showBuildSteps: boolean;
 };
 
-export function DeploymentLogsContent({ deploymentId, showBuildSteps }: Props) {
-  const { isExpanded } = useDeploymentLogsContext();
+export function DeploymentLogsContent({ projectId, deploymentId }: Props) {
+  const { isExpanded, logType } = useDeploymentLogsContext();
 
   const {
     logFilter,
@@ -34,8 +35,11 @@ export function DeploymentLogsContent({ deploymentId, showBuildSteps }: Props) {
     scrollRef,
   } = useDeploymentLogs({
     deploymentId,
-    showBuildSteps,
   });
+
+  if (logType === "runtime") {
+    return <RuntimeLogsContent projectId={projectId} deploymentId={deploymentId} />;
+  }
 
   return (
     <div
@@ -100,9 +104,7 @@ export function DeploymentLogsContent({ deploymentId, showBuildSteps }: Props) {
             <div className="text-center text-gray-9 text-sm py-4 flex items-center justify-center h-full">
               {searchTerm
                 ? `No logs match "${searchTerm}"`
-                : `No ${
-                    logFilter === "all" ? (showBuildSteps ? "build" : "sentinel") : logFilter
-                  } logs available`}
+                : `No ${logFilter === "all" ? "sentinel" : logFilter} logs available`}
             </div>
           ) : (
             <div className="flex flex-col gap-px">

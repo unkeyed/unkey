@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ChevronDown, Plus } from "@unkey/icons";
+import { BracketsCurly, ChevronDown, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
 import { AddEnvVars } from "./add-env-vars";
@@ -58,7 +58,7 @@ export function EnvironmentVariablesSection({
       <div className={cn("px-4 pt-3 flex justify-between items-center", isExpanded ? "" : "pb-3")}>
         <div className="flex items-center">
           {icon}
-          <div className="text-gray-12 font-medium text-xs ml-3 mr-2">
+          <div className="text-gray-12 font-medium text-xs ml-3 mr-2 capitalize">
             {title} {envVars.length > 0 && `(${envVars.length})`}
           </div>
         </div>
@@ -173,8 +173,26 @@ function ConcaveSeparator({ isExpanded }: { isExpanded: boolean }) {
 // Empty state component
 function EmptyState() {
   return (
-    <div className="px-4 py-8 text-center text-gray-9 text-sm flex items-center justify-center h-full">
-      No environment variables configured
+    <div className="px-4 py-8 flex justify-center items-center min-h-[150px] relative group">
+      <div className="flex flex-col items-center gap-3 text-center">
+        {/* Icon with subtle animation */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300 animate-pulse" />
+          <div className="relative bg-gray-3 rounded-full p-3 group-hover:bg-gray-4 transition-all duration-200">
+            <BracketsCurly
+              className="text-gray-9 size-6 group-hover:text-gray-11 transition-all duration-200 animate-pulse"
+              style={{ animationDuration: "2s" }}
+            />
+          </div>
+        </div>
+        {/* Content */}
+        <div className="space-y-2">
+          <h3 className="text-gray-12 font-medium text-sm">No environment variables configured</h3>
+          <p className="text-gray-9 text-xs max-w-[280px] leading-relaxed">
+            Add environment variables to configure your application's runtime settings.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

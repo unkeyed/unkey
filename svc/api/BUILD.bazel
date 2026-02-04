@@ -48,7 +48,6 @@ go_test(
     deps = [
         ":api",
         "//pkg/dockertest",
-        "//pkg/testutil/containers",
         "//pkg/uid",
         "//pkg/vault/keys",
         "@com_github_stretchr_testify//require",

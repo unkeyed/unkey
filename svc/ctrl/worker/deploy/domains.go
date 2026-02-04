@@ -87,10 +87,11 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 }
 
 var (
-	// nonAlphanumericRegex matches any character that is not a letter, digit, or whitespace.
+	// nonAlphanumericRegex removes characters that are unsafe for domain slugs and
+	// avoids double hyphens when combined with whitespace normalization.
 	nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9\s]`)
 
-	// multipleSpacesRegex matches one or more consecutive whitespace characters.
+	// multipleSpacesRegex collapses consecutive whitespace before hyphen conversion.
 	multipleSpacesRegex = regexp.MustCompile(`\s+`)
 )
 

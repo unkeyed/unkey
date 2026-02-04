@@ -133,7 +133,313 @@ func (x ReportDeploymentStatusRequest_Update_Instance_Status) Number() protorefl
 
 // Deprecated: Use ReportDeploymentStatusRequest_Update_Instance_Status.Descriptor instead.
 func (ReportDeploymentStatusRequest_Update_Instance_Status) EnumDescriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0, 0, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7, 0, 0, 0}
+}
+
+type WatchCiliumNetworkPoliciesRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Region          string                 `protobuf:"bytes,1,opt,name=region,proto3" json:"region,omitempty"`
+	VersionLastSeen uint64                 `protobuf:"varint,2,opt,name=version_last_seen,json=versionLastSeen,proto3" json:"version_last_seen,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *WatchCiliumNetworkPoliciesRequest) Reset() {
+	*x = WatchCiliumNetworkPoliciesRequest{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchCiliumNetworkPoliciesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchCiliumNetworkPoliciesRequest) ProtoMessage() {}
+
+func (x *WatchCiliumNetworkPoliciesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchCiliumNetworkPoliciesRequest.ProtoReflect.Descriptor instead.
+func (*WatchCiliumNetworkPoliciesRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *WatchCiliumNetworkPoliciesRequest) GetRegion() string {
+	if x != nil {
+		return x.Region
+	}
+	return ""
+}
+
+func (x *WatchCiliumNetworkPoliciesRequest) GetVersionLastSeen() uint64 {
+	if x != nil {
+		return x.VersionLastSeen
+	}
+	return 0
+}
+
+type ApplyCiliumNetworkPolicy struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	K8SNamespace          string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	K8SName               string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	CiliumNetworkPolicyId string                 `protobuf:"bytes,3,opt,name=cilium_network_policy_id,json=ciliumNetworkPolicyId,proto3" json:"cilium_network_policy_id,omitempty"`
+	Policy                []byte                 `protobuf:"bytes,4,opt,name=policy,proto3" json:"policy,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *ApplyCiliumNetworkPolicy) Reset() {
+	*x = ApplyCiliumNetworkPolicy{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplyCiliumNetworkPolicy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyCiliumNetworkPolicy) ProtoMessage() {}
+
+func (x *ApplyCiliumNetworkPolicy) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyCiliumNetworkPolicy.ProtoReflect.Descriptor instead.
+func (*ApplyCiliumNetworkPolicy) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ApplyCiliumNetworkPolicy) GetK8SNamespace() string {
+	if x != nil {
+		return x.K8SNamespace
+	}
+	return ""
+}
+
+func (x *ApplyCiliumNetworkPolicy) GetK8SName() string {
+	if x != nil {
+		return x.K8SName
+	}
+	return ""
+}
+
+func (x *ApplyCiliumNetworkPolicy) GetCiliumNetworkPolicyId() string {
+	if x != nil {
+		return x.CiliumNetworkPolicyId
+	}
+	return ""
+}
+
+func (x *ApplyCiliumNetworkPolicy) GetPolicy() []byte {
+	if x != nil {
+		return x.Policy
+	}
+	return nil
+}
+
+type DeleteCiliumNetworkPolicy struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	K8SNamespace  string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	K8SName       string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteCiliumNetworkPolicy) Reset() {
+	*x = DeleteCiliumNetworkPolicy{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCiliumNetworkPolicy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCiliumNetworkPolicy) ProtoMessage() {}
+
+func (x *DeleteCiliumNetworkPolicy) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteCiliumNetworkPolicy.ProtoReflect.Descriptor instead.
+func (*DeleteCiliumNetworkPolicy) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *DeleteCiliumNetworkPolicy) GetK8SNamespace() string {
+	if x != nil {
+		return x.K8SNamespace
+	}
+	return ""
+}
+
+func (x *DeleteCiliumNetworkPolicy) GetK8SName() string {
+	if x != nil {
+		return x.K8SName
+	}
+	return ""
+}
+
+type CiliumNetworkPolicyState struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Version uint64                 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	// Types that are valid to be assigned to State:
+	//
+	//	*CiliumNetworkPolicyState_Apply
+	//	*CiliumNetworkPolicyState_Delete
+	State         isCiliumNetworkPolicyState_State `protobuf_oneof:"state"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CiliumNetworkPolicyState) Reset() {
+	*x = CiliumNetworkPolicyState{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CiliumNetworkPolicyState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CiliumNetworkPolicyState) ProtoMessage() {}
+
+func (x *CiliumNetworkPolicyState) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CiliumNetworkPolicyState.ProtoReflect.Descriptor instead.
+func (*CiliumNetworkPolicyState) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CiliumNetworkPolicyState) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *CiliumNetworkPolicyState) GetState() isCiliumNetworkPolicyState_State {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+func (x *CiliumNetworkPolicyState) GetApply() *ApplyCiliumNetworkPolicy {
+	if x != nil {
+		if x, ok := x.State.(*CiliumNetworkPolicyState_Apply); ok {
+			return x.Apply
+		}
+	}
+	return nil
+}
+
+func (x *CiliumNetworkPolicyState) GetDelete() *DeleteCiliumNetworkPolicy {
+	if x != nil {
+		if x, ok := x.State.(*CiliumNetworkPolicyState_Delete); ok {
+			return x.Delete
+		}
+	}
+	return nil
+}
+
+type isCiliumNetworkPolicyState_State interface {
+	isCiliumNetworkPolicyState_State()
+}
+
+type CiliumNetworkPolicyState_Apply struct {
+	Apply *ApplyCiliumNetworkPolicy `protobuf:"bytes,1,opt,name=apply,proto3,oneof"`
+}
+
+type CiliumNetworkPolicyState_Delete struct {
+	Delete *DeleteCiliumNetworkPolicy `protobuf:"bytes,2,opt,name=delete,proto3,oneof"`
+}
+
+func (*CiliumNetworkPolicyState_Apply) isCiliumNetworkPolicyState_State() {}
+
+func (*CiliumNetworkPolicyState_Delete) isCiliumNetworkPolicyState_State() {}
+
+type GetDesiredCiliumNetworkPolicyStateRequest struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	CiliumNetworkPolicyId string                 `protobuf:"bytes,1,opt,name=cilium_network_policy_id,json=ciliumNetworkPolicyId,proto3" json:"cilium_network_policy_id,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *GetDesiredCiliumNetworkPolicyStateRequest) Reset() {
+	*x = GetDesiredCiliumNetworkPolicyStateRequest{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDesiredCiliumNetworkPolicyStateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDesiredCiliumNetworkPolicyStateRequest) ProtoMessage() {}
+
+func (x *GetDesiredCiliumNetworkPolicyStateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDesiredCiliumNetworkPolicyStateRequest.ProtoReflect.Descriptor instead.
+func (*GetDesiredCiliumNetworkPolicyStateRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetDesiredCiliumNetworkPolicyStateRequest) GetCiliumNetworkPolicyId() string {
+	if x != nil {
+		return x.CiliumNetworkPolicyId
+	}
+	return ""
 }
 
 type GetDesiredSentinelStateRequest struct {
@@ -145,7 +451,7 @@ type GetDesiredSentinelStateRequest struct {
 
 func (x *GetDesiredSentinelStateRequest) Reset() {
 	*x = GetDesiredSentinelStateRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -157,7 +463,7 @@ func (x *GetDesiredSentinelStateRequest) String() string {
 func (*GetDesiredSentinelStateRequest) ProtoMessage() {}
 
 func (x *GetDesiredSentinelStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -170,7 +476,7 @@ func (x *GetDesiredSentinelStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDesiredSentinelStateRequest.ProtoReflect.Descriptor instead.
 func (*GetDesiredSentinelStateRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetDesiredSentinelStateRequest) GetSentinelId() string {
@@ -189,7 +495,7 @@ type GetDesiredDeploymentStateRequest struct {
 
 func (x *GetDesiredDeploymentStateRequest) Reset() {
 	*x = GetDesiredDeploymentStateRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[1]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -201,7 +507,7 @@ func (x *GetDesiredDeploymentStateRequest) String() string {
 func (*GetDesiredDeploymentStateRequest) ProtoMessage() {}
 
 func (x *GetDesiredDeploymentStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[1]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -214,7 +520,7 @@ func (x *GetDesiredDeploymentStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDesiredDeploymentStateRequest.ProtoReflect.Descriptor instead.
 func (*GetDesiredDeploymentStateRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetDesiredDeploymentStateRequest) GetDeploymentId() string {
@@ -239,7 +545,7 @@ type ReportDeploymentStatusRequest struct {
 
 func (x *ReportDeploymentStatusRequest) Reset() {
 	*x = ReportDeploymentStatusRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +557,7 @@ func (x *ReportDeploymentStatusRequest) String() string {
 func (*ReportDeploymentStatusRequest) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[2]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +570,7 @@ func (x *ReportDeploymentStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportDeploymentStatusRequest.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ReportDeploymentStatusRequest) GetChange() isReportDeploymentStatusRequest_Change {
@@ -316,7 +622,7 @@ type ReportDeploymentStatusResponse struct {
 
 func (x *ReportDeploymentStatusResponse) Reset() {
 	*x = ReportDeploymentStatusResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -328,7 +634,7 @@ func (x *ReportDeploymentStatusResponse) String() string {
 func (*ReportDeploymentStatusResponse) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[3]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -341,7 +647,7 @@ func (x *ReportDeploymentStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportDeploymentStatusResponse.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
 }
 
 // ReportSentinelStatusRequest reports the actual state of a sentinel from the agent.
@@ -357,7 +663,7 @@ type ReportSentinelStatusRequest struct {
 
 func (x *ReportSentinelStatusRequest) Reset() {
 	*x = ReportSentinelStatusRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +675,7 @@ func (x *ReportSentinelStatusRequest) String() string {
 func (*ReportSentinelStatusRequest) ProtoMessage() {}
 
 func (x *ReportSentinelStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[4]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +688,7 @@ func (x *ReportSentinelStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportSentinelStatusRequest.ProtoReflect.Descriptor instead.
 func (*ReportSentinelStatusRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ReportSentinelStatusRequest) GetK8SName() string {
@@ -414,7 +720,7 @@ type ReportSentinelStatusResponse struct {
 
 func (x *ReportSentinelStatusResponse) Reset() {
 	*x = ReportSentinelStatusResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -426,7 +732,7 @@ func (x *ReportSentinelStatusResponse) String() string {
 func (*ReportSentinelStatusResponse) ProtoMessage() {}
 
 func (x *ReportSentinelStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -439,7 +745,7 @@ func (x *ReportSentinelStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportSentinelStatusResponse.ProtoReflect.Descriptor instead.
 func (*ReportSentinelStatusResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
 }
 
 // WatchDeploymentsRequest initiates a stream of deployment state changes.
@@ -455,7 +761,7 @@ type WatchDeploymentsRequest struct {
 
 func (x *WatchDeploymentsRequest) Reset() {
 	*x = WatchDeploymentsRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -467,7 +773,7 @@ func (x *WatchDeploymentsRequest) String() string {
 func (*WatchDeploymentsRequest) ProtoMessage() {}
 
 func (x *WatchDeploymentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +786,7 @@ func (x *WatchDeploymentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchDeploymentsRequest.ProtoReflect.Descriptor instead.
 func (*WatchDeploymentsRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *WatchDeploymentsRequest) GetRegion() string {
@@ -510,7 +816,7 @@ type WatchSentinelsRequest struct {
 
 func (x *WatchSentinelsRequest) Reset() {
 	*x = WatchSentinelsRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -522,7 +828,7 @@ func (x *WatchSentinelsRequest) String() string {
 func (*WatchSentinelsRequest) ProtoMessage() {}
 
 func (x *WatchSentinelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -535,7 +841,7 @@ func (x *WatchSentinelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchSentinelsRequest.ProtoReflect.Descriptor instead.
 func (*WatchSentinelsRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *WatchSentinelsRequest) GetRegion() string {
@@ -578,7 +884,7 @@ type SentinelState struct {
 
 func (x *SentinelState) Reset() {
 	*x = SentinelState{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -590,7 +896,7 @@ func (x *SentinelState) String() string {
 func (*SentinelState) ProtoMessage() {}
 
 func (x *SentinelState) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -603,7 +909,7 @@ func (x *SentinelState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SentinelState.ProtoReflect.Descriptor instead.
 func (*SentinelState) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SentinelState) GetVersion() uint64 {
@@ -685,7 +991,7 @@ type DeploymentState struct {
 
 func (x *DeploymentState) Reset() {
 	*x = DeploymentState{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -697,7 +1003,7 @@ func (x *DeploymentState) String() string {
 func (*DeploymentState) ProtoMessage() {}
 
 func (x *DeploymentState) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -710,7 +1016,7 @@ func (x *DeploymentState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploymentState.ProtoReflect.Descriptor instead.
 func (*DeploymentState) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeploymentState) GetVersion() uint64 {
@@ -792,7 +1098,7 @@ type ApplySentinel struct {
 
 func (x *ApplySentinel) Reset() {
 	*x = ApplySentinel{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -804,7 +1110,7 @@ func (x *ApplySentinel) String() string {
 func (*ApplySentinel) ProtoMessage() {}
 
 func (x *ApplySentinel) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -817,7 +1123,7 @@ func (x *ApplySentinel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplySentinel.ProtoReflect.Descriptor instead.
 func (*ApplySentinel) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ApplySentinel) GetK8SName() string {
@@ -896,7 +1202,7 @@ type DeleteSentinel struct {
 
 func (x *DeleteSentinel) Reset() {
 	*x = DeleteSentinel{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -908,7 +1214,7 @@ func (x *DeleteSentinel) String() string {
 func (*DeleteSentinel) ProtoMessage() {}
 
 func (x *DeleteSentinel) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -921,7 +1227,7 @@ func (x *DeleteSentinel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSentinel.ProtoReflect.Descriptor instead.
 func (*DeleteSentinel) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DeleteSentinel) GetK8SName() string {
@@ -978,7 +1284,7 @@ type ApplyDeployment struct {
 
 func (x *ApplyDeployment) Reset() {
 	*x = ApplyDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -990,7 +1296,7 @@ func (x *ApplyDeployment) String() string {
 func (*ApplyDeployment) ProtoMessage() {}
 
 func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1003,7 +1309,7 @@ func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyDeployment.ProtoReflect.Descriptor instead.
 func (*ApplyDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ApplyDeployment) GetK8SNamespace() string {
@@ -1112,7 +1418,7 @@ type DeleteDeployment struct {
 
 func (x *DeleteDeployment) Reset() {
 	*x = DeleteDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1124,7 +1430,7 @@ func (x *DeleteDeployment) String() string {
 func (*DeleteDeployment) ProtoMessage() {}
 
 func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1137,7 +1443,7 @@ func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDeployment.ProtoReflect.Descriptor instead.
 func (*DeleteDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *DeleteDeployment) GetK8SNamespace() string {
@@ -1164,7 +1470,7 @@ type ReportDeploymentStatusRequest_Update struct {
 
 func (x *ReportDeploymentStatusRequest_Update) Reset() {
 	*x = ReportDeploymentStatusRequest_Update{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1176,7 +1482,7 @@ func (x *ReportDeploymentStatusRequest_Update) String() string {
 func (*ReportDeploymentStatusRequest_Update) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Update) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1189,7 +1495,7 @@ func (x *ReportDeploymentStatusRequest_Update) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ReportDeploymentStatusRequest_Update.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusRequest_Update) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7, 0}
 }
 
 func (x *ReportDeploymentStatusRequest_Update) GetK8SName() string {
@@ -1215,7 +1521,7 @@ type ReportDeploymentStatusRequest_Delete struct {
 
 func (x *ReportDeploymentStatusRequest_Delete) Reset() {
 	*x = ReportDeploymentStatusRequest_Delete{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1227,7 +1533,7 @@ func (x *ReportDeploymentStatusRequest_Delete) String() string {
 func (*ReportDeploymentStatusRequest_Delete) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Delete) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1240,7 +1546,7 @@ func (x *ReportDeploymentStatusRequest_Delete) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ReportDeploymentStatusRequest_Delete.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusRequest_Delete) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 1}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7, 1}
 }
 
 func (x *ReportDeploymentStatusRequest_Delete) GetK8SName() string {
@@ -1263,7 +1569,7 @@ type ReportDeploymentStatusRequest_Update_Instance struct {
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) Reset() {
 	*x = ReportDeploymentStatusRequest_Update_Instance{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1275,7 +1581,7 @@ func (x *ReportDeploymentStatusRequest_Update_Instance) String() string {
 func (*ReportDeploymentStatusRequest_Update_Instance) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1288,7 +1594,7 @@ func (x *ReportDeploymentStatusRequest_Update_Instance) ProtoReflect() protorefl
 
 // Deprecated: Use ReportDeploymentStatusRequest_Update_Instance.ProtoReflect.Descriptor instead.
 func (*ReportDeploymentStatusRequest_Update_Instance) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2, 0, 0}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7, 0, 0}
 }
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) GetK8SName() string {
@@ -1330,7 +1636,25 @@ var File_ctrl_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
-	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\"A\n" +
+	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\"g\n" +
+	"!WatchCiliumNetworkPoliciesRequest\x12\x16\n" +
+	"\x06region\x18\x01 \x01(\tR\x06region\x12*\n" +
+	"\x11version_last_seen\x18\x02 \x01(\x04R\x0fversionLastSeen\"\xab\x01\n" +
+	"\x18ApplyCiliumNetworkPolicy\x12#\n" +
+	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x127\n" +
+	"\x18cilium_network_policy_id\x18\x03 \x01(\tR\x15ciliumNetworkPolicyId\x12\x16\n" +
+	"\x06policy\x18\x04 \x01(\fR\x06policy\"[\n" +
+	"\x19DeleteCiliumNetworkPolicy\x12#\n" +
+	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"\xb6\x01\n" +
+	"\x18CiliumNetworkPolicyState\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x04R\aversion\x129\n" +
+	"\x05apply\x18\x01 \x01(\v2!.ctrl.v1.ApplyCiliumNetworkPolicyH\x00R\x05apply\x12<\n" +
+	"\x06delete\x18\x02 \x01(\v2\".ctrl.v1.DeleteCiliumNetworkPolicyH\x00R\x06deleteB\a\n" +
+	"\x05state\"d\n" +
+	")GetDesiredCiliumNetworkPolicyStateRequest\x127\n" +
+	"\x18cilium_network_policy_id\x18\x01 \x01(\tR\x15ciliumNetworkPolicyId\"A\n" +
 	"\x1eGetDesiredSentinelStateRequest\x12\x1f\n" +
 	"\vsentinel_id\x18\x01 \x01(\tR\n" +
 	"sentinelId\"G\n" +
@@ -1419,14 +1743,16 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x12HEALTH_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eHEALTH_HEALTHY\x10\x01\x12\x14\n" +
 	"\x10HEALTH_UNHEALTHY\x10\x02\x12\x11\n" +
-	"\rHEALTH_PAUSED\x10\x032\xbc\x04\n" +
+	"\rHEALTH_PAUSED\x10\x032\xa8\x06\n" +
 	"\x0eClusterService\x12P\n" +
 	"\x10WatchDeployments\x12 .ctrl.v1.WatchDeploymentsRequest\x1a\x18.ctrl.v1.DeploymentState0\x01\x12J\n" +
 	"\x0eWatchSentinels\x12\x1e.ctrl.v1.WatchSentinelsRequest\x1a\x16.ctrl.v1.SentinelState0\x01\x12Z\n" +
 	"\x17GetDesiredSentinelState\x12'.ctrl.v1.GetDesiredSentinelStateRequest\x1a\x16.ctrl.v1.SentinelState\x12c\n" +
 	"\x14ReportSentinelStatus\x12$.ctrl.v1.ReportSentinelStatusRequest\x1a%.ctrl.v1.ReportSentinelStatusResponse\x12`\n" +
 	"\x19GetDesiredDeploymentState\x12).ctrl.v1.GetDesiredDeploymentStateRequest\x1a\x18.ctrl.v1.DeploymentState\x12i\n" +
-	"\x16ReportDeploymentStatus\x12&.ctrl.v1.ReportDeploymentStatusRequest\x1a'.ctrl.v1.ReportDeploymentStatusResponseB\x8b\x01\n" +
+	"\x16ReportDeploymentStatus\x12&.ctrl.v1.ReportDeploymentStatusRequest\x1a'.ctrl.v1.ReportDeploymentStatusResponse\x12m\n" +
+	"\x1aWatchCiliumNetworkPolicies\x12*.ctrl.v1.WatchCiliumNetworkPoliciesRequest\x1a!.ctrl.v1.CiliumNetworkPolicyState0\x01\x12{\n" +
+	"\"GetDesiredCiliumNetworkPolicyState\x122.ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest\x1a!.ctrl.v1.CiliumNetworkPolicyStateB\x8b\x01\n" +
 	"\vcom.ctrl.v1B\fClusterProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
@@ -1442,55 +1768,66 @@ func file_ctrl_v1_cluster_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(Health)(0), // 0: ctrl.v1.Health
 	(ReportDeploymentStatusRequest_Update_Instance_Status)(0), // 1: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	(*GetDesiredSentinelStateRequest)(nil),                    // 2: ctrl.v1.GetDesiredSentinelStateRequest
-	(*GetDesiredDeploymentStateRequest)(nil),                  // 3: ctrl.v1.GetDesiredDeploymentStateRequest
-	(*ReportDeploymentStatusRequest)(nil),                     // 4: ctrl.v1.ReportDeploymentStatusRequest
-	(*ReportDeploymentStatusResponse)(nil),                    // 5: ctrl.v1.ReportDeploymentStatusResponse
-	(*ReportSentinelStatusRequest)(nil),                       // 6: ctrl.v1.ReportSentinelStatusRequest
-	(*ReportSentinelStatusResponse)(nil),                      // 7: ctrl.v1.ReportSentinelStatusResponse
-	(*WatchDeploymentsRequest)(nil),                           // 8: ctrl.v1.WatchDeploymentsRequest
-	(*WatchSentinelsRequest)(nil),                             // 9: ctrl.v1.WatchSentinelsRequest
-	(*SentinelState)(nil),                                     // 10: ctrl.v1.SentinelState
-	(*DeploymentState)(nil),                                   // 11: ctrl.v1.DeploymentState
-	(*ApplySentinel)(nil),                                     // 12: ctrl.v1.ApplySentinel
-	(*DeleteSentinel)(nil),                                    // 13: ctrl.v1.DeleteSentinel
-	(*ApplyDeployment)(nil),                                   // 14: ctrl.v1.ApplyDeployment
-	(*DeleteDeployment)(nil),                                  // 15: ctrl.v1.DeleteDeployment
-	(*ReportDeploymentStatusRequest_Update)(nil),              // 16: ctrl.v1.ReportDeploymentStatusRequest.Update
-	(*ReportDeploymentStatusRequest_Delete)(nil),              // 17: ctrl.v1.ReportDeploymentStatusRequest.Delete
-	(*ReportDeploymentStatusRequest_Update_Instance)(nil),     // 18: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	(*WatchCiliumNetworkPoliciesRequest)(nil),                 // 2: ctrl.v1.WatchCiliumNetworkPoliciesRequest
+	(*ApplyCiliumNetworkPolicy)(nil),                          // 3: ctrl.v1.ApplyCiliumNetworkPolicy
+	(*DeleteCiliumNetworkPolicy)(nil),                         // 4: ctrl.v1.DeleteCiliumNetworkPolicy
+	(*CiliumNetworkPolicyState)(nil),                          // 5: ctrl.v1.CiliumNetworkPolicyState
+	(*GetDesiredCiliumNetworkPolicyStateRequest)(nil),         // 6: ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest
+	(*GetDesiredSentinelStateRequest)(nil),                    // 7: ctrl.v1.GetDesiredSentinelStateRequest
+	(*GetDesiredDeploymentStateRequest)(nil),                  // 8: ctrl.v1.GetDesiredDeploymentStateRequest
+	(*ReportDeploymentStatusRequest)(nil),                     // 9: ctrl.v1.ReportDeploymentStatusRequest
+	(*ReportDeploymentStatusResponse)(nil),                    // 10: ctrl.v1.ReportDeploymentStatusResponse
+	(*ReportSentinelStatusRequest)(nil),                       // 11: ctrl.v1.ReportSentinelStatusRequest
+	(*ReportSentinelStatusResponse)(nil),                      // 12: ctrl.v1.ReportSentinelStatusResponse
+	(*WatchDeploymentsRequest)(nil),                           // 13: ctrl.v1.WatchDeploymentsRequest
+	(*WatchSentinelsRequest)(nil),                             // 14: ctrl.v1.WatchSentinelsRequest
+	(*SentinelState)(nil),                                     // 15: ctrl.v1.SentinelState
+	(*DeploymentState)(nil),                                   // 16: ctrl.v1.DeploymentState
+	(*ApplySentinel)(nil),                                     // 17: ctrl.v1.ApplySentinel
+	(*DeleteSentinel)(nil),                                    // 18: ctrl.v1.DeleteSentinel
+	(*ApplyDeployment)(nil),                                   // 19: ctrl.v1.ApplyDeployment
+	(*DeleteDeployment)(nil),                                  // 20: ctrl.v1.DeleteDeployment
+	(*ReportDeploymentStatusRequest_Update)(nil),              // 21: ctrl.v1.ReportDeploymentStatusRequest.Update
+	(*ReportDeploymentStatusRequest_Delete)(nil),              // 22: ctrl.v1.ReportDeploymentStatusRequest.Delete
+	(*ReportDeploymentStatusRequest_Update_Instance)(nil),     // 23: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
-	16, // 0: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
-	17, // 1: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
-	0,  // 2: ctrl.v1.ReportSentinelStatusRequest.health:type_name -> ctrl.v1.Health
-	12, // 3: ctrl.v1.SentinelState.apply:type_name -> ctrl.v1.ApplySentinel
-	13, // 4: ctrl.v1.SentinelState.delete:type_name -> ctrl.v1.DeleteSentinel
-	14, // 5: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
-	15, // 6: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
-	18, // 7: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	1,  // 8: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	8,  // 9: ctrl.v1.ClusterService.WatchDeployments:input_type -> ctrl.v1.WatchDeploymentsRequest
-	9,  // 10: ctrl.v1.ClusterService.WatchSentinels:input_type -> ctrl.v1.WatchSentinelsRequest
-	2,  // 11: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
-	6,  // 12: ctrl.v1.ClusterService.ReportSentinelStatus:input_type -> ctrl.v1.ReportSentinelStatusRequest
-	3,  // 13: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	4,  // 14: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
-	11, // 15: ctrl.v1.ClusterService.WatchDeployments:output_type -> ctrl.v1.DeploymentState
-	10, // 16: ctrl.v1.ClusterService.WatchSentinels:output_type -> ctrl.v1.SentinelState
-	10, // 17: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
-	7,  // 18: ctrl.v1.ClusterService.ReportSentinelStatus:output_type -> ctrl.v1.ReportSentinelStatusResponse
-	11, // 19: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	5,  // 20: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
-	15, // [15:21] is the sub-list for method output_type
-	9,  // [9:15] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	3,  // 0: ctrl.v1.CiliumNetworkPolicyState.apply:type_name -> ctrl.v1.ApplyCiliumNetworkPolicy
+	4,  // 1: ctrl.v1.CiliumNetworkPolicyState.delete:type_name -> ctrl.v1.DeleteCiliumNetworkPolicy
+	21, // 2: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
+	22, // 3: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
+	0,  // 4: ctrl.v1.ReportSentinelStatusRequest.health:type_name -> ctrl.v1.Health
+	17, // 5: ctrl.v1.SentinelState.apply:type_name -> ctrl.v1.ApplySentinel
+	18, // 6: ctrl.v1.SentinelState.delete:type_name -> ctrl.v1.DeleteSentinel
+	19, // 7: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
+	20, // 8: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
+	23, // 9: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	1,  // 10: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
+	13, // 11: ctrl.v1.ClusterService.WatchDeployments:input_type -> ctrl.v1.WatchDeploymentsRequest
+	14, // 12: ctrl.v1.ClusterService.WatchSentinels:input_type -> ctrl.v1.WatchSentinelsRequest
+	7,  // 13: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
+	11, // 14: ctrl.v1.ClusterService.ReportSentinelStatus:input_type -> ctrl.v1.ReportSentinelStatusRequest
+	8,  // 15: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	9,  // 16: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
+	2,  // 17: ctrl.v1.ClusterService.WatchCiliumNetworkPolicies:input_type -> ctrl.v1.WatchCiliumNetworkPoliciesRequest
+	6,  // 18: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:input_type -> ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest
+	16, // 19: ctrl.v1.ClusterService.WatchDeployments:output_type -> ctrl.v1.DeploymentState
+	15, // 20: ctrl.v1.ClusterService.WatchSentinels:output_type -> ctrl.v1.SentinelState
+	15, // 21: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
+	12, // 22: ctrl.v1.ClusterService.ReportSentinelStatus:output_type -> ctrl.v1.ReportSentinelStatusResponse
+	16, // 23: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	10, // 24: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
+	5,  // 25: ctrl.v1.ClusterService.WatchCiliumNetworkPolicies:output_type -> ctrl.v1.CiliumNetworkPolicyState
+	5,  // 26: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:output_type -> ctrl.v1.CiliumNetworkPolicyState
+	19, // [19:27] is the sub-list for method output_type
+	11, // [11:19] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -1498,26 +1835,30 @@ func file_ctrl_v1_cluster_proto_init() {
 	if File_ctrl_v1_cluster_proto != nil {
 		return
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[2].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[3].OneofWrappers = []any{
+		(*CiliumNetworkPolicyState_Apply)(nil),
+		(*CiliumNetworkPolicyState_Delete)(nil),
+	}
+	file_ctrl_v1_cluster_proto_msgTypes[7].OneofWrappers = []any{
 		(*ReportDeploymentStatusRequest_Update_)(nil),
 		(*ReportDeploymentStatusRequest_Delete_)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[8].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[13].OneofWrappers = []any{
 		(*SentinelState_Apply)(nil),
 		(*SentinelState_Delete)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[9].OneofWrappers = []any{
+	file_ctrl_v1_cluster_proto_msgTypes[14].OneofWrappers = []any{
 		(*DeploymentState_Apply)(nil),
 		(*DeploymentState_Delete)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[12].OneofWrappers = []any{}
+	file_ctrl_v1_cluster_proto_msgTypes[17].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_cluster_proto_rawDesc), len(file_ctrl_v1_cluster_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   17,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

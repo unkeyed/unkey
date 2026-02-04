@@ -632,7 +632,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		GitCommitTimestamp:            sql.NullInt64{Valid: false},
 		OpenapiSpec:                   sql.NullString{Valid: false},
 		EncryptedEnvironmentVariables: []byte{},
-		Command:                       []byte("[]"),
+		Command:                       nil,
 		Status:                        db.DeploymentsStatusPending,
 		CpuMillicores:                 100,
 		MemoryMib:                     128,

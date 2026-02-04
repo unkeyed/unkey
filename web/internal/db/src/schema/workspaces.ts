@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
@@ -17,7 +17,8 @@ import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
 export const workspaces = mysqlTable("workspaces", {
-  id: varchar("id", { length: 256 }).primaryKey(),
+  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  id: varchar("id", { length: 256 }).notNull().unique(),
 
   orgId: varchar("org_id", { length: 256 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),

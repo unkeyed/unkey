@@ -3,16 +3,10 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"time"
 
 	unkey "github.com/unkeyed/sdks/api/go/v2"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"github.com/unkeyed/sdks/api/go/v2/models/operations"
 	"github.com/unkeyed/unkey/pkg/git"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
@@ -58,140 +52,16 @@ func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 	}
 }
 
-// UploadBuildContext uploads the build context to S3 and returns the context key
-func (c *ControlPlaneClient) UploadBuildContext(ctx context.Context, contextPath string) (string, error) {
-	res, err := c.sdk.Internal.GenerateUploadURL(ctx, components.V2DeployGenerateUploadURLRequestBody{
-		ProjectID: c.opts.ProjectID,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	// Extract response data
-	if res.V2DeployGenerateUploadURLResponseBody == nil {
-		return "", fmt.Errorf("empty response from generate upload URL")
-	}
-
-	uploadURL := res.V2DeployGenerateUploadURLResponseBody.Data.UploadURL
-	buildContextPath := res.V2DeployGenerateUploadURLResponseBody.Data.Context
-
-	if uploadURL == "" || buildContextPath == "" {
-		return "", fmt.Errorf("empty upload URL or context key returned")
-	}
-
-	// Create and upload tar
-	tarPath, err := createContextTar(contextPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create tar archive: %w", err)
-	}
-	defer func() { _ = os.Remove(tarPath) }()
-
-	if err := uploadToPresignedURL(ctx, uploadURL, tarPath); err != nil {
-		return "", fmt.Errorf("failed to upload build context: %w", err)
-	}
-
-	return buildContextPath, nil
-}
-
-// uploadToPresignedURL uploads a file to a presigned S3 URL
-func uploadToPresignedURL(ctx context.Context, presignedURL, filePath string) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer func() { _ = file.Close() }()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return fmt.Errorf("failed to stat file: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, presignedURL, file)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.ContentLength = stat.Size()
-	req.Header.Set("Content-Type", "application/gzip")
-
-	client := &http.Client{
-		Timeout: 5 * time.Minute,
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("upload request failed: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, readErr := io.ReadAll(resp.Body)
-		if readErr != nil {
-			return fmt.Errorf("upload failed with status %d (failed to read response body: %w)", resp.StatusCode, readErr)
-		}
-		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	return nil
-}
-
-// createContextTar creates a tar.gz from the given directory path
-// and returns the absolute path to the created tar file
-func createContextTar(contextPath string) (string, error) {
-	info, err := os.Stat(contextPath)
-	if err != nil {
-		return "", fmt.Errorf("context path does not exist: %w", err)
-	}
-	if !info.IsDir() {
-		return "", fmt.Errorf("context path must be a directory: %s", contextPath)
-	}
-
-	absContextPath, err := filepath.Abs(contextPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to get absolute context path: %w", err)
-	}
-
-	sharedDir := "/tmp/ctrl"
-	if err = os.MkdirAll(sharedDir, 0o777); err != nil {
-		return "", fmt.Errorf("failed to create shared dir: %w", err)
-	}
-
-	tmpFile, err := os.CreateTemp(sharedDir, "build-context-*.tar.gz")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp file: %w", err)
-	}
-	if err = tmpFile.Close(); err != nil {
-		return "", fmt.Errorf("failed to close temp file: %w", err)
-	}
-	tarPath := tmpFile.Name()
-
-	if err = os.Chmod(tarPath, 0o666); err != nil {
-		_ = os.Remove(tarPath)
-		return "", fmt.Errorf("failed to set file permissions: %w", err)
-	}
-
-	cmd := exec.Command("tar", "-czf", tarPath, "-C", absContextPath, ".")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		_ = os.Remove(tarPath)
-		return "", fmt.Errorf("tar command failed: %w\nOutput: %s", err, string(output))
-	}
-
-	return tarPath, nil
-}
-
-// buildCommonFields extracts common deployment fields
-func (c *ControlPlaneClient) buildCommonFields() (projectID, branch, env string, keyspaceID *string, gitCommit *components.V2DeployGitCommit) {
+// CreateDeployment creates a new deployment in the control plane using a pre-built docker image
+func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage string) (string, error) {
 	commitInfo := git.GetInfo()
 
-	projectID = c.opts.ProjectID
-	branch = c.opts.Branch
-	env = c.opts.Environment
-
+	var keyspaceID *string
 	if c.opts.KeyspaceID != "" {
 		keyspaceID = &c.opts.KeyspaceID
 	}
 
+	var gitCommit *components.V2DeployGitCommit
 	if commitInfo.CommitSHA != "" {
 		gitCommit = &components.V2DeployGitCommit{
 			CommitSha:       &commitInfo.CommitSHA,
@@ -202,47 +72,13 @@ func (c *ControlPlaneClient) buildCommonFields() (projectID, branch, env string,
 		}
 	}
 
-	return
-}
-
-// CreateDeployment creates a new deployment in the control plane
-// Pass either buildContextPath (for build from source) or dockerImage (for prebuilt image), not both
-func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, buildContextPath, dockerImage string) (string, error) {
-	projectID, branch, env, keyspaceID, gitCommit := c.buildCommonFields()
-
-	var reqBody operations.DeployCreateDeploymentRequest
-
-	if buildContextPath != "" {
-		dockerfilePath := c.opts.Dockerfile
-		if dockerfilePath == "" {
-			dockerfilePath = "Dockerfile"
-		}
-		reqBody = operations.CreateDeployCreateDeploymentRequestV2DeployBuildSource(
-			operations.V2DeployBuildSource{
-				ProjectID:       projectID,
-				Branch:          branch,
-				EnvironmentSlug: env,
-				KeyspaceID:      keyspaceID,
-				GitCommit:       gitCommit,
-				Build: operations.Build{
-					Context:    buildContextPath,
-					Dockerfile: &dockerfilePath,
-				},
-			},
-		)
-	} else if dockerImage != "" {
-		reqBody = operations.CreateDeployCreateDeploymentRequestV2DeployImageSource(
-			operations.V2DeployImageSource{
-				ProjectID:       projectID,
-				Branch:          branch,
-				EnvironmentSlug: env,
-				KeyspaceID:      keyspaceID,
-				GitCommit:       gitCommit,
-				Image:           dockerImage,
-			},
-		)
-	} else {
-		return "", fmt.Errorf("either buildContextPath or dockerImage must be provided")
+	reqBody := components.V2DeployCreateDeploymentRequestBody{
+		ProjectID:       c.opts.ProjectID,
+		Branch:          c.opts.Branch,
+		EnvironmentSlug: c.opts.Environment,
+		DockerImage:     dockerImage,
+		KeyspaceID:      keyspaceID,
+		GitCommit:       gitCommit,
 	}
 
 	res, err := c.sdk.Internal.CreateDeployment(ctx, reqBody)

@@ -43,10 +43,13 @@ export const OpenApiDiff = () => {
 
   const newDeployment = query.data?.find((d) => d.id !== liveDeploymentId);
 
-  const diff = trpc.deploy.deployment.getOpenApiDiff.useQuery({
-    newDeploymentId: newDeployment?.id ?? "",
-    oldDeploymentId: liveDeploymentId ?? "",
-  });
+  const diff = trpc.deploy.deployment.getOpenApiDiff.useQuery(
+    {
+      newDeploymentId: newDeployment?.id ?? "",
+      oldDeploymentId: liveDeploymentId ?? "",
+    },
+    { enabled: Boolean(newDeployment?.id) && Boolean(liveDeploymentId) },
+  );
 
   // @ts-expect-error I have no idea why this whines about type diff
   const status = getDiffStatus(diff.data);

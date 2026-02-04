@@ -60,6 +60,12 @@ const (
 	// ClusterServiceReportDeploymentStatusProcedure is the fully-qualified name of the ClusterService's
 	// ReportDeploymentStatus RPC.
 	ClusterServiceReportDeploymentStatusProcedure = "/ctrl.v1.ClusterService/ReportDeploymentStatus"
+	// ClusterServiceWatchCiliumNetworkPoliciesProcedure is the fully-qualified name of the
+	// ClusterService's WatchCiliumNetworkPolicies RPC.
+	ClusterServiceWatchCiliumNetworkPoliciesProcedure = "/ctrl.v1.ClusterService/WatchCiliumNetworkPolicies"
+	// ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure is the fully-qualified name of the
+	// ClusterService's GetDesiredCiliumNetworkPolicyState RPC.
+	ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure = "/ctrl.v1.ClusterService/GetDesiredCiliumNetworkPolicyState"
 )
 
 // ClusterServiceClient is a client for the ctrl.v1.ClusterService service.
@@ -84,6 +90,12 @@ type ClusterServiceClient interface {
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
 	// Called when K8s watch events indicate ReplicaSet changes.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
+	// WatchCiliumNetworkPolicies streams Cilium network policy state changes from the control plane.
+	// Each cilium controller maintains its own version cursor for resumable streaming.
+	WatchCiliumNetworkPolicies(context.Context, *connect.Request[v1.WatchCiliumNetworkPoliciesRequest]) (*connect.ServerStreamForClient[v1.CiliumNetworkPolicyState], error)
+	// GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
+	// Used by the resync loop to verify consistency for existing resources.
+	GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error)
 }
 
 // NewClusterServiceClient constructs a client for the ctrl.v1.ClusterService service. By default,
@@ -133,17 +145,31 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("ReportDeploymentStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		watchCiliumNetworkPolicies: connect.NewClient[v1.WatchCiliumNetworkPoliciesRequest, v1.CiliumNetworkPolicyState](
+			httpClient,
+			baseURL+ClusterServiceWatchCiliumNetworkPoliciesProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("WatchCiliumNetworkPolicies")),
+			connect.WithClientOptions(opts...),
+		),
+		getDesiredCiliumNetworkPolicyState: connect.NewClient[v1.GetDesiredCiliumNetworkPolicyStateRequest, v1.CiliumNetworkPolicyState](
+			httpClient,
+			baseURL+ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredCiliumNetworkPolicyState")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // clusterServiceClient implements ClusterServiceClient.
 type clusterServiceClient struct {
-	watchDeployments          *connect.Client[v1.WatchDeploymentsRequest, v1.DeploymentState]
-	watchSentinels            *connect.Client[v1.WatchSentinelsRequest, v1.SentinelState]
-	getDesiredSentinelState   *connect.Client[v1.GetDesiredSentinelStateRequest, v1.SentinelState]
-	reportSentinelStatus      *connect.Client[v1.ReportSentinelStatusRequest, v1.ReportSentinelStatusResponse]
-	getDesiredDeploymentState *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentState]
-	reportDeploymentStatus    *connect.Client[v1.ReportDeploymentStatusRequest, v1.ReportDeploymentStatusResponse]
+	watchDeployments                   *connect.Client[v1.WatchDeploymentsRequest, v1.DeploymentState]
+	watchSentinels                     *connect.Client[v1.WatchSentinelsRequest, v1.SentinelState]
+	getDesiredSentinelState            *connect.Client[v1.GetDesiredSentinelStateRequest, v1.SentinelState]
+	reportSentinelStatus               *connect.Client[v1.ReportSentinelStatusRequest, v1.ReportSentinelStatusResponse]
+	getDesiredDeploymentState          *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentState]
+	reportDeploymentStatus             *connect.Client[v1.ReportDeploymentStatusRequest, v1.ReportDeploymentStatusResponse]
+	watchCiliumNetworkPolicies         *connect.Client[v1.WatchCiliumNetworkPoliciesRequest, v1.CiliumNetworkPolicyState]
+	getDesiredCiliumNetworkPolicyState *connect.Client[v1.GetDesiredCiliumNetworkPolicyStateRequest, v1.CiliumNetworkPolicyState]
 }
 
 // WatchDeployments calls ctrl.v1.ClusterService.WatchDeployments.
@@ -176,6 +202,17 @@ func (c *clusterServiceClient) ReportDeploymentStatus(ctx context.Context, req *
 	return c.reportDeploymentStatus.CallUnary(ctx, req)
 }
 
+// WatchCiliumNetworkPolicies calls ctrl.v1.ClusterService.WatchCiliumNetworkPolicies.
+func (c *clusterServiceClient) WatchCiliumNetworkPolicies(ctx context.Context, req *connect.Request[v1.WatchCiliumNetworkPoliciesRequest]) (*connect.ServerStreamForClient[v1.CiliumNetworkPolicyState], error) {
+	return c.watchCiliumNetworkPolicies.CallServerStream(ctx, req)
+}
+
+// GetDesiredCiliumNetworkPolicyState calls
+// ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState.
+func (c *clusterServiceClient) GetDesiredCiliumNetworkPolicyState(ctx context.Context, req *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error) {
+	return c.getDesiredCiliumNetworkPolicyState.CallUnary(ctx, req)
+}
+
 // ClusterServiceHandler is an implementation of the ctrl.v1.ClusterService service.
 type ClusterServiceHandler interface {
 	// WatchDeployments streams deployment state changes from the control plane to agents.
@@ -198,6 +235,12 @@ type ClusterServiceHandler interface {
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
 	// Called when K8s watch events indicate ReplicaSet changes.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
+	// WatchCiliumNetworkPolicies streams Cilium network policy state changes from the control plane.
+	// Each cilium controller maintains its own version cursor for resumable streaming.
+	WatchCiliumNetworkPolicies(context.Context, *connect.Request[v1.WatchCiliumNetworkPoliciesRequest], *connect.ServerStream[v1.CiliumNetworkPolicyState]) error
+	// GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
+	// Used by the resync loop to verify consistency for existing resources.
+	GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error)
 }
 
 // NewClusterServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -243,6 +286,18 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("ReportDeploymentStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	clusterServiceWatchCiliumNetworkPoliciesHandler := connect.NewServerStreamHandler(
+		ClusterServiceWatchCiliumNetworkPoliciesProcedure,
+		svc.WatchCiliumNetworkPolicies,
+		connect.WithSchema(clusterServiceMethods.ByName("WatchCiliumNetworkPolicies")),
+		connect.WithHandlerOptions(opts...),
+	)
+	clusterServiceGetDesiredCiliumNetworkPolicyStateHandler := connect.NewUnaryHandler(
+		ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure,
+		svc.GetDesiredCiliumNetworkPolicyState,
+		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredCiliumNetworkPolicyState")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ctrl.v1.ClusterService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ClusterServiceWatchDeploymentsProcedure:
@@ -257,6 +312,10 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 			clusterServiceGetDesiredDeploymentStateHandler.ServeHTTP(w, r)
 		case ClusterServiceReportDeploymentStatusProcedure:
 			clusterServiceReportDeploymentStatusHandler.ServeHTTP(w, r)
+		case ClusterServiceWatchCiliumNetworkPoliciesProcedure:
+			clusterServiceWatchCiliumNetworkPoliciesHandler.ServeHTTP(w, r)
+		case ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure:
+			clusterServiceGetDesiredCiliumNetworkPolicyStateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -288,4 +347,12 @@ func (UnimplementedClusterServiceHandler) GetDesiredDeploymentState(context.Cont
 
 func (UnimplementedClusterServiceHandler) ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.ReportDeploymentStatus is not implemented"))
+}
+
+func (UnimplementedClusterServiceHandler) WatchCiliumNetworkPolicies(context.Context, *connect.Request[v1.WatchCiliumNetworkPoliciesRequest], *connect.ServerStream[v1.CiliumNetworkPolicyState]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.WatchCiliumNetworkPolicies is not implemented"))
+}
+
+func (UnimplementedClusterServiceHandler) GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState is not implemented"))
 }

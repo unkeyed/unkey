@@ -46,8 +46,8 @@ type Querier interface {
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
-	//  WHERE workspace_id = ?
-	//    AND (id = ? OR external_id = ?)
+	//  WHERE id = ?
+	//    AND workspace_id = ?
 	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
 	//DeleteInstance
 	//
@@ -177,6 +177,20 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
 	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
+	//FindCiliumNetworkPoliciesByEnvironmentID
+	//
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
+	FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]CiliumNetworkPolicy, error)
+	//FindCiliumNetworkPolicyByIDAndRegion
+	//
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  JOIN `workspaces` w ON w.id = n.workspace_id
+	//  WHERE n.region = ? AND n.id = ?
+	//  LIMIT 1
+	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (FindCiliumNetworkPolicyByIDAndRegionRow, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -316,6 +330,20 @@ type Querier interface {
 	//    AND sticky IN (/*SLICE:sticky*/?)
 	//  ORDER BY created_at ASC
 	FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
+	//FindGithubRepoConnection
+	//
+	//  SELECT
+	//      pk,
+	//      project_id,
+	//      installation_id,
+	//      repository_id,
+	//      repository_full_name,
+	//      created_at,
+	//      updated_at
+	//  FROM github_repo_connections
+	//  WHERE installation_id = ?
+	//    AND repository_id = ?
+	FindGithubRepoConnection(ctx context.Context, db DBTX, arg FindGithubRepoConnectionParams) (GithubRepoConnection, error)
 	//FindIdentities
 	//
 	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -554,7 +582,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -645,7 +673,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.partition_id, ws.plan, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.beta_features, ws.features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -975,7 +1003,7 @@ type Querier interface {
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//GetKeyAuthByID
@@ -991,6 +1019,20 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND deleted_at_m IS NULL
 	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
+	//GetWorkspacesForQuotaCheckByIDs
+	//
+	//  SELECT
+	//     w.id,
+	//     w.org_id,
+	//     w.name,
+	//     w.stripe_customer_id,
+	//     w.tier,
+	//     w.enabled,
+	//     q.requests_per_month
+	//  FROM `workspaces` w
+	//  LEFT JOIN quota q ON w.id = q.workspace_id
+	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
+	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
 	//HardDeleteWorkspace
 	//
 	//  DELETE FROM `workspaces`
@@ -1119,6 +1161,30 @@ type Querier interface {
 	//  encrypted_private_key = VALUES(encrypted_private_key),
 	//  updated_at = ?
 	InsertCertificate(ctx context.Context, db DBTX, arg InsertCertificateParams) error
+	//InsertCiliumNetworkPolicy
+	//
+	//  INSERT INTO cilium_network_policies (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      k8s_name,
+	//      region,
+	//      policy,
+	//      version,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertCiliumNetworkPolicy(ctx context.Context, db DBTX, arg InsertCiliumNetworkPolicyParams) error
 	//InsertClickhouseWorkspaceSettings
 	//
 	//  INSERT INTO `clickhouse_workspace_settings` (
@@ -1260,6 +1326,25 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertFrontlineRoute(ctx context.Context, db DBTX, arg InsertFrontlineRouteParams) error
+	//InsertGithubRepoConnection
+	//
+	//  INSERT INTO github_repo_connections (
+	//      project_id,
+	//      installation_id,
+	//      repository_id,
+	//      repository_full_name,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertGithubRepoConnection(ctx context.Context, db DBTX, arg InsertGithubRepoConnectionParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -1637,6 +1722,18 @@ type Querier interface {
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	// ListCiliumNetworkPoliciesByRegion returns cilium network policies for a region with version > after_version.
+	// Used by WatchCiliumNetworkPolicies to stream policy state changes to krane agents.
+	//
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  JOIN `workspaces` w ON w.id = n.workspace_id
+	//  WHERE n.region = ? AND n.version > ?
+	//  ORDER BY n.version ASC
+	//  LIMIT ?
+	ListCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX, arg ListCiliumNetworkPoliciesByRegionParams) ([]ListCiliumNetworkPoliciesByRegionRow, error)
 	//ListCustomDomainsByProjectID
 	//
 	//  SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
@@ -1674,6 +1771,17 @@ type Querier interface {
 	//  ORDER BY dt.deployment_id ASC
 	//  LIMIT ?
 	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
+	//ListDesiredNetworkPolicies
+	//
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  INNER JOIN `workspaces` w ON n.workspace_id = w.id
+	//  WHERE (? = '' OR n.region = ?) AND n.id > ?
+	//  ORDER BY n.id ASC
+	//  LIMIT ?
+	ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg ListDesiredNetworkPoliciesParams) ([]ListDesiredNetworkPoliciesRow, error)
 	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
 	// Used during bootstrap to stream all running sentinels to krane.
 	//
@@ -1860,6 +1968,17 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
+	//ListNetworkPolicyByRegion
+	//
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  INNER JOIN `workspaces` w ON n.workspace_id = w.id
+	//  WHERE n.region = ? AND n.version > ?
+	//  ORDER BY n.version ASC
+	//  LIMIT ?
+	ListNetworkPolicyByRegion(ctx context.Context, db DBTX, arg ListNetworkPolicyByRegionParams) ([]ListNetworkPolicyByRegionRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -1990,7 +2109,7 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
@@ -2063,8 +2182,8 @@ type Querier interface {
 	//
 	//  UPDATE identities
 	//  SET deleted = 1
-	//  WHERE workspace_id = ?
-	//   AND (id = ? OR external_id = ?)
+	//  WHERE id = ?
+	//    AND workspace_id = ?
 	SoftDeleteIdentity(ctx context.Context, db DBTX, arg SoftDeleteIdentityParams) error
 	//SoftDeleteKeyByID
 	//

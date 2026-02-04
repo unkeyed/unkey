@@ -1,6 +1,7 @@
 "use client";
 import { collection, collectionManager } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { usePathname } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { ProjectDetailsExpandable } from "./(overview)/details/project-details-expandables";
 import { ProjectLayoutContext } from "./(overview)/layout-provider";
@@ -28,6 +29,10 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
+  const pathname = usePathname();
+  const isOnDeploymentDetail =
+    pathname?.includes("/deployments/") && pathname.split("/").filter(Boolean).length >= 5; // /workspace/projects/projectId/deployments/deploymentId/*
+
   const collections = collectionManager.getProjectCollections(projectId);
 
   const projects = useLiveQuery((q) =>
@@ -35,17 +40,15 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   );
 
   const liveDeploymentId = projects.data.at(0)?.liveDeploymentId;
-  const lastestDeploymentId = projects.data.at(0)?.latestDeploymentId;
 
-  // We just wanna refetch domains as soon as lastestCommitTimestamp changes.
-  // We could use the liveDeploymentId for that but when user make `env=preview` this doesn't refetch properly.
+  // Refetch domains when live deployment changes to show domains for the currently active deployment.
   // biome-ignore lint/correctness/useExhaustiveDependencies: Read above.
   useEffect(() => {
     //@ts-expect-error Without this we can't refetch domains on-demand. It's either this or we do `refetchInternal` on domains collection level.
     // Second approach causing too any re-renders. This is fine because data is partitioned and centralized in this context.
     // Until they introduce a way to invalidate collections properly we stick to this.
     collections.domains.utils.refetch();
-  }, [lastestDeploymentId]);
+  }, [liveDeploymentId]);
 
   return (
     <ProjectLayoutContext.Provider
@@ -58,13 +61,15 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
       }}
     >
       <div className="h-screen flex flex-col overflow-hidden">
-        <ProjectNavigation
-          projectId={projectId}
-          onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-          isDetailsOpen={isDetailsOpen}
-          liveDeploymentId={liveDeploymentId}
-          onMount={setTableDistanceToTop}
-        />
+        {!isOnDeploymentDetail && (
+          <ProjectNavigation
+            projectId={projectId}
+            onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+            isDetailsOpen={isDetailsOpen}
+            liveDeploymentId={liveDeploymentId}
+            onMount={setTableDistanceToTop}
+          />
+        )}
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 overflow-auto">{children}</div>
           <ProjectDetailsExpandable

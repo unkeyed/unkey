@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 )
 
@@ -45,13 +44,10 @@ func TestCreateDeploymentInsufficientPermissions(t *testing.T) {
 		ProjectId:       setup.Project.ID,
 		Branch:          "main",
 		EnvironmentSlug: "production",
+		DockerImage:     "nginx:latest",
 	}
-	err := req.FromV2DeployImageSource(openapi.V2DeployImageSource{
-		Image: "nginx:latest",
-	})
-	require.NoError(t, err, "failed to set image source")
 
-	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusForbidden, res.Status)
 	require.NotNil(t, res.Body)
 }

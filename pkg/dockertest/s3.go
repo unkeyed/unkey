@@ -63,6 +63,7 @@ func S3(t *testing.T) S3Config {
 		Cmd:          []string{"server", "/data"},
 		WaitStrategy: NewHTTPWait(minioPort, "/minio/health/live"),
 		WaitTimeout:  30 * time.Second,
+		Tmpfs:        nil,
 	})
 
 	port := ctr.Port(minioPort)

@@ -213,11 +213,11 @@ data:
     del(.timestamp)
     '''
 
-    # Deduplicate identical logs
+    # Deduplicate identical logs (includes attributes for structured logs)
     [transforms.dedupe]
     type = "dedupe"
     inputs = ["extract_labels"]
-    fields.match = ["message", "workspace_id", "deployment_id", "severity"]
+    fields.match = ["message", "workspace_id", "deployment_id", "severity", "attributes"]
     cache.num_events = 5000
 
     # Sink: ClickHouse (local)

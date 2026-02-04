@@ -1224,64 +1224,42 @@ components:
                 $ref: '#/components/schemas/KeyResponseData'
             maxItems: 100
             type: array
-        V2DeployBuildSource:
-            description: Build from source configuration
-            properties:
-                build:
-                    description: |
-                        Build context for building from source.
-                        Provide either `build.context` (build from source) or `image` (prebuilt image), but not both.
-                    properties:
-                        context:
-                            description: S3 path to uploaded build context tarball
-                            example: s3://bucket/path/to/context.tar.gz
-                            minLength: 1
-                            type: string
-                        dockerfile:
-                            default: Dockerfile
-                            description: Optional path to Dockerfile within build context (defaults to "Dockerfile")
-                            example: Dockerfile
-                            type: string
-                    required:
-                        - context
-                    type: object
-            required:
-                - build
-            type: object
         V2DeployCreateDeploymentRequestBody:
-            allOf:
-                - description: Deployment source - either build from source or use prebuilt image
-                  oneOf:
-                    - $ref: '#/components/schemas/V2DeployBuildSource'
-                    - $ref: '#/components/schemas/V2DeployImageSource'
-                  properties:
-                    branch:
-                        description: Git branch name
-                        example: main
-                        minLength: 1
-                        type: string
-                    environmentSlug:
-                        description: Environment slug (e.g., "production", "staging")
-                        example: production
-                        minLength: 1
-                        type: string
-                    gitCommit:
-                        $ref: '#/components/schemas/V2DeployGitCommit'
-                    keyspaceId:
-                        description: Optional keyspace ID for authentication context
-                        example: key_abc123
-                        type: string
-                    projectId:
-                        description: Unkey project ID
-                        example: proj_123abc
-                        minLength: 1
-                        pattern: ^proj_[a-zA-Z0-9]+$
-                        type: string
-                  required:
-                    - projectId
-                    - branch
-                    - environmentSlug
-                  type: object
+            description: Create a deployment from a pre-built Docker image
+            properties:
+                branch:
+                    description: Git branch name
+                    example: main
+                    minLength: 1
+                    type: string
+                dockerImage:
+                    description: Docker image reference to deploy
+                    example: ghcr.io/user/app:v1.0.0
+                    minLength: 1
+                    type: string
+                environmentSlug:
+                    description: Environment slug (e.g., "production", "staging")
+                    example: production
+                    minLength: 1
+                    type: string
+                gitCommit:
+                    $ref: '#/components/schemas/V2DeployGitCommit'
+                keyspaceId:
+                    description: Optional keyspace ID for authentication context
+                    example: key_abc123
+                    type: string
+                projectId:
+                    description: Unkey project ID
+                    example: proj_123abc
+                    minLength: 1
+                    pattern: ^proj_[a-zA-Z0-9]+$
+                    type: string
+            required:
+                - projectId
+                - branch
+                - environmentSlug
+                - dockerImage
+            type: object
         V2DeployCreateDeploymentResponseBody:
             properties:
                 data:
@@ -1320,41 +1298,6 @@ components:
                     description: Step status
                     example: completed
                     type: string
-            type: object
-        V2DeployGenerateUploadUrlRequestBody:
-            properties:
-                projectId:
-                    description: Unkey project ID for which to generate the upload URL
-                    example: proj_123abc
-                    minLength: 1
-                    pattern: ^proj_[a-zA-Z0-9]+$
-                    type: string
-            required:
-                - projectId
-            type: object
-        V2DeployGenerateUploadUrlResponseBody:
-            properties:
-                data:
-                    $ref: '#/components/schemas/V2DeployGenerateUploadUrlResponseData'
-                meta:
-                    $ref: '#/components/schemas/Meta'
-            required:
-                - meta
-                - data
-            type: object
-        V2DeployGenerateUploadUrlResponseData:
-            properties:
-                context:
-                    description: S3 path to use in the createDeployment request when building from source
-                    example: proj_123abc/ctx_456def.tar.gz
-                    type: string
-                uploadUrl:
-                    description: Presigned PUT URL for uploading the build context tar file
-                    example: https://s3.amazonaws.com/bucket/path?signature=...
-                    type: string
-            required:
-                - uploadUrl
-                - context
             type: object
         V2DeployGetDeploymentRequestBody:
             properties:
@@ -1441,17 +1384,6 @@ components:
                     example: 1704067200000
                     format: int64
                     type: integer
-            type: object
-        V2DeployImageSource:
-            description: Prebuilt Docker image configuration
-            properties:
-                image:
-                    description: Prebuilt Docker image reference
-                    example: nginx:latest
-                    minLength: 1
-                    type: string
-            required:
-                - image
             type: object
         V2IdentitiesCreateIdentityRequestBody:
             properties:
@@ -4984,66 +4916,6 @@ paths:
                 - deploy
             x-speakeasy-group: internal
             x-speakeasy-name-override: createDeployment
-    /v2/deploy.generateUploadUrl:
-        post:
-            description: |
-                **INTERNAL** - This endpoint is internal and may change without notice.
-                Not recommended for production use.
-
-                Generates a presigned S3 URL for uploading build context archives.
-
-                **Authentication**: Requires a valid root key with appropriate permissions.
-            operationId: deploy.generateUploadUrl
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/V2DeployGenerateUploadUrlRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/V2DeployGenerateUploadUrlResponseBody'
-                    description: Upload URL generated successfully
-                "400":
-                    content:
-                        application/problem+json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Bad request
-                "401":
-                    content:
-                        application/problem+json:
-                            schema:
-                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: Unauthorized
-                "403":
-                    content:
-                        application/problem+json:
-                            schema:
-                                $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden
-                "404":
-                    content:
-                        application/problem+json:
-                            schema:
-                                $ref: '#/components/schemas/NotFoundErrorResponse'
-                    description: Not found
-                "500":
-                    content:
-                        application/problem+json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error
-            security:
-                - rootKey: []
-            summary: Generate upload URL
-            tags:
-                - deploy
-            x-speakeasy-group: internal
-            x-speakeasy-name-override: generateUploadUrl
     /v2/deploy.getDeployment:
         post:
             description: |

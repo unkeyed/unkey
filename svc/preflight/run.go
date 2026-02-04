@@ -49,9 +49,11 @@ func Run(ctx context.Context, cfg Config) error {
 	credentialsManager := credentials.NewManager(registries...)
 
 	reg := registry.New(registry.Config{
-		Logger:      logger,
-		Clientset:   clientset,
-		Credentials: credentialsManager,
+		Logger:             logger,
+		Clientset:          clientset,
+		Credentials:        credentialsManager,
+		InsecureRegistries: cfg.InsecureRegistries,
+		RegistryAliases:    cfg.RegistryAliases,
 	})
 
 	tlsConfig, err := tls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)

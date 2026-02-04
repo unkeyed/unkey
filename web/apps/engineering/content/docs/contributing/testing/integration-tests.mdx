@@ -31,16 +31,16 @@ func TestRedisCaching(t *testing.T) {
 For services that are expensive to start or that many tests share, we use `pkg/testutil/containers`. This package returns configuration for containers that are started once via docker-compose and shared across all tests. The tradeoff is that tests need to be careful about cleanup, since data written by one test is visible to the next.
 
 ```go
-import "github.com/unkeyed/unkey/pkg/testutil/containers"
+import "github.com/unkeyed/unkey/pkg/dockertest"
 
 func TestDatabaseQuery(t *testing.T) {
-    mysqlCfg := containers.MySQL(t)
+    mysqlCfg := dockertest.MySQL(t)
     
-    db, err := sql.Open("mysql", mysqlCfg.FormatDSN())
+    db, err := sql.Open("mysql", mysqlCfg.DSN)
     require.NoError(t, err)
     defer db.Close()
     
-    // This MySQL instance is shared with other tests
+    // This MySQL instance is isolated per test
 }
 ```
 

@@ -23,7 +23,7 @@ export const NestedNavItem = ({
   item,
   onLoadMore,
   depth = 0,
-  maxDepth = 1,
+  maxDepth = 2,
   isSubItem = false,
   className,
 }: NavProps & {

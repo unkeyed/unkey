@@ -120,6 +120,71 @@ func TestWithTimeout(t *testing.T) {
 		err := handler(ctx, &Session{})
 		require.Equal(t, nil, err)
 	})
+
+	t.Run("server timeout with existing code is reclassified as timeout", func(t *testing.T) {
+		// Server-side timeouts should always be reclassified as RequestTimeout,
+		// even if application code wrapped the error with a different code.
+		middleware := WithTimeout(50 * time.Millisecond)
+
+		handler := middleware(func(ctx context.Context, s *Session) error {
+			select {
+			case <-ctx.Done():
+				// Simulate what audit log insertion does: wrap context.DeadlineExceeded with ServiceUnavailable
+				return fault.Wrap(ctx.Err(),
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database failed to insert audit logs"),
+					fault.Public("Failed to insert audit logs"),
+				)
+			case <-time.After(100 * time.Millisecond):
+				return nil
+			}
+		})
+
+		ctx := context.Background()
+		err := handler(ctx, &Session{})
+
+		require.NotNil(t, err)
+
+		// Should be reclassified as RequestTimeout, NOT ServiceUnavailable
+		urn, ok := fault.GetCode(err)
+		require.True(t, ok, "expected error to have a code")
+		require.Equal(t, codes.User.BadRequest.RequestTimeout.URN(), urn)
+	})
+
+	t.Run("wrapped context error with existing code is reclassified as client closed", func(t *testing.T) {
+		// Same as above but for client cancellation scenario
+		middleware := WithTimeout(200 * time.Millisecond)
+
+		handler := middleware(func(ctx context.Context, s *Session) error {
+			select {
+			case <-ctx.Done():
+				// Simulate what DB operations do: wrap context.Canceled with ServiceUnavailable
+				return fault.Wrap(ctx.Err(),
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database failed to insert ratelimits"),
+					fault.Public("Failed to insert ratelimits"),
+				)
+			case <-time.After(100 * time.Millisecond):
+				return nil
+			}
+		})
+
+		// Create a context that gets canceled quickly (simulating client disconnect)
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(25 * time.Millisecond)
+			cancel()
+		}()
+
+		err := handler(ctx, &Session{})
+
+		require.NotNil(t, err)
+
+		// Should be reclassified as ClientClosedRequest, NOT ServiceUnavailable
+		urn, ok := fault.GetCode(err)
+		require.True(t, ok, "expected error to have a code")
+		require.Equal(t, codes.User.BadRequest.ClientClosedRequest.URN(), urn)
+	})
 }
 
 func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {

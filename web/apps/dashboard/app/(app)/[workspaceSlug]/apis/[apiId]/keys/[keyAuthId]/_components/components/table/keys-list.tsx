@@ -379,6 +379,7 @@ export const KeysList = ({
                 "text-xs align-middle whitespace-nowrap pr-4",
                 idx === 0 ? "pl-[18px]" : "",
                 column.key === "key" ? "py-[6px]" : "py-1",
+                column.cellClassName,
               )}
               style={{ height: `${rowHeight}px` }}
             >

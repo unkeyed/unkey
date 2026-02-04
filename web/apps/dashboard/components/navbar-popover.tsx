@@ -1,4 +1,5 @@
 "use client";
+import { DisabledWrapper } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/disabled-wrapper";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretRight } from "@unkey/icons";
@@ -16,6 +17,8 @@ export type QuickNavItem = {
   className?: string;
   itemClassName?: string;
   hideRightIcon?: boolean;
+  disabled?: boolean;
+  disabledTooltip?: string;
 };
 
 type QuickNavPopoverProps = {
@@ -76,6 +79,9 @@ export const QuickNavPopover = ({
   });
 
   const handleItemSelect = (item: QuickNavItem) => {
+    if (item.disabled) {
+      return;
+    }
     setOpen(false);
     if (onItemSelect) {
       onItemSelect(item);
@@ -257,6 +263,8 @@ const PopoverItem = ({
   className,
   itemClassName,
   hideRightIcon,
+  disabled,
+  disabledTooltip,
 }: PopoverItemProps) => {
   const itemRef = useRef<HTMLButtonElement>(null);
 
@@ -266,41 +274,50 @@ const PopoverItem = ({
     }
   }, [isFocused]);
   const labelText = typeof label === "string" ? label : "";
-  return (
-    <button
-      type="button"
-      ref={itemRef}
-      className={cn(
-        "flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer",
-        "hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none",
-        (isFocused || isActive) && "bg-gray-3",
-        itemClassName,
-      )}
-      tabIndex={0}
-      onClick={onSelect}
+
+  const content = (
+    <DisabledWrapper
+      disabled={Boolean(disabled)}
+      tooltipContent={disabledTooltip}
+      className="py-0 px-0 pointer-events-none cursor"
     >
-      <div className={cn("flex gap-2 items-center", className)}>
-        <span
-          className={"text-[13px] font-medium truncate max-w-[160px] text-accent-12"}
-          title={labelText}
-        >
-          {label}
-        </span>
-      </div>
-      {!hideRightIcon && (
-        <div className="flex items-center gap-1.5">
-          <div className="size-5 flex items-center justify-center">
-            <CaretRight
-              className={cn(
-                "size-2",
-                isActive ? "text-gray-12" : "text-gray-7 group-hover:text-gray-10",
-              )}
-            />
-          </div>
+      <button
+        type="button"
+        ref={itemRef}
+        className={cn(
+          "flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer",
+          "hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none",
+          (isFocused || isActive) && "bg-gray-3",
+          itemClassName,
+        )}
+        tabIndex={0}
+        onClick={onSelect}
+      >
+        <div className={cn("flex gap-2 items-center", className)}>
+          <span
+            className={"text-[13px] font-medium truncate max-w-[160px] text-accent-12"}
+            title={labelText}
+          >
+            {label}
+          </span>
         </div>
-      )}
-    </button>
+        {!hideRightIcon && (
+          <div className="flex items-center gap-1.5">
+            <div className="size-5 flex items-center justify-center">
+              <CaretRight
+                className={cn(
+                  "size-2",
+                  isActive ? "text-gray-12" : "text-gray-7 group-hover:text-gray-10",
+                )}
+              />
+            </div>
+          </div>
+        )}
+      </button>
+    </DisabledWrapper>
   );
+
+  return content;
 };
 
 const isItemActive = (

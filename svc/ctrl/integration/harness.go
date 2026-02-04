@@ -3,14 +3,13 @@ package integration
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -31,9 +30,8 @@ func New(t *testing.T) *Harness {
 
 	ctx := context.Background()
 
-	mysqlHostCfg := containers.MySQL(t)
-	mysqlHostCfg.DBName = "unkey"
-	mysqlHostDSN := mysqlHostCfg.FormatDSN()
+	mysqlCfg := dockertest.MySQL(t)
+	mysqlHostDSN := mysqlCfg.DSN
 
 	database, err := db.New(db.Config{
 		Logger:      logging.NewNoop(),
@@ -133,7 +131,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		MemoryMib:                     128,
 		CreatedAt:                     h.Now(),
 		UpdatedAt:                     sql.NullInt64{Valid: false},
-		Command:                       json.RawMessage([]byte("[]")),
+		Command:                       nil,
 	})
 	require.NoError(h.t, err)
 

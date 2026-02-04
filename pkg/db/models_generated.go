@@ -881,6 +881,20 @@ type Certificate struct {
 	UpdatedAt           sql.NullInt64 `db:"updated_at"`
 }
 
+type CiliumNetworkPolicy struct {
+	Pk            uint64          `db:"pk"`
+	ID            string          `db:"id"`
+	WorkspaceID   string          `db:"workspace_id"`
+	ProjectID     string          `db:"project_id"`
+	EnvironmentID string          `db:"environment_id"`
+	K8sName       string          `db:"k8s_name"`
+	Region        string          `db:"region"`
+	Policy        json.RawMessage `db:"policy"`
+	Version       uint64          `db:"version"`
+	CreatedAt     int64           `db:"created_at"`
+	UpdatedAt     sql.NullInt64   `db:"updated_at"`
+}
+
 type ClickhouseWorkspaceSetting struct {
 	Pk                        uint64        `db:"pk"`
 	WorkspaceID               string        `db:"workspace_id"`
@@ -938,7 +952,7 @@ type Deployment struct {
 	MemoryMib                     int32                   `db:"memory_mib"`
 	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
 	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
-	Command                       json.RawMessage         `db:"command"`
+	Command                       dbtype.StringSlice      `db:"command"`
 	Status                        DeploymentsStatus       `db:"status"`
 	CreatedAt                     int64                   `db:"created_at"`
 	UpdatedAt                     sql.NullInt64           `db:"updated_at"`
@@ -1137,20 +1151,20 @@ type Permission struct {
 }
 
 type Project struct {
-	Pk               uint64          `db:"pk"`
-	ID               string          `db:"id"`
-	WorkspaceID      string          `db:"workspace_id"`
-	Name             string          `db:"name"`
-	Slug             string          `db:"slug"`
-	GitRepositoryUrl sql.NullString  `db:"git_repository_url"`
-	LiveDeploymentID sql.NullString  `db:"live_deployment_id"`
-	IsRolledBack     bool            `db:"is_rolled_back"`
-	DefaultBranch    sql.NullString  `db:"default_branch"`
-	DepotProjectID   sql.NullString  `db:"depot_project_id"`
-	Command          json.RawMessage `db:"command"`
-	DeleteProtection sql.NullBool    `db:"delete_protection"`
-	CreatedAt        int64           `db:"created_at"`
-	UpdatedAt        sql.NullInt64   `db:"updated_at"`
+	Pk               uint64             `db:"pk"`
+	ID               string             `db:"id"`
+	WorkspaceID      string             `db:"workspace_id"`
+	Name             string             `db:"name"`
+	Slug             string             `db:"slug"`
+	GitRepositoryUrl sql.NullString     `db:"git_repository_url"`
+	LiveDeploymentID sql.NullString     `db:"live_deployment_id"`
+	IsRolledBack     bool               `db:"is_rolled_back"`
+	DefaultBranch    sql.NullString     `db:"default_branch"`
+	DepotProjectID   sql.NullString     `db:"depot_project_id"`
+	Command          dbtype.StringSlice `db:"command"`
+	DeleteProtection sql.NullBool       `db:"delete_protection"`
+	CreatedAt        int64              `db:"created_at"`
+	UpdatedAt        sql.NullInt64      `db:"updated_at"`
 }
 
 type Quotum struct {
@@ -1269,6 +1283,7 @@ type VercelIntegration struct {
 }
 
 type Workspace struct {
+	Pk                   uint64             `db:"pk"`
 	ID                   string             `db:"id"`
 	OrgID                string             `db:"org_id"`
 	Name                 string             `db:"name"`

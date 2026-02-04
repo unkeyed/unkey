@@ -83,9 +83,17 @@ func fetchSecrets(ctx context.Context, cfg config) (map[string]string, error) {
 func clearSensitiveEnvVars() error {
 	for _, env := range os.Environ() {
 		name, _, _ := strings.Cut(env, "=")
+
+		// Clear UNKEY_* vars (except allowed ones) to prevent leaking inject config
 		if strings.HasPrefix(name, "UNKEY_") && !allowedUnkeyVars[name] {
-			err := os.Unsetenv(name)
-			if err != nil {
+			if err := os.Unsetenv(name); err != nil {
+				return err
+			}
+		}
+
+		// Clear KUBERNETES_* vars - child process doesn't need K8s service account info
+		if strings.HasPrefix(name, "KUBERNETES_") {
+			if err := os.Unsetenv(name); err != nil {
 				return err
 			}
 		}

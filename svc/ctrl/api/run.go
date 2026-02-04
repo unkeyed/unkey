@@ -20,7 +20,6 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/s3"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
@@ -83,18 +82,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.TLSConfig != nil {
 		logger.Info("TLS is enabled, server will use HTTPS")
-	}
-
-	buildStorage, err := s3.NewS3(s3.S3Config{
-		S3PresignURL:      "",
-		S3URL:             cfg.BuildS3.URL,
-		S3Bucket:          cfg.BuildS3.Bucket,
-		S3AccessKeyID:     cfg.BuildS3.AccessKeyID,
-		S3AccessKeySecret: cfg.BuildS3.AccessKeySecret,
-		Logger:            logger,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create build storage backend: %w", err)
 	}
 
 	// Initialize database
@@ -168,7 +155,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:          restateClient,
 		Logger:           logger,
 		AvailableRegions: cfg.AvailableRegions,
-		BuildStorage:     buildStorage,
 	})))
 
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
@@ -186,6 +172,18 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:       logger,
 		CnameDomain:  cfg.CnameDomain,
 	})))
+
+	if cfg.GitHubWebhookSecret != "" {
+		mux.Handle("POST /webhooks/github", &GitHubWebhook{
+			db:            database,
+			logger:        logger,
+			restate:       restateClient,
+			webhookSecret: cfg.GitHubWebhookSecret,
+		})
+		logger.Info("GitHub webhook handler registered")
+	} else {
+		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
+	}
 
 	// Configure server
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)

@@ -18,6 +18,10 @@ import (
 
 const stateKeyNotifiedWorkspaces = "notified_workspaces"
 
+// minUsageThreshold is the minimum usage to consider for quota checks.
+// Workspaces below this threshold are skipped since the minimum paid plan starts at 150k.
+const minUsageThreshold = 150_000
+
 // followUpInterval is the minimum time between follow-up notifications.
 // First notification is sent immediately, subsequent ones are sent weekly.
 // We use 6 days 20 hours instead of exactly 7 days to account for timing drift
@@ -26,10 +30,14 @@ const followUpInterval = 6*24*time.Hour + 20*time.Hour
 
 // exceededWorkspace holds info about a workspace that exceeded its quota.
 type exceededWorkspace struct {
-	Workspace  db.ListWorkspacesForQuotaCheckRow
+	Workspace  db.GetWorkspacesForQuotaCheckByIDsRow
 	Used       int64
 	IsFollowUp bool
 }
+
+// batchSize is the number of workspace IDs to fetch from the database in a single query.
+// This balances between minimizing round trips and keeping queries efficient.
+const batchSize = 100
 
 // RunCheck queries all workspace usage and sends Slack notifications for newly exceeded quotas.
 // This handler is intended to be called on a schedule via GitHub Actions.
@@ -64,31 +72,42 @@ func (s *Service) RunCheck(
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
 
+	// Fetch billable usage from ClickHouse, pre-filtered to only workspaces above minUsageThreshold.
+	// This is more efficient than fetching all usage and filtering in Go.
+	usageAboveThreshold, err := restate.Run(ctx, func(rc restate.RunContext) (map[string]int64, error) {
+		return s.clickhouse.GetBillableUsageAboveThreshold(rc, year, month, minUsageThreshold)
+	}, restate.WithName("get billable usage above threshold"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get billable usage: %w", err)
+	}
+
+	s.logger.Info("fetched usage data", "workspaces_above_threshold", len(usageAboveThreshold))
+
+	// Extract workspace IDs from the usage map
+	workspaceIDs := make([]string, 0, len(usageAboveThreshold))
+	for wsID := range usageAboveThreshold {
+		workspaceIDs = append(workspaceIDs, wsID)
+	}
+
 	var exceeded []exceededWorkspace
 	var newlyNotified []string
 	workspacesChecked := 0
-	cursor := ""
 
-	// Iterate through all workspaces with cursor-based pagination
-	for {
-		// Fetch next batch of workspaces
-		currentCursor := cursor
-		batch, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesForQuotaCheckRow, error) {
-			return db.Query.ListWorkspacesForQuotaCheck(rc, s.db.RO(), currentCursor)
-		}, restate.WithName("fetch workspaces after "+currentCursor))
+	// Fetch workspaces in batches to avoid large IN clauses
+	for i := 0; i < len(workspaceIDs); i += batchSize {
+		batchIDs := workspaceIDs[i:min(i+batchSize, len(workspaceIDs))]
+
+		batch, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.GetWorkspacesForQuotaCheckByIDsRow, error) {
+			return db.Query.GetWorkspacesForQuotaCheckByIDs(rc, s.db.RO(), batchIDs)
+		}, restate.WithName(fmt.Sprintf("fetch workspaces batch %d", i/batchSize)))
 		if fetchErr != nil {
 			return nil, fmt.Errorf("fetch workspaces: %w", fetchErr)
 		}
 
-		if len(batch) == 0 {
-			break
-		}
-		cursor = batch[len(batch)-1].ID
-
 		// Process each workspace in the batch
 		for _, ws := range batch {
 			workspacesChecked++
-			if workspacesChecked%100 == 0 {
+			if workspacesChecked%1000 == 0 {
 				s.logger.Info("progress", "count", workspacesChecked)
 			}
 
@@ -96,27 +115,13 @@ func (s *Service) RunCheck(
 				continue
 			}
 
-			// Get usage for this workspace from ClickHouse
-			usedVerifications, verErr := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
-				return s.clickhouse.GetBillableVerifications(rc, ws.ID, year, month)
-			}, restate.WithName("get verifications "+ws.ID))
-			if verErr != nil {
-				return nil, fmt.Errorf("failed to get verifications: %w", verErr)
-			}
-
-			usedRatelimits, rlErr := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
-				return s.clickhouse.GetBillableRatelimits(rc, ws.ID, year, month)
-			}, restate.WithName("get ratelimits "+ws.ID))
-			if rlErr != nil {
-				return nil, fmt.Errorf("failed to get ratelimits: %w", rlErr)
-			}
-
 			// Skip workspaces with no quota set
 			if !ws.RequestsPerMonth.Valid {
 				continue
 			}
 
-			usage := usedVerifications + usedRatelimits
+			// Look up usage from the pre-fetched map
+			usage := usageAboveThreshold[ws.ID]
 
 			if usage < ws.RequestsPerMonth.Int64 {
 				continue

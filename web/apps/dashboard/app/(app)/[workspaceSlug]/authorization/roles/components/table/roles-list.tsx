@@ -219,6 +219,7 @@ export const RolesList = () => {
               className={cn(
                 "text-xs align-middle whitespace-nowrap",
                 column.key === "role" ? "py-[6px]" : "py-1",
+                column.cellClassName,
               )}
               style={{ height: `${rowHeight}px` }}
             >

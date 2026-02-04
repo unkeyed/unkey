@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/shutdown"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
+	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
@@ -86,6 +87,19 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
 	}
+
+	// Start the cilium controller (independent control loop)
+	ciliumCtrl := cilium.New(cilium.Config{
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Logger:        logger,
+		Cluster:       cluster,
+		Region:        cfg.Region,
+	})
+	if err := ciliumCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start cilium controller: %w", err)
+	}
+	shutdowns.Register(ciliumCtrl.Stop)
 
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{

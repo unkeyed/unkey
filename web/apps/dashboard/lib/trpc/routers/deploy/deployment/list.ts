@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { mapRegionToFlag } from "../network/utils";
 
 export const listDeployments = workspaceProcedure
   .input(z.object({ projectId: z.string() }))
@@ -30,6 +31,7 @@ export const listDeployments = workspaceProcedure
           instances: {
             columns: {
               id: true,
+              region: true,
             },
           },
         },
@@ -39,6 +41,7 @@ export const listDeployments = workspaceProcedure
 
       return deployments.map(({ openapiSpec, ...deployment }) => ({
         ...deployment,
+        instances: deployment.instances.map((i) => ({ ...i, flagCode: mapRegionToFlag(i.region) })),
         gitBranch: deployment.gitBranch ?? "main",
         gitCommitAuthorAvatarUrl:
           deployment.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",

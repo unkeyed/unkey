@@ -3,8 +3,6 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "hydra",
     srcs = [
-        "build.pb.go",
-        "build_restate.pb.go",
         "certificate.pb.go",
         "certificate_restate.pb.go",
         "clickhouse_user.pb.go",

@@ -5,7 +5,7 @@ permissions:
 on:
   schedule:
     - cron: "0 15 * * *" # Quota check: Daily at 15:00 UTC
-    - cron: "0 3 * * *"  # Cert renewal: Daily at 03:00 UTC
+    - cron: "0 3 * * *" # Cert renewal: Daily at 03:00 UTC
   workflow_dispatch:
     inputs:
       task:
@@ -37,7 +37,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
             -H "idempotency-key: quota-check-$(date -u +'%Y-%m-%d')" \
-            "${RESTATE_URL}/hydra.v1.QuotaCheckService/${{ steps.billing.outputs.period }}/RunCheck" \
+            "${RESTATE_URL}/hydra.v1.QuotaCheckService/${{ steps.billing.outputs.period }}/RunCheck/send" \
             -d '{}'
 
   certificate-renewal:
@@ -54,5 +54,5 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
             -H "idempotency-key: cert-renewal-$(date -u +'%Y-%m-%d')" \
-            "${RESTATE_URL}/hydra.v1.CertificateService/global/RenewExpiringCertificates" \
+            "${RESTATE_URL}/hydra.v1.CertificateService/global/RenewExpiringCertificates/send" \
             -d '{"daysBeforeExpiry": 30}'

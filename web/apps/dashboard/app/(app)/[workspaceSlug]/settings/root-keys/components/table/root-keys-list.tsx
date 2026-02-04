@@ -156,6 +156,7 @@ export const RootKeysList = () => {
           className={cn(
             "text-xs align-middle whitespace-nowrap",
             column.key === "root_key" ? "py-[6px]" : "py-1",
+            column.cellClassName,
           )}
           style={{ height: `${rowHeight}px` }}
         >

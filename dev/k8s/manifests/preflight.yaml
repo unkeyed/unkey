@@ -104,11 +104,16 @@ spec:
               value: "Never" # Local dev uses pre-loaded images; use IfNotPresent in prod
             - name: UNKEY_KRANE_ENDPOINT
               value: "http://krane.unkey.svc.cluster.local:8070"
+            - name: UNKEY_INSECURE_REGISTRIES
+              value: "ctlptl-registry.unkey.svc.cluster.local:5000"
+            - name: UNKEY_REGISTRY_ALIASES
+              value: "ctlptl-registry:5000=ctlptl-registry.unkey.svc.cluster.local:5000"
             - name: UNKEY_DEPOT_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: depot-credentials
                   key: UNKEY_DEPOT_TOKEN
+                  optional: true
           ports:
             - containerPort: 8443
               name: https

@@ -99,7 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Identity:    identity.ID,
+			IdentityID:  identity.ID,
 		})
 
 		// If we hit a duplicate key error, we know that we have an identity that was already soft deleted
@@ -134,7 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			// Re-apply the soft delete operation
 			err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Identity:    identity.ID,
+				IdentityID:  identity.ID,
 			})
 			if err != nil {
 				// If we still get a duplicate key error after deleting the old identity,

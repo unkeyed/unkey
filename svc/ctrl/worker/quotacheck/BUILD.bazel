@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "quotacheck",
@@ -21,5 +21,19 @@ go_library(
         "@org_golang_x_text//language",
         "@org_golang_x_text//message",
         "@org_golang_x_text//number",
+    ],
+)
+
+go_test(
+    name = "quotacheck_test",
+    srcs = ["run_check_handler_test.go"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//svc/ctrl/integration/harness",
+        "//svc/ctrl/integration/seed",
+        "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
     ],
 )

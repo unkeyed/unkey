@@ -55,7 +55,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return err
 	}
 
-	if err := c.ensureNamespaceExists(ctx, req.GetK8SNamespace(), req.GetWorkspaceId(), req.GetEnvironmentId()); err != nil {
+	if err := c.ensureNamespaceExists(ctx, req.GetK8SNamespace()); err != nil {
 		return err
 	}
 

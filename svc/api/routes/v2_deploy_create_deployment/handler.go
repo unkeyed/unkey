@@ -91,35 +91,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ProjectId:       req.ProjectId,
 		Branch:          req.Branch,
 		EnvironmentSlug: req.EnvironmentSlug,
+		DockerImage:     req.DockerImage,
 		GitCommit:       &ctrlv1.GitCommitInfo{},
 	}
 
 	// Add optional keyspace ID for authentication
 	if req.KeyspaceId != nil {
 		ctrlReq.KeyspaceId = req.KeyspaceId
-	}
-
-	// Handle source (build vs image) using oneOf union type
-	buildSource, buildErr := req.AsV2DeployBuildSource()
-
-	if buildErr == nil && buildSource.Build.Context != "" {
-		// Build source
-		// nolint: exhaustruct // optional proto fields, only setting whats provided
-		buildContext := &ctrlv1.BuildContext{
-			BuildContextPath: buildSource.Build.Context,
-		}
-		if buildSource.Build.Dockerfile != nil {
-			buildContext.DockerfilePath = buildSource.Build.Dockerfile
-		}
-		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_BuildContext{
-			BuildContext: buildContext,
-		}
-	} else {
-		// Image source
-		imageSource, _ := req.AsV2DeployImageSource()
-		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_DockerImage{
-			DockerImage: imageSource.Image,
-		}
 	}
 
 	// Handle optional git commit info

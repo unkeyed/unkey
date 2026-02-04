@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
@@ -25,22 +26,44 @@ type ImageConfig struct {
 }
 
 type Config struct {
-	Logger      logging.Logger
-	Clientset   kubernetes.Interface
-	Credentials *credentials.Manager
+	Logger             logging.Logger
+	Clientset          kubernetes.Interface
+	Credentials        *credentials.Manager
+	InsecureRegistries []string
+	RegistryAliases    []string
 }
 
 type Registry struct {
-	logger      logging.Logger
-	clientset   kubernetes.Interface
-	credentials *credentials.Manager
+	logger             logging.Logger
+	clientset          kubernetes.Interface
+	credentials        *credentials.Manager
+	insecureRegistries map[string]bool
+	registryAliases    map[string]string
 }
 
 func New(cfg Config) *Registry {
+	insecureRegistries := make(map[string]bool)
+	for _, reg := range cfg.InsecureRegistries {
+		insecureRegistries[reg] = true
+		cfg.Logger.Info("configured insecure registry", "registry", reg)
+	}
+
+	registryAliases := make(map[string]string)
+	for _, alias := range cfg.RegistryAliases {
+		parts := strings.SplitN(alias, "=", 2)
+		if len(parts) == 2 {
+			from, to := parts[0], parts[1]
+			registryAliases[from] = to
+			cfg.Logger.Info("configured registry alias", "from", from, "to", to)
+		}
+	}
+
 	return &Registry{
-		logger:      cfg.Logger,
-		clientset:   cfg.Clientset,
-		credentials: cfg.Credentials,
+		logger:             cfg.Logger,
+		clientset:          cfg.Clientset,
+		credentials:        cfg.Credentials,
+		insecureRegistries: insecureRegistries,
+		registryAliases:    registryAliases,
 	}
 }
 
@@ -51,9 +74,16 @@ func (r *Registry) GetImageConfig(
 	podSpec *corev1.PodSpec,
 	buildID string,
 ) (*ImageConfig, error) {
+	// Parse the image reference
 	ref, err := name.ParseReference(container.Image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image reference %q: %w", container.Image, err)
+	}
+
+	// Apply registry alias translation if configured (handles insecure flag internally)
+	ref, err = r.translateReference(ref)
+	if err != nil {
+		return nil, fmt.Errorf("failed to translate registry alias for %q: %w", container.Image, err)
 	}
 
 	// Try to get credentials from our credentials manager first (for private registries like Depot)
@@ -104,7 +134,7 @@ func (r *Registry) GetImageConfig(
 		return nil, fmt.Errorf("failed to fetch image descriptor for %q: %w", container.Image, err)
 	}
 
-	var image v1.Image
+	var img v1.Image
 	if descriptor.MediaType.IsIndex() {
 		index, indexErr := descriptor.ImageIndex()
 		if indexErr != nil {
@@ -130,18 +160,18 @@ func (r *Registry) GetImageConfig(
 			digest = manifest.Manifests[0].Digest
 		}
 
-		image, err = index.Image(digest)
+		img, err = index.Image(digest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get image from manifest: %w", err)
 		}
 	} else {
-		image, err = descriptor.Image()
+		img, err = descriptor.Image()
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert descriptor to image: %w", err)
 		}
 	}
 
-	configFile, err := image.ConfigFile()
+	configFile, err := img.ConfigFile()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image config: %w", err)
 	}
@@ -183,4 +213,47 @@ func targetOS() string {
 // If this assumption changes, adjust this function accordingly.
 func targetArch() string {
 	return runtime.GOARCH
+}
+
+// translateReference applies registry alias if configured, returning a new reference
+// with the translated registry. For example, localhost:5000/demo_api:tag becomes
+// registry.kube-system.svc.cluster.local/demo_api:tag.
+// Also applies the Insecure option if the target registry is in the insecure list.
+func (r *Registry) translateReference(ref name.Reference) (name.Reference, error) {
+	currentRegistry := ref.Context().RegistryStr()
+	targetRegistry := currentRegistry
+
+	// Check if we have an alias for this registry
+	if newRegistry, hasAlias := r.registryAliases[currentRegistry]; hasAlias {
+		targetRegistry = newRegistry
+		r.logger.Debug("translating registry alias", "from", currentRegistry, "to", targetRegistry)
+	}
+
+	// Determine if target registry should use HTTP (insecure)
+	var repoOpts []name.Option
+	if r.insecureRegistries[targetRegistry] {
+		repoOpts = append(repoOpts, name.Insecure)
+		r.logger.Debug("using insecure (HTTP) connection for registry", "registry", targetRegistry)
+	}
+
+	// If no alias and no insecure flag needed, return original
+	if targetRegistry == currentRegistry && len(repoOpts) == 0 {
+		return ref, nil
+	}
+
+	// Construct new repository with target registry
+	newRepo, err := name.NewRepository(targetRegistry+"/"+ref.Context().RepositoryStr(), repoOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create repository: %w", err)
+	}
+
+	// Preserve tag or digest from original reference
+	switch v := ref.(type) {
+	case name.Tag:
+		return newRepo.Tag(v.TagStr()), nil
+	case name.Digest:
+		return newRepo.Digest(v.DigestStr()), nil
+	default:
+		return ref, nil
+	}
 }

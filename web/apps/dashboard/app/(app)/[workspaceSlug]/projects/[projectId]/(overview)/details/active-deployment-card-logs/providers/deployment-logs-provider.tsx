@@ -7,17 +7,22 @@ type DeploymentLogsContextValue = {
   isExpanded: boolean;
   setExpanded: (expanded: boolean) => void;
   toggleExpanded: () => void;
+  logType: "sentinel" | "runtime";
+  setLogType: (type: "sentinel" | "runtime") => void;
 };
 
 const DeploymentLogsContext = createContext<DeploymentLogsContextValue | null>(null);
 
 export function DeploymentLogsProvider({ children }: { children: ReactNode }) {
-  const [isExpanded, setExpanded] = useState(false);
+  const [isExpanded, setExpanded] = useState(true);
+  const [logType, setLogType] = useState<"sentinel" | "runtime">("runtime");
 
   const toggleExpanded = () => setExpanded((prev) => !prev);
 
   return (
-    <DeploymentLogsContext.Provider value={{ isExpanded, setExpanded, toggleExpanded }}>
+    <DeploymentLogsContext.Provider
+      value={{ isExpanded, setExpanded, toggleExpanded, logType, setLogType }}
+    >
       {children}
     </DeploymentLogsContext.Provider>
   );

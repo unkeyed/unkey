@@ -4,6 +4,7 @@ go_library(
     name = "clickhouse",
     srcs = [
         "billable_ratelimits.go",
+        "billable_usage.go",
         "billable_verifications.go",
         "client.go",
         "doc.go",
@@ -32,6 +33,7 @@ go_library(
 go_test(
     name = "clickhouse_test",
     srcs = [
+        "billable_usage_test.go",
         "errors_test.go",
         "key_verifications_test.go",
         "ratelimits_test.go",
@@ -41,6 +43,7 @@ go_test(
     deps = [
         "//pkg/array",
         "//pkg/clickhouse/schema",
+        "//pkg/otel/logging",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",

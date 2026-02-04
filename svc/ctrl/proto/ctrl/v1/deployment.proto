@@ -27,11 +27,9 @@ message CreateDeploymentRequest {
   string branch = 3;
   string environment_slug = 4;
 
-  // Build source, we can either build it from scratch or accept prebuilt image
-  oneof source {
-    BuildContext build_context = 5;
-    string docker_image = 6; // Prebuilt image reference
-  }
+  // Build source - currently only prebuilt docker images are supported via API
+  // GitHub source builds are triggered automatically via webhook
+  string docker_image = 6; // Prebuilt image reference
 
   // Git information
   optional GitCommitInfo git_commit = 7;
@@ -44,11 +42,6 @@ message CreateDeploymentRequest {
   repeated string command = 9;
 }
 
-message BuildContext {
-  string build_context_path = 1; // S3 key for uploaded build context
-  optional string dockerfile_path = 2; // Path to Dockerfile within context (default: "Dockerfile")
-}
-
 message GitCommitInfo {
   string commit_sha = 1;
   string commit_message = 2;
@@ -59,7 +52,7 @@ message GitCommitInfo {
 
 message CreateDeploymentResponse {
   string deployment_id = 1;
-  DeploymentStatus status = 2; // Will be PENDING or BUILDING
+  DeploymentStatus status = 2; // Will be PENDING or DEPLOYING
 }
 
 message GetDeploymentRequest {
@@ -151,18 +144,8 @@ message PromoteRequest {
 
 message PromoteResponse {}
 
-message CreateS3UploadURLRequest {
-  string unkey_project_id = 1;
-}
-
-message CreateS3UploadURLResponse {
-  string upload_url = 1; // Presigned PUT URL
-  string build_context_path = 2; // S3 key to use in CreateBuild
-}
-
 service DeploymentService {
-  rpc CreateS3UploadURL(CreateS3UploadURLRequest) returns (CreateS3UploadURLResponse) {}
-  // Create a new deployment
+  // Create a new deployment with a prebuilt docker image
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
 
   // Get deployment details

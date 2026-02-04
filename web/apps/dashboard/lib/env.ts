@@ -83,8 +83,8 @@ export const vercelIntegrationEnv = () =>
   vercelIntegrationParsed.success ? vercelIntegrationParsed.data : null;
 
 export const githubAppSchema = z.object({
-  GITHUB_APP_ID: z.string(), // needs to be a single line, with \n
-  GITHUB_APP_PRIVATE_KEY: z.string().transform((s) => s.replace(/\\n/g, "\n")),
+  GITHUB_APP_ID: z.string().transform((s) => Number.parseInt(s, 10)),
+  UNKEY_GITHUB_PRIVATE_KEY_PEM: z.string().transform((s) => s.replace(/\\n/g, "\n")), // needs to be a single line, with \n
 });
 
 const githubAppParsed = githubAppSchema.safeParse(process.env);

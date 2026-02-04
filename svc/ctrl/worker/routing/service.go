@@ -22,8 +22,11 @@ var _ hydrav1.RoutingServiceServer = (*Service)(nil)
 
 // Config holds the configuration for creating a [Service].
 type Config struct {
-	Logger        logging.Logger
-	DB            db.Database
+	// Logger receives structured log output from routing operations.
+	Logger logging.Logger
+	// DB provides access to frontline route records.
+	DB db.Database
+	// DefaultDomain is the apex domain for generated deployment URLs.
 	DefaultDomain string
 }
 

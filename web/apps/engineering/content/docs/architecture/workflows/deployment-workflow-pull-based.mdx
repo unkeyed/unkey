@@ -128,9 +128,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
         return db.Query.FindDeploymentById(stepCtx, w.db.RW(), req.GetDeploymentId())
     })
     
-    // 2. Build Docker image if needed
-    if req.GetBuildContextPath() != "" {
-        dockerImage = w.buildImage(ctx, req)
+    // 2. Build Docker image if needed (git source) or use pre-built image
+    switch source := req.Source.(type) {
+    case *hydrav1.DeployRequest_Git:
+        dockerImage = w.buildDockerImageFromGit(ctx, source.Git)
+    case *hydrav1.DeployRequest_DockerImage:
+        dockerImage = source.DockerImage.Image
     }
     
     // 3. Create deployment topology for target regions

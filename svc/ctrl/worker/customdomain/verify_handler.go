@@ -16,10 +16,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// maxVerificationDuration is how long we keep retrying before marking as failed.
+// maxVerificationDuration limits how long we retry DNS verification before
+// marking a domain as failed.
 const maxVerificationDuration = 24 * time.Hour
 
-// errNotVerified is returned when verification is incomplete, triggering a Restate retry.
+// errNotVerified signals incomplete verification and triggers Restate retries.
 var errNotVerified = errors.New("domain not verified yet")
 
 // VerifyDomain performs two-step verification for a custom domain:
@@ -142,7 +143,8 @@ func (s *Service) VerifyDomain(
 	return nil, errNotVerified
 }
 
-// RetryVerification resets a failed domain and restarts the verification process.
+// RetryVerification resets a failed domain and restarts verification after the
+// user fixes DNS configuration.
 func (s *Service) RetryVerification(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RetryVerificationRequest,

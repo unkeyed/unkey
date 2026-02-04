@@ -1,8 +1,18 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "types",
-    srcs = ["null_string.go"],
+    srcs = [
+        "null_string.go",
+        "string_slice.go",
+    ],
     importpath = "github.com/unkeyed/unkey/pkg/db/types",
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "types_test",
+    srcs = ["string_slice_test.go"],
+    embed = [":types"],
+    deps = ["@com_github_stretchr_testify//require"],
 )

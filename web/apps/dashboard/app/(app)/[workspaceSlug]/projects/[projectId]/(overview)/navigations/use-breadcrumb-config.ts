@@ -9,6 +9,8 @@ export type QuickNavItem = {
   id: string;
   label: string;
   href: string;
+  disabled?: boolean;
+  disabledTooltip?: string;
 };
 
 export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.Link> & {
@@ -29,6 +31,8 @@ type SubPage = {
   label: string;
   href: string;
   segment: string | undefined;
+  disabled?: boolean;
+  disabledTooltip?: string;
 };
 
 export const useBreadcrumbConfig = ({
@@ -69,12 +73,6 @@ export const useBreadcrumbConfig = ({
       label: "Sentinel Logs",
       href: `${basePath}/${projectId}/sentinel-logs`,
       segment: "sentinel-logs",
-    },
-    {
-      id: "openapi-diff",
-      label: "OpenAPI Diff",
-      href: `${basePath}/${projectId}/openapi-diff`,
-      segment: "openapi-diff",
     },
   ];
 
@@ -129,6 +127,8 @@ export const useBreadcrumbConfig = ({
           id: page.id,
           label: page.label,
           href: page.href,
+          disabled: page.disabled,
+          disabledTooltip: page.disabledTooltip,
         })),
         activeItemId: isOnDeploymentDetail ? "deployments" : undefined,
         shortcutKey: "M",

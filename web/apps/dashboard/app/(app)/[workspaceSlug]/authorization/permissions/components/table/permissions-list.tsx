@@ -234,6 +234,7 @@ export const PermissionsList = () => {
               className={cn(
                 "text-xs align-middle whitespace-nowrap",
                 column.key === "permission" ? "py-[6px]" : "py-1",
+                column.cellClassName,
               )}
               style={{ height: `${rowHeight}px` }}
             >

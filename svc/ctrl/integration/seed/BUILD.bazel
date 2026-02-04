@@ -2,19 +2,24 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "seed",
-    srcs = ["seed.go"],
+    srcs = [
+        "clickhouse.go",
+        "seed.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/integration/seed",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/vault/v1:vault",
         "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/assert",
+        "//pkg/clickhouse/schema",
         "//pkg/db",
         "//pkg/db/types",
         "//pkg/hash",
         "//pkg/ptr",
         "//pkg/uid",
         "@com_connectrpc_connect//:connect",
+        "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
         "@com_github_go_sql_driver_mysql//:mysql",
         "@com_github_stretchr_testify//require",
     ],

@@ -1,4 +1,4 @@
 -- name: DeleteIdentity :exec
-DELETE FROM identities 
-WHERE workspace_id = sqlc.arg(workspace_id) 
-  AND (id = sqlc.arg(identity) OR external_id = sqlc.arg(identity));
+DELETE FROM identities
+WHERE id = sqlc.arg(identity_id)
+  AND workspace_id = sqlc.arg(workspace_id);

@@ -18,6 +18,7 @@ go_library(
         "//pkg/rpc/interceptor",
         "//pkg/shutdown",
         "//pkg/version",
+        "//svc/krane/internal/cilium",
         "//svc/krane/internal/deployment",
         "//svc/krane/internal/sentinel",
         "//svc/krane/pkg/controlplane",

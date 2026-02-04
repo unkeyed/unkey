@@ -8,7 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const findProjectById = `-- name: FindProjectById :one
@@ -31,19 +32,19 @@ WHERE id = ?
 `
 
 type FindProjectByIdRow struct {
-	ID               string          `db:"id"`
-	WorkspaceID      string          `db:"workspace_id"`
-	Name             string          `db:"name"`
-	Slug             string          `db:"slug"`
-	GitRepositoryUrl sql.NullString  `db:"git_repository_url"`
-	DefaultBranch    sql.NullString  `db:"default_branch"`
-	DeleteProtection sql.NullBool    `db:"delete_protection"`
-	LiveDeploymentID sql.NullString  `db:"live_deployment_id"`
-	IsRolledBack     bool            `db:"is_rolled_back"`
-	CreatedAt        int64           `db:"created_at"`
-	UpdatedAt        sql.NullInt64   `db:"updated_at"`
-	DepotProjectID   sql.NullString  `db:"depot_project_id"`
-	Command          json.RawMessage `db:"command"`
+	ID               string             `db:"id"`
+	WorkspaceID      string             `db:"workspace_id"`
+	Name             string             `db:"name"`
+	Slug             string             `db:"slug"`
+	GitRepositoryUrl sql.NullString     `db:"git_repository_url"`
+	DefaultBranch    sql.NullString     `db:"default_branch"`
+	DeleteProtection sql.NullBool       `db:"delete_protection"`
+	LiveDeploymentID sql.NullString     `db:"live_deployment_id"`
+	IsRolledBack     bool               `db:"is_rolled_back"`
+	CreatedAt        int64              `db:"created_at"`
+	UpdatedAt        sql.NullInt64      `db:"updated_at"`
+	DepotProjectID   sql.NullString     `db:"depot_project_id"`
+	Command          dbtype.StringSlice `db:"command"`
 }
 
 // FindProjectById
