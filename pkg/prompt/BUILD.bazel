@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "prompt",
+    srcs = [
+        "ansi.go",
+        "datetime.go",
+        "datetime_parse.go",
+        "doc.go",
+        "parse.go",
+        "prompt.go",
+        "wizard.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/prompt",
+    visibility = ["//visibility:public"],
+    deps = ["@org_golang_x_term//:term"],
+)
+
+go_test(
+    name = "prompt_test",
+    srcs = [
+        "datetime_parse_test.go",
+        "datetime_test.go",
+        "parse_test.go",
+        "prompt_test.go",
+        "wizard_test.go",
+    ],
+    embed = [":prompt"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

@@ -268,6 +268,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 
 	}
+
+	if err := w.ensureCiliumNetworkPolicy(ctx, workspace, project, environment, topologies); err != nil {
+		return nil, err
+	}
 	w.logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
 
 	readygates := make([]restate.Future, len(topologies))
