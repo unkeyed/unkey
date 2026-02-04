@@ -28,15 +28,11 @@ const workspaceSchema = z.object({
 
 type WorkspaceFormData = z.infer<typeof workspaceSchema>;
 
-type Props = {
-  // Move to the next step
-  advance: () => void;
-};
-
-export const useWorkspaceStep = (props: Props): OnboardingStep => {
+export const useWorkspaceStep = (): OnboardingStep => {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const utils = trpc.useUtils();
@@ -83,8 +79,10 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
   });
 
   const createWorkspace = trpc.workspace.create.useMutation({
-    onSuccess: async ({ orgId }) => {
+    onSuccess: async ({ orgId }, variables) => {
       setWorkspaceCreated(true);
+      const slug = variables.slug;
+      setCreatedSlug(slug);
 
       await switchOrgMutation.mutateAsync(orgId);
       try {
@@ -94,7 +92,8 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
         // Continue anyway - cookie is a UX enhancement, not critical
       }
 
-      props.advance();
+      // Navigate to the APIs page for the new workspace
+      router.push(`/${slug}/apis`);
     },
     onError: (error) => {
       if (error.data?.code === "METHOD_NOT_SUPPORTED") {
@@ -148,7 +147,7 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     return !hasError && hasValue;
   }).length;
 
-  const isLoading = createWorkspace.isLoading;
+  const isLoading = createWorkspace.isLoading || workspaceCreated;
   return {
     name: "Workspace",
     icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
@@ -211,13 +210,13 @@ export const useWorkspaceStep = (props: Props): OnboardingStep => {
     kind: "required" as const,
     validFieldCount,
     requiredFieldCount: 2,
-    buttonText: workspaceCreated ? "Continue" : "Create workspace",
+    buttonText: "Create workspace",
     description: workspaceCreated
-      ? "Workspace created successfully, continue to next step"
+      ? "Redirecting to dashboard..."
       : "Set up your workspace to get started",
     onStepNext: () => {
-      if (workspaceCreated) {
-        props.advance();
+      if (workspaceCreated && createdSlug) {
+        router.push(`/${createdSlug}/apis`);
         return;
       }
       if (!isLoading) {
