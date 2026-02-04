@@ -34,11 +34,13 @@ export function OnboardingContent() {
       <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl flex-1 min-h-0 ">
         {/* Explanation part - Fixed height to prevent layout shifts */}
         <div className="flex flex-col items-center h-[140px] justify-start">
-          <div className="bg-grayA-3 rounded-full w-fit">
-            <span className="px-3 text-xs leading-6 text-gray-12 font-medium tabular-nums">
-              Step {currentStepIndex + 1} of {steps.length}
-            </span>
-          </div>
+          {steps.length > 1 && (
+            <div className="bg-grayA-3 rounded-full w-fit">
+              <span className="px-3 text-xs leading-6 text-gray-12 font-medium tabular-nums">
+                Step {currentStepIndex + 1} of {steps.length}
+              </span>
+            </div>
+          )}
           <div className="mt-5" />
           <div className="text-gray-12 font-semibold text-lg leading-8 text-center h-8 flex items-center">
             {stepInfo.title}
