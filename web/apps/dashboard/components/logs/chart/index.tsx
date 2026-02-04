@@ -33,8 +33,10 @@ type TimeseriesData = {
 
 export type ChartMouseEvent = {
   activeLabel?: string | number;
+  activeIndex?: number;
   activePayload?: ReadonlyArray<{
     payload: TimeseriesData;
+    index?: number;
   }>;
 };
 

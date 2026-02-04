@@ -84,7 +84,14 @@ export const OverviewAreaChart = ({
     if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
-    const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
+    // Get timestamp from payload or fallback to data array
+    let timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
+    if (timestamp === undefined && e?.activeIndex !== undefined && data?.[e.activeIndex]) {
+      timestamp = data[e.activeIndex].originalTimestamp;
+    }
+    if (timestamp === undefined) {
+      return;
+    }
     setSelection({
       start: e.activeLabel,
       end: e.activeLabel,
@@ -94,10 +101,13 @@ export const OverviewAreaChart = ({
   };
 
   const handleMouseMove = (e: ChartMouseEvent) => {
-    if (!enableSelection || !selection.start || e.activeLabel === undefined) {
+    if (!enableSelection || selection.start === undefined || e.activeLabel === undefined) {
       return;
     }
-    const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
+    let timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
+    if (timestamp === undefined && e?.activeIndex !== undefined && data?.[e.activeIndex]) {
+      timestamp = data[e.activeIndex].originalTimestamp;
+    }
     const activeLabel = e.activeLabel;
     setSelection((prev) => ({
       ...prev,
@@ -111,7 +121,7 @@ export const OverviewAreaChart = ({
       return;
     }
     if (selection.start && selection.end && onSelectionChange) {
-      if (!selection.startTimestamp || !selection.endTimestamp) {
+      if (selection.startTimestamp === undefined || selection.endTimestamp === undefined) {
         return;
       }
       const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);

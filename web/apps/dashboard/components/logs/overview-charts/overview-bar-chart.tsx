@@ -90,7 +90,14 @@ export function OverviewBarChart({
     if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
-    const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+    // Get timestamp from payload or fallback to data array
+    let timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+    if (timestamp === undefined && e.activeIndex !== undefined && data?.[e.activeIndex]) {
+      timestamp = data[e.activeIndex].originalTimestamp;
+    }
+    if (timestamp === undefined) {
+      return;
+    }
     setSelection({
       start: e.activeLabel,
       end: e.activeLabel,
@@ -104,7 +111,10 @@ export function OverviewBarChart({
       return;
     }
     if (selection.start) {
-      const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+      let timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+      if (timestamp === undefined && e.activeIndex !== undefined && data?.[e.activeIndex]) {
+        timestamp = data[e.activeIndex].originalTimestamp;
+      }
       const activeLabel = e.activeLabel;
       setSelection((prev) => ({
         ...prev,
@@ -119,7 +129,7 @@ export function OverviewBarChart({
       return;
     }
     if (selection.start && selection.end && onSelectionChange) {
-      if (!selection.startTimestamp || !selection.endTimestamp) {
+      if (selection.startTimestamp === undefined || selection.endTimestamp === undefined) {
         return;
       }
       const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
