@@ -69,6 +69,7 @@ spec:
                 secretKeyRef:
                   name: depot-credentials
                   key: UNKEY_DEPOT_TOKEN
+                  optional: true
 
             # Depot-Specific Configuration
             - name: UNKEY_DEPOT_API_URL
@@ -100,17 +101,19 @@ spec:
             - name: UNKEY_CLICKHOUSE_ADMIN_URL
               value: "clickhouse://unkey_user_admin:C57RqT5EPZBqCJkMxN9mEZZEzMPcw9yBlwhIizk99t7kx6uLi9rYmtWObsXzdl@clickhouse:9000?secure=false&skip_verify=true"
 
-            # GitHub App Configuration
+            # GitHub App Configuration (optional)
             - name: UNKEY_GITHUB_APP_ID
               valueFrom:
                 secretKeyRef:
                   name: github-credentials
                   key: UNKEY_GITHUB_APP_ID
+                  optional: true
             - name: UNKEY_GITHUB_PRIVATE_KEY_PEM
               valueFrom:
                 secretKeyRef:
                   name: github-credentials
                   key: UNKEY_GITHUB_PRIVATE_KEY_PEM
+                  optional: true
 
             - name: UNKEY_SENTINEL_IMAGE
               value: "unkey/sentinel:latest"
