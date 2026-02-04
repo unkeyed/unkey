@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -19,14 +18,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-)
-
-// installationTokenCache caches GitHub installation tokens in-memory.
-// It is keyed by installation ID and scoped to the current process.
-var (
-	installationTokenCache     cache.Cache[int64, InstallationToken]
-	installationTokenCacheOnce sync.Once
-	installationTokenCacheErr  error
 )
 
 // ClientConfig holds configuration for creating a [Client] instance.
@@ -41,6 +32,10 @@ type ClientConfig struct {
 	// WebhookSecret is the shared secret for verifying webhook signatures.
 	// Set this in the GitHub App settings under "Webhook secret".
 	WebhookSecret string
+
+	// InstallationTokenCache caches GitHub App installation tokens.
+	// If nil, a default cache will be created.
+	InstallationTokenCache cache.Cache[int64, InstallationToken]
 }
 
 // Client provides access to GitHub API using App authentication.
@@ -52,33 +47,30 @@ type Client struct {
 	httpClient *http.Client
 	signer     jwt.Signer[jwt.RegisteredClaims]
 	logger     logging.Logger
+	tokenCache cache.Cache[int64, InstallationToken]
 }
 
 // NewClient creates a [Client] with the given configuration. Returns an error if
 // the private key cannot be parsed for JWT signing.
 func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
-	// Initialize installation token cache once per process.
-	// Tokens are valid for ~1 hour, so we use a conservative freshness window.
-	installationTokenCacheOnce.Do(func() {
-		installationTokenCache, installationTokenCacheErr = cache.New(
-			cache.Config[int64, InstallationToken]{
-				Fresh:    55 * time.Minute,
-				Stale:    55 * time.Minute,
-				MaxSize:  10_000,
-				Logger:   logger,
-				Resource: "github_installation_token",
-				Clock:    clock.New(),
-			},
-		)
-	})
-
-	if installationTokenCacheErr != nil {
-		return nil, installationTokenCacheErr
-	}
-
 	signer, err := jwt.NewRS256Signer[jwt.RegisteredClaims](config.PrivateKeyPEM)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to create JWT signer"))
+	}
+
+	tokenCache := config.InstallationTokenCache
+	if tokenCache == nil {
+		tokenCache, err = cache.New(cache.Config[int64, InstallationToken]{
+			Fresh:    55 * time.Minute,
+			Stale:    55 * time.Minute,
+			MaxSize:  10_000,
+			Logger:   logger,
+			Resource: "github_installation_token",
+			Clock:    clock.New(),
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Client{
@@ -86,8 +78,10 @@ func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 		signer:     signer,
 		logger:     logger,
+		tokenCache: tokenCache,
 	}, nil
 }
+
 
 // generateJWT creates a short-lived JWT for GitHub App authentication.
 func (c *Client) generateJWT() (string, error) {
@@ -121,79 +115,72 @@ func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken,
 		return nil, err
 	}
 
-	// 1. Try cache first
-	if installationTokenCache != nil {
-		if cached, hit := installationTokenCache.Get(context.Background(), installationID); hit != cache.Miss {
-			c.logger.Debug(
-				"Using cached GitHub installation token",
+	value, _, err := c.tokenCache.SWR(
+		context.Background(),
+		installationID,
+		func(ctx context.Context) (InstallationToken, error) {
+			c.logger.Info(
+				"Getting GitHub installation token",
 				"installation_id", installationID,
-				"expires_at", cached.ExpiresAt,
 			)
 
-			// Return a copy to avoid aliasing
-			token := cached
-			return &token, nil
-		}
-	}
+			jwtToken, err := c.generateJWT()
+			if err != nil {
+				return InstallationToken{}, err
+			}
 
-	c.logger.Info("Getting GitHub installation token", "installation_id", installationID)
+			url := fmt.Sprintf(
+				"https://api.github.com/app/installations/%d/access_tokens",
+				installationID,
+			)
 
-	// 2. Generate GitHub App JWT
-	jwtToken, err := c.generateJWT()
+			req, err := http.NewRequest(http.MethodPost, url, nil)
+			if err != nil {
+				return InstallationToken{}, fault.Wrap(err, fault.Internal("failed to create request"))
+			}
+
+			req.Header.Set("Authorization", "Bearer "+jwtToken)
+			req.Header.Set("Accept", "application/vnd.github+json")
+			req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+			resp, err := c.httpClient.Do(req)
+			if err != nil {
+				return InstallationToken{}, fault.Wrap(err, fault.Internal("failed to get installation token"))
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			if resp.StatusCode != http.StatusCreated {
+				body, _ := io.ReadAll(resp.Body)
+				return InstallationToken{}, fault.New(
+					"failed to get installation token",
+					fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+				)
+			}
+
+			var token InstallationToken
+			if err := json.NewDecoder(resp.Body).Decode(&token); err != nil {
+				return InstallationToken{}, fault.Wrap(err, fault.Internal("failed to decode installation token"))
+			}
+
+			return token, nil
+		},
+		func(err error) cache.Op {
+			if err != nil {
+				return cache.Noop
+			}
+			return cache.WriteValue
+		},
+	)
+
 	if err != nil {
 		return nil, err
 	}
 
-	url := fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installationID)
-	c.logger.Info("Calling GitHub API", "url", url)
-
-	req, err := http.NewRequest(http.MethodPost, url, nil)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to create request"))
-	}
-
-	req.Header.Set("Authorization", "Bearer "+jwtToken)
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to get installation token"))
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
-		c.logger.Error(
-			"GitHub API returned unexpected status",
-			"status_code", resp.StatusCode,
-			"installation_id", installationID,
-			"response_body", string(body),
-			"url", url,
-		)
-		return nil, fault.New(
-			"failed to get installation token",
-			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
-		)
-	}
-
-	var installToken InstallationToken
-	if err := json.NewDecoder(resp.Body).Decode(&installToken); err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to decode installation token"))
-	}
-
-	// 3. Cache the token (by value)
-	if installationTokenCache != nil {
-		installationTokenCache.Set(context.Background(), installationID, installToken)
-		c.logger.Debug(
-			"Cached GitHub installation token",
-			"installation_id", installationID,
-			"expires_at", installToken.ExpiresAt,
-		)
-	}
-
-	return &installToken, nil
+	// Return a copy to avoid aliasing
+	token := value
+	return &token, nil
 }
+
 
 
 // DownloadRepoTarball downloads a repository tarball for a specific ref.
