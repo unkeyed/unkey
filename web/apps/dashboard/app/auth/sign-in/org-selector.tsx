@@ -111,14 +111,14 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
       className="dark bg-black"
       isOpen={clientReady && isOpen}
       onOpenChange={(open) => {
-        if (!isLoading) {
-          setIsOpen(open);
-          // If dialog is being closed, notify parent
-          if (!open && onClose) {
-            onClose();
-          }
+        if (!isLoading && open) {
+          // Only allow opening via onOpenChange, not closing
+          setIsOpen(true);
         }
+        // Ignore backdrop clicks that would close the dialog
+        // The user must explicitly select a workspace
       }}
+      onAttemptClose={!isLoading ? onClose : undefined}
       title="Select your workspace"
       footer={
         <div className="flex items-center justify-center text-sm w-full text-content-subtle">
