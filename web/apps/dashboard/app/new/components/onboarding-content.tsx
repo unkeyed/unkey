@@ -1,55 +1,28 @@
 "use client";
 import { HelpButton } from "@/components/navigation/sidebar/help-button";
 import { UserButton } from "@/components/navigation/sidebar/user-button";
-import { Key2 } from "@unkey/icons";
 import { useState } from "react";
-import { stepInfos } from "../constants";
-import { useKeyCreationStep } from "../hooks/use-key-creation-step";
 import { useWorkspaceStep } from "../hooks/use-workspace-step";
-import { OnboardingSuccessStep } from "./onboarding-success-step";
 import { type OnboardingStep, OnboardingWizard } from "./onboarding-wizard";
 
 export function OnboardingContent() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const handleStepChange = (newStepIndex: number) => {
     if (newStepIndex >= 0 && newStepIndex < steps.length) {
       setCurrentStepIndex(newStepIndex);
     }
   };
-  const workspaceStep = useWorkspaceStep({
-    advance: () => {
-      handleStepChange(currentStepIndex + 1);
-    },
-  });
-  const keyCreationStep = useKeyCreationStep({
-    advance: () => handleStepChange(currentStepIndex + 1),
-  });
 
-  const steps: OnboardingStep[] = [
-    workspaceStep,
-    keyCreationStep,
-    {
-      name: "API key",
-      icon: <Key2 iconSize="sm-regular" className="text-gray-11" />,
-      body: (
-        <OnboardingSuccessStep isConfirmOpen={isConfirmOpen} setIsConfirmOpen={setIsConfirmOpen} />
-      ),
-      kind: "non-required" as const,
-      description: "You're all set! Your workspace and API key are ready",
-      buttonText: "Continue to dashboard",
-      onStepNext: () => {
-        setIsConfirmOpen(true);
-        return true;
-      },
-      onStepSkip: () => {
-        setIsConfirmOpen(true);
-      },
-    },
-  ];
+  const workspaceStep = useWorkspaceStep();
 
-  const currentStepInfo = stepInfos[currentStepIndex];
+  const steps: OnboardingStep[] = [workspaceStep];
+
+  const stepInfo = {
+    title: "Create Company Workspace",
+    description:
+      "Customize your workspace name. This is how it'll appear in your dashboard.",
+  };
 
   return (
     <div className="h-screen flex flex-col items-center pt-6 overflow-hidden relative">
@@ -68,11 +41,11 @@ export function OnboardingContent() {
           </div>
           <div className="mt-5" />
           <div className="text-gray-12 font-semibold text-lg leading-8 text-center h-8 flex items-center">
-            {currentStepInfo.title}
+            {stepInfo.title}
           </div>
           <div className="mt-2" />
           <div className="text-gray-9 font-normal text-[13px] leading-6 text-center px-4 h-[60px] flex items-start overflow-hidden">
-            {currentStepInfo.description}
+            {stepInfo.description}
           </div>
         </div>
         <div className="mt-10" />
