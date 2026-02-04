@@ -83,13 +83,13 @@ func (s *Service) fetchCiliumNetworkPolicyStates(ctx context.Context, region str
 	states := make([]*ctrlv1.CiliumNetworkPolicyState, len(rows))
 	for i, row := range rows {
 		states[i] = &ctrlv1.CiliumNetworkPolicyState{
-			Version: row.Version,
+			Version: row.CiliumNetworkPolicy.Version,
 			State: &ctrlv1.CiliumNetworkPolicyState_Apply{
 				Apply: &ctrlv1.ApplyCiliumNetworkPolicy{
-					CiliumNetworkPolicyId: row.ID,
-					K8SNamespace:          row.EnvironmentID,
-					K8SName:               row.ID,
-					Policy:                row.Policy,
+					CiliumNetworkPolicyId: row.CiliumNetworkPolicy.ID,
+					K8SNamespace:          row.K8sNamespace.String,
+					K8SName:               row.CiliumNetworkPolicy.K8sName,
+					Policy:                row.CiliumNetworkPolicy.Policy,
 				},
 			},
 		}

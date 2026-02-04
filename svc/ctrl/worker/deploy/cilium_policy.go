@@ -21,6 +21,11 @@ const (
 	deploymentPort = 8080
 )
 
+// ensureCiliumNetworkPolicy persists missing Cilium policies for all deployment regions.
+//
+// The control plane stores policies in the database so regional reconcilers can apply
+// them without recomputing intent. Policies are queried once per deployment to avoid
+// per-region reads while still skipping regions that already have policy records.
 func (w *Workflow) ensureCiliumNetworkPolicy(
 	ctx restate.WorkflowSharedContext,
 	workspace db.Workspace,
@@ -55,7 +60,6 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 			}
 
 			policyID := uid.New(uid.CiliumNetworkPolicyPrefix)
-			policyK8sName := uid.DNS1035()
 			policyLabels := labels.New().
 				ManagedByKrane().
 				ComponentDeployment().
@@ -69,7 +73,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					Kind:       "CiliumNetworkPolicy",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      policyK8sName,
+					Name:      fmt.Sprintf("sentinel-to-deployment-in-%s", environment.Slug),
 					Namespace: workspace.K8sNamespace.String,
 					Labels:    policyLabels,
 				},
@@ -80,6 +84,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 							MatchLabels: labels.New().ManagedByKrane().ComponentDeployment(),
 						},
 					},
+
 					Ingress: []api.IngressRule{
 						{
 							IngressCommonRule: api.IngressCommonRule{
@@ -115,7 +120,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 				WorkspaceID:   workspace.ID,
 				ProjectID:     project.ID,
 				EnvironmentID: environment.ID,
-				K8sName:       policyK8sName,
+				K8sName:       policy.GetName(),
 				Region:        topo.Region,
 				Policy:        policyPayload,
 				Version:       policyVersion.GetVersion(),

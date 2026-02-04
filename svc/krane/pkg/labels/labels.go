@@ -91,8 +91,8 @@ func (l Labels) SentinelID(id string) Labels {
 // NetworkPolicyID adds network policy ID label to the label set.
 //
 // This method sets the "unkey.com/networkpolicy.id" label for identifying
-// the specific sentinel that owns this resource. Returns the same
-// Labels instance for method chaining.
+// the specific network policy resource. Returns the same Labels instance
+// for method chaining.
 func (l Labels) NetworkPolicyID(id string) Labels {
 	l[LabelKeyNetworkPolicyID] = id
 	return l
@@ -118,10 +118,10 @@ func (l Labels) ComponentDeployment() Labels {
 	return l
 }
 
-// ComponentCiliumNetworkPolicy adds component label for deployment resources.
+// ComponentCiliumNetworkPolicy adds component label for Cilium network policy resources.
 //
 // This method sets "app.kubernetes.io/component" label to "ciliumnetworkpolicy"
-// to identify resource as a deployment component. Returns the same
+// to identify resource as a Cilium network policy component. Returns the same
 // Labels instance for method chaining.
 func (l Labels) ComponentCiliumNetworkPolicy() Labels {
 	l[LabelKeyComponent] = "ciliumnetworkpolicy"

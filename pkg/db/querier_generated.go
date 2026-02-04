@@ -183,10 +183,14 @@ type Querier interface {
 	FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]CiliumNetworkPolicy, error)
 	//FindCiliumNetworkPolicyByIDAndRegion
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at, updated_at FROM `cilium_network_policies`
-	//  WHERE region = ? AND id = ?
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  JOIN `workspaces` w ON w.id = n.workspace_id
+	//  WHERE n.region = ? AND n.id = ?
 	//  LIMIT 1
-	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (CiliumNetworkPolicy, error)
+	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (FindCiliumNetworkPolicyByIDAndRegionRow, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -1721,11 +1725,15 @@ type Querier interface {
 	// ListCiliumNetworkPoliciesByRegion returns cilium network policies for a region with version > after_version.
 	// Used by WatchCiliumNetworkPolicies to stream policy state changes to krane agents.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at, updated_at FROM `cilium_network_policies`
-	//  WHERE region = ? AND version > ?
-	//  ORDER BY version ASC
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  JOIN `workspaces` w ON w.id = n.workspace_id
+	//  WHERE n.region = ? AND n.version > ?
+	//  ORDER BY n.version ASC
 	//  LIMIT ?
-	ListCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX, arg ListCiliumNetworkPoliciesByRegionParams) ([]CiliumNetworkPolicy, error)
+	ListCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX, arg ListCiliumNetworkPoliciesByRegionParams) ([]ListCiliumNetworkPoliciesByRegionRow, error)
 	//ListCustomDomainsByProjectID
 	//
 	//  SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at

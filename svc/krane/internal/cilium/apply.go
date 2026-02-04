@@ -37,10 +37,15 @@ func (c *Controller) ApplyCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.A
 		return err
 	}
 
-	// nolint:exhaustruct
-	policy := &unstructured.Unstructured{}
+	err = c.ensureNamespaceExists(ctx, req.GetK8SNamespace())
+	if err != nil {
+		return err
+	}
 
-	if err := json.Unmarshal(req.GetPolicy(), policy.Object); err != nil {
+	// nolint:exhaustruct
+	policy := unstructured.Unstructured{}
+
+	if err := json.Unmarshal(req.GetPolicy(), &policy.Object); err != nil {
 		return fmt.Errorf("failed to unmarshal cilium policy: %w", err)
 	}
 
@@ -57,7 +62,7 @@ func (c *Controller) ApplyCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.A
 	_, err = c.dynamicClient.Resource(gvr).Namespace(req.GetK8SNamespace()).Apply(
 		ctx,
 		req.GetK8SName(),
-		policy,
+		&policy,
 		metav1.ApplyOptions{FieldManager: "krane"},
 	)
 	if err != nil {

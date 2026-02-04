@@ -7,11 +7,16 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findCiliumNetworkPolicyByIDAndRegion = `-- name: FindCiliumNetworkPolicyByIDAndRegion :one
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at, updated_at FROM ` + "`" + `cilium_network_policies` + "`" + `
-WHERE region = ? AND id = ?
+SELECT
+    n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+    w.k8s_namespace
+FROM ` + "`" + `cilium_network_policies` + "`" + ` n
+JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = n.workspace_id
+WHERE n.region = ? AND n.id = ?
 LIMIT 1
 `
 
@@ -20,26 +25,36 @@ type FindCiliumNetworkPolicyByIDAndRegionParams struct {
 	CiliumNetworkPolicyID string `db:"cilium_network_policy_id"`
 }
 
+type FindCiliumNetworkPolicyByIDAndRegionRow struct {
+	CiliumNetworkPolicy CiliumNetworkPolicy `db:"cilium_network_policy"`
+	K8sNamespace        sql.NullString      `db:"k8s_namespace"`
+}
+
 // FindCiliumNetworkPolicyByIDAndRegion
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at, updated_at FROM `cilium_network_policies`
-//	WHERE region = ? AND id = ?
+//	SELECT
+//	    n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+//	    w.k8s_namespace
+//	FROM `cilium_network_policies` n
+//	JOIN `workspaces` w ON w.id = n.workspace_id
+//	WHERE n.region = ? AND n.id = ?
 //	LIMIT 1
-func (q *Queries) FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (CiliumNetworkPolicy, error) {
+func (q *Queries) FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (FindCiliumNetworkPolicyByIDAndRegionRow, error) {
 	row := db.QueryRowContext(ctx, findCiliumNetworkPolicyByIDAndRegion, arg.Region, arg.CiliumNetworkPolicyID)
-	var i CiliumNetworkPolicy
+	var i FindCiliumNetworkPolicyByIDAndRegionRow
 	err := row.Scan(
-		&i.Pk,
-		&i.ID,
-		&i.WorkspaceID,
-		&i.ProjectID,
-		&i.EnvironmentID,
-		&i.K8sName,
-		&i.Region,
-		&i.Policy,
-		&i.Version,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.CiliumNetworkPolicy.Pk,
+		&i.CiliumNetworkPolicy.ID,
+		&i.CiliumNetworkPolicy.WorkspaceID,
+		&i.CiliumNetworkPolicy.ProjectID,
+		&i.CiliumNetworkPolicy.EnvironmentID,
+		&i.CiliumNetworkPolicy.K8sName,
+		&i.CiliumNetworkPolicy.Region,
+		&i.CiliumNetworkPolicy.Policy,
+		&i.CiliumNetworkPolicy.Version,
+		&i.CiliumNetworkPolicy.CreatedAt,
+		&i.CiliumNetworkPolicy.UpdatedAt,
+		&i.K8sNamespace,
 	)
 	return i, err
 }

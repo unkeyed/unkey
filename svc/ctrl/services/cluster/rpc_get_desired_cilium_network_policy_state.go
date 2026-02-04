@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -46,18 +45,13 @@ func (s *Service) GetDesiredCiliumNetworkPolicyState(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	if len(policy.Policy) == 0 {
-		s.logger.Error("empty cilium policy payload", "policy_id", policy.ID)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("empty cilium policy payload for %s", policy.ID))
-	}
-
 	return connect.NewResponse(&ctrlv1.CiliumNetworkPolicyState{
 		State: &ctrlv1.CiliumNetworkPolicyState_Apply{
 			Apply: &ctrlv1.ApplyCiliumNetworkPolicy{
-				CiliumNetworkPolicyId: policy.ID,
-				K8SNamespace:          policy.EnvironmentID,
-				K8SName:               policy.ID,
-				Policy:                policy.Policy,
+				CiliumNetworkPolicyId: policy.CiliumNetworkPolicy.ID,
+				K8SNamespace:          policy.K8sNamespace.String,
+				K8SName:               policy.CiliumNetworkPolicy.K8sName,
+				Policy:                policy.CiliumNetworkPolicy.Policy,
 			},
 		},
 	}), nil

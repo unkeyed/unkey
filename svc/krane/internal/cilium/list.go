@@ -9,6 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// listCiliumNetworkPolicies returns all krane-managed CiliumNetworkPolicy resources across
+// all namespaces. Pagination is supported via the cursor parameter which accepts a
+// Kubernetes continue token from a previous list response.
 func (c *Controller) listCiliumNetworkPolicies(ctx context.Context, cursor string) (*unstructured.UnstructuredList, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    "cilium.io",

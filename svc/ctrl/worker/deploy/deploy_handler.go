@@ -269,18 +269,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 	}
 
-	existingPolicies, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.CiliumNetworkPolicy, error) {
-		return db.Query.FindCiliumNetworkPoliciesByEnvironmentID(runCtx, w.db.RO(), environment.ID)
-	}, restate.WithName("find existing cilium policies"))
-	if err != nil {
-		return nil, err
-	}
-
-	existingPolicyRegions := make(map[string]struct{}, len(existingPolicies))
-	for _, policy := range existingPolicies {
-		existingPolicyRegions[policy.Region] = struct{}{}
-	}
-
 	if err := w.ensureCiliumNetworkPolicy(ctx, workspace, project, environment, topologies); err != nil {
 		return nil, err
 	}

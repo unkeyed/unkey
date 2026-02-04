@@ -14,11 +14,10 @@ import (
 // desired state from the control plane.
 //
 // The loop runs every minute as a consistency safety net. While
-// [Controller.runActualStateReportLoop] handles real-time Kubernetes events and
-// [Controller.runDesiredStateApplyLoop] handles streaming updates, both can miss
-// events during network partitions, controller restarts, or watch buffer overflows.
+// [Controller.runDesiredStateApplyLoop] handles streaming updates, it can miss
+// events during network partitions, controller restarts, or stream errors.
 // This resync loop guarantees eventual consistency by querying the control plane
-// for each existing ReplicaSet and applying any drift.
+// for each existing CiliumNetworkPolicy and applying any drift.
 //
 // The loop paginates through all krane-managed CiliumNetworkPolicy resources across all
 // namespaces, calling GetDesiredCiliumNetworkPolicyState for each and applying or deleting
