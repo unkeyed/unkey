@@ -4,22 +4,23 @@ package uid
 type Prefix string
 
 const (
-	KeyPrefix                Prefix = "key"
-	APIPrefix                Prefix = "api"
-	RequestPrefix            Prefix = "req"
-	WorkspacePrefix          Prefix = "ws"
-	KeySpacePrefix           Prefix = "ks" // keyspace
-	RolePrefix               Prefix = "role"
-	TestPrefix               Prefix = "test" // for tests only
-	RatelimitNamespacePrefix Prefix = "rlns"
-	RatelimitOverridePrefix  Prefix = "rlor"
-	PermissionPrefix         Prefix = "perm"
-	IdentityPrefix           Prefix = "id"
-	RatelimitPrefix          Prefix = "rl"
-	AuditLogPrefix           Prefix = "log"
-	InstancePrefix           Prefix = "ins"
-	SentinelPrefix           Prefix = "se"
-	OrgPrefix                Prefix = "org"
+	KeyPrefix                 Prefix = "key"
+	APIPrefix                 Prefix = "api"
+	RequestPrefix             Prefix = "req"
+	WorkspacePrefix           Prefix = "ws"
+	KeySpacePrefix            Prefix = "ks" // keyspace
+	RolePrefix                Prefix = "role"
+	TestPrefix                Prefix = "test" // for tests only
+	RatelimitNamespacePrefix  Prefix = "rlns"
+	RatelimitOverridePrefix   Prefix = "rlor"
+	PermissionPrefix          Prefix = "perm"
+	IdentityPrefix            Prefix = "id"
+	RatelimitPrefix           Prefix = "rl"
+	AuditLogPrefix            Prefix = "log"
+	InstancePrefix            Prefix = "ins"
+	SentinelPrefix            Prefix = "se"
+	CiliumNetworkPolicyPrefix Prefix = "net"
+	OrgPrefix                 Prefix = "org"
 
 	// Control plane prefixes
 	ProjectPrefix        Prefix = "proj"

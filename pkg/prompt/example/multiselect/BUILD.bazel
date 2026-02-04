@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "multiselect_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/prompt/example/multiselect",
+    visibility = ["//visibility:private"],
+    deps = ["//pkg/prompt"],
+)
+
+go_binary(
+    name = "multiselect",
+    embed = [":multiselect_lib"],
+    visibility = ["//visibility:public"],
+)
