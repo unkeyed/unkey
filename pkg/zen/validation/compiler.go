@@ -29,11 +29,12 @@ type DiscriminatorInfo struct {
 
 // CompiledOperation holds compiled schemas for an operation
 type CompiledOperation struct {
-	BodySchema    *jsonschema.Schema
-	BodyRequired  bool
-	ContentTypes  []string
-	Parameters    CompiledParameterSet
-	Discriminator *DiscriminatorInfo // Optional discriminator for oneOf/anyOf schemas
+	BodySchema       *jsonschema.Schema
+	BodySchemaName   string // Schema name for error messages (e.g., "V2KeysCreateKeyRequestBody")
+	BodyRequired     bool
+	ContentTypes     []string
+	Parameters       CompiledParameterSet
+	Discriminator    *DiscriminatorInfo // Optional discriminator for oneOf/anyOf schemas
 }
 
 // SchemaRefResolver is a function that resolves a $ref to its schema
@@ -83,10 +84,11 @@ func NewSchemaCompiler(parser *SpecParser, specBytes []byte) (*SchemaCompiler, e
 
 	for _, op := range parser.Operations() {
 		compiledOp := &CompiledOperation{
-			BodySchema:    nil,
-			BodyRequired:  op.RequestBodyRequired,
-			ContentTypes:  op.RequestContentTypes,
-			Discriminator: nil,
+			BodySchema:     nil,
+			BodySchemaName: op.RequestBodySchemaName,
+			BodyRequired:   op.RequestBodyRequired,
+			ContentTypes:   op.RequestContentTypes,
+			Discriminator:  nil,
 			Parameters: CompiledParameterSet{
 				Query:  nil,
 				Header: nil,

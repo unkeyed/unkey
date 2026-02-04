@@ -6,11 +6,26 @@ import (
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
+// OpenAPISchemaBaseURL is the base URL for OpenAPI schema references
+const OpenAPISchemaBaseURL = "https://api.unkey.com/openapi.yaml#/components/schemas/"
+
+// BuildSchemaURL constructs a URL to the OpenAPI schema for the given schema name
+// Returns nil if schemaName is empty
+func BuildSchemaURL(schemaName string) *string {
+	if schemaName == "" {
+		return nil
+	}
+	return ptr.P(OpenAPISchemaBaseURL + schemaName)
+}
+
 // TransformErrors converts jsonschema validation errors to the API response format
-func TransformErrors(err error, requestID string) openapi.BadRequestErrorResponse {
+func TransformErrors(err error, requestID string, schemaName string) openapi.BadRequestErrorResponse {
+	schemaURL := BuildSchemaURL(schemaName)
+
 	validationErr, ok := err.(*jsonschema.ValidationError)
 	if !ok {
 		return openapi.BadRequestErrorResponse{
@@ -23,6 +38,7 @@ func TransformErrors(err error, requestID string) openapi.BadRequestErrorRespons
 				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
 				Errors: []openapi.ValidationError{},
+				Schema: schemaURL,
 			},
 		}
 	}
@@ -47,6 +63,7 @@ func TransformErrors(err error, requestID string) openapi.BadRequestErrorRespons
 			Status: http.StatusBadRequest,
 			Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
 			Errors: errors,
+			Schema: schemaURL,
 		},
 	}
 }

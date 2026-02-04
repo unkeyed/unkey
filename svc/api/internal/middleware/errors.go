@@ -80,6 +80,7 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusBadRequest,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 
@@ -99,6 +100,7 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusBadRequest,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 
@@ -144,6 +146,7 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusRequestTimeout,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 
@@ -159,6 +162,7 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: 499,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 
@@ -174,6 +178,7 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusRequestEntityTooLarge,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 

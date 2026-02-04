@@ -17,6 +17,10 @@ type Operation struct {
 	// Request body schema
 	RequestSchema map[string]any
 
+	// RequestBodySchemaName is the name of the request body schema (extracted from $ref)
+	// e.g., "V2KeysCreateKeyRequestBody"
+	RequestBodySchemaName string
+
 	// RequestBodyRequired indicates if a request body is required
 	RequestBodyRequired bool
 
@@ -168,12 +172,13 @@ func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation
 	}
 
 	op := &Operation{
-		Method:              method,
-		Path:                path,
-		OperationID:         operationID,
-		RequestSchema:       nil,
-		RequestBodyRequired: false,
-		RequestContentTypes: nil,
+		Method:                method,
+		Path:                  path,
+		OperationID:           operationID,
+		RequestSchema:         nil,
+		RequestBodySchemaName: "",
+		RequestBodyRequired:   false,
+		RequestContentTypes:   nil,
 		Parameters: ParameterSet{
 			Query:  nil,
 			Header: nil,
@@ -220,10 +225,39 @@ func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation
 		return op, nil
 	}
 
+	// Extract schema name from $ref if present (e.g., "./V2KeysCreateKeyRequestBody.yaml" -> "V2KeysCreateKeyRequestBody")
+	if ref, ok := schema["$ref"].(string); ok {
+		op.RequestBodySchemaName = extractSchemaNameFromRef(ref)
+	}
+
 	// The compiler handles $ref resolution, so we just store the schema as-is
 	op.RequestSchema = schema
 
 	return op, nil
+}
+
+// extractSchemaNameFromRef extracts the schema name from a $ref string
+// Examples:
+//   - "./V2KeysCreateKeyRequestBody.yaml" -> "V2KeysCreateKeyRequestBody"
+//   - "#/components/schemas/V2KeysCreateKeyRequestBody" -> "V2KeysCreateKeyRequestBody"
+func extractSchemaNameFromRef(ref string) string {
+	// Handle local file references like "./V2KeysCreateKeyRequestBody.yaml"
+	if strings.HasPrefix(ref, "./") {
+		ref = strings.TrimPrefix(ref, "./")
+		ref = strings.TrimSuffix(ref, ".yaml")
+		ref = strings.TrimSuffix(ref, ".json")
+		return ref
+	}
+
+	// Handle JSON pointer references like "#/components/schemas/V2KeysCreateKeyRequestBody"
+	if strings.HasPrefix(ref, "#/") {
+		parts := strings.Split(ref, "/")
+		if len(parts) > 0 {
+			return parts[len(parts)-1]
+		}
+	}
+
+	return ""
 }
 
 // parseOperationSecurity parses security requirements for an operation

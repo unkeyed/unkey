@@ -153,6 +153,10 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (ValidationEr
 		if len(paramErrors) == 1 {
 			detail = paramErrors[0].Message
 		}
+		var schemaURL *string
+		if compiledOp != nil {
+			schemaURL = BuildSchemaURL(compiledOp.BodySchemaName)
+		}
 		return &BadRequestError{
 			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
@@ -164,6 +168,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (ValidationEr
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
 					Errors: paramErrors,
+					Schema: schemaURL,
 				},
 			},
 		}, false

@@ -188,6 +188,7 @@ func buildSecurityError(r *http.Request, requirements []SecurityRequirement, sch
 				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
 				Errors: []openapi.ValidationError{},
+				Schema: nil,
 			},
 		},
 	}
@@ -210,6 +211,7 @@ func buildBearerAuthError(r *http.Request, requestID string) *SecurityError {
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
 					Errors: []openapi.ValidationError{},
+					Schema: nil,
 				},
 			},
 		}
@@ -228,6 +230,7 @@ func buildBearerAuthError(r *http.Request, requestID string) *SecurityError {
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
 					Errors: []openapi.ValidationError{},
+					Schema: nil,
 				},
 			},
 		}
@@ -246,6 +249,7 @@ func buildBearerAuthError(r *http.Request, requestID string) *SecurityError {
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
 					Errors: []openapi.ValidationError{},
+					Schema: nil,
 				},
 			},
 		}
@@ -263,6 +267,7 @@ func buildBearerAuthError(r *http.Request, requestID string) *SecurityError {
 				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
 				Errors: []openapi.ValidationError{},
+				Schema: nil,
 			},
 		},
 	}
@@ -285,6 +290,7 @@ func buildBasicAuthError(r *http.Request, requestID string) *SecurityError {
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
 					Errors: []openapi.ValidationError{},
+					Schema: nil,
 				},
 			},
 		}
@@ -303,6 +309,7 @@ func buildBasicAuthError(r *http.Request, requestID string) *SecurityError {
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
 					Errors: []openapi.ValidationError{},
+					Schema: nil,
 				},
 			},
 		}
@@ -321,6 +328,7 @@ func buildBasicAuthError(r *http.Request, requestID string) *SecurityError {
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
 					Errors: []openapi.ValidationError{},
+					Schema: nil,
 				},
 			},
 		}
@@ -337,6 +345,7 @@ func buildBasicAuthError(r *http.Request, requestID string) *SecurityError {
 				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
 				Errors: []openapi.ValidationError{},
+				Schema: nil,
 			},
 		},
 	}
@@ -370,6 +379,7 @@ func buildAPIKeyError(scheme SecurityScheme, requestID string) *SecurityError {
 				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
 				Errors: []openapi.ValidationError{},
+				Schema: nil,
 			},
 		},
 	}
@@ -393,6 +403,7 @@ func ValidateBearerAuth(r *http.Request, requestID string) *SecurityError {
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/missing",
 					Errors: []openapi.ValidationError{},
+					Schema: nil,
 				},
 			},
 		}
@@ -412,6 +423,7 @@ func ValidateBearerAuth(r *http.Request, requestID string) *SecurityError {
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
 					Errors: []openapi.ValidationError{},
+					Schema: nil,
 				},
 			},
 		}
@@ -431,6 +443,7 @@ func ValidateBearerAuth(r *http.Request, requestID string) *SecurityError {
 					Status: http.StatusBadRequest,
 					Type:   "https://unkey.com/docs/errors/unkey/authentication/malformed",
 					Errors: []openapi.ValidationError{},
+					Schema: nil,
 				},
 			},
 		}

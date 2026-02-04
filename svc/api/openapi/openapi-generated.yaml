@@ -12,6 +12,10 @@ components:
                         items:
                             $ref: '#/components/schemas/ValidationError'
                         type: array
+                    schema:
+                        description: URL reference to the OpenAPI schema definition for this request. This provides a direct link to the expected request body schema, enabling automated tools and agents to fetch the schema and understand the exact structure required. The URL uses a JSON Pointer fragment to reference the specific schema within the OpenAPI specification.
+                        example: https://api.unkey.com/openapi.yaml#/components/schemas/V2KeysCreateKeyRequestBody
+                        type: string
                   required:
                     - errors
                   type: object
