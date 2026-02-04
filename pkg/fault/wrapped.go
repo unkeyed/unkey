@@ -1,8 +1,8 @@
 package fault
 
 import (
-	"fmt"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -120,7 +120,7 @@ func getLocation() string {
 	cf := runtime.CallersFrames(pc)
 	f, _ := cf.Next()
 
-	return fmt.Sprintf("%s:%d", f.File, f.Line)
+	return f.File + ":" + strconv.Itoa(f.Line)
 }
 
 // UserFacingMessage extracts all public messages from an error chain and combines them

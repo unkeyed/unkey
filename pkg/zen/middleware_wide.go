@@ -64,6 +64,7 @@ func WithWide(config WideConfig) Middleware {
 		return func(ctx context.Context, s *Session) error {
 			// Create EventContext with logger and sampler
 			ctx, ev := wide.WithEventContext(ctx, wide.EventConfig{
+				Name:    s.r.Method + " " + s.r.URL.Path,
 				Logger:  config.Logger,
 				Sampler: sampler,
 			})

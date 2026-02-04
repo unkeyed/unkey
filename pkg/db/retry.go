@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/wide"
 	"github.com/unkeyed/unkey/pkg/retry"
+	"github.com/unkeyed/unkey/pkg/wide"
 )
 
 const (
@@ -46,6 +46,7 @@ func WithRetryContext[T any](ctx context.Context, fn func() (T, error)) (T, erro
 					// Track retry reason for debugging
 					wide.Set(ctx, wide.FieldDBRetryReason, ClassifyDBError(err))
 				}
+
 				return shouldRetry
 			}),
 		),

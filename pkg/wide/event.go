@@ -35,6 +35,11 @@ type Logger interface {
 
 // EventConfig holds configuration for creating an EventContext.
 type EventConfig struct {
+	// Name is the event name used in the log message.
+	// For HTTP services, typically "METHOD /path" (e.g., "POST /v2/keys.verifyKey").
+	// Defaults to "event" if empty.
+	Name string
+
 	// Logger is where the event will be emitted.
 	Logger Logger
 
@@ -50,17 +55,23 @@ type EventContext struct {
 	fields   map[string]any
 	hasError bool
 	start    time.Time
+	name     string
 	logger   Logger
 	sampler  Sampler
 }
 
 // NewEventContext creates a new EventContext with the given configuration.
 func NewEventContext(config EventConfig) *EventContext {
+	name := config.Name
+	if name == "" {
+		name = "event"
+	}
 	return &EventContext{
 		mu:       sync.RWMutex{},
 		fields:   make(map[string]any),
 		hasError: false,
 		start:    time.Now(),
+		name:     name,
 		logger:   config.Logger,
 		sampler:  config.Sampler,
 	}
@@ -185,6 +196,6 @@ func (e *EventContext) Emit() bool {
 	}
 
 	// Emit the wide event
-	e.logger.Info("event", e.Fields()...)
+	e.logger.Info(e.name, e.Fields()...)
 	return true
 }

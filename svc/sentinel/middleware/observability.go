@@ -292,6 +292,7 @@ func WithWideObservability(config WideObservabilityConfig) zen.Middleware {
 		return func(ctx context.Context, s *zen.Session) error {
 			// Create EventContext with logger and sampler
 			ctx, ev := wide.WithEventContext(ctx, wide.EventConfig{
+				Name:    s.Request().Method + " " + s.Request().URL.Path,
 				Logger:  config.Logger,
 				Sampler: config.Sampler,
 			})
