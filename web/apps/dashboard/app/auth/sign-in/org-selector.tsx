@@ -36,12 +36,13 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  const handleAttemptClose = useCallback(() => {
-    if (!isLoading && onClose) {
-      onClose();
-      setIsOpen(false);
-    }
-  }, [isLoading, onClose]);
+  // Clear error when closing explicitly (Cancel button or X button)
+  // This prevents showing stale errors when switching accounts
+  const handleClose = useCallback(() => {
+    setError(null);
+    setIsOpen(false);
+    onClose?.();
+  }, [setError, onClose]);
   // Set client ready after hydration
   useEffect(() => {
     setClientReady(true);
@@ -119,17 +120,21 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
       isOpen={clientReady && isOpen}
       onOpenChange={(open) => {
         if (!isLoading && open) {
-          // Only allow opening via onOpenChange, not closing
+          // Only allow opening via onOpenChange, not closing via backdrop
           setIsOpen(true);
         }
-        // Ignore backdrop clicks that would close the dialog
-        // The user must explicitly select a workspace
+        // When closing (X button), clear error state
+        if (!isLoading && !open) {
+          setError(null);
+        }
       }}
-      onAttemptClose={handleAttemptClose}
       title="Select your workspace"
       footer={
-        <div className="flex items-center justify-center text-sm w-full text-content-subtle">
-          Select a workspace to sign in.
+        <div className="flex items-center justify-between text-sm w-full">
+          <Button variant="ghost" onClick={handleClose}>
+            Cancel
+          </Button>
+          <div className="text-content-subtle">Select a workspace to sign in.</div>
         </div>
       }
     >
