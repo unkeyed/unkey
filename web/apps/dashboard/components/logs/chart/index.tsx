@@ -22,12 +22,14 @@ import { calculateTimePoints } from "./utils/calculate-timepoints";
 // ChartMouseEvent needs to be compatible with MouseHandlerDataParam (used by CategoricalChartFunc)
 // while also including activePayload for the payload data
 export type ChartMouseEvent = MouseHandlerDataParam & {
+  activeIndex?: number | string | null;
   activePayload?: Array<{
     payload?: {
       originalTimestamp?: number;
       total?: number;
       [key: string]: unknown;
     };
+    index?: number;
   }>;
 };
 
@@ -100,11 +102,14 @@ export function LogsTimeseriesBarChart({
     if (!enableSelection || e.activeLabel === undefined) {
       return;
     }
-
-    const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+    // Get timestamp from payload or fallback to data array
+    let timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+    if (timestamp === undefined && typeof e.activeIndex === "number" && data?.[e.activeIndex]) {
+      timestamp = data[e.activeIndex].originalTimestamp;
+    }
     const numericLabel = Number(e.activeLabel);
 
-    if (!Number.isFinite(numericLabel) || !timestamp) {
+    if (!Number.isFinite(numericLabel) || timestamp === undefined) {
       return;
     }
 
@@ -121,10 +126,13 @@ export function LogsTimeseriesBarChart({
       return;
     }
     if (selection.start !== undefined) {
-      const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+      let timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
+      if (timestamp === undefined && typeof e.activeIndex === "number" && data?.[e.activeIndex]) {
+        timestamp = data[e.activeIndex].originalTimestamp;
+      }
       const numericLabel = Number(e.activeLabel);
 
-      if (!Number.isFinite(numericLabel) || !timestamp) {
+      if (!Number.isFinite(numericLabel) || timestamp === undefined) {
         return;
       }
 
