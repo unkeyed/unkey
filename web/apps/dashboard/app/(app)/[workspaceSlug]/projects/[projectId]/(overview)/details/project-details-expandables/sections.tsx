@@ -1,4 +1,5 @@
 import type { Deployment } from "@/lib/collections";
+import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import {
   Bolt,
   ChartActivity,
@@ -14,10 +15,11 @@ import {
   MessageWriting,
   User,
 } from "@unkey/icons";
-import { Badge, TimestampInfo } from "@unkey/ui";
+import { TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { RepoDisplay } from "../../../../_components/list/repo-display";
 import { Avatar } from "../../../components/git-avatar";
+import { RegionFlags } from "../../../components/region-flags";
 import { OpenApiDiff } from "./sections/open-api-diff";
 
 export type DetailItem = {
@@ -123,9 +125,7 @@ export const createDetailSections = (
           icon: <Connections className="text-gray-12" iconSize="md-regular" />,
           label: "Instances",
           content: (
-            <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">TODO</span>
-            </div>
+            <span className="text-gray-12 font-medium">{details.instances?.length ?? 0}</span>
           ),
         },
         {
@@ -133,88 +133,42 @@ export const createDetailSections = (
           label: "Regions",
           alignment: "start",
           content: (
-            <div className="flex flex-wrap gap-1 font-medium">
-              {["us-east-1"].map((region) => (
-                <span
-                  key={region}
-                  className="px-1.5 py-1 bg-grayA-3 rounded text-gray-12 text-xs font-mono"
-                >
-                  {region}
-                </span>
-              ))}
+            <div className="w-fit">
+              <RegionFlags instances={details.instances} />
             </div>
           ),
         },
         {
           icon: <Bolt className="size-[14px] text-gray-12" iconSize="md-regular" />,
-          disabled: true,
           label: "CPU",
           content: (
-            <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">TODO</span> vCPUs
-            </div>
+            <span className="text-gray-12 font-medium">{formatCpu(details.cpuMillicores)}</span>
           ),
         },
         {
           icon: <Grid className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Memory",
-          disabled: true,
           content: (
-            <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">TODO</span> MB
-            </div>
+            <span className="text-gray-12 font-medium">{formatMemory(details.memoryMib)}</span>
           ),
         },
         {
           icon: <Harddrive className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Storage",
           disabled: true,
-          content: (
-            <div className="text-grayA-10">
-              <span className="text-gray-12 font-medium">20</span> GB
-            </div>
-          ),
+          content: <span className="text-grayA-10">—</span>,
         },
         {
           icon: <Heart className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Healthcheck",
-          alignment: "start",
           disabled: true,
-          content: (
-            <div className="flex flex-col justify-center gap-2">
-              <div className="gap-2 items-center flex">
-                <Badge variant="success" className="font-medium">
-                  GET
-                </Badge>
-                <div className="text-grayA-10">
-                  /<span className="text-gray-12 font-medium">health</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-grayA-10">
-                <div>every</div>
-                <div>
-                  <span className="text-gray-12 font-medium">30</span>s
-                </div>
-              </div>
-            </div>
-          ),
+          content: <span className="text-grayA-10">—</span>,
         },
         {
           icon: <ChartActivity className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Scaling",
-          alignment: "start",
           disabled: true,
-          content: (
-            <div className="text-grayA-10">
-              <div>
-                <span className="text-gray-12 font-medium">{3}</span> to{" "}
-                <span className="text-gray-12 font-medium">{6}</span> instances
-              </div>
-              <div className="mt-0.5">
-                at <span className="text-gray-12 font-medium">70%</span> CPU threshold
-              </div>
-            </div>
-          ),
+          content: <span className="text-grayA-10">—</span>,
         },
       ],
     },

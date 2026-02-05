@@ -1,3 +1,4 @@
+import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { ChartActivity, Dots, Layers3 } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -41,9 +42,7 @@ const SentinelNodeDetails = ({
               className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
               position={{ align: "center", side: "top", sideOffset: 5 }}
             >
-              <div className="border rounded-[10px] border-grayA-3 size-12 bg-grayA-3 flex items-center justify-center">
-                <img src={`/images/flags/${flagCode}.svg`} alt={flagCode} className="size-[22px]" />
-              </div>
+              <RegionFlag flagCode={flagCode} size="lg" shape="rounded" />
             </InfoTooltip>
           ),
           title: node.label,

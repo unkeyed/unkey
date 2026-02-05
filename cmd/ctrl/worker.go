@@ -108,6 +108,16 @@ var workerCmd = &cli.Command{
 
 		// Slack notifications
 		cli.String("quota-check-slack-webhook-url", "Slack webhook URL for quota exceeded notifications", cli.EnvVar("UNKEY_QUOTA_CHECK_SLACK_WEBHOOK_URL")),
+
+		// Observability
+		cli.Bool("otel-enabled", "Enable OpenTelemetry tracing and logging",
+			cli.Default(false),
+			cli.EnvVar("UNKEY_OTEL_ENABLED")),
+		cli.Float("otel-trace-sampling-rate", "Sampling rate for traces (0.0 to 1.0)",
+			cli.Default(0.01),
+			cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
+		cli.String("region", "Cloud region identifier",
+			cli.EnvVar("UNKEY_REGION")),
 	},
 	Action: workerAction,
 }
@@ -191,6 +201,11 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 
 		// Slack notifications
 		QuotaCheckSlackWebhookURL: cmd.String("quota-check-slack-webhook-url"),
+
+		// Observability
+		OtelEnabled:           cmd.Bool("otel-enabled"),
+		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
+		Region:                cmd.String("region"),
 	}
 
 	err := config.Validate()
