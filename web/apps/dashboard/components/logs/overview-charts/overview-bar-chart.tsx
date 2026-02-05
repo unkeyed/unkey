@@ -1,6 +1,5 @@
 "use client";
 
-import type { ChartMouseEvent } from "@/components/logs/chart";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { formatTooltipInterval } from "@/components/logs/utils";
@@ -62,6 +61,10 @@ export function OverviewBarChart({
   const chartRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
 
+  // Track if we're currently dragging for selection
+  const isDragging = useRef(false);
+  const dragStartData = useRef<{ index: number; timestamp: number } | null>(null);
+
   // Precompute timestamp-to-index mapping for O(1) lookup
   const timestampToIndexMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -86,62 +89,100 @@ export function OverviewBarChart({
     }
   }, [onMount, isLoading, isError]);
 
-  const handleMouseDown = (e: ChartMouseEvent) => {
-    if (!enableSelection || e.activeLabel === undefined) {
+  // Helper to find data point from x coordinate
+  const getDataPointFromEvent = (
+    event: React.MouseEvent | MouseEvent,
+    container: HTMLDivElement,
+  ): { index: number; timestamp: number } | null => {
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const width = rect.width;
+    const relativeX = x / width;
+    const index = Math.floor(relativeX * data.length);
+
+    if (index >= 0 && index < data.length) {
+      const timestamp = data[index]?.originalTimestamp;
+      if (timestamp !== undefined) {
+        return { index, timestamp };
+      }
+    }
+    return null;
+  };
+
+  // Handle mouse down on container
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!enableSelection || !chartRef.current) {
       return;
     }
-    // Get timestamp from payload or fallback to data array
-    let timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
-    if (timestamp === undefined && typeof e.activeIndex === "number" && data?.[e.activeIndex]) {
-      timestamp = data[e.activeIndex].originalTimestamp;
-    }
-    if (timestamp === undefined) {
+
+    const point = getDataPointFromEvent(e, chartRef.current);
+    if (!point) {
       return;
     }
+
+    isDragging.current = true;
+    dragStartData.current = point;
+
     setSelection({
-      start: e.activeLabel,
-      end: e.activeLabel,
-      startTimestamp: timestamp,
-      endTimestamp: timestamp,
+      start: point.index,
+      end: point.index,
+      startTimestamp: point.timestamp,
+      endTimestamp: point.timestamp,
     });
   };
 
-  const handleMouseMove = (e: ChartMouseEvent) => {
-    if (!enableSelection || e.activeLabel === undefined) {
+  // Handle mouse move on container
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!enableSelection || !isDragging.current || !dragStartData.current || !chartRef.current) {
       return;
     }
-    if (selection.start) {
-      let timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
-      if (timestamp === undefined && typeof e.activeIndex === "number" && data?.[e.activeIndex]) {
-        timestamp = data[e.activeIndex].originalTimestamp;
-      }
-      const activeLabel = e.activeLabel;
-      setSelection((prev) => ({
-        ...prev,
-        end: activeLabel,
-        endTimestamp: timestamp,
-      }));
+
+    const point = getDataPointFromEvent(e, chartRef.current);
+    if (!point) {
+      return;
     }
+
+    setSelection((prev) => ({
+      ...prev,
+      end: point.index,
+      endTimestamp: point.timestamp,
+    }));
   };
 
+  // Handle mouse up to finalize selection
   const handleMouseUp = () => {
     if (!enableSelection) {
       return;
     }
-    if (selection.start && selection.end && onSelectionChange) {
-      if (selection.startTimestamp === undefined || selection.endTimestamp === undefined) {
-        return;
-      }
-      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
 
-      onSelectionChange({ start, end });
+    if (selection.start !== undefined && selection.end !== undefined && onSelectionChange) {
+      if (selection.startTimestamp !== undefined && selection.endTimestamp !== undefined) {
+        const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort(
+          (a, b) => a - b,
+        );
+        onSelectionChange({ start, end });
+      }
     }
+
+    isDragging.current = false;
+    dragStartData.current = null;
     setSelection({
       start: "",
       end: "",
       startTimestamp: undefined,
       endTimestamp: undefined,
     });
+  };
+
+  // Handle mouse leave to cancel selection
+  const handleMouseLeave = () => {
+    if (isDragging.current) {
+      handleMouseUp();
+    }
   };
 
   if (isError) {
@@ -166,7 +207,14 @@ export function OverviewBarChart({
   );
 
   return (
-    <div className="flex flex-col h-full" ref={chartRef}>
+    <div
+      className="flex flex-col h-full"
+      ref={chartRef}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
           <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
@@ -202,10 +250,11 @@ export function OverviewBarChart({
             data={data}
             margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
             barCategoryGap={0.5}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            // Disable recharts' built-in event handling
+            onMouseDown={() => {}}
+            onMouseMove={() => {}}
+            onMouseUp={() => {}}
+            onMouseLeave={() => {}}
           >
             <YAxis domain={["auto", (dataMax: number) => dataMax * 1]} hide />
             <CartesianGrid
