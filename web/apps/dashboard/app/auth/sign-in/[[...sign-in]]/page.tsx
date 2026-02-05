@@ -16,7 +16,6 @@ import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { EmailVerify } from "../email-verify";
 import { OAuthSignIn } from "../oauth-signin";
-import { OrgSelector } from "../org-selector";
 
 function SignInContent() {
   const {
@@ -184,9 +183,15 @@ function SignInContent() {
   };
 
   // Only show org selector if we have pending auth and we're not actively auto-selecting
-  return hasPendingAuth && !isAutoSelecting ? (
-    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} onClose={handleOrgSelectorClose} />
-  ) : (
+  // Instead of showing a modal, redirect to the workspace selection page
+  useEffect(() => {
+    if (hasPendingAuth && !isAutoSelecting && clientReady) {
+      // Redirect to workspace selection page
+      router.push("/auth/workspace-selection");
+    }
+  }, [hasPendingAuth, isAutoSelecting, clientReady, router]);
+
+  return hasPendingAuth && !isAutoSelecting ? null : (
     <div className="flex flex-col gap-10">
       {accountNotFound && (
         <WarnBanner>
