@@ -128,14 +128,16 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.Defer(database.Close)
 
+
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
 	if cfg.GitHub.Enabled() {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
-			AppID:         cfg.GitHub.AppID,
-			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
-			WebhookSecret: "",
-		}, logger)
+			AppID:                  cfg.GitHub.AppID,
+			PrivateKeyPEM:          cfg.GitHub.PrivateKeyPEM,
+			WebhookSecret:          "",
+		},
+			logger)
 		if ghErr != nil {
 			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
 		}
