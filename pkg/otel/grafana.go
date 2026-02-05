@@ -64,29 +64,24 @@ type Config struct {
 // - Runtime metrics for Go applications (memory, GC, goroutines, etc.)
 // - Custom application metrics defined in the metrics package
 //
-// The function registers all necessary shutdown handlers with the provided shutdowns instance.
-// These handlers will be called during application termination to ensure proper cleanup.
+// The function returns a shutdown function that should be registered with a runner instance.
+// This shutdown function will be called during application termination to ensure proper cleanup.
 //
 // Example:
 //
-//	shutdowns := shutdown.New()
-//	err := otel.InitGrafana(ctx, otel.Config{
+//	r := runner.New()
+//	shutdown, err := otel.InitGrafana(ctx, otel.Config{
 //	    GrafanaEndpoint: "https://otlp-sentinel-prod-us-east-0.grafana.net/otlp",
 //	    Application:     "unkey-api",
 //	    Version:         version.Version,
-//	}, shutdowns)
+//	})
 //
 //	if err != nil {
 //	    log.Fatalf("Failed to initialize telemetry: %v", err)
 //	}
+//	r.RegisterShutdown(shutdown)
 //
-//	// Later during shutdown:
-//	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-//	defer cancel()
-//	errs := shutdowns.Shutdown(ctx)
-//	for _, err := range errs {
-//	    log.Printf("Shutdown error: %v", err)
-//	}
+//	// The runner will call shutdown during graceful termination
 func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) error, error) {
 	// Create a resource with common attributes
 	res, err := resource.New(ctx,

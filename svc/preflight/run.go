@@ -99,7 +99,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:    logger,
 		Clientset: clientset,
 	})
-	go cleanupService.Start(ctx)
+
+	r.Go(func(ctx context.Context) error {
+		cleanupService.Start(ctx)
+		return nil
+	})
 
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
 	ln, err := net.Listen("tcp", addr)

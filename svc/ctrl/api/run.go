@@ -246,7 +246,10 @@ func Run(ctx context.Context, cfg Config) error {
 			regionalDomain: cfg.RegionalDomain,
 			regions:        cfg.AvailableRegions,
 		}
-		go certBootstrap.run(ctx)
+		r.Go(func(ctx context.Context) error {
+			certBootstrap.run(ctx)
+			return nil
+		})
 	}
 
 	if cfg.PrometheusPort > 0 {

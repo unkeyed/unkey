@@ -128,14 +128,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.Defer(database.Close)
 
-
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
 	if cfg.GitHub.Enabled() {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
-			AppID:                  cfg.GitHub.AppID,
-			PrivateKeyPEM:          cfg.GitHub.PrivateKeyPEM,
-			WebhookSecret:          "",
+			AppID:         cfg.GitHub.AppID,
+			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			WebhookSecret: "",
 		},
 			logger)
 		if ghErr != nil {
@@ -362,14 +361,16 @@ func Run(ctx context.Context, cfg Config) error {
 			BaseURL: cfg.Restate.AdminURL,
 			APIKey:  cfg.Restate.APIKey,
 		})
-		go func() {
+		r.Go(func(ctx context.Context) error {
 			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
 			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs); err != nil {
 				logger.Error("failed to register with Restate", "error", err)
-				return
+				return err
 			}
 			logger.Info("Successfully registered with Restate")
-		}()
+			return nil
+		})
+
 	} else {
 		logger.Info("Skipping Restate registration (restate-register-as not configured)")
 	}
