@@ -16,7 +16,7 @@ export const buildStepsRequestSchema = z.object({
 
 export const buildStepLogsRequestSchema = buildStepsRequestSchema.extend({
   stepIds: z.array(z.string()),
-  limit: z.number().int().positive().default(1000),
+  limit: z.number().int().positive().default(20),
 });
 
 // ─────────────────────────────────────────────────────────────
