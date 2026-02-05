@@ -86,17 +86,6 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to init grafana: %w", err)
 		}
 	}
-	if cfg.Region != "" {
-		logger = logger.With(slog.String("region", cfg.Region))
-	}
-	if version.Version != "" {
-		logger = logger.With(slog.String("version", version.Version))
-	}
-
-	r := runner.New(logger)
-	defer r.Recover()
-
-	r.DeferCtx(shutdownGrafana)
 
 	// Add base attributes to global logger
 	logger.AddBaseAttrs(slog.GroupAttrs("instance",

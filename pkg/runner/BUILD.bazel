@@ -21,8 +21,5 @@ go_test(
         "runner_test.go",
     ],
     embed = [":runner"],
-    deps = [
-        "//pkg/otel/logging",
-        "@com_github_stretchr_testify//require",
-    ],
+    deps = ["@com_github_stretchr_testify//require"],
 )

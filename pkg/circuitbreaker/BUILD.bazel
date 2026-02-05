@@ -13,7 +13,6 @@ go_library(
     deps = [
         "//pkg/clock",
         "//pkg/logger",
-        "//pkg/otel/tracing",
         "//pkg/prometheus/metrics",
     ],
 )

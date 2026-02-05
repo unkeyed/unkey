@@ -82,7 +82,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	r := runner.New(logger)
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
