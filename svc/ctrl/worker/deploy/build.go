@@ -93,20 +93,17 @@ func (w *Workflow) buildDockerImageFromGit(
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
 		// Get GitHub installation token for BuildKit to fetch the repo
-		// For local dev (installation_id=1), skip token for public repos
 		var ghToken *githubclient.InstallationToken
-		if params.InstallationID != 1 {
-			// Production - get real installation token for private repo access
+		if w.allowUnauthenticatedDeployments {
+			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
+			w.logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
+				"repository", params.Repository)
+		} else {
 			token, err := w.github.GetInstallationToken(params.InstallationID)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
 			}
 			ghToken = token
-		} else {
-			// Local dev mode - skip GitHub authentication (public repos only)
-			w.logger.Info("Local dev mode: skipping GitHub authentication for public repo",
-				"installation_id", params.InstallationID,
-				"repository", params.Repository)
 		}
 
 		depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
@@ -187,10 +184,9 @@ func (w *Workflow) buildDockerImageFromGit(
 		buildStatusCh := make(chan *client.SolveStatus, 100)
 		go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
 
-		// For local dev, use solver options without GitHub auth (public repos only)
-		// For production, include GitHub installation token for private repo access
+		// Choose solver options based on authentication mode
 		var solverOptions client.SolveOpt
-		if params.InstallationID == 1 {
+		if w.allowUnauthenticatedDeployments {
 			solverOptions = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName)
 		} else {
 			solverOptions = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token)

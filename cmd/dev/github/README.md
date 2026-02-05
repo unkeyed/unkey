@@ -10,15 +10,16 @@ Simulates GitHub push webhooks for local development and testing of deployment p
    make dev  # Starts Tilt with ctrl-api
    ```
 
-2. **Configure webhook secret** in `dev/.env.github`:
+2. **Configure webhook secret and unauthenticated mode** in `dev/.env.github`:
 
    ```bash
    UNKEY_GITHUB_APP_WEBHOOK_SECRET=supersecret
+   UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=true
    ```
 
-   This enables the webhook endpoint in ctrl-api.
+   Setting `UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=true` allows deployments without GitHub App authentication (for local dev with public repos).
 
-3. **Public repository**: The repository must be publicly accessible on GitHub (for local dev without authentication)
+3. **Public repository**: The repository must be publicly accessible on GitHub (for local dev without GitHub App)
 
 ## Quick Start
 
@@ -72,11 +73,14 @@ go run . dev github trigger-webhook \
 ## How It Works
 
 1. **Fetches repository metadata** from GitHub API (repository ID)
-2. **Creates database record** in `github_repo_connections` table (with installation_id=1 for local dev)
+2. **Creates database record** in `github_repo_connections` table (uses `installation_id=1` for local dev)
 3. **Builds webhook payload** matching GitHub's push event format
 4. **Signs payload** with HMAC-SHA256 (X-Hub-Signature-256 header)
 5. **Sends POST request** to ctrl-api webhook endpoint
-6. **Ctrl-api processes webhook** and triggers deployment via BuildKit
+6. **Ctrl-api processes webhook** and triggers deployment workflow
+7. **Worker checks** `ALLOW_UNAUTHENTICATED_DEPLOYMENTS` config
+   - If `true`: skips GitHub auth (for local dev with public repos)
+   - If `false`: requires real GitHub App authentication (production)
 
 ## Examples
 

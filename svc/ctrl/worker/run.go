@@ -135,17 +135,18 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
 
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
-		Logger:           logger,
-		DB:               database,
-		DefaultDomain:    cfg.DefaultDomain,
-		Vault:            vaultClient,
-		SentinelImage:    cfg.SentinelImage,
-		AvailableRegions: cfg.AvailableRegions,
-		GitHub:           ghClient,
-		RegistryConfig:   deploy.RegistryConfig(cfg.GetRegistryConfig()),
-		BuildPlatform:    deploy.BuildPlatform(cfg.GetBuildPlatform()),
-		DepotConfig:      deploy.DepotConfig(cfg.GetDepotConfig()),
-		Clickhouse:       ch,
+		Logger:                          logger,
+		DB:                              database,
+		DefaultDomain:                   cfg.DefaultDomain,
+		Vault:                           vaultClient,
+		SentinelImage:                   cfg.SentinelImage,
+		AvailableRegions:                cfg.AvailableRegions,
+		GitHub:                          ghClient,
+		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
+		BuildPlatform:                   deploy.BuildPlatform(cfg.GetBuildPlatform()),
+		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
+		Clickhouse:                      ch,
+		AllowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{

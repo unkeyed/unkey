@@ -210,6 +210,11 @@ type Config struct {
 	// GitHub configures GitHub App integration for webhook-triggered deployments.
 	GitHub GitHubConfig
 
+	// AllowUnauthenticatedDeployments controls whether deployments can skip
+	// GitHub authentication. Set to true only for local development.
+	// Production should keep this false to require GitHub App authentication.
+	AllowUnauthenticatedDeployments bool
+
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.RealClock{} for production deployments.
 	Clock clock.Clock
