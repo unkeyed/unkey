@@ -12,11 +12,13 @@ import (
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
+	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
@@ -54,6 +56,20 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	var shutdownGrafana func(context.Context) error
+	if cfg.OtelEnabled {
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
+			Application:     "krane",
+			Version:         pkgversion.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
+		}
+	}
+
 	logger := logging.New()
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
@@ -67,6 +83,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r := runner.New(logger)
 	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.ControlPlaneURL,
@@ -88,6 +106,19 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
 	}
+
+	// Start the cilium controller (independent control loop)
+	ciliumCtrl := cilium.New(cilium.Config{
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Logger:        logger,
+		Cluster:       cluster,
+		Region:        cfg.Region,
+	})
+	if err := ciliumCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start cilium controller: %w", err)
+	}
+	r.Defer(ciliumCtrl.Stop)
 
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
@@ -195,8 +226,7 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 
 	}
-	
-	
+
 	// Wait for signal and handle shutdown
 	logger.Info("Krane server started successfully")
 	if err := r.Wait(ctx); err != nil {

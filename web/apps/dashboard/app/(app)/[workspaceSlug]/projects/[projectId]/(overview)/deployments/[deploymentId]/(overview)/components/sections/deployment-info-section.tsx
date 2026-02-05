@@ -8,6 +8,7 @@ import { ActiveDeploymentCard } from "../../../../../../components/active-deploy
 import { DeploymentStatusBadge } from "../../../../../../components/deployment-status-badge";
 import { DisabledWrapper } from "../../../../../../components/disabled-wrapper";
 import { InfoChip } from "../../../../../../components/info-chip";
+import { RegionFlags } from "../../../../../../components/region-flags";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { useProject } from "../../../../../layout-provider";
 
@@ -16,14 +17,16 @@ export function DeploymentInfoSection() {
   const deploymentId = params?.deploymentId as string;
 
   const { collections, setIsDetailsOpen, isDetailsOpen } = useProject();
-  const deployment = useLiveQuery(
+  const { data } = useLiveQuery(
     (q) =>
       q
         .from({ deployment: collections.deployments })
         .where(({ deployment }) => eq(deployment.id, deploymentId)),
     [deploymentId],
   );
-  const deploymentStatus = deployment.data.at(0)?.status;
+
+  const deployment = data.at(0);
+  const deploymentStatus = deployment?.status;
 
   return (
     <Section>
@@ -37,7 +40,7 @@ export function DeploymentInfoSection() {
           <div className="flex gap-1.5 items-center">
             <DisabledWrapper
               tooltipContent="Resource metrics coming soon"
-              className="flex gap-1.5 items-center"
+              className="2xl:flex gap-1.5 items-center hidden"
             >
               <InfoChip icon={Bolt}>
                 <div className="text-grayA-10 text-xs">
@@ -55,17 +58,7 @@ export function DeploymentInfoSection() {
                 </div>
               </InfoChip>
             </DisabledWrapper>
-            <div className="gap-1 flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3 p-1.5 h-[22px] rounded-md">
-              <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
-                <img src={"/images/flags/us.svg"} alt="us-flag" className="size-4" />
-              </div>
-              <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
-                <img src={"/images/flags/de.svg"} alt="de-flag" className="size-4" />
-              </div>
-              <div className="border rounded-[10px] border-grayA-3 size-4 bg-grayA-3 flex items-center justify-center">
-                <img src={"/images/flags/in.svg"} alt="in-flag" className="size-4" />
-              </div>
-            </div>
+            <RegionFlags instances={deployment?.instances ?? []} />
             <InfoTooltip asChild content="Show deployment details">
               <Button
                 variant="ghost"
@@ -78,12 +71,7 @@ export function DeploymentInfoSection() {
             </InfoTooltip>
           </div>
         }
-        statusBadge={
-          <DeploymentStatusBadge
-            status={deploymentStatus}
-            className="text-successA-11 font-medium"
-          />
-        }
+        statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
       />
     </Section>
   );

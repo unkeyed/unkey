@@ -15,6 +15,7 @@ export type Column<TTableData> = {
   header?: string;
   width: ColumnWidth;
   headerClassName?: string;
+  cellClassName?: string;
   render: (item: TTableData) => React.ReactNode;
   sort?: {
     sortable?: boolean;
@@ -31,6 +32,7 @@ export interface TableConfig {
   overscan: number;
   throttleDelay: number;
   headerHeight: number;
+  tableLayout?: "fixed" | "auto";
 
   // Layout options
   layoutMode?: TableLayoutMode; // 'classic' or 'grid'

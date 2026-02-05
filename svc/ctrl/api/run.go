@@ -53,6 +53,21 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
+	var shutdownGrafana func(context.Context) error
+	if cfg.OtelEnabled {
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
+			Application:     "ctrl",
+			Version:         pkgversion.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
+		}
+	}
+
 	logger := logging.New()
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
@@ -71,20 +86,7 @@ func Run(ctx context.Context, cfg Config) error {
 	r := runner.New(logger)
 	defer r.Recover()
 
-	if cfg.OtelEnabled {
-		grafanaErr := otel.InitGrafana(ctx, otel.Config{
-			Application:     "ctrl",
-			Version:         pkgversion.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
-		},
-			r,
-		)
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
-		}
-	}
+	r.DeferCtx(shutdownGrafana)
 
 	// Initialize database
 	database, err := db.New(db.Config{

@@ -21,11 +21,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
@@ -70,13 +72,36 @@ func Run(ctx context.Context, cfg Config) error {
 	// Must be set before creating any ACME DNS providers.
 	_ = os.Setenv("LEGO_DISABLE_CNAME_SUPPORT", "true")
 
+	// Initialize OTEL before logger so logger picks up OTLP handler
+	var shutdownGrafana func(context.Context) error
+	if cfg.OtelEnabled {
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
+			Application:     "worker",
+			Version:         version.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
+		}
+	}
+
 	logger := logging.New()
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
 	}
+	if cfg.Region != "" {
+		logger = logger.With(slog.String("region", cfg.Region))
+	}
+	if version.Version != "" {
+		logger = logger.With(slog.String("version", version.Version))
+	}
 
 	r := runner.New(logger)
 	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
 
 	// Create vault client for remote vault service
 	var vaultClient vaultv1connect.VaultServiceClient
@@ -103,14 +128,21 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.Defer(database.Close)
 
-	// Create GitHub client for deploy workflow
-	ghClient, err := githubclient.NewClient(githubclient.ClientConfig{
-		AppID:         cfg.GitHub.AppID,
-		PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
-		WebhookSecret: "",
-	}, logger)
-	if err != nil {
-		return fmt.Errorf("failed to create GitHub client: %w", err)
+	// Create GitHub client for deploy workflow (optional)
+	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
+	if cfg.GitHub.Enabled() {
+		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
+			AppID:         cfg.GitHub.AppID,
+			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			WebhookSecret: "",
+		}, logger)
+		if ghErr != nil {
+			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
+		}
+		ghClient = client
+		logger.Info("GitHub client initialized")
+	} else {
+		logger.Info("GitHub client disabled (credentials not configured)")
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()

@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	storagemiddleware "github.com/unkeyed/unkey/svc/vault/internal/storage/middleware"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
@@ -21,6 +23,20 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	var shutdownGrafana func(context.Context) error
+	if cfg.OtelEnabled {
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
+			Application:     "vault",
+			Version:         version.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
+		}
+	}
+
 	logger := logging.New()
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
@@ -28,6 +44,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r := runner.New(logger)
 	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
 
 	// Create the connect handler
 	mux := http.NewServeMux()

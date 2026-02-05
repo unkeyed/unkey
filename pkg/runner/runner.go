@@ -66,17 +66,6 @@ func New(logger logging.Logger) *Runner {
 	}
 }
 
-// SetLogger replaces the logger used by the runner.
-func (r *Runner) SetLogger(logger logging.Logger) {
-	if logger == nil {
-		panic("runner: logger is required")
-	}
-
-	r.mu.Lock()
-	r.logger = logger.With(slog.String("component", "runner"))
-	r.mu.Unlock()
-}
-
 // Recover logs any panic that occurs in the calling goroutine.
 func (r *Runner) Recover() {
 	if recovered := recover(); recovered != nil {
@@ -279,6 +268,9 @@ func (r *Runner) shutdown(ctx context.Context) []error {
 
 	var errs []error
 	for i := len(cleanups) - 1; i >= 0; i-- {
+		if cleanups[i] == nil {
+			continue
+		}
 		if err := cleanups[i](ctx); err != nil {
 			r.logger.Error("runner cleanup failed", "error", err)
 			errs = append(errs, err)

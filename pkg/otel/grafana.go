@@ -9,7 +9,6 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/bridges/prometheus"
@@ -88,7 +87,7 @@ type Config struct {
 //	for _, err := range errs {
 //	    log.Printf("Shutdown error: %v", err)
 //	}
-func InitGrafana(ctx context.Context, config Config, r *runner.Runner) error {
+func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) error, error) {
 	// Create a resource with common attributes
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
@@ -100,7 +99,7 @@ func InitGrafana(ctx context.Context, config Config, r *runner.Runner) error {
 		),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create resource: %w", err)
+		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
 	// Configure OTLP log handler
@@ -108,13 +107,11 @@ func InitGrafana(ctx context.Context, config Config, r *runner.Runner) error {
 		otlploghttp.WithCompression(otlploghttp.GzipCompression),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create log exporter: %w", err)
+		return nil, fmt.Errorf("failed to create log exporter: %w", err)
 	}
-	r.DeferCtx(logExporter.Shutdown)
 
 	var processor log.Processor = log.NewBatchProcessor(logExporter, log.WithExportBufferSize(512), log.WithExportInterval(15*time.Second))
 	processor = minsev.NewLogProcessor(processor, minsev.SeverityInfo)
-	r.DeferCtx(processor.Shutdown)
 
 	//	if config.LogDebug {
 	//		processor = minsev.NewLogProcessor(processor, minsev.SeverityDebug)
@@ -124,7 +121,6 @@ func InitGrafana(ctx context.Context, config Config, r *runner.Runner) error {
 		log.WithResource(res),
 		log.WithProcessor(processor),
 	)
-	r.DeferCtx(logProvider.Shutdown)
 
 	logging.AddHandler(otelslog.NewHandler(
 		config.Application,
@@ -140,11 +136,10 @@ func InitGrafana(ctx context.Context, config Config, r *runner.Runner) error {
 	//	otlptracehttp.WithInsecure(), // For local development
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create trace exporter: %w", err)
+		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
 
 	// Register shutdown function for trace exporter
-	r.DeferCtx(traceExporter.Shutdown)
 
 	var sampler trace.Sampler
 
@@ -174,9 +169,6 @@ func InitGrafana(ctx context.Context, config Config, r *runner.Runner) error {
 		trace.WithSampler(sampler),
 	)
 
-	// Register shutdown function for trace provider
-	r.DeferCtx(traceProvider.Shutdown)
-
 	// Set the global trace provider
 	otel.SetTracerProvider(traceProvider)
 	tracing.SetGlobalTraceProvider(traceProvider)
@@ -187,27 +179,42 @@ func InitGrafana(ctx context.Context, config Config, r *runner.Runner) error {
 	//	otlpmetrichttp.WithInsecure(), // For local development
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create metric exporter: %w", err)
+		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
 	}
-
-	r.DeferCtx(metricExporter.Shutdown)
 
 	bridge := prometheus.NewMetricProducer()
 
 	reader := metricsdk.NewPeriodicReader(metricExporter, metricsdk.WithProducer(bridge), metricsdk.WithInterval(60*time.Second))
-	r.DeferCtx(reader.Shutdown)
 
 	// Create and register the metric provider globally
 	meterProvider := metricsdk.NewMeterProvider(metricsdk.WithReader(reader), metricsdk.WithResource(res))
-	r.DeferCtx(meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
 	err = registerSystemMetrics(meterProvider.Meter(config.Application))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	// return combined shutdown function that will be called during application termination to cleanly shut down all telemetry components
+	return func(ctx context.Context) error {
+		for _, fn := range []func(context.Context) error{
+			meterProvider.Shutdown,
+			reader.Shutdown,
+			metricExporter.Shutdown,
+			traceProvider.Shutdown,
+			traceExporter.Shutdown,
+			logProvider.Shutdown,
+			processor.Shutdown,
+			logExporter.Shutdown,
+		} {
+			if err := fn(ctx); err != nil {
+				return err
+			}
+
+		}
+		return nil
+
+	}, nil
 }
 
 func registerSystemMetrics(m metric.Meter) error {
