@@ -18,7 +18,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // ClientConfig holds configuration for creating a [Client] instance.
@@ -33,10 +32,6 @@ type ClientConfig struct {
 	// WebhookSecret is the shared secret for verifying webhook signatures.
 	// Set this in the GitHub App settings under "Webhook secret".
 	WebhookSecret string
-
-	// InstallationTokenCache caches GitHub App installation tokens.
-	// If nil, a default cache will be created.
-	InstallationTokenCache cache.Cache[int64, InstallationToken]
 }
 
 // Ensure Client implements GitHubClient
@@ -62,19 +57,16 @@ func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
 		return nil, fault.Wrap(err, fault.Internal("failed to create JWT signer"))
 	}
 
-	tokenCache := config.InstallationTokenCache
-	if tokenCache == nil {
-		tokenCache, err = cache.New(cache.Config[int64, InstallationToken]{
-			Fresh:    55 * time.Minute,
-			Stale:    5 * time.Minute,
-			MaxSize:  10_000,
-			Logger:   logger,
-			Resource: "github_installation_token",
-			Clock:    clock.New(),
-		})
-		if err != nil {
-			return nil, err
-		}
+	tokenCache, err := cache.New(cache.Config[int64, InstallationToken]{
+		Fresh:    55 * time.Minute,
+		Stale:    5 * time.Minute,
+		MaxSize:  10_000,
+		Logger:   logger,
+		Resource: "github_installation_token",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return &Client{
@@ -102,9 +94,9 @@ func (c *Client) generateJWT() (string, error) {
 // The installation ID is provided by GitHub when the App is installed on an
 // organization or user account. Returns an error if the installation ID is zero
 // or if the GitHub API request fails.
-func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken, error) {
+func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, error) {
 	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
-		return nil, err
+		return InstallationToken{}, err
 	}
 
 	value, _, err := c.tokenCache.SWR(
@@ -165,52 +157,11 @@ func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken,
 	)
 
 	if err != nil {
-		return nil, err
+		return InstallationToken{}, err
 	}
 
 	// Return a copy to avoid aliasing
-	return ptr.P(value), nil
-}
-
-// DownloadRepoTarball downloads a repository tarball for a specific ref.
-// The repoFullName should be in "owner/repo" format. The ref can be a branch
-// name, tag, or commit SHA. The entire tarball is loaded into memory, so this
-// should only be used for reasonably-sized repositories.
-func (c *Client) DownloadRepoTarball(installationID int64, repoFullName, ref string) ([]byte, error) {
-	token, err := c.GetInstallationToken(installationID)
-	if err != nil {
-		return nil, err
-	}
-
-	url := fmt.Sprintf("https://api.github.com/repos/%s/tarball/%s", repoFullName, ref)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to create tarball request"))
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token.Token)
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to download tarball"))
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fault.New("failed to download tarball",
-			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
-		)
-	}
-
-	tarball, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to read tarball"))
-	}
-
-	return tarball, nil
+	return value, nil
 }
 
 // VerifyWebhookSignature verifies a GitHub webhook signature using constant-time

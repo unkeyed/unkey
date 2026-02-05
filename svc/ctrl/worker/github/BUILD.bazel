@@ -17,6 +17,5 @@ go_library(
         "//pkg/fault",
         "//pkg/jwt",
         "//pkg/otel/logging",
-        "//pkg/ptr",
     ],
 )

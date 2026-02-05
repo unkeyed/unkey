@@ -101,6 +101,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	shutdowns.Register(database.Close)
 
+
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
 	if cfg.GitHub.Enabled() {
@@ -108,8 +109,8 @@ func Run(ctx context.Context, cfg Config) error {
 			AppID:                  cfg.GitHub.AppID,
 			PrivateKeyPEM:          cfg.GitHub.PrivateKeyPEM,
 			WebhookSecret:          "",
-			InstallationTokenCache: nil,
-		}, logger)
+		},
+			logger)
 		if ghErr != nil {
 			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
 		}
