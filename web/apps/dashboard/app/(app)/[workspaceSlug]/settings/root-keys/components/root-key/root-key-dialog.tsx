@@ -52,6 +52,13 @@ export const RootKeyDialog = ({
     setIsSheetOpen(true);
   };
 
+  const handleDialogOpenChange = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      setIsSheetOpen(false);
+    }
+  };
+
   const {
     name,
     setName,
@@ -165,7 +172,7 @@ export const RootKeyDialog = ({
       {!key.data?.key && (
         <DynamicDialogContainer
           isOpen={isOpen}
-          onOpenChange={onOpenChange}
+          onOpenChange={handleDialogOpenChange}
           title={title}
           contentClassName="p-0 mb-0 gap-0"
           className="max-w-[460px]"
