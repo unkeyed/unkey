@@ -1,4 +1,5 @@
 import type { TimeseriesData } from "@/components/logs/overview-charts/types";
+import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { IconProps } from "@unkey/icons";
 import type { ComponentType } from "react";
 import { LogsTimeseriesBarChart } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
@@ -77,8 +78,16 @@ export function MetricCard({
         </div>
         <div className="ml-auto flex flex-col">
           <div className="flex gap-0.5 items-center">
-            <span className="text-grayA-12 font-medium text-xs">{currentValue}</span>
-            <span className="text-grayA-9 text-xs"> {config.unit}</span>
+            {metricType === "latency" ? (
+              <span className="text-grayA-12 font-medium text-xs">
+                {formatLatency(currentValue)}
+              </span>
+            ) : (
+              <>
+                <span className="text-grayA-12 font-medium text-xs">{currentValue}</span>
+                <span className="text-grayA-9 text-xs"> {config.unit}</span>
+              </>
+            )}
           </div>
           {secondaryValue && (
             <>

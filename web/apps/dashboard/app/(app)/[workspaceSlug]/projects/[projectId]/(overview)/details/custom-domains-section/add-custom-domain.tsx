@@ -121,7 +121,7 @@ export function AddCustomDomain({
   };
 
   return (
-    <div ref={containerRef} className="px-4 py-3 border-b border-gray-4">
+    <div ref={containerRef} className="px-4 py-3 border-gray-4 bg-gray-2">
       <div className="flex items-center gap-2">
         <Input
           ref={inputRef}
@@ -130,36 +130,44 @@ export function AddCustomDomain({
           value={domain}
           onChange={(e) => setDomain(extractDomain(e.target.value))}
           onKeyDown={handleKeyDown}
-          className={cn("min-h-[32px] text-sm flex-1", error && "border-red-6 focus:border-red-7")}
+          className={cn("h-8 text-xs flex-1 font-mono", error && "border-red-6 focus:border-red-7")}
           autoComplete="off"
           spellCheck={false}
         />
         <div className="w-[120px]">
           <Select value={environmentId} onValueChange={setEnvironmentId}>
-            <SelectTrigger className="min-h-[32px] w-[120px]">
+            <SelectTrigger className="h-8 text-xs py-1.5 w-[120px] font-mono">
               <SelectValue placeholder="Environment" />
             </SelectTrigger>
             <SelectContent>
               {environments.map((env) => (
-                <SelectItem key={env.id} value={env.id}>
+                <SelectItem key={env.id} value={env.id} className="font-mono">
                   {env.slug}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <Button
-          size="sm"
-          variant="primary"
-          onClick={handleSave}
-          disabled={!isValid || isSubmitting}
-          loading={isSubmitting}
-        >
-          Add
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
-        </Button>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            className="h-8 text-xs px-3"
+            disabled={!isValid || isSubmitting}
+            loading={isSubmitting}
+          >
+            Add
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="h-8 text-xs px-3"
+          >
+            Cancel
+          </Button>
+        </div>
       </div>
       {error && <p className="text-xs text-error-9 mt-1">{error}</p>}
     </div>

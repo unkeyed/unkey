@@ -1,6 +1,7 @@
 "use client";
 import { extractResponseField, safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
+import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
@@ -22,7 +23,7 @@ const createPanelStyle = (distanceToTop: number) => ({
 });
 
 export type StandardLogTypes = Log | RatelimitLog;
-export type SupportedLogTypes = StandardLogTypes | KeysOverviewLog | AuditLog;
+export type SupportedLogTypes = StandardLogTypes | KeysOverviewLog | AuditLog | RuntimeLog;
 
 type LogDetailsContextValue = {
   animated: boolean;
@@ -96,6 +97,10 @@ const createMetaContent = (log: SupportedLogTypes) => {
 const isStandardLog = (log: SupportedLogTypes): log is Log | RatelimitLog => {
   return "request_headers" in log && "response_headers" in log;
 };
+
+// const isRuntimeLog = (log: SupportedLogTypes): log is RuntimeLog => {
+//   return "deployment_id" in log
+// };
 
 // Main LogDetails component
 type LogDetailsProps = {

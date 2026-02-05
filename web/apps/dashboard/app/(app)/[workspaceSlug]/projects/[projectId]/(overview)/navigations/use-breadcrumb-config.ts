@@ -74,14 +74,6 @@ export const useBreadcrumbConfig = ({
       href: `${basePath}/${projectId}/sentinel-logs`,
       segment: "sentinel-logs",
     },
-    {
-      id: "openapi-diff",
-      label: "OpenAPI Diff",
-      href: `${basePath}/${projectId}/openapi-diff`,
-      segment: "openapi-diff",
-      disabled: true,
-      disabledTooltip: "Coming soon",
-    },
   ];
 
   // Determine active subpage based on segment

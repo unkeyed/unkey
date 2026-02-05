@@ -3,7 +3,7 @@ import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EXCLUDED_HOSTS } from "../../../sentinel-logs/constants";
 
-const BUILD_STEPS_REFETCH_INTERVAL = 500;
+// const BUILD_STEPS_REFETCH_INTERVAL = 500;
 const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
 const GATEWAY_LOGS_LIMIT = 20;
 const GATEWAY_LOGS_SINCE = "1m";
@@ -13,7 +13,7 @@ const ERROR_STATUS_THRESHOLD = 500;
 const WARNING_STATUS_THRESHOLD = 400;
 
 type LogEntry = {
-  type: "build" | "sentinel";
+  type: "sentinel";
   id: string;
   timestamp: number;
   message: string;
@@ -24,7 +24,6 @@ type LogFilter = "all" | "warnings" | "errors";
 
 type UseDeploymentLogsProps = {
   deploymentId: string | null;
-  showBuildSteps: boolean;
 };
 
 type UseDeploymentLogsReturn = {
@@ -50,7 +49,6 @@ type UseDeploymentLogsReturn = {
 
 export function useDeploymentLogs({
   deploymentId,
-  showBuildSteps,
 }: UseDeploymentLogsProps): UseDeploymentLogsReturn {
   const [logFilter, setLogFilter] = useState<LogFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,16 +58,16 @@ export function useDeploymentLogs({
   const scrollRef = useRef<HTMLDivElement>(null) as React.MutableRefObject<HTMLDivElement>;
   const { queryTime: timestamp } = useQueryTime();
 
-  const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(
-    {
-      // without this check TS yells at us
-      deploymentId: deploymentId ?? "",
-    },
-    {
-      enabled: showBuildSteps && isExpanded && Boolean(deploymentId),
-      refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
-    },
-  );
+  // const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(
+  //   {
+  //     // without this check TS yells at us
+  //     deploymentId: deploymentId ?? "",
+  //   },
+  //   {
+  //     enabled: showBuildSteps && isExpanded && Boolean(deploymentId),
+  //     refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
+  //   },
+  // );
 
   const { data: sentinelData, isLoading: sentinelLoading } = trpc.logs.queryLogs.useQuery(
     {
@@ -84,31 +82,31 @@ export function useDeploymentLogs({
       since: GATEWAY_LOGS_SINCE,
     },
     {
-      enabled: !showBuildSteps && isExpanded,
+      enabled: isExpanded,
       refetchInterval: GATEWAY_LOGS_REFETCH_INTERVAL,
       refetchOnWindowFocus: false,
     },
   );
 
-  // Update stored logs when build data changes
-  useEffect(() => {
-    if (showBuildSteps && buildData?.logs) {
-      const logMap = new Map<string, LogEntry>();
-      buildData.logs.forEach((log) => {
-        logMap.set(log.id, {
-          type: "build",
-          id: log.id,
-          timestamp: log.timestamp,
-          message: log.message,
-        });
-      });
-      setStoredLogs(logMap);
-    }
-  }, [showBuildSteps, buildData]);
+  // // Update stored logs when build data changes
+  // useEffect(() => {
+  //   if (showBuildSteps && buildData?.logs) {
+  //     const logMap = new Map<string, LogEntry>();
+  //     buildData.logs.forEach((log) => {
+  //       logMap.set(log.id, {
+  //         type: "build",
+  //         id: log.id,
+  //         timestamp: log.timestamp,
+  //         message: log.message,
+  //       });
+  //     });
+  //     setStoredLogs(logMap);
+  //   }
+  // }, [showBuildSteps, buildData]);
 
   // Update stored logs when sentinel data changes
   useEffect(() => {
-    if (!showBuildSteps && sentinelData?.logs) {
+    if (sentinelData?.logs) {
       setStoredLogs((prev) => {
         const newMap = new Map(prev);
 
@@ -136,7 +134,7 @@ export function useDeploymentLogs({
         return new Map(sortedEntries);
       });
     }
-  }, [showBuildSteps, sentinelData]);
+  }, [sentinelData]);
 
   const logs = useMemo(() => {
     return Array.from(storedLogs.values()).sort((a, b) => b.timestamp - a.timestamp);
@@ -157,9 +155,9 @@ export function useDeploymentLogs({
     let filtered = logs;
 
     if (logFilter === "warnings") {
-      filtered = logs.filter((log) => log.type === "build" || log.level === "warning");
+      filtered = logs.filter((log) => log.level === "warning");
     } else if (logFilter === "errors") {
-      filtered = logs.filter((log) => log.type === "build" || log.level === "error");
+      filtered = logs.filter((log) => log.level === "error");
     }
 
     if (searchTerm.trim()) {
@@ -215,7 +213,7 @@ export function useDeploymentLogs({
     showFade,
     filteredLogs,
     logCounts,
-    isLoading: showBuildSteps ? buildLoading : sentinelLoading,
+    isLoading: sentinelLoading,
     setLogFilter,
     setSearchTerm,
     setExpanded,
