@@ -10,11 +10,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
-	"github.com/unkeyed/unkey/pkg/debug"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -56,18 +56,17 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp2.Status, "API should exist on second call")
 
 	// Verify cache shows fresh data in debug headers
-	cacheHeaders := resp2.Headers.Values("X-Unkey-Debug-Cache")
+	cacheHeaders := resp2.Headers.Values(timing.HeaderName)
 	require.NotEmpty(t, cacheHeaders, "Should have cache debug headers")
 
 	// Look for live_api_by_id cache with FRESH status
 	foundFresh := false
 	for _, headerValue := range cacheHeaders {
-		var parsedHeader debug.CacheHeader
-		parsedHeader, err = debug.ParseCacheHeader(headerValue)
+		parsedHeader, err := timing.ParseEntry(headerValue)
 		if err != nil {
 			continue // Skip invalid headers
 		}
-		if parsedHeader.CacheName == "live_api_by_id" && parsedHeader.Status == "FRESH" {
+		if parsedHeader.Attributes["cache"] == "live_api_by_id" && parsedHeader.Attributes["status"] == "fresh" {
 			foundFresh = true
 			break
 		}
@@ -125,20 +124,20 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 		}
 
 		// Check cache debug headers for invalidation
-		cacheHeaders := resp.Headers.Values("X-Unkey-Debug-Cache")
+		cacheHeaders := resp.Headers.Values(timing.HeaderName)
 		if len(cacheHeaders) == 0 {
 			return false
 		}
 
 		// Look for live_api_by_id cache that's no longer FRESH (should be MISS or STALE)
 		for _, headerValue := range cacheHeaders {
-			parsedHeader, err := debug.ParseCacheHeader(headerValue)
+			parsedHeader, err := timing.ParseEntry(headerValue)
 			if err != nil {
 				continue // Skip invalid headers
 			}
-			if parsedHeader.CacheName == "live_api_by_id" {
-				// Cache should no longer be FRESH after invalidation
-				if parsedHeader.Status != "FRESH" {
+			if parsedHeader.Attributes["cache"] == "live_api_by_id" {
+				// Cache should no longer be fresh after invalidation
+				if parsedHeader.Attributes["status"] != "fresh" {
 					cacheInvalidated.Store(true)
 					return true
 				}

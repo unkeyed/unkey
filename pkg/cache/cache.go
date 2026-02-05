@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,11 +12,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/debug"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
+	"github.com/unkeyed/unkey/pkg/timing"
 )
 
 type cache[K comparable, V any] struct {
@@ -111,11 +112,22 @@ func (c *cache[K, V]) registerMetrics() {
 	})
 }
 
+func (c *cache[K, V]) recordTiming(ctx context.Context, name, status string, start time.Time) {
+	timing.Record(ctx, timing.Entry{
+		Name:     name,
+		Duration: time.Since(start),
+		Attributes: map[string]string{
+			"cache":  c.resource,
+			"status": strings.ToLower(status),
+		},
+	})
+}
+
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 	start := time.Now()
 	e, ok := c.get(ctx, key)
 	if !ok {
-		debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+		c.recordTiming(ctx, "cache_get", "miss", start)
 		return value, Miss
 	}
 
@@ -126,12 +138,12 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 		if now.Before(e.Fresh) {
 			status = "FRESH"
 		}
-		debug.RecordCacheHit(ctx, c.resource, status, time.Since(start))
+		c.recordTiming(ctx, "cache_get", status, start)
 		return e.Value, e.Hit
 	}
 
 	c.otter.Delete(key)
-	debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+	c.recordTiming(ctx, "cache_get", "miss", start)
 
 	return value, Miss
 }
@@ -318,7 +330,7 @@ func (c *cache[K, V]) SWR(
 		// Cache Hit
 		if now.Before(e.Fresh) {
 			// We have data and it's fresh, so we return it
-			debug.RecordCacheHit(ctx, c.resource, "FRESH", time.Since(start))
+			c.recordTiming(ctx, "cache_swr", "fresh", start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -328,7 +340,7 @@ func (c *cache[K, V]) SWR(
 				// the api response is returned
 				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
 			}
-			debug.RecordCacheHit(ctx, c.resource, "STALE", time.Since(start))
+			c.recordTiming(ctx, "cache_swr", "stale", start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -338,7 +350,7 @@ func (c *cache[K, V]) SWR(
 
 	// Cache Miss - measure total time including all overhead
 	v, err := refreshFromOrigin(ctx)
-	debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+	c.recordTiming(ctx, "cache_swr", "miss", start)
 
 	switch op(err) {
 	case WriteValue:
@@ -483,7 +495,7 @@ func (c *cache[K, V]) SWRWithFallback(
 		// Found in cache
 		if now.Before(e.Fresh) {
 			// Fresh - return immediately
-			debug.RecordCacheHit(ctx, c.resource, "FRESH", time.Since(start))
+			c.recordTiming(ctx, "cache_swr_fallback", "fresh", start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -498,7 +510,7 @@ func (c *cache[K, V]) SWRWithFallback(
 				}
 			}
 			c.inflightMu.Unlock()
-			debug.RecordCacheHit(ctx, c.resource, "STALE", time.Since(start))
+			c.recordTiming(ctx, "cache_swr_fallback", "stale", start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -508,7 +520,7 @@ func (c *cache[K, V]) SWRWithFallback(
 
 	// Cache miss on all candidates - fetch from origin
 	v, canonicalKey, err := refreshFromOrigin(ctx)
-	debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+	c.recordTiming(ctx, "cache_swr_fallback", "miss", start)
 
 	operation := op(err)
 

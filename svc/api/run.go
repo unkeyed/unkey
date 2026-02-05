@@ -22,7 +22,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
-	debugpkg "github.com/unkeyed/unkey/pkg/debug"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
@@ -91,11 +90,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Enable debug cache headers if configured
-	if cfg.DebugCacheHeaders {
-		debugpkg.EnableCacheHeaders()
-		logger.Info("Debug cache headers enabled - X-Unkey-Debug-Cache headers will be added to responses")
-	}
-
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
