@@ -116,16 +116,86 @@ export default app;
 </Tabs>
 </Step>
 
-<Step  title="Try it out">
 
-Go to https://app.unkey.com and create a new key. Then verify it with our new server:
+<Step title="End-to-end: Create API, create key, verify, revoke">
+
+Follow these four quick steps to go from an empty workspace to a verified key and then revoke it.
+
+### 1) Create an API (dashboard or API)
+
+- Dashboard: visit https://app.unkey.com/apis and click "Create API".
+- API (curl):
 
 ```bash
-curl -XPOST 'http://localhost:8787/' \
-  -H "Authorization: Bearer <KEY>"
+curl -X POST "https://api.unkey.dev/v1/apis.createApi" \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"My Hono API"}'
 ```
 
-It should return `Hello Hono!"`
+Example response:
+
+```json
+{
+  "result": { "apiId": "api_123" }
+}
+```
+
+Save the returned `apiId` — you'll use it to create keys.
+
+### 2) Create an API key
+
+Use the dashboard (APIs → your API → Keys → Create key) or the management API.
+
+```bash
+curl -X POST "https://api.unkey.dev/v1/keys.createKey" \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"apiId":"api_123","name":"dev-key","prefix":"dev","expires":1700000000000}'
+```
+
+Example response contains the plaintext `key` you'll use when calling your service:
+
+```json
+{
+  "key": "sk_live_...",
+  "keyId": "key_abc123"
+}
+```
+
+Store the `key` securely (this is the secret you will send to your API).
+
+### 3) Verify the key (call your Hono server)
+
+With the Hono middleware set up (see earlier step) send a request to your local server using the created key:
+
+```bash
+curl -X GET "http://localhost:8787/" \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+If the middleware is installed and the key is valid the server should return your route response (for the example above: `Hello Hono!`).
+
+Quick Node verification example (fetch):
+
+```js
+await fetch('http://localhost:8787/', {
+  headers: { Authorization: `Bearer ${process.env.UNKEY_KEY}` },
+});
+```
+
+### 4) Revoke (delete) the key
+
+When you want to revoke the key, call the revoke endpoint with your management/root key and the `keyId`:
+
+```bash
+curl -X POST "https://api.unkey.dev/v1/keys.deleteKey" \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"keyId":"key_abc123"}'
+```
+
+The endpoint will return an empty object on success. It may take a few seconds to propagate.
 
 </Step>
 
