@@ -79,13 +79,13 @@ spec:
               value: "10485760"
           readinessProbe:
             httpGet:
-              path: /v2/liveness
+              path: /health/ready
               port: 7070
             initialDelaySeconds: 10
             periodSeconds: 5
           livenessProbe:
             httpGet:
-              path: /v2/liveness
+              path: /health/live
               port: 7070
             initialDelaySeconds: 30
             periodSeconds: 10

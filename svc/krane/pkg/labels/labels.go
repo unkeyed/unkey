@@ -8,18 +8,17 @@ import (
 // Label key constants for krane resources.
 // These are the single source of truth for label keys used across the codebase.
 const (
-	LabelKeyWorkspaceID           = "unkey.com/workspace.id"
-	LabelKeyProjectID             = "unkey.com/project.id"
-	LabelKeyEnvironmentID         = "unkey.com/environment.id"
-	LabelKeyDeploymentID          = "unkey.com/deployment.id"
-	LabelKeyBuildID               = "unkey.com/build.id"
-	LabelKeySentinelID            = "unkey.com/sentinel.id"
-	LabelKeyNetworkPolicyID       = "unkey.com/networkpolicy.id"
-	LabelKeyCiliumNetworkPolicyID = "unkey.com/cilium.network-policy.id"
-	LabelKeyInject                = "unkey.com/inject"
-	LabelKeyManagedBy             = "app.kubernetes.io/managed-by"
-	LabelKeyComponent             = "app.kubernetes.io/component"
-	LabelKeyNamespace             = "io.kubernetes.pod.namespace"
+	LabelKeyWorkspaceID     = "unkey.com/workspace.id"
+	LabelKeyProjectID       = "unkey.com/project.id"
+	LabelKeyEnvironmentID   = "unkey.com/environment.id"
+	LabelKeyDeploymentID    = "unkey.com/deployment.id"
+	LabelKeyBuildID         = "unkey.com/build.id"
+	LabelKeySentinelID      = "unkey.com/sentinel.id"
+	LabelKeyNetworkPolicyID = "unkey.com/networkpolicy.id"
+	LabelKeyInject          = "unkey.com/inject"
+	LabelKeyManagedBy       = "app.kubernetes.io/managed-by"
+	LabelKeyComponent       = "app.kubernetes.io/component"
+	LabelKeyNamespace       = "io.kubernetes.pod.namespace"
 )
 
 // Labels represents a map of Kubernetes labels for krane resources.
@@ -215,9 +214,9 @@ func GetEnvironmentID(l map[string]string) (string, bool) {
 
 // GetCiliumNetworkPolicyID extracts cilium network policy ID from Kubernetes label map.
 //
-// This helper function retrieves the "unkey.com/cilium.network-policy.id" label from
+// This helper function retrieves the "unkey.com/networkpolicy.id" label from
 // a Kubernetes resource's labels. Returns ID and a boolean indicating whether the label was found.
 func GetCiliumNetworkPolicyID(l map[string]string) (string, bool) {
-	v, ok := l[LabelKeyCiliumNetworkPolicyID]
+	v, ok := l[LabelKeyNetworkPolicyID]
 	return v, ok
 }
