@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -82,6 +85,18 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	}
 	fmt.Println("✔ GitHub connection ready")
 
+	// Warn if deployment will fail due to auth configuration
+	if !checkAllowUnauthenticatedDeployments() && installationID == 1 {
+		fmt.Println()
+		fmt.Println("   WARNING: Deployment will fail during build phase")
+		fmt.Println("   Reason: Using dummy installation ID (1) requires UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=true")
+		fmt.Println()
+		fmt.Println("   Fix: Add to dev/.env.github:")
+		fmt.Println("   UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=true")
+		fmt.Println()
+		os.Exit(0)
+	}
+
 	payload := pushPayload{
 		Ref:   fmt.Sprintf("refs/heads/%s", branch),
 		After: commitSHA,
@@ -136,7 +151,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		fmt.Println("✔ Webhook delivered successfully")
-		fmt.Println("✔ Deployment created")
+		fmt.Println("✔ Deployment workflow started")
 		fmt.Println()
 		fmt.Printf("Repository: %s\n", repository)
 		fmt.Printf("Branch: %s\n", branch)
@@ -233,4 +248,28 @@ func fetchRepositoryID(ctx context.Context, repository string) (int64, error) {
 	}
 
 	return result.ID, nil
+}
+
+func checkAllowUnauthenticatedDeployments() bool {
+	// Check dev/.env.github file as fallback
+	envPath := filepath.Join("dev", ".env.github")
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		return false // Conservative default
+	}
+
+	// Simple parsing for UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=true
+	lines := strings.SplitSeq(string(data), "\n")
+	for line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") || line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=") {
+			val := strings.TrimPrefix(line, "UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=")
+			return strings.ToLower(strings.TrimSpace(val)) == "true"
+		}
+	}
+
+	return false
 }
