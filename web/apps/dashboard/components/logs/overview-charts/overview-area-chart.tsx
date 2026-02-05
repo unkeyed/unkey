@@ -12,7 +12,7 @@ import {
 import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { cn } from "@/lib/utils";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 
@@ -63,6 +63,12 @@ export const OverviewAreaChart = ({
   // Track if we're currently dragging for selection
   const isDragging = useRef(false);
   const dragStartData = useRef<{ index: number; timestamp: number } | null>(null);
+
+  // Ref to track latest selection for closure-safe access in handleMouseUp
+  const selectionRef = useRef(selection);
+  useEffect(() => {
+    selectionRef.current = selection;
+  }, [selection]);
 
   // Precompute timestamp-to-index map for O(1) lookups during hover/tooltip
   const timestampToIndexMap = useMemo(() => {
@@ -154,9 +160,17 @@ export const OverviewAreaChart = ({
       return;
     }
 
-    if (selection.start !== undefined && selection.end !== undefined && onSelectionChange) {
-      if (selection.startTimestamp !== undefined && selection.endTimestamp !== undefined) {
-        const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort(
+    const currentSelection = selectionRef.current;
+    if (
+      currentSelection.start !== undefined &&
+      currentSelection.end !== undefined &&
+      onSelectionChange
+    ) {
+      if (
+        currentSelection.startTimestamp !== undefined &&
+        currentSelection.endTimestamp !== undefined
+      ) {
+        const [start, end] = [currentSelection.startTimestamp, currentSelection.endTimestamp].sort(
           (a, b) => a - b,
         );
         onSelectionChange({ start, end });

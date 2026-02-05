@@ -65,6 +65,12 @@ export function OverviewBarChart({
   const isDragging = useRef(false);
   const dragStartData = useRef<{ index: number; timestamp: number } | null>(null);
 
+  // Ref to track latest selection for closure-safe access in handleMouseUp
+  const selectionRef = useRef(selection);
+  useEffect(() => {
+    selectionRef.current = selection;
+  }, [selection]);
+
   // Precompute timestamp-to-index mapping for O(1) lookup
   const timestampToIndexMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -159,9 +165,17 @@ export function OverviewBarChart({
       return;
     }
 
-    if (selection.start !== undefined && selection.end !== undefined && onSelectionChange) {
-      if (selection.startTimestamp !== undefined && selection.endTimestamp !== undefined) {
-        const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort(
+    const currentSelection = selectionRef.current;
+    if (
+      currentSelection.start !== undefined &&
+      currentSelection.end !== undefined &&
+      onSelectionChange
+    ) {
+      if (
+        currentSelection.startTimestamp !== undefined &&
+        currentSelection.endTimestamp !== undefined
+      ) {
+        const [start, end] = [currentSelection.startTimestamp, currentSelection.endTimestamp].sort(
           (a, b) => a - b,
         );
         onSelectionChange({ start, end });
