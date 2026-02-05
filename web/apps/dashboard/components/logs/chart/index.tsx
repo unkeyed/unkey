@@ -14,9 +14,22 @@ import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { Grid } from "@unkey/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bar, BarChart, ReferenceArea, YAxis, type ChartMouseEvent } from "recharts";
+import { Bar, BarChart, ReferenceArea, YAxis } from "recharts";
+import type { MouseHandlerDataParam } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 import { calculateTimePoints } from "./utils/calculate-timepoints";
+
+// ChartMouseEvent needs to be compatible with MouseHandlerDataParam (used by CategoricalChartFunc)
+// while also including activePayload for the payload data
+export type ChartMouseEvent = MouseHandlerDataParam & {
+  activePayload?: Array<{
+    payload?: {
+      originalTimestamp?: number;
+      total?: number;
+      [key: string]: unknown;
+    };
+  }>;
+};
 
 type Selection = {
   start: number | undefined;

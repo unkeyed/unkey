@@ -86,7 +86,7 @@ export const OverviewAreaChart = ({
     }
     // Get timestamp from payload or fallback to data array
     let timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
-    if (timestamp === undefined && e?.activeIndex !== undefined && data?.[e.activeIndex]) {
+    if (timestamp === undefined && typeof e.activeIndex === "number" && data?.[e.activeIndex]) {
       timestamp = data[e.activeIndex].originalTimestamp;
     }
     if (timestamp === undefined) {
@@ -105,7 +105,7 @@ export const OverviewAreaChart = ({
       return;
     }
     let timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
-    if (timestamp === undefined && e?.activeIndex !== undefined && data?.[e.activeIndex]) {
+    if (timestamp === undefined && typeof e.activeIndex === "number" && data?.[e.activeIndex]) {
       timestamp = data[e.activeIndex].originalTimestamp;
     }
     const activeLabel = e.activeLabel;
