@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -12,6 +13,8 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
@@ -43,6 +46,7 @@ type Client struct {
 	httpClient *http.Client
 	signer     jwt.Signer[jwt.RegisteredClaims]
 	logger     logging.Logger
+	tokenCache cache.Cache[int64, InstallationToken]
 }
 
 // NewClient creates a [Client] with the given configuration. Returns an error if
@@ -53,11 +57,24 @@ func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
 		return nil, fault.Wrap(err, fault.Internal("failed to create JWT signer"))
 	}
 
+	tokenCache, err := cache.New(cache.Config[int64, InstallationToken]{
+		Fresh:    55 * time.Minute,
+		Stale:    5 * time.Minute,
+		MaxSize:  10_000,
+		Logger:   logger,
+		Resource: "github_installation_token",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		config:     config,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 		signer:     signer,
 		logger:     logger,
+		tokenCache: tokenCache,
 	}, nil
 }
 
@@ -77,95 +94,74 @@ func (c *Client) generateJWT() (string, error) {
 // The installation ID is provided by GitHub when the App is installed on an
 // organization or user account. Returns an error if the installation ID is zero
 // or if the GitHub API request fails.
-func (c *Client) GetInstallationToken(installationID int64) (*InstallationToken, error) {
+func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, error) {
 	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
-		return nil, err
+		return InstallationToken{}, err
 	}
 
-	c.logger.Info("Getting GitHub installation token", "installation_id", installationID)
+	value, _, err := c.tokenCache.SWR(
+		context.Background(),
+		installationID,
+		func(ctx context.Context) (InstallationToken, error) {
+			c.logger.Info(
+				"Getting GitHub installation token",
+				"installation_id", installationID,
+			)
 
-	token, err := c.generateJWT()
+			jwtToken, err := c.generateJWT()
+			if err != nil {
+				return InstallationToken{}, err
+			}
+
+			url := fmt.Sprintf(
+				"https://api.github.com/app/installations/%d/access_tokens",
+				installationID,
+			)
+
+			req, err := http.NewRequest(http.MethodPost, url, nil)
+			if err != nil {
+				return InstallationToken{}, fault.Wrap(err, fault.Internal("failed to create request"))
+			}
+
+			req.Header.Set("Authorization", "Bearer "+jwtToken)
+			req.Header.Set("Accept", "application/vnd.github+json")
+			req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+			resp, err := c.httpClient.Do(req)
+			if err != nil {
+				return InstallationToken{}, fault.Wrap(err, fault.Internal("failed to get installation token"))
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			if resp.StatusCode != http.StatusCreated {
+				body, _ := io.ReadAll(resp.Body)
+				return InstallationToken{}, fault.New(
+					"failed to get installation token",
+					fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+				)
+			}
+
+			var token InstallationToken
+			if err := json.NewDecoder(resp.Body).Decode(&token); err != nil {
+				return InstallationToken{}, fault.Wrap(err, fault.Internal("failed to decode installation token"))
+			}
+
+			return token, nil
+		},
+		func(err error) cache.Op {
+			if err != nil {
+				return cache.Noop
+			}
+			return cache.WriteValue
+		},
+	)
+
 	if err != nil {
-		return nil, err
+		return InstallationToken{}, err
 	}
 
-	url := fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installationID)
-	c.logger.Info("Calling GitHub API", "url", url)
-	req, err := http.NewRequest(http.MethodPost, url, nil)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to create request"))
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to get installation token"))
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
-		c.logger.Error("GitHub API returned unexpected status",
-			"status_code", resp.StatusCode,
-			"installation_id", installationID,
-			"response_body", string(body),
-			"url", url,
-		)
-		return nil, fault.New("failed to get installation token",
-			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
-		)
-	}
-
-	var installToken InstallationToken
-	if err := json.NewDecoder(resp.Body).Decode(&installToken); err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to decode installation token"))
-	}
-
-	return &installToken, nil
-}
-
-// DownloadRepoTarball downloads a repository tarball for a specific ref.
-// The repoFullName should be in "owner/repo" format. The ref can be a branch
-// name, tag, or commit SHA. The entire tarball is loaded into memory, so this
-// should only be used for reasonably-sized repositories.
-func (c *Client) DownloadRepoTarball(installationID int64, repoFullName, ref string) ([]byte, error) {
-	token, err := c.GetInstallationToken(installationID)
-	if err != nil {
-		return nil, err
-	}
-
-	url := fmt.Sprintf("https://api.github.com/repos/%s/tarball/%s", repoFullName, ref)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to create tarball request"))
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token.Token)
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to download tarball"))
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fault.New("failed to download tarball",
-			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
-		)
-	}
-
-	tarball, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to read tarball"))
-	}
-
-	return tarball, nil
+	// Return a copy to avoid aliasing
+	return value, nil
 }
 
 // VerifyWebhookSignature verifies a GitHub webhook signature using constant-time
