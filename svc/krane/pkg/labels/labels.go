@@ -214,7 +214,7 @@ func GetEnvironmentID(l map[string]string) (string, bool) {
 
 // GetCiliumNetworkPolicyID extracts cilium network policy ID from Kubernetes label map.
 //
-// This helper function retrieves the "unkey.com/cilium.network-policy.id" label from
+// This helper function retrieves the "unkey.com/networkpolicy.id" label from
 // a Kubernetes resource's labels. Returns ID and a boolean indicating whether the label was found.
 func GetCiliumNetworkPolicyID(l map[string]string) (string, bool) {
 	v, ok := l[LabelKeyNetworkPolicyID]
