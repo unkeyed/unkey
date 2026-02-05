@@ -7,6 +7,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // RenewExpiringCertificates renews certificates before they expire.
@@ -22,7 +23,7 @@ func (s *Service) RenewExpiringCertificates(
 	ctx restate.ObjectContext,
 	req *hydrav1.RenewExpiringCertificatesRequest,
 ) (*hydrav1.RenewExpiringCertificatesResponse, error) {
-	s.logger.Info("starting certificate renewal check")
+	logger.Info("starting certificate renewal check")
 
 	challengeTypes := []db.AcmeChallengesChallengeType{
 		db.AcmeChallengesChallengeTypeDNS01,
@@ -37,13 +38,13 @@ func (s *Service) RenewExpiringCertificates(
 		return nil, err
 	}
 
-	s.logger.Info("found certificates to process", "count", len(challenges))
+	logger.Info("found certificates to process", "count", len(challenges))
 
 	var failedDomains []string
 	renewalsTriggered := int32(0)
 
 	for _, challenge := range challenges {
-		s.logger.Info("triggering certificate renewal",
+		logger.Info("triggering certificate renewal",
 			"domain", challenge.Domain,
 			"workspace_id", challenge.WorkspaceID,
 		)
@@ -56,7 +57,7 @@ func (s *Service) RenewExpiringCertificates(
 		})
 
 		if sendErr != nil {
-			s.logger.Warn("failed to trigger renewal",
+			logger.Warn("failed to trigger renewal",
 				"domain", challenge.Domain,
 				"error", sendErr,
 			)
@@ -71,7 +72,7 @@ func (s *Service) RenewExpiringCertificates(
 		}
 	}
 
-	s.logger.Info("certificate renewal check completed",
+	logger.Info("certificate renewal check completed",
 		"checked", len(challenges),
 		"triggered", renewalsTriggered,
 		"failed", len(failedDomains),

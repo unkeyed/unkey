@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 var errTestDownstream = errors.New("downstream test error")
@@ -16,7 +15,7 @@ var errTestDownstream = errors.New("downstream test error")
 func TestCircuitBreakerStates(t *testing.T) {
 
 	c := clock.NewTestClock()
-	cb := New[int]("test", WithCyclicPeriod(5*time.Second), WithClock(c), WithTripThreshold(3), WithLogger(logging.NewNoop()))
+	cb := New[int]("test", WithCyclicPeriod(5*time.Second), WithClock(c), WithTripThreshold(3))
 
 	// Test Closed State
 	for i := 0; i < 3; i++ {

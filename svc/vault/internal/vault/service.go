@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	cacheMiddleware "github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/vault/internal/keyring"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"google.golang.org/protobuf/proto"
@@ -19,7 +18,6 @@ import (
 const LATEST = "LATEST"
 
 type Service struct {
-	logger   logging.Logger
 	keyCache cache.Cache[string, *vaultv1.DataEncryptionKey]
 
 	storage storage.Storage
@@ -34,7 +32,6 @@ type Service struct {
 var _ vaultv1connect.VaultServiceHandler = (*Service)(nil)
 
 type Config struct {
-	Logger      logging.Logger
 	Storage     storage.Storage
 	MasterKeys  []string
 	BearerToken string
@@ -50,7 +47,6 @@ func New(cfg Config) (*Service, error) {
 
 	kr, err := keyring.New(keyring.Config{
 		Store:          cfg.Storage,
-		Logger:         cfg.Logger,
 		DecryptionKeys: decryptionKeys,
 		EncryptionKey:  encryptionKey,
 	})
@@ -62,7 +58,6 @@ func New(cfg Config) (*Service, error) {
 		Fresh:    time.Hour,
 		Stale:    24 * time.Hour,
 		MaxSize:  10000,
-		Logger:   cfg.Logger,
 		Resource: "data_encryption_key",
 		Clock:    clock.New(),
 	})
@@ -71,7 +66,6 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	return &Service{
-		logger:         cfg.Logger,
 		storage:        cfg.Storage,
 		keyCache:       cacheMiddleware.WithTracing(cache),
 		decryptionKeys: decryptionKeys,

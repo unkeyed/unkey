@@ -6,13 +6,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
 )
 
 // Config holds the configuration for creating a new keys service instance.
 type Config struct {
-	Logger       logging.Logger        // Logger for service operations
 	DB           db.Database           // Database connection
 	RateLimiter  ratelimit.Service     // Rate limiting service
 	RBAC         *rbac.RBAC            // Role-based access control
@@ -24,7 +22,6 @@ type Config struct {
 }
 
 type service struct {
-	logger       logging.Logger
 	db           db.Database
 	rateLimiter  ratelimit.Service
 	usageLimiter usagelimiter.Service
@@ -40,7 +37,6 @@ type service struct {
 func New(config Config) (*service, error) {
 
 	return &service{
-		logger:       config.Logger,
 		db:           config.DB,
 		rbac:         config.RBAC,
 		rateLimiter:  config.RateLimiter,

@@ -7,9 +7,8 @@ import (
 
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/shutdown"
 	"github.com/unkeyed/unkey/pkg/version"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/bridges/prometheus"
@@ -65,30 +64,25 @@ type Config struct {
 // - Runtime metrics for Go applications (memory, GC, goroutines, etc.)
 // - Custom application metrics defined in the metrics package
 //
-// The function registers all necessary shutdown handlers with the provided shutdowns instance.
-// These handlers will be called during application termination to ensure proper cleanup.
+// The function returns a shutdown function that should be registered with a runner instance.
+// This shutdown function will be called during application termination to ensure proper cleanup.
 //
 // Example:
 //
-//	shutdowns := shutdown.New()
-//	err := otel.InitGrafana(ctx, otel.Config{
+//	r := runner.New()
+//	shutdown, err := otel.InitGrafana(ctx, otel.Config{
 //	    GrafanaEndpoint: "https://otlp-sentinel-prod-us-east-0.grafana.net/otlp",
 //	    Application:     "unkey-api",
 //	    Version:         version.Version,
-//	}, shutdowns)
+//	})
 //
 //	if err != nil {
 //	    log.Fatalf("Failed to initialize telemetry: %v", err)
 //	}
+//	r.RegisterShutdown(shutdown)
 //
-//	// Later during shutdown:
-//	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-//	defer cancel()
-//	errs := shutdowns.Shutdown(ctx)
-//	for _, err := range errs {
-//	    log.Printf("Shutdown error: %v", err)
-//	}
-func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdowns) error {
+//	// The runner will call shutdown during graceful termination
+func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) error, error) {
 	// Create a resource with common attributes
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
@@ -100,7 +94,7 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create resource: %w", err)
+		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
 	// Configure OTLP log handler
@@ -108,13 +102,11 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		otlploghttp.WithCompression(otlploghttp.GzipCompression),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create log exporter: %w", err)
+		return nil, fmt.Errorf("failed to create log exporter: %w", err)
 	}
-	shutdowns.RegisterCtx(logExporter.Shutdown)
 
 	var processor log.Processor = log.NewBatchProcessor(logExporter, log.WithExportBufferSize(512), log.WithExportInterval(15*time.Second))
 	processor = minsev.NewLogProcessor(processor, minsev.SeverityInfo)
-	shutdowns.RegisterCtx(processor.Shutdown)
 
 	//	if config.LogDebug {
 	//		processor = minsev.NewLogProcessor(processor, minsev.SeverityDebug)
@@ -124,9 +116,8 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		log.WithResource(res),
 		log.WithProcessor(processor),
 	)
-	shutdowns.RegisterCtx(logProvider.Shutdown)
 
-	logging.AddHandler(otelslog.NewHandler(
+	logger.AddHandler(otelslog.NewHandler(
 		config.Application,
 		otelslog.WithLoggerProvider(logProvider),
 		otelslog.WithVersion(version.Version),
@@ -140,11 +131,10 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	//	otlptracehttp.WithInsecure(), // For local development
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create trace exporter: %w", err)
+		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
 
 	// Register shutdown function for trace exporter
-	shutdowns.RegisterCtx(traceExporter.Shutdown)
 
 	var sampler trace.Sampler
 
@@ -174,9 +164,6 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 		trace.WithSampler(sampler),
 	)
 
-	// Register shutdown function for trace provider
-	shutdowns.RegisterCtx(traceProvider.Shutdown)
-
 	// Set the global trace provider
 	otel.SetTracerProvider(traceProvider)
 	tracing.SetGlobalTraceProvider(traceProvider)
@@ -187,27 +174,42 @@ func InitGrafana(ctx context.Context, config Config, shutdowns *shutdown.Shutdow
 	//	otlpmetrichttp.WithInsecure(), // For local development
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create metric exporter: %w", err)
+		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
 	}
-
-	shutdowns.RegisterCtx(metricExporter.Shutdown)
 
 	bridge := prometheus.NewMetricProducer()
 
 	reader := metricsdk.NewPeriodicReader(metricExporter, metricsdk.WithProducer(bridge), metricsdk.WithInterval(60*time.Second))
-	shutdowns.RegisterCtx(reader.Shutdown)
 
 	// Create and register the metric provider globally
 	meterProvider := metricsdk.NewMeterProvider(metricsdk.WithReader(reader), metricsdk.WithResource(res))
-	shutdowns.RegisterCtx(meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
 	err = registerSystemMetrics(meterProvider.Meter(config.Application))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	// return combined shutdown function that will be called during application termination to cleanly shut down all telemetry components
+	return func(ctx context.Context) error {
+		for _, fn := range []func(context.Context) error{
+			meterProvider.Shutdown,
+			reader.Shutdown,
+			metricExporter.Shutdown,
+			traceProvider.Shutdown,
+			traceExporter.Shutdown,
+			logProvider.Shutdown,
+			processor.Shutdown,
+			logExporter.Shutdown,
+		} {
+			if err := fn(ctx); err != nil {
+				return err
+			}
+
+		}
+		return nil
+
+	}, nil
 }
 
 func registerSystemMetrics(m metric.Meter) error {

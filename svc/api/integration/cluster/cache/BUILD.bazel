@@ -13,7 +13,6 @@ go_test(
         "//pkg/cache",
         "//pkg/debug",
         "//pkg/eventstream",
-        "//pkg/otel/logging",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "//svc/api/integration",

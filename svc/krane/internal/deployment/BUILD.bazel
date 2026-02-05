@@ -22,7 +22,7 @@ go_library(
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//pkg/assert",
         "//pkg/circuitbreaker",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/ptr",
         "//pkg/repeat",
         "//svc/krane/pkg/labels",
@@ -44,7 +44,6 @@ go_test(
     srcs = ["controller_test.go"],
     embed = [":deployment"],
     deps = [
-        "//pkg/otel/logging",
         "//svc/krane/internal/testutil",
         "@com_github_stretchr_testify//require",
         "@io_k8s_api//core/v1:core",

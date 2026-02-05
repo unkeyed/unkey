@@ -12,7 +12,7 @@ go_library(
         "//pkg/clock",
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/uid",
         "//pkg/zen",
         "//svc/sentinel/services/router",

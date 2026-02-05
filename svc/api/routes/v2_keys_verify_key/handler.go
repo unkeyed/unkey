@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -30,7 +30,6 @@ const DefaultCost = 1
 
 // Handler implements zen.Route interface for the v2 keys.verify endpoint
 type Handler struct {
-	Logger     logging.Logger
 	DB         db.Database
 	Keys       keys.KeyService
 	Auditlogs  auditlogs.AuditLogService
@@ -48,8 +47,6 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.verifyKey")
-
 	// Authentication
 	auth, rootEmit, err := h.Keys.GetRootKey(ctx, s)
 	defer rootEmit()
@@ -212,7 +209,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if key.Key.Meta.Valid {
 		meta, err := db.UnmarshalNullableJSONTo[map[string]any](key.Key.Meta.String)
 		if err != nil {
-			h.Logger.Error("failed to unmarshal key meta", "keyId", key.Key.ID, "error", err)
+			logger.Error("failed to unmarshal key meta", "keyId", key.Key.ID, "error", err)
 		}
 		keyData.Meta = meta
 	}
@@ -246,7 +243,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		meta, err := db.UnmarshalNullableJSONTo[map[string]any](key.Key.IdentityMeta)
 		if err != nil {
-			h.Logger.Error(
+			logger.Error(
 				"failed to unmarshal identity meta",
 				"identityId", key.Key.IdentityID.String,
 				"error", err,

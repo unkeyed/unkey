@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
@@ -29,9 +29,6 @@ import (
 type service struct {
 	// clock provides time-related functionality, can be mocked for testing
 	clock clock.Clock
-
-	// logger handles structured logging output
-	logger logging.Logger
 
 	// shutdownCh signals service shutdown
 	shutdownCh chan struct{}
@@ -57,7 +54,6 @@ type service struct {
 
 // Config holds configuration for creating a new rate limiting service.
 type Config struct {
-	Logger logging.Logger
 
 	// Clock for time-related operations. If nil, uses system clock.
 	Clock clock.Clock
@@ -81,7 +77,6 @@ func New(config Config) (*service, error) {
 
 	s := &service{
 		clock:      config.Clock,
-		logger:     config.Logger,
 		shutdownCh: make(chan struct{}),
 		bucketsMu:  sync.RWMutex{},
 		buckets:    make(map[string]*bucket),
@@ -346,7 +341,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 		currentKey := counterKey(b.key(), currentWindow.sequence)
 		res, err := s.counter.Get(ctx, currentKey)
 		if err != nil {
-			s.logger.Error("unable to get counter value",
+			logger.Error("unable to get counter value",
 				"key", currentKey,
 				"error", err.Error(),
 			)
@@ -360,7 +355,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 		previousKey := counterKey(b.key(), previousWindow.sequence)
 		res, err := s.counter.Get(ctx, previousKey)
 		if err != nil {
-			s.logger.Error("unable to get counter value",
+			logger.Error("unable to get counter value",
 				"key", previousKey,
 				"error", err.Error(),
 			)

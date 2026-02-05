@@ -9,6 +9,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -87,7 +88,7 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
 
-				s.logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.logTarget),
+				logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.logTarget),
 					"error", err.Error(),
 					"target", cfg.targetURL.String(),
 					"hostname", r.Host,

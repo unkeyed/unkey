@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -26,7 +26,6 @@ type Service struct {
 	db           db.Database
 	restate      *restateingress.Client
 	restateAdmin *restateadmin.Client
-	logger       logging.Logger
 	cnameDomain  string
 }
 
@@ -38,8 +37,6 @@ type Config struct {
 	Restate *restateingress.Client
 	// RestateAdmin is the admin client for canceling invocations.
 	RestateAdmin *restateadmin.Client
-	// Logger is used for structured logging throughout the service.
-	Logger logging.Logger
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	CnameDomain string
 }
@@ -51,7 +48,6 @@ func New(cfg Config) *Service {
 		db:                                      cfg.Database,
 		restate:                                 cfg.Restate,
 		restateAdmin:                            cfg.RestateAdmin,
-		logger:                                  cfg.Logger,
 		cnameDomain:                             cfg.CnameDomain,
 	}
 }
@@ -120,7 +116,7 @@ func (s *Service) AddCustomDomain(
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain)
 	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
 	if sendErr != nil {
-		s.logger.Warn("failed to trigger verification workflow",
+		logger.Warn("failed to trigger verification workflow",
 			"domain", domain,
 			"error", sendErr,
 		)
@@ -162,7 +158,7 @@ func (s *Service) DeleteCustomDomain(
 	// Cancel any running verification workflow
 	if domain.InvocationID.Valid && s.restateAdmin != nil {
 		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
-			s.logger.Warn("failed to cancel verification workflow",
+			logger.Warn("failed to cancel verification workflow",
 				"domain", domain.Domain,
 				"invocation_id", domain.InvocationID.String,
 				"error", cancelErr,
@@ -219,7 +215,7 @@ func (s *Service) RetryVerification(
 	// Cancel any existing verification workflow
 	if domain.InvocationID.Valid && s.restateAdmin != nil {
 		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
-			s.logger.Warn("failed to cancel old verification workflow",
+			logger.Warn("failed to cancel old verification workflow",
 				"domain", domain.Domain,
 				"invocation_id", domain.InvocationID.String,
 				"error", cancelErr,

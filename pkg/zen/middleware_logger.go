@@ -2,9 +2,9 @@ package zen
 
 import (
 	"context"
-	"time"
+	"log/slog"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // WithLogging returns middleware that logs information about each request.
@@ -13,29 +13,35 @@ import (
 // Example:
 //
 //	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithLogging(logger)},
+//	    []zen.Middleware{zen.WithLogging()},
 //	    route,
 //	)
-func WithLogging(logger logging.Logger) Middleware {
+func WithLogging() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
-			start := time.Now()
-			nextErr := next(ctx, s)
-			serviceLatency := time.Since(start)
 
-			logger.Debug("request",
-				"method", s.r.Method,
-				"path", s.r.URL.Path,
-				"status", s.responseStatus,
-				"latency", serviceLatency.Milliseconds(),
+			ctx, event := logger.Start(ctx,
+				slog.Group("http_request",
+					slog.String("method", s.r.Method),
+					slog.String("path", s.r.URL.Path),
+					slog.String("request_id", s.RequestID()),
+					slog.String("host", s.r.URL.Host),
+					slog.String("user_agent", s.r.UserAgent()),
+					slog.String("ip_address", s.Location()),
+				),
 			)
 
-			if nextErr != nil {
-				logger.Error(nextErr.Error(),
-					"method", s.r.Method,
-					"path", s.r.URL.Path,
-					"status", s.responseStatus)
-			}
+			defer logger.End(ctx)
+
+			nextErr := next(ctx, s)
+
+			event.SetError(nextErr)
+
+			event.Set(
+				slog.Group("http_response",
+					slog.Int("status_code", s.StatusCode()),
+				),
+			)
 			return nextErr
 		}
 	}

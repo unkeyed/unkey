@@ -52,7 +52,6 @@ func NewNoopTopic[T proto.Message]() *Topic[T] {
 		brokers:    nil,
 		topic:      "",
 		instanceID: "",
-		logger:     nil,
 		consumers:  nil,
 		producers:  nil,
 	}

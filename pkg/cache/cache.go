@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/debug"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
@@ -22,7 +22,6 @@ type cache[K comparable, V any] struct {
 	otter    otter.Cache[K, swrEntry[V]]
 	fresh    time.Duration
 	stale    time.Duration
-	logger   logging.Logger
 	resource string
 	clock    clock.Clock
 
@@ -41,8 +40,6 @@ type Config[K comparable, V any] struct {
 	// fetching from the origin server
 	Stale time.Duration
 
-	Logger logging.Logger
-
 	// Start evicting the least recently used entry when the cache grows to MaxSize
 	MaxSize int
 
@@ -57,7 +54,6 @@ var _ Cache[any, any] = (*cache[any, any])(nil)
 func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 	if err := assert.All(
 		assert.NotNil(config.Clock, "clock is required"),
-		assert.NotNil(config.Logger, "logger is required"),
 	); err != nil {
 		return nil, fmt.Errorf("invalid cache config: %w", err)
 	}
@@ -84,7 +80,6 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		otter:             otter,
 		fresh:             config.Fresh,
 		stale:             config.Stale,
-		logger:            config.Logger,
 		resource:          config.Resource,
 		clock:             config.Clock,
 		revalidateC:       make(chan func(), 1000),
@@ -292,7 +287,7 @@ func (c *cache[K, V]) revalidate(
 	v, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
-		c.logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
+		logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
 	}
 
 	switch op(err) {
@@ -548,7 +543,7 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
-		c.logger.Warn("failed to revalidate with canonical key", "error", err.Error())
+		logger.Warn("failed to revalidate with canonical key", "error", err.Error())
 		return
 	}
 
@@ -595,7 +590,7 @@ func (c *cache[K, V]) revalidateMany(
 	values, err := refreshFromOrigin(ctx, keysToRefresh)
 
 	if err != nil && !db.IsNotFound(err) {
-		c.logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keysToRefresh)
+		logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keysToRefresh)
 	}
 
 	switch op(err) {

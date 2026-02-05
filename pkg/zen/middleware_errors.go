@@ -6,13 +6,13 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // withErrorHandling returns a lightweight error handler exclusively for testing.
 // only handles the specific error codes that zen package tests need to verify.
-func withErrorHandling(logger logging.Logger) Middleware {
+func withErrorHandling() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			err := next(ctx, s)

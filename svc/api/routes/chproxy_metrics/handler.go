@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -17,7 +16,6 @@ import (
 // Handler handles API request metric events for ClickHouse proxy
 type Handler struct {
 	ClickHouse clickhouse.ClickHouse
-	Logger     logging.Logger
 	Token      string
 }
 

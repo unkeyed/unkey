@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -14,11 +15,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -52,49 +53,47 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := shutdown.New()
-
+	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
+	var shutdownGrafana func(context.Context) error
 	if cfg.OtelEnabled {
-		grafanaErr := otel.InitGrafana(ctx, otel.Config{
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "ctrl",
 			Version:         pkgversion.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
 			TraceSampleRate: cfg.OtelTraceSamplingRate,
-		},
-			shutdowns,
-		)
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
+		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
 		}
 	}
 
-	logger := logging.New()
-	if cfg.InstanceID != "" {
-		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
-	}
-	if cfg.Region != "" {
-		logger = logger.With(slog.String("region", cfg.Region))
-	}
-	if pkgversion.Version != "" {
-		logger = logger.With(slog.String("version", pkgversion.Version))
-	}
+	// Add base attributes to global logger
+	logger.AddBaseAttrs(slog.GroupAttrs("instance",
+		slog.String("id", cfg.InstanceID),
+		slog.String("region", cfg.Region),
+		slog.String("version", pkgversion.Version),
+	))
 
 	if cfg.TLSConfig != nil {
 		logger.Info("TLS is enabled, server will use HTTPS")
 	}
 
+	r := runner.New()
+	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
+
 	// Initialize database
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: "",
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	shutdowns.Register(database.Close)
+	r.Defer(database.Close)
 
 	// Restate ingress client for invoking workflows
 	restateClientOpts := []restate.IngressClientOption{}
@@ -111,7 +110,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	c := cluster.New(cluster.Config{
 		Database: database,
-		Logger:   logger,
 		Bearer:   cfg.AuthToken,
 	})
 
@@ -121,7 +119,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
 		MaxSize:  10000,
-		Logger:   logger,
 		Resource: "domains",
 		Clock:    clk,
 	})
@@ -133,7 +130,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Fresh:    10 * time.Second,
 		Stale:    30 * time.Second,
 		MaxSize:  1000,
-		Logger:   logger,
 		Resource: "acme_challenges",
 		Clock:    clk,
 	})
@@ -144,23 +140,18 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 
-	// Health check endpoint for load balancers and orchestrators
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r.RegisterHealth(mux)
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
 		Database:         database,
 		Restate:          restateClient,
-		Logger:           logger,
 		AvailableRegions: cfg.AvailableRegions,
 	})))
 
-	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
+	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database)))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		DB:             database,
-		Logger:         logger,
 		DomainCache:    domainCache,
 		ChallengeCache: challengeCache,
 	})))
@@ -169,14 +160,12 @@ func Run(ctx context.Context, cfg Config) error {
 		Database:     database,
 		Restate:      restateClient,
 		RestateAdmin: restateAdminClient,
-		Logger:       logger,
 		CnameDomain:  cfg.CnameDomain,
 	})))
 
 	if cfg.GitHubWebhookSecret != "" {
 		mux.Handle("POST /webhooks/github", &GitHubWebhook{
 			db:            database,
-			logger:        logger,
 			restate:       restateClient,
 			webhookSecret: cfg.GitHubWebhookSecret,
 		})
@@ -214,10 +203,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Register server shutdown
-	shutdowns.RegisterCtx(server.Shutdown)
+	r.DeferCtx(server.Shutdown)
 
 	// Start server
-	go func() {
+	r.Go(func(ctx context.Context) error {
 		logger.Info("Starting ctrl server", "addr", addr, "tls", cfg.TLSConfig != nil)
 
 		var err error
@@ -231,46 +220,49 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		if err != nil && err != http.ErrServerClosed {
-			logger.Error("Server failed", "error", err)
+			return fmt.Errorf("server failed: %w", err)
 		}
-	}()
+		return nil
+	})
 
 	// Bootstrap certificates (wildcard domain records)
 	if cfg.DefaultDomain != "" {
 		certBootstrap := &certificateBootstrap{
-			logger:         logger,
 			database:       database,
 			defaultDomain:  cfg.DefaultDomain,
 			regionalDomain: cfg.RegionalDomain,
 			regions:        cfg.AvailableRegions,
 		}
-		go certBootstrap.run(ctx)
+		r.Go(func(ctx context.Context) error {
+			certBootstrap.run(ctx)
+			return nil
+		})
 	}
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New(prometheus.Config{
-			Logger: logger,
-		})
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}
 
-		shutdowns.RegisterCtx(prom.Shutdown)
 		ln, lnErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 		if lnErr != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, lnErr)
 		}
-		go func() {
+
+		r.DeferCtx(prom.Shutdown)
+		r.Go(func(ctx context.Context) error {
 			logger.Info("prometheus started", "port", cfg.PrometheusPort)
-			if serveErr := prom.Serve(ctx, ln); serveErr != nil {
-				logger.Error("failed to start prometheus server", "error", serveErr)
+			if serveErr := prom.Serve(ctx, ln); serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("failed to start prometheus server: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	// Wait for signal and handle shutdown
 	logger.Info("Ctrl server started successfully")
-	if err := shutdowns.WaitForSignal(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}

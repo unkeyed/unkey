@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 type Validator[S any] func(*S) error
@@ -27,7 +27,6 @@ type Simulation[State any] struct {
 	applied     int                // Tracks how many configurations have been applied
 	validators  []Validator[State] // Add validators
 	eventStats  map[string]int     // Track how many times each event is called
-	logger      logging.Logger
 }
 
 // apply is a function type for configuring a simulation
@@ -65,7 +64,6 @@ func New[State any](seed Seed, fns ...apply[State]) *Simulation[State] {
 		Errors:      []error{},
 		applied:     0,
 		eventStats:  make(map[string]int), // Initialize event stats map
-		logger:      logging.New(),
 		validators:  []Validator[State]{},
 	}
 
@@ -118,7 +116,7 @@ func (s *Simulation[State]) Run(events []Event[State]) error {
 		}
 	}
 
-	s.logger.Info("Simulation",
+	logger.Info("Simulation",
 		"seed", s.seed.String(),
 		"ticks", s.ticks,
 	)

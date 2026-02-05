@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -30,13 +29,10 @@ var sentinelCmd = &cli.Command{
 }
 
 func seedSentinel(ctx context.Context, cmd *cli.Command) error {
-	logger := logging.New()
-
 	// Connect to MySQL
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -44,8 +40,7 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 
 	// Connect to ClickHouse
 	ch, err := clickhouse.New(clickhouse.Config{
-		URL:    cmd.String("clickhouse-url"),
-		Logger: logger,
+		URL: cmd.String("clickhouse-url"),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
@@ -67,7 +62,6 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 		numRequests:  cmd.RequireInt("num-requests"),
 		db:           database,
 		clickhouse:   ch,
-		logger:       logger,
 	}
 
 	return seeder.Seed(ctx)
@@ -78,7 +72,6 @@ type SentinelSeeder struct {
 	numRequests  int
 	db           db.Database
 	clickhouse   clickhouse.ClickHouse
-	logger       logging.Logger
 }
 
 func (s *SentinelSeeder) Seed(ctx context.Context) error {

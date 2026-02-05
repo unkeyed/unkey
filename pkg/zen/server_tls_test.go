@@ -18,7 +18,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	tlspkg "github.com/unkeyed/unkey/pkg/tls"
 )
 
@@ -80,13 +79,9 @@ func TestServerWithTLS(t *testing.T) {
 	tlsConfig, err := tlspkg.New(certPEM, keyPEM)
 	require.NoError(t, err, "Failed to create TLS config")
 
-	// Create a mock logger
-	logger := logging.New()
-
 	// Create a server with TLS config
 	server, err := New(Config{
-		Logger: logger,
-		TLS:    tlsConfig,
+		TLS: tlsConfig,
 	})
 	require.NoError(t, err, "Failed to create server with TLS config")
 
@@ -175,13 +170,9 @@ func TestServerWithTLSContextCancellation(t *testing.T) {
 	tlsConfig, err := tlspkg.New(certPEM, keyPEM)
 	require.NoError(t, err, "Failed to create TLS config")
 
-	// Create a mock logger
-	logger := logging.New()
-
 	// Create a server with TLS config
 	server, err := New(Config{
-		Logger: logger,
-		TLS:    tlsConfig,
+		TLS: tlsConfig,
 	})
 	require.NoError(t, err, "Failed to create server with TLS config")
 

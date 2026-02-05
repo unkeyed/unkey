@@ -18,7 +18,7 @@ go_library(
     deps = [
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "@com_github_aftership_clickhouse_sql_parser//parser",
     ],
 )
@@ -39,7 +39,6 @@ go_test(
     deps = [
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/otel/logging",
         "@com_github_stretchr_testify//require",
     ],
 )

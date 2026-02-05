@@ -3,11 +3,11 @@ package frontline
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
-	"runtime/debug"
 	"time"
 
 	"connectrpc.com/connect"
@@ -15,12 +15,12 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	pkgtls "github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -43,72 +43,61 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := shutdown.New()
-
-	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
-	if cfg.OtelEnabled {
-		grafanaErr := otel.InitGrafana(
-			ctx,
-			otel.Config{
-				Application:     "frontline",
-				Version:         version.Version,
-				InstanceID:      cfg.FrontlineID,
-				CloudRegion:     cfg.Region,
-				TraceSampleRate: cfg.OtelTraceSamplingRate,
-			},
-			shutdowns,
-		)
-
-		if grafanaErr != nil {
-			return fmt.Errorf("unable to init grafana: %w", grafanaErr)
-		}
-	}
-
-	// Create logger after InitGrafana so it picks up the OTLP handler
-	logger := logging.New()
-	if cfg.FrontlineID != "" {
-		logger = logger.With(slog.String("instanceID", cfg.FrontlineID))
-	}
-
-	if cfg.Region != "" {
-		logger = logger.With(slog.String("region", cfg.Region))
-	}
-
-	if version.Version != "" {
-		logger = logger.With(slog.String("version", version.Version))
-	}
-
-	// Catch any panics now after we have a logger but before we start the server
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("panic",
-				"panic", r,
-				"stack", string(debug.Stack()),
-			)
-		}
-	}()
-
 	// Create cached clock with millisecond resolution for efficient time tracking
 	clk := clock.New()
 
-	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New(prometheus.Config{
-			Logger: logger,
+	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
+	var shutdownGrafana func(context.Context) error
+	if cfg.OtelEnabled {
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
+			Application:     "frontline",
+			Version:         version.Version,
+			InstanceID:      cfg.FrontlineID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
 		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
+		}
+	}
+
+	// Configure global logger with base attributes
+	if cfg.FrontlineID != "" {
+		logger.AddBaseAttrs(slog.String("instanceID", cfg.FrontlineID))
+	}
+
+	if cfg.Region != "" {
+		logger.AddBaseAttrs(slog.String("region", cfg.Region))
+	}
+
+	if version.Version != "" {
+		logger.AddBaseAttrs(slog.String("version", version.Version))
+	}
+
+	r := runner.New()
+	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
+
+	if cfg.PrometheusPort > 0 {
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
 
-		go func() {
-			promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
-			if listenErr != nil {
-				panic(listenErr)
-			}
+		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		if listenErr != nil {
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
+		}
+
+		r.DeferCtx(prom.Shutdown)
+		r.Go(func(ctx context.Context) error {
 			promListenErr := prom.Serve(ctx, promListener)
-			if promListenErr != nil {
-				panic(promListenErr)
+			if promListenErr != nil && !errors.Is(promListenErr, context.Canceled) {
+				return fmt.Errorf("prometheus server failed: %w", promListenErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	var vaultClient vaultv1connect.VaultServiceClient
@@ -128,17 +117,15 @@ func Run(ctx context.Context, cfg Config) error {
 	db, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
 	}
-	shutdowns.Register(db.Close)
+	r.Defer(db.Close)
 
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
-		Logger: logger,
-		Clock:  clk,
+		Clock: clk,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -148,7 +135,6 @@ func Run(ctx context.Context, cfg Config) error {
 	var certManager certmanager.Service
 	if vaultClient != nil {
 		certManager = certmanager.New(certmanager.Config{
-			Logger:              logger,
 			DB:                  db,
 			TLSCertificateCache: cache.TLSCertificates,
 			Vault:               vaultClient,
@@ -157,7 +143,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize router service
 	routerSvc, err := router.New(router.Config{
-		Logger:                 logger,
 		Region:                 cfg.Region,
 		DB:                     db,
 		FrontlineRouteCache:    cache.FrontlineRoutes,
@@ -170,7 +155,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize proxy service with shared transport for connection pooling
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
-		Logger:      logger,
 		FrontlineID: cfg.FrontlineID,
 		Region:      cfg.Region,
 		ApexDomain:  cfg.ApexDomain,
@@ -216,7 +200,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	acmeClient := ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr)
 	svcs := &routes.Services{
-		Logger:        logger,
 		Region:        cfg.Region,
 		RouterService: routerSvc,
 		ProxyService:  proxySvc,
@@ -227,8 +210,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start HTTPS frontline server (main proxy server)
 	if cfg.HttpsPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
-			Logger: logger,
-			TLS:    tlsConfig,
+			TLS: tlsConfig,
 			// Use longer timeouts for proxy operations
 			// WriteTimeout must be longer than the transport's ResponseHeaderTimeout (30s)
 			// so that transport timeouts can be caught and handled properly in ErrorHandler
@@ -241,7 +223,8 @@ func Run(ctx context.Context, cfg Config) error {
 		if httpsErr != nil {
 			return fmt.Errorf("unable to create HTTPS server: %w", httpsErr)
 		}
-		shutdowns.RegisterCtx(httpsSrv.Shutdown)
+		r.RegisterHealth(httpsSrv.Mux(), "/_unkey/internal/health")
+		r.DeferCtx(httpsSrv.Shutdown)
 
 		// Register all frontline routes on HTTPS server
 		routes.Register(httpsSrv, svcs)
@@ -251,19 +234,19 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create HTTPS listener: %w", httpsListenErr)
 		}
 
-		go func() {
+		r.Go(func(ctx context.Context) error {
 			logger.Info("HTTPS frontline server started", "addr", httpsListener.Addr().String())
 			serveErr := httpsSrv.Serve(ctx, httpsListener)
-			if serveErr != nil {
-				logger.Error("HTTPS server error", "error", serveErr)
+			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("https server error: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	// Start HTTP challenge server (ACME only for Let's Encrypt)
 	if cfg.HttpPort > 0 {
 		httpSrv, httpErr := zen.New(zen.Config{
-			Logger:             logger,
 			TLS:                nil,
 			Flags:              nil,
 			EnableH2C:          false,
@@ -274,7 +257,8 @@ func Run(ctx context.Context, cfg Config) error {
 		if httpErr != nil {
 			return fmt.Errorf("unable to create HTTP server: %w", httpErr)
 		}
-		shutdowns.RegisterCtx(httpSrv.Shutdown)
+		r.RegisterHealth(httpSrv.Mux(), "/_unkey/internal/health")
+		r.DeferCtx(httpSrv.Shutdown)
 
 		// Register only ACME challenge routes on HTTP server
 		routes.RegisterChallengeServer(httpSrv, svcs)
@@ -284,19 +268,20 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create HTTP listener: %w", httpListenErr)
 		}
 
-		go func() {
+		r.Go(func(ctx context.Context) error {
 			logger.Info("HTTP challenge server started", "addr", httpListener.Addr().String())
 			serveErr := httpSrv.Serve(ctx, httpListener)
-			if serveErr != nil {
-				logger.Error("HTTP server error", "error", serveErr)
+			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("http server error: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	logger.Info("Frontline server initialized", "region", cfg.Region, "apexDomain", cfg.ApexDomain)
 
 	// Wait for either OS signals or context cancellation, then shutdown
-	if err := shutdowns.WaitForSignal(ctx, 0); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 

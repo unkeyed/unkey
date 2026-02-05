@@ -7,12 +7,11 @@ import (
 	"github.com/go-acme/lego/v4/providers/dns/route53"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 type Route53Config struct {
 	DB              db.Database
-	Logger          logging.Logger
 	AccessKeyID     string
 	SecretAccessKey string
 	Region          string
@@ -44,7 +43,7 @@ func NewRoute53Provider(cfg Route53Config) (*Provider, error) {
 		config.HostedZoneID = cfg.HostedZoneID
 	}
 
-	cfg.Logger.Info("Route53 provider configured",
+	logger.Info("Route53 provider configured",
 		"region", cfg.Region,
 		"hosted_zone_id", cfg.HostedZoneID,
 	)
@@ -56,7 +55,6 @@ func NewRoute53Provider(cfg Route53Config) (*Provider, error) {
 
 	return NewProvider(ProviderConfig{
 		DB:          cfg.DB,
-		Logger:      cfg.Logger,
 		DNS:         dns,
 		DomainCache: cfg.DomainCache,
 	})

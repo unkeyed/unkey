@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/api"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -64,8 +63,7 @@ func New(t *testing.T, config Config) *Harness {
 
 	// Create real ClickHouse client
 	ch, err := clickhouse.New(clickhouse.Config{
-		URL:    clickhouseHostDSN,
-		Logger: logging.NewNoop(),
+		URL: clickhouseHostDSN,
 	})
 	require.NoError(t, err)
 
@@ -79,7 +77,6 @@ func New(t *testing.T, config Config) *Harness {
 	mysqlDockerCfg.DBName = "unkey"
 	mysqlDockerDSN := mysqlDockerCfg.FormatDSN()
 	db, err := db.New(db.Config{
-		Logger:      logging.NewNoop(),
 		PrimaryDSN:  mysqlHostDSN,
 		ReadOnlyDSN: "",
 	})

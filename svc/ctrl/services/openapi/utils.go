@@ -13,7 +13,7 @@ func (s *Service) loadOpenApiSpec(ctx context.Context, deploymentID string) (str
 		return "", err
 	}
 
-	// Consider: s.logger.Debug("Deployment fetched", "id", deployment.ID, "hasSpec", deployment.OpenapiSpec.Valid)
+	// Consider: logger.Debug("Deployment fetched", "id", deployment.ID, "hasSpec", deployment.OpenapiSpec.Valid)
 	if !deployment.OpenapiSpec.Valid {
 		return "", fault.New("deployment has no OpenAPI spec stored",
 			fault.Public("OpenAPI specification not available for this deployment"),

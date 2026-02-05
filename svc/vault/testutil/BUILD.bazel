@@ -8,7 +8,6 @@ go_library(
     deps = [
         "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/dockertest",
-        "//pkg/otel/logging",
         "//svc/vault/internal/keys",
         "//svc/vault/internal/storage",
         "//svc/vault/internal/vault",

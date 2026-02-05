@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
@@ -21,8 +21,6 @@ type CB[Res any] struct {
 	// This is a pointer to the configuration of the circuit breaker because we
 	// need to modify the clock for testing
 	config *config
-
-	logger logging.Logger
 
 	// State of the circuit
 	state State
@@ -65,8 +63,6 @@ type config struct {
 
 	// Clock to use for timing, defaults to the system clock but can be overridden for testing
 	clock clock.Clock
-
-	logger logging.Logger
 }
 
 // WithMaxRequests sets the maximum number of requests allowed through during
@@ -120,13 +116,6 @@ func WithClock(clock clock.Clock) applyConfig {
 	}
 }
 
-// WithLogger sets the logger for circuit breaker debug output.
-func WithLogger(logger logging.Logger) applyConfig {
-	return func(c *config) {
-		c.logger = logger
-	}
-}
-
 // applyConfig is a functional option for configuring a circuit breaker.
 // Use the With* functions to create options.
 type applyConfig func(*config)
@@ -145,7 +134,6 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 		},
 		tripThreshold: 5,
 		clock:         clock.New(),
-		logger:        logging.NewNoop(),
 	}
 
 	for _, apply := range applyConfigs {
@@ -155,7 +143,6 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 	cb := &CB[Res]{
 		Mutex:                sync.Mutex{},
 		config:               cfg,
-		logger:               cfg.logger,
 		state:                Closed,
 		resetCountersAt:      cfg.clock.Now().Add(cfg.cyclicPeriod),
 		resetStateAt:         cfg.clock.Now().Add(cfg.timeout),
@@ -172,7 +159,6 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 var _ CircuitBreaker[any] = &CB[any]{
 	Mutex:                sync.Mutex{},
 	config:               nil,
-	logger:               nil,
 	state:                Closed,
 	resetCountersAt:      time.Time{},
 	resetStateAt:         time.Time{},
@@ -235,7 +221,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 		return ErrTripped
 	}
 
-	cb.logger.Debug("circuit breaker state", "state", string(cb.state), "requests", cb.requests, "maxRequests", cb.config.maxRequests)
+	logger.Debug("circuit breaker state", "state", string(cb.state), "requests", cb.requests, "maxRequests", cb.config.maxRequests)
 	if cb.state == HalfOpen && cb.requests >= cb.config.maxRequests {
 		return ErrTooManyRequests
 	}

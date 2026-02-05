@@ -13,7 +13,6 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/match",
-        "//pkg/otel/logging",
         "//pkg/rbac",
         "//pkg/zen",
         "//svc/api/openapi",

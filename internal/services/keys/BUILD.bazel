@@ -29,7 +29,7 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/hash",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/prometheus/metrics",
         "//pkg/ptr",

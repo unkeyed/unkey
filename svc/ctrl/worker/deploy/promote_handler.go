@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // Promote reassigns all sticky domains to a deployment and clears the rolled back state.
@@ -29,7 +30,7 @@ import (
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
 func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.PromoteRequest) (*hydrav1.PromoteResponse, error) {
-	w.logger.Info("initiating promotion", "target", req.GetTargetDeploymentId())
+	logger.Info("initiating promotion", "target", req.GetTargetDeploymentId())
 
 	// Get target deployment
 	targetDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
@@ -82,7 +83,7 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		return nil, restate.TerminalError(fmt.Errorf("no frontlineRoutes found for promotion"), 400)
 	}
 
-	w.logger.Info("found frontlineRoutes for promotion", "count", len(frontlineRoutes), "deployment_id", targetDeployment.ID)
+	logger.Info("found frontlineRoutes for promotion", "count", len(frontlineRoutes), "deployment_id", targetDeployment.ID)
 
 	// Collect domain IDs
 	var routeIDs []string
@@ -111,14 +112,14 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		if err != nil {
 			return restate.Void{}, fmt.Errorf("failed to update project's live deployment id: %w", err)
 		}
-		w.logger.Info("updated project live deployment", "project_id", project.ID, "live_deployment_id", targetDeployment.ID)
+		logger.Info("updated project live deployment", "project_id", project.ID, "live_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
 	}, restate.WithName("updating project live deployment"))
 	if err != nil {
 		return nil, err
 	}
 
-	w.logger.Info("promotion completed successfully",
+	logger.Info("promotion completed successfully",
 		"target", req.GetTargetDeploymentId(),
 		"domains_promoted", len(routeIDs))
 

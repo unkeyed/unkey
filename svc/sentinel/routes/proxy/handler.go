@@ -13,14 +13,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
 
 type Handler struct {
-	Logger             logging.Logger
 	RouterService      router.Service
 	Clock              clock.Clock
 	Transport          *http.Transport
@@ -42,7 +41,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	tracking, ok := SentinelTrackingFromContext(ctx)
 	if !ok {
-		h.Logger.Warn("no sentinel tracking context found")
+		logger.Warn("no sentinel tracking context found")
 	}
 
 	requestID := uid.New("req")
@@ -97,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	targetURL, err := url.Parse("http://" + instance.Address)
 	if err != nil {
-		h.Logger.Error("invalid instance address", "address", instance.Address, "error", err)
+		logger.Error("invalid instance address", "address", instance.Address, "error", err)
 		return fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
 			fault.Internal("invalid service address"),

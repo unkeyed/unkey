@@ -14,13 +14,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"golang.org/x/net/http2"
 )
 
 type service struct {
-	logger       logging.Logger
 	frontlineID  string
 	region       string
 	apexDomain   string
@@ -96,7 +95,6 @@ func New(cfg Config) (*service, error) {
 	}
 
 	return &service{
-		logger:       cfg.Logger,
 		frontlineID:  cfg.FrontlineID,
 		region:       cfg.Region,
 		apexDomain:   cfg.ApexDomain,
@@ -132,7 +130,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 
 	if hopCountStr := sess.Request().Header.Get(HeaderFrontlineHops); hopCountStr != "" {
 		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops >= s.maxHops {
-			s.logger.Error("too many frontline hops - rejecting request",
+			logger.Error("too many frontline hops - rejecting request",
 				"hops", hops,
 				"maxHops", s.maxHops,
 				"hostname", sess.Request().Host,
