@@ -94,6 +94,9 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 		fmt.Println("   Fix: Add to dev/.env.github:")
 		fmt.Println("   UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=true")
 		fmt.Println()
+		fmt.Println("   NOTE: Builds also require depot credentials in dev/.env.depot:")
+		fmt.Println("   DEPOT_TOKEN=your_depot_token_here")
+		fmt.Println()
 		os.Exit(0)
 	}
 
@@ -265,8 +268,7 @@ func checkAllowUnauthenticatedDeployments() bool {
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
 		}
-		if strings.HasPrefix(line, "UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=") {
-			val := strings.TrimPrefix(line, "UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=")
+		if val, ok := strings.CutPrefix(line, "UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS="); ok {
 			return strings.ToLower(strings.TrimSpace(val)) == "true"
 		}
 	}

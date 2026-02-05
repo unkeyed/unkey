@@ -93,7 +93,7 @@ func (w *Workflow) buildDockerImageFromGit(
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
 		// Get GitHub installation token for BuildKit to fetch the repo
-		var ghToken *githubclient.InstallationToken
+		var ghToken githubclient.InstallationToken
 		if w.allowUnauthenticatedDeployments {
 			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
 			w.logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",

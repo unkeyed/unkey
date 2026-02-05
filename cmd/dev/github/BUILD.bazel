@@ -1,9 +1,8 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "github",
     srcs = [
-        "payload.go",
         "signature.go",
         "trigger_webhook.go",
     ],
@@ -14,13 +13,4 @@ go_library(
         "//pkg/db",
         "//pkg/otel/logging",
     ],
-)
-
-go_test(
-    name = "github_test",
-    srcs = [
-        "payload_test.go",
-        "signature_test.go",
-    ],
-    embed = [":github"],
 )

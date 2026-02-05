@@ -19,7 +19,15 @@ Simulates GitHub push webhooks for local development and testing of deployment p
 
    Setting `UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=true` allows deployments without GitHub App authentication (for local dev with public repos).
 
-3. **Public repository**: The repository must be publicly accessible on GitHub (for local dev without GitHub App)
+3. **Depot credentials** in `dev/.env.depot`:
+
+   ```bash
+   DEPOT_TOKEN=your_depot_token_here
+   ```
+
+   Required for container builds during deployment.
+
+4. **Public repository**: The repository must be publicly accessible on GitHub (for local dev without GitHub App)
 
 ## Quick Start
 
