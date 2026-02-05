@@ -4,6 +4,7 @@ import type { Column } from "@/components/virtual-table/types";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
+import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
 import { Loading } from "@unkey/ui";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
@@ -133,30 +134,30 @@ export const DeploymentsList = () => {
           );
         },
       },
-
       {
         key: "status",
         header: "Status",
-        width: "12%",
+        width: "15%",
         render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
       },
       {
         key: "domains",
         header: "Domains",
-        width: "20%",
-        render: ({ deployment }) => (
-          <div className="flex items-center min-h-[52px]">
-            <DomainList
-              key={`${deployment.id}-${liveDeployment}-${project?.isRolledBack}-${project?.latestDeploymentId}`}
-              deploymentId={deployment.id}
-            />
-          </div>
-        ),
+        width: "25%",
+        render: ({ deployment }) => {
+          return (
+            <div className="flex items-center min-h-[52px]">
+              <DomainList deploymentId={deployment.id} />
+            </div>
+          );
+        },
       },
       {
         key: "instances" as const,
         header: "Instances",
         width: "10%",
+        headerClassName: "hidden 2xl:table-cell",
+        cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
             <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
@@ -181,17 +182,15 @@ export const DeploymentsList = () => {
               <Cube className="text-gray-12" iconSize="sm-regular" />
               <div className="flex gap-1">
                 <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12 tabular-nums">
-                    {deployment.cpuMillicores / 1024}
+                  <span className="font-semibold text-grayA-12">
+                    {formatCpu(deployment.cpuMillicores)}
                   </span>
-                  <span>vCPU</span>
                 </div>
                 <span> / </span>
                 <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12 tabular-nums">
-                    {deployment.memoryMib}
+                  <span className="font-semibold text-grayA-12">
+                    {formatMemory(deployment.memoryMib)}
                   </span>
-                  <span>MiB</span>
                 </div>
               </div>
             </div>
@@ -201,8 +200,9 @@ export const DeploymentsList = () => {
       {
         key: "source",
         header: "Source",
-        width: "13%",
-        headerClassName: "pl-[18px]",
+        width: "15%",
+        headerClassName: "hidden 2xl:table-cell",
+        cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }) => {
           const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
@@ -217,7 +217,7 @@ export const DeploymentsList = () => {
             </div>
           );
           return (
-            <div className="flex flex-col items-start px-[18px] py-1.5">
+            <div className="flex flex-col items-start py-1.5">
               <div className="flex gap-3 items-center w-full">
                 <div className="flex-shrink-0">{iconContainer}</div>
                 <div className="min-w-0 flex-1">
@@ -258,6 +258,8 @@ export const DeploymentsList = () => {
         key: "author" as const,
         header: "Author",
         width: "10%",
+        headerClassName: "hidden 2xl:table-cell",
+        cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
             <div className="flex items-center gap-2">
@@ -342,12 +344,13 @@ export const DeploymentsList = () => {
         layoutMode: "grid",
         rowBorders: true,
         containerPadding: "px-0",
+        tableLayout: "auto",
       }}
       renderSkeletonRow={({ columns, rowHeight }) =>
         columns.map((column) => (
           <td
             key={column.key}
-            className="text-xs align-middle whitespace-nowrap"
+            className={cn("text-xs align-middle whitespace-nowrap", column.cellClassName)}
             style={{ height: `${rowHeight}px` }}
           >
             {column.key === "deployment_id" && <DeploymentIdColumnSkeleton />}
