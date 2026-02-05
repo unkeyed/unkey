@@ -25,14 +25,14 @@ export const auditLogsSearch = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to verify workspace access. Please try again or contact support@unkey.dev if this persists.",
+            "Failed to verify workspace access. Please try again or contact support@unkey.com if this persists.",
         });
       });
 
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.com.",
       });
     }
 

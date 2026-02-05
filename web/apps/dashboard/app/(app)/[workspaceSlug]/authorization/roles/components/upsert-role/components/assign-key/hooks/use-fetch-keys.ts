@@ -18,21 +18,21 @@ export const useFetchKeys = (limit = MAX_KEYS_FETCH_LIMIT) => {
           if (err.data?.code === "NOT_FOUND") {
             toast.error("Failed to Load Keys", {
               description:
-                "We couldn't find any keys for this workspace. Please try again or contact support@unkey.dev.",
+                "We couldn't find any keys for this workspace. Please try again or contact support@unkey.com.",
             });
           } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
             toast.error("Server Error", {
               description:
-                "We were unable to load keys. Please try again or contact support@unkey.dev",
+                "We were unable to load keys. Please try again or contact support@unkey.com",
             });
           } else {
             toast.error("Failed to Load Keys", {
               description:
                 err.message ||
-                "An unexpected error occurred. Please try again or contact support@unkey.dev",
+                "An unexpected error occurred. Please try again or contact support@unkey.com",
               action: {
                 label: "Contact Support",
-                onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+                onClick: () => window.open("mailto:support@unkey.com", "_blank"),
               },
             });
           }

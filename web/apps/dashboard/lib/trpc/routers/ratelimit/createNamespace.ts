@@ -55,7 +55,7 @@ export const createNamespace = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create namespace. Please try again or contact support@unkey.dev",
+            "We are unable to create namespace. Please try again or contact support@unkey.com",
         });
       });
 

@@ -94,7 +94,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
               description: "Keyspace ID is required to view key details.",
               action: {
                 label: "Contact Support",
-                onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+                onClick: () => window.open("mailto:support@unkey.com", "_blank"),
               },
             });
             return;
