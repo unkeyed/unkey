@@ -1,15 +1,14 @@
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
-import { BuildStep, BuildStepLog } from "@unkey/clickhouse/src/build-steps";
+import type { BuildStep, BuildStepLog } from "@unkey/clickhouse/src/build-steps";
 import { CaretUp } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 
-export type BuildStepRow =
-  BuildStep & {
-    logs?: Omit<BuildStepLog, "step_id">[];
-    _isExpanded?: boolean;
-  }
+export type BuildStepRow = BuildStep & {
+  logs?: Omit<BuildStepLog, "step_id">[];
+  _isExpanded?: boolean;
+};
 
 export const buildStepsColumns: Column<BuildStepRow>[] = [
   {

@@ -2,24 +2,12 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { buildStepLogSchema, buildStepSchema } from "@unkey/clickhouse/src/build-steps";
 import { z } from "zod";
 
-const buildStepWithLogsSchema = z.object({
-  step_id: z.string(),
-  started_at: z.number().int(),
-  completed_at: z.number().int(),
-  name: z.string(),
-  cached: z.boolean(),
+const buildStepWithLogsSchema = buildStepSchema.omit({ error: true }).extend({
   error: z.string().nullable(),
-  has_logs: z.boolean(),
-  logs: z
-    .array(
-      z.object({
-        time: z.number().int(),
-        message: z.string(),
-      }),
-    )
-    .optional(),
+  logs: z.array(buildStepLogSchema.pick({ time: true, message: true })).optional(),
 });
 
 export const getDeploymentBuildSteps = workspaceProcedure
@@ -49,7 +37,10 @@ export const getDeploymentBuildSteps = workspaceProcedure
     }
 
     if (deployment.workspaceId !== ctx.workspace.id) {
-      throw new TRPCError({ code: "FORBIDDEN" });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
+      });
     }
 
     // Fetch steps from ClickHouse
@@ -78,7 +69,7 @@ export const getDeploymentBuildSteps = workspaceProcedure
           projectId: deployment.projectId,
           deploymentId: input.deploymentId,
           stepIds: stepIdsWithLogs,
-          limit: 5000,
+          limit: 20,
         });
 
         if (!logsResult.err) {

@@ -177,8 +177,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         >
           <table className={tableClassName}>
             <colgroup>
-              {columns.map((_, idx) => (
-                <col key={idx} style={{ width: colWidths[idx].width }} />
+              {columns.map((column, idx) => (
+                <col key={column.key} style={{ width: colWidths[idx].width }} />
               ))}
             </colgroup>
             <thead className="sticky top-0 z-10 bg-white dark:bg-black">
@@ -221,8 +221,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         >
           <table className={tableClassName}>
             <colgroup>
-              {columns.map((_, idx) => (
-                <col key={idx} style={{ width: colWidths[idx].width }} />
+              {columns.map((column, idx) => (
+                <col key={column.key} style={{ width: colWidths[idx].width }} />
               ))}
             </colgroup>
             <thead className="sticky top-0 z-10 bg-white dark:bg-black">
