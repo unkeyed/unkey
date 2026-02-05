@@ -8,13 +8,24 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
+
+type pushPayload struct {
+	Ref          string `json:"ref"`
+	After        string `json:"after"`
+	Installation struct {
+		ID int64 `json:"id"`
+	} `json:"installation"`
+	Repository struct {
+		ID       int64  `json:"id"`
+		FullName string `json:"full_name"`
+	} `json:"repository"`
+}
 
 var Cmd = &cli.Command{
 	Name:  "github",
@@ -71,14 +82,22 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	}
 	fmt.Println("✔ GitHub connection ready")
 
-	// Build payload
-	payload := buildPushPayload(pushPayloadInput{
-		Branch:         branch,
-		CommitSHA:      commitSHA,
-		InstallationID: installationID,
-		RepositoryID:   repositoryID,
-		Repository:     repository,
-	})
+	payload := pushPayload{
+		Ref:   fmt.Sprintf("refs/heads/%s", branch),
+		After: commitSHA,
+		Installation: struct {
+			ID int64 `json:"id"`
+		}{
+			ID: installationID,
+		},
+		Repository: struct {
+			ID       int64  `json:"id"`
+			FullName string `json:"full_name"`
+		}{
+			ID:       repositoryID,
+			FullName: repository,
+		},
+	}
 
 	// Serialize to JSON
 	payloadBytes, err := json.Marshal(payload)
@@ -92,7 +111,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	// Send request
 	fmt.Println("\nTriggering deployment webhook...")
 
-	req, err := http.NewRequestWithContext(ctx, "POST", webhookURL, bytes.NewReader(payloadBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, webhookURL, bytes.NewReader(payloadBytes))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -132,25 +151,17 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 		return nil
 
 	case http.StatusUnauthorized:
-		fmt.Println("✗ Webhook rejected: invalid signature")
-		fmt.Println()
-		fmt.Println("Please check your UNKEY_GITHUB_APP_WEBHOOK_SECRET matches the ctrl-api configuration.")
-		os.Exit(1)
+		return fmt.Errorf("✗ Webhook rejected: invalid signature\n\nPlease check your UNKEY_GITHUB_APP_WEBHOOK_SECRET matches the ctrl-api configuration. By default its 'supersecret'")
 
 	case http.StatusBadRequest:
-		fmt.Printf("✗ Webhook rejected: invalid payload\n\n%s\n", string(bodyBytes))
-		os.Exit(1)
+		return fmt.Errorf("✗ Webhook rejected: invalid payload\n\n%s", string(bodyBytes))
 
 	case http.StatusInternalServerError:
-		fmt.Printf("✗ Server error: %s\n\n%s\n", resp.Status, string(bodyBytes))
-		os.Exit(1)
+		return fmt.Errorf("✗ Server error: %s\n\n%s", resp.Status, string(bodyBytes))
 
 	default:
-		fmt.Printf("✗ Unexpected response: %s\n\n%s\n", resp.Status, string(bodyBytes))
-		os.Exit(1)
+		return fmt.Errorf("✗ Unexpected response: %s\n\n%s", resp.Status, string(bodyBytes))
 	}
-
-	return nil
 }
 
 func ensureGithubConnection(ctx context.Context, databaseURL, projectID string, installationID, repositoryID int64, repository string) error {
@@ -186,7 +197,7 @@ func ensureGithubConnection(ctx context.Context, databaseURL, projectID string, 
 
 func fetchRepositoryID(ctx context.Context, repository string) (int64, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s", repository)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -205,6 +216,12 @@ func fetchRepositoryID(ctx context.Context, repository string) (int64, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusNotFound {
+			return 0, fmt.Errorf("repository not found: %s\n\nThis tool only works with public repositories. If '%s' is private, make it public or use the actual repository ID directly", repository, repository)
+		}
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			return 0, fmt.Errorf("authentication required to access repository: %s\n\nThis tool only works with public repositories", repository)
+		}
 		return 0, fmt.Errorf("GitHub API returned %d: %s", resp.StatusCode, string(body))
 	}
 

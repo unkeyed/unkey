@@ -2,12 +2,31 @@
 
 Simulates GitHub push webhooks for local development and testing of deployment pipelines.
 
-## First Time Setup
+## Prerequisites
 
-Before triggering webhooks, initialize your local database:
+1. **Local dev environment running**:
+
+   ```bash
+   make dev  # Starts Tilt with ctrl-api
+   ```
+
+2. **Configure webhook secret** in `dev/.env.github`:
+
+   ```bash
+   UNKEY_GITHUB_APP_WEBHOOK_SECRET=supersecret
+   ```
+
+   This enables the webhook endpoint in ctrl-api.
+
+3. **Public repository**: The repository must be publicly accessible on GitHub (for local dev without authentication)
+
+## Quick Start
+
+### Step 1: Seed Database
+
+Initialize your local database with test data:
 
 ```bash
-# Run once to create workspace, project, and test data
 go run . dev seed local
 ```
 
@@ -19,11 +38,9 @@ This creates:
 - Root API key for testing
 - GitHub repository connection
 
-The seed command outputs the project ID you'll use with `--project-id` below.
+The seed command outputs the project ID you'll use in the next step.
 
-## Quick Start
-
-After running `dev seed local` (see above), trigger a deployment:
+### Step 2: Trigger Webhook
 
 ```bash
 # Get any commit SHA from GitHub (e.g., https://github.com/ogzhanolguncu/demo_api/commits)
@@ -36,26 +53,6 @@ go run . dev github trigger-webhook \
   --repository ogzhanolguncu/demo_api \
   --commit-sha $COMMIT_SHA
 ```
-
-## Prerequisites
-
-1. **Configure webhook secret** in `.env.github`:
-
-   ```bash
-   UNKEY_GITHUB_APP_WEBHOOK_SECRET=supersecret
-   ```
-
-   This enables the webhook endpoint in ctrl-api.
-
-2. **Local dev environment running**:
-
-   ```bash
-   make dev  # Starts Tilt with ctrl-api
-   ```
-
-3. **Public repository**: The repository must be publicly accessible on GitHub (for local dev without authentication)
-
-4. **Project exists**: Create a project in your local Unkey instance first
 
 ## Flags
 
