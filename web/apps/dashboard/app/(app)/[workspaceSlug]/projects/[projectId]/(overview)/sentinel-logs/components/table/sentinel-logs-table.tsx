@@ -4,11 +4,10 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
-import type { Log } from "@unkey/clickhouse/src/logs";
+import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
 import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
 import { useSentinelLogsContext } from "../../context/sentinel-logs-provider";
-import { extractResponseField } from "../../utils";
 import { useSentinelLogsQuery } from "./hooks/use-sentinel-logs-query";
 import {
   WARNING_ICON_STYLES,
@@ -18,17 +17,12 @@ import {
 } from "./utils/get-row-class";
 
 export const SentinelLogsTable = () => {
-  const { setSelectedLog, selectedLog, isLive } = useSentinelLogsContext();
-  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, total } =
-    useSentinelLogsQuery({
-      startPolling: isLive,
-      pollIntervalMs: 2000,
-    });
+  const { setSelectedLog, selectedLog } = useSentinelLogsContext();
+  const { logs, isLoading, isLoadingMore, loadMore, hasMore, total } = useSentinelLogsQuery();
 
   return (
     <VirtualTable
-      data={historicalLogs}
-      realtimeData={realtimeLogs}
+      data={logs}
       isLoading={isLoading}
       isFetchingNextPage={isLoadingMore}
       onLoadMore={loadMore}
@@ -36,7 +30,7 @@ export const SentinelLogsTable = () => {
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
-      rowClassName={(log) => getRowClassName({ log, selectedLog, isLive, realtimeLogs })}
+      rowClassName={(log) => getRowClassName(log, selectedLog)}
       selectedClassName={getSelectedClassName}
       loadMoreFooterProps={{
         hide: isLoading,
@@ -44,41 +38,39 @@ export const SentinelLogsTable = () => {
         hasMore,
         countInfoText: (
           <div className="flex gap-2">
-            <span>Showing</span>{" "}
-            <span className="text-accent-12">{formatNumber(historicalLogs.length)}</span>
+            <span>Showing</span>
+            <span className="text-accent-12">{formatNumber(logs.length)}</span>
             <span>of</span>
             {formatNumber(total)}
             <span>requests</span>
           </div>
         ),
       }}
-      emptyState={
-        <div className="w-full flex justify-center items-center h-full">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>Logs</Empty.Title>
-            <Empty.Description className="text-left">
-              Keep track of all activity within your workspace. We collect all API requests, giving
-              you a clear history to find problems or debug issues.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Documentation
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
-        </div>
-      }
+      emptyState={<EmptyState />}
     />
   );
 };
+
+const EmptyState = () => (
+  <div className="w-full flex justify-center items-center h-full">
+    <Empty className="w-[400px] flex items-start">
+      <Empty.Icon className="w-auto" />
+      <Empty.Title>Logs</Empty.Title>
+      <Empty.Description className="text-left">
+        Keep track of all activity within your workspace. We collect all API requests, giving you a
+        clear history to find problems or debug issues.
+      </Empty.Description>
+      <Empty.Actions className="mt-4 justify-start">
+        <a href="https://www.unkey.com/docs/introduction" target="_blank" rel="noopener noreferrer">
+          <Button size="md">
+            <BookBookmark />
+            Documentation
+          </Button>
+        </a>
+      </Empty.Actions>
+    </Empty>
+  </div>
+);
 
 const WarningIcon = ({ status }: { status: number }) => (
   <TriangleWarning2
@@ -92,7 +84,7 @@ const WarningIcon = ({ status }: { status: number }) => (
   />
 );
 
-const columns: Column<Log>[] = [
+const columns: Column<SentinelLogsResponse>[] = [
   {
     key: "time",
     header: "Time",
@@ -123,19 +115,18 @@ const columns: Column<Log>[] = [
             style.badge.default,
           )}
         >
-          {log.response_status}{" "}
-          {extractResponseField(log, "code") ? `| ${extractResponseField(log, "code")}` : ""}
+          {log.response_status}
         </Badge>
       );
     },
   },
   {
-    key: "host",
-    header: "Hostname",
-    width: "200px",
+    key: "region",
+    header: "Region",
+    width: "100px",
     render: (log) => (
-      <div className="font-mono pr-4 truncate" title={log.host}>
-        {log.host}
+      <div className="font-mono pr-4 truncate" title={log.region}>
+        {log.region}
       </div>
     ),
   },
@@ -165,22 +156,18 @@ const columns: Column<Log>[] = [
     ),
   },
   {
-    key: "response_body",
-    header: "Response Body",
-    width: "300px",
-    render: (log) => (
-      <div className="font-mono whitespace-nowrap truncate max-w-[300px]" title={log.response_body}>
-        {log.response_body}
-      </div>
-    ),
+    key: "total_latency",
+    header: "Total Latency",
+    width: "120px",
+    render: (log) => <div className="font-mono pr-4">{log.total_latency}ms</div>,
   },
   {
-    key: "request_body",
-    header: "Request Body",
+    key: "deployment_id",
+    header: "Deployment ID",
     width: "1fr",
     render: (log) => (
-      <div className="font-mono whitespace-nowrap truncate max-w-[300px]" title={log.request_body}>
-        {log.request_body}
+      <div className="font-mono whitespace-nowrap truncate max-w-[200px]" title={log.deployment_id}>
+        {log.deployment_id}
       </div>
     ),
   },

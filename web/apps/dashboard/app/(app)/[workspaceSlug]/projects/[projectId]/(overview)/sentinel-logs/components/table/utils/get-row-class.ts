@@ -1,4 +1,4 @@
-import type { Log } from "@unkey/clickhouse/src/logs";
+import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { cn } from "@unkey/ui/src/lib/utils";
 
 type StatusStyle = {
@@ -61,7 +61,7 @@ export const WARNING_ICON_STYLES = {
   error: "text-error-11",
 };
 
-export const getSelectedClassName = (log: Log, isSelected: boolean) => {
+export const getSelectedClassName = (log: SentinelLogsResponse, isSelected: boolean) => {
   if (!isSelected) {
     return "";
   }
@@ -69,19 +69,10 @@ export const getSelectedClassName = (log: Log, isSelected: boolean) => {
   return style.selected;
 };
 
-type GetRowClassNameParams = {
-  log: Log;
-  selectedLog?: Log | null;
-  isLive?: boolean;
-  realtimeLogs?: Log[];
-};
-
-export const getRowClassName = ({
-  log,
-  selectedLog,
-  isLive = false,
-  realtimeLogs = [],
-}: GetRowClassNameParams): string => {
+export const getRowClassName = (
+  log: SentinelLogsResponse,
+  selectedLog?: SentinelLogsResponse | null,
+): string => {
   // Early validation
   if (!log?.request_id) {
     throw new Error("Log must have a valid request_id");
@@ -100,8 +91,6 @@ export const getRowClassName = ({
   const style = getStatusStyle(log.response_status);
   const isSelected = Boolean(selectedLog?.request_id === log.request_id);
 
-  const isInRealtime = realtimeLogs.some((realtime) => realtime?.request_id === log.request_id);
-
   const baseClasses = [
     style.base,
     style.hover,
@@ -113,9 +102,6 @@ export const getRowClassName = ({
   const conditionalClasses = [
     // Selected state
     isSelected && style.selected,
-
-    // Live mode opacity for non-realtime items
-    isLive && !isInRealtime && ["opacity-50", "hover:opacity-100"],
 
     // Selection-based z-index and opacity
     selectedLog && {

@@ -11,17 +11,15 @@ import {
   logsFilterFieldConfig as sentinelLogsFilterFieldConfig,
 } from "@/lib/schemas/logs.filter.schema";
 import { parseAsInteger, useQueryStates } from "nuqs";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 // Constants
 const parseAsFilterValArray = parseAsFilterValueArray<SentinelLogsFilterOperator>([
   "is",
   "contains",
-  "startsWith",
-  "endsWith",
 ]);
 
-const arrayFields = ["status", "methods", "paths", "host", "requestId"] as const;
+const arrayFields = ["status", "methods", "paths", "deploymentId", "environmentId"] as const;
 const timeFields = ["startTime", "endTime", "since"] as const;
 
 // Query params configuration
@@ -29,8 +27,8 @@ export const queryParamsPayload = {
   status: parseAsFilterValArray,
   methods: parseAsFilterValArray,
   paths: parseAsFilterValArray,
-  host: parseAsFilterValArray,
-  requestId: parseAsFilterValArray,
+  deploymentId: parseAsFilterValArray,
+  environmentId: parseAsFilterValArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
@@ -40,6 +38,17 @@ export const useSentinelLogsFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
     history: "push",
   });
+
+  // Set default time filter if none exists
+  useEffect(() => {
+    if (
+      searchParams.since === null &&
+      searchParams.startTime === null &&
+      searchParams.endTime === null
+    ) {
+      setSearchParams({ since: "6h" });
+    }
+  }, []);
 
   const filters = useMemo(() => {
     const activeFilters: SentinelLogsFilterValue[] = [];
@@ -111,12 +120,26 @@ export const useSentinelLogsFilters = () => {
 
       // Set array filters
       arrayFields.forEach((field) => {
-        newParams[field] = filterGroups[field].length > 0 ? filterGroups[field] : null;
+        if (filterGroups[field] !== undefined) {
+          (newParams as Record<string, unknown>)[field] =
+            filterGroups[field].length > 0 ? filterGroups[field] : null;
+        }
       });
 
       setSearchParams(newParams);
     },
     [setSearchParams],
+  );
+
+  const addFilter = useCallback(
+    (filter: Omit<SentinelLogsFilterValue, "id">) => {
+      const newFilter: SentinelLogsFilterValue = {
+        ...filter,
+        id: crypto.randomUUID(),
+      };
+      updateFilters([...filters, newFilter]);
+    },
+    [filters, updateFilters],
   );
 
   const removeFilter = useCallback(
@@ -129,6 +152,7 @@ export const useSentinelLogsFilters = () => {
 
   return {
     filters,
+    addFilter,
     removeFilter,
     updateFilters,
   };

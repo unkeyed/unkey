@@ -3,6 +3,8 @@ import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useSentinelLogsFilters } from "../../../../hooks/use-sentinel-logs-filters";
+import { SentinelDeploymentFilter } from "./components/sentinel-logs-deployment-filter";
+import { SentinelEnvironmentFilter } from "./components/sentinel-logs-environment-filter";
 import { SentinelMethodsFilter } from "./components/sentinel-logs-methods-filter";
 import { SentinelPathsFilter } from "./components/sentinel-logs-paths-filter";
 import { SentinelStatusFilter } from "./components/sentinel-logs-status-filter";
@@ -28,6 +30,20 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     shortcut: "P",
     shortcutLabel: "P",
     component: <SentinelPathsFilter />,
+  },
+  {
+    id: "deploymentId",
+    label: "Deployment ID",
+    shortcut: "D",
+    shortcutLabel: "D",
+    component: <SentinelDeploymentFilter />,
+  },
+  {
+    id: "environmentId",
+    label: "Environment ID",
+    shortcut: "N",
+    shortcutLabel: "N",
+    component: <SentinelEnvironmentFilter />,
   },
 ];
 

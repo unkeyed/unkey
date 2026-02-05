@@ -5,11 +5,7 @@ import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-f
 export const SentinelPathsFilter = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();
 
-  const pathOperators = sentinelLogsFilterFieldConfig.paths.operators;
-  const options = pathOperators.map((op) => ({
-    id: op,
-    label: op,
-  }));
+  const options = [{ id: "contains" as const, label: "contains" }];
 
   const activePathFilter = filters.find((f) => f.field === "paths");
 
@@ -26,7 +22,7 @@ export const SentinelPathsFilter = () => {
           {
             field: "paths",
             id: crypto.randomUUID(),
-            operator: id,
+            operator: "contains",
             value: text,
           },
         ]);
