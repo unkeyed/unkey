@@ -318,6 +318,7 @@ export const IdentitiesList = () => {
               "text-xs align-middle whitespace-nowrap pr-4",
               idx === 0 ? "pl-[18px]" : "",
               column.key === "externalId" ? "py-[6px]" : "py-1",
+              column.cellClassName,
             )}
             style={{ height: `${rowHeight}px` }}
           >
