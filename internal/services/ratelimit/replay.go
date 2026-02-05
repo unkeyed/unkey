@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // replayRequests processes buffered rate limit events by synchronizing them with
@@ -49,14 +48,7 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		metrics.RatelimitOriginSyncLatency.Observe(time.Since(start).Seconds())
 	}(time.Now())
 
-	var span trace.Span
-	if req.SpanContext.IsValid() {
-		// Link to the original request trace for correlation
-		ctx, span = tracing.Start(ctx, "syncWithOrigin",
-			trace.WithLinks(trace.Link{SpanContext: req.SpanContext}))
-	} else {
-		ctx, span = tracing.Start(ctx, "syncWithOrigin")
-	}
+	ctx, span := tracing.Start(ctx, "syncWithOrigin")
 	defer span.End()
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)

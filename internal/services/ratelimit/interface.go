@@ -4,8 +4,6 @@ package ratelimit
 import (
 	"context"
 	"time"
-
-	"go.opentelemetry.io/otel/trace"
 )
 
 // Service defines the core rate limiting functionality. It provides thread-safe
@@ -99,11 +97,6 @@ type RatelimitRequest struct {
 	// Time of the request
 	// If not specified or zero, the ratelimiter will use its own clock.
 	Time time.Time
-
-	// SpanContext captures the trace context from the original request.
-	// This is used by the replay buffer to link async operations back to
-	// the original request trace. Not required for normal usage.
-	SpanContext trace.SpanContext
 }
 
 // RatelimitResponse contains the result of a rate limit check and the current state
