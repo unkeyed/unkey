@@ -3,8 +3,8 @@ import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { LatencyBadge } from "./components/latency-badge";
-import { WARNING_ICON_STYLES, getStatusStyle } from "./utils/get-row-class";
+import { LatencyBadge } from "../components/latency-badge";
+import { WARNING_ICON_STYLES, getStatusStyle } from "../utils/get-sentinel-logs-row-class";
 
 export const columns: Column<SentinelLogsResponse>[] = [
   {

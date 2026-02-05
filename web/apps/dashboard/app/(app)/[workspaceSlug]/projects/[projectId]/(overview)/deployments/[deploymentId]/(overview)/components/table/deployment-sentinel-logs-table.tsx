@@ -3,9 +3,9 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { columns } from "./columns";
+import { columns } from "./columns/sentinel-logs";
 import { useDeploymentSentinelLogsQuery } from "./hooks/use-deployment-sentinel-logs-query";
-import { getRowClassName } from "./utils/get-row-class";
+import { getRowClassName } from "./utils/get-sentinel-logs-row-class";
 
 export const DeploymentSentinelLogsTable = () => {
   const { logs, isLoading } = useDeploymentSentinelLogsQuery();

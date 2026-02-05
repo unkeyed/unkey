@@ -10,6 +10,7 @@ export const useVirtualData = ({
   onLoadMore,
   isFetchingNextPage,
   parentRef,
+  getItemSize,
 }: {
   totalDataLength: number;
   isLoading: boolean;
@@ -17,6 +18,7 @@ export const useVirtualData = ({
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
   parentRef: React.RefObject<HTMLDivElement>;
+  getItemSize?: (index: number) => number;
 }) => {
   const throttledFn = useMemo(
     () =>
@@ -81,7 +83,10 @@ export const useVirtualData = ({
   return useVirtualizer({
     count: isLoading ? config.loadingRows : totalDataLength,
     getScrollElement: useCallback(() => parentRef.current, [parentRef]),
-    estimateSize: useCallback(() => config.rowHeight, [config.rowHeight]),
+    estimateSize: useCallback(
+      (index) => (getItemSize ? getItemSize(index) : config.rowHeight),
+      [config.rowHeight, getItemSize],
+    ),
     overscan: config.overscan,
     onChange: handleChange,
     gap: 4, // Add this line

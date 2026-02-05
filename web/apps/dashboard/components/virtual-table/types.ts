@@ -79,6 +79,26 @@ export type VirtualTableProps<TTableData> = {
    * Override auto-calculated table height in pixels
    */
   fixedHeight?: number;
+  /**
+   * Expansion support - controlled state of expanded row IDs
+   */
+  expandedIds?: Set<string>;
+  /**
+   * Callback when expansion state changes
+   */
+  onExpandedChange?: (expandedIds: Set<string>) => void;
+  /**
+   * Render function for expanded row content
+   */
+  renderExpanded?: (item: TTableData) => React.ReactNode;
+  /**
+   * Determine if a row can be expanded
+   */
+  isExpandable?: (item: TTableData) => boolean;
+  /**
+   * Height of expanded content in pixels (default: 400)
+   */
+  expandedRowHeight?: number;
 };
 
 export type SeparatorItem = {

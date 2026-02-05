@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
-import { Badge, InfoTooltip } from "@unkey/ui";
+import { InfoTooltip } from "@unkey/ui";
 
 export const LatencyBadge = ({ log }: { log: SentinelLogsResponse }) => {
   const style = getLatencyStyle(log.total_latency);
@@ -9,9 +9,9 @@ export const LatencyBadge = ({ log }: { log: SentinelLogsResponse }) => {
 
   return (
     <InfoTooltip content={tooltipText}>
-      <Badge className={cn("px-[6px] rounded-md font-mono whitespace-nowrap tabular-nums", style)}>
+      <span className={cn("px-[6px] font-mono whitespace-nowrap tabular-nums", style)}>
         {formatLatency(log.total_latency)}
-      </Badge>
+      </span>
     </InfoTooltip>
   );
 };
@@ -24,10 +24,10 @@ export const LatencyBadge = ({ log }: { log: SentinelLogsResponse }) => {
  */
 const getLatencyStyle = (latency: number): string => {
   if (latency > 500) {
-    return "bg-error-4 text-error-11";
+    return "text-error-11";
   }
   if (latency > 200) {
-    return "bg-warning-4 text-warning-11";
+    return "text-warning-11";
   }
-  return "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5";
+  return "text-grayA-11";
 };
