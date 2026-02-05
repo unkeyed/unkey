@@ -148,10 +148,14 @@ Save the returned `apiId` — you'll use it to create keys.
 Use the dashboard (APIs → your API → Keys → Create key) or the management API.
 
 ```bash
+# Calculate expiration: 1 year from now (in milliseconds)
+# On macOS/Linux: date -d "+1 year" +%s000
+# On Windows: use a timestamp 1 year in the future (e.g., 1807000000000 for 2027)
+
 curl -X POST "https://api.unkey.dev/v1/keys.createKey" \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -H "Content-Type: application/json" \
-  -d '{"apiId":"api_123","name":"dev-key","prefix":"dev","expires":1700000000000}'
+  -d '{"apiId":"api_123","name":"dev-key","prefix":"dev","expires":1807000000000}'
 ```
 
 Example response contains the plaintext `key` you'll use when calling your service:
