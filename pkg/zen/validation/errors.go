@@ -140,14 +140,6 @@ func extractFieldFromKeywordLocation(keywordLocation string) string {
 	return lastFieldName
 }
 
-// buildLocation creates a user-friendly location string
-// For required errors at root level, includes the missing field name
-func buildLocation(prefix, instanceLocation, keywordLocation string) string {
-	keyword := extractKeyword(keywordLocation)
-	fieldName := extractFieldFromKeywordLocation(keywordLocation)
-	return buildLocationWithKeyword(prefix, instanceLocation, keyword, fieldName)
-}
-
 // buildLocationWithKeyword creates a user-friendly location string using pre-extracted values
 func buildLocationWithKeyword(prefix, instanceLocation, keyword, fieldName string) string {
 	loc := FormatLocation(prefix, instanceLocation)
@@ -157,11 +149,6 @@ func buildLocationWithKeyword(prefix, instanceLocation, keyword, fieldName strin
 		return loc + "." + fieldName
 	}
 	return loc
-}
-
-// suggestFix provides helpful suggestions based on the error type
-func suggestFix(keywordLocation, message, fieldName string) *string {
-	return suggestFixWithKeyword(extractKeyword(keywordLocation), message, fieldName)
 }
 
 // suggestFixWithKeyword provides helpful suggestions using a pre-extracted keyword

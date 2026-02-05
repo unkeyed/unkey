@@ -72,19 +72,6 @@ func (e *BadRequestError) SetRequestID(requestID string) {
 	e.Meta.RequestId = requestID
 }
 
-// UnauthorizedError wraps UnauthorizedErrorResponse to implement ValidationErrorResponse
-type UnauthorizedError struct {
-	openapi.UnauthorizedErrorResponse
-}
-
-func (e *UnauthorizedError) GetStatus() int {
-	return e.Error.Status
-}
-
-func (e *UnauthorizedError) SetRequestID(requestID string) {
-	e.Meta.RequestId = requestID
-}
-
 // Validate validates an HTTP request against the OpenAPI spec
 func (v *Validator) Validate(ctx context.Context, r *http.Request) (ValidationErrorResponse, bool) {
 	ctx, validationSpan := tracing.Start(ctx, "openapi.Validate")

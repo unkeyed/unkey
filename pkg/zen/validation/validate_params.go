@@ -226,7 +226,7 @@ func collectParamErrors(output *jsonschema.OutputUnit, location, paramName strin
 		if fieldName == "" {
 			fieldName = paramName
 		}
-		fix := suggestFix(output.KeywordLocation, message, fieldName)
+		fix := suggestFixWithKeyword(extractKeyword(output.KeywordLocation), message, fieldName)
 
 		errors = append(errors, openapi.ValidationError{
 			Location: loc,

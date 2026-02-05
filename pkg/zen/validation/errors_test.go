@@ -271,7 +271,7 @@ func TestSuggestFix(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			fix := suggestFix(tt.keywordLocation, tt.message, tt.fieldName)
+			fix := suggestFixWithKeyword(extractKeyword(tt.keywordLocation), tt.message, tt.fieldName)
 			if tt.expectNil {
 				require.Nil(t, fix)
 			} else {
@@ -433,7 +433,7 @@ func TestBuildLocation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result := buildLocation(tt.prefix, tt.instanceLoc, tt.keywordLoc)
+			result := buildLocationWithKeyword(tt.prefix, tt.instanceLoc, extractKeyword(tt.keywordLoc), extractFieldFromKeywordLocation(tt.keywordLoc))
 			require.Equal(t, tt.expected, result)
 		})
 	}

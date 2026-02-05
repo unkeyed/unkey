@@ -21,7 +21,7 @@ import (
 //	    []zen.Middleware{zen.WithValidation(validator)},
 //	    route,
 //	)
-func WithValidation(validator *validation.Validator) Middleware {
+func WithValidation(validator validation.OpenAPIValidator) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			errResp, valid := validator.Validate(ctx, s.r)
