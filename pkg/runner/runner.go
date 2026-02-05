@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"os"
 	"os/signal"
 	"runtime/debug"

@@ -52,6 +52,7 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (s
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "exec", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "exec", status).Inc()
 
+	tracing.RecordErrorUnless(span, err, sql.ErrNoRows)
 	return result, err
 }
 
@@ -83,6 +84,7 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "prepare", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "prepare", status).Inc()
 
+	tracing.RecordErrorUnless(span, err, sql.ErrNoRows)
 	return stmt, err
 }
 
@@ -114,6 +116,7 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...any) (
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "query", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "query", status).Inc()
 
+	tracing.RecordErrorUnless(span, err, sql.ErrNoRows)
 	return rows, err
 }
 
@@ -165,6 +168,7 @@ func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "begin", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "begin", status).Inc()
 
+	tracing.RecordErrorUnless(span, err, sql.ErrNoRows)
 	if err != nil {
 		return nil, err
 	}

@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // TestError_CleanupErrorReturned verifies that errors from cleanup handlers
 // are returned from Run.
 func TestError_CleanupErrorReturned(t *testing.T) {
-	r := New()
+	r := New(logging.NewNoop())
 
 	cleanupErr := errors.New("cleanup failed")
 	r.Defer(func() error {
@@ -29,7 +30,7 @@ func TestError_CleanupErrorReturned(t *testing.T) {
 // TestError_TaskAndCleanupErrorsJoined verifies that when both a task fails
 // and a cleanup fails, both errors are joined and returned together.
 func TestError_TaskAndCleanupErrorsJoined(t *testing.T) {
-	r := New()
+	r := New(logging.NewNoop())
 
 	taskErr := errors.New("task failed")
 	cleanupErr := errors.New("cleanup failed")
@@ -51,7 +52,7 @@ func TestError_TaskAndCleanupErrorsJoined(t *testing.T) {
 // tasks are not reported as failures. This is expected behavior when shutdown
 // is triggered by context cancellation or signals.
 func TestError_ContextCanceledIgnored(t *testing.T) {
-	r := New()
+	r := New(logging.NewNoop())
 
 	r.Go(func(ctx context.Context) error {
 		<-ctx.Done()
@@ -76,7 +77,7 @@ func TestError_ContextCanceledIgnored(t *testing.T) {
 // concurrently, the first error received triggers shutdown and is reported.
 // Subsequent errors from other tasks are not captured.
 func TestError_FirstTaskErrorWins(t *testing.T) {
-	r := New()
+	r := New(logging.NewNoop())
 
 	firstErr := errors.New("first error")
 	secondErr := errors.New("second error")

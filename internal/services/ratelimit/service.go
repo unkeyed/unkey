@@ -239,7 +239,6 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 			currentWindow, _ := bucket.getCurrentWindow(rwk.req.Time)
 			currentWindow.counter += rwk.req.Cost
 
-			// Buffer for async replay to Redis
 			s.replayBuffer.Buffer(rwk.req)
 		}
 	} else {
