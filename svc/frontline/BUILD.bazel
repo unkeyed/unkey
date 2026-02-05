@@ -18,7 +18,7 @@ go_library(
         "//pkg/prometheus",
         "//pkg/ptr",
         "//pkg/rpc/interceptor",
-        "//pkg/shutdown",
+        "//pkg/runner",
         "//pkg/tls",
         "//pkg/version",
         "//pkg/zen",

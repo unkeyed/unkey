@@ -16,7 +16,7 @@ go_library(
         "//pkg/otel",
         "//pkg/otel/logging",
         "//pkg/prometheus",
-        "//pkg/shutdown",
+        "//pkg/runner",
         "//pkg/version",
         "//pkg/zen",
         "//svc/sentinel/routes",
