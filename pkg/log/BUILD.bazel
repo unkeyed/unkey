@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "log",
+    srcs = [
+        "doc.go",
+        "event.go",
+        "log.go",
+        "sampler.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/log",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/fault",
+    ],
+)
