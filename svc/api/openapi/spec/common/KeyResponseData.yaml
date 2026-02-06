@@ -87,6 +87,7 @@ properties:
     x-go-type-skip-optional-pointer-with-omitzero: true
   plaintext:
     type: string
+    x-unkey-redact: true
     description: Decrypted key value (only when decrypt=true).
     example: sk_test_abc123def456
     x-go-type-skip-optional-pointer: true

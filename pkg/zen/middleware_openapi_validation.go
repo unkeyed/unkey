@@ -24,6 +24,17 @@ import (
 func WithValidation(validator validation.OpenAPIValidator) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
+			// Sanitize request for logging
+			s.sanitizedRequestBody, s.sanitizedRequestHeaders =
+				validator.SanitizeRequest(s.r, s.requestBody, s.r.Header)
+
+			// Always sanitize response when we exit (even on validation failure)
+			defer func() {
+				s.sanitizedResponseBody, s.sanitizedResponseHeaders =
+					validator.SanitizeResponse(s.r, s.responseBody, s.w.Header())
+			}()
+
+			// Validate request
 			errResp, valid := validator.Validate(ctx, s.r)
 			if !valid && errResp != nil {
 				errResp.SetRequestID(s.requestID)

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -14,6 +13,10 @@ import (
 
 // WithSentinelLogging logs completed sentinel requests to ClickHouse.
 // Timing/response data populated by handler via context during proxy execution.
+//
+// Request data (body, headers) is read from Session's loggable helpers, which
+// are populated by WithValidation. Response body comes from the proxy tracking
+// context since the reverse proxy bypasses Session's response capture.
 func WithSentinelLogging(ch clickhouse.ClickHouse, clk clock.Clock, sentinelID, region string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
@@ -53,10 +56,10 @@ func WithSentinelLogging(ch clickhouse.ClickHouse, clk clock.Clock, sentinelID, 
 					Path:            req.URL.Path,
 					QueryString:     req.URL.RawQuery,
 					QueryParams:     req.URL.Query(),
-					RequestHeaders:  formatHeaders(req.Header),
-					RequestBody:     string(tracking.RequestBody),
+					RequestHeaders:  s.LoggableRequestHeaders(),
+					RequestBody:     s.LoggableRequestBody(),
 					ResponseStatus:  tracking.ResponseStatus,
-					ResponseHeaders: formatHeaders(tracking.ResponseHeaders),
+					ResponseHeaders: s.LoggableResponseHeaders(),
 					ResponseBody:    string(tracking.ResponseBody),
 					UserAgent:       req.UserAgent(),
 					IPAddress:       s.Location(),
@@ -69,28 +72,4 @@ func WithSentinelLogging(ch clickhouse.ClickHouse, clk clock.Clock, sentinelID, 
 			return err
 		}
 	}
-}
-
-func formatHeader(key, value string) string {
-	var b strings.Builder
-	b.Grow(len(key) + 2 + len(value))
-	b.WriteString(key)
-	b.WriteString(": ")
-	b.WriteString(value)
-	return b.String()
-}
-
-func formatHeaders(headers http.Header) []string {
-	result := make([]string, 0, len(headers))
-	for key, values := range headers {
-		lk := strings.ToLower(key)
-		if lk == "authorization" {
-			result = append(result, formatHeader(key, "[REDACTED]"))
-		} else {
-			for _, value := range values {
-				result = append(result, formatHeader(key, value))
-			}
-		}
-	}
-	return result
 }
