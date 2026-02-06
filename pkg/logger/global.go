@@ -8,17 +8,15 @@ import (
 // Package-level state for the global logger, sampler, and base attributes.
 // Protected by mu for concurrent access during configuration.
 var (
-	logger    *slog.Logger
-	sampler   Sampler
-	baseAttrs []slog.Attr
-	mu        sync.Mutex
+	logger  *slog.Logger
+	sampler Sampler
+	mu      sync.Mutex
 )
 
 func init() {
 	mu = sync.Mutex{}
 	logger = slog.Default()
 	sampler = AlwaysSample{}
-	baseAttrs = []slog.Attr{}
 }
 
 // GetHandler returns the current [slog.Handler] used by the global logger.
@@ -52,7 +50,7 @@ func AddHandler(newHandler slog.Handler) {
 func AddBaseAttrs(attrs ...slog.Attr) {
 	mu.Lock()
 	defer mu.Unlock()
-	baseAttrs = append(baseAttrs, attrs...)
+	logger = slog.New(logger.Handler().WithAttrs(attrs))
 }
 
 // SetSampler configures the sampling strategy for wide events. The sampler

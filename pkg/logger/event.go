@@ -93,9 +93,6 @@ func (e *Event) End() {
 			slog.Duration("duration", time.Since(e.start)),
 		),
 	}
-	for _, attr := range baseAttrs {
-		casted = append(casted, attr)
-	}
 	for _, attr := range e.attrs {
 		casted = append(casted, attr)
 	}
