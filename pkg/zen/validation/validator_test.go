@@ -187,8 +187,8 @@ func TestValidate_MissingAuthorizationHeader(t *testing.T) {
 	require.False(t, valid, "expected invalid request due to missing auth")
 	secResp, ok := resp.(*SecurityError)
 	require.True(t, ok, "expected SecurityError")
-	require.Equal(t, "Bad Request", secResp.Error.Title)
-	require.Equal(t, http.StatusBadRequest, secResp.Error.Status)
+	require.Equal(t, "Unauthorized", secResp.Error.Title)
+	require.Equal(t, http.StatusUnauthorized, secResp.Error.Status)
 	require.Contains(t, secResp.Error.Detail, "Authorization header")
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/missing", secResp.Error.Type)
 }
@@ -207,8 +207,8 @@ func TestValidate_MalformedAuthorizationHeader(t *testing.T) {
 	require.False(t, valid, "expected invalid request due to wrong auth scheme")
 	secResp, ok := resp.(*SecurityError)
 	require.True(t, ok, "expected SecurityError")
-	require.Equal(t, "Bad Request", secResp.Error.Title)
-	require.Equal(t, http.StatusBadRequest, secResp.Error.Status)
+	require.Equal(t, "Unauthorized", secResp.Error.Title)
+	require.Equal(t, http.StatusUnauthorized, secResp.Error.Status)
 	require.Contains(t, secResp.Error.Detail, "Bearer")
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", secResp.Error.Type)
 }
@@ -227,8 +227,8 @@ func TestValidate_EmptyBearerToken(t *testing.T) {
 	require.False(t, valid, "expected invalid request due to empty token")
 	secResp, ok := resp.(*SecurityError)
 	require.True(t, ok, "expected SecurityError")
-	require.Equal(t, "Bad Request", secResp.Error.Title)
-	require.Equal(t, http.StatusBadRequest, secResp.Error.Status)
+	require.Equal(t, "Unauthorized", secResp.Error.Title)
+	require.Equal(t, http.StatusUnauthorized, secResp.Error.Status)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/authentication/malformed", secResp.Error.Type)
 }
 

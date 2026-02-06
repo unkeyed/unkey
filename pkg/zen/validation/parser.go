@@ -82,10 +82,7 @@ func NewSpecParser(specBytes []byte) (*SpecParser, error) {
 				continue
 			}
 
-			op, err := parser.parseOperation(method, path, opData)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse operation %s %s: %w", method, path, err)
-			}
+			op := parser.parseOperation(method, path, opData)
 			if op != nil {
 				key := method + " " + path
 				parser.operations[key] = op
@@ -156,18 +153,15 @@ func (p *SpecParser) parseSecurityRequirements(securityList []map[string]any) []
 }
 
 // parseOperation extracts operation details from raw YAML data
-func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation, error) {
+func (p *SpecParser) parseOperation(method, path string, opData any) *Operation {
 	opMap, ok := opData.(map[string]any)
 	if !ok {
-		return nil, nil
+		return nil
 	}
 
 	// Extract operationId
-	operationID := ""
-	if opID, ok := opMap["operationId"].(string); ok {
-		operationID = opID
-	} else {
-		// Generate operationId from method and path if not present
+	operationID, ok := opMap["operationId"].(string)
+	if !ok {
 		operationID = method + "_" + strings.ReplaceAll(strings.ReplaceAll(path, "/", "_"), ".", "_")
 	}
 
@@ -197,7 +191,7 @@ func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation
 	// Extract request body schema
 	reqBody, ok := opMap["requestBody"].(map[string]any)
 	if !ok {
-		return op, nil // No request body
+		return op
 	}
 
 	// Parse required field
@@ -207,7 +201,7 @@ func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation
 
 	content, ok := reqBody["content"].(map[string]any)
 	if !ok {
-		return op, nil
+		return op
 	}
 
 	// Extract all supported content types
@@ -217,12 +211,12 @@ func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation
 
 	jsonContent, ok := content["application/json"].(map[string]any)
 	if !ok {
-		return op, nil
+		return op
 	}
 
 	schema, ok := jsonContent["schema"].(map[string]any)
 	if !ok {
-		return op, nil
+		return op
 	}
 
 	// Extract schema name from $ref if present (e.g., "./V2KeysCreateKeyRequestBody.yaml" -> "V2KeysCreateKeyRequestBody")
@@ -233,7 +227,7 @@ func (p *SpecParser) parseOperation(method, path string, opData any) (*Operation
 	// The compiler handles $ref resolution, so we just store the schema as-is
 	op.RequestSchema = schema
 
-	return op, nil
+	return op
 }
 
 // extractSchemaNameFromRef extracts the schema name from a $ref string
