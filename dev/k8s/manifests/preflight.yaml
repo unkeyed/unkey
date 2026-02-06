@@ -1,4 +1,3 @@
----
 # ServiceAccount for the preflight
 apiVersion: v1
 kind: ServiceAccount
@@ -101,7 +100,7 @@ spec:
             - name: UNKEY_INJECT_IMAGE
               value: "inject:latest"
             - name: UNKEY_INJECT_IMAGE_PULL_POLICY
-              value: "Never" # Local dev uses pre-loaded images; use IfNotPresent in prod
+              value: "Never"  # Local dev uses pre-loaded images; use IfNotPresent in prod
             - name: UNKEY_KRANE_ENDPOINT
               value: "http://krane.unkey.svc.cluster.local:8070"
             - name: UNKEY_INSECURE_REGISTRIES

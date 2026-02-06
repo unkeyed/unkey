@@ -38,7 +38,7 @@ upx:
     ids:
       - unkey
     goos:
-      - linux # UPX doesn't support macOS
+      - linux  # UPX doesn't support macOS
     compress: best
     lzma: true
 

@@ -4,8 +4,8 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 15 * * *" # Quota check: Daily at 15:00 UTC
-    - cron: "0 3 * * *" # Cert renewal: Daily at 03:00 UTC
+    - cron: "0 15 * * *"  # Quota check: Daily at 15:00 UTC
+    - cron: "0 3 * * *"  # Cert renewal: Daily at 03:00 UTC
   workflow_dispatch:
     inputs:
       task:

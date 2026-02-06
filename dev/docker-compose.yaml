@@ -30,14 +30,7 @@ services:
       - default
     container_name: planetscale
     image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.12
-    command:
-      [
-        "-listen-port=3900",
-        "-mysql-dbname=unkey",
-        "-mysql-addr=mysql",
-        "-mysql-max-rows=100000",
-        "-mysql-idle-timeout=1s",
-      ]
+    command: ["-listen-port=3900", "-mysql-dbname=unkey", "-mysql-addr=mysql", "-mysql-max-rows=100000", "-mysql-idle-timeout=1s"]
     depends_on:
       mysql:
         condition: service_healthy
@@ -190,19 +183,7 @@ services:
     volumes:
       - clickhouse:/bitnami/clickhouse
     healthcheck:
-      test:
-        [
-          "CMD",
-          "clickhouse-client",
-          "--host",
-          "localhost",
-          "--user",
-          "default",
-          "--password",
-          "password",
-          "--query",
-          "SELECT 1",
-        ]
+      test: ["CMD", "clickhouse-client", "--host", "localhost", "--user", "default", "--password", "password", "--query", "SELECT 1"]
       timeout: 10s
       retries: 10
       start_period: 30s
@@ -248,7 +229,7 @@ services:
         condition: service_healthy
     environment:
       # Server configuration
-      UNKEY_REGION: "local.dev" # currently required to receive filtered events from ctrl
+      UNKEY_REGION: "local.dev"  # currently required to receive filtered events from ctrl
       UNKEY_CONTROL_PLANE_URL: "http://ctrl-api:7091"
       UNKEY_CONTROL_PLANE_BEARER: "your-local-dev-key"
 
@@ -270,8 +251,8 @@ services:
     container_name: restate
     image: docker.io/restatedev/restate:1.6.0
     ports:
-      - "8081:8080" # Frontline endpoint (host:container)
-      - "9070:9070" # Admin endpoint and UI
+      - "8081:8080"  # Frontline endpoint (host:container)
+      - "9070:9070"  # Admin endpoint and UI
     environment:
       RESTATE_TRACING_ENDPOINT: "http://otel:4317"
     depends_on:

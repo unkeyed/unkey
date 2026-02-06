@@ -10,7 +10,7 @@ properties:
     type: integer
     format: int64
     minimum: 0
-    maximum: 1000 # Reasonable upper bound for operation costs
+    maximum: 1000  # Reasonable upper bound for operation costs
     default: 1
     description: |
       Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting.
@@ -21,8 +21,8 @@ properties:
   duration:
     type: integer
     format: int64
-    minimum: 1000 # 1 second minimum window
-    maximum: 2592000000 # 30 days maximum window
+    minimum: 1000  # 1 second minimum window
+    maximum: 2592000000  # 30 days maximum window
     description: |
       Sets the rate limit window duration in milliseconds after which the counter resets.
       Shorter durations enable faster recovery but may be less effective against sustained abuse.
@@ -32,7 +32,7 @@ properties:
   identifier:
     type: string
     minLength: 1
-    maxLength: 255 # Reasonable upper bound for identifiers
+    maxLength: 255  # Reasonable upper bound for identifiers
     description: |
       Defines the scope of rate limiting by identifying the entity being limited.
       Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
@@ -44,7 +44,7 @@ properties:
     type: integer
     format: int64
     minimum: 1
-    maximum: 1000000 # Reasonable upper bound for rate limits
+    maximum: 1000000  # Reasonable upper bound for rate limits
     description: |
       Sets the maximum operations allowed within the duration window before requests are rejected.
       When this limit is reached, subsequent requests fail with `RATE_LIMITED` until the window resets.

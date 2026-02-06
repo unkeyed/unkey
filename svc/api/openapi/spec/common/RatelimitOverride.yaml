@@ -2,17 +2,12 @@ type: object
 additionalProperties: false
 properties:
   overrideId:
-    description: The unique identifier of this specific rate limit override.
-      This ID is generated when the override is created and can be used for
-      management operations like updating or deleting the override.
+    description: The unique identifier of this specific rate limit override. This ID is generated when the override is created and can be used for management operations like updating or deleting the override.
     type: string
     minLength: 1
     maxLength: 255
   duration:
-    description: The duration in milliseconds for this override's rate limit
-      window. This may differ from the default duration for the namespace, allowing
-      custom time windows for specific entities. After this duration elapses,
-      the rate limit counter for affected identifiers resets to zero.
+    description: The duration in milliseconds for this override's rate limit window. This may differ from the default duration for the namespace, allowing custom time windows for specific entities. After this duration elapses, the rate limit counter for affected identifiers resets to zero.
     format: int64
     type: integer
     minimum: 1000

@@ -2,22 +2,11 @@ type: object
 properties:
   keyId:
     type: string
-    description: The unique identifier for this key in Unkey's system. This
-      is NOT the actual API key, but a reference ID used for management operations
-      like updating or deleting the key. Store this ID in your database to reference
-      the key later. This ID is not sensitive and can be logged or displayed
-      in dashboards.
+    description: The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
     example: key_2cGKbMxRyIzhCxo1Idjz8q
   key:
     type: string
-    description: "The full generated API key that should be securely provided
-      to your user.
-
-      SECURITY WARNING: This is the only time you'll receive
-      the complete key - Unkey only stores a securely hashed version. Never
-      log or store this value in your own systems; provide it directly to your
-      end user via secure channels. After this API call completes, this value
-      cannot be retrieved again (unless created with `recoverable=true`)."
+    description: "The full generated API key that should be securely provided to your user. #magic___^_^___line SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`)."
     example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
 required:
   - keyId

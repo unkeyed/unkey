@@ -19,36 +19,36 @@ env:
   CHECKLY_TEST_ENVIRONMENT: ${{ github.event.deployment_status.environment }}
 jobs:
   test-e2e:
-    if: github.event.deployment_status.state == 'success' # Only run when the deployment was successful.
+    if: github.event.deployment_status.state == 'success'  # Only run when the deployment was successful.
     name: Test E2E on Checkly
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4
         with:
           ref: "${{ github.event.deployment_status.deployment.ref }}"
           fetch-depth: 0
-      - name: Set branch name # this is workaround to get the branch name.
+      - name: Set branch name  # this is workaround to get the branch name.
         run: echo "CHECKLY_TEST_REPO_BRANCH=$(git show -s --pretty=%D HEAD | tr -s ',' '\n' | sed 's/^ //' | grep -e 'origin/' | head -1 | sed 's/\origin\///g')" >> $GITHUB_ENV
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
         with:
           node-version-file: ".nvmrc"
       - name: Restore or cache node_modules
         id: cache-node-modules
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
           path: node_modules
           key: node-modules-${{ hashFiles('package-lock.json') }}
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
-      - name: Run checks # run the checks passing in the ENVIRONMENT_URL and recording a test session.
+      - name: Run checks  # run the checks passing in the ENVIRONMENT_URL and recording a test session.
         id: run-checks
         run: npx checkly -v && npx checkly test -e ENVIRONMENT_URL=${{ env.ENVIRONMENT_URL }} --reporter=github --record
-      - name: Create summary # export the markdown report to the job summary.
+      - name: Create summary  # export the markdown report to the job summary.
         id: create-summary
         run: cat checkly-github-report.md > $GITHUB_STEP_SUMMARY
-      - name: Deploy checks # if the test run was successful and we are on Production, deploy the checks
+      - name: Deploy checks  # if the test run was successful and we are on Production, deploy the checks
         id: deploy-checks
         if: steps.run-checks.outcome == 'success' && github.event.deployment_status.environment == 'Production'
         run: npx checkly deploy --force

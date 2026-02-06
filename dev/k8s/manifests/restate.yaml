@@ -1,4 +1,3 @@
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -21,7 +20,7 @@ metadata:
     app: restate
 spec:
   serviceName: "restate"
-  replicas: 1 # Restate requires single-replica for development
+  replicas: 1  # Restate requires single-replica for development
   selector:
     matchLabels:
       app: restate

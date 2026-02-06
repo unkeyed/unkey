@@ -43,8 +43,8 @@ jobs:
       packages: ${{ steps.changes.outputs.packages }}
       configs: ${{ steps.changes.outputs.configs }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36  # v3.0.2
         id: changes
         with:
           filters: |
@@ -70,7 +70,6 @@ jobs:
               - 'web/internal/vercel/**'
               - 'web/packages/error/**'
               - 'web/packages/rbac/**'
-
 
             # Go services (API v2, Ctrl, Deploy services)
             go:

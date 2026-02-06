@@ -5,8 +5,8 @@ properties:
   name:
     type: string
     minLength: 3
-    maxLength: 255 # Reasonable upper bound for API names
-    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$" # Must start with letter, then alphanumeric/underscore/dot/hyphen
+    maxLength: 255  # Reasonable upper bound for API names
+    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"  # Must start with letter, then alphanumeric/underscore/dot/hyphen
     description: |
       Unique identifier for this API namespace within your workspace.
       Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.

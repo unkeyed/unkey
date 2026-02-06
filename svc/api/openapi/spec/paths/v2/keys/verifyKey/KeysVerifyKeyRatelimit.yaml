@@ -5,7 +5,7 @@ properties:
   name:
     type: string
     minLength: 3
-    maxLength: 255 # Reasonable upper bound for database identifiers
+    maxLength: 255  # Reasonable upper bound for database identifiers
     description: References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
     example: tokens
   cost:

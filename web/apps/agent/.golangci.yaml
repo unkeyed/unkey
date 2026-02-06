@@ -12,7 +12,6 @@ run:
   # Default: 1m
   timeout: 3m
 
-
 # This file contains only configs which differ from defaults.
 # All possible options can be found here https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
 linters-settings:
@@ -125,7 +124,7 @@ linters-settings:
     # Run `go tool vet help` to see all analyzers.
     # Default: []
     disable:
-      - fieldalignment # too strict
+      - fieldalignment  # too strict
     # Settings per analyzer.
     settings:
       shadow:
@@ -166,7 +165,7 @@ linters-settings:
   nolintlint:
     # Exclude following linters from requiring an explanation.
     # Default: []
-    allow-no-explanation: [ funlen, gocognit, lll ]
+    allow-no-explanation: [funlen, gocognit, lll]
     # Enable to require an explanation of nonzero length after each nolint directive.
     # Default: false
     require-explanation: true
@@ -209,13 +208,12 @@ linters-settings:
     # Default: false
     all: true
 
-
 linters:
   disable-all: true
   enable:
-    - errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
-    - gosimple # specializes in simplifying a code
-    - govet # reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
+    - errcheck  # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
+    - gosimple  # specializes in simplifying a code
+    - govet  # reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
     # - ineffassign # detects when assignments to existing variables are not used
     # - staticcheck # is a go vet on steroids, applying a ton of static analysis checks
     # - typecheck # like the front-end of a Go compiler, parses and type-checks Go code
@@ -325,7 +323,6 @@ linters:
     #- thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
     #- wsl # [too strict and mostly code is not more readable] whitespace linter forces you to use empty lines
 
-
 issues:
   # Maximum count of issues with the same text.
   # Set to 0 to disable.
@@ -334,9 +331,9 @@ issues:
 
   exclude-rules:
     - source: "(noinspection|TODO)"
-      linters: [ godot ]
+      linters: [godot]
     - source: "//noinspection"
-      linters: [ gocritic ]
+      linters: [gocritic]
     - path: "_test\\.go"
       linters:
         - bodyclose

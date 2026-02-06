@@ -36,11 +36,7 @@ post:
         application/json:
           schema:
             "$ref": "./V2KeysCreateKeyResponseBody.yaml"
-      description: "Successfully created a new API key. The response includes
-        both the keyId (for reference in your system) and the full key string.
-        IMPORTANT: This is the only time the complete key is available - it cannot
-        be retrieved later. You must securely provide this key to your end user
-        immediately."
+      description: "Successfully created a new API key. The response includes both the keyId (for reference in your system) and the full key string. IMPORTANT: This is the only time the complete key is available - it cannot be retrieved later. You must securely provide this key to your end user immediately."
     "400":
       description: Bad request
       content:
