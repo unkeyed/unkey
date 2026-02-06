@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS `default`.`keys_last_used_v1` (
   `outcome` SimpleAggregateFunction(anyLast, LowCardinality(String)),
   `tags` SimpleAggregateFunction(anyLast, Array(String))
 ) ENGINE = AggregatingMergeTree()
-ORDER BY (`workspace_id`, `key_space_id`, `key_id`)
+ORDER BY (`workspace_id`, `key_space_id`, `key_id`, `identity_id`)
 TTL toDateTime(time / 1000) + INTERVAL 90 DAY
 SETTINGS index_granularity = 8192;
 
