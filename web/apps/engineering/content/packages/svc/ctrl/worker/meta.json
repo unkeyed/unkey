@@ -1,0 +1,14 @@
+{
+  "title": "worker",
+  "root": false,
+  "pages": [
+    "certificate",
+    "clickhouseuser",
+    "customdomain",
+    "deploy",
+    "github",
+    "quotacheck",
+    "routing",
+    "versioning"
+  ]
+}

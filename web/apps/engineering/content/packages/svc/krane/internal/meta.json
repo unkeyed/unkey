@@ -1,0 +1,9 @@
+{
+  "title": "internal",
+  "root": false,
+  "pages": [
+    "cilium",
+    "deployment",
+    "sentinel"
+  ]
+}

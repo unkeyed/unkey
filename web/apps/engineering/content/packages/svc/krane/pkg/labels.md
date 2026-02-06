@@ -1,0 +1,288 @@
+---
+title: labels
+description: "provides standardized label management for krane Kubernetes resources"
+---
+
+Package labels provides standardized label management for krane Kubernetes resources.
+
+This package defines a consistent labeling scheme for all krane-managed resources using both Kubernetes standard labels and unkey.com organization-specific labels. Labels are used for resource selection, identification, and organization.
+
+### Label Conventions
+
+The package follows these labeling conventions:
+
+  - Kubernetes standard labels use "app.kubernetes.io/" prefix
+  - Organization-specific labels use "unkey.com/" prefix
+  - Component type is identified by "app.kubernetes.io/component" label
+  - Resource ownership is identified by "unkey.com/\[resource].id" labels
+
+### Label Types
+
+Resource identification labels:
+
+  - unkey.com/workspace.id - Workspace identifier
+  - unkey.com/project.id - Project identifier
+  - unkey.com/environment.id - Environment identifier
+  - unkey.com/deployment.id - Deployment identifier
+  - unkey.com/sentinel.id - Sentinel identifier
+
+Component and management labels:
+
+  - app.kubernetes.io/managed-by - Always "krane" for managed resources
+  - app.kubernetes.io/component - Either "deployment" or "sentinel"
+
+### Key Types
+
+\[Labels]: Map type for building and manipulating label sets
+
+### Usage
+
+Building labels for deployment:
+
+	labels := labels.New().
+		WithWorkspaceID("ws-123").
+		WithProjectID("proj-456").
+		WithEnvironmentID("env-789").
+		WithDeploymentID("deploy-001").
+		WithManagedByKrane().
+		WithComponentDeployment()
+
+Converting to Kubernetes selector:
+
+	selector := labels.ToString()
+	// Result: "unkey.com/workspace.id=ws-123,unkey.com/project.id=proj-456,..."
+
+Extracting specific IDs from existing labels:
+
+	deploymentID, found := labels.GetDeploymentID(existingLabels)
+	if !found {
+		// Handle missing deployment ID
+	}
+
+## Constants
+
+Label key constants for krane resources. These are the single source of truth for label keys used across the codebase.
+```go
+const (
+	LabelKeyWorkspaceID     = "unkey.com/workspace.id"
+	LabelKeyProjectID       = "unkey.com/project.id"
+	LabelKeyEnvironmentID   = "unkey.com/environment.id"
+	LabelKeyDeploymentID    = "unkey.com/deployment.id"
+	LabelKeyBuildID         = "unkey.com/build.id"
+	LabelKeySentinelID      = "unkey.com/sentinel.id"
+	LabelKeyNetworkPolicyID = "unkey.com/networkpolicy.id"
+	LabelKeyInject          = "unkey.com/inject"
+	LabelKeyManagedBy       = "app.kubernetes.io/managed-by"
+	LabelKeyComponent       = "app.kubernetes.io/component"
+	LabelKeyNamespace       = "io.kubernetes.pod.namespace"
+)
+```
+
+
+## Functions
+
+### func GetCiliumNetworkPolicyID
+
+```go
+func GetCiliumNetworkPolicyID(l map[string]string) (string, bool)
+```
+
+GetCiliumNetworkPolicyID extracts cilium network policy ID from Kubernetes label map.
+
+This helper function retrieves the "unkey.com/networkpolicy.id" label from a Kubernetes resource's labels. Returns ID and a boolean indicating whether the label was found.
+
+### func GetDeploymentID
+
+```go
+func GetDeploymentID(l map[string]string) (string, bool)
+```
+
+GetDeploymentID extracts deployment ID from Kubernetes label map.
+
+This helper function retrieves the "unkey.com/deployment.id" label from a Kubernetes resource's labels. Returns ID and a boolean indicating whether the label was found.
+
+### func GetEnvironmentID
+
+```go
+func GetEnvironmentID(l map[string]string) (string, bool)
+```
+
+GetEnvironmentID extracts environment ID from Kubernetes label map.
+
+This helper function retrieves the "unkey.com/environment.id" label from a Kubernetes resource's labels. Returns ID and a boolean indicating whether the label was found.
+
+### func GetSentinelID
+
+```go
+func GetSentinelID(l map[string]string) (string, bool)
+```
+
+GetSentinelID extracts sentinel ID from Kubernetes label map.
+
+This helper function retrieves the "unkey.com/sentinel.id" label from a Kubernetes resource's labels. Returns the ID and a boolean indicating whether the label was found.
+
+
+## Types
+
+### type Labels
+
+```go
+type Labels map[string]string
+```
+
+Labels represents a map of Kubernetes labels for krane resources.
+
+This type provides fluent methods for building standardized label sets that follow krane's labeling conventions. It implements method chaining for easy label construction.
+
+#### func New
+
+```go
+func New() Labels
+```
+
+New creates an empty Labels map for building label sets.
+
+This function returns a new Labels instance that can be populated using the fluent With methods for adding specific labels. Returns an empty label map ready for method chaining.
+
+#### func (Labels) BuildID
+
+```go
+func (l Labels) BuildID(id string) Labels
+```
+
+BuildID adds build ID label to the label set.
+
+This method sets the "unkey.com/build.id" label for identifying the build that produced the container image. Returns the same Labels instance for method chaining.
+
+#### func (Labels) ComponentCiliumNetworkPolicy
+
+```go
+func (l Labels) ComponentCiliumNetworkPolicy() Labels
+```
+
+ComponentCiliumNetworkPolicy adds component label for Cilium network policy resources.
+
+This method sets "app.kubernetes.io/component" label to "ciliumnetworkpolicy" to identify resource as a Cilium network policy component. Returns the same Labels instance for method chaining.
+
+#### func (Labels) ComponentDeployment
+
+```go
+func (l Labels) ComponentDeployment() Labels
+```
+
+ComponentDeployment adds component label for deployment resources.
+
+This method sets "app.kubernetes.io/component" label to "deployment" to identify resource as a deployment component. Returns the same Labels instance for method chaining.
+
+#### func (Labels) ComponentSentinel
+
+```go
+func (l Labels) ComponentSentinel() Labels
+```
+
+ComponentSentinel adds component label for sentinel resources.
+
+This method sets "app.kubernetes.io/component" label to "sentinel" to identify resource as a sentinel component. Returns the same Labels instance for method chaining.
+
+#### func (Labels) DeploymentID
+
+```go
+func (l Labels) DeploymentID(id string) Labels
+```
+
+DeploymentID adds deployment ID label to the label set.
+
+This method sets the "unkey.com/deployment.id" label for identifying the specific deployment that owns this resource. Returns the same Labels instance for method chaining.
+
+#### func (Labels) EnvironmentID
+
+```go
+func (l Labels) EnvironmentID(id string) Labels
+```
+
+EnvironmentID adds environment ID label to the label set.
+
+This method sets the "unkey.com/environment.id" label to identify the environment that owns the resource. Returns the same Labels instance for method chaining.
+
+#### func (Labels) Inject
+
+```go
+func (l Labels) Inject() Labels
+```
+
+Inject adds the inject label to the label set.
+
+This method sets the "unkey.com/inject" label to "true" to indicate that the resource should be injected. Returns the same Labels instance for method chaining.
+
+#### func (Labels) ManagedByKrane
+
+```go
+func (l Labels) ManagedByKrane() Labels
+```
+
+ManagedByKrane adds the standard Kubernetes managed-by label.
+
+This method sets the "app.kubernetes.io/managed-by" label to "krane" to indicate that the resource is managed by the krane system. Returns the same Labels instance for method chaining.
+
+#### func (Labels) Namespace
+
+```go
+func (l Labels) Namespace(namespace string) Labels
+```
+
+Namespace adds namespace label to the label set.
+
+This method sets the "io.kubernetes.pod.namespace" label to specify the Kubernetes namespace of the resource. Returns the same Labels instance for method chaining.
+
+#### func (Labels) NetworkPolicyID
+
+```go
+func (l Labels) NetworkPolicyID(id string) Labels
+```
+
+NetworkPolicyID adds network policy ID label to the label set.
+
+This method sets the "unkey.com/networkpolicy.id" label for identifying the specific network policy resource. Returns the same Labels instance for method chaining.
+
+#### func (Labels) ProjectID
+
+```go
+func (l Labels) ProjectID(id string) Labels
+```
+
+ProjectID adds project ID label to the label set.
+
+This method sets the "unkey.com/project.id" label for identifying the project that owns the resource. Returns the same Labels instance for method chaining.
+
+#### func (Labels) SentinelID
+
+```go
+func (l Labels) SentinelID(id string) Labels
+```
+
+SentinelID adds sentinel ID label to the label set.
+
+This method sets the "unkey.com/sentinel.id" label for identifying the specific sentinel that owns this resource. Returns the same Labels instance for method chaining.
+
+#### func (Labels) ToString
+
+```go
+func (l Labels) ToString() string
+```
+
+ToString converts Labels map to Kubernetes label selector string.
+
+This method formats the labels as a comma-separated list of key=value pairs suitable for use with Kubernetes API selectors. The output format follows Kubernetes label selector conventions.
+
+Returns an empty string for empty label maps.
+
+#### func (Labels) WorkspaceID
+
+```go
+func (l Labels) WorkspaceID(id string) Labels
+```
+
+WorkspaceID adds workspace ID label to the label set.
+
+This method sets the "unkey.com/workspace.id" label for identifying the workspace that owns the resource. Returns the same Labels instance for method chaining.
+

@@ -1,0 +1,7 @@
+{
+  "title": "prometheus",
+  "root": false,
+  "pages": [
+    "metrics"
+  ]
+}

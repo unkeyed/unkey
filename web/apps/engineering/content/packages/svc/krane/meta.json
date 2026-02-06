@@ -1,0 +1,9 @@
+{
+  "title": "krane",
+  "root": false,
+  "pages": [
+    "internal",
+    "pkg",
+    "secrets"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Packages",
+  "root": true,
+  "pages": [
+    "index",
+    "internal",
+    "pkg",
+    "svc"
+  ]
+}

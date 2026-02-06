@@ -1,0 +1,10 @@
+{
+  "title": "Services",
+  "root": false,
+  "pages": [
+    "api",
+    "ctrl",
+    "frontline",
+    "krane"
+  ]
+}

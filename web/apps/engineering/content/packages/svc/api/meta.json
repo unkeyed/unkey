@@ -1,0 +1,7 @@
+{
+  "title": "api",
+  "root": false,
+  "pages": [
+    "internal"
+  ]
+}

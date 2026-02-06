@@ -1,0 +1,9 @@
+{
+  "title": "services",
+  "root": false,
+  "pages": [
+    "caches",
+    "keys",
+    "ratelimit"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": "ctrl",
+  "root": false,
+  "pages": [
+    "api",
+    "middleware",
+    "services",
+    "worker"
+  ]
+}
