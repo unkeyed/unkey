@@ -22,10 +22,7 @@ export function SecretScanningKeyDetected({ date, source, url }: Props) {
         Warning! One of your keys was leaked!
       </Heading>
       <Text>Hi there!</Text>
-      <Text>
-        Github found that one of your keys has been leaked. Details are as
-        follows:
-      </Text>
+      <Text>Github found that one of your keys has been leaked. Details are as follows:</Text>
       <ul className="pb-4">
         <li className="pt-4">
           {" "}
@@ -41,17 +38,13 @@ export function SecretScanningKeyDetected({ date, source, url }: Props) {
         </li>
       </ul>
       <Section className="text-center py-3">
-        <Button
-          href={url}
-          className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3"
-        >
+        <Button href={url} className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3">
           Go to source
         </Button>
       </Section>
       <Hr />
       <Text>
-        You can disable the Root Key in your dashboard by following our docs
-        available at{" "}
+        You can disable the Root Key in your dashboard by following our docs available at{" "}
         <Link href="https://www.unkey.com/docs/security/root-keys">
           https://www.unkey.com/docs/security/root-keys
         </Link>
@@ -59,8 +52,7 @@ export function SecretScanningKeyDetected({ date, source, url }: Props) {
       </Text>
       <Text>
         Need help? Please reach out to{" "}
-        <Link href="mailto:support@unkey.com">support@unkey.com</Link> or just
-        reply to this email.
+        <Link href="mailto:support@unkey.com">support@unkey.com</Link> or just reply to this email.
       </Text>
       <Signature signedBy="James" />
     </Layout>
