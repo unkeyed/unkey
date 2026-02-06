@@ -132,12 +132,17 @@ export function getKeyDetailsLogs(ch: Querier) {
 
     const extendedParamsSchema = keyDetailsLogsParams.extend(paramSchemaExtension);
 
-    const baseConditions = `
+    // PREWHERE clause for indexed columns
+    const prewhereConditions = `
       workspace_id = {workspaceId: String}
       AND key_space_id = {keyspaceId: String}
       AND key_id = {keyId: String}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-      AND (${tagCondition})
+    `;
+
+    // WHERE clause for non-indexed filters
+    const whereConditions = `
+      (${tagCondition})
       AND (${outcomeCondition})
     `;
 
@@ -147,7 +152,8 @@ export function getKeyDetailsLogs(ch: Querier) {
         SELECT
           count(request_id) as total_count
         FROM default.key_verifications_raw_v2
-        WHERE ${baseConditions}`,
+        PREWHERE ${prewhereConditions}
+        WHERE ${whereConditions}`,
       params: extendedParamsSchema,
       schema: z.object({
         total_count: z.int(),
@@ -163,7 +169,8 @@ export function getKeyDetailsLogs(ch: Querier) {
           outcome,
           tags
       FROM default.key_verifications_raw_v2
-      WHERE ${baseConditions}
+      PREWHERE ${prewhereConditions}
+      WHERE ${whereConditions}
           -- Handle pagination using time as cursor
           ${cursorCondition}
       ORDER BY time DESC
@@ -304,10 +311,15 @@ export function getIdentityLogs(ch: Querier) {
 
     const extendedParamsSchema = identityLogsParams.extend(paramSchemaExtension);
 
-    const baseConditions = `
+    // PREWHERE clause for indexed columns
+    const prewhereConditions = `
       workspace_id = {workspaceId: String}
-      AND (${keyIdConditions})
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    `;
+
+    // WHERE clause for non-indexed filters
+    const whereConditions = `
+      (${keyIdConditions})
       AND (${tagCondition})
       AND (${outcomeCondition})
     `;
@@ -318,7 +330,8 @@ export function getIdentityLogs(ch: Querier) {
         SELECT
           count(request_id) as total_count
         FROM default.key_verifications_raw_v2
-        WHERE ${baseConditions}`,
+        PREWHERE ${prewhereConditions}
+        WHERE ${whereConditions}`,
       params: extendedParamsSchema,
       schema: z.object({
         total_count: z.int(),
@@ -335,7 +348,8 @@ export function getIdentityLogs(ch: Querier) {
           tags,
           key_id as keyId
       FROM default.key_verifications_raw_v2
-      WHERE ${baseConditions}
+      PREWHERE ${prewhereConditions}
+      WHERE ${whereConditions}
           ${cursorCondition}
       ORDER BY time DESC
       LIMIT {limit: Int}

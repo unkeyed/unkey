@@ -23,6 +23,7 @@ type KeysOverviewLogsResponse = z.infer<typeof KeysOverviewLogsResponse>;
  */
 export const queryKeysOverviewLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
+  .meta({ skipBatch: true })
   .input(keysQueryOverviewLogsPayload)
   .output(KeysOverviewLogsResponse)
   .query(async ({ ctx, input }) => {
