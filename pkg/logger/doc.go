@@ -39,7 +39,7 @@
 //
 // # Tail Sampling
 //
-// Tail sampling decides whether to emit a log after the request completes, rather
+// Tail sampling decides whether to emit a log after t pgit puthe request completes, rather
 // than at the start. This allows sampling decisions based on outcome: always log
 // errors and slow requests, sample routine successes at a lower rate.
 //
