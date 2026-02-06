@@ -123,10 +123,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		VaultToken: cmd.String("vault-token"),
 
 		// Logging sampler configuration
-		LogSampleRate:      cmd.Float("log-sample-rate"),
-		LogErrorSampleRate: cmd.Float("log-error-sample-rate"),
-		LogSlowSampleRate:  cmd.Float("log-slow-sample-rate"),
-		LogSlowThreshold:   cmd.Duration("log-slow-threshold"),
+		LogSampleRate:    cmd.Float("log-sample-rate"),
+		LogSlowThreshold: cmd.Duration("log-slow-threshold"),
 	}
 
 	err := config.Validate()

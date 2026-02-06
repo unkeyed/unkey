@@ -168,8 +168,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			CtrlURL:                 "http://ctrl:7091",
 			CtrlToken:               "your-local-dev-key",
 			LogSampleRate:           1.0,
-			LogErrorSampleRate:      1.0,
-			LogSlowSampleRate:       1.0,
 			LogSlowThreshold:        time.Second,
 		}
 

@@ -44,10 +44,8 @@
 // errors and slow requests, sample routine successes at a lower rate.
 //
 //	logger.SetSampler(logger.TailSampler{
-//	    ErrorSampleRate: 1.0,           // always log errors
-//	    SlowThreshold:   time.Second,
-//	    SlowSampleRate:  1.0,           // always log slow requests
-//	    SampleRate:      0.1,           // sample 10% of normal requests
+//	    SlowThreshold: time.Second, // always log slow requests
+//	    SampleRate:    0.1,         // sample 10% of normal requests
 //	})
 //
 // # Standalone Logging

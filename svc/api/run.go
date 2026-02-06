@@ -45,10 +45,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.SetSampler(logger.TailSampler{
-		ErrorSampleRate: cfg.LogErrorSampleRate,
-		SlowSampleRate:  cfg.LogSlowSampleRate,
-		SlowThreshold:   cfg.LogSlowThreshold,
-		SampleRate:      cfg.LogSampleRate,
+		SlowThreshold: cfg.LogSlowThreshold,
+		SampleRate:    cfg.LogSampleRate,
 	})
 	logger.AddBaseAttrs(slog.GroupAttrs("instance",
 		slog.String("id", cfg.InstanceID),

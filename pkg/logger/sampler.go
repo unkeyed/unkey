@@ -32,17 +32,10 @@ func (AlwaysSample) Sample(*Event) bool {
 // then baseline rate. An event matching multiple criteria (e.g., slow and
 // has errors) is evaluated against the first matching rate.
 type TailSampler struct {
-	// ErrorSampleRate is the probability of emitting events that recorded
-	// at least one error via [SetError]. Set to 1.0 to always log errors.
-	ErrorSampleRate float64
 
 	// SlowThreshold defines what duration qualifies as "slow". Events
-	// exceeding this duration are sampled at SlowSampleRate.
+	// exceeding this duration are always sampled.
 	SlowThreshold time.Duration
-
-	// SlowSampleRate is the probability of emitting events that exceeded
-	// SlowThreshold. Set to 1.0 to always log slow requests.
-	SlowSampleRate float64
 
 	// SampleRate is the baseline probability for events that aren't errors
 	// and aren't slow. Set to 0.1 to sample 10% of normal traffic.
@@ -56,11 +49,11 @@ type TailSampler struct {
 func (s TailSampler) Sample(event *Event) bool {
 	rate := rand.Float64()
 
-	if len(event.errors) > 0 && rate < s.ErrorSampleRate {
+	if len(event.errors) > 0 {
 		return true
 	}
 
-	if event.duration > s.SlowThreshold && rate < s.SlowSampleRate {
+	if event.duration > s.SlowThreshold {
 		return true
 	}
 	if rate < s.SampleRate {

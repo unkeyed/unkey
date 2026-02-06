@@ -57,10 +57,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		InsecureRegistries:    cmd.StringSlice("insecure-registries"),
 		RegistryAliases:       cmd.StringSlice("registry-aliases"),
 		// Logging sampler configuration
-		LogSampleRate:      cmd.Float("log-sample-rate"),
-		LogErrorSampleRate: cmd.Float("log-error-sample-rate"),
-		LogSlowSampleRate:  cmd.Float("log-slow-sample-rate"),
-		LogSlowThreshold:   cmd.Duration("log-slow-threshold"),
+		LogSampleRate:    cmd.Float("log-sample-rate"),
+		LogSlowThreshold: cmd.Duration("log-slow-threshold"),
 	}
 
 	if err := config.Validate(); err != nil {

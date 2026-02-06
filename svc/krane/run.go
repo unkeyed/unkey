@@ -57,10 +57,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.SetSampler(logger.TailSampler{
-		ErrorSampleRate: cfg.LogErrorSampleRate,
-		SlowSampleRate:  cfg.LogSlowSampleRate,
-		SlowThreshold:   cfg.LogSlowThreshold,
-		SampleRate:      cfg.LogSampleRate,
+		SlowThreshold: cfg.LogSlowThreshold,
+		SampleRate:    cfg.LogSampleRate,
 	})
 
 	var shutdownGrafana func(context.Context) error
