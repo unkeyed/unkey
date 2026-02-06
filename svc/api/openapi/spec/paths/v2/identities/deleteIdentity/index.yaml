@@ -2,7 +2,7 @@ post:
   tags:
     - identities
   summary: Delete Identity
-  description: "Permanently delete an identity. This operation cannot be undone.\n#magic___^_^___line\nUse this for data cleanup, compliance requirements, or when removing entities from your system.\n#magic___^_^___line\n> **Important**  \n> Requires `identity.*.delete_identity` permission  \n> Associated API keys remain functional but lose shared resources  \n> External ID becomes available for reuse immediately\n"
+  description: "Permanently delete an identity. This operation cannot be undone.\n\nUse this for data cleanup, compliance requirements, or when removing entities from your system.\n\n> **Important**  \n> Requires `identity.*.delete_identity` permission  \n> Associated API keys remain functional but lose shared resources  \n> External ID becomes available for reuse immediately\n"
   operationId: identities.deleteIdentity
   x-speakeasy-name-override: deleteIdentity
   security:

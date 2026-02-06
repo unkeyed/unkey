@@ -2,7 +2,7 @@ post:
   tags:
     - permissions
   summary: List permissions
-  description: "Retrieve all permissions in your workspace. \nResults are paginated and sorted by their id.\n#magic___^_^___line\n**Required Permissions**\n#magic___^_^___line\nYour root key must have the following permission:\n- `rbac.*.read_permission`\n"
+  description: "Retrieve all permissions in your workspace. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_permission`\n"
   operationId: permissions.listPermissions
   x-speakeasy-name-override: ListPermissions
   security:

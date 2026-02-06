@@ -2,7 +2,7 @@ post:
   tags:
     - identities
   summary: Get Identity
-  description: "Retrieve an identity by external ID. Returns metadata, rate limits, and other associated data.\n#magic___^_^___line\nUse this to check if an identity exists, view configurations, or build management dashboards.\n#magic___^_^___line\n> **Important**  \n> Requires `identity.*.read_identity` permission\n"
+  description: "Retrieve an identity by external ID. Returns metadata, rate limits, and other associated data.\n\nUse this to check if an identity exists, view configurations, or build management dashboards.\n\n> **Important**  \n> Requires `identity.*.read_identity` permission\n"
   operationId: identities.getIdentity
   x-speakeasy-name-override: getIdentity
   security:
