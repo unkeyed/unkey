@@ -24,7 +24,6 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	migrateRoute := &migrateHandler.Handler{
-		Logger:    h.Logger,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
@@ -34,7 +33,6 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 	verifyRoute := &handler.Handler{
 		DB:         h.DB,
 		Keys:       h.Keys,
-		Logger:     h.Logger,
 		Auditlogs:  h.Auditlogs,
 		ClickHouse: h.ClickHouse,
 	}

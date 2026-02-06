@@ -8,7 +8,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
@@ -22,8 +21,7 @@ type corruptibleStorage struct {
 }
 
 func newCorruptibleStorage(t *testing.T) *corruptibleStorage {
-	logger := logging.NewNoop()
-	mem, err := storage.NewMemory(storage.MemoryConfig{Logger: logger})
+	mem, err := storage.NewMemory()
 	require.NoError(t, err)
 	return &corruptibleStorage{
 		Storage:       mem,
@@ -49,7 +47,6 @@ func (s *corruptibleStorage) CorruptKey(key string, data []byte) {
 // the vault must detect this and return a clear error, not silently return
 // wrong data.
 func TestStorageCorruption_CorruptedDEK(t *testing.T) {
-	logger := logging.NewNoop()
 	corruptibleStore := newCorruptibleStorage(t)
 
 	_, masterKey, err := keys.GenerateMasterKey()
@@ -57,7 +54,6 @@ func TestStorageCorruption_CorruptedDEK(t *testing.T) {
 
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
-		Logger:      logger,
 		Storage:     corruptibleStore,
 		MasterKeys:  []string{masterKey},
 		BearerToken: bearerToken,
@@ -110,7 +106,6 @@ func TestStorageCorruption_CorruptedDEK(t *testing.T) {
 // TestStorageCorruption_EmptyDEK verifies that empty DEK data in storage is
 // handled gracefully.
 func TestStorageCorruption_EmptyDEK(t *testing.T) {
-	logger := logging.NewNoop()
 	corruptibleStore := newCorruptibleStorage(t)
 
 	_, masterKey, err := keys.GenerateMasterKey()
@@ -118,7 +113,6 @@ func TestStorageCorruption_EmptyDEK(t *testing.T) {
 
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
-		Logger:      logger,
 		Storage:     corruptibleStore,
 		MasterKeys:  []string{masterKey},
 		BearerToken: bearerToken,
@@ -167,7 +161,6 @@ func TestStorageCorruption_EmptyDEK(t *testing.T) {
 
 // TestStorageCorruption_PartialDEK verifies that truncated DEK data is handled.
 func TestStorageCorruption_PartialDEK(t *testing.T) {
-	logger := logging.NewNoop()
 	store := newCorruptibleStorage(t)
 
 	_, masterKey, err := keys.GenerateMasterKey()
@@ -175,7 +168,6 @@ func TestStorageCorruption_PartialDEK(t *testing.T) {
 
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
-		Logger:      logger,
 		Storage:     store,
 		MasterKeys:  []string{masterKey},
 		BearerToken: bearerToken,
@@ -242,7 +234,6 @@ func TestStorageCorruption_PartialDEK(t *testing.T) {
 // because they don't change the actual encrypted key material. Only corruption
 // of the encrypted.ciphertext or encrypted.nonce will be detected by GCM.
 func TestStorageCorruption_BitFlipInDEK(t *testing.T) {
-	logger := logging.NewNoop()
 	store := newCorruptibleStorage(t)
 
 	_, masterKey, err := keys.GenerateMasterKey()
@@ -250,7 +241,6 @@ func TestStorageCorruption_BitFlipInDEK(t *testing.T) {
 
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
-		Logger:      logger,
 		Storage:     store,
 		MasterKeys:  []string{masterKey},
 		BearerToken: bearerToken,
@@ -331,7 +321,6 @@ func TestStorageCorruption_BitFlipInDEK(t *testing.T) {
 // TestStorageCorruption_InvalidProtobufDEK verifies that invalid protobuf
 // data in place of a DEK is handled.
 func TestStorageCorruption_InvalidProtobufDEK(t *testing.T) {
-	logger := logging.NewNoop()
 	store := newCorruptibleStorage(t)
 
 	_, masterKey, err := keys.GenerateMasterKey()
@@ -339,7 +328,6 @@ func TestStorageCorruption_InvalidProtobufDEK(t *testing.T) {
 
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
-		Logger:      logger,
 		Storage:     store,
 		MasterKeys:  []string{masterKey},
 		BearerToken: bearerToken,

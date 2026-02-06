@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
@@ -37,10 +37,6 @@ type RedisConfig struct {
 	// DB is the database connection for fallback and replay operations
 	DB db.Database
 
-	// Logger is the logging implementation to use.
-	// Optional, but recommended for production use.
-	Logger logging.Logger
-
 	// Counter is the counter implementation to use.
 	Counter counter.Counter
 
@@ -52,7 +48,6 @@ type RedisConfig struct {
 // This provides truly atomic operations via Redis INCRBY commands
 type counterService struct {
 	db      db.Database
-	logger  logging.Logger
 	counter counter.Counter
 
 	// Fallback to direct DB implementation when Redis fails
@@ -74,9 +69,6 @@ var _ Service = (*counterService)(nil)
 type CounterConfig struct {
 	// DB is the database connection for fallback and replay operations
 	DB db.Database
-
-	// Logger is the logging implementation to use
-	Logger logging.Logger
 
 	// Counter is the distributed counter implementation to use
 	Counter counter.Counter
@@ -123,8 +115,7 @@ func NewCounter(config CounterConfig) (Service, error) {
 
 	// Create the direct DB fallback service
 	dbFallback, err := New(Config{
-		DB:     config.DB,
-		Logger: config.Logger,
+		DB: config.DB,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DB fallback: %w", err)
@@ -132,7 +123,6 @@ func NewCounter(config CounterConfig) (Service, error) {
 
 	s := &counterService{
 		db:         config.DB,
-		logger:     config.Logger,
 		counter:    config.Counter,
 		dbFallback: dbFallback,
 		ttl:        ttl,
@@ -143,7 +133,6 @@ func NewCounter(config CounterConfig) (Service, error) {
 		}),
 		dbCircuitBreaker: circuitbreaker.New[any](
 			"usagelimiter_db_writes",
-			circuitbreaker.WithLogger(config.Logger),
 		),
 	}
 
@@ -270,7 +259,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 
 	wasSet, err := s.counter.SetIfNotExists(ctx, redisKey, initValue, s.ttl)
 	if err != nil {
-		s.logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyID", req.KeyID)
+		logger.Debug("failed to initialize counter with SetIfNotExists, falling back to DB", "error", err, "keyID", req.KeyID)
 		return s.dbFallback.Limit(ctx, req)
 	}
 
@@ -288,7 +277,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	// Another node already initialized the key, check if we have enough after decrement
 	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil || !exists {
-		s.logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyID", req.KeyID)
+		logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyID", req.KeyID)
 		return s.dbFallback.Limit(ctx, req)
 	}
 
@@ -301,7 +290,7 @@ func (s *counterService) replayRequests() {
 	for change := range s.replayBuffer.Consume() {
 		err := s.syncWithDB(context.Background(), change)
 		if err != nil {
-			s.logger.Error("failed to replay credit change", "error", err)
+			logger.Error("failed to replay credit change", "error", err)
 		}
 	}
 }
@@ -335,7 +324,7 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 func (s *counterService) Close() error {
 	ctx := context.Background()
 
-	s.logger.Debug("beginning graceful shutdown of usage limiter")
+	logger.Debug("beginning graceful shutdown of usage limiter")
 
 	// Set a reasonable timeout for draining if context doesn't have one
 	if deadline, ok := ctx.Deadline(); !ok || time.Until(deadline) > 30*time.Second {
@@ -353,22 +342,22 @@ func (s *counterService) Close() error {
 	stopRepeater := repeat.Every(100*time.Millisecond, func() {
 		remaining := s.replayBuffer.Size()
 		if remaining == 0 {
-			s.logger.Debug("usage limiter replay buffer drained successfully")
+			logger.Debug("usage limiter replay buffer drained successfully")
 			close(done)
 			return
 		}
-		s.logger.Debug("waiting for replay buffer to drain", "remaining", remaining)
+		logger.Debug("waiting for replay buffer to drain", "remaining", remaining)
 	})
 	defer stopRepeater()
 
 	select {
 	case <-ctx.Done():
-		s.logger.Warn("shutdown timeout reached, actively draining remaining buffer items")
+		logger.Warn("shutdown timeout reached, actively draining remaining buffer items")
 		// Actively drain any remaining items to avoid data loss
 		for {
 			remaining := s.replayBuffer.Size()
 			if remaining == 0 {
-				s.logger.Debug("successfully drained all remaining buffer items")
+				logger.Debug("successfully drained all remaining buffer items")
 				break
 			}
 
@@ -377,7 +366,7 @@ func (s *counterService) Close() error {
 			case change := <-s.replayBuffer.Consume():
 				err := s.syncWithDB(context.Background(), change)
 				if err != nil {
-					s.logger.Error("failed to sync credit change during shutdown", "error", err)
+					logger.Error("failed to sync credit change during shutdown", "error", err)
 				}
 			default:
 				// Channel is closed and empty
@@ -386,7 +375,7 @@ func (s *counterService) Close() error {
 		return nil
 
 	case <-done:
-		s.logger.Debug("usage limiter replay buffer drained successfully")
+		logger.Debug("usage limiter replay buffer drained successfully")
 		return nil
 	}
 }

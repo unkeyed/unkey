@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -57,7 +56,6 @@ type KeyVerifier struct {
 	usageLimiter usagelimiter.Service  // Usage limiting service
 	rBAC         *rbac.RBAC            // Role-based access control service
 	clickhouse   clickhouse.ClickHouse // Clickhouse for telemetry
-	logger       logging.Logger        // Logger for verification operations
 }
 
 // GetRatelimitConfigs returns the rate limit configurations

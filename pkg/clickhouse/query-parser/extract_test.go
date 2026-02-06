@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func TestExtractColumnValues(t *testing.T) {
@@ -99,7 +98,6 @@ func TestExtractColumnValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			parser := NewParser(Config{
-				Logger:        logging.NewNoop(),
 				WorkspaceID:   "ws_test",
 				TableAliases:  map[string]string{"key_verifications": "default.key_verifications_raw_v2"},
 				AllowedTables: []string{"default.key_verifications_raw_v2"},

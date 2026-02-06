@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // ErrDomainNotFound is returned when a domain is not found in the database.
@@ -32,15 +32,13 @@ type DNSProvider interface {
 // Provider wraps a DNS provider with database tracking and caching.
 // It implements the lego challenge.Provider interface.
 type Provider struct {
-	db     db.Database
-	logger logging.Logger
-	dns    DNSProvider
-	cache  cache.Cache[string, db.CustomDomain]
+	db    db.Database
+	dns   DNSProvider
+	cache cache.Cache[string, db.CustomDomain]
 }
 
 type ProviderConfig struct {
 	DB          db.Database
-	Logger      logging.Logger
 	DNS         DNSProvider
 	DomainCache cache.Cache[string, db.CustomDomain]
 }
@@ -49,7 +47,6 @@ type ProviderConfig struct {
 func NewProvider(cfg ProviderConfig) (*Provider, error) {
 	err := assert.All(
 		assert.NotNilAndNotZero(cfg.DB, "db is required"),
-		assert.NotNilAndNotZero(cfg.Logger, "logger is required"),
 		assert.NotNilAndNotZero(cfg.DNS, "dns provider is required"),
 		assert.NotNilAndNotZero(cfg.DomainCache, "domain cache is required"),
 	)
@@ -58,10 +55,9 @@ func NewProvider(cfg ProviderConfig) (*Provider, error) {
 	}
 
 	return &Provider{
-		db:     cfg.DB,
-		logger: cfg.Logger,
-		dns:    cfg.DNS,
-		cache:  cfg.DomainCache,
+		db:    cfg.DB,
+		dns:   cfg.DNS,
+		cache: cfg.DomainCache,
 	}, nil
 }
 
@@ -101,7 +97,7 @@ func (p *Provider) Present(domain, token, keyAuth string) error {
 		return fmt.Errorf("failed to find domain %s: %w", domain, err)
 	}
 
-	p.logger.Info("presenting dns challenge", "domain", domain, "matched", dom.Domain)
+	logger.Info("presenting dns challenge", "domain", domain, "matched", dom.Domain)
 
 	err = p.dns.Present(domain, token, keyAuth)
 	if err != nil {
@@ -119,17 +115,17 @@ func (p *Provider) Present(domain, token, keyAuth string) error {
 		return fmt.Errorf("failed to store challenge for domain %s: %w", domain, err)
 	}
 
-	p.logger.Info("dns challenge presented successfully", "domain", domain)
+	logger.Info("dns challenge presented successfully", "domain", domain)
 	return nil
 }
 
 // CleanUp removes the DNS TXT record.
 func (p *Provider) CleanUp(domain, token, keyAuth string) error {
-	p.logger.Info("cleaning up dns challenge", "domain", domain)
+	logger.Info("cleaning up dns challenge", "domain", domain)
 
 	err := p.dns.CleanUp(domain, token, keyAuth)
 	if err != nil {
-		p.logger.Warn("failed to clean up dns challenge record", "error", err, "domain", domain)
+		logger.Warn("failed to clean up dns challenge record", "error", err, "domain", domain)
 	}
 
 	return nil

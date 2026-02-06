@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
 )
@@ -29,7 +30,7 @@ func (s *Service) RollDeks(ctx context.Context) error {
 			return fmt.Errorf("failed to decode and decrypt key: %w", err)
 		}
 		if kekID == s.encryptionKey.GetId() {
-			s.logger.Info("key already encrypted with latest kek",
+			logger.Info("key already encrypted with latest kek",
 				"dekId", dek.GetId(),
 			)
 			continue

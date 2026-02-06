@@ -7,6 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // runDesiredStateApplyLoop connects to the control plane's WatchDeployments
@@ -29,7 +30,7 @@ func (c *Controller) runDesiredStateApplyLoop(ctx context.Context) {
 
 		err := c.streamDesiredStateOnce(ctx)
 		if err != nil {
-			c.logger.Error("error streaming desired state from control plane", "error", err)
+			logger.Error("error streaming desired state from control plane", "error", err)
 		}
 	}
 }
@@ -46,7 +47,7 @@ func (c *Controller) runDesiredStateApplyLoop(ctx context.Context) {
 //
 // The caller ([Controller.runDesiredStateApplyLoop]) handles reconnection on error.
 func (c *Controller) streamDesiredStateOnce(ctx context.Context) error {
-	c.logger.Info("connecting to control plane for desired state")
+	logger.Info("connecting to control plane for desired state")
 
 	stream, err := c.cluster.WatchDeployments(ctx, connect.NewRequest(&ctrlv1.WatchDeploymentsRequest{
 		Region:          c.region,
@@ -57,7 +58,7 @@ func (c *Controller) streamDesiredStateOnce(ctx context.Context) error {
 	}
 
 	for stream.Receive() {
-		c.logger.Info("received desired state from control plane")
+		logger.Info("received desired state from control plane")
 		state := stream.Msg()
 
 		switch op := state.GetState().(type) {
@@ -77,7 +78,7 @@ func (c *Controller) streamDesiredStateOnce(ctx context.Context) error {
 	}
 
 	if err := stream.Close(); err != nil {
-		c.logger.Error("unable to close control plane stream", "error", err)
+		logger.Error("unable to close control plane stream", "error", err)
 		return err
 	}
 

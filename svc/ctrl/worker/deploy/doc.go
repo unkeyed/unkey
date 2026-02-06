@@ -36,7 +36,6 @@
 //	workflow := deploy.New(deploy.Config{
 //	    DB:            mainDB,
 //	    Krane:         kraneClient,
-//	    Logger:        logger,
 //	    DefaultDomain: "unkey.app",
 //	})
 //

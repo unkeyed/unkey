@@ -12,7 +12,7 @@ go_library(
         "//cmd/deploy/internal/ui",
         "//pkg/cli",
         "//pkg/git",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "@com_github_unkeyed_sdks_api_go_v2//:go",
         "@com_github_unkeyed_sdks_api_go_v2//models/components",
         "@org_golang_x_text//cases",

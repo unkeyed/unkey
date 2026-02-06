@@ -5,7 +5,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 type Service interface {
@@ -14,7 +13,6 @@ type Service interface {
 }
 
 type Config struct {
-	Logger        logging.Logger
 	DB            db.Database
 	Clock         clock.Clock
 	EnvironmentID string

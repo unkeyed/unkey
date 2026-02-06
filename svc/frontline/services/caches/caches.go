@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // Caches holds all cache instances used throughout frontline.
@@ -26,15 +25,13 @@ type Caches struct {
 
 // Config defines the configuration options for initializing caches.
 type Config struct {
-	Logger logging.Logger
-	Clock  clock.Clock
+	Clock clock.Clock
 }
 
 func New(config Config) (Caches, error) {
 	frontlineRoute, err := cache.New(cache.Config[string, db.FrontlineRoute]{
 		Fresh:    30 * time.Second,
 		Stale:    5 * time.Minute,
-		Logger:   config.Logger,
 		MaxSize:  10_000,
 		Resource: "frontline_route",
 		Clock:    config.Clock,
@@ -46,7 +43,6 @@ func New(config Config) (Caches, error) {
 	sentinelsByEnvironment, err := cache.New(cache.Config[string, []db.Sentinel]{
 		Fresh:    30 * time.Second,
 		Stale:    2 * time.Minute,
-		Logger:   config.Logger,
 		MaxSize:  10_000,
 		Resource: "sentinels_by_environment",
 		Clock:    config.Clock,
@@ -58,7 +54,6 @@ func New(config Config) (Caches, error) {
 	tlsCertificate, err := cache.New(cache.Config[string, tls.Certificate]{
 		Fresh:    time.Hour,
 		Stale:    time.Hour * 12,
-		Logger:   config.Logger,
 		MaxSize:  10_000,
 		Resource: "tls_certificate",
 		Clock:    config.Clock,

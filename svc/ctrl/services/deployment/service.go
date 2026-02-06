@@ -5,7 +5,6 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // Service implements the DeploymentService ConnectRPC API. It coordinates
@@ -15,7 +14,6 @@ type Service struct {
 	ctrlv1connect.UnimplementedDeploymentServiceHandler
 	db               db.Database
 	restate          *restateingress.Client
-	logger           logging.Logger
 	availableRegions []string
 }
 
@@ -31,8 +29,6 @@ type Config struct {
 	Database db.Database
 	// Restate is the ingress client for triggering durable workflows.
 	Restate *restateingress.Client
-	// Logger is used for structured logging throughout the service.
-	Logger logging.Logger
 	// AvailableRegions lists the regions where deployments can be created.
 	AvailableRegions []string
 }
@@ -44,7 +40,6 @@ func New(cfg Config) *Service {
 		UnimplementedDeploymentServiceHandler: ctrlv1connect.UnimplementedDeploymentServiceHandler{},
 		db:                                    cfg.Database,
 		restate:                               cfg.Restate,
-		logger:                                cfg.Logger,
 		availableRegions:                      cfg.AvailableRegions,
 	}
 }

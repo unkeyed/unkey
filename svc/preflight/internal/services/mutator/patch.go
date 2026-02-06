@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 func (m *Mutator) buildInitContainer() corev1.Container {
@@ -87,7 +89,7 @@ func (m *Mutator) buildContainerPatches(
 	// fetch the image's ENTRYPOINT/CMD from the registry so we know what to exec into.
 	var args []string
 	if len(container.Command) == 0 {
-		m.logger.Info("container has no command, fetching from registry",
+		logger.Info("container has no command, fetching from registry",
 			"container", container.Name,
 			"image", container.Image,
 		)

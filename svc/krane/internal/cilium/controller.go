@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -21,7 +20,6 @@ import (
 type Controller struct {
 	clientSet       kubernetes.Interface
 	dynamicClient   dynamic.Interface
-	logger          logging.Logger
 	cluster         ctrlv1connect.ClusterServiceClient
 	done            chan struct{}
 	region          string
@@ -41,9 +39,6 @@ type Config struct {
 	// resources that don't have generated Go types.
 	DynamicClient dynamic.Interface
 
-	// Logger is the structured logger for controller operations.
-	Logger logging.Logger
-
 	// Cluster is the control plane RPC client for WatchCiliumNetworkPolicies calls.
 	Cluster ctrlv1connect.ClusterServiceClient
 
@@ -60,7 +55,6 @@ func New(cfg Config) *Controller {
 	return &Controller{
 		clientSet:       cfg.ClientSet,
 		dynamicClient:   cfg.DynamicClient,
-		logger:          cfg.Logger.With("controller", "cilium"),
 		cluster:         cfg.Cluster,
 		done:            make(chan struct{}),
 		region:          cfg.Region,

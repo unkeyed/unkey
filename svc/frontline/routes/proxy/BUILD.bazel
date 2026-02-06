@@ -7,7 +7,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/clock",
-        "//pkg/otel/logging",
         "//pkg/zen",
         "//svc/frontline/services/proxy",
         "//svc/frontline/services/router",

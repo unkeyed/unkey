@@ -15,7 +15,7 @@ go_library(
         "//internal/services/caches",
         "//pkg/cache",
         "//pkg/db",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "@com_connectrpc_connect//:connect",
     ],
 )

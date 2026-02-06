@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // failingReadCloser is a custom io.ReadCloser that always returns an error on Read
@@ -47,10 +46,8 @@ func TestSession_UnreadableBodyReturns400NotError500(t *testing.T) {
 
 func TestSession_UnreadableBodyHTTPStatus(t *testing.T) {
 	// Test that unreadable request bodies return 400 status through zen server
-	logger := logging.NewNoop()
 
 	srv, err := New(Config{
-		Logger:             logger,
 		MaxRequestBodySize: 0, // No size limit
 	})
 	require.NoError(t, err)
@@ -67,7 +64,7 @@ func TestSession_UnreadableBodyHTTPStatus(t *testing.T) {
 
 	srv.RegisterRoute(
 		[]Middleware{
-			withErrorHandling(logger),
+			withErrorHandling(),
 		},
 		testRoute,
 	)

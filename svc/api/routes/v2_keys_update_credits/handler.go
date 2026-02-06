@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -26,7 +26,6 @@ type Response = openapi.V2KeysUpdateCreditsResponseBody
 
 // Handler implements zen.Route interface for the v2 keys.updateCredits endpoint
 type Handler struct {
-	Logger       logging.Logger
 	DB           db.Database
 	Keys         keys.KeyService
 	Auditlogs    auditlogs.AuditLogService
@@ -45,8 +44,6 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.updateCredits")
-
 	// Authentication
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
@@ -267,7 +264,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	h.KeyCache.Remove(ctx, key.Hash)
 	if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
-		h.Logger.Error("Failed to invalidate usage limit",
+		logger.Error("Failed to invalidate usage limit",
 			"error", err.Error(),
 			"key_id", key.ID,
 		)

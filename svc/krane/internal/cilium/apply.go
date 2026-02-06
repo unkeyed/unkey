@@ -7,6 +7,7 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,7 +22,7 @@ import (
 // ApplyCiliumNetworkPolicy validates required fields and returns an error if any are missing
 // or invalid: K8sNamespace, K8sName, CiliumNetworkPolicyId, and Policy must be non-empty.
 func (c *Controller) ApplyCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.ApplyCiliumNetworkPolicy) error {
-	c.logger.Info("applying cilium network policy",
+	logger.Info("applying cilium network policy",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
 		"policy_id", req.GetCiliumNetworkPolicyId(),

@@ -16,7 +16,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -41,7 +41,6 @@ func (u *AcmeUser) GetPrivateKey() crypto.PrivateKey {
 
 type UserConfig struct {
 	DB          db.Database
-	Logger      logging.Logger
 	Vault       vaultv1connect.VaultServiceClient
 	WorkspaceID string
 	EmailDomain string // Domain for ACME registration emails (e.g., "unkey.com")
@@ -92,7 +91,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 
 	// If user exists but doesn't have a registration URI, complete the registration
 	if !foundUser.RegistrationUri.Valid || foundUser.RegistrationUri.String == "" {
-		cfg.Logger.Info("acme user missing registration, completing registration",
+		logger.Info("acme user missing registration, completing registration",
 			"workspace_id", cfg.WorkspaceID,
 		)
 
@@ -107,7 +106,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 			ID:              foundUser.ID,
 			RegistrationUri: sql.NullString{Valid: true, String: reg.URI},
 		}); updateErr != nil {
-			cfg.Logger.Warn("failed to persist registration URI", "error", updateErr)
+			logger.Warn("failed to persist registration URI", "error", updateErr)
 		}
 	}
 

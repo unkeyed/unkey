@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +28,7 @@ import (
 // ReplicaSets.
 func (c *Controller) runResyncLoop(ctx context.Context) {
 	repeat.Every(1*time.Minute, func() {
-		c.logger.Info("running periodic resync")
+		logger.Info("running periodic resync")
 
 		cursor := ""
 		for {
@@ -39,14 +40,14 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				Continue: cursor,
 			})
 			if err != nil {
-				c.logger.Error("unable to list replicaSets", "error", err.Error())
+				logger.Error("unable to list replicaSets", "error", err.Error())
 				return
 			}
 
 			for _, replicaSet := range replicaSets.Items {
 				deploymentID, ok := labels.GetDeploymentID(replicaSet.Labels)
 				if !ok {
-					c.logger.Error("unable to get deployment ID", "replicaSet", replicaSet.Name)
+					logger.Error("unable to get deployment ID", "replicaSet", replicaSet.Name)
 					continue
 				}
 
@@ -54,18 +55,18 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					DeploymentId: deploymentID,
 				}))
 				if err != nil {
-					c.logger.Error("unable to get desired deployment state", "error", err.Error(), "deployment_id", deploymentID)
+					logger.Error("unable to get desired deployment state", "error", err.Error(), "deployment_id", deploymentID)
 					continue
 				}
 
 				switch res.Msg.GetState().(type) {
 				case *ctrlv1.DeploymentState_Apply:
 					if err := c.ApplyDeployment(ctx, res.Msg.GetApply()); err != nil {
-						c.logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", deploymentID)
+						logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", deploymentID)
 					}
 				case *ctrlv1.DeploymentState_Delete:
 					if err := c.DeleteDeployment(ctx, res.Msg.GetDelete()); err != nil {
-						c.logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
+						logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
 					}
 				}
 			}

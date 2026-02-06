@@ -28,7 +28,6 @@ The sliding window implementation:
 To create a new rate limiting service:
 
 	svc, err := ratelimit.New(ratelimit.Config{
-	    Logger:  logger,
 	    Cluster: cluster,
 	    Clock:   clock,
 	})

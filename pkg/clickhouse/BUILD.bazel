@@ -23,7 +23,7 @@ go_library(
         "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/retry",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
         "@com_github_clickhouse_clickhouse_go_v2//lib/driver",
@@ -43,7 +43,6 @@ go_test(
     deps = [
         "//pkg/array",
         "//pkg/clickhouse/schema",
-        "//pkg/otel/logging",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",

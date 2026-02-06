@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/unkeyed/unkey/svc/krane/secrets/token"
@@ -21,10 +21,6 @@ import (
 // This configuration provides the vault client for decryption operations
 // and token validator for request authentication.
 type Config struct {
-	// Logger for secrets operations and security events.
-	// Should include correlation information for audit trails.
-	Logger logging.Logger
-
 	// Vault provides secure decryption services for encrypted secrets via the vault API.
 	Vault vaultv1connect.VaultServiceClient
 
@@ -35,7 +31,6 @@ type Config struct {
 
 type Service struct {
 	kranev1connect.UnimplementedSecretsServiceHandler
-	logger         logging.Logger
 	vault          vaultv1connect.VaultServiceClient
 	tokenValidator token.Validator
 }
@@ -50,7 +45,6 @@ type Service struct {
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedSecretsServiceHandler: kranev1connect.UnimplementedSecretsServiceHandler{},
-		logger:                             cfg.Logger,
 		vault:                              cfg.Vault,
 		tokenValidator:                     cfg.TokenValidator,
 	}
@@ -82,14 +76,14 @@ func (s *Service) DecryptSecretsBlob(
 	requestToken := req.Msg.GetToken()
 	Encrypted := req.Msg.GetEncryptedBlob()
 
-	s.logger.Info("DecryptSecretsBlob request",
+	logger.Info("DecryptSecretsBlob request",
 		"deployment_id", deploymentID,
 		"environment_id", environmentID,
 	)
 
 	_, err := s.tokenValidator.Validate(ctx, requestToken, deploymentID, environmentID)
 	if err != nil {
-		s.logger.Warn("token validation failed",
+		logger.Warn("token validation failed",
 			"deployment_id", deploymentID,
 			"environment_id", environmentID,
 			"error", err,
@@ -107,7 +101,7 @@ func (s *Service) DecryptSecretsBlob(
 	// Individual values are vault-encrypted, the blob itself is not.
 	var secretsConfig ctrlv1.SecretsConfig
 	if err := protojson.Unmarshal(Encrypted, &secretsConfig); err != nil {
-		s.logger.Error("failed to unmarshal secrets config",
+		logger.Error("failed to unmarshal secrets config",
 			"deployment_id", deploymentID,
 			"environment_id", environmentID,
 			"error", err,
@@ -123,7 +117,7 @@ func (s *Service) DecryptSecretsBlob(
 			Encrypted: encryptedValue,
 		}))
 		if decryptErr != nil {
-			s.logger.Error("failed to decrypt env var",
+			logger.Error("failed to decrypt env var",
 				"deployment_id", deploymentID,
 				"environment_id", environmentID,
 				"key", key,
@@ -134,7 +128,7 @@ func (s *Service) DecryptSecretsBlob(
 		envVars[key] = decrypted.Msg.GetPlaintext()
 	}
 
-	s.logger.Info("decrypted secrets blob",
+	logger.Info("decrypted secrets blob",
 		"deployment_id", deploymentID,
 		"num_secrets", len(envVars),
 	)

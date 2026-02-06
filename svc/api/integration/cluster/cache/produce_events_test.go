@@ -12,7 +12,6 @@ import (
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/integration"
@@ -33,7 +32,6 @@ func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 		Brokers:    brokers,
 		Topic:      topicName,
 		InstanceID: testInstanceID,
-		Logger:     logging.NewNoop(),
 	})
 	require.NoError(t, err)
 

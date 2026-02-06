@@ -45,7 +45,6 @@
 //	svc := deployment.New(deployment.Config{
 //		Database:         db,
 //		Restate:          restateClient,
-//		Logger:           logger,
 //		AvailableRegions: []string{"us-east-1", "eu-west-1"},
 //		BuildStorage:     s3Storage,
 //	})

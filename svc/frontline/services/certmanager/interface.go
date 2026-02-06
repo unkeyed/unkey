@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 type Service interface {
@@ -16,8 +15,6 @@ type Service interface {
 }
 
 type Config struct {
-	Logger logging.Logger
-
 	DB db.Database
 
 	Vault vaultv1connect.VaultServiceClient
