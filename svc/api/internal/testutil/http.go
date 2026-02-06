@@ -24,7 +24,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
 	masterKeys "github.com/unkeyed/unkey/pkg/vault/keys"
@@ -74,11 +73,8 @@ type Harness struct {
 func NewHarness(t *testing.T) *Harness {
 	clk := clock.NewTestClock()
 
-	// Start all services in parallel first
-	containers.StartAllServices(t)
-
-	mysqlCfg := containers.MySQL(t)
-	mysqlDSN := mysqlCfg.FormatDSN()
+	mysqlCfg := dockertest.MySQL(t)
+	mysqlDSN := mysqlCfg.DSN
 
 	redisUrl := dockertest.Redis(t)
 
@@ -108,11 +104,11 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	// Get ClickHouse connection string
-	chDSN := containers.ClickHouse(t)
+	chCfg := dockertest.ClickHouse(t)
 
 	// Create real ClickHouse client
 	ch, err := clickhouse.New(clickhouse.Config{
-		URL: chDSN,
+		URL: chCfg.DSN,
 	})
 	require.NoError(t, err)
 
@@ -148,13 +144,13 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	s3 := containers.S3(t)
+	s3 := dockertest.S3(t)
 
 	vaultStorage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
-		S3Bucket:          "test",
+		S3URL:             s3.URL,
+		S3Bucket:          s3.Bucket,
 		S3AccessKeyID:     s3.AccessKeyID,
-		S3AccessKeySecret: s3.AccessKeySecret,
+		S3AccessKeySecret: s3.SecretAccessKey,
 	})
 	require.NoError(t, err)
 
@@ -171,7 +167,7 @@ func NewHarness(t *testing.T) *Harness {
 		SettingsCache: caches.ClickhouseSetting,
 		Database:      db,
 		Clock:         clk,
-		BaseURL:       chDSN,
+		BaseURL:       chCfg.DSN,
 		Vault:         v,
 	})
 	require.NoError(t, err)

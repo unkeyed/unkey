@@ -25,18 +25,11 @@ func TestS3(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Create a test bucket
-	bucketName := "test-bucket"
-	_, err := client.CreateBucket(ctx, &awsS3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
-	})
-	require.NoError(t, err)
-
-	// Put an object
+	// Put an object into the ephemeral bucket
 	testKey := "test-key"
 	testData := []byte("hello, world!")
-	_, err = client.PutObject(ctx, &awsS3.PutObjectInput{
-		Bucket: aws.String(bucketName),
+	_, err := client.PutObject(ctx, &awsS3.PutObjectInput{
+		Bucket: aws.String(s3Cfg.Bucket),
 		Key:    aws.String(testKey),
 		Body:   bytes.NewReader(testData),
 	})
@@ -44,7 +37,7 @@ func TestS3(t *testing.T) {
 
 	// Get the object and verify contents
 	resp, err := client.GetObject(ctx, &awsS3.GetObjectInput{
-		Bucket: aws.String(bucketName),
+		Bucket: aws.String(s3Cfg.Bucket),
 		Key:    aws.String(testKey),
 	})
 	require.NoError(t, err)
@@ -55,68 +48,56 @@ func TestS3(t *testing.T) {
 	require.Equal(t, testData, retrievedData)
 }
 
-// TestS3_MultipleContainers verifies that multiple MinIO containers can run
-// in parallel with isolated data.
-func TestS3_MultipleContainers(t *testing.T) {
+// TestS3_MultipleBuckets verifies that multiple S3 calls return isolated
+// ephemeral buckets on the same shared container.
+func TestS3_MultipleBuckets(t *testing.T) {
 	s3Cfg1 := dockertest.S3(t)
 	s3Cfg2 := dockertest.S3(t)
 
-	// The URLs should be different (different ports)
-	require.NotEqual(t, s3Cfg1.URL, s3Cfg2.URL)
+	// Same URL (shared container) but different buckets.
+	require.Equal(t, s3Cfg1.URL, s3Cfg2.URL)
+	require.NotEqual(t, s3Cfg1.Bucket, s3Cfg2.Bucket)
 
-	client1 := newS3Client(t, s3Cfg1)
-	client2 := newS3Client(t, s3Cfg2)
+	client := newS3Client(t, s3Cfg1)
 
 	ctx := context.Background()
 
-	// Create bucket with same name in both containers
-	bucketName := "shared-bucket-name"
-	_, err := client1.CreateBucket(ctx, &awsS3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
-	})
-	require.NoError(t, err)
-
-	_, err = client2.CreateBucket(ctx, &awsS3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
-	})
-	require.NoError(t, err)
-
-	// Put different data with same key in each container
+	// Put different data with same key in each bucket
 	testKey := "test-key"
-	_, err = client1.PutObject(ctx, &awsS3.PutObjectInput{
-		Bucket: aws.String(bucketName),
+	_, err := client.PutObject(ctx, &awsS3.PutObjectInput{
+		Bucket: aws.String(s3Cfg1.Bucket),
 		Key:    aws.String(testKey),
-		Body:   bytes.NewReader([]byte("data from container 1")),
+		Body:   bytes.NewReader([]byte("data from bucket 1")),
 	})
 	require.NoError(t, err)
 
-	_, err = client2.PutObject(ctx, &awsS3.PutObjectInput{
-		Bucket: aws.String(bucketName),
+	_, err = client.PutObject(ctx, &awsS3.PutObjectInput{
+		Bucket: aws.String(s3Cfg2.Bucket),
 		Key:    aws.String(testKey),
-		Body:   bytes.NewReader([]byte("data from container 2")),
+		Body:   bytes.NewReader([]byte("data from bucket 2")),
 	})
 	require.NoError(t, err)
 
-	// Verify isolation - each container has its own data
-	resp1, err := client1.GetObject(ctx, &awsS3.GetObjectInput{
-		Bucket: aws.String(bucketName),
+	// Verify isolation - each bucket has its own data
+	resp1, err := client.GetObject(ctx, &awsS3.GetObjectInput{
+		Bucket: aws.String(s3Cfg1.Bucket),
 		Key:    aws.String(testKey),
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, resp1.Body.Close()) }()
 	data1, err := io.ReadAll(resp1.Body)
 	require.NoError(t, err)
-	require.Equal(t, []byte("data from container 1"), data1)
+	require.Equal(t, []byte("data from bucket 1"), data1)
 
-	resp2, err := client2.GetObject(ctx, &awsS3.GetObjectInput{
-		Bucket: aws.String(bucketName),
+	resp2, err := client.GetObject(ctx, &awsS3.GetObjectInput{
+		Bucket: aws.String(s3Cfg2.Bucket),
 		Key:    aws.String(testKey),
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, resp2.Body.Close()) }()
 	data2, err := io.ReadAll(resp2.Body)
 	require.NoError(t, err)
-	require.Equal(t, []byte("data from container 2"), data2)
+	require.Equal(t, []byte("data from bucket 2"), data2)
 }
 
 // newS3Client creates an S3 client configured for the given MinIO container.

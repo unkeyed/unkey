@@ -4,12 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"fmt"
-	"time"
-
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/vault/keys"
@@ -19,13 +16,13 @@ import (
 // When encrypting multiple secrets with the same keyring, the same DEK should be reused for all of them.
 func TestReuseDEKsForSameKeyring(t *testing.T) {
 
-	s3 := containers.S3(t)
+	s3 := dockertest.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
-		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
+		S3URL:             s3.URL,
+		S3Bucket:          s3.Bucket,
 		S3AccessKeyID:     s3.AccessKeyID,
-		S3AccessKeySecret: s3.AccessKeySecret,
+		S3AccessKeySecret: s3.SecretAccessKey,
 	})
 	require.NoError(t, err)
 
@@ -58,13 +55,13 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 // When encrypting multiple secrets with different keyrings, a different DEK should be used for each keyring.
 func TestIndividualDEKsPerKeyring(t *testing.T) {
 
-	s3 := containers.S3(t)
+	s3 := dockertest.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
-		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
+		S3URL:             s3.URL,
+		S3Bucket:          s3.Bucket,
 		S3AccessKeyID:     s3.AccessKeyID,
-		S3AccessKeySecret: s3.AccessKeySecret,
+		S3AccessKeySecret: s3.SecretAccessKey,
 	})
 	require.NoError(t, err)
 

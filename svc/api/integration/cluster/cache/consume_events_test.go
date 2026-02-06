@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/svc/api/integration"
@@ -73,7 +73,7 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 	require.True(t, foundFresh, "Cache should show FRESH status for live_api_by_id on second call")
 
 	// Step 2: Produce invalidation event externally (simulating another node's action)
-	brokers := containers.Kafka(t)
+	brokers := dockertest.Kafka(t)
 	topicName := "cache-invalidations"
 
 	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{

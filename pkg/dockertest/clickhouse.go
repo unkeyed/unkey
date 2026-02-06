@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	// Use same image as docker-compose for compatibility
 	clickhouseImage    = "bitnamilegacy/clickhouse:25.6.4"
 	clickhousePort     = "9000/tcp"
 	clickhouseHTTPPort = "8123/tcp"
@@ -30,17 +29,11 @@ type ClickHouseConfig struct {
 	DSN string
 }
 
-// ClickHouse starts a ClickHouse container and applies the schema.
-//
-// The container is started with a random available port and the schema
-// is loaded from pkg/clickhouse/schema/*.sql files in order.
-// This function blocks until ClickHouse is accepting connections and
-// the schema has been applied. Fails the test if Docker is unavailable
-// or the container fails to start.
-func ClickHouse(t *testing.T) ClickHouseConfig {
-	t.Helper()
+var clickhouseCtr shared
 
-	ctr := startContainer(t, containerConfig{
+// clickhouseContainerConfig returns the container configuration for ClickHouse.
+func clickhouseContainerConfig() containerConfig {
+	return containerConfig{
 		Image:        clickhouseImage,
 		ExposedPorts: []string{clickhousePort, clickhouseHTTPPort},
 		WaitStrategy: NewTCPWait(clickhousePort),
@@ -49,33 +42,79 @@ func ClickHouse(t *testing.T) ClickHouseConfig {
 			"CLICKHOUSE_USER":     clickhouseUser,
 			"CLICKHOUSE_PASSWORD": clickhousePassword,
 		},
-		Cmd:   []string{},
-		Tmpfs: nil,
-	})
+		Cmd:         []string{},
+		Tmpfs:       nil,
+		SkipCleanup: false,
+	}
+}
+
+// ClickHouse starts (or reuses) a shared ClickHouse container and returns a fresh
+// ephemeral database for this test. The database is dropped when the test completes.
+//
+// The container starts on the first call in the process and is reused by all
+// subsequent calls. Each call creates a unique database with loaded schema,
+// ensuring complete isolation between tests.
+func ClickHouse(t *testing.T) ClickHouseConfig {
+	t.Helper()
+
+	ctr := clickhouseCtr.get(t, clickhouseContainerConfig())
 
 	port := ctr.Port(clickhousePort)
-	dsn := fmt.Sprintf("clickhouse://%s:%s@%s:%s?secure=false&skip_verify=true&dial_timeout=10s",
+	baseDSN := fmt.Sprintf("clickhouse://%s:%s@%s:%s?secure=false&skip_verify=true&dial_timeout=10s",
 		clickhouseUser, clickhousePassword, ctr.Host, port)
 
-	// Connect and apply schema
-	opts, err := ch.ParseDSN(dsn)
+	// Connect to the default database first.
+	opts, err := ch.ParseDSN(baseDSN)
 	require.NoError(t, err)
 
 	conn, err := ch.Open(opts)
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+	defer func() { require.NoError(t, conn.Close()) }()
 
-	// Wait for ClickHouse to be ready to accept queries
+	// Wait for ClickHouse to be ready.
 	ctx := context.Background()
 	require.Eventually(t, func() bool {
 		return conn.Ping(ctx) == nil
 	}, 60*time.Second, 500*time.Millisecond)
 
-	// Apply schema files
-	applyClickHouseSchema(t, ctx, conn)
+	// Create an ephemeral database for this test.
+	dbName := fmt.Sprintf("test_%d", time.Now().UnixNano())
+	err = conn.Exec(ctx, fmt.Sprintf("CREATE DATABASE `%s`", dbName))
+	require.NoError(t, err)
+
+	// Connect to the ephemeral database and apply schema.
+	dbDSN := fmt.Sprintf("clickhouse://%s:%s@%s:%s/%s?secure=false&skip_verify=true&dial_timeout=10s",
+		clickhouseUser, clickhousePassword, ctr.Host, port, dbName)
+
+	dbOpts, err := ch.ParseDSN(dbDSN)
+	require.NoError(t, err)
+
+	dbConn, err := ch.Open(dbOpts)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, dbConn.Close()) }()
+
+	require.Eventually(t, func() bool {
+		return dbConn.Ping(ctx) == nil
+	}, 30*time.Second, 500*time.Millisecond)
+
+	applyClickHouseSchema(t, ctx, dbConn)
+
+	// Clean up: drop the database when the test finishes.
+	t.Cleanup(func() {
+		cleanupConn, cleanupErr := ch.Open(opts)
+		if cleanupErr != nil {
+			t.Logf("  ClickHouse cleanup: failed to connect: %v", cleanupErr)
+			return
+		}
+		defer cleanupConn.Close() //nolint:errcheck
+		cleanupErr = cleanupConn.Exec(context.Background(), fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName))
+		if cleanupErr != nil {
+			t.Logf("  ClickHouse cleanup: failed to drop database %s: %v", dbName, cleanupErr)
+		}
+	})
 
 	return ClickHouseConfig{
-		DSN: dsn,
+		DSN: dbDSN,
 	}
 }
 

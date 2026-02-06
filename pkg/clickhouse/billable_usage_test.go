@@ -11,12 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestGetBillableUsageAboveThreshold(t *testing.T) {
-	dsn := containers.ClickHouse(t)
+	dsn := dockertest.ClickHouse(t).DSN
 
 	// Create ClickHouse client using the clickhouse package
 	client, err := clickhouse.New(clickhouse.Config{

@@ -12,13 +12,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 
-	brokers := containers.Kafka(t)
+	brokers := dockertest.Kafka(t)
 
 	// Create unique topic and instance ID for this test run to ensure fresh consumer group
 	topicName := fmt.Sprintf("test-clustering-e2e-%s", uid.New(uid.TestPrefix))

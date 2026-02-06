@@ -27,7 +27,7 @@ go_test(
     deps = [
         ":eventstream",
         "//gen/proto/cache/v1:cache",
-        "//pkg/testutil/containers",
+        "//pkg/dockertest",
         "//pkg/uid",
         "@com_github_stretchr_testify//require",
     ],

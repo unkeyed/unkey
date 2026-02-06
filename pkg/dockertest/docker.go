@@ -81,6 +81,12 @@ type containerConfig struct {
 	// WaitTimeout is the maximum time to wait for container readiness.
 	// Defaults to 30 seconds if zero.
 	WaitTimeout time.Duration
+
+	// SkipCleanup skips registering t.Cleanup to remove the container.
+	// Used by the shared container pattern where a single container outlives
+	// individual tests. Orphaned containers are cleaned up via `make clean-docker-test`
+	// using the "owner=dockertest" label.
+	SkipCleanup bool
 }
 
 // getClient returns a shared Docker client instance.
@@ -208,12 +214,16 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 
 	containerID := resp.ID
 
-	// Register cleanup to ensure container is removed when test completes
-	t.Cleanup(func() {
-		require.NoError(t, cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
-			Force: true,
-		}))
-	})
+	// Register cleanup to ensure container is removed when test completes.
+	// Shared containers skip this — they outlive individual tests and are
+	// cleaned up by `make clean-docker-test` via the "owner=dockertest" label.
+	if !cfg.SkipCleanup {
+		t.Cleanup(func() {
+			require.NoError(t, cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
+				Force: true,
+			}))
+		})
+	}
 
 	// Start the container
 	require.NoError(t, cli.ContainerStart(ctx, containerID, container.StartOptions{}))

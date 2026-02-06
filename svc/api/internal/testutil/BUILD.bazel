@@ -25,7 +25,6 @@ go_library(
         "//pkg/db",
         "//pkg/dockertest",
         "//pkg/rbac",
-        "//pkg/testutil/containers",
         "//pkg/uid",
         "//pkg/vault",
         "//pkg/vault/keys",

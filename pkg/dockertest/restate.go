@@ -35,6 +35,7 @@ func Restate(t *testing.T) RestateConfig {
 		Env:          map[string]string{},
 		Cmd:          []string{},
 		Tmpfs:        nil,
+		SkipCleanup:  false,
 	})
 
 	return RestateConfig{

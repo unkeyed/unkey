@@ -298,8 +298,8 @@ go_test(
     ],
     embed = [":db"],
     deps = [
+        "//pkg/dockertest",
         "//pkg/hash",
-        "//pkg/testutil/containers",
         "//pkg/uid",
         "@com_github_go_sql_driver_mysql//:mysql",
         "@com_github_stretchr_testify//require",

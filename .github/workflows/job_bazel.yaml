@@ -30,9 +30,9 @@ jobs:
       - name: Build
         run: bazel build //...
 
-      # Running containers is temporary until we moved them inside of bazel,
-      # at that point they are only created if they are actually needed
-      - name: Start containers
-        run: docker compose -f ./dev/docker-compose.yaml up s3 clickhouse kafka mysql -d --wait
       - name: Run tests
         run: bazel test //... --test_output=errors
+
+      - name: Clean up test containers
+        if: always()
+        run: docker rm -vf $(docker ps -q -f label="owner=dockertest") > /dev/null 2>&1 || true

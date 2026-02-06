@@ -11,14 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestEventStreamIntegration(t *testing.T) {
 
 	// Get Kafka brokers from test containers
-	brokers := containers.Kafka(t)
+	brokers := dockertest.Kafka(t)
 
 	// Create unique topic and instance ID for this test run to ensure fresh consumer group
 	topicName := fmt.Sprintf("test-eventstream-%s", uid.New(uid.TestPrefix))
@@ -110,7 +110,7 @@ func TestEventStreamIntegration(t *testing.T) {
 
 func TestEventStreamMultipleMessages(t *testing.T) {
 
-	brokers := containers.Kafka(t)
+	brokers := dockertest.Kafka(t)
 
 	// Create unique topic and instance ID for this test run to ensure fresh consumer group
 	topicName := fmt.Sprintf("test-multiple-%s", uid.New(uid.TestPrefix))

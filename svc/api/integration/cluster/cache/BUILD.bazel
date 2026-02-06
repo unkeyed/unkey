@@ -11,8 +11,8 @@ go_test(
     deps = [
         "//gen/proto/cache/v1:cache",
         "//pkg/cache",
+        "//pkg/dockertest",
         "//pkg/eventstream",
-        "//pkg/testutil/containers",
         "//pkg/timing",
         "//pkg/uid",
         "//svc/api/integration",

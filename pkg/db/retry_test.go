@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -202,12 +202,12 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Set up test database using containers
-	mysqlCfg := containers.MySQL(t)
+	// Set up test database using dockertest
+	mysqlCfg := dockertest.MySQL(t)
 
 	// Create database instance
 	dbInstance, err := New(Config{
-		PrimaryDSN: mysqlCfg.FormatDSN(),
+		PrimaryDSN: mysqlCfg.DSN,
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, dbInstance.Close()) }()

@@ -12,7 +12,7 @@ import (
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -22,7 +22,7 @@ import (
 func TestAPI_ProducesInvalidationEvents(t *testing.T) {
 
 	// Set up event stream listener to capture invalidation events BEFORE starting API node
-	brokers := containers.Kafka(t)
+	brokers := dockertest.Kafka(t)
 	topicName := "cache-invalidations" // Use same topic as API nodes
 
 	// Create topic with unique instance ID for this test run

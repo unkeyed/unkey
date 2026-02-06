@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	mysqlImage    = "mysql:9.4.0"
-	mysqlPort     = "3306/tcp"
-	mysqlUser     = "unkey"
-	mysqlPassword = "password"
-	mysqlDatabase = "unkey"
+	mysqlImage        = "mysql:9.4.0"
+	mysqlPort         = "3306/tcp"
+	mysqlUser         = "unkey"
+	mysqlPassword     = "password"
+	mysqlRootPassword = "password"
 )
 
 // MySQLConfig holds connection information for a MySQL test container.
@@ -30,57 +30,131 @@ type MySQLConfig struct {
 	DockerDSN string
 }
 
-// MySQL starts the local MySQL test container and returns DSNs.
-//
-// The container is based on the local dev image with preloaded schema.
-// This function blocks until the MySQL port is accepting TCP connections
-// (up to 60s). Fails the test if Docker is unavailable or the container fails to start.
-func MySQL(t *testing.T) MySQLConfig {
-	t.Helper()
+var mysqlCtr shared
 
-	containerStart := time.Now()
-	ctr := startContainer(t, containerConfig{
+// mysqlContainerConfig returns the container configuration for MySQL.
+func mysqlContainerConfig() containerConfig {
+	return containerConfig{
 		Image:        mysqlImage,
 		ExposedPorts: []string{mysqlPort},
 		WaitStrategy: NewTCPWait(mysqlPort),
 		WaitTimeout:  60 * time.Second,
 		Env: map[string]string{
-			"MYSQL_ROOT_PASSWORD": mysqlPassword,
-			"MYSQL_DATABASE":      mysqlDatabase,
+			"MYSQL_ROOT_PASSWORD": mysqlRootPassword,
 			"MYSQL_USER":          mysqlUser,
 			"MYSQL_PASSWORD":      mysqlPassword,
+			// No MYSQL_DATABASE — we create ephemeral databases per test.
 		},
 		Cmd: []string{
-			// Disable binary logging (not needed for tests)
 			"--skip-log-bin",
 			"--disable-log-bin",
-			// Disable durability for faster writes (crash safety not needed in tests)
 			"--innodb-doublewrite=0",
 			"--innodb-flush-log-at-trx-commit=0",
 			"--innodb-flush-method=nosync",
-			// Reduce buffer sizes for faster startup
 			"--innodb-buffer-pool-size=32M",
 			"--innodb-log-buffer-size=1M",
-			// Disable performance schema (overhead not needed for tests)
 			"--performance-schema=OFF",
-			// Skip name resolution for faster connections
 			"--skip-name-resolve",
 		},
 		Tmpfs: map[string]string{
 			"/var/lib/mysql": "rw,noexec,nosuid,size=256m",
 		},
-	})
-	t.Logf("  MySQL container started in %s", time.Since(containerStart))
+		SkipCleanup: false,
+	}
+}
+
+// MySQL starts (or reuses) a shared MySQL container and returns a fresh ephemeral
+// database for this test. The database is dropped when the test completes.
+//
+// The container starts on the first call in the process and is reused by all
+// subsequent calls. Each call creates a unique database with loaded schema,
+// ensuring complete isolation between tests.
+func MySQL(t *testing.T) MySQLConfig {
+	t.Helper()
+
+	containerStart := time.Now()
+	ctr := mysqlCtr.get(t, mysqlContainerConfig())
+	t.Logf("  MySQL container ready in %s", time.Since(containerStart))
 
 	port := ctr.Port(mysqlPort)
 	addr := fmt.Sprintf("%s:%s", ctr.Host, port)
 
+	// Create a unique database name for this test.
+	dbName := fmt.Sprintf("test_%d", time.Now().UnixNano())
+
+	// Connect as root to create the ephemeral database and grant privileges.
+	rootCfg := mysql.NewConfig()
+	rootCfg.User = "root"
+	rootCfg.Passwd = mysqlRootPassword
+	rootCfg.Net = "tcp"
+	rootCfg.Addr = addr
+	rootCfg.ParseTime = true
+	rootCfg.MultiStatements = true
+	rootCfg.Logger = &mysql.NopLogger{}
+
+	rootDB, err := sql.Open("mysql", rootCfg.FormatDSN())
+	require.NoError(t, err)
+	defer func() { require.NoError(t, rootDB.Close()) }()
+
+	// Wait for MySQL to be ready for connections.
+	pingStart := time.Now()
+	require.Eventually(t, func() bool {
+		return rootDB.PingContext(context.Background()) == nil
+	}, 60*time.Second, 500*time.Millisecond)
+	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
+
+	ctx := context.Background()
+
+	// Create the ephemeral database and grant access.
+	_, err = rootDB.ExecContext(ctx, fmt.Sprintf("CREATE DATABASE `%s`", dbName))
+	require.NoError(t, err)
+	_, err = rootDB.ExecContext(ctx, fmt.Sprintf("GRANT ALL PRIVILEGES ON `%s`.* TO '%s'@'%%'", dbName, mysqlUser))
+	require.NoError(t, err)
+
+	// Load schema into the new database.
+	schemaStart := time.Now()
+	schemaCfg := mysql.NewConfig()
+	schemaCfg.User = "root"
+	schemaCfg.Passwd = mysqlRootPassword
+	schemaCfg.Net = "tcp"
+	schemaCfg.Addr = addr
+	schemaCfg.DBName = dbName
+	schemaCfg.ParseTime = true
+	schemaCfg.MultiStatements = true
+	schemaCfg.Logger = &mysql.NopLogger{}
+
+	schemaDB, err := sql.Open("mysql", schemaCfg.FormatDSN())
+	require.NoError(t, err)
+	defer func() { require.NoError(t, schemaDB.Close()) }()
+
+	schemaPath := schemaSQLPath()
+	schemaBytes, err := os.ReadFile(schemaPath)
+	require.NoError(t, err)
+	_, err = schemaDB.ExecContext(ctx, string(schemaBytes))
+	require.NoError(t, err)
+	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
+
+	// Clean up: drop the database when the test finishes.
+	t.Cleanup(func() {
+		cleanupDB, cleanupErr := sql.Open("mysql", rootCfg.FormatDSN())
+		if cleanupErr != nil {
+			t.Logf("  MySQL cleanup: failed to connect: %v", cleanupErr)
+			return
+		}
+		defer cleanupDB.Close() //nolint:errcheck
+		_, cleanupErr = cleanupDB.ExecContext(context.Background(), fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName))
+		if cleanupErr != nil {
+			t.Logf("  MySQL cleanup: failed to drop database %s: %v", dbName, cleanupErr)
+		}
+	})
+
+	// Build DSNs for the caller.
 	hostCfg := mysql.NewConfig()
 	hostCfg.User = mysqlUser
 	hostCfg.Passwd = mysqlPassword
 	hostCfg.Net = "tcp"
 	hostCfg.Addr = addr
-	hostCfg.DBName = mysqlDatabase
+	hostCfg.DBName = dbName
 	hostCfg.ParseTime = true
 	hostCfg.MultiStatements = true
 	hostCfg.Logger = &mysql.NopLogger{}
@@ -90,27 +164,9 @@ func MySQL(t *testing.T) MySQLConfig {
 	dockerCfg.Passwd = mysqlPassword
 	dockerCfg.Net = "tcp"
 	dockerCfg.Addr = "mysql:3306"
-	dockerCfg.DBName = mysqlDatabase
+	dockerCfg.DBName = dbName
 	dockerCfg.ParseTime = true
 	dockerCfg.Logger = &mysql.NopLogger{}
-
-	pingStart := time.Now()
-	hostDB, err := sql.Open("mysql", hostCfg.FormatDSN())
-	require.NoError(t, err)
-	defer func() { require.NoError(t, hostDB.Close()) }()
-	require.Eventually(t, func() bool {
-		pingErr := hostDB.PingContext(context.Background())
-		return pingErr == nil
-	}, 60*time.Second, 500*time.Millisecond)
-	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
-
-	schemaStart := time.Now()
-	schemaPath := schemaSQLPath()
-	schemaBytes, err := os.ReadFile(schemaPath)
-	require.NoError(t, err)
-	_, err = hostDB.ExecContext(context.Background(), string(schemaBytes))
-	require.NoError(t, err)
-	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
 
 	return MySQLConfig{
 		DSN:       hostCfg.FormatDSN(),

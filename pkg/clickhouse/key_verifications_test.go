@@ -15,13 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestKeyVerifications(t *testing.T) {
 	t.Parallel()
-	dsn := containers.ClickHouse(t)
+	dsn := dockertest.ClickHouse(t).DSN
 
 	opts, err := ch.ParseDSN(dsn)
 	require.NoError(t, err)

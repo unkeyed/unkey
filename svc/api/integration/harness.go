@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/api"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
@@ -59,25 +58,18 @@ func New(t *testing.T, config Config) *Harness {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Get service configurations
-	clickhouseHostDSN := containers.ClickHouse(t)
+	chCfg := dockertest.ClickHouse(t)
 
 	// Create real ClickHouse client
 	ch, err := clickhouse.New(clickhouse.Config{
-		URL: clickhouseHostDSN,
+		URL: chCfg.DSN,
 	})
 	require.NoError(t, err)
 
-	mysqlHostCfg := containers.MySQL(t)
-	mysqlHostCfg.DBName = "unkey"
-	mysqlHostDSN := mysqlHostCfg.FormatDSN()
+	mysqlCfg := dockertest.MySQL(t)
 
-	// For docker DSN, use docker service name
-	mysqlDockerCfg := containers.MySQL(t)
-	mysqlDockerCfg.Addr = "mysql:3306"
-	mysqlDockerCfg.DBName = "unkey"
-	mysqlDockerDSN := mysqlDockerCfg.FormatDSN()
 	db, err := db.New(db.Config{
-		PrimaryDSN:  mysqlHostDSN,
+		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
 	})
 	require.NoError(t, err)
@@ -88,7 +80,7 @@ func New(t *testing.T, config Config) *Harness {
 		cancel:        cancel,
 		instanceAddrs: []string{},
 		Seed:          seed.New(t, db, nil),
-		dbDSN:         mysqlHostDSN,
+		dbDSN:         mysqlCfg.DSN,
 		DB:            db,
 		CH:            ch,
 		apiCluster:    nil, // Will be set later
@@ -97,16 +89,13 @@ func New(t *testing.T, config Config) *Harness {
 
 	h.Seed.Seed(ctx)
 
-	// For docker DSN, use docker service name
-	clickhouseDockerDSN := "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true&dial_timeout=10s"
-
 	// Create dynamic API container cluster for chaos testing
-	kafkaBrokers := containers.Kafka(t)
+	kafkaBrokers := dockertest.Kafka(t)
 
 	cluster := h.RunAPI(ApiConfig{
 		Nodes:         config.NumNodes,
-		MysqlDSN:      mysqlDockerDSN,
-		ClickhouseDSN: clickhouseDockerDSN,
+		MysqlDSN:      mysqlCfg.DockerDSN,
+		ClickhouseDSN: chCfg.DSN,
 		KafkaBrokers:  kafkaBrokers,
 	})
 	h.apiCluster = cluster
@@ -133,10 +122,9 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		cluster.Addrs[i] = fmt.Sprintf("http://%s", ln.Addr().String())
 
 		// Create API config for this node using host connections
-		mysqlHostCfg := containers.MySQL(h.t)
-		mysqlHostCfg.DBName = "unkey" // Set the database name
-		clickhouseHostDSN := containers.ClickHouse(h.t)
-		kafkaBrokers := containers.Kafka(h.t)
+		mysqlNodeCfg := dockertest.MySQL(h.t)
+		chNodeCfg := dockertest.ClickHouse(h.t)
+		kafkaBrokers := dockertest.Kafka(h.t)
 		apiConfig := api.Config{
 			CacheInvalidationTopic:  "",
 			MaxRequestBodySize:      0,
@@ -145,9 +133,9 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			Platform:                "test",
 			Image:                   "test",
 			Listener:                ln,
-			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
+			DatabasePrimary:         mysqlNodeCfg.DSN,
 			DatabaseReadonlyReplica: "",
-			ClickhouseURL:           clickhouseHostDSN,
+			ClickhouseURL:           chNodeCfg.DSN,
 			ClickhouseAnalyticsURL:  "",
 			RedisUrl:                h.redisUrl,
 			Region:                  "test",

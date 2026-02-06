@@ -11,7 +11,7 @@ go_test(
     ],
     deps = [
         "//gen/proto/vault/v1:vault",
-        "//pkg/testutil/containers",
+        "//pkg/dockertest",
         "//pkg/uid",
         "//pkg/vault",
         "//pkg/vault/keys",

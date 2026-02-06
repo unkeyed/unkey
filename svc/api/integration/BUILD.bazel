@@ -13,7 +13,6 @@ go_library(
         "//pkg/clock",
         "//pkg/db",
         "//pkg/dockertest",
-        "//pkg/testutil/containers",
         "//svc/api",
         "//svc/api/internal/testutil/seed",
         "@com_github_stretchr_testify//require",
