@@ -33,9 +33,9 @@ type SecurityRequirement struct {
 }
 
 // SecurityError represents a security validation error
-// It returns 400 Bad Request for format issues (missing/malformed headers)
+// It returns 401 Unauthorized for missing/malformed auth
 type SecurityError struct {
-	openapi.BadRequestErrorResponse
+	openapi.UnauthorizedErrorResponse
 }
 
 func (e *SecurityError) GetStatus() int {
@@ -48,17 +48,15 @@ func (e *SecurityError) SetRequestID(requestID string) {
 
 func newSecurityError(requestID, detail, errType string) *SecurityError {
 	return &SecurityError{
-		BadRequestErrorResponse: openapi.BadRequestErrorResponse{
+		UnauthorizedErrorResponse: openapi.UnauthorizedErrorResponse{
 			Meta: openapi.Meta{
 				RequestId: requestID,
 			},
-			Error: openapi.BadRequestErrorDetails{
-				Title:  "Bad Request",
+			Error: openapi.BaseError{
+				Title:  "Unauthorized",
 				Detail: detail,
-				Status: http.StatusBadRequest,
+				Status: http.StatusUnauthorized,
 				Type:   errType,
-				Errors: []openapi.ValidationError{},
-				Schema: nil,
 			},
 		},
 	}
