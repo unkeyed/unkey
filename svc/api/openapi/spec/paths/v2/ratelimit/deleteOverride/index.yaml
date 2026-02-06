@@ -48,19 +48,19 @@ post:
     "400":
       description: Bad request
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
       description: Unauthorized
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
       description: Forbidden - Insufficient permissions (requires `ratelimit.*.delete_override`)
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
           examples:
@@ -79,7 +79,7 @@ post:
     "404":
       description: Not Found - Override or namespace not found
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
           examples:
@@ -96,6 +96,6 @@ post:
     "500":
       description: Internal Server Error
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"

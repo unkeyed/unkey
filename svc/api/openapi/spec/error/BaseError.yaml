@@ -34,7 +34,6 @@ required:
   - status
   - type
 type: object
-additionalProperties: false
 description: Base error structure following Problem Details for HTTP APIs (RFC
   7807). This provides a standardized way to carry machine-readable details of
   errors in HTTP response content.

@@ -1,39 +1,23 @@
 type: object
 required:
-  - meta
-  - data
+    - meta
+    - data
 properties:
-  meta:
-    "$ref": "../../../../common/Meta.yaml"
-  data:
-    "$ref": "../../../../common/EmptyResponse.yaml"
+    meta:
+        "$ref": "../../../../common/Meta.yaml"
+    data:
+        "$ref": "../../../../common/EmptyResponse.yaml"
 additionalProperties: false
 examples:
-  userDeletionSuccess:
-    summary: User-requested deletion completed
-    description: Key successfully deleted after user requested removal
-    value:
-      meta:
+    - meta:
         requestId: req_user_delete_1234
       data: {}
-  accountDeletionSuccess:
-    summary: Account deletion completed
-    description: Key removed during account deletion workflow
-    value:
-      meta:
+    - meta:
         requestId: req_account_delete_5678
       data: {}
-  permanentDeletionSuccess:
-    summary: Permanent deletion completed
-    description: Key permanently removed from system
-    value:
-      meta:
+    - meta:
         requestId: req_permanent_9876
       data: {}
-  basicDeletionSuccess:
-    summary: Standard deletion completed
-    description: Basic successful key deletion response
-    value:
-      meta:
+    - meta:
         requestId: req_delete_abcd
       data: {}

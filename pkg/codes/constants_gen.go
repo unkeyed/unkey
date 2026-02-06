@@ -175,6 +175,10 @@ const (
 	UnkeyAppErrorsValidationInvalidInput URN = "err:unkey:application:invalid_input"
 	// AssertionFailed indicates a runtime assertion or invariant check failed.
 	UnkeyAppErrorsValidationAssertionFailed URN = "err:unkey:application:assertion_failed"
+	// MissingBody indicates a request body is required but was not provided.
+	UnkeyAppErrorsValidationMissingBody URN = "err:unkey:application:missing_body"
+	// UnsupportedMediaType indicates the request Content-Type is not supported.
+	UnkeyAppErrorsValidationUnsupportedMediaType URN = "err:unkey:application:unsupported_media_type"
 
 	// Protection
 

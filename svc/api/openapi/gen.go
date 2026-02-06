@@ -61,6 +61,9 @@ type BadRequestErrorDetails struct {
 	// Errors List of individual validation errors that occurred in the request. Each error provides specific details about what failed validation, where the error occurred in the request, and suggestions for fixing it. This granular information helps developers quickly identify and resolve multiple issues in a single request without having to make repeated API calls.
 	Errors []ValidationError `json:"errors"`
 
+	// Schema URL reference to the OpenAPI schema definition for this request. This provides a direct link to the expected request body schema, enabling automated tools and agents to fetch the schema and understand the exact structure required. The URL uses a JSON Pointer fragment to reference the specific schema within the OpenAPI specification.
+	Schema *string `json:"schema,omitempty"`
+
 	// Status HTTP status code that corresponds to this error. This will match the status code in the HTTP response. Common codes include `400` (Bad Request), `401` (Unauthorized), `403` (Forbidden), `404` (Not Found), `409` (Conflict), and `500` (Internal Server Error).
 	Status int `json:"status"`
 
@@ -1594,7 +1597,7 @@ type V2KeysUpdateKeyRequestBody struct {
 	Permissions *[]string                 `json:"permissions,omitempty"`
 
 	// Ratelimits Defines time-based rate limits that protect against abuse by controlling request frequency.
-	// Omitting this field preserves existing rate limits, while setting null removes all rate limits.
+	// Omitting this field preserves existing rate limits, while setting an empty array removes all rate limits.
 	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
 	// Multiple rate limits can control different operation types with separate thresholds and windows.
 	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
