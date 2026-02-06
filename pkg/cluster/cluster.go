@@ -2,43 +2,31 @@ package cluster
 
 import (
 	"fmt"
-	"io"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/memberlist"
-	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"google.golang.org/protobuf/proto"
 )
 
-const maxJoinAttempts = 10
-
-// Cluster is the public interface for gossip-based cluster membership.
-type Cluster interface {
-	Broadcast(msg clusterv1.IsClusterMessage_Payload) error
-	Members() []*memberlist.Node
-	IsBridge() bool
-	WANAddr() string
-	Close() error
-}
-
-// gossipCluster manages a two-tier gossip membership: a LAN pool for intra-region
-// communication and, on the elected bridge node, a WAN pool for cross-region
+// Cluster manages a two-tier gossip membership: a LAN pool for intra-region
+// communication and, on the elected gateway node, a WAN pool for cross-region
 // communication.
-type gossipCluster struct {
+type Cluster struct {
 	config Config
 
-	mu       sync.RWMutex
-	lan      *memberlist.Memberlist
-	lanQueue *memberlist.TransmitLimitedQueue
-	wan      *memberlist.Memberlist
-	wanQueue *memberlist.TransmitLimitedQueue
-	isBridge bool
-	closing  atomic.Bool
+	mu        sync.RWMutex
+	lan       *memberlist.Memberlist
+	lanQueue  *memberlist.TransmitLimitedQueue
+	wan       *memberlist.Memberlist
+	wanQueue  *memberlist.TransmitLimitedQueue
+	isGateway bool
+	joinTime  time.Time
+	noop      bool
+	closing   atomic.Bool
 
-	// evalCh is used to trigger async bridge evaluation from memberlist
+	// evalCh is used to trigger async gateway evaluation from memberlist
 	// callbacks. This avoids calling Members() inside NotifyJoin/NotifyLeave
 	// where memberlist holds its internal state lock.
 	evalCh chan struct{}
@@ -46,36 +34,41 @@ type gossipCluster struct {
 }
 
 // New creates a new cluster node, starts the LAN memberlist, joins LAN seeds,
-// and begins bridge evaluation.
-func New(cfg Config) (Cluster, error) {
+// and begins gateway evaluation.
+func New(cfg Config) (*Cluster, error) {
 	cfg.setDefaults()
 
-	c := &gossipCluster{
-		config:   cfg,
-		mu:       sync.RWMutex{},
-		lan:      nil,
-		lanQueue: nil,
-		wan:      nil,
-		wanQueue: nil,
-		isBridge: false,
-		closing:  atomic.Bool{},
-		evalCh:   make(chan struct{}, 1),
-		done:     make(chan struct{}),
+	now := time.Now()
+
+	c := &Cluster{
+		config:    cfg,
+		mu:        sync.RWMutex{},
+		lan:       nil,
+		lanQueue:  nil,
+		wan:       nil,
+		wanQueue:  nil,
+		isGateway: false,
+		joinTime:  now,
+		noop:      false,
+		closing:   atomic.Bool{},
+		evalCh:    make(chan struct{}, 1),
+		done:      make(chan struct{}),
 	}
 
-	// Start the async bridge evaluator
-	go c.bridgeEvalLoop()
+	// Start the async gateway evaluator
+	go c.gatewayEvalLoop()
 
 	// Configure LAN memberlist
 	lanCfg := memberlist.DefaultLANConfig()
-	lanCfg.Name = cfg.NodeID
+	lanCfg.Name = nodeNameWithTimestamp(cfg.NodeID, now)
 	lanCfg.BindAddr = cfg.BindAddr
 	lanCfg.BindPort = cfg.BindPort
 	lanCfg.AdvertisePort = cfg.BindPort
-	lanCfg.LogOutput = io.Discard
-	lanCfg.SecretKey = cfg.SecretKey
-	lanCfg.Delegate = newLANDelegate(c)
-	lanCfg.Events = newLANEventDelegate(c)
+	lanCfg.LogOutput = logger.NewMemberlistWriter()
+
+	lanDel := &lanDelegate{cluster: c}
+	lanCfg.Delegate = lanDel
+	lanCfg.Events = &lanEventDelegate{cluster: c}
 
 	lan, err := memberlist.Create(lanCfg)
 	if err != nil {
@@ -91,72 +84,25 @@ func New(cfg Config) (Cluster, error) {
 	}
 	c.mu.Unlock()
 
-	// Join LAN seeds with retries — the headless service DNS may not be
-	// resolvable immediately at pod startup.
+	// Join LAN seeds
 	if len(cfg.LANSeeds) > 0 {
-		go c.joinSeeds("LAN", func() *memberlist.Memberlist {
-			c.mu.RLock()
-			defer c.mu.RUnlock()
-			return c.lan
-		}, cfg.LANSeeds, c.triggerEvalBridge)
+		_, err = lan.Join(cfg.LANSeeds)
+		if err != nil {
+			logger.Warn("Failed to join LAN seeds",
+				"error", err,
+				"seeds", cfg.LANSeeds,
+			)
+		}
 	}
 
-	// Trigger initial bridge evaluation
-	c.triggerEvalBridge()
+	// Trigger initial gateway evaluation
+	c.triggerEvalGateway()
 
 	return c, nil
 }
 
-// joinSeeds attempts to join seeds on the given memberlist with exponential backoff.
-// pool is used for logging ("LAN" or "WAN"). onSuccess is called after a successful join.
-func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlist, seeds []string, onSuccess func()) {
-	backoff := 500 * time.Millisecond
-
-	for attempt := 1; attempt <= maxJoinAttempts; attempt++ {
-		select {
-		case <-c.done:
-			return
-		default:
-		}
-
-		ml := list()
-		if ml == nil {
-			return
-		}
-
-		_, err := ml.Join(seeds)
-		if err == nil {
-			logger.Info("Joined "+pool+" seeds", "seeds", seeds, "attempt", attempt)
-			if onSuccess != nil {
-				onSuccess()
-			}
-			return
-		}
-
-		logger.Warn("Failed to join "+pool+" seeds, retrying",
-			"error", err,
-			"seeds", seeds,
-			"attempt", attempt,
-			"next_backoff", backoff,
-		)
-
-		select {
-		case <-c.done:
-			return
-		case <-time.After(backoff):
-		}
-
-		backoff = min(backoff*2, 10*time.Second)
-	}
-
-	logger.Error("Exhausted retries joining "+pool+" seeds",
-		"seeds", seeds,
-		"attempts", maxJoinAttempts,
-	)
-}
-
-// triggerEvalBridge sends a non-blocking signal to the bridge evaluator goroutine.
-func (c *gossipCluster) triggerEvalBridge() {
+// triggerEvalGateway sends a non-blocking signal to the gateway evaluator goroutine.
+func (c *Cluster) triggerEvalGateway() {
 	select {
 	case c.evalCh <- struct{}{}:
 	default:
@@ -164,66 +110,55 @@ func (c *gossipCluster) triggerEvalBridge() {
 	}
 }
 
-// bridgeEvalLoop runs in a goroutine and processes bridge evaluation requests.
-func (c *gossipCluster) bridgeEvalLoop() {
+// gatewayEvalLoop runs in a goroutine and processes gateway evaluation requests.
+func (c *Cluster) gatewayEvalLoop() {
 	for {
 		select {
 		case <-c.done:
 			return
 		case <-c.evalCh:
-			c.evaluateBridge()
+			c.evaluateGateway()
 		}
 	}
 }
 
 // Broadcast queues a message for delivery to all cluster members.
-// The message is broadcast on the LAN pool. If this node is the bridge,
+// The message is broadcast on the LAN pool. If this node is the gateway,
 // it is also broadcast on the WAN pool.
-func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Payload) error {
-	msg := &clusterv1.ClusterMessage{
-		Payload:      payload,
-		SourceRegion: c.config.Region,
-		SenderNode:   c.config.NodeID,
-		SentAtMs:     time.Now().UnixMilli(),
+func (c *Cluster) Broadcast(msg []byte) error {
+	if c.noop {
+		return nil
 	}
 
 	c.mu.RLock()
 	lanQ := c.lanQueue
-	isBr := c.isBridge
+	isGW := c.isGateway
 	wanQ := c.wanQueue
 	c.mu.RUnlock()
 
 	if lanQ != nil {
-		msg.Direction = clusterv1.Direction_DIRECTION_LAN
-		lanBytes, err := proto.Marshal(msg)
-		if err != nil {
-			return fmt.Errorf("failed to marshal LAN message: %w", err)
-		}
-		lanQ.QueueBroadcast(newBroadcast(lanBytes))
+		lanMsg := encodeMessage(dirLAN, c.config.Region, msg)
+		lanQ.QueueBroadcast(&clusterBroadcast{msg: lanMsg})
 	}
 
-	if isBr && wanQ != nil {
-		msg.Direction = clusterv1.Direction_DIRECTION_WAN
-		wanBytes, err := proto.Marshal(msg)
-		if err != nil {
-			return fmt.Errorf("failed to marshal WAN message: %w", err)
-		}
-		wanQ.QueueBroadcast(newBroadcast(wanBytes))
+	if isGW && wanQ != nil {
+		wanMsg := encodeMessage(dirWAN, c.config.Region, msg)
+		wanQ.QueueBroadcast(&clusterBroadcast{msg: wanMsg})
 	}
 
 	return nil
 }
 
-// IsBridge returns whether this node is currently the WAN bridge.
-func (c *gossipCluster) IsBridge() bool {
+// IsGateway returns whether this node is currently the WAN gateway.
+func (c *Cluster) IsGateway() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.isBridge
+	return c.isGateway
 }
 
 // WANAddr returns the WAN pool's advertise address (e.g. "127.0.0.1:54321")
-// if this node is the bridge, or an empty string otherwise.
-func (c *gossipCluster) WANAddr() string {
+// if this node is the gateway, or an empty string otherwise.
+func (c *Cluster) WANAddr() string {
 	c.mu.RLock()
 	wan := c.wan
 	c.mu.RUnlock()
@@ -231,12 +166,14 @@ func (c *gossipCluster) WANAddr() string {
 	if wan == nil {
 		return ""
 	}
-
 	return wan.LocalNode().FullAddress().Addr
 }
 
 // Members returns the current LAN memberlist nodes.
-func (c *gossipCluster) Members() []*memberlist.Node {
+func (c *Cluster) Members() []*memberlist.Node {
+	if c.noop {
+		return nil
+	}
 	c.mu.RLock()
 	lan := c.lan
 	c.mu.RUnlock()
@@ -244,21 +181,21 @@ func (c *gossipCluster) Members() []*memberlist.Node {
 	if lan == nil {
 		return nil
 	}
-
 	return lan.Members()
 }
 
 // Close gracefully leaves both LAN and WAN pools and shuts down.
-// The closing flag prevents evaluateBridge from running during Leave.
-// Safe to call multiple times; only the first call performs the shutdown.
-func (c *gossipCluster) Close() error {
-	if alreadyClosing := c.closing.Swap(true); alreadyClosing {
+// The closing flag prevents evaluateGateway from running during Leave.
+func (c *Cluster) Close() error {
+	if c.noop {
 		return nil
 	}
+
+	c.closing.Store(true)
 	close(c.done)
 
-	// Demote from bridge first (leaves WAN).
-	c.demoteFromBridge()
+	// Demote from gateway first (leaves WAN).
+	c.demoteFromGateway()
 
 	// Grab the LAN memberlist reference then nil it under lock.
 	c.mu.Lock()
@@ -273,7 +210,6 @@ func (c *gossipCluster) Close() error {
 		if err := lan.Leave(5 * time.Second); err != nil {
 			logger.Warn("Error leaving LAN pool", "error", err)
 		}
-
 		if err := lan.Shutdown(); err != nil {
 			return fmt.Errorf("failed to shutdown LAN memberlist: %w", err)
 		}

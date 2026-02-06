@@ -12,8 +12,7 @@ type Broadcaster interface {
 	// Broadcast sends one or more cache invalidation events to other nodes.
 	Broadcast(ctx context.Context, events ...*cachev1.CacheInvalidationEvent) error
 
-	// Subscribe sets the single handler for incoming invalidation events from other nodes.
-	// Calling Subscribe again replaces the previous handler.
+	// Subscribe registers a handler for incoming invalidation events from other nodes.
 	Subscribe(ctx context.Context, handler func(context.Context, *cachev1.CacheInvalidationEvent) error)
 
 	// Close shuts down the broadcaster and releases resources.

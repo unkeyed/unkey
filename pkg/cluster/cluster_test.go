@@ -8,44 +8,39 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
-	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 )
 
-func testMessage(key string) *clusterv1.ClusterMessage_CacheInvalidation {
-	return &clusterv1.ClusterMessage_CacheInvalidation{
-		CacheInvalidation: &cachev1.CacheInvalidationEvent{
-			CacheName: "test",
-			Action:    &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: key},
-		},
-	}
-}
-
 func TestCluster_SingleNode_BroadcastAndReceive(t *testing.T) {
+	var received atomic.Int32
+	var mu sync.Mutex
+	var receivedMsg []byte
+
 	c, err := New(Config{
 		Region:   "us-east-1",
 		NodeID:   "test-node-1",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg *clusterv1.ClusterMessage) {
+		OnMessage: func(msg []byte) {
+			mu.Lock()
+			receivedMsg = make([]byte, len(msg))
+			copy(receivedMsg, msg)
+			mu.Unlock()
+			received.Add(1)
 		},
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, c.Close()) }()
 
-	// Single node should be bridge
+	// Single node should be gateway
 	require.Eventually(t, func() bool {
-		return c.IsBridge()
-	}, 2*time.Second, 50*time.Millisecond, "single node should become bridge")
+		return c.IsGateway()
+	}, 2*time.Second, 50*time.Millisecond, "single node should become gateway")
 
 	require.Len(t, c.Members(), 1, "should have 1 member")
-
-	// Broadcast should succeed even with no peers (gossip has no one to deliver to)
-	require.NoError(t, c.Broadcast(testMessage("hello")))
 }
 
 func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 	const nodeCount = 3
-	var clusters []Cluster
+	var clusters []*Cluster
 	var received [nodeCount]atomic.Int32
 
 	// Create first node
@@ -53,7 +48,7 @@ func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 		Region:   "us-east-1",
 		NodeID:   "node-0",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg *clusterv1.ClusterMessage) {
+		OnMessage: func(msg []byte) {
 			received[0].Add(1)
 		},
 	})
@@ -66,7 +61,7 @@ func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 	// Create remaining nodes, seeding with first node
 	for i := 1; i < nodeCount; i++ {
 		idx := i
-		// Delay to ensure deterministic ordering for bridge election
+		// Delay to ensure deterministic ordering for gateway election
 		time.Sleep(50 * time.Millisecond)
 
 		cn, createErr := New(Config{
@@ -74,7 +69,7 @@ func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 			NodeID:   fmt.Sprintf("node-%d", idx),
 			BindAddr: "127.0.0.1",
 			LANSeeds: []string{c1Addr},
-			OnMessage: func(msg *clusterv1.ClusterMessage) {
+			OnMessage: func(msg []byte) {
 				received[idx].Add(1)
 			},
 		})
@@ -98,42 +93,30 @@ func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 		return true
 	}, 5*time.Second, 100*time.Millisecond, "all nodes should see each other")
 
-	// Wait for bridge election to settle
+	// Wait for gateway election to settle
 	require.Eventually(t, func() bool {
-		bridgeCount := 0
+		gatewayCount := 0
 		for _, c := range clusters {
-			if c.IsBridge() {
-				bridgeCount++
+			if c.IsGateway() {
+				gatewayCount++
 			}
 		}
-		return bridgeCount == 1
-	}, 5*time.Second, 100*time.Millisecond, "exactly one node should be bridge")
+		return gatewayCount == 1
+	}, 5*time.Second, 100*time.Millisecond, "exactly one node should be gateway")
 
-	// The first node (oldest) should be bridge
-	require.True(t, clusters[0].IsBridge(), "oldest node should be bridge")
-
-	t.Run("broadcast delivers to other nodes", func(t *testing.T) {
-		require.NoError(t, clusters[0].Broadcast(testMessage("multi-node-hello")))
-
-		// Gossip delivers to other nodes, not back to the sender (node-0).
-		for i := 1; i < nodeCount; i++ {
-			idx := i
-			require.Eventually(t, func() bool {
-				return received[idx].Load() >= 1
-			}, 5*time.Second, 50*time.Millisecond, "node %d should have received the broadcast", idx)
-		}
-	})
+	// The first node (oldest) should be gateway
+	require.True(t, clusters[0].IsGateway(), "oldest node should be gateway")
 }
 
-func TestCluster_BridgeFailover(t *testing.T) {
-	// Create first node (will be bridge)
+func TestCluster_GatewayFailover(t *testing.T) {
+	// Create first node (will be gateway)
 	var recv1, recv2 atomic.Int32
 
 	c1, err := New(Config{
 		Region:   "us-east-1",
 		NodeID:   "node-1",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg *clusterv1.ClusterMessage) {
+		OnMessage: func(msg []byte) {
 			recv1.Add(1)
 		},
 	})
@@ -149,7 +132,7 @@ func TestCluster_BridgeFailover(t *testing.T) {
 		NodeID:   "node-2",
 		BindAddr: "127.0.0.1",
 		LANSeeds: []string{c1Addr},
-		OnMessage: func(msg *clusterv1.ClusterMessage) {
+		OnMessage: func(msg []byte) {
 			recv2.Add(1)
 		},
 	})
@@ -161,40 +144,40 @@ func TestCluster_BridgeFailover(t *testing.T) {
 		return len(c1.Members()) == 2 && len(c2.Members()) == 2
 	}, 5*time.Second, 100*time.Millisecond)
 
-	// Wait for bridge to settle: c1 should be bridge (oldest)
+	// Wait for gateway to settle: c1 should be gateway (oldest)
 	require.Eventually(t, func() bool {
-		return c1.IsBridge() && !c2.IsBridge()
-	}, 5*time.Second, 100*time.Millisecond, "c1 should be bridge, c2 should not")
+		return c1.IsGateway() && !c2.IsGateway()
+	}, 5*time.Second, 100*time.Millisecond, "c1 should be gateway, c2 should not")
 
-	// Kill c1 (the bridge)
+	// Kill c1 (the gateway)
 	require.NoError(t, c1.Close())
 
-	// c2 should become bridge
+	// c2 should become gateway
 	require.Eventually(t, func() bool {
-		return c2.IsBridge()
-	}, 10*time.Second, 100*time.Millisecond, "c2 should become bridge after c1 leaves")
+		return c2.IsGateway()
+	}, 10*time.Second, 100*time.Millisecond, "c2 should become gateway after c1 leaves")
 }
 
 func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 	var recvA, recvB atomic.Int32
 	var muB sync.Mutex
-	var lastKeyB string
+	var lastMsgB []byte
 
-	// --- Region A: single node (auto-promotes to bridge) ---
+	// --- Region A: single node (auto-promotes to gateway) ---
 	nodeA, err := New(Config{
 		Region:   "us-east-1",
 		NodeID:   "node-a",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg *clusterv1.ClusterMessage) {
+		OnMessage: func(msg []byte) {
 			recvA.Add(1)
 		},
 	})
 	require.NoError(t, err)
 
-	// Wait for node A to become bridge
+	// Wait for node A to become gateway
 	require.Eventually(t, func() bool {
-		return nodeA.IsBridge()
-	}, 5*time.Second, 50*time.Millisecond, "node A should become bridge")
+		return nodeA.IsGateway()
+	}, 5*time.Second, 50*time.Millisecond, "node A should become gateway")
 
 	// Get node A's WAN address (assigned after promotion)
 	var wanAddrA string
@@ -203,15 +186,16 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 		return wanAddrA != ""
 	}, 5*time.Second, 50*time.Millisecond, "node A WAN address should be available")
 
-	// --- Region B: single node, seeds WAN with region A's bridge ---
+	// --- Region B: single node, seeds WAN with region A's gateway ---
 	nodeB, err := New(Config{
 		Region:   "eu-west-1",
 		NodeID:   "node-b",
 		BindAddr: "127.0.0.1",
 		WANSeeds: []string{wanAddrA},
-		OnMessage: func(msg *clusterv1.ClusterMessage) {
+		OnMessage: func(msg []byte) {
 			muB.Lock()
-			lastKeyB = msg.GetCacheInvalidation().GetCacheKey()
+			lastMsgB = make([]byte, len(msg))
+			copy(lastMsgB, msg)
 			muB.Unlock()
 			recvB.Add(1)
 		},
@@ -223,22 +207,20 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 		require.NoError(t, nodeA.Close())
 	}()
 
-	// Wait for node B to become bridge
+	// Wait for node B to become gateway
 	require.Eventually(t, func() bool {
-		return nodeB.IsBridge()
-	}, 5*time.Second, 50*time.Millisecond, "node B should become bridge")
+		return nodeB.IsGateway()
+	}, 5*time.Second, 50*time.Millisecond, "node B should become gateway")
 
-	// Wait for WAN pools to see each other (each bridge sees 2 WAN members)
-	implA := nodeA.(*gossipCluster)
-	implB := nodeB.(*gossipCluster)
+	// Wait for WAN pools to see each other (each gateway sees 2 WAN members)
 	require.Eventually(t, func() bool {
-		implA.mu.RLock()
-		wanA := implA.wan
-		implA.mu.RUnlock()
+		nodeA.mu.RLock()
+		wanA := nodeA.wan
+		nodeA.mu.RUnlock()
 
-		implB.mu.RLock()
-		wanB := implB.wan
-		implB.mu.RUnlock()
+		nodeB.mu.RLock()
+		wanB := nodeB.wan
+		nodeB.mu.RUnlock()
 
 		if wanA == nil || wanB == nil {
 			return false
@@ -247,7 +229,8 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "WAN pools should see each other")
 
 	// Broadcast from region A
-	require.NoError(t, nodeA.Broadcast(testMessage("cross-region-hello")))
+	testPayload := []byte("cross-region-hello")
+	require.NoError(t, nodeA.Broadcast(testPayload))
 
 	// Verify region B receives it via the WAN relay
 	require.Eventually(t, func() bool {
@@ -255,7 +238,7 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "node B should receive cross-region broadcast")
 
 	muB.Lock()
-	require.Equal(t, "cross-region-hello", lastKeyB)
+	require.Equal(t, testPayload, lastMsgB)
 	muB.Unlock()
 }
 
@@ -268,16 +251,16 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 		Region:   "us-east-1",
 		NodeID:   "node-a",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg *clusterv1.ClusterMessage) {
+		OnMessage: func(msg []byte) {
 			muA.Lock()
-			msgsA = append(msgsA, msg.GetCacheInvalidation().GetCacheKey())
+			msgsA = append(msgsA, string(msg))
 			muA.Unlock()
 		},
 	})
 	require.NoError(t, err)
 
 	require.Eventually(t, func() bool {
-		return nodeA.IsBridge() && nodeA.WANAddr() != ""
+		return nodeA.IsGateway() && nodeA.WANAddr() != ""
 	}, 5*time.Second, 50*time.Millisecond)
 
 	wanAddrA := nodeA.WANAddr()
@@ -288,9 +271,9 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 		NodeID:   "node-b",
 		BindAddr: "127.0.0.1",
 		WANSeeds: []string{wanAddrA},
-		OnMessage: func(msg *clusterv1.ClusterMessage) {
+		OnMessage: func(msg []byte) {
 			muB.Lock()
-			msgsB = append(msgsB, msg.GetCacheInvalidation().GetCacheKey())
+			msgsB = append(msgsB, string(msg))
 			muB.Unlock()
 		},
 	})
@@ -302,20 +285,18 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 	}()
 
 	require.Eventually(t, func() bool {
-		return nodeB.IsBridge()
+		return nodeB.IsGateway()
 	}, 5*time.Second, 50*time.Millisecond)
 
 	// Wait for WAN connectivity
-	implA := nodeA.(*gossipCluster)
-	implB := nodeB.(*gossipCluster)
 	require.Eventually(t, func() bool {
-		implA.mu.RLock()
-		wanA := implA.wan
-		implA.mu.RUnlock()
+		nodeA.mu.RLock()
+		wanA := nodeA.wan
+		nodeA.mu.RUnlock()
 
-		implB.mu.RLock()
-		wanB := implB.wan
-		implB.mu.RUnlock()
+		nodeB.mu.RLock()
+		wanB := nodeB.wan
+		nodeB.mu.RUnlock()
 
 		if wanA == nil || wanB == nil {
 			return false
@@ -324,7 +305,7 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "WAN pools should connect")
 
 	// Broadcast from A → B
-	require.NoError(t, nodeA.Broadcast(testMessage("from-east")))
+	require.NoError(t, nodeA.Broadcast([]byte("from-east")))
 
 	require.Eventually(t, func() bool {
 		muB.Lock()
@@ -338,7 +319,7 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "B should receive message from A")
 
 	// Broadcast from B → A
-	require.NoError(t, nodeB.Broadcast(testMessage("from-west")))
+	require.NoError(t, nodeB.Broadcast([]byte("from-west")))
 
 	require.Eventually(t, func() bool {
 		muA.Lock()
@@ -355,8 +336,8 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 func TestCluster_Noop(t *testing.T) {
 	c := NewNoop()
 
-	require.False(t, c.IsBridge())
+	require.False(t, c.IsGateway())
 	require.Nil(t, c.Members())
-	require.NoError(t, c.Broadcast(testMessage("test")))
+	require.NoError(t, c.Broadcast([]byte("test")))
 	require.NoError(t, c.Close())
 }

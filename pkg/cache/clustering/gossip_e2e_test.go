@@ -24,16 +24,15 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	clk := clock.New()
 
 	// --- Node 1 ---
-	mux1 := cluster.NewMessageMux()
+	b1 := clustering.NewGossipBroadcaster()
 	c1, err := cluster.New(cluster.Config{
 		Region:    "us-east-1",
 		NodeID:    "node-1",
 		BindAddr:  "127.0.0.1",
-		OnMessage: mux1.OnMessage,
+		OnMessage: b1.OnMessage,
 	})
 	require.NoError(t, err)
-	b1 := clustering.NewGossipBroadcaster(c1)
-	cluster.Subscribe(mux1, b1.HandleCacheInvalidation)
+	b1.SetCluster(c1)
 
 	d1, err := clustering.NewInvalidationDispatcher(b1)
 	require.NoError(t, err)
@@ -50,7 +49,7 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	require.NoError(t, err)
 
 	// --- Node 2 ---
-	mux2 := cluster.NewMessageMux()
+	b2 := clustering.NewGossipBroadcaster()
 	c1Addr := c1.Members()[0].FullAddress().Addr
 	time.Sleep(50 * time.Millisecond)
 
@@ -59,11 +58,10 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 		NodeID:    "node-2",
 		BindAddr:  "127.0.0.1",
 		LANSeeds:  []string{c1Addr},
-		OnMessage: mux2.OnMessage,
+		OnMessage: b2.OnMessage,
 	})
 	require.NoError(t, err)
-	b2 := clustering.NewGossipBroadcaster(c2)
-	cluster.Subscribe(mux2, b2.HandleCacheInvalidation)
+	b2.SetCluster(c2)
 
 	d2, err := clustering.NewInvalidationDispatcher(b2)
 	require.NoError(t, err)
@@ -98,44 +96,40 @@ func TestGossipCacheInvalidation_Remove(t *testing.T) {
 	ctx := context.Background()
 	tc := setupTwoNodeCluster(t)
 
-	t.Run("remove propagates to peer", func(t *testing.T) {
-		// Set a value on node 2
-		tc.Cache2.Set(ctx, "test-key", "test-value")
-		val, hit := tc.Cache2.Get(ctx, "test-key")
-		require.Equal(t, cache.Hit, hit)
-		require.Equal(t, "test-value", val)
+	// Set a value on node 2
+	tc.Cache2.Set(ctx, "test-key", "test-value")
+	val, hit := tc.Cache2.Get(ctx, "test-key")
+	require.Equal(t, cache.Hit, hit)
+	require.Equal(t, "test-value", val)
 
-		// Remove on node 1 — should propagate to node 2
-		tc.Cache1.Remove(ctx, "test-key")
+	// Remove on node 1 — should propagate to node 2
+	tc.Cache1.Remove(ctx, "test-key")
 
-		require.Eventually(t, func() bool {
-			_, hit := tc.Cache2.Get(ctx, "test-key")
-			return hit == cache.Miss
-		}, 5*time.Second, 100*time.Millisecond, "key should be invalidated on node 2")
-	})
+	require.Eventually(t, func() bool {
+		_, hit := tc.Cache2.Get(ctx, "test-key")
+		return hit == cache.Miss
+	}, 5*time.Second, 100*time.Millisecond, "key should be invalidated on node 2")
 }
 
 func TestGossipCacheInvalidation_Clear(t *testing.T) {
 	ctx := context.Background()
 	tc := setupTwoNodeCluster(t)
 
-	t.Run("clear propagates to peers", func(t *testing.T) {
-		// Populate node 2's cache with multiple keys
-		tc.Cache2.Set(ctx, "key-a", "value-a")
-		tc.Cache2.Set(ctx, "key-b", "value-b")
-		tc.Cache2.Set(ctx, "key-c", "value-c")
+	// Populate node 2's cache with multiple keys
+	tc.Cache2.Set(ctx, "key-a", "value-a")
+	tc.Cache2.Set(ctx, "key-b", "value-b")
+	tc.Cache2.Set(ctx, "key-c", "value-c")
 
-		_, hit := tc.Cache2.Get(ctx, "key-a")
-		require.Equal(t, cache.Hit, hit)
+	_, hit := tc.Cache2.Get(ctx, "key-a")
+	require.Equal(t, cache.Hit, hit)
 
-		// Clear on node 1 — should propagate and clear node 2's cache
-		tc.Cache1.Clear(ctx)
+	// Clear on node 1 — should propagate and clear node 2's cache
+	tc.Cache1.Clear(ctx)
 
-		require.Eventually(t, func() bool {
-			_, hitA := tc.Cache2.Get(ctx, "key-a")
-			_, hitB := tc.Cache2.Get(ctx, "key-b")
-			_, hitC := tc.Cache2.Get(ctx, "key-c")
-			return hitA == cache.Miss && hitB == cache.Miss && hitC == cache.Miss
-		}, 5*time.Second, 100*time.Millisecond, "all keys should be cleared on node 2")
-	})
+	require.Eventually(t, func() bool {
+		_, hitA := tc.Cache2.Get(ctx, "key-a")
+		_, hitB := tc.Cache2.Get(ctx, "key-b")
+		_, hitC := tc.Cache2.Get(ctx, "key-c")
+		return hitA == cache.Miss && hitB == cache.Miss && hitC == cache.Miss
+	}, 5*time.Second, 100*time.Millisecond, "all keys should be cleared on node 2")
 }
