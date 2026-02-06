@@ -23,14 +23,6 @@ func WithLogging() Middleware {
 
 			ctx, event := logger.StartWideEvent(ctx,
 				fmt.Sprintf("%s %s", s.r.Method, s.r.URL.Path),
-				slog.Group("http_request",
-					slog.String("method", s.r.Method),
-					slog.String("path", s.r.URL.Path),
-					slog.String("request_id", s.RequestID()),
-					slog.String("host", s.r.URL.Host),
-					slog.String("user_agent", s.r.UserAgent()),
-					slog.String("ip_address", s.Location()),
-				),
 			)
 
 			defer event.End()
@@ -40,8 +32,16 @@ func WithLogging() Middleware {
 			event.SetError(nextErr)
 
 			event.Set(
-				slog.Group("http_response",
+				slog.Group("http",
+					slog.String("method", s.r.Method),
+					slog.String("path", s.r.URL.Path),
+					slog.String("request_id", s.RequestID()),
+					slog.String("host", s.r.URL.Host),
+					slog.String("user_agent", s.r.UserAgent()),
+					slog.String("ip_address", s.Location()),
 					slog.Int("status_code", s.StatusCode()),
+					slog.String("request_body", string(redact(s.requestBody))),
+					slog.String("response_body", string(redact(s.responseBody))),
 				),
 			)
 			return nextErr

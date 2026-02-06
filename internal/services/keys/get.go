@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -60,6 +62,11 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 
 	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
 	sess.WorkspaceID = key.AuthorizedWorkspaceID
+
+	logger.Set(ctx, slog.Group("auth",
+		slog.String("workspace_id", key.AuthorizedWorkspaceID),
+		slog.String("root_key_id", key.Key.ID),
+	))
 
 	return key, log, nil
 }
