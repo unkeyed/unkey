@@ -1,55 +1,29 @@
 // Package proxy provides HTTP/HTTPS proxying services for the frontline.
 //
-// The proxy service is responsible for:
-//   - Forwarding requests to local sentinels (HTTP)
-//   - Forwarding requests to remote frontlines (HTTPS)
-//   - Managing a shared HTTP transport for connection pooling
-//   - Setting debug headers for tracing and troubleshooting
-//   - Writing clean error responses (JSON/HTML) when proxying fails
+// The proxy service forwards requests to local sentinels or remote frontlines,
+// manages a shared HTTP transport for connection pooling, writes timing headers
+// for troubleshooting, and returns clean JSON or HTML error responses on failure.
 //
 // # Header Management
 //
-// The service sets headers in TWO places for different purposes:
-//
-// 1. Response headers (back to client):
-//   - X-Unkey-Frontline-ID: Which frontline handled the request
-//   - X-Unkey-Region: Which region the frontline is in
-//   - X-Unkey-Request-ID: Request ID for tracing
-//
-// These help with debugging and support tickets.
-//
-// 2. Request headers (to downstream service):
-//   - Same headers as above, telling the downstream service who forwarded the request
-//   - X-Unkey-Frontline-Time-Ms: Latency added by this frontline
-//   - X-Unkey-Parent-Frontline-ID: Previous frontline in the chain (remote only)
-//   - X-Unkey-Parent-Request-ID: Original request ID from parent (remote only)
-//   - X-Unkey-Frontline-Hops: Hop count for loop prevention (remote only)
+// The service writes identifying headers (frontline ID, region, request ID) on
+// both responses and downstream requests. Timing details are recorded with the
+// shared X-Unkey-Timing header using the timing schema. Forwarding metadata such
+// as parent frontline and hop counts are only attached to downstream requests.
 //
 // # Loop Prevention
 //
-// The service tracks hop count via X-Unkey-Frontline-Hops header and enforces
-// a configurable maximum (default: 3). When a request exceeds MaxHops, it's
-// rejected to prevent infinite routing loops. A warning is logged when the
-// hop count reaches MaxHops-1 to help identify potential routing issues.
+// The service tracks hop count via X-Unkey-Frontline-Hops and enforces a
+// configurable maximum (default: 3). When a request exceeds MaxHops, it is
+// rejected to prevent infinite routing loops.
 //
 // # Connection Pooling
 //
-// The service uses a shared http.Transport with:
-//   - 200 max idle connections
-//   - 100 max idle connections per host
-//   - 90s idle timeout
-//   - 10s TLS handshake timeout
-//   - 30s response header timeout
-//
-// This allows efficient connection reuse across all proxied requests,
-// reducing latency and overhead.
+// The service uses a shared http.Transport with conservative pooling and
+// timeout settings to reduce latency by reusing connections safely.
 //
 // # Error Handling
 //
-// When proxying fails, the service writes clean error responses based on
-// the client's Accept header:
-//   - JSON errors for API clients (Accept: application/json)
-//   - HTML errors for browsers (Accept: text/html)
-//
-// Errors include the frontline ID and request ID for debugging.
+// When proxying fails, the service writes clean JSON or HTML errors based on the
+// client's Accept header and includes frontline identifiers for debugging.
 package proxy

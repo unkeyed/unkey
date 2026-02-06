@@ -161,7 +161,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			VaultMasterKeys:         []string{"Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="}, // Test key from docker-compose
 			VaultS3:                 nil,
 			KafkaBrokers:            kafkaBrokers, // Use host brokers for test runner connections
-			DebugCacheHeaders:       true,         // Enable cache debug headers for integration tests
 			PprofEnabled:            true,
 			PprofUsername:           "unkey",
 			PprofPassword:           "password",

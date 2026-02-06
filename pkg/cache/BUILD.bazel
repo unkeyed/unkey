@@ -17,11 +17,11 @@ go_library(
         "//pkg/assert",
         "//pkg/clock",
         "//pkg/db",
-        "//pkg/debug",
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/prometheus/metrics",
         "//pkg/repeat",
+        "//pkg/timing",
         "@com_github_maypok86_otter//:otter",
     ],
 )

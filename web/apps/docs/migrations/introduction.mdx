@@ -1,18 +1,97 @@
 ---
 title: Overview
-description: Migrate your API to Unkey
-mode: "wide"
+description: 'Move your existing API keys to Unkey without disrupting users'
+
 ---
 
-Wherever you are coming from, we make it easy to migrate your existing API to Unkey.
+Already have API keys in production? Migrate them to Unkey without requiring your users to generate new keys.
 
-The challenge with migrating an existing API is that you need to move all of the existing keys and permissions to Unkey. This can be a daunting task, especially if you have a lot of keys.
+## How migration works
 
-Common migrations can be done entirely via self-serve APIs, while more complex migrations may require some manual intervention. We are here to help you with your migration.
+<Steps>
+  <Step title="Export your existing keys">
+    Extract key hashes from your current system (database, auth provider, etc.)
+  </Step>
+  <Step title="Get a migration ID">
+    Contact us to set up your migration and receive a `migrationId`
+  </Step>
+  <Step title="Import to Unkey">
+    Use the migration API to import your key hashes with their configuration
+  </Step>
+  <Step title="Update your verification">
+    Point your API verification to Unkey — existing keys work immediately
+  </Step>
+</Steps>
 
-For details on the migration endpoint, please refer to our [API documentation](/api-reference/v2/keys/migrate-api-keys).
+## Why key hashes?
+
+Unkey never stores plaintext keys. During migration, you provide the **hash** of each key, not the key itself.
+
+Your users continue using their existing keys. When they call your API:
+1. You extract the key from the request
+2. Unkey hashes it and matches against stored hashes
+3. Verification succeeds if there's a match
+
+**Result:** Zero changes required from your users.
+
+## What can be migrated?
+
+| Setting | Migrated? |
+|---------|-----------|
+| Key hash | ✅ |
+| Custom metadata | ✅ |
+| Roles & permissions | ✅ |
+| Rate limits | ✅ |
+| Credits/remaining | ✅ |
+| Expiration | ✅ |
+| Identity/owner | ✅ |
+
+## Migration paths
+
+<CardGroup cols={2}>
+  <Card title="Self-managed database" icon="database">
+    Export hashes from PostgreSQL, MySQL, MongoDB, etc.
+  </Card>
+  <Card title="Auth providers" icon="lock">
+    Migrate from Auth0, Clerk, Firebase, or custom auth.
+  </Card>
+  <Card title="Other API management" icon="code">
+    Moving from Kong, Tyk, or homegrown solutions.
+  </Card>
+  <Card title="Custom systems" icon="gear">
+    We'll help you figure out the best approach.
+  </Card>
+</CardGroup>
+
+## Get started
+
+<Steps>
+  <Step title="Contact us">
+    Email [support@unkey.com](mailto:support@unkey.com) with:
+    - Your workspace ID
+    - Current key storage system
+    - Approximate number of keys
+    - Hash algorithm used (SHA-256, bcrypt, etc.)
+  </Step>
+  <Step title="Plan your migration">
+    We'll help you design a migration strategy that minimizes risk.
+  </Step>
+  <Step title="Execute">
+    Follow our [step-by-step guide](/migrations/keys) to migrate your keys.
+  </Step>
+</Steps>
 
 <Note>
-Every system is slightly different, please contact us at [support@unkey.dev](mailto:support@unkey.dev) for help with migrating your keys.
-
+Every system is different. We're here to help — reach out at [support@unkey.com](mailto:support@unkey.com) and we'll guide you through your specific migration.
 </Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Migration guide" icon="route" href="/migrations/keys">
+    Step-by-step instructions for migrating keys
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/v2/overview">
+    Full v2 API documentation
+  </Card>
+</CardGroup>

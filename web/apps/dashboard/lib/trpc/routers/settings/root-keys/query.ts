@@ -211,7 +211,7 @@ export const queryRootKeys = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "Failed to retrieve root keys due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+          "Failed to retrieve root keys due to an error. If this issue persists, please contact support@unkey.com with the time this occurred.",
       });
     }
   });
