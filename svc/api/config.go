@@ -124,10 +124,6 @@ type Config struct {
 	// This helps prevent DoS attacks from excessively large request bodies.
 	MaxRequestBodySize int64
 
-	// DebugCacheHeaders enables cache debug headers (X-Unkey-Debug-Cache) in responses.
-	// When enabled, cache operations add headers showing hit/miss status and latency.
-	// Should typically only be enabled in development or specific production debugging.
-	DebugCacheHeaders bool
 }
 
 func (c Config) Validate() error {
