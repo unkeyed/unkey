@@ -35,5 +35,3 @@ SELECT
   anyLast(tags) as tags
 FROM `default`.`key_verifications_raw_v2`
 GROUP BY workspace_id, key_space_id, key_id, identity_id;
-
-
