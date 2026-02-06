@@ -51,11 +51,11 @@ const unkey = new Unkey({
 });
 
 async function run() {
-  const result = await unkey.apis.createApi({
+  const { meta, data } = await unkey.apis.createApi({
     name: "payment-service-production",
   });
 
-  console.log(result);
+  console.log(data);
 }
 
 run();
