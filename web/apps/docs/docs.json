@@ -464,6 +464,18 @@
     {
       "source": "/api-reference/v1/liveness",
       "destination": "/api-reference/v1/migration/index"
+    },
+    {
+      "source": "/docs/security/permissions",
+      "destination": "/docs/apis/features/authorization/introduction"
+    },
+    {
+      "source": "/docs/security/roles",
+      "destination": "/docs/apis/features/authorization/introduction"
+    },
+    {
+      "source": "/docs/api-reference/overview",
+      "destination": "/docs/api-reference/v2/overview"
     }
   ],
   "theme": "maple",

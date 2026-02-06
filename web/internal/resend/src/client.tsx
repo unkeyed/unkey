@@ -16,9 +16,7 @@ export class Resend {
   }
 
   public async sendWelcomeEmail(req: { email: string }) {
-    const fiveMinutesFromNow = new Date(
-      Date.now() + 5 * 60 * 1000,
-    ).toISOString();
+    const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     const html = await render(<WelcomeEmail />);
     try {
@@ -35,10 +33,7 @@ export class Resend {
       }
       throw result.error;
     } catch (error) {
-      console.error(
-        "Error occurred sending welcome email ",
-        JSON.stringify(error),
-      );
+      console.error("Error occurred sending welcome email ", JSON.stringify(error));
     }
   }
 
@@ -47,9 +42,7 @@ export class Resend {
     name: string;
     date: Date;
   }): Promise<void> {
-    const html = await render(
-      <PaymentIssue username={req.name} date={req.date.toDateString()} />,
-    );
+    const html = await render(<PaymentIssue username={req.name} date={req.date.toDateString()} />);
     try {
       const result = await this.client.emails.send({
         to: req.email,
@@ -63,10 +56,7 @@ export class Resend {
       }
       throw result.error;
     } catch (error) {
-      console.error(
-        "Error occurred sending payment issue email ",
-        JSON.stringify(error),
-      );
+      console.error("Error occurred sending payment issue email ", JSON.stringify(error));
     }
   }
   public async sendLeakedKeyEmail(req: {
@@ -76,9 +66,7 @@ export class Resend {
     url: string;
   }): Promise<void> {
     const { date, email, source, url } = req;
-    const html = await render(
-      <SecretScanningKeyDetected date={date} source={source} url={url} />,
-    );
+    const html = await render(<SecretScanningKeyDetected date={date} source={source} url={url} />);
 
     try {
       const result = await this.client.emails.send({
@@ -115,8 +103,7 @@ export class Resend {
         to: req.email,
         from: "Andreas from Unkey <andreas@updates.unkey.com>",
         replyTo: this.replyTo,
-        subject:
-          "Action Required: Migrate from API v1 to v2 - Deadline January 1st, 2026",
+        subject: "Action Required: Migrate from API v1 to v2 - Deadline January 1st, 2026",
         html,
       });
 
@@ -125,10 +112,7 @@ export class Resend {
       }
       throw result.error;
     } catch (error) {
-      console.error(
-        "Error occurred sending API v1 migration email ",
-        JSON.stringify(error),
-      );
+      console.error("Error occurred sending API v1 migration email ", JSON.stringify(error));
     }
   }
 }
