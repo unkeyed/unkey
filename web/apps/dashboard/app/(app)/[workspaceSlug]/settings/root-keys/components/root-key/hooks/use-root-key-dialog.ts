@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc/client";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { toast } from "@unkey/ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "../constants";
 
 // Utility function for robust permission array comparison using Set-based equality check
@@ -49,10 +49,26 @@ export function useRootKeyDialog({
   onOpenChange,
 }: UseRootKeyDialogProps) {
   const trpcUtils = trpc.useUtils();
+  const lastKeyIdRef = useRef<string | undefined>(undefined);
   const [name, setName] = useState(existingKey?.name ?? "");
   const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>(
     existingKey?.permissions ?? [],
   );
+
+  // React 19 pattern: Update state during render when props change
+  const currentKeyId = existingKey?.id;
+  if (lastKeyIdRef.current !== currentKeyId) {
+    lastKeyIdRef.current = currentKeyId;
+
+    // Update state during render (allowed in React when detecting prop changes)
+    if (existingKey?.permissions) {
+      setName(existingKey.name ?? "");
+      setSelectedPermissions(existingKey.permissions);
+    } else {
+      setName("");
+      setSelectedPermissions([]);
+    }
+  }
 
   // Fetch APIs
   const {
@@ -180,17 +196,6 @@ export function useRootKeyDialog({
     setSelectedPermissions([]);
     setName("");
   }, [onOpenChange, key]);
-
-  // Reset form when dialog opens/closes or when existingKey changes
-  useEffect(() => {
-    if (existingKey?.permissions) {
-      setName(existingKey.name ?? "");
-      setSelectedPermissions(existingKey.permissions);
-    } else {
-      setName("");
-      setSelectedPermissions([]);
-    }
-  }, [existingKey]);
 
   // Check if there are any changes to enable/disable the update button
   const hasChanges = useMemo(() => {
