@@ -17,6 +17,10 @@ export const components = defineCollections({
   type: "doc",
 });
 
+export const { docs: packageDocs, meta: packageMeta } = defineDocs({
+  dir: "content/packages",
+});
+
 export default defineConfig({
   lastModifiedTime: "git",
   mdxOptions: {

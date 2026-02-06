@@ -1,4 +1,4 @@
-import { components, docs, meta } from "@/.source";
+import { components, docs, meta, packageDocs, packageMeta } from "@/.source";
 import { loader } from "fumadocs-core/source";
 import { createMDXSource } from "fumadocs-mdx";
 
@@ -10,4 +10,9 @@ export const source = loader({
 export const componentSource = loader({
   baseUrl: "/design",
   source: createMDXSource(components, []),
+});
+
+export const packageSource = loader({
+  baseUrl: "/packages",
+  source: createMDXSource(packageDocs, packageMeta),
 });
