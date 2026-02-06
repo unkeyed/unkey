@@ -101,7 +101,7 @@ export default function BillingPage() {
         >
           <div className="flex justify-end w-full">
             <Button variant="primary" size="lg">
-              <Link href="mailto:support@unkey.dev">Contact us</Link>
+              <Link href="mailto:support@unkey.com">Contact us</Link>
             </Button>
           </div>
         </SettingCard>

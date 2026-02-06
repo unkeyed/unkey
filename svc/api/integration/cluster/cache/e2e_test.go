@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/debug"
+	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -46,7 +46,7 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 		require.Equal(t, api.Name, resp.Body.Data.Name, "API name should match on node %d", i)
 
 		// Verify cache is populated (should show FRESH or MISS on first call)
-		cacheHeaders := resp.Headers.Values("X-Unkey-Debug-Cache")
+		cacheHeaders := resp.Headers.Values(timing.HeaderName)
 		require.NotEmpty(t, cacheHeaders, "Node %d should have cache debug headers", i)
 	}
 
@@ -96,11 +96,11 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 			t.Logf("Node %d: API correctly returns 404 - distributed cache invalidation worked!", i)
 
 			// Log cache headers for debugging, but don't require specific status
-			cacheHeaders := resp.Headers.Values("X-Unkey-Debug-Cache")
+			cacheHeaders := resp.Headers.Values(timing.HeaderName)
 			for _, headerValue := range cacheHeaders {
-				parsedHeader, err := debug.ParseCacheHeader(headerValue)
-				if err == nil && parsedHeader.CacheName == "live_api_by_id" {
-					t.Logf("Node %d: api_by_id cache status: %s (latency: %v)", i, parsedHeader.Status, parsedHeader.Latency)
+				parsedHeader, err := timing.ParseEntry(headerValue)
+				if err == nil && parsedHeader.Attributes["cache"] == "live_api_by_id" {
+					t.Logf("Node %d: api_by_id cache status: %s (latency: %v)", i, parsedHeader.Attributes["status"], parsedHeader.Duration)
 				}
 			}
 
@@ -150,45 +150,37 @@ func TestCacheDebugHeaders(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.Status, "API should exist")
 
 	// Verify cache debug headers format
-	cacheHeaders := resp.Headers.Values("X-Unkey-Debug-Cache")
-	require.NotEmpty(t, cacheHeaders, "Should have X-Unkey-Debug-Cache headers")
+	cacheHeaders := resp.Headers.Values(timing.HeaderName)
+	require.NotEmpty(t, cacheHeaders, "Should have timing headers")
 
 	// Each header should be parseable as a structured cache header
 	for _, headerValue := range cacheHeaders {
-		parsedHeader, err := debug.ParseCacheHeader(headerValue)
-		require.NoError(t, err, "Cache header '%s' should be valid structured format", headerValue)
+		parsedHeader, err := timing.ParseEntry(headerValue)
+		require.NoError(t, err, "Timing header '%s' should be valid structured format", headerValue)
 
-		// Validate components
-		require.NotEmpty(t, parsedHeader.CacheName, "Cache name should not be empty")
-		require.Positive(t, parsedHeader.Latency, "Latency should be positive")
+		cacheName := parsedHeader.Attributes["cache"]
+		require.NotEmpty(t, cacheName, "Cache name should not be empty")
+		require.Positive(t, parsedHeader.Duration, "Latency should be positive")
 
-		// Status should be one of the valid values
-		validStatuses := []string{"FRESH", "STALE", "MISS", "ERROR"}
-		statusValid := false
-		for _, validStatus := range validStatuses {
-			if parsedHeader.Status == validStatus {
-				statusValid = true
-				break
-			}
-		}
-		require.True(t, statusValid,
-			"Status '%s' should be one of FRESH, STALE, MISS, ERROR", parsedHeader.Status)
+		status := parsedHeader.Attributes["status"]
+		validStatuses := map[string]bool{"fresh": true, "stale": true, "miss": true, "error": true}
+		require.True(t, validStatuses[status], "Status '%s' should be one of fresh, stale, miss, error", status)
 
 		t.Logf("Parsed cache header: cache=%s, latency=%v, status=%s",
-			parsedHeader.CacheName, parsedHeader.Latency, parsedHeader.Status)
+			cacheName, parsedHeader.Duration, status)
 	}
 
 	// Should have api_by_id cache entry
 	foundApiCache := false
 	for _, headerValue := range cacheHeaders {
-		parsedHeader, err := debug.ParseCacheHeader(headerValue)
+		parsedHeader, err := timing.ParseEntry(headerValue)
 		if err != nil {
-			continue // Already validated above, but be defensive
+			continue
 		}
-		if parsedHeader.CacheName == "live_api_by_id" {
+		if parsedHeader.Attributes["cache"] == "live_api_by_id" {
 			foundApiCache = true
 			t.Logf("Found api_by_id cache entry: latency=%v, status=%s",
-				parsedHeader.Latency, parsedHeader.Status)
+				parsedHeader.Duration, parsedHeader.Attributes["status"])
 			break
 		}
 	}

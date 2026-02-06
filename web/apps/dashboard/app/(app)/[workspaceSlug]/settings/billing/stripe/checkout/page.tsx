@@ -53,7 +53,7 @@ export default async function StripeRedirect() {
         <Empty.Description>The Stripe session</Empty.Description>
         <Code>{session.id}</Code>
         <Empty.Description>
-          you are trying to access does not exist. Please contact support@unkey.dev.
+          you are trying to access does not exist. Please contact support@unkey.com.
         </Empty.Description>
       </Empty>
     );

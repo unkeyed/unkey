@@ -49,7 +49,7 @@ export const disconnectRoleFromKey = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to disconnect the role from the key. Please try again or contact support@unkey.dev",
+            "We are unable to disconnect the role from the key. Please try again or contact support@unkey.com",
         });
       });
   });

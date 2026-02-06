@@ -1,6 +1,6 @@
 ---
-title: "Overview"
-description: "Ratelimit overrides"
+title: "Rate Limit Overrides"
+description: "Set custom limits for specific identifiers"
 ---
 
 
@@ -23,17 +23,24 @@ async function handler(request) {
 
   const identifier = request.getUserId() // or ip or anything else you want
 
-  const override = await unkey.setOverride({
-      identifier: identifier,
-      limit: 10,
-      duration: 60000,
-      namespaceName: "email.outbound",
-  })
-  if (override.error){
-    // handle the error here
-    console.error(override.error.message);
+  try {
+    const { meta, data } = await unkey.setOverride({
+        identifier: identifier,
+        limit: 10,
+        duration: 60000,
+        namespaceName: "email.outbound",
+    })
+    
+    if (data.error){
+      // handle the error here
+      console.error(data.error.message);
+      return;
+    }
+  } catch (err) {
+    console.error(err);
     return;
   }
+  
   // handle the request here
 }
 ```

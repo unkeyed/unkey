@@ -1,61 +1,114 @@
 ---
 title: "Root Keys"
-description: "Learn how root keys in the Unkey API work"
+description: "Manage your Unkey workspace with root keys"
 ---
 
-To interact with the Unkey API to manage resources such as APIs or keys, you need a `root key`.
+Root keys authenticate *your* requests to the Unkey API. They're used to create API keys, manage identities, configure rate limits, and perform other administrative operations.
 
-`Root keys` are scoped per workspace and you can fine tune their access permissions when creating a key or update later on the fly.
+<Warning>
+Root keys have powerful permissions. Never expose them in client-side code, commit them to git, or share them publicly.
+</Warning>
 
-<Note>
-  It's a good practice to provide as few permissions as possible, to minimize the potential impact of a leaked key.
-</Note>
+## Root keys vs API keys
 
+| | Root Keys | API Keys |
+|---|---|---|
+| **Purpose** | Manage Unkey resources | Authenticate your users |
+| **Who uses it** | You (the developer) | Your customers |
+| **Permissions** | Create/update/delete keys, manage APIs | Access your API endpoints |
+| **Where stored** | Your server's environment variables | Given to customers |
 
+## Create a root key
 
 <Steps>
-<Step title="Start">
-
-
-1. Go to [https://app.unkey.com](https://app.unkey.com) and sign in. 
-2. Using the left sidebar menu navigate to `Settings`, then `Root Keys`.
-3. Click the New root key button in the top right of the screen. 
-
-You should see the following modal.
-
+<Step title="Go to Settings">
+Navigate to [Settings → Root Keys](https://app.unkey.com/settings/root-keys) in your dashboard.
 </Step>
 
-<Step title="Name and Permissions">
-
+<Step title="Click 'Create New Root Key'">
 <Frame>
 <img src="/images/root-keys/rootkey-modal-start.png"/>
 </Frame>
+</Step>
 
-1. Optionally enter a name. This is internal only and not customer-facing.
-2. Click the `Select Permissions...` button. 
-3. Add your workspace-wide permissions. These permissions affect and override the per-API permissions below.
-4. For each API in your workspace, you can enable fine-grained permissions.
-5. Click `Create New Key` at the bottom.
+<Step title="Configure permissions">
+Give the key a descriptive name and select only the permissions it needs.
 
 <Frame>
 <img src="/images/root-keys/rootkey-create.png"/>
 </Frame>
 
+**Common permission sets:**
+
+| Use case | Permissions needed |
+|----------|-------------------|
+| Verify keys only | `api.*.read_key` |
+| Create keys for users | `api.*.create_key`, `api.*.read_key` |
+| Full key management | `api.*.create_key`, `api.*.read_key`, `api.*.update_key`, `api.*.delete_key` |
+| Rate limit overrides | `ratelimit.*.set_override` |
 </Step>
 
-<Step title="Copy your key">
-
+<Step title="Copy and store securely">
 <Note>
-Be sure to copy the key before closing the window. There is no way to recover it later
+Copy the key immediately — you won't see it again. Unkey only stores a hash.
 </Note>
 
 <Frame>
 <img src="/images/root-keys/copy.png"/>
 </Frame>
 
+Store it in your environment variables:
+
+```bash .env
+UNKEY_ROOT_KEY=unkey_...
+```
 </Step>
 </Steps>
 
-## What should I do if a root key is leaked?
+## Best practices
 
-If you leak a root key - for instance, by accidentally checking it in to version control - you should immediately revoke the root key and replace it with a new, secure key. Root keys are secrets, and should never be exposed publicly.
+<AccordionGroup>
+<Accordion title="Use minimal permissions">
+Only grant the permissions each root key actually needs. A key that only verifies API keys doesn't need `delete_key` permission.
+</Accordion>
+
+<Accordion title="Use separate keys for different services">
+Create dedicated root keys for each service or environment:
+- `production-api-server` — verify and create keys
+- `admin-dashboard` — full management access
+- `billing-service` — update key credits only
+</Accordion>
+
+<Accordion title="Rotate keys periodically">
+Even without a breach, rotate root keys every few months as a security practice. Create a new key, update your services, then delete the old one.
+</Accordion>
+
+<Accordion title="Never log root keys">
+Ensure your logging doesn't capture root keys in request bodies or headers.
+</Accordion>
+</AccordionGroup>
+
+## If a root key is leaked
+
+Act immediately:
+
+1. **Revoke the key** — Go to [Settings → Root Keys](https://app.unkey.com/settings/root-keys) and delete the compromised key
+2. **Create a new key** — Generate a replacement with the same permissions
+3. **Update your services** — Deploy the new key to your environment
+4. **Check audit logs** — Review [Audit Logs](https://app.unkey.com/audit) for any unauthorized activity
+5. **Rotate affected API keys** — If you suspect API keys were created or modified, consider [rerolling](/apis/features/rerolling-key) them
+
+<Tip>
+Enable [GitHub secret scanning](/security/github-scanning) to get automatic alerts if your root key is accidentally committed.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="GitHub Secret Scanning" icon="github" href="/security/github-scanning">
+    Get alerts for leaked keys
+  </Card>
+  <Card title="Audit Logs" icon="scroll" href="/audit-log/introduction">
+    Monitor root key usage
+  </Card>
+</CardGroup>

@@ -1,56 +1,162 @@
 ---
 title: Overview
-description: Ratelimit your serverless functions.
-mode: "wide"
+description: Protect any endpoint from abuse — no Redis required
 ---
 
+Rate limiting controls how many requests a user, IP, or any identifier can make in a given time window. Unkey provides globally distributed rate limiting that works at the edge — without you managing Redis, Upstash, or any infrastructure.
 
-Serverless functions offer a ton of benefits but unfortunately make some things much harder too.
-Ratelimiting is one of these things as it requires some persistent state to coordinate different limits.
+## When to use rate limiting
 
-Unkey's ratelimit API provides a global low latency solution to limit your functions and protect
-upstream services.
+<CardGroup cols={2}>
+  <Card title="Prevent abuse" icon="shield">
+    Stop bad actors from hammering your endpoints or scraping your data.
+  </Card>
+  <Card title="Protect costs" icon="piggy-bank">
+    Limit expensive operations (AI calls, database queries) before they blow up your bill.
+  </Card>
+  <Card title="Fair usage" icon="scale-balanced">
+    Ensure no single user monopolizes shared resources.
+  </Card>
+  <Card title="Compliance" icon="file-contract">
+    Enforce contractual limits (e.g., 10,000 requests/month on a Basic plan).
+  </Card>
+</CardGroup>
 
-
-## Get your API key
+## How it works
 
 <Steps>
-  <Step title="Go to the dashboard">
-    1. Sign into your [dashboard](https://app.unkey.com). 
-    2. Navigate to the `Settings` in the sidebar and click `Root Keys` in the sub menu.
-    3. Click `+ New root key` at the top right of the page.
-  
+  <Step title="Choose an identifier">
+    Decide what you're limiting: a user ID, API key, IP address, organization, or any string that uniquely identifies the requester.
   </Step>
-  <Step title="Enter a name">
-    You can give your key a name to make it easier to find later, but that's optional.
+  <Step title="Set the limit">
+    Define how many requests are allowed and over what duration. Example: 100 requests per minute.
   </Step>
-  <Step title="Add permissions">
-    Your key needs at least these permissions:
-    - `create_namespace`
-    - `limit`
-
-  <Frame>
-  <img src="/ratelimiting/create-root-key-permissions.png"/>
-  </Frame>
-
-
-  After selecting both permissions, click `Create New Key` at the bottom of the modal and copy the generated key to your `.env` file.
-  For security reasons, this key can not be shown again. In case you lose it, you need to create a new one.
-  <Frame>
-
-      <img src="/ratelimiting/copy-key.png"/>
-
-  </Frame>
+  <Step title="Check on each request">
+    Call `limiter.limit(identifier)` and Unkey tells you whether to allow or reject the request.
   </Step>
-
 </Steps>
 
-## Ratelimit your functions
+## Quick example
 
-<Info>
-We're currently only offering a Typescript SDK but you can check out the [api reference](/api-reference/v2/overview) and do the network call manually if you are using another language.
-Also please let us know what language you're using, so we can prioritize adding support for it.
-</Info>
+<CodeGroup>
 
+```ts TypeScript
+import { Ratelimit } from "@unkey/ratelimit";
 
-Please follow the [@unkey/ratelimit](/libraries/ts/ratelimit) documentation for setup and configuration options.
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "my-app",      // Group related limits together
+  limit: 10,                // 10 requests...
+  duration: "60s",          // ...per minute
+});
+
+export async function handler(req: Request) {
+  // Use any identifier: user ID, API key, IP, etc.
+  const identifier = req.headers.get("x-user-id") ?? getClientIP(req);
+  
+  const { success, remaining, reset } = await limiter.limit(identifier);
+  
+  if (!success) {
+    return new Response("Too many requests", { 
+      status: 429,
+      headers: {
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": reset.toString(),
+      }
+    });
+  }
+  
+  // Request allowed — continue with your logic
+  return new Response(`Hello! ${remaining} requests remaining.`);
+}
+```
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/ratelimits.limit \
+  -H "Authorization: Bearer unkey_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "my-app",
+    "identifier": "user_123",
+    "limit": 10,
+    "duration": 60000
+  }'
+```
+
+</CodeGroup>
+
+## Standalone vs Key-attached rate limits
+
+Unkey offers two ways to rate limit:
+
+| Approach | Best for | How it works |
+|----------|----------|--------------|
+| **Standalone** | Any endpoint, public or private | You call `limiter.limit()` with any identifier |
+| **Key-attached** | API key authenticated endpoints | Rate limits are configured per-key and checked during `keys.verify()` |
+
+**Standalone** is what this section covers — it works anywhere, with or without API keys.
+
+**Key-attached** rate limits are configured when you [create API keys](/apis/features/ratelimiting/overview) and are automatically enforced during verification.
+
+<Tip>
+You can use both! Standalone for public endpoints (login, signup), key-attached for authenticated API calls.
+</Tip>
+
+## What makes Unkey rate limiting different?
+
+<AccordionGroup>
+  <Accordion title="No infrastructure to manage" icon="server">
+    No Redis clusters, no Upstash accounts, no connection strings. Just install the SDK and go.
+  </Accordion>
+  
+  <Accordion title="Globally distributed" icon="globe">
+    Requests are processed across our globally distributed infrastructure. Your rate limits are checked close to your users, not in a single region.
+  </Accordion>
+  
+  <Accordion title="Timeout and fallback" icon="bolt">
+    Configure custom timeout and fallback behavior for resilience when network issues occur.
+  </Accordion>
+  
+  <Accordion title="Per-identifier overrides" icon="user-pen">
+    Give specific users higher limits without changing code. "User X gets 1000/min instead of 100/min."
+  </Accordion>
+  
+  <Accordion title="Analytics built in" icon="chart-line">
+    See which identifiers are hitting limits, when, and how often — in your Unkey dashboard.
+  </Accordion>
+</AccordionGroup>
+
+## Get started
+
+<Steps>
+  <Step title="Create a root key">
+    Go to [Settings → Root Keys](https://app.unkey.com/settings/root-keys) and create a new key with these permissions:
+    - `ratelimit.*.create_namespace`
+    - `ratelimit.*.limit`
+  </Step>
+  <Step title="Install the SDK">
+    ```bash
+    npm install @unkey/ratelimit
+    ```
+  </Step>
+  <Step title="Add to your code">
+    See the [framework guides](/quickstart) for complete examples with Next.js, Bun, Express, or Hono.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart/ratelimiting/nextjs">
+    Full walkthrough for your framework.
+  </Card>
+  <Card title="How it works" icon="arrows-split-up-and-left" href="/ratelimiting/modes">
+    Choose between consistency and speed.
+  </Card>
+  <Card title="Overrides" icon="sliders" href="/ratelimiting/overrides">
+    Give specific users custom limits.
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/libraries/ts/ratelimit/ratelimit">
+    All configuration options and methods.
+  </Card>
+</CardGroup>

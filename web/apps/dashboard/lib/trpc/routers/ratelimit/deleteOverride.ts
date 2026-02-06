@@ -33,14 +33,14 @@ export const deleteOverride = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete override for this namespace. Please try again or contact support@unkey.dev",
+            "We are unable to delete override for this namespace. Please try again or contact support@unkey.com",
         });
       });
 
     if (!override) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct override. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct override. Please try again or contact support@unkey.com.",
         code: "NOT_FOUND",
       });
     }
@@ -53,7 +53,7 @@ export const deleteOverride = workspaceProcedure
         .catch((_err) => {
           throw new TRPCError({
             message:
-              "We are unable to delete the override. Please try again or contact support@unkey.dev",
+              "We are unable to delete the override. Please try again or contact support@unkey.com",
             code: "INTERNAL_SERVER_ERROR",
           });
         });
@@ -84,7 +84,7 @@ export const deleteOverride = workspaceProcedure
       }).catch((_err) => {
         throw new TRPCError({
           message:
-            "We are unable to delete the override. Please try again or contact support@unkey.dev",
+            "We are unable to delete the override. Please try again or contact support@unkey.com",
           code: "INTERNAL_SERVER_ERROR",
         });
       });

@@ -26,13 +26,13 @@ export const updateIdentityRatelimit = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update ratelimits on this identity. Please try again or contact support@unkey.dev",
+            "We were unable to update ratelimits on this identity. Please try again or contact support@unkey.com",
         });
       });
     if (!identity) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct identity. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct identity. Please try again or contact support@unkey.com.",
         code: "NOT_FOUND",
       });
     }
@@ -164,7 +164,7 @@ const updateRatelimitV2 = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message:
-        "We were unable to update ratelimit on this identity. Please try again or contact support@unkey.dev",
+        "We were unable to update ratelimit on this identity. Please try again or contact support@unkey.com",
     });
   }
 

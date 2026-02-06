@@ -9,7 +9,7 @@ import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detecte
 import { WelcomeEmail } from "../emails/welcome_email";
 export class Resend {
   public readonly client: Client;
-  private readonly replyTo = "support@unkey.dev";
+  private readonly replyTo = "support@unkey.com";
 
   constructor(opts: { apiKey: string }) {
     this.client = new Client(opts.apiKey);
