@@ -60,10 +60,6 @@ var Cmd = &cli.Command{
 		// Logging Sampler Configuration
 		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
 			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SAMPLE_RATE")),
-		cli.Float("log-error-sample-rate", "Probability (0.0-1.0) of emitting log events with errors. Default: 1.0",
-			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_ERROR_SAMPLE_RATE")),
-		cli.Float("log-slow-sample-rate", "Probability (0.0-1.0) of emitting slow log events. Default: 1.0",
-			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SLOW_SAMPLE_RATE")),
 		cli.Duration("log-slow-threshold", "Duration threshold for slow event sampling. Default: 1s",
 			cli.Default(time.Second), cli.EnvVar("UNKEY_LOG_SLOW_THRESHOLD")),
 	},
