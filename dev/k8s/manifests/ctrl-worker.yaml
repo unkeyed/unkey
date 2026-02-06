@@ -114,6 +114,12 @@ spec:
                   name: github-credentials
                   key: UNKEY_GITHUB_PRIVATE_KEY_PEM
                   optional: true
+            - name: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
+                  optional: true
 
             - name: UNKEY_SENTINEL_IMAGE
               value: "unkey/sentinel:latest"

@@ -84,6 +84,7 @@ local_resource(
       --from-literal=UNKEY_GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID" \
       --from-literal=UNKEY_GITHUB_APP_WEBHOOK_SECRET="$UNKEY_GITHUB_APP_WEBHOOK_SECRET" \
       --from-literal=NEXT_PUBLIC_GITHUB_APP_NAME="$NEXT_PUBLIC_GITHUB_APP_NAME" \
+      --from-literal=UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS="$UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS" \
       --from-file=UNKEY_GITHUB_PRIVATE_KEY_PEM=./.github-private-key.pem \
       -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping github-credentials (missing .env.github or .github-private-key.pem)"; fi''',
     resource_deps=['namespace'],

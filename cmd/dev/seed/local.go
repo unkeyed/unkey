@@ -320,7 +320,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	logger.Info("project created successfully via control plane", "id", projectID)
+	logger.Info("project created successfully", "id", projectID)
 
 	// Write environment file with generated values
 	if outputFile := cmd.String("output"); outputFile != "" {
