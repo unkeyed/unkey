@@ -48,14 +48,15 @@ The window duration in milliseconds.
 
 <RequestExample>
 ```ts
-const override = await unkey.getOverride({
+const { meta, data } = await unkey.getOverride({
   identifier:"user.example",
   namespaceName: "email.outbound"
 });
 
 ```
+
 ```ts
-const override = await unkey.getOverride({
+const { meta, data } = await unkey.getOverride({
   identifier:"user.example",
   namespaceId: "rlns_1234",
 });

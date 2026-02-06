@@ -46,7 +46,7 @@ export const updateApiIpWhitelist = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the API whitelist. Please try again or contact support@unkey.dev",
+            "We are unable to update the API whitelist. Please try again or contact support@unkey.com",
         });
       });
 
@@ -54,7 +54,7 @@ export const updateApiIpWhitelist = workspaceProcedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct API. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct API. Please try again or contact support@unkey.com.",
       });
     }
 
@@ -62,7 +62,7 @@ export const updateApiIpWhitelist = workspaceProcedure
       throw new TRPCError({
         code: "FORBIDDEN",
         message:
-          "IP Whitelisting is only available for enterprise plans. Please contact support@unkey.dev.",
+          "IP Whitelisting is only available for enterprise plans. Please contact support@unkey.com.",
       });
     }
 
@@ -80,7 +80,7 @@ export const updateApiIpWhitelist = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to update the API whitelist. Please try again or contact support@unkey.dev",
+                "We are unable to update the API whitelist. Please try again or contact support@unkey.com",
             });
           });
 
@@ -109,7 +109,7 @@ export const updateApiIpWhitelist = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the API whitelist. Please try again or contact support@unkey.dev",
+            "We are unable to update the API whitelist. Please try again or contact support@unkey.com",
         });
       });
   });

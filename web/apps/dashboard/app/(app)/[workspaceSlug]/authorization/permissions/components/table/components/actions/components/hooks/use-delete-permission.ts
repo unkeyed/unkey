@@ -41,7 +41,7 @@ export const useDeletePermission = (
             "We encountered an issue while deleting your permissions. Please try again later or contact support.",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       } else {
@@ -49,7 +49,7 @@ export const useDeletePermission = (
           description: err.message || "An unexpected error occurred. Please try again later.",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       }

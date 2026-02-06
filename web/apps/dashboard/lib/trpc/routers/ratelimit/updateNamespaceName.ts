@@ -27,14 +27,14 @@ export const updateNamespaceName = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the name for this namespace. Please try again or contact support@unkey.dev",
+            "We are unable to update the name for this namespace. Please try again or contact support@unkey.com",
         });
       });
 
     if (!namespace) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.com",
         code: "NOT_FOUND",
       });
     }
@@ -49,7 +49,7 @@ export const updateNamespaceName = workspaceProcedure
         .catch((_err) => {
           throw new TRPCError({
             message:
-              "We are unable to update the namespace name. Please try again or contact support@unkey.dev",
+              "We are unable to update the namespace name. Please try again or contact support@unkey.com",
             code: "INTERNAL_SERVER_ERROR",
           });
         });
@@ -75,7 +75,7 @@ export const updateNamespaceName = workspaceProcedure
       }).catch((_err) => {
         throw new TRPCError({
           message:
-            "We are unable to update the namespace name. Please try again or contact support@unkey.dev",
+            "We are unable to update the namespace name. Please try again or contact support@unkey.com",
           code: "INTERNAL_SERVER_ERROR",
         });
       });

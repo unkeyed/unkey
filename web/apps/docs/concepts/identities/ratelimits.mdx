@@ -1,34 +1,176 @@
 ---
-title: Ratelimits
-description: "Identities can be used to share ratelimits across multiple keys"
+title: Shared Rate Limits
+description: "Share rate limits across multiple API keys using identities"
 ---
 
-<Tip>
- Identities are in in public beta, please report any issues you encounter: [support](mailto:support@unkey.dev).
-</Tip>
+Identities let you enforce a **single rate limit** across all of a user's API keys. Without this, a user with 5 keys at 100 req/s each could make 500 req/s total — probably not what you want.
 
-## Sharing ratelimits
+## The problem
 
-Identities allow you to share ratelimits across multiple keys. Let's say you want to limit a specific user to 100 requests per second:
-If you just set each key to `100 RPS` then the user can make `100 * number of keys` requests per second, which probably isn't what you want. Of course you could limit the number of keys a user can have or do some math to divide 100 by the number of keys they have, but that's not fixing the actual problem, it's just a workaround.
+Without shared limits, rate limits apply per-key:
 
-Instead, you should create an identity for the user, set the ratelimit on the identity to `100 RPS` and then associate all keys of the user with the identity. This way, the user can only make `100 RPS` across all of their keys.
+```
+User has 3 API keys, each with 100 req/s limit
+→ User can actually make 300 req/s (100 × 3 keys)
+```
 
+## The solution
 
-## Multiple ratelimits
+Create an identity for the user, attach a rate limit to it, then link all their keys to that identity:
 
-You can set multiple ratelimits for an identity and check against some or all of them when verifying a key.
-Let's say you are building an app that uses AI under the hood and you want to limit your customers to 500 requests per hour, but also ensure that they don't blow up your bill by using too many tokens.
+```
+Identity: user_123
+  └── Rate limit: 100 req/s (shared pool)
+      ├── Key A (production)
+      ├── Key B (staging)
+      └── Key C (mobile app)
 
-In this case you would create an identity for the user and then create two ratelimits:
-1. `{name: "requests", limit: 500, duration: 3600000}` -> 500 requests per hour
-2. `{name: "tokens", limit: 20000, duration: 86400000}` -> 20k tokens per day
+→ User can only make 100 req/s total across ALL keys
+```
 
-Now if either one of those limits is exceeded, the request is denied.
+## Step 1: Create an identity with rate limits
 
-<Info>
-  API reference for verifying: [/api-reference/v2/keys/verify-api-key](/api-reference/v2/keys/verify-api-key)
+<CodeGroup>
 
-  API reference for creating identities: [/api-reference/v2/identities/create-identity](/api-reference/v2/identities/create-identity)
+```bash cURL
+curl -X POST https://api.unkey.com/v2/identities.createIdentity \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "externalId": "user_123",
+    "ratelimits": [
+      {
+        "name": "requests",
+        "limit": 100,
+        "duration": 1000
+      }
+    ]
+  }'
+```
 
-</Info>
+```typescript TypeScript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+const { meta, data } = await unkey.identities.create({
+  externalId: "user_123",
+  ratelimits: [
+    {
+      name: "requests",
+      limit: 100,
+      duration: 1000,  // 100 requests per second
+    },
+  ],
+});
+
+console.log(data.identityId);  // Save this
+```
+
+</CodeGroup>
+
+## Step 2: Create keys linked to the identity
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "externalId": "user_123",
+    "name": "Production Key"
+  }'
+```
+
+```typescript TypeScript
+// All keys with the same externalId share the identity's rate limits
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_...",
+    externalId: "user_123",  // Links to the identity
+    name: "Production Key",
+  });
+
+  await unkey.keys.create({
+    apiId: "api_...",
+    externalId: "user_123",  // Same identity
+    name: "Staging Key",
+  });
+} catch (err) {
+  console.error(err);
+  throw err;
+}
+```
+
+</CodeGroup>
+
+## Step 3: Verify — limits are shared automatically
+
+When you verify any key linked to the identity, the shared rate limit is enforced:
+
+```typescript
+const { meta, data } = await verifyKey({ key: "sk_prod_..." });
+
+// If the identity is rate limited, data.valid will be false
+if (!data.valid && data.code === "RATE_LIMITED") {
+  // User exceeded 100 req/s across ALL their keys
+}
+```
+
+---
+
+## Multiple rate limits
+
+You can set multiple limits on an identity — useful for different resource types:
+
+```typescript
+try {
+  const { meta, data } = await unkey.identities.create({
+    externalId: "user_123",
+    ratelimits: [
+      {
+        name: "requests",
+        limit: 500,
+        duration: 3600000,  // 500 requests per hour
+      },
+      {
+        name: "tokens",
+        limit: 20000,
+        duration: 86400000,  // 20k tokens per day
+      },
+    ],
+  });
+} catch (err) {
+  console.error(err);
+  throw err;
+}
+```
+
+Then specify which limit to check during verification:
+
+```typescript
+// Check the "tokens" limit and consume 150 tokens
+const { meta, data } = await verifyKey({
+  key: "sk_...",
+  ratelimits: [
+    { name: "tokens", cost: 150 },
+  ],
+});
+```
+
+If *any* specified limit is exceeded, verification fails.
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart/identities/shared-ratelimits">
+    Step-by-step tutorial
+  </Card>
+  <Card title="Identities overview" icon="fingerprint" href="/concepts/identities/overview">
+    Learn more about identities
+  </Card>
+</CardGroup>

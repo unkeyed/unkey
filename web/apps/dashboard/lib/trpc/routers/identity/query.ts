@@ -157,7 +157,7 @@ export const queryIdentities = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "Failed to retrieve identities. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+          "Failed to retrieve identities. If this issue persists, please contact support@unkey.com with the time this occurred.",
       });
     }
   });
