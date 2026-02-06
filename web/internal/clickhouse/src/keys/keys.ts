@@ -263,11 +263,7 @@ export function getKeysOverviewLogs(ch: Querier) {
     let aggregationTable: string;
     let timeConversion: string;
     
-    if (rangeDays <= 7) {
-      // Use per_minute for ranges <= 7 days (most granular, available for 7 days)
-      aggregationTable = 'key_verifications_per_minute_v2';
-      timeConversion = 'toUnixTimestamp(max(time)) * 1000';
-    } else if (rangeDays <= 30) {
+    if (rangeDays <= 30) {
       // Use per_hour for ranges <= 30 days (available for 30 days)
       aggregationTable = 'key_verifications_per_hour_v2';
       timeConversion = 'toUnixTimestamp(max(time)) * 1000';
