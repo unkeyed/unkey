@@ -31,7 +31,7 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
       <Empty.Description>{description}</Empty.Description>
 
       <div className="flex items-center gap-4">
-        <Link href={`mailto:support@unkey.dev?subject=Beta Access: ${feature}`}>
+        <Link href={`mailto:support@unkey.com?subject=Beta Access: ${feature}`}>
           <Button>Get in touch</Button>
         </Link>
 

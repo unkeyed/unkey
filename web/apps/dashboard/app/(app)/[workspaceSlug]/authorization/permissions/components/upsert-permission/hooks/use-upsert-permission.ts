@@ -40,7 +40,7 @@ export const useUpsertPermission = (
             "We encountered an issue while saving your permission. Please try again later or contact support.",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       } else {
@@ -48,7 +48,7 @@ export const useUpsertPermission = (
           description: err.message || "An unexpected error occurred. Please try again later.",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       }

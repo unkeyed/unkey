@@ -37,7 +37,7 @@ export const getKeyCount = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to retrieve the key count. Please try again or contact support@unkey.dev",
+            "We were unable to retrieve the key count. Please try again or contact support@unkey.com",
         });
       });
 
@@ -45,7 +45,7 @@ export const getKeyCount = workspaceProcedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the specified API. Please try again or contact support@unkey.dev.",
+          "We are unable to find the specified API. Please try again or contact support@unkey.com.",
       });
     }
 

@@ -27,24 +27,27 @@ export function ApiV1Migration({
       </Heading>
       <Text>Hey {username},</Text>
       <Text>
-        This is a follow-up to our previous email in August about the deprecation of our API v1.
-        We're reaching out because your workspace <strong>{workspaceName}</strong> is still using
-        deprecated v1 endpoints.
+        This is a follow-up to our previous email in August about the
+        deprecation of our API v1. We're reaching out because your workspace{" "}
+        <strong>{workspaceName}</strong> is still using deprecated v1 endpoints.
       </Text>
 
       <Text className="font-semibold text-red-600">
-        Important: <span className="font-mono">api.unkey.dev/v1</span> will be discontinued on
-        January 1st, 2026.
+        Important: <span className="font-mono">api.unkey.dev/v1</span> will be
+        discontinued on January 1st, 2026.
       </Text>
 
       <Section>
         <Text className="font-semibold">
-          Your workspace is currently using the following deprecated v1 endpoints:
+          Your workspace is currently using the following deprecated v1
+          endpoints:
         </Text>
         <ul className="pb-4">
           {deprecatedEndpoints.map((endpoint) => (
             <li key={endpoint} className="pb-2">
-              <code className="bg-gray-100 px-2 py-1 rounded text-sm">{endpoint}</code>
+              <code className="bg-gray-100 px-2 py-1 rounded text-sm">
+                {endpoint}
+              </code>
             </li>
           ))}
         </ul>
@@ -60,16 +63,16 @@ export function ApiV1Migration({
       </Section>
 
       <Text>
-        Our migration guide includes step-by-step instructions, code examples, and a complete
-        mapping of v1 to v2 endpoints.
+        Our migration guide includes step-by-step instructions, code examples,
+        and a complete mapping of v1 to v2 endpoints.
       </Text>
 
       <Hr />
 
       <Text>
         Need help with your migration? Please reach out to{" "}
-        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this email.
-        Our team is ready to help with anything.
+        <Link href="mailto:support@unkey.com">support@unkey.com</Link> or just
+        reply to this email. Our team is ready to help with anything.
       </Text>
 
       <Signature signedBy="Andreas" />
@@ -80,7 +83,11 @@ export function ApiV1Migration({
 ApiV1Migration.PreviewProps = {
   username: "John Doe",
   workspaceName: "Acme Corp",
-  deprecatedEndpoints: ["/v1/keys.create", "/v1/keys.verify", "/v1/apis.create"],
+  deprecatedEndpoints: [
+    "/v1/keys.create",
+    "/v1/keys.verify",
+    "/v1/apis.create",
+  ],
 } satisfies Props;
 
 // biome-ignore lint/style/noDefaultExport: Too scared to modify that one
