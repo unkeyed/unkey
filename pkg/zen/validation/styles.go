@@ -345,7 +345,15 @@ func parseDeepObject(query url.Values, paramName string, schemaType SchemaType, 
 		propName = strings.TrimSuffix(propName, "]")
 		if propName != "" && len(values) > 0 {
 			propType := getPropertyType(propertyTypes, propName)
-			result[propName] = coerceValue(values[0], propType)
+			if propType == SchemaTypeArray {
+				items := make([]CoercedValue, len(values))
+				for i, v := range values {
+					items[i] = coerceValue(v, SchemaTypeString)
+				}
+				result[propName] = ArrayValue(items)
+			} else {
+				result[propName] = coerceValue(values[0], propType)
+			}
 		}
 	}
 

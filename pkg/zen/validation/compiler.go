@@ -29,12 +29,12 @@ type DiscriminatorInfo struct {
 
 // CompiledOperation holds compiled schemas for an operation
 type CompiledOperation struct {
-	BodySchema       *jsonschema.Schema
-	BodySchemaName   string // Schema name for error messages (e.g., "V2KeysCreateKeyRequestBody")
-	BodyRequired     bool
-	ContentTypes     []string
-	Parameters       CompiledParameterSet
-	Discriminator    *DiscriminatorInfo // Optional discriminator for oneOf/anyOf schemas
+	BodySchema     *jsonschema.Schema
+	BodySchemaName string // Schema name for error messages (e.g., "V2KeysCreateKeyRequestBody")
+	BodyRequired   bool
+	ContentTypes   []string
+	Parameters     CompiledParameterSet
+	Discriminator  *DiscriminatorInfo // Optional discriminator for oneOf/anyOf schemas
 }
 
 // SchemaRefResolver is a function that resolves a $ref to its schema

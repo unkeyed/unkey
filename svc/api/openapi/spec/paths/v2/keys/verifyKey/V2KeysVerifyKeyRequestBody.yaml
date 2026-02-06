@@ -1,10 +1,8 @@
 type: object
 additionalProperties: false
 examples:
-    - apiId: api_1234abcd
-      key: sk_1234abcdef
-    - apiId: api_1234abcd
-      key: sk_1234abcdef
+    - key: sk_1234abcdef
+    - key: sk_1234abcdef
       permissions: "documents.read"
 required:
     - key

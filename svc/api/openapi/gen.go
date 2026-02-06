@@ -1597,7 +1597,7 @@ type V2KeysUpdateKeyRequestBody struct {
 	Permissions *[]string                 `json:"permissions,omitempty"`
 
 	// Ratelimits Defines time-based rate limits that protect against abuse by controlling request frequency.
-	// Omitting this field preserves existing rate limits, while setting null removes all rate limits.
+	// Omitting this field preserves existing rate limits, while setting an empty array removes all rate limits.
 	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
 	// Multiple rate limits can control different operation types with separate thresholds and windows.
 	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`

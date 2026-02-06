@@ -12,4 +12,4 @@ properties:
         example: perm_1234567890abcdef
 additionalProperties: false
 examples:
-    - permissionId: perm_1234567890abcdef
+    - permission: perm_1234567890abcdef

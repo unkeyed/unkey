@@ -81,7 +81,7 @@ func (v *Validator) validateContentType(r *http.Request, compiledOp *CompiledOpe
 				RequestId: requestID,
 			},
 			Error: openapi.BadRequestErrorDetails{
-				Title:  "Bad Request",
+				Title:  http.StatusText(http.StatusUnsupportedMediaType),
 				Detail: "Unsupported Content-Type: " + mediaType,
 				Status: http.StatusUnsupportedMediaType,
 				Type:   "https://unkey.com/docs/errors/unkey/application/unsupported_media_type",
@@ -102,57 +102,38 @@ func (v *Validator) validateContentType(r *http.Request, compiledOp *CompiledOpe
 func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledOp *CompiledOperation) (ValidationErrorResponse, bool) {
 	requestID := ctxutil.GetRequestID(ctx)
 
-	// Check if body is required
-	if compiledOp != nil && compiledOp.BodyRequired {
-		if r.Body == nil || r.ContentLength == 0 {
-			// Try to read body to check if it's truly empty
-			body, err := io.ReadAll(r.Body)
-			if err == nil {
-				r.Body = io.NopCloser(bytes.NewReader(body))
+	// Read body once upfront, guarding nil
+	var body []byte
+	if r.Body != nil {
+		var err error
+		body, err = io.ReadAll(r.Body)
+		if err != nil {
+			var schemaURL *string
+			if compiledOp != nil {
+				schemaURL = BuildSchemaURL(compiledOp.BodySchemaName)
 			}
-			if err != nil || len(body) == 0 {
-				return &BadRequestError{
-					BadRequestErrorResponse: openapi.BadRequestErrorResponse{
-						Meta: openapi.Meta{
-							RequestId: requestID,
-						},
-						Error: openapi.BadRequestErrorDetails{
-							Title:  "Bad Request",
-							Detail: "Request body is required but was not provided",
-							Status: http.StatusBadRequest,
-							Type:   "https://unkey.com/docs/errors/unkey/application/missing_body",
-							Errors: []openapi.ValidationError{
-								{
-									Location: "body",
-									Message:  "request body is required",
-									Fix:      ptr.P("Provide a request body in the expected format"),
-								},
-							},
-							Schema: BuildSchemaURL(compiledOp.BodySchemaName),
-						},
+			return &BadRequestError{
+				BadRequestErrorResponse: openapi.BadRequestErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: requestID,
 					},
-				}, false
-			}
+					Error: openapi.BadRequestErrorDetails{
+						Title:  "Bad Request",
+						Detail: "Failed to read request body",
+						Status: http.StatusBadRequest,
+						Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
+						Errors: []openapi.ValidationError{},
+						Schema: schemaURL,
+					},
+				},
+			}, false
 		}
+		// Restore body for downstream handlers
+		r.Body = io.NopCloser(bytes.NewReader(body))
 	}
 
-	// Check if we have a body schema to validate against
-	if compiledOp == nil || compiledOp.BodySchema == nil {
-		// No request body schema for this operation - pass through
-		return nil, true
-	}
-
-	schema := compiledOp.BodySchema
-
-	// Read the request body
-	if r.Body == nil {
-		// No body provided but schema exists - pass through
-		return nil, true
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		schemaURL := BuildSchemaURL(compiledOp.BodySchemaName)
+	// Check if body is required but empty/missing
+	if compiledOp != nil && compiledOp.BodyRequired && len(body) == 0 {
 		return &BadRequestError{
 			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
@@ -160,20 +141,28 @@ func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledO
 				},
 				Error: openapi.BadRequestErrorDetails{
 					Title:  "Bad Request",
-					Detail: "Failed to read request body",
+					Detail: "Request body is required but was not provided",
 					Status: http.StatusBadRequest,
-					Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
-					Errors: []openapi.ValidationError{},
-					Schema: schemaURL,
+					Type:   "https://unkey.com/docs/errors/unkey/application/missing_body",
+					Errors: []openapi.ValidationError{
+						{
+							Location: "body",
+							Message:  "request body is required",
+							Fix:      ptr.P("Provide a request body in the expected format"),
+						},
+					},
+					Schema: BuildSchemaURL(compiledOp.BodySchemaName),
 				},
 			},
 		}, false
 	}
 
-	// Reset body for downstream handlers
-	r.Body = io.NopCloser(bytes.NewReader(body))
+	// No schema to validate against — pass through
+	if compiledOp == nil || compiledOp.BodySchema == nil {
+		return nil, true
+	}
 
-	// Empty body - some operations may allow this
+	// Empty body on a non-required schema — pass through
 	if len(body) == 0 {
 		return nil, true
 	}
@@ -207,14 +196,10 @@ func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledO
 
 	// Validate against the schema
 	_, schemaSpan := tracing.Start(ctx, "validation.SchemaValidate")
-	err = schema.Validate(data)
+	schemaErr := compiledOp.BodySchema.Validate(data)
 	schemaSpan.End()
-	if err != nil {
-		schemaName := ""
-		if compiledOp != nil {
-			schemaName = compiledOp.BodySchemaName
-		}
-		resp := TransformErrors(err, requestID, schemaName)
+	if schemaErr != nil {
+		resp := TransformErrors(schemaErr, requestID, compiledOp.BodySchemaName)
 		return &BadRequestError{BadRequestErrorResponse: resp}, false
 	}
 
