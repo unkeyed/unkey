@@ -24,6 +24,15 @@ type OpenAPIValidator interface {
 	// marshalled and returned to the client.
 	// The second return value is a boolean that is true if the request is valid.
 	Validate(ctx context.Context, r *http.Request) (ValidationErrorResponse, bool)
+
+	// SanitizeRequest redacts body fields per spec, filters infra headers,
+	// redacts x-unkey-redact-annotated headers, and returns compact JSON body
+	// and formatted header strings suitable for logging.
+	SanitizeRequest(r *http.Request, body []byte, headers http.Header) (string, []string)
+
+	// SanitizeResponse redacts response body fields per spec, formats response
+	// headers, and returns compact JSON body and formatted header strings.
+	SanitizeResponse(r *http.Request, body []byte, headers http.Header) (string, []string)
 }
 
 // Validator implements OpenAPIValidator using a parsed and compiled OpenAPI spec
@@ -31,6 +40,7 @@ type Validator struct {
 	matcher         *PathMatcher
 	compiler        *SchemaCompiler
 	securitySchemes map[string]SecurityScheme
+	redactions      map[string]*RedactionConfig
 }
 
 // New creates a new Validator from the embedded OpenAPI spec
@@ -47,16 +57,43 @@ func New() (*Validator, error) {
 
 	matcher := NewPathMatcher(parser.Operations())
 
-	return NewValidator(matcher, compiler, parser.SecuritySchemes()), nil
+	return NewValidator(matcher, compiler, parser.SecuritySchemes(), parser.Redactions()), nil
 }
 
 // NewValidator creates a Validator with the given components
-func NewValidator(matcher *PathMatcher, compiler *SchemaCompiler, securitySchemes map[string]SecurityScheme) *Validator {
+func NewValidator(matcher *PathMatcher, compiler *SchemaCompiler, securitySchemes map[string]SecurityScheme, redactions map[string]*RedactionConfig) *Validator {
 	return &Validator{
 		matcher:         matcher,
 		compiler:        compiler,
 		securitySchemes: securitySchemes,
+		redactions:      redactions,
 	}
+}
+
+// SanitizeRequest redacts request body fields and headers per spec.
+func (v *Validator) SanitizeRequest(r *http.Request, body []byte, headers http.Header) (string, []string) {
+	routeKey := r.Method + " " + r.URL.Path
+	redactedBody := string(RedactJSON(v.redactions, routeKey, false, body))
+	redactedHeaders := v.redactedHeadersForRoute(routeKey)
+	sanitizedHeaders := SanitizeHeaders(headers, redactedHeaders)
+	return redactedBody, sanitizedHeaders
+}
+
+// SanitizeResponse redacts response body fields and formats headers.
+func (v *Validator) SanitizeResponse(r *http.Request, body []byte, headers http.Header) (string, []string) {
+	routeKey := r.Method + " " + r.URL.Path
+	redactedBody := string(RedactJSON(v.redactions, routeKey, true, body))
+	sanitizedHeaders := SanitizeHeaders(headers, nil)
+	return redactedBody, sanitizedHeaders
+}
+
+// redactedHeadersForRoute returns the merged set of header names to redact for a route.
+func (v *Validator) redactedHeadersForRoute(routeKey string) map[string]bool {
+	config := v.redactions[routeKey]
+	if config == nil || len(config.RedactedHeaders) == 0 {
+		return nil
+	}
+	return config.RedactedHeaders
 }
 
 // BadRequestError wraps BadRequestErrorResponse to implement ValidationErrorResponse

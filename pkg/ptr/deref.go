@@ -54,3 +54,12 @@ func SafeDeref[T any](p *T, fallback ...T) T {
 	}
 	return *p
 }
+
+// OrSlice returns preferred if non-nil, otherwise fallback.
+// This is the slice equivalent of cmp.Or for comparable types.
+func OrSlice[T any](preferred, fallback []T) []T {
+	if preferred != nil {
+		return preferred
+	}
+	return fallback
+}

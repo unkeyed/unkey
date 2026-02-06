@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/sentinel/middleware"
 	internalHealth "github.com/unkeyed/unkey/svc/sentinel/routes/internal_health"
 	proxy "github.com/unkeyed/unkey/svc/sentinel/routes/proxy"
@@ -16,6 +17,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withObservability := middleware.WithObservability(svc.Logger, svc.EnvironmentID, svc.Region)
 	withSentinelLogging := middleware.WithSentinelLogging(svc.ClickHouse, svc.Clock, svc.SentinelID, svc.Region)
 	withProxyErrorHandling := middleware.WithProxyErrorHandling()
+	withValidation := zen.WithValidation(&validation.NoopValidator{})
 	withLogging := zen.WithLogging(svc.Logger)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
 
@@ -26,6 +28,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withProxyErrorHandling,
 		withLogging,
 		withTimeout,
+		withValidation,
 	}
 
 	srv.RegisterRoute(
