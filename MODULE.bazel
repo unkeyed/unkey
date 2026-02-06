@@ -39,6 +39,7 @@ use_repo(
     "com_github_go_sql_driver_mysql",
     "com_github_google_go_containerregistry",
     "com_github_google_go_containerregistry_pkg_authn_k8schain",
+    "com_github_hashicorp_memberlist",
     "com_github_maypok86_otter",
     "com_github_moby_buildkit",
     "com_github_oapi_codegen_nullable",

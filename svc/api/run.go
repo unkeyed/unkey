@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -21,11 +20,12 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -196,33 +196,42 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create auditlogs service: %w", err)
 	}
 
-	// Initialize cache invalidation topic
-	cacheInvalidationTopic := eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()
-	if len(cfg.KafkaBrokers) > 0 {
-		logger.Info("Initializing cache invalidation topic", "brokers", cfg.KafkaBrokers, "instanceID", cfg.InstanceID)
+	// Initialize gossip-based cache invalidation
+	var broadcaster clustering.Broadcaster
+	if cfg.GossipEnabled {
+		logger.Info("Initializing gossip cluster for cache invalidation",
+			"region", cfg.Region,
+			"instanceID", cfg.InstanceID,
+		)
 
-		topicName := cfg.CacheInvalidationTopic
-		if topicName == "" {
-			topicName = DefaultCacheInvalidationTopic
-		}
+		gossipBroadcaster := clustering.NewGossipBroadcaster()
 
-		cacheInvalidationTopic, err = eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
-			Brokers:    cfg.KafkaBrokers,
-			Topic:      topicName,
-			InstanceID: cfg.InstanceID,
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
+
+		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Region:      cfg.Region,
+			NodeID:      cfg.InstanceID,
+			BindAddr:    cfg.GossipBindAddr,
+			BindPort:    cfg.GossipLANPort,
+			WANBindPort: cfg.GossipWANPort,
+			LANSeeds:    lanSeeds,
+			WANSeeds:    wanSeeds,
+			OnMessage:   gossipBroadcaster.OnMessage,
 		})
-		if err != nil {
-			return fmt.Errorf("unable to create cache invalidation topic: %w", err)
+		if clusterErr != nil {
+			return fmt.Errorf("unable to create gossip cluster: %w", clusterErr)
 		}
 
-		// Register topic for graceful shutdown
-		r.Defer(cacheInvalidationTopic.Close)
+		gossipBroadcaster.SetCluster(gossipCluster)
+		broadcaster = gossipBroadcaster
+		r.Defer(gossipCluster.Close)
 	}
 
 	caches, err := caches.New(caches.Config{
-		Clock:                  clk,
-		CacheInvalidationTopic: cacheInvalidationTopic,
-		NodeID:                 cfg.InstanceID,
+		Clock:       clk,
+		Broadcaster: broadcaster,
+		NodeID:      cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)

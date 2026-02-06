@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cluster",
+    srcs = [
+        "cluster.go",
+        "config.go",
+        "delegate.go",
+        "discovery.go",
+        "doc.go",
+        "gateway.go",
+        "message.go",
+        "noop.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/cluster",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/logger",
+        "@com_github_hashicorp_memberlist//:memberlist",
+    ],
+)
+
+go_test(
+    name = "cluster_test",
+    srcs = [
+        "cluster_test.go",
+        "gateway_test.go",
+        "message_test.go",
+    ],
+    embed = [":cluster"],
+    deps = [
+        "@com_github_stretchr_testify//require",
+    ],
+)
