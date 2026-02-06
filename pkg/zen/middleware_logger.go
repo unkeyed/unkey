@@ -2,6 +2,7 @@ package zen
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -20,7 +21,8 @@ func WithLogging() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 
-			ctx, event := logger.Start(ctx,
+			ctx, event := logger.StartWideEvent(ctx,
+				fmt.Sprintf("%s %s", s.r.Method, s.r.URL.Path),
 				slog.Group("http_request",
 					slog.String("method", s.r.Method),
 					slog.String("path", s.r.URL.Path),
@@ -31,7 +33,7 @@ func WithLogging() Middleware {
 				),
 			)
 
-			defer logger.End(ctx)
+			defer event.End()
 
 			nextErr := next(ctx, s)
 

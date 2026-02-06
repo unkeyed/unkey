@@ -1,5 +1,7 @@
 package frontline
 
+import "time"
+
 type Config struct {
 	// FrontlineID is the unique identifier for this instance of the Frontline server
 	FrontlineID string
@@ -70,6 +72,20 @@ type Config struct {
 
 	// VaultToken is the authentication token for the vault service
 	VaultToken string
+
+	// --- Logging sampler configuration ---
+
+	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
+	LogSampleRate float64
+
+	// LogErrorSampleRate is the probability (0.0-1.0) of emitting events with errors.
+	LogErrorSampleRate float64
+
+	// LogSlowSampleRate is the probability (0.0-1.0) of emitting slow events.
+	LogSlowSampleRate float64
+
+	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
+	LogSlowThreshold time.Duration
 }
 
 func (c Config) Validate() error {

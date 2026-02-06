@@ -43,6 +43,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	logger.SetSampler(logger.TailSampler{
+		ErrorSampleRate: cfg.LogErrorSampleRate,
+		SlowSampleRate:  cfg.LogSlowSampleRate,
+		SlowThreshold:   cfg.LogSlowThreshold,
+		SampleRate:      cfg.LogSampleRate,
+	})
+
 	// Create cached clock with millisecond resolution for efficient time tracking
 	clk := clock.New()
 

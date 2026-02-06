@@ -29,6 +29,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	logger.SetSampler(logger.TailSampler{
+		ErrorSampleRate: cfg.LogErrorSampleRate,
+		SlowSampleRate:  cfg.LogSlowSampleRate,
+		SlowThreshold:   cfg.LogSlowThreshold,
+		SampleRate:      cfg.LogSampleRate,
+	})
+
 	clk := clock.New()
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler

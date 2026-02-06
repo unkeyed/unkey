@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"context"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -51,6 +52,16 @@ var Cmd = &cli.Command{
 		cli.Float("otel-trace-sampling-rate", "Sampling rate for OpenTelemetry traces (0.0-1.0). Default: 0.25",
 			cli.Default(0.25), cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
 		cli.Int("prometheus-port", "Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.", cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
+
+		// Logging Sampler Configuration
+		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
+			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SAMPLE_RATE")),
+		cli.Float("log-error-sample-rate", "Probability (0.0-1.0) of emitting log events with errors. Default: 1.0",
+			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_ERROR_SAMPLE_RATE")),
+		cli.Float("log-slow-sample-rate", "Probability (0.0-1.0) of emitting slow log events. Default: 1.0",
+			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SLOW_SAMPLE_RATE")),
+		cli.Duration("log-slow-threshold", "Duration threshold for slow event sampling. Default: 1s",
+			cli.Default(time.Second), cli.EnvVar("UNKEY_LOG_SLOW_THRESHOLD")),
 	},
 	Action: action,
 }
@@ -75,5 +86,11 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelEnabled:           cmd.Bool("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 		PrometheusPort:        cmd.Int("prometheus-port"),
+
+		// Logging sampler configuration
+		LogSampleRate:      cmd.Float("log-sample-rate"),
+		LogErrorSampleRate: cmd.Float("log-error-sample-rate"),
+		LogSlowSampleRate:  cmd.Float("log-slow-sample-rate"),
+		LogSlowThreshold:   cmd.Duration("log-slow-threshold"),
 	})
 }

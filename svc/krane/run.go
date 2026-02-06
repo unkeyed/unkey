@@ -56,6 +56,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	logger.SetSampler(logger.TailSampler{
+		ErrorSampleRate: cfg.LogErrorSampleRate,
+		SlowSampleRate:  cfg.LogSlowSampleRate,
+		SlowThreshold:   cfg.LogSlowThreshold,
+		SampleRate:      cfg.LogSampleRate,
+	})
+
 	var shutdownGrafana func(context.Context) error
 	if cfg.OtelEnabled {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{

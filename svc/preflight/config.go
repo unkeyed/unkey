@@ -1,6 +1,10 @@
 package preflight
 
-import "github.com/unkeyed/unkey/pkg/assert"
+import (
+	"time"
+
+	"github.com/unkeyed/unkey/pkg/assert"
+)
 
 var validImagePullPolicies = map[string]bool{
 	"Always":       true,
@@ -18,6 +22,20 @@ type Config struct {
 	DepotToken            string
 	InsecureRegistries    []string
 	RegistryAliases       []string
+
+	// --- Logging sampler configuration ---
+
+	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
+	LogSampleRate float64
+
+	// LogErrorSampleRate is the probability (0.0-1.0) of emitting events with errors.
+	LogErrorSampleRate float64
+
+	// LogSlowSampleRate is the probability (0.0-1.0) of emitting slow events.
+	LogSlowSampleRate float64
+
+	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
+	LogSlowThreshold time.Duration
 }
 
 func (c *Config) Validate() error {

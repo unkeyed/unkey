@@ -1,10 +1,12 @@
 package logger
 
 import (
-	"context"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 // eventKey is the context key for storing wide events.
@@ -20,6 +22,7 @@ type Event struct {
 	mu       sync.Mutex
 	start    time.Time
 	duration time.Duration
+	message  string
 	attrs    []slog.Attr
 	errors   []error
 	written  bool
@@ -55,10 +58,49 @@ func (e *Event) SetError(err error) {
 	e.errors = append(e.errors, err)
 }
 
-// fromContext retrieves the current event from the context. Returns false
-// if no event exists, which happens when [Start] was never called on this
-// context chain.
-func fromContext(ctx context.Context) (*Event, bool) {
-	event, ok := ctx.Value(eventKey{}).(*Event)
-	return event, ok
+// End emits the accumulated event as a log entry if the configured [Sampler]
+// allows it. Events with errors are logged at error level; others at info level.
+//
+// Safe to call multiple times; only the first call emits a log entry. Subsequent
+// calls are no-ops. Typically called via defer immediately after [StartWideEvent].
+func (e *Event) End() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.written {
+		return
+	}
+	e.written = true
+
+	if !sampler.Sample(e) {
+		return
+	}
+
+	errors := []slog.Attr{}
+	for i, err := range e.errors {
+		code, _ := fault.GetCode(err)
+		errors = append(errors, slog.Group(fmt.Sprintf("%d", i),
+			slog.String("internal", fault.InternalMessage(err)),
+			slog.String("public", fault.UserFacingMessage(err)),
+			slog.String("code", string(code)),
+			slog.Any("steps", fault.Flatten(err)),
+		))
+	}
+
+	casted := []any{
+		slog.GroupAttrs("errors", errors...),
+		slog.GroupAttrs("log_meta",
+			slog.Time("start", e.start),
+			slog.Duration("duration", time.Since(e.start)),
+		),
+	}
+	for _, attr := range e.attrs {
+		casted = append(casted, attr)
+	}
+
+	if len(e.errors) > 0 {
+		logger.Error("error", casted...)
+	} else {
+		logger.Info(e.message, casted...)
+	}
+
 }

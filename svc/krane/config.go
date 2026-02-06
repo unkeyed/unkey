@@ -1,6 +1,8 @@
 package krane
 
 import (
+	"time"
+
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
@@ -68,6 +70,20 @@ type Config struct {
 	// OtelTraceSamplingRate controls the sampling rate for traces (0.0 to 1.0).
 	// Only used when OtelEnabled is true.
 	OtelTraceSamplingRate float64
+
+	// --- Logging sampler configuration ---
+
+	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
+	LogSampleRate float64
+
+	// LogErrorSampleRate is the probability (0.0-1.0) of emitting events with errors.
+	LogErrorSampleRate float64
+
+	// LogSlowSampleRate is the probability (0.0-1.0) of emitting slow events.
+	LogSlowSampleRate float64
+
+	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
+	LogSlowThreshold time.Duration
 }
 
 // Validate checks the configuration for required fields and logical consistency.
