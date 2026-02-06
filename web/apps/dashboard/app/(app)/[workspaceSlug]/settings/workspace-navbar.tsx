@@ -83,7 +83,7 @@ export const WorkspaceNavbar = ({
                   Schedule a call
                 </Button>
               </Link>
-              <Link href="mailto:support@unkey.dev">
+              <Link href="mailto:support@unkey.com">
                 <Button type="button" variant="primary">
                   Contact us
                 </Button>

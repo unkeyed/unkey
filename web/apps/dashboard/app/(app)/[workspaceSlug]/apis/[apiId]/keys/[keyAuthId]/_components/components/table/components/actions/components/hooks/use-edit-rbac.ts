@@ -52,7 +52,7 @@ export const useUpdateKeyRbac = (
       if (err.data?.code === "NOT_FOUND") {
         toast.error("Key Update Failed", {
           description:
-            "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
+            "We are unable to find the correct key. Please try again or contact support@unkey.com.",
         });
       } else if (err.data?.code === "BAD_REQUEST") {
         let description = "Please check your selections and try again.";
@@ -71,16 +71,16 @@ export const useUpdateKeyRbac = (
       } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
         toast.error("Server Error", {
           description:
-            "We are unable to update RBAC for this key. Please try again or contact support@unkey.dev",
+            "We are unable to update RBAC for this key. Please try again or contact support@unkey.com",
         });
       } else {
         toast.error("Failed to Update Key RBAC", {
           description:
             err.message ||
-            "An unexpected error occurred while updating roles and permissions. Please try again or contact support@unkey.dev",
+            "An unexpected error occurred while updating roles and permissions. Please try again or contact support@unkey.com",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       }

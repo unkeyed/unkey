@@ -49,7 +49,7 @@ export default async function StripeRedirect() {
         <Empty.Description>Your workspace</Empty.Description>
         <Code>{ws.id}</Code>
         <Empty.Description>
-          is not in Stripe yet. Please contact support@unkey.dev.
+          is not in Stripe yet. Please contact support@unkey.com.
         </Empty.Description>
       </Empty>
     );

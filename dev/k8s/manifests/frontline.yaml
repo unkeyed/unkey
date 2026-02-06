@@ -57,10 +57,16 @@ spec:
               readOnly: true
           readinessProbe:
             httpGet:
-              path: /_unkey/internal/health
+              path: /_unkey/internal/health/ready
               port: 7070
             initialDelaySeconds: 5
             periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /_unkey/internal/health/live
+              port: 7070
+            initialDelaySeconds: 10
+            periodSeconds: 10
       volumes:
         - name: tls-certs
           configMap:
@@ -68,7 +74,12 @@ spec:
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36
-          command: ["sh", "-c", "until nc -z mysql 3306 && nc -z ctrl-api 7091 && nc -z vault 8060; do sleep 2; done"]
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z mysql 3306 && nc -z ctrl-api 7091 && nc -z vault 8060; do sleep 2; done",
+            ]
 ---
 apiVersion: v1
 kind: Service

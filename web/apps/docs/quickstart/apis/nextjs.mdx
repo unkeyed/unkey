@@ -1,50 +1,46 @@
 ---
 title: Next.js
-description: API Authentication in Next.js
-mode: "wide"
+description: Protect your Next.js API routes with Unkey
 ---
+
+## What you'll build
+
+A Next.js API route that requires a valid API key on every request. Invalid or missing keys get rejected with a 401.
+
+**Time to complete:** ~5 minutes
 
 ## Prerequisites
 
-- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
-- Created an API in the [Unkey dashboard](https://app.unkey.com/apis)
-
-<Card title="Skip the tutorial">
-  We also have a [Next.js example](https://github.com/unkeyed/examples/tree/main/nextjs) ready to deploy on Vercel.
-
-    [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Funkeyed%2Funkey%2Ftree%2Fmain%2Fexamples%2Fnextjs&project-name=unkey-with-nextjs&repository-name=unkey-with-nextjs&integration-ids=oac_D84Ib6K2pS6CDQXxQbzsYxsh)
-
-</Card>
-
+- [Unkey account](https://app.unkey.com/auth/sign-up) (free)
+- [API created](https://app.unkey.com/apis) in your Unkey dashboard
 <Steps titleSize="h3">
 
-<Step title="Create Next.js Application">
-Run the following command to init your Next.js project
+<Step title="Create a Next.js app">
+
+Skip this if you have an existing project.
 
 <CodeGroup>
 
 ```bash npm
-npx create-next-app@latest
+npx create-next-app@latest my-api
+cd my-api
 ```
 
 ```bash pnpm
-pnpm create next-app@latest
-```
-
-```bash yarn
-yarn create-next-app@latest
+pnpm create next-app@latest my-api
+cd my-api
 ```
 
 ```bash bun
-bunx create-next-app
+bunx create-next-app my-api
+cd my-api
 ```
 
 </CodeGroup>
 
 </Step>
-<Step title="Install">
 
-Now install the `@unkey/nextjs` package
+<Step title="Install the Unkey SDK">
 
 <CodeGroup>
 
@@ -56,40 +52,61 @@ npm install @unkey/nextjs
 pnpm add @unkey/nextjs
 ```
 
-```bash yarn
-yarn add @unkey/nextjs
-```
-
 ```bash bun
-bun install @unkey/nextjs
+bun add @unkey/nextjs
 ```
 
 </CodeGroup>
 
 </Step>
 
-<Step  title="Creating a protected route">
+<Step title="Add your root key">
 
-Create a new route and add the following code
+Get a root key from *Settings → Root Keys* and add it to your environment:
 
-```ts /app/protected/route.ts
+```bash .env.local
+UNKEY_ROOT_KEY="unkey_..."
+```
+
+<Warning>
+Never commit your root key. Add `.env.local` to `.gitignore`.
+</Warning>
+
+</Step>
+
+<Step title="Create a protected route">
+
+Create a new API route that requires authentication:
+
+```ts app/api/protected/route.ts
 import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
 
 export const POST = withUnkey(
   async (req: NextRequestWithUnkeyContext) => {
-    // Process the request here
-    // You have access to the verification response using `req.unkey`
-    console.log(req.unkey);
-
-    return new Response("Your API key is valid!");
+    // The key has already been verified at this point
+    // Access verification details via req.unkey.data
+        
+    // Your API logic here
+    // 
+    // req.unkey.data contains all verification details.
+    return Response.json({
+      message: "Hello!",
+      keyId: req.unkey.data.keyId,
+      // If you set an externalId when creating the key:
+      externalId: req.unkey.data.identity?.externalId,
+    });
   },
   { rootKey: process.env.UNKEY_ROOT_KEY! }
 );
 ```
 
+<Tip>
+The `withUnkey` wrapper handles key extraction, verification, and error responses automatically. Invalid keys never reach your handler.
+</Tip>
+
 </Step>
 
-<Step title="Running it">
+<Step title="Start your server">
 
 <CodeGroup>
 
@@ -98,60 +115,97 @@ npm run dev
 ```
 
 ```bash pnpm
-pnpm run dev
-```
-
-```bash yarn
-yarn run dev
+pnpm dev
 ```
 
 ```bash bun
-bun run dev
+bun dev
 ```
 
 </CodeGroup>
 
 </Step>
 
-<Step  title="Try it out">
+<Step title="Test it">
 
-Go to https://app.unkey.com and create a new key. Then verify it with our new server:
+First, create a test key in your [Unkey dashboard](https://app.unkey.com), then:
 
-```bash
-curl -XPOST 'http://localhost:3000/protected' \
-  -H "Authorization: Bearer <KEY>"
+```bash Test with valid key
+curl -X POST http://localhost:3000/api/protected \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-It should return `"Your API key is valid!"` and log out the following. 
-
-```bash
+You should see:
+```json
 {
-    meta: { requestId: 'req_id' }, 
-    data: {
-        valid: true,
-        code: 'VALID',
-        keyId: 'key_id',
-        enabled: true
-    }
+  "message": "Hello!",
+  "keyId": "key_..."
 }
-``` 
-  
-Log may potentially have more information about the key, depending on what you set up in the dashboard.
+```
+
+Now try without a key:
+```bash Test without key
+curl -X POST http://localhost:3000/api/protected
+```
+
+You'll get a `401 Unauthorized` response.
 
 </Step>
 
 </Steps>
 
-## What is next?
+## What's in `req.unkey`?
 
-Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+After verification, `req.unkey.data` contains:
 
-<CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
-  <Card title="Unkey API Reference" icon="database" href="/api-reference">
-     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the key passed all checks |
+| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
+| `keyId` | `string` | The key's unique identifier |
+| `name` | `string?` | Human-readable name of the key |
+| `meta` | `object?` | Custom metadata associated with the key |
+| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
+| `credits` | `number?` | Remaining uses (if usage limits set) |
+| `enabled` | `boolean` | Whether the key is enabled |
+| `roles` | `string[]?` | Permissions attached to the key |
+| `permissions` | `string[]?` | Permissions attached to the key |
+| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
+| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+
+<Note>
+`data.meta` is your custom key metadata (set via `meta` when creating the key). This is different from the response's top-level `meta` which contains `requestId`.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Add rate limiting" icon="gauge-high" href="/apis/features/ratelimiting/overview">
+    Limit requests per key
   </Card>
-  <Card title="Next.js SDK" icon="brackets-curly" href="/libraries/ts/nextjs">
-   Check out our Next.js SDK and how they fit into your Next application.
+  <Card title="Set usage limits" icon="calculator" href="/apis/features/remaining">
+    Cap total requests per key
+  </Card>
+  <Card title="Add permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+    Fine-grained access control
+  </Card>
+  <Card title="Next.js SDK Reference" icon="book" href="/libraries/ts/nextjs">
+    Full SDK documentation
   </Card>
 </CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Getting 401 even with a valid key?">
+    - Ensure the key hasn't expired or been revoked
+    - Verify the `Authorization` header format: `Bearer YOUR_KEY` (note the space)
+    - Check that your root key has the `verify_key` permission
+  </Accordion>
+  
+  <Accordion title="Environment variable not loading?">
+    - Restart your dev server after adding `.env.local`
+    - Make sure the file is in your project root
+    - Check for typos in the variable name
+  </Accordion>
+</AccordionGroup>

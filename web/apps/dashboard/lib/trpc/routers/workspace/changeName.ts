@@ -36,7 +36,7 @@ export const changeWorkspaceName = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
+                "We are unable to update the workspace name. Please try again or contact support@unkey.com",
             });
           });
         await insertAuditLogs(tx, {
@@ -70,7 +70,7 @@ export const changeWorkspaceName = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
+            "We are unable to update the workspace name. Please try again or contact support@unkey.com",
         });
       });
   });

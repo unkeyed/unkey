@@ -46,7 +46,7 @@ export async function getStructuredSearchFromLLM(openai: OpenAI | null, userSear
           "• 'find roles assigned to user keys'\n" +
           "• 'show roles with database permissions'\n" +
           "• 'find all admin and moderator roles'\n" +
-          "For additional help, contact support@unkey.dev",
+          "For additional help, contact support@unkey.com",
       });
     }
 
@@ -72,7 +72,7 @@ export async function getStructuredSearchFromLLM(openai: OpenAI | null, userSear
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message:
-        "Failed to process your search query. Please try again or contact support@unkey.dev if the issue persists.",
+        "Failed to process your search query. Please try again or contact support@unkey.com if the issue persists.",
     });
   }
 }

@@ -34,7 +34,7 @@ export const queryRatelimitOverviewLogs = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to retrieve ratelimit namespace. If this issue persists, please contact support@unkey.dev",
+            "Failed to retrieve ratelimit namespace. If this issue persists, please contact support@unkey.com",
         });
       });
 

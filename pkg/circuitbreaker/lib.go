@@ -2,13 +2,11 @@ package circuitbreaker
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
@@ -189,28 +187,20 @@ var _ CircuitBreaker[any] = &CB[any]{
 // recorded to update the circuit state. The zero value of Res is returned
 // when the circuit rejects the request.
 func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)) (res Res, err error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.Do", cb.config.name))
-	defer span.End()
-
 	err = cb.preflight(ctx)
 	if err != nil {
 		return res, err
 	}
 
-	ctx, fnSpan := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.fn", cb.config.name))
 	res, err = fn(ctx)
-	fnSpan.End()
 
 	cb.postflight(ctx, err)
 
 	return res, err
-
 }
 
 // preflight checks if the circuit is ready to accept a request
-func (cb *CB[Res]) preflight(ctx context.Context) error {
-	_, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.preflight", cb.config.name)) // nolint:ineffassign // Context is used by tracing
-	defer span.End()
+func (cb *CB[Res]) preflight(_ context.Context) error {
 	cb.Lock()
 	defer cb.Unlock()
 
@@ -243,9 +233,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 }
 
 // postflight updates the circuit breaker state based on the result of the request
-func (cb *CB[Res]) postflight(ctx context.Context, err error) {
-	_, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.postflight", cb.config.name)) // nolint:ineffassign // Context is used by tracing
-	defer span.End()
+func (cb *CB[Res]) postflight(_ context.Context, err error) {
 	cb.Lock()
 	defer cb.Unlock()
 	cb.requests++

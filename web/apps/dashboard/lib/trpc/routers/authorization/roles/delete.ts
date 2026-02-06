@@ -34,7 +34,7 @@ export const deleteRoleWithRelations = workspaceProcedure
           code: "NOT_FOUND",
           message: `Role(s) not found: ${missingIds.join(
             ", ",
-          )}. Please try again or contact support@unkey.dev.`,
+          )}. Please try again or contact support@unkey.com.`,
         });
       }
 
@@ -52,7 +52,7 @@ export const deleteRoleWithRelations = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to delete the roles. Please try again or contact support@unkey.dev",
+              "We are unable to delete the roles. Please try again or contact support@unkey.com",
           });
         });
 
@@ -69,7 +69,7 @@ export const deleteRoleWithRelations = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to delete the roles. Please try again or contact support@unkey.dev",
+              "We are unable to delete the roles. Please try again or contact support@unkey.com",
           });
         });
 
@@ -87,7 +87,7 @@ export const deleteRoleWithRelations = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to delete the roles. Please try again or contact support@unkey.dev",
+              "We are unable to delete the roles. Please try again or contact support@unkey.com",
           });
         });
 
@@ -111,7 +111,7 @@ export const deleteRoleWithRelations = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete the roles. Please try again or contact support@unkey.dev.",
+            "We are unable to delete the roles. Please try again or contact support@unkey.com.",
         });
       });
     });

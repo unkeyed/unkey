@@ -108,7 +108,7 @@ describe("getStructuredSearchFromLLM", () => {
       new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "Failed to process your search query. Please try again or contact support@unkey.dev if the issue persists.",
+          "Failed to process your search query. Please try again or contact support@unkey.com if the issue persists.",
       }),
     );
   });

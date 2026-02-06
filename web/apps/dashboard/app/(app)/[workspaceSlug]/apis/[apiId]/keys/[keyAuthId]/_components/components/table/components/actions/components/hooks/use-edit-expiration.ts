@@ -27,7 +27,7 @@ export const useEditExpiration = (onSuccess?: () => void) => {
       if (err.data?.code === "NOT_FOUND") {
         toast.error("Key Update Failed", {
           description:
-            "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
+            "We are unable to find the correct key. Please try again or contact support@unkey.com.",
         });
       } else if (err.data?.code === "BAD_REQUEST") {
         toast.error("Invalid Request", {
@@ -36,16 +36,16 @@ export const useEditExpiration = (onSuccess?: () => void) => {
       } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
         toast.error("Server Error", {
           description:
-            "We were unable to update expiration on this key. Please try again or contact support@unkey.dev",
+            "We were unable to update expiration on this key. Please try again or contact support@unkey.com",
         });
       } else {
         toast.error("Failed to Update Key Expiration", {
           description:
             err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.dev",
+            "An unexpected error occurred. Please try again or contact support@unkey.com",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       }

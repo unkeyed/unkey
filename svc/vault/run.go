@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	storagemiddleware "github.com/unkeyed/unkey/svc/vault/internal/storage/middleware"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
@@ -21,24 +23,33 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	r := runner.New()
+	var shutdownGrafana func(context.Context) error
+	if cfg.OtelEnabled {
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
+			Application:     "vault",
+			Version:         version.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
+		}
+	}
 
 	logger := logging.New()
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
 	}
 
+	r := runner.New(logger)
+	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
+
 	// Create the connect handler
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		if err := r.Body.Close(); err != nil {
-			logger.Error("failed to close request body", "error", err)
-		}
-		if _, err := w.Write([]byte("OK")); err != nil {
-			logger.Error("failed to write response", "error", err)
-		}
-	})
+	r.RegisterHealth(mux)
 
 	s3, err := storage.NewS3(storage.S3Config{
 		S3URL:             cfg.S3URL,
@@ -85,13 +96,10 @@ func Run(ctx context.Context, cfg Config) error {
 		return nil
 	})
 
-	// Wait for signal and handle shutdown
-	logger.Info("vault server started successfully")
-	if err := r.Run(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}
 
-	logger.Info("vault server shut down successfully")
 	return nil
 }

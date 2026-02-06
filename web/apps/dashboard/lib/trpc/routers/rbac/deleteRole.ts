@@ -21,7 +21,7 @@ export const deleteRole = workspaceProcedure
         throw new TRPCError({
           code: "NOT_FOUND",
           message:
-            "We are unable to find the correct role. Please try again or contact support@unkey.dev.",
+            "We are unable to find the correct role. Please try again or contact support@unkey.com.",
         });
       }
       await tx
@@ -34,7 +34,7 @@ export const deleteRole = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to delete the role. Please try again or contact support@unkey.dev",
+              "We are unable to delete the role. Please try again or contact support@unkey.com",
           });
         });
       await insertAuditLogs(tx, {
@@ -58,7 +58,7 @@ export const deleteRole = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete the role. Please try again or contact support@unkey.dev.",
+            "We are unable to delete the role. Please try again or contact support@unkey.com.",
         });
       });
     });

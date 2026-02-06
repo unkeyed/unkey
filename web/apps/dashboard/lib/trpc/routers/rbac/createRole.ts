@@ -48,7 +48,7 @@ export const createRole = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to create a role. Please try again or contact support@unkey.dev.",
+                "We are unable to create a role. Please try again or contact support@unkey.com.",
             });
           });
         await insertAuditLogs(tx, {
@@ -111,7 +111,7 @@ export const createRole = workspaceProcedure
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create role. Please try again or contact support@unkey.dev",
+          message: "We are unable to create role. Please try again or contact support@unkey.com",
         });
       });
     return { roleId };

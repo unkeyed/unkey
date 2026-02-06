@@ -1,0 +1,34 @@
+---
+title: Healthchecks
+---
+
+All Go services under `svc/` expose standardized HTTP probes via the runner. These endpoints are intended for Kubernetes liveness, readiness, and startup probes. Use them instead of service-specific ad hoc endpoints.
+
+## Endpoints
+
+The default prefix is `/health`. Services can override the prefix when registering endpoints.
+
+- `GET <prefix>/live` returns `200` when the process has started. Returns `503` before startup completes.
+- `GET <prefix>/ready` returns `200` when the process is started and not shutting down, and all readiness checks pass. Returns `503` otherwise.
+- `GET <prefix>/startup` returns `200` after startup completes. Returns `503` before startup completes.
+
+All endpoints return JSON with a `status` field. The readiness endpoint includes a `checks` map with per-check results when checks are registered.
+
+## Readiness checks
+
+Readiness checks are registered by services with the runner. Each check runs with a timeout (default 500ms). If any check fails or times out, `/health/ready` returns `503` and includes the error message in `checks`.
+
+## Service coverage
+
+These probes are exposed on every service entrypoint that uses `runner`:
+
+- API
+- Ctrl API
+- Ctrl worker
+- Frontline (both HTTP and HTTPS listeners)
+- Sentinel
+- Krane
+- Vault
+- Preflight
+
+If you add a new service under `svc/`, call `r.RegisterHealth(mux)` and ensure `r.Wait(ctx)` is used to drive lifecycle state.

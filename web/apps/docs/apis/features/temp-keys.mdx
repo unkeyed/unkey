@@ -1,27 +1,198 @@
 ---
 title: Temporary Keys
-description: 'How to create temporary API Keys in Unkey'
+description: 'Create API keys that automatically expire after a set time'
 ---
 
-## What are temporary API Keys?
-Temporary API Keys are API Keys that expire after a certain amount of time. They are useful for when you want to give a user access to your API for a limited amount of time. For example, you might want to give a user access to your API for 1 hour, or 1 day, or 1 week. You can do this by creating a temporary API Key that expires after a certain amount of time.
+Temporary keys automatically become invalid after a specified time. No cleanup required — Unkey handles expiration and deletion for you.
 
-## How to create a temporary API Key
+## When to use this
 
-To create a temporary API Key, you need to make a `POST` request to the `/v2/keys.createKey` endpoint. You can read about all the parameters you can send in the [API Reference](api-reference/v2/keys/create-api-key).
+<CardGroup cols={2}>
+  <Card title="Trial access" icon="clock">
+    Give new users a 7-day trial key. It stops working automatically.
+  </Card>
+  <Card title="Time-limited integrations" icon="link">
+    Partner needs API access for a project? Key expires when the project ends.
+  </Card>
+  <Card title="Session-based access" icon="right-from-bracket">
+    Generate a key that lasts for a user's session (e.g., 24 hours).
+  </Card>
+  <Card title="Security rotations" icon="rotate">
+    Force key rotation by having keys expire periodically.
+  </Card>
+</CardGroup>
 
-```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.createKey \
-  --header 'Authorization: Bearer <UNKEY>' \
-  --header 'Content-Type: application/json' \
-  --data '{
-	"apiId":"<API_ID>",
-	"prefix":"xyz",
-	"byteLength":16,
-	"externalId":"USER_ID",
-	"expires": 1718718673000
-}'
+## How it works
+
+1. Create a key with an `expires` timestamp (Unix milliseconds)
+2. Key works normally until the expiration time
+3. After expiration, verification returns `code: EXPIRED`
+4. Unkey automatically cleans up expired keys
+
+## Create a temporary key
+
+Set `expires` to a Unix timestamp in **milliseconds**:
+
+<CodeGroup>
+
+```bash cURL
+# Key expires in 24 hours
+EXPIRES=$(($(date +%s) * 1000 + 86400000))
+
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "expires": '$EXPIRES'
+  }'
 ```
 
-Once the key is created, you can send it to your user. They can then use it to access your API. Once the key expires, they will no longer be able to access your API and the key will be deleted.
+```typescript TypeScript
+// Key expires in 24 hours
+const expires = Date.now() + 24 * 60 * 60 * 1000;
+
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_...",
+    expires,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+```python Python
+import time
+
+# Key expires in 24 hours
+expires = int(time.time() * 1000) + (24 * 60 * 60 * 1000)
+
+result = unkey.keys.create_key(
+    api_id="api_...",
+    expires=expires
+)
+```
+
+</CodeGroup>
+
+## Common expiration times
+
+| Duration | Calculation |
+|----------|-------------|
+| 1 hour | `Date.now() + 60 * 60 * 1000` |
+| 24 hours | `Date.now() + 24 * 60 * 60 * 1000` |
+| 7 days | `Date.now() + 7 * 24 * 60 * 60 * 1000` |
+| 30 days | `Date.now() + 30 * 24 * 60 * 60 * 1000` |
+| Specific date | `new Date("2024-12-31").getTime()` |
+
+## Verification response
+
+When verifying an expired key:
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "valid": false,
+    "code": "EXPIRED",
+    "keyId": "key_..."
+  }
+}
+```
+
+## Extend or change expiration
+
+Update the expiration time on an existing key:
+
+<CodeGroup>
+
+```bash cURL
+# Extend by 7 more days from now
+EXPIRES=$(($(date +%s) * 1000 + 604800000))
+
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "expires": '$EXPIRES'
+  }'
+```
+
+```typescript TypeScript
+// Extend by 7 more days from now
+try {
+  const { meta, data } = await unkey.keys.update({
+    keyId: "key_...",
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+</CodeGroup>
+
+## Remove expiration
+
+Make a temporary key permanent by setting `expires` to `null`:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "expires": null
+  }'
+```
+
+## Combining with other features
+
+Temporary keys work with all other key features:
+
+```typescript
+// 7-day trial with 1000 requests and rate limiting
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_...",
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+    credits: {
+      remaining: 1000,
+    },
+    ratelimits: [{
+      name: "requests",
+      limit: 100,
+      duration: 60000,  // 100 per minute
+    }],
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+## Temporary vs usage-limited keys
+
+| Feature | Temporary Keys | Usage-Limited Keys |
+|---------|---------------|-------------------|
+| Controlled by | Time | Request count |
+| Expires when | Clock hits timestamp | Credits reach 0 |
+| Good for | Time-bound access | Pay-per-use, quotas |
+| Example | "Access for 7 days" | "1000 requests total" |
+
+**Use both together** for trial limits: "7 days OR 1000 requests, whichever comes first."
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Usage limits" icon="calculator" href="/apis/features/remaining">
+    Cap total requests per key
+  </Card>
+  <Card title="Key rotation" icon="arrows-rotate" href="/apis/features/rerolling-key">
+    Generate new keys while maintaining config
+  </Card>
+</CardGroup>

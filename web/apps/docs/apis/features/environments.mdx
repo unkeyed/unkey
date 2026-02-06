@@ -1,91 +1,195 @@
 ---
 title: Environments
-description: Separate your keys into live and test environments.
+description: 'Separate your keys into live and test environments'
 ---
 
-For many applications it's useful to provide keys for developing and testing to your users. They can
-not interact with real production resources and may have lower ratelimits but use the exact same
-flow as your `live` keys.
+Environments let you issue distinct keys for development, staging, and production. Test keys can't affect real resources, while live keys have full access.
 
+## When to use this
 
-Unkey allows you to set an arbitrary metadata for each key, so you can model your
-domain however you want. In practice we often see two distinct environments being used a lot:
+<CardGroup cols={2}>
+  <Card title="Safe development" icon="code">
+    Developers can test integrations without touching production data.
+  </Card>
+  <Card title="Automated testing" icon="flask-vial">
+    CI/CD pipelines can run tests with keys that won't affect live resources.
+  </Card>
+  <Card title="Different limits" icon="gauge">
+    Test keys might have lower rate limits or be free to use.
+  </Card>
+  <Card title="Prevent accidents" icon="shield">
+    Prefixes like `sk_test_` make it obvious when using non-production keys.
+  </Card>
+</CardGroup>
 
-- `live` Live keys are used in production and affect real resources.
-- `test` Test keys allow you to develop and test your code without modifying real resources. It's
-great to ensure your code is working manually or can be used in automated tests.
+## How it works
 
-You may also want to associate different ratelimits per environment or bill usage differently.
-Perhaps test keys have lower limits but are free to use.
+Environments are implemented using key metadata and prefixes — there's no special "environment" field. This gives you full flexibility to model environments however you want.
 
+Common pattern:
+- **Prefix**: `sk_test_` vs `sk_live_` (visible to users)
+- **Metadata**: `{ "environment": "test" }` (returned on verification)
 
-### Creating a key with an environment
-
-Using the prefix to indicate the environment to the user is optional but highly recommended. It can prevent
-your user from accidentally using keys interchangably and modifying resources unintentionally.
+## Create environment-specific keys
 
 <CodeGroup>
-```bash Test
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.createKey \
-  --header 'Authorization: Bearer <ROOT_KEY>' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "apiId": "<API_ID>",
+
+```bash Test key
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
     "prefix": "sk_test",
     "meta": {
       "environment": "test"
-    }
+    },
+    "ratelimits": [{
+      "name": "requests",
+      "limit": 100,
+      "duration": 60000
+    }]
   }'
 ```
 
-```bash Live
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.createKey \
-  --header 'Authorization: Bearer <ROOT_KEY>' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "apiId": "<API_ID>",
+```bash Live key
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
     "prefix": "sk_live",
     "meta": {
       "environment": "production"
-    }
+    },
+    "ratelimits": [{
+      "name": "requests",
+      "limit": 1000,
+      "duration": 60000
+    }]
   }'
 ```
+
 </CodeGroup>
-For more details, see the [API reference](/api-reference/v2/keys/create-api-key)
 
+<Tip>
+Using prefixes makes it obvious to users which environment a key is for. This prevents accidental use of test keys in production (or worse, live keys in tests).
+</Tip>
 
+## Verify and check environment
 
-
-### Verifying a key
-
-When you are using different environments, you obviously need a way to know what environment the
-used key is in.
-We provide this as part of the verification response:
+The metadata is returned during verification, so your API can behave differently:
 
 ```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.verifyKey \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "key": "sk_live_1234"
-  }'
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "sk_test_abc123..." }'
 ```
-The response would look something like this:
+
+Response:
+
 ```json
 {
-  "meta": {
-    "requestId": "req_abc123def456"
-  },
+  "meta": { "requestId": "req_..." },
   "data": {
     "valid": true,
-    "code": "VALID",
-    "keyId": "<KEY_ID>",
+    "keyId": "key_...",
     "meta": {
-      "environment": "production"
+      "environment": "test"
     }
-    // ... other fields omitted
   }
 }
 ```
+
+## Handle environments in your API
+
+```typescript
+try {
+  const { meta, data } = await verifyKey({ key: request.apiKey });
+
+  if (!data.valid) {
+    return unauthorized();
+  }
+
+  const environment = data.meta?.environment ?? "production";
+
+  if (environment === "test") {
+    // Use test database, sandbox resources, etc.
+    return handleTestRequest(request);
+  }
+
+  // Production request
+  return handleLiveRequest(request);
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+## Common patterns
+
+### Different rate limits per environment
+
+```typescript
+// Test: 100/min, Live: 10,000/min
+const ratelimits = environment === "test" 
+  ? [{ name: "requests", limit: 100, duration: 60000 }]
+  : [{ name: "requests", limit: 10000, duration: 60000 }];
+
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId,
+    prefix: environment === "test" ? "sk_test" : "sk_live",
+    meta: { environment },
+    ratelimits,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+### Sandbox vs real resources
+
+```typescript
+if (data.meta?.environment === "test") {
+  // Return mock data or use sandbox
+  return { 
+    charged: false, 
+    response: mockResponse 
+  };
+}
+
+// Real billing, real data
+try {
+  await chargeUser(data.identity.externalId, amount);
+  return { charged: true, response: realResponse };
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+### Block test keys from production endpoint
+
+```typescript
+if (data.meta?.environment === "test" && isProductionEndpoint) {
+  return Response.json(
+    { error: "Test keys cannot access production endpoints" },
+    { status: 403 }
+  );
+}
+
+// Continue with your API logic
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="API Keys overview" icon="key" href="/apis/introduction">
+    Learn about key metadata and features
+  </Card>
+  <Card title="Rate limiting" icon="gauge" href="/apis/features/ratelimiting/overview">
+    Set different limits per environment
+  </Card>
+</CardGroup>

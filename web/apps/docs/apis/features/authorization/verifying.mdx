@@ -1,69 +1,242 @@
 ---
-title: "Verifying"
-description: "Verifying permissions through the API"
+title: "Verifying Permissions"
+description: "Check if a key has the required permissions during verification"
 ---
 
-Once a key is generated, you can verify it using the [verify](https://www.unkey.com/docs/api-reference/v2/keys/verify-api-key) endpoint. Our system verifies whether the key has the necessary permissions to perform the requested action(s). If the user's role grants the required permissions, the request is allowed to proceed; otherwise, access is denied.
+When verifying a key, you can check if it has specific permissions. If the key lacks the required permissions, verification fails with `code: INSUFFICIENT_PERMISSIONS`.
 
-<Tabs>
-  <Tab title="Single Permission">
-    This will return valid if the key has the permission: `admin`
+## Basic permission check
 
-    ```bash Single Permission
-    curl --request POST \
-      --url https://api.unkey.com/v2/keys.verifyKey \
-      --header 'Authorization: Bearer <ROOT_KEY>' \
-      --header 'Content-Type: application/json' \
-      --data '{
-        "key": "sk_1234",
-        "permissions": "admin"
-      }'
-    ```
-  </Tab>
-  <Tab title="Nested Query">
-    This will return valid if the key has either `admin` or both `dns.record.read` and `dns.record.update` permissions.
+Pass a permission string to verify:
 
-    ```bash Nested Query
-    curl --request POST \
-      --url https://api.unkey.com/v2/keys.verifyKey \
-      --header 'Authorization: Bearer <ROOT_KEY>' \
-      --header 'Content-Type: application/json' \
-      --data '{
-        "key": "sk_1234",
-        "permissions": "admin OR (dns.record.read OR dns.record.update)"
-      }'
-    ```
-  </Tab>
-</Tabs>
+<CodeGroup>
 
-Sometimes you just don't know what permissions are required before loading resources from your database.
-In these cases you can manually check permissions as well.
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "sk_...",
+    "permissions": "documents.read"
+  }'
+```
+
+```typescript TypeScript
+try {
+  const { meta, data } = await verifyKey({
+    key: "sk_...",
+    permissions: "documents.read",
+  });
+
+  if (!data.valid) {
+    if (data.code === "INSUFFICIENT_PERMISSIONS") {
+      // Key is valid but lacks the permission
+      return Response.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+    return Response.json({ error: data.code }, { status: 401 });
+  }
+
+  // Key is valid - continue with your API logic
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+</CodeGroup>
+
+## Permission query syntax
+
+Unkey supports logical operators for complex permission checks:
+
+### Single permission
+
+```json
+{ "permissions": "documents.read" }
+```
+
+Key must have `documents.read`.
+
+### AND (all required)
+
+```json
+{ "permissions": "documents.read AND documents.write" }
+```
+
+Key must have **both** permissions.
+
+### OR (any required)
+
+```json
+{ "permissions": "admin OR editor" }
+```
+
+Key must have **at least one** of the permissions.
+
+### Complex queries with parentheses
+
+```json
+{ "permissions": "admin OR (documents.read AND documents.write)" }
+```
+
+Key must have `admin` **OR** have both `documents.read` and `documents.write`.
+
+### Real-world example
+
+```typescript
+// User wants to delete a document
+// They need: admin OR (documents.delete AND owner of this document)
+
+try {
+  const { meta, data } = await verifyKey({
+    key: request.apiKey,
+    permissions: "admin OR documents.delete",
+  });
+
+  if (!data.valid) {
+    return Response.json({ error: data.code }, { status: 401 });
+  }
+
+  // Key is valid - continue with your API logic
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+## Response structure
+
+Successful verification with permissions:
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "valid": true,
+    "code": "VALID",
+    "keyId": "key_...",
+    "permissions": ["documents.read", "documents.write", "users.view"]
+  }
+}
+```
+
+Failed permission check:
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "valid": false,
+    "code": "INSUFFICIENT_PERMISSIONS",
+    "keyId": "key_..."
+  }
+}
+```
+
+## Manual permission checking
+
+Sometimes you need to check permissions after loading data from your database (e.g., checking if the user owns a resource). In these cases:
 
 <Steps>
-  <Step title="Verify">
-    Verify the key and all permissions that you already know before querying your database.
+  <Step title="Verify the key">
+    Verify without permission requirements to get the key's permissions list.
+    
+    ```typescript
+    try {
+      const { meta, data } = await verifyKey({
+        key: "sk_...",
+      });
 
-    If the response is invalid, you can return early.
-  </Step>
-  <Step title="Query your database">
-    The key is at least valid, so you can query our database to fetch more information.
-  </Step>
-  <Step title="Verify Permissions">
-    The verification response from step 1 includes all permissions attached to the keys and looks something like this:
-
-    ```json
-    {
-      "meta": {
-      	"requestId": "req_123"
-      },
-      "data": {
-       	"valid": true,
-    	"permissions": ["admin"]
-    	// rest omited for brevity
+      if (!data.valid) {
+        return unauthorized();
       }
+
+      const permissions = data.permissions ?? [];
+      // Continue with your API logic
+    } catch (err) {
+      console.error(err);
+      return Response.json({ error: "Internal error" }, { status: 500 });
     }
     ```
-
-    Use the attached permissions and the context loaded from your database to determine if you should proceed handling the request or returning an authorization error.
+  </Step>
+  
+  <Step title="Load your data">
+    Query your database for the resource.
+    
+    ```typescript
+    const document = await db.documents.find(documentId);
+    ```
+  </Step>
+  
+  <Step title="Check permissions manually">
+    Use the permissions array and your data to make the decision.
+    
+    ```typescript
+    const canDelete = 
+      permissions.includes("admin") ||
+      (permissions.includes("documents.delete") && 
+       document.ownerId === data.identity?.externalId);
+    
+    if (!canDelete) {
+      return forbidden();
+    }
+    ```
   </Step>
 </Steps>
+
+## Wildcard permissions
+
+Permissions support wildcards for broader access:
+
+```typescript
+// Key has: ["documents.*"]
+// This grants: documents.read, documents.write, documents.delete, etc.
+
+try {
+  const { meta, data } = await verifyKey({
+    key: "sk_...",
+    permissions: "documents.read",  // ✅ Passes (matched by documents.*)
+  });
+
+  if (!data.valid) {
+    return Response.json({ error: data.code }, { status: 401 });
+  }
+
+  // Key is valid - continue with your API logic
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+Common wildcard patterns:
+- `*` — All permissions (use carefully!)
+- `documents.*` — All document permissions
+- `api.v1.*` — All v1 API permissions
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use specific permissions, not broad ones">
+    Instead of `admin`, define specific permissions like `users.delete`, `billing.manage`. This gives you more control and better audit trails.
+  </Accordion>
+  
+  <Accordion title="Check permissions at the API layer">
+    Don't just check in the UI — always verify permissions server-side during API requests.
+  </Accordion>
+  
+  <Accordion title="Use roles for common access patterns">
+    Instead of attaching 10 permissions to every key, create a role and attach that. Easier to manage and update.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Set up roles & permissions" icon="shield" href="/apis/features/authorization/roles-and-permissions">
+    Create your authorization structure
+  </Card>
+  <Card title="Full example" icon="code" href="/apis/features/authorization/example">
+    See a complete implementation
+  </Card>
+</CardGroup>

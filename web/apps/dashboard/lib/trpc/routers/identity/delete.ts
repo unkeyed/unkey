@@ -25,14 +25,14 @@ export const deleteIdentity = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to load this identity. Please try again or contact support@unkey.dev",
+            "We were unable to load this identity. Please try again or contact support@unkey.com",
         });
       });
 
     if (!identity) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct identity. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct identity. Please try again or contact support@unkey.com.",
         code: "NOT_FOUND",
       });
     }
@@ -56,7 +56,7 @@ export const deleteIdentity = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to delete this identity. Please try again or contact support@unkey.dev",
+                "We are unable to delete this identity. Please try again or contact support@unkey.com",
             });
           });
 
@@ -84,7 +84,7 @@ export const deleteIdentity = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete this identity. Please try again or contact support@unkey.dev",
+            "We are unable to delete this identity. Please try again or contact support@unkey.com",
         });
       });
 

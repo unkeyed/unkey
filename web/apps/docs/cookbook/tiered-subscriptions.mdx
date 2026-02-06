@@ -1,0 +1,364 @@
+---
+title: "Tiered Subscriptions"
+description: "Implement Free, Pro, and Enterprise tiers with different limits"
+---
+
+A complete pattern for SaaS subscription tiers with different API limits, rate limits, and features.
+
+## The Pattern
+
+1. Store the user's plan in key metadata
+2. Configure limits based on plan at key creation
+3. Optionally upgrade/downgrade by updating the key
+
+## Define Your Tiers
+
+```typescript lib/tiers.ts
+export const TIERS = {
+  free: {
+    name: "Free",
+    credits: 100,
+    refill: { interval: "daily" as const, amount: 100 },
+    rateLimit: { limit: 10, duration: 60000 },  // 10/min
+    features: ["api_access"],
+  },
+  pro: {
+    name: "Pro",
+    credits: 10000,
+    refill: { interval: "monthly" as const, amount: 10000 },
+    rateLimit: { limit: 100, duration: 60000 },  // 100/min
+    features: ["api_access", "webhooks", "priority_support"],
+  },
+  enterprise: {
+    name: "Enterprise",
+    credits: null,  // Unlimited
+    refill: null,
+    rateLimit: { limit: 1000, duration: 60000 },  // 1000/min
+    features: ["api_access", "webhooks", "priority_support", "sla", "custom_domain"],
+  },
+} as const;
+
+export type Tier = keyof typeof TIERS;
+```
+
+## Create Keys for Each Tier
+
+```typescript lib/keys.ts
+import { Unkey } from "@unkey/api";
+import { TIERS, Tier } from "./tiers";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+
+export async function createKeyForUser(userId: string, tier: Tier) {
+  const config = TIERS[tier];
+  
+  const { meta, data, error } = await unkey.keys.create({
+    apiId: process.env.UNKEY_API_ID!,
+    prefix: `sk_${tier}`,
+    externalId: userId,
+    name: `${config.name} API Key`,
+    
+    // Set credits based on tier (skip for unlimited)
+    ...(config.credits && {
+      remaining: config.credits,
+      refill: config.refill ?? undefined,
+    }),
+    
+    // Set rate limits
+    ratelimits: [{
+      name: "requests",
+      limit: config.rateLimit.limit,
+      duration: config.rateLimit.duration,
+    }],
+    
+    // Store plan info in metadata
+    meta: {
+      tier,
+      plan: config.name,
+      features: config.features,
+    },
+  });
+
+  if (error) throw error;
+  return data;
+}
+```
+
+## Check Features During Verification
+
+```typescript middleware/auth.ts
+import { verifyKey } from "@unkey/api";
+
+export async function verifyAndCheckFeature(
+  apiKey: string, 
+  requiredFeature?: string
+) {
+  const { meta, data, error } = await verifyKey({
+    key: apiKey,
+    apiId: process.env.UNKEY_API_ID!,
+  });
+
+  if (error) throw error;
+  if (!data.valid) {
+    return { valid: false, code: data.code };
+  }
+
+  // Check feature access
+  if (requiredFeature) {
+    const features = (data.meta?.features as string[]) ?? [];
+    if (!features.includes(requiredFeature)) {
+      return { 
+        valid: false, 
+        code: "FEATURE_NOT_AVAILABLE",
+        tier: data.meta?.tier,
+      };
+    }
+  }
+
+  return { valid: true, data };
+}
+```
+
+## Upgrade/Downgrade Keys
+
+```typescript lib/keys.ts
+export async function changeUserTier(keyId: string, newTier: Tier) {
+  const config = TIERS[newTier];
+  
+  await unkey.keys.update({
+    keyId,
+    
+    // Update credits
+    ...(config.credits ? {
+      credits: {
+        remaining: config.credits,
+        refill: config.refill ?? undefined,
+      },
+    } : {
+      // Remove credits for unlimited tier
+      remaining: null,
+      refill: null,
+    }),
+    
+    // Update rate limits
+    ratelimits: [{
+      name: "requests",
+      limit: config.rateLimit.limit,
+      duration: config.rateLimit.duration,
+    }],
+    
+    // Update metadata
+    meta: {
+      tier: newTier,
+      plan: config.name,
+      features: config.features,
+    },
+  });
+}
+```
+
+---
+
+## Express Example
+
+```typescript app.ts
+import express from "express";
+import { verifyKey } from "@unkey/api";
+import { TIERS } from "./lib/tiers";
+
+const app = express();
+
+// Middleware that checks tier and feature access
+function requireFeature(feature: string) {
+  return async (req, res, next) => {
+    const apiKey = req.headers.authorization?.slice(7);
+    
+    if (!apiKey) {
+      return res.status(401).json({ error: "Missing API key" });
+    }
+
+    const { meta, data, error } = await verifyKey({
+      key: apiKey,
+      apiId: process.env.UNKEY_API_ID!,
+    });
+
+    if (error || !data.valid) {
+      return res.status(401).json({ error: data?.code ?? "Unauthorized" });
+    }
+
+    const features = (data.meta?.features as string[]) ?? [];
+    
+    if (!features.includes(feature)) {
+      return res.status(403).json({
+        error: "Feature not available on your plan",
+        required: feature,
+        currentTier: data.meta?.tier,
+        upgrade: "https://yourapp.com/upgrade",
+      });
+    }
+
+    req.user = {
+      id: data.identity?.externalId,
+      tier: data.meta?.tier as string,
+      features,
+    };
+    
+    next();
+  };
+}
+
+// Basic API access (all tiers)
+app.get("/api/data", requireFeature("api_access"), (req, res) => {
+  res.json({ data: [] });
+});
+
+// Webhooks (Pro and Enterprise only)
+app.post("/api/webhooks", requireFeature("webhooks"), (req, res) => {
+  res.json({ webhook: "created" });
+});
+
+// SLA endpoint (Enterprise only)
+app.get("/api/sla-status", requireFeature("sla"), (req, res) => {
+  res.json({ sla: "99.99%" });
+});
+
+app.listen(3000);
+```
+
+---
+
+## Next.js Example
+
+```typescript app/api/webhooks/route.ts
+import { verifyKey } from "@unkey/api";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  const apiKey = req.headers.get("authorization")?.slice(7);
+
+  if (!apiKey) {
+    return NextResponse.json({ error: "Missing API key" }, { status: 401 });
+  }
+
+  const { meta, data, error } = await verifyKey({
+    key: apiKey,
+    apiId: process.env.UNKEY_API_ID!,
+  });
+
+  if (error || !data.valid) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const features = (data.meta?.features as string[]) ?? [];
+  
+  if (!features.includes("webhooks")) {
+    return NextResponse.json({
+      error: "Webhooks require a Pro or Enterprise plan",
+      currentTier: data.meta?.tier,
+      upgradeUrl: "/settings/billing",
+    }, { status: 403 });
+  }
+
+  // Process webhook creation...
+  return NextResponse.json({ created: true });
+}
+```
+
+---
+
+## Handling Plan Changes
+
+When a user upgrades via Stripe/billing:
+
+```typescript webhooks/stripe.ts
+import Stripe from "stripe";
+import { changeUserTier } from "@/lib/keys";
+
+export async function handleSubscriptionChange(event: Stripe.Event) {
+  const subscription = event.data.object as Stripe.Subscription;
+  
+  // Map Stripe price IDs to tiers
+  const priceToTier: Record<string, Tier> = {
+    "price_free": "free",
+    "price_pro": "pro",
+    "price_enterprise": "enterprise",
+  };
+  
+  const newTier = priceToTier[subscription.items.data[0].price.id];
+  const userId = subscription.metadata.userId;
+  
+  // Get user's key ID from your database
+  const keyId = await db.users.getKeyId(userId);
+  
+  // Update the key
+  await changeUserTier(keyId, newTier);
+  
+  // Optionally notify the user
+  await sendEmail(userId, `You've been upgraded to ${newTier}!`);
+}
+```
+
+---
+
+## Dashboard Display
+
+Show users their current usage:
+
+```typescript app/api/usage/route.ts
+import { verifyKey } from "@unkey/api";
+
+export async function GET(req: NextRequest) {
+  const apiKey = req.headers.get("authorization")?.slice(7)!;
+
+  const { meta, data } = await verifyKey({
+    key: apiKey,
+    apiId: process.env.UNKEY_API_ID!,
+  });
+
+  if (!data?.valid) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const tier = TIERS[data.meta?.tier as Tier];
+
+  return NextResponse.json({
+    tier: data.meta?.tier,
+    plan: tier.name,
+    usage: {
+      credits: {
+        used: tier.credits ? tier.credits - (data.remaining ?? 0) : null,
+        limit: tier.credits,
+        remaining: data.remaining,
+        unlimited: tier.credits === null,
+      },
+      rateLimit: {
+        limit: tier.rateLimit.limit,
+        window: `${tier.rateLimit.duration / 1000}s`,
+      },
+    },
+    features: tier.features,
+  });
+}
+```
+
+Response:
+
+```json
+{
+  "tier": "pro",
+  "plan": "Pro",
+  "usage": {
+    "credits": {
+      "used": 1234,
+      "limit": 10000,
+      "remaining": 8766,
+      "unlimited": false
+    },
+    "rateLimit": {
+      "limit": 100,
+      "window": "60s"
+    }
+  },
+  "features": ["api_access", "webhooks", "priority_support"]
+}
+```

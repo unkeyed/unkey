@@ -1,0 +1,203 @@
+---
+title: 'Quickstart'
+description: 'Verify your first API key in under 5 minutes'
+---
+
+This guide gets you from zero to a working API key verification as fast as possible. We'll create a key, then verify it using your preferred method.
+
+<Note>
+Need an account? [Sign up free](https://app.unkey.com) — takes 30 seconds.
+</Note>
+
+## 1. Create an API
+
+An API in Unkey is a container for your keys. Head to your [dashboard](https://app.unkey.com/apis) and create one, or use one you already have.
+
+Copy your **API ID** — it looks like `api_xxxx`.
+
+## 2. Create a root key
+
+Root keys authenticate *your* requests to the Unkey API (for creating and managing keys).
+
+1. Go to [Settings → Root Keys](https://app.unkey.com/settings/root-keys)
+2. Click **Create New Root Key**
+3. Give it a name and select the permissions you need
+4. Copy the key — you won't see it again
+
+<Warning>
+Keep your root key secret. Never expose it in client-side code or commit it to git.
+</Warning>
+
+## 3. Create an API key
+
+Now let's create a key that your users would use to authenticate:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_xxxx",
+    "name": "My First Key"
+  }'
+```
+
+```typescript TypeScript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_xxxx",
+    name: "My First Key",
+  });
+
+  console.log(data.key); // This is the key to give to your user
+} catch (err) {
+  console.error(err);
+}
+```
+
+```python Python
+from unkey import Unkey
+
+unkey = Unkey(root_key="your_root_key")
+
+result = unkey.keys.create_key(
+    api_id="api_xxxx",
+    name="My First Key"
+)
+
+print(result.key)  # This is the key to give to your user
+```
+
+</CodeGroup>
+
+Save the returned `key` value — that's what you'll verify in the next step.
+
+## 4. Verify the key
+
+This is what you'll do on every API request to check if a key is valid:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "THE_KEY_FROM_STEP_3"
+  }'
+```
+
+```typescript TypeScript
+import { verifyKey } from "@unkey/api";
+
+try {
+  const { meta, data } = await verifyKey({
+    key: "THE_KEY_FROM_STEP_3",
+  });
+
+  if (!data.valid) {
+    // Key is invalid, expired, rate limited, etc.
+    console.log("Denied:", data.code);
+  }
+
+  // Key is valid — continue with your API logic
+  console.log("Key ID:", data.keyId);
+} catch (err) {
+  console.error(err);
+}
+```
+
+```python Python
+from unkey import Unkey
+
+unkey = Unkey(root_key="your_root_key")
+
+result = unkey.keys.verify_key(key="THE_KEY_FROM_STEP_3")
+
+if not result.valid:
+    print("Denied:", result.code)
+else:
+    print("Key ID:", result.key_id)
+```
+
+</CodeGroup>
+
+A successful response looks like:
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "valid": true,
+    "code": "VALID",
+    "keyId": "key_xxxx"
+  }
+}
+```
+
+**That's it!** You've just verified an API key with Unkey. 🎉
+
+## What's in the verification response?
+
+The `data` object contains everything you need to make authorization decisions:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the key passed all checks |
+| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
+| `keyId` | `string` | The key's unique identifier |
+| `name` | `string?` | Human-readable name of the key |
+| `meta` | `object?` | Custom metadata associated with the key |
+| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
+| `credits` | `number?` | Remaining uses (if usage limits set) |
+| `enabled` | `boolean` | Whether the key is enabled |
+| `roles` | `string[]?` | Permissions attached to the key |
+| `permissions` | `string[]?` | Permissions attached to the key |
+| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
+| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+
+<Note>
+Fields marked with `?` are optional and only included when relevant (e.g., `remaining` only appears if you set a usage limit).
+</Note>
+
+## Next steps
+
+Now integrate Unkey into your actual application:
+
+<CardGroup cols={2}>
+  <Card title="Next.js" icon="react" href="/quickstart/apis/nextjs">
+    Protect API routes with middleware
+  </Card>
+  <Card title="Express" icon="node-js" href="/quickstart/apis/express">
+    Add key verification to Express routes
+  </Card>
+  <Card title="Bun" icon="bread-slice" href="/quickstart/apis/bun">
+    Fast verification with Bun's native server
+  </Card>
+  <Card title="Hono" icon="fire" href="/quickstart/apis/hono">
+    Edge-ready API key verification
+  </Card>
+</CardGroup>
+
+Or explore more features:
+
+<CardGroup cols={2}>
+  <Card title="Add rate limiting" icon="gauge-high" href="/ratelimiting/introduction">
+    Protect endpoints from abuse
+  </Card>
+  <Card title="Set usage limits" icon="calculator" href="/apis/features/remaining">
+    Cap requests per key for billing tiers
+  </Card>
+  <Card title="Add permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+    Fine-grained access control
+  </Card>
+  <Card title="SDK Reference" icon="book" href="/libraries/ts/api">
+    Full TypeScript SDK docs
+  </Card>
+</CardGroup>

@@ -40,14 +40,14 @@ export const updateKeyMetadata = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update metadata on this key. Please try again or contact support@unkey.dev",
+            "We were unable to update metadata on this key. Please try again or contact support@unkey.com",
         });
       });
 
     if (!key) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct key. Please try again or contact support@unkey.com.",
         code: "NOT_FOUND",
       });
     }
@@ -64,7 +64,7 @@ export const updateKeyMetadata = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to update metadata on this key. Please try again or contact support@unkey.dev",
+                "We are unable to update metadata on this key. Please try again or contact support@unkey.com",
             });
           });
 
@@ -96,7 +96,7 @@ export const updateKeyMetadata = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update metadata on this key. Please try again or contact support@unkey.dev",
+            "We are unable to update metadata on this key. Please try again or contact support@unkey.com",
         });
       });
 

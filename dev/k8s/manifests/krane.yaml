@@ -41,6 +41,18 @@ spec:
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 8070
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8070
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8070
+            initialDelaySeconds: 10
+            periodSeconds: 10
           env:
             # Server configuration
             - name: UNKEY_REGION

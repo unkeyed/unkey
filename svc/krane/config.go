@@ -60,6 +60,14 @@ type Config struct {
 
 	ControlPlaneURL    string
 	ControlPlaneBearer string
+
+	// OtelEnabled enables OpenTelemetry instrumentation for tracing and metrics.
+	// When true, InitGrafana will be called to set up OTEL exporters.
+	OtelEnabled bool
+
+	// OtelTraceSamplingRate controls the sampling rate for traces (0.0 to 1.0).
+	// Only used when OtelEnabled is true.
+	OtelTraceSamplingRate float64
 }
 
 // Validate checks the configuration for required fields and logical consistency.

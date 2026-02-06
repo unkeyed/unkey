@@ -13,7 +13,7 @@ import (
 const listExecutableChallenges = `-- name: ListExecutableChallenges :many
 SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
 JOIN custom_domains d ON dc.domain_id = d.id
-WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
+WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
 AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 ORDER BY d.created_at ASC
 `
@@ -28,7 +28,7 @@ type ListExecutableChallengesRow struct {
 //
 //	SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
 //	JOIN custom_domains d ON dc.domain_id = d.id
-//	WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
+//	WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
 //	AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 //	ORDER BY d.created_at ASC
 func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error) {

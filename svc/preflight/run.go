@@ -10,13 +10,13 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/cleanup"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/mutator"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry/credentials"
-	"github.com/unkeyed/unkey/svc/preflight/routes/healthz"
 	"github.com/unkeyed/unkey/svc/preflight/routes/mutate"
 )
 
@@ -26,6 +26,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger := logging.New().With(slog.String("service", "preflight"))
+	r := runner.New(logger)
+	defer r.Recover()
 
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
@@ -70,6 +72,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
 
+	r.RegisterHealth(server.Mux())
+
 	m := mutator.New(mutator.Config{
 		Logger:                  logger,
 		Registry:                reg,
@@ -85,7 +89,6 @@ func Run(ctx context.Context, cfg Config) error {
 		zen.WithLogging(logger),
 	}
 
-	server.RegisterRoute(middlewares, &healthz.Handler{})
 	server.RegisterRoute(middlewares, &mutate.Handler{
 		Logger:  logger,
 		Mutator: m,
@@ -96,7 +99,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Logger:    logger,
 		Clientset: clientset,
 	})
-	go cleanupService.Start(ctx)
+
+	r.Go(func(ctx context.Context) error {
+		cleanupService.Start(ctx)
+		return nil
+	})
 
 	addr := fmt.Sprintf(":%d", cfg.HttpPort)
 	ln, err := net.Listen("tcp", addr)
@@ -104,6 +111,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
 
-	logger.Info("starting preflight server", "addr", addr)
-	return server.Serve(ctx, ln)
+	r.DeferCtx(server.Shutdown)
+	r.Go(func(ctx context.Context) error {
+		logger.Info("starting preflight server", "addr", addr)
+		return server.Serve(ctx, ln)
+	})
+
+	return r.Wait(ctx)
 }

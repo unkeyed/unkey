@@ -27,14 +27,14 @@ export const setDefaultApiPrefix = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the key auth. Please try again or contact support@unkey.dev",
+            "We were unable to update the key auth. Please try again or contact support@unkey.com",
         });
       });
     if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct key auth. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct key auth. Please try again or contact support@unkey.com.",
       });
     }
 
@@ -50,7 +50,7 @@ export const setDefaultApiPrefix = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We were unable to update the API default prefix. Please try again or contact support@unkey.dev.",
+                "We were unable to update the API default prefix. Please try again or contact support@unkey.com.",
             });
           });
         await insertAuditLogs(tx, {
@@ -77,7 +77,7 @@ export const setDefaultApiPrefix = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the default prefix. Please try again or contact support@unkey.dev.",
+            "We were unable to update the default prefix. Please try again or contact support@unkey.com.",
         });
       });
   });

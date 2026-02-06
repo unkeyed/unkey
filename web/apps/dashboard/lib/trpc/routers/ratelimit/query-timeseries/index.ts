@@ -21,14 +21,14 @@ export const queryRatelimitTimeseries = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to retrieve ratelimit timeseries analytics due to a workspace error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+            "Failed to retrieve ratelimit timeseries analytics due to a workspace error. If this issue persists, please contact support@unkey.com with the time this occurred.",
         });
       });
 
     if (!ratelimitNamespaces) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Ratelimit namespaces not found, please contact support using support@unkey.dev.",
+        message: "Ratelimit namespaces not found, please contact support using support@unkey.com.",
       });
     }
 
@@ -53,7 +53,7 @@ export const queryRatelimitTimeseries = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "Failed to retrieve ratelimit timeseries analytics due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+          "Failed to retrieve ratelimit timeseries analytics due to an error. If this issue persists, please contact support@unkey.com with the time this occurred.",
       });
     }
 

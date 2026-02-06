@@ -133,6 +133,18 @@ type Config struct {
 	// Used for logging, tracing, and cluster coordination.
 	InstanceID string
 
+	// Region is the geographic region where this worker instance is running.
+	// Used for logging and tracing context.
+	Region string
+
+	// OtelEnabled determines whether OpenTelemetry is enabled.
+	// When true, traces and logs are sent to the configured OTLP endpoint.
+	OtelEnabled bool
+
+	// OtelTraceSamplingRate controls what percentage of traces are sampled.
+	// Values range from 0.0 to 1.0, where 1.0 means all traces are sampled.
+	OtelTraceSamplingRate float64
+
 	// PrometheusPort specifies the port for exposing Prometheus metrics.
 	// Set to 0 to disable metrics exposure. When enabled, metrics are served
 	// on all interfaces (0.0.0.0) on the specified port.

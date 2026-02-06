@@ -29,14 +29,14 @@ export const connectPermissionToRole = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to connect this permission to role. Please try again or contact support@unkey.dev",
+            "We are unable to connect this permission to role. Please try again or contact support@unkey.com",
         });
       });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.com.",
       });
     }
     const role = workspace.roles.at(0);
@@ -44,7 +44,7 @@ export const connectPermissionToRole = workspaceProcedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct role. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct role. Please try again or contact support@unkey.com.",
       });
     }
     const permission = workspace.permissions.at(0);
@@ -52,7 +52,7 @@ export const connectPermissionToRole = workspaceProcedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct permission. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct permission. Please try again or contact support@unkey.com.",
       });
     }
 
@@ -73,7 +73,7 @@ export const connectPermissionToRole = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to connect the permission to the role. Please try again or contact support@unkey.dev.",
+                "We are unable to connect the permission to the role. Please try again or contact support@unkey.com.",
             });
           });
         await insertAuditLogs(tx, {
@@ -103,7 +103,7 @@ export const connectPermissionToRole = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to connect this permission to role. Please try again or contact support@unkey.dev",
+            "We are unable to connect this permission to role. Please try again or contact support@unkey.com",
         });
       });
   });

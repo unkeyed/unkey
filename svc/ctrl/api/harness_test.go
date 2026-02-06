@@ -121,7 +121,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 
 	ctrlURL := fmt.Sprintf("http://127.0.0.1:%d", ctrlPort)
 	require.Eventually(t, func() bool {
-		resp, err := http.Get(ctrlURL + "/health")
+		resp, err := http.Get(ctrlURL + "/health/live")
 		if err != nil {
 			return false
 		}

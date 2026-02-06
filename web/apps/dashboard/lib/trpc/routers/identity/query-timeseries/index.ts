@@ -91,14 +91,14 @@ export const queryIdentityTimeseries = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to retrieve identity details due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+            "Failed to retrieve identity details due to an error. If this issue persists, please contact support@unkey.com with the time this occurred.",
         });
       });
 
     if (!identity) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Identity not found, please contact support using support@unkey.dev.",
+        message: "Identity not found, please contact support using support@unkey.com.",
       });
     }
 

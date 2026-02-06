@@ -43,7 +43,7 @@ Namespaces group different limits together for better analytics. You might have 
   </ResponseField>
 <RequestExample>
 ```ts
-const override = await unkey.setOverride({
+const { meta, data } = await unkey.setOverride({
     identifier: "user_123",
     limit: 10,
     duration: 60000,
@@ -53,7 +53,7 @@ const override = await unkey.setOverride({
 ```
 
 ```ts
-const override = await unkey.setOverride({
+const { meta, data } = await unkey.setOverride({
     identifier: "user_123",
     limit: 5,
     duration: 50000,

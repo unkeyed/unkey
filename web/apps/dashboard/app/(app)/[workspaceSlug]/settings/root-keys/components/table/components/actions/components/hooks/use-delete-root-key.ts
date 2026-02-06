@@ -33,7 +33,7 @@ export const useDeleteRootKey = (
             "We encountered an issue while revoking your root key. Please try again later or contact support.",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       } else {
@@ -41,7 +41,7 @@ export const useDeleteRootKey = (
           description: err.message || "An unexpected error occurred. Please try again later.",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       }

@@ -36,7 +36,7 @@ export const keysLlmSearch = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to verify API access. Please try again or contact support@unkey.dev if this persists.",
+            "Failed to verify API access. Please try again or contact support@unkey.com if this persists.",
         });
       });
 

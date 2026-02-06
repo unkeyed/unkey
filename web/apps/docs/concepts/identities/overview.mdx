@@ -1,55 +1,130 @@
 ---
 title: Overview
-description: "Identities are a representations of a user, an org or a machine in your application."
+description: "Group multiple keys under a user, organization, or any entity in your system"
 ---
 
+Identities let you connect multiple API keys to a single entity — a user, an organization, a service account, or anything else in your system. Once connected, keys can share configuration, metadata, and rate limits.
 
-<Tip>
- Identities are in in public beta, please report any issues you encounter: [support](mailto:support@unkey.dev).
-</Tip>
+## Why use identities?
 
-Identities are used to map your users, organizations, or even machine-users in Unkey and allow you to share metadata and configuration across multiple keys. 
-An identity is directly linked via a unique identifier from your system and you can associate as many keys as you want with an identity.
+Without identities, each API key is standalone. If a user has 3 keys, you need to update each one individually. With identities:
 
+| Without Identities | With Identities |
+|-------------------|-----------------|
+| Update rate limits on each key separately | Update once on the identity, applies to all keys |
+| Metadata stored per-key | Shared metadata across all keys |
+| Analytics scattered across keys | Aggregated analytics per identity |
+| No concept of "this user's total usage" | Shared rate limit pool across all keys |
+
+## Real-world example
+
+Imagine you're building a developer platform like Stripe. Each customer might have:
+- A **test key** for development
+- A **production key** for live traffic  
+- **Multiple restricted keys** for different services
+
+All these keys belong to the same customer. With identities:
+
+```ts
+// Create an identity for the customer
+try {
+  const { meta, data, error } = await unkey.identities.create({
+    externalId: "customer_acme_123",  // Your internal customer ID
+    meta: {
+      plan: "pro",
+      company: "Acme Corp"
+    }
+  });
+
+  if (error) throw error;
+
+  // All keys for this customer share the identity
+  await unkey.keys.create({
+    apiId: "api_xxx",
+    identityId: data.id,
+    name: "Production Key"
+  });
+
+  await unkey.keys.create({
+    apiId: "api_xxx", 
+    identityId: data.id,
+    name: "Test Key"
+  });
+} catch (err) {
+  console.error(err);
+  throw err;
+}
+```
+
+Now when you verify any of these keys, you get the identity metadata:
+
+```ts
+const { meta, data } = await unkey.keys.verify({ key: "sk_..." });
+
+console.log(data.identity);
+// { id: "id_xxx", externalId: "customer_acme_123", meta: { plan: "pro", company: "Acme Corp" } }
+```
 
 ## Use cases
 
-### Multiple keys for the same user
-
-It is very common to issue multiple keys for the same user, but managing metadata and configuration for each key can be cumbersome and error-prone. By associating all keys with the same identity, you can share metadata and configuration across all keys.
-
-Instead of updating each key, you can update the identity and all keys associated with it will automatically get the updated metadata and configuration.
-
-
-### Sharing ratelimits across multiple keys
-
-If you have multiple keys for the same user, you can set ratelimits for the identity and share it across all keys. This way, you can ensure that the user does not exceed the ratelimits across all of their keys.
-
-[Read more](/concepts/identities/ratelimits) about how to share ratelimits across multiple keys.
-
-### Aggregated analytics
-
-If you are building a multi-tenant product, you can associate all keys of an organization with the organization's identity. This way, you can aggregate analytics across all keys of the organization and provide insights to the organization admin or drive your billing.
-
+<AccordionGroup>
+  <Accordion title="Share rate limits across keys" icon="gauge">
+    Set a rate limit on the identity, and all associated keys share the same pool. If a user has 1000 requests/hour across all their keys, they can't bypass the limit by using different keys.
+    
+    [Learn more →](/concepts/identities/ratelimits)
+  </Accordion>
+  
+  <Accordion title="Aggregate analytics per customer" icon="chart-pie">
+    Instead of piecing together usage from individual keys, get total usage per identity. Perfect for billing dashboards and customer insights.
+  </Accordion>
+  
+  <Accordion title="Centralized configuration" icon="sliders">
+    Store plan tier, feature flags, or custom limits on the identity. All keys inherit this configuration without needing individual updates.
+  </Accordion>
+  
+  <Accordion title="Multi-tenant organizations" icon="building">
+    Map identities to organizations in your system. When an org adds team members or creates new keys, they all share the same identity and limits.
+  </Accordion>
+</AccordionGroup>
 
 ## Data model
 
-<ParamField body="id" type string required>
-  The unique identifier of the identity in Unkey. You may use this to reference the identity in other API calls.
+<ParamField body="id" type="string" required>
+  Unkey's internal identifier for this identity. Use this to reference the identity in API calls.
 </ParamField>
 
 <ParamField body="externalId" type="string" required>
-  The id of the identity in your system. This is used to link the identity in Unkey to your system.
-  For example your user id, or organization id if you are linking an organization.
-
-
-  If you are using a 3rd party auth provider like Clerk, WorkOS, or Auth0, they will provide you a unique id for users and organizations. This is what you should use as the externalId.
-
-  We want to build deeper integrations with them, so if you are using one of these, please let us know so we can prioritize it.
+  **Your** identifier for this entity. This links the Unkey identity to your system — typically a user ID, org ID, or customer ID.
+  
+  If you use Clerk, Auth0, WorkOS, or similar: use their user/org ID as the externalId.
+  
+  ```ts
+  // Example with Clerk
+  const identity = await unkey.identities.create({
+    externalId: clerkUserId,  // "user_2NNEqL2nrIRdJ194ndJqAHwEfxC"
+  });
+  ```
 </ParamField>
-
 
 <ParamField body="meta" type="json">
-  A JSON object that can store any additional information about the identity. 
-  We do not make assumptions about this data, it's entirely up to you to decide what to store here.
+  Arbitrary JSON metadata. Store anything useful: plan tier, feature flags, company name, etc.
+  
+  ```json
+  {
+    "plan": "enterprise",
+    "features": ["advanced-analytics", "sso"],
+    "billingEmail": "billing@acme.com"
+  }
+  ```
 </ParamField>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Shared rate limits" icon="gauge-high" href="/concepts/identities/ratelimits">
+    Enforce limits across all keys for an identity
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart/identities/shared-ratelimits">
+    Step-by-step guide to implementing identities
+  </Card>
+</CardGroup>

@@ -16,16 +16,16 @@ const handleKeyOwnerUpdateError = (err: TRPCClientErrorLike<TRPCErrorShape>) => 
   } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
     toast.error("Server Error", {
       description:
-        "We are unable to update External ID information on this key. Please try again or contact support@unkey.dev",
+        "We are unable to update External ID information on this key. Please try again or contact support@unkey.com",
     });
   } else {
     toast.error("Failed to Update Key External ID", {
       description:
         err.message ||
-        "An unexpected error occurred. Please try again or contact support@unkey.dev",
+        "An unexpected error occurred. Please try again or contact support@unkey.com",
       action: {
         label: "Contact Support",
-        onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+        onClick: () => window.open("mailto:support@unkey.com", "_blank"),
       },
     });
   }

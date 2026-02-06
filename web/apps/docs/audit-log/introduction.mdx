@@ -1,39 +1,95 @@
 ---
 title: Overview
-description: 'Audit logs for your workspace, allowing you to see the history of all the resource requests made inside your workspace.'
-mode: "wide"
+description: 'Track every change to your API keys, permissions, and configuration'
+
 ---
 
-We automatically capture all mutations, including key creation, permission changes and configuration changes.
+Audit logs capture every mutation in your workspace — key creation, permission changes, revocations, and more. They're essential for security compliance, debugging, and understanding who changed what and when.
 
-## Accessing Audit Logs
+## Why audit logs matter
 
-To access the Audit Logs, sign into the [Dashboard](https://app.unkey.com/audit). Then select the **Audit Logs** option in the left navigation bar.
+<CardGroup cols={2}>
+  <Card title="Security investigations" icon="magnifying-glass">
+    When something goes wrong, trace exactly what happened and who was responsible.
+  </Card>
+  <Card title="Compliance requirements" icon="file-shield">
+    SOC 2, HIPAA, and other frameworks require audit trails for sensitive operations.
+  </Card>
+  <Card title="Team visibility" icon="users">
+    Know when team members create, modify, or revoke keys — especially in shared workspaces.
+  </Card>
+  <Card title="Debugging" icon="bug">
+    Figure out why a key stopped working or when a permission was changed.
+  </Card>
+</CardGroup>
 
-# Audit logs in detail
+## What's captured
 
-The audit logs table displays the following fields:
+Every mutation is logged automatically:
 
-- **Time**: when the change was made.
-- **Actor**: who was responsible for the change. This can be either a user (for actions taken in the web app) or a key (for actions taken via the API).
-- **Action**: the action performed by the actor. Things like `Create` or `Update`.
-- **Event**: the type of change. You can filter by type of events using the UI. Click to expand for more detail.
-- **Description**: Description of the change.
+| Category | Events |
+|----------|--------|
+| **Keys** | Create, update, revoke, delete, verify (failures) |
+| **APIs** | Create, update, delete |
+| **Permissions** | Create, update, delete, attach to key, remove from key |
+| **Roles** | Create, update, delete, assign, unassign |
+| **Rate limits** | Create namespace, update limits, set overrides |
+| **Workspace** | Member added, member removed, settings changed |
+
+## Accessing audit logs
+
+1. Sign into the [Dashboard](https://app.unkey.com/audit)
+2. Click **Audit Logs** in the left navigation
 
 <Frame>
 <img src="/audit-log/audit-log.png"/>
 </Frame>
 
-# More Details
+## Reading the log
 
-To see the details of an audit log, click on the row to display the details panel for that event. This will show you the full request and response payloads, as well as any errors that occurred.
+Each entry shows:
+
+| Field | Description |
+|-------|-------------|
+| **Time** | When the change occurred |
+| **Actor** | Who made the change — a user (dashboard) or root key (API) |
+| **Action** | The operation: `Create`, `Update`, `Delete`, etc. |
+| **Event** | What was affected: key, permission, API, etc. |
+| **Description** | Human-readable summary |
+
+Click any row to see full details, including the complete request/response payloads:
 
 <Frame>
 <img src="/audit-log/audit-workspace-details.png"/>
 </Frame>
 
+## Filtering logs
 
+Use the filters at the top of the audit log page to narrow down:
 
-# Feature requests
+- **Event type** — Show only key events, permission events, etc.
+- **Actor** — Filter by specific user or root key
+- **Time range** — Focus on a specific period
 
-Need additional functionality from audit logs, beyond what is provided currently? [Get in touch](mailto:support@unkey.dev)!
+## Retention
+
+Audit logs are retained based on your plan:
+
+| Plan | Retention |
+|------|-----------|
+| Free | 7 days |
+| Pro | 90 days |
+| Enterprise | Custom (up to unlimited) |
+
+Need longer retention? [Contact us](mailto:support@unkey.com) about enterprise options.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Event Types" icon="list" href="/audit-log/types">
+    Full list of audited events and their payloads
+  </Card>
+  <Card title="Security Overview" icon="shield" href="/security/overview">
+    How Unkey protects your data
+  </Card>
+</CardGroup>

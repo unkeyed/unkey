@@ -224,7 +224,7 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.INVALID_EMAIL]: "Please enter a valid email address.",
   [AuthErrorCode.NETWORK_ERROR]: "Connection error. Please check your internet and try again.",
   [AuthErrorCode.UNKNOWN_ERROR]:
-    "Something went wrong. Please try again later, or contact support@unkey.dev",
+    "Something went wrong. Please try again later, or contact support@unkey.com",
   [AuthErrorCode.ACCOUNT_NOT_FOUND]: "Account not found. Would you like to sign up?",
   [AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED]:
     "Please choose a workspace to continue authentication.",
@@ -234,7 +234,7 @@ export const errorMessages: Record<AuthErrorCode, string> = {
     "Pending Authentication has expired. Please sign-in again.",
   [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
   [AuthErrorCode.RADAR_BLOCKED]:
-    "Unable to complete request due to suspicious activity. Please contact support@unkey.dev if you believe this is an error.",
+    "Unable to complete request due to suspicious activity. Please contact support@unkey.com if you believe this is an error.",
   [AuthErrorCode.RADAR_CHALLENGE_REQUIRED]:
     "Please complete the verification challenge to continue.",
 };

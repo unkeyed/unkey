@@ -97,10 +97,10 @@ export default function Layout({ children }: LayoutProps) {
                       <Empty.Description>
                         Contact{" "}
                         <Link
-                          href={`mailto:support@unkey.dev?body=workspaceId: ${workspace.id}`}
+                          href={`mailto:support@unkey.com?body=workspaceId: ${workspace.id}`}
                           className="underline"
                         >
-                          support@unkey.dev
+                          support@unkey.com
                         </Link>
                       </Empty.Description>
                     </Empty>

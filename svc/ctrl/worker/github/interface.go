@@ -5,10 +5,7 @@ import "time"
 // GitHubClient defines the interface for GitHub API operations.
 type GitHubClient interface {
 	// GetInstallationToken retrieves an access token for a specific installation.
-	GetInstallationToken(installationID int64) (*InstallationToken, error)
-
-	// DownloadRepoTarball downloads a repository tarball for a specific ref.
-	DownloadRepoTarball(installationID int64, repoFullName, ref string) ([]byte, error)
+	GetInstallationToken(installationID int64) (InstallationToken, error)
 }
 
 // InstallationToken represents a GitHub installation access token. The token

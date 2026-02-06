@@ -125,7 +125,7 @@ export const deleteKeys = workspaceProcedure
         if (errorMessage.includes("auditLog")) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Unable to create audit logs. Please contact support@unkey.dev.",
+            message: "Unable to create audit logs. Please contact support@unkey.com.",
           });
         }
         throw txErr; // Re-throw to be caught by outer catch

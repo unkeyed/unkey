@@ -21,7 +21,7 @@ export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
       toast.info("Subscription resumed");
     },
     onError: (err) => {
-      toast.error("Failed to resume subscription. Please try again or contact support@unkey.dev.");
+      toast.error("Failed to resume subscription. Please try again or contact support@unkey.com.");
       console.error("Subscription resumption error:", err);
     },
   });

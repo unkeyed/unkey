@@ -45,7 +45,7 @@ export async function getStructuredSearchFromLLM(openai: OpenAI | null, userSear
           "• 'production deployments'\n" +
           "• 'deployments from main branch'\n" +
           "• 'recent deployments'\n" +
-          "For additional help, contact support@unkey.dev",
+          "For additional help, contact support@unkey.com",
       });
     }
 
@@ -71,7 +71,7 @@ export async function getStructuredSearchFromLLM(openai: OpenAI | null, userSear
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message:
-        "Failed to process your search query. Please try again or contact support@unkey.dev if the issue persists.",
+        "Failed to process your search query. Please try again or contact support@unkey.com if the issue persists.",
     });
   }
 }

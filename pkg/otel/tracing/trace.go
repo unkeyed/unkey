@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"errors"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -79,6 +80,29 @@ func Start(ctx context.Context, name string, opts ...trace.SpanStartOption) (con
 func RecordError(span trace.Span, err error) {
 	if err == nil {
 		return
+	}
+	span.SetStatus(codes.Error, err.Error())
+}
+
+// RecordErrorUnless marks a span as having encountered an error,
+// unless the error matches one of the ignored errors. Use this for
+// expected errors like sql.ErrNoRows that represent normal conditions.
+//
+// Example:
+//
+//	result, err := db.QueryRow(ctx, "SELECT * FROM users WHERE id = ?", userID)
+//	if err != nil {
+//	    tracing.RecordErrorUnless(span, err, sql.ErrNoRows)
+//	    return nil, err
+//	}
+func RecordErrorUnless(span trace.Span, err error, ignore ...error) {
+	if err == nil {
+		return
+	}
+	for _, ignored := range ignore {
+		if errors.Is(err, ignored) {
+			return
+		}
 	}
 	span.SetStatus(codes.Error, err.Error())
 }

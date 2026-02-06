@@ -1,9 +1,0 @@
-load("@rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "healthz",
-    srcs = ["handler.go"],
-    importpath = "github.com/unkeyed/unkey/svc/preflight/routes/healthz",
-    visibility = ["//visibility:public"],
-    deps = ["//pkg/zen"],
-)

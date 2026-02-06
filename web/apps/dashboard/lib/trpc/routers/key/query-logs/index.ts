@@ -43,14 +43,14 @@ export const queryKeyDetailsLogs = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to retrieve key details due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
+            "Failed to retrieve key details due to an error. If this issue persists, please contact support@unkey.com with the time this occurred.",
         });
       });
 
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.com.",
       });
     }
 

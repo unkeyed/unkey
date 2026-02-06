@@ -1,0 +1,305 @@
+---
+title: "Next.js API Routes"
+description: "Protect your Next.js API routes with Unkey authentication"
+---
+
+Two approaches: use the `@unkey/nextjs` wrapper for simplicity, or manual verification for full control.
+
+## Option 1: Using @unkey/nextjs (Recommended)
+
+The simplest way to protect Next.js API routes.
+
+### Install
+
+```bash
+npm install @unkey/nextjs
+```
+
+### App Router
+
+```typescript app/api/protected/route.ts
+import { withUnkey, NextRequestWithUnkeyContext } from "@unkey/nextjs";
+
+export const POST = withUnkey(
+  async (req: NextRequestWithUnkeyContext) => {
+    // req.unkey contains verification result
+    const { identity } = req.unkey.data;
+
+    return Response.json({
+      message: "Access granted",
+      user: identity?.externalId,
+    });
+  },
+  { rootKey: process.env.UNKEY_ROOT_KEY! }
+);
+```
+
+### Pages Router
+
+```typescript pages/api/protected.ts
+import { withUnkey, NextRequestWithUnkeyContext } from "@unkey/nextjs";
+import { NextApiRequest, NextApiResponse } from "next";
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Type assertion needed for Pages Router
+  const unkeyReq = req as unknown as NextRequestWithUnkeyContext;
+  
+  return res.json({
+    message: "Access granted",
+    user: unkeyReq.unkey?.data.identity?.externalId,
+  });
+}
+
+export default withUnkey(handler, { rootKey: process.env.UNKEY_ROOT_KEY! });
+```
+
+### Custom key extraction
+
+By default, `withUnkey` looks for a Bearer token in the `Authorization` header. Customize this:
+
+```typescript
+export const POST = withUnkey(
+  async (req) => { /* ... */ },
+  {
+    rootKey: process.env.UNKEY_ROOT_KEY!,
+    getKey: (req) => req.headers.get("x-api-key"),  // Custom header
+  }
+);
+```
+
+### Custom error handling
+
+```typescript
+export const POST = withUnkey(
+  async (req) => { /* ... */ },
+  {
+    rootKey: process.env.UNKEY_ROOT_KEY!,
+    handleInvalidKey: (req, result) => {
+      // result.code tells you why it failed
+      return Response.json(
+        { 
+          error: "Unauthorized",
+          reason: result.code,  // "NOT_FOUND", "EXPIRED", "RATE_LIMITED", etc.
+        },
+        { status: 401 }
+      );
+    },
+    onError: (req, error) => {
+      console.error("Unkey error:", error);
+      return Response.json(
+        { error: "Authentication service unavailable" },
+        { status: 503 }
+      );
+    },
+  }
+);
+```
+
+---
+
+## Option 2: Manual Verification
+
+For full control over the authentication flow.
+
+```typescript app/api/protected/route.ts
+import { Unkey } from "@unkey/api";
+import { UnkeyError } from "@unkey/api/models/errors";
+import { NextRequest, NextResponse } from "next/server";
+
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+export async function POST(req: NextRequest) {
+  // 1. Extract API key
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json(
+      { error: "Missing API key" },
+      { status: 401 }
+    );
+  }
+  const apiKey = authHeader.slice(7);
+
+  // 2. Verify with Unkey
+  try {
+    const { meta, data } = await unkey.keys.verifyKey({
+      key: apiKey,
+    });
+
+    // You can reject the request because the key is invalid.
+    if (!data.valid) {
+      return Response.json({ error: "Invalid API key" }, { status: 401 });
+    }
+    // Perform your operations
+    return Response.json({ data: "hello world" });
+  } catch (err) {
+    // handle our errors however you want.
+    if (err instanceof UnkeyError) {
+      console.error("Unkey API Error:", {
+        statusCode: err.statusCode,
+        body: err.body,
+        message: err.message,
+      });
+      return Response.json(
+        { error: "API error occurred", details: err.message },
+        { status: err.statusCode },
+      );
+    }
+
+    // Handle generic errors
+    console.log("Unknown error:", err);
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+```
+
+---
+
+## Reusable Middleware Pattern
+
+Create a helper for consistent auth across routes:
+
+```typescript lib/auth.ts
+import { Unkey } from "@unkey/api";
+import { UnkeyError } from "@unkey/api/models/errors";
+import { NextRequest, NextResponse } from "next/server";
+import { V2KeysVerifyKeyResponseData } from "@unkey/api/models/components";
+type AuthenticatedHandler = (
+  req: NextRequest,
+  auth: V2KeysVerifyKeyResponseData,
+) => Promise<NextResponse>;
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+
+export function withAuth(handler: AuthenticatedHandler) {
+  return async (req: NextRequest) => {
+    const authHeader = req.headers.get("authorization");
+
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Missing API key" }, { status: 401 });
+    }
+    try {
+      const { meta, data } = await unkey.keys.verifyKey({
+        key: authHeader.slice(7),
+      });
+
+      if (!data.valid) {
+        return NextResponse.json({ error: data.code }, { status: 401 });
+      }
+      return handler(req, data);
+    } catch (error) {
+      if (error instanceof UnkeyError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.statusCode },
+        );
+      }
+      return NextResponse.json(
+        { error: "Service unavailable" },
+        { status: 503 },
+      );
+    }
+  };
+}
+```
+
+Use it:
+
+```typescript app/api/users/route.ts
+import { withAuth } from "@/lib/auth";
+
+export const GET = withAuth(async (req, auth) => {
+  // auth contains the full verification result
+  const users = await db.users.findMany({
+    where: { organizationId: auth.identity?.externalId },
+  });
+  
+  return Response.json({ users });
+});
+
+import { withAuth } from "../../lib/auth/withauth";
+import { NextResponse } from "next/server";
+
+export const GET = withAuth(async (_req, auth) => {
+  // auth contains the full verification result so you can look at details
+  const users = await db.users.findMany({
+    where: { organizationId: auth.identity?.externalId },
+  });
+  return NextResponse.json({ users });
+});
+```
+
+---
+
+## Check Permissions
+
+Require specific permissions for sensitive endpoints:
+
+```typescript app/api/admin/route.ts
+
+
+import { verifyKey } from "@unkey/api";
+import { UnkeyError } from "@unkey/api/models/errors";
+import { NextRequest, NextResponse } from "next/server";
+
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+export async function POST(req: NextRequest) {
+  // 1. Extract API key
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json(
+      { error: "Missing API key" },
+      { status: 401 }
+    );
+  }
+  const apiKey = authHeader.slice(7);
+
+  // 2. Verify with Unkey 
+  try {
+    const result = await unkey.keys.verifyKey({
+      key: apiKey,
+      permissions: ["admin.delete"],
+    });
+
+    // You can reject the request because the key is invalid.
+    if (!result.data.valid) {
+      
+      if (result.data.code === "INSUFFICIENT_PERMISSIONS") {
+        return Response.json({ error: "Admin access required" }, { status: 403 });
+      }
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return Response.json({ data: "hello world" });
+  } catch (err) {
+    // handle our errors however you want.
+    if (err instanceof UnkeyError) {
+      console.error("Unkey API Error:", {
+        statusCode: err.statusCode,
+        body: err.body,
+        message: err.message,
+      });
+      return Response.json(
+        { error: "API error occurred", details: err.message },
+        { status: err.statusCode },
+      );
+    }
+
+    // Handle generic errors
+    console.log("Unknown error:", err);
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+```
+
+---
+
+## Environment Setup
+
+```bash .env.local
+# Required for verification and key management
+UNKEY_ROOT_KEY=unkey_...
+```
+
+<Warning>
+Never expose `UNKEY_ROOT_KEY` to the client. It should only be used in server-side code.
+</Warning>

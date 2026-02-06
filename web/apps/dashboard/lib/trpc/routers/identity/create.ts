@@ -148,7 +148,7 @@ export const createIdentity = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "We encountered an issue while creating the identity. Our team has been notified. Please try again or contact support@unkey.dev for assistance.",
+          "We encountered an issue while creating the identity. Our team has been notified. Please try again or contact support@unkey.com for assistance.",
       });
     }
   });

@@ -1,26 +1,210 @@
 ---
 title: 'Glossary'
-description: 'Glossary of terms used in the Unkey documentation'
+description: 'Key terms and concepts used throughout Unkey'
 ---
+
+## Core Concepts
 
 ### Workspace
 
-A workspace should be treated as a single account. It can be a personal account or a team account. A workspace can have multiple users, but only one user can be the owner of the workspace. The owner of the workspace can invite other users to the workspace and assign them roles. The owner of the workspace can also delete the workspace.
+A workspace is your top-level account container. Everything in Unkey belongs to a workspace.
+
+- Can be personal or team-based
+- Contains APIs, keys, identities, rate limit namespaces
+- One owner who can invite members and assign roles
+- Billing is per-workspace
 
 ### API
 
-An API is a collection of API Keys. Each API Key belongs to exactly one API. An API can have multiple API Keys. An API can be used to group API Keys together. For example, you might have an API called `free` and another API called `paid`. You can then create API Keys for each of these APIs. This allows you to group your API Keys together and give them a name that makes sense to you
+An API is a container for related API keys. Use APIs to organize keys by:
 
-This is also great for seperating your API Keys into different environments. For example, you might have an API called `api.production` and another API called `api.staging`. You can then create API Keys for each of these APIs.
+- **Product**: `payments-api`, `analytics-api`
+- **Environment**: `production`, `staging`, `development`
+- **Tier**: `free-tier`, `pro-tier`, `enterprise`
+
+Each key belongs to exactly one API.
 
 ### API Key
 
-This is the key that your users will use to access your API. Each API Key belongs to exactly one API. An API Key can be used to identify a user, and also to validate that the user has access to your API.
+The credential your users include in requests to authenticate with your API. Unkey manages the full lifecycle:
 
-### Unkey API Key (Root Key)
+- **Creation**: Generate with custom prefix, expiration, limits
+- **Verification**: Validate and check permissions in ~30ms globally
+- **Revocation**: Disable or delete when needed
 
-This is a special API Key that allows you full read and write access to all current and future resources. It's important to keep this API Key safe, as it allows you to create, revoke, validate and delete API Keys. This should be treated as a root user in your system.
+Example: `sk_live_abc123...`
 
-### Remaining (Uses / Verifications)
+### Root Key
 
-You can limit the number of times a key can be used. This is different from a time-based expiration. For example you can automatically invalidate a key after 10 verifications.
+A special key that grants access to Unkey's management API. Use root keys to:
+
+- Create, update, delete API keys
+- Manage rate limits and permissions
+- Access analytics
+
+<Warning>
+Root keys have full access to your workspace. Never expose them in client-side code or public repositories.
+</Warning>
+
+## Key Features
+
+### Identity
+
+A way to link multiple keys to a single user or entity. Identities let you:
+
+- Track usage across all of a user's keys
+- Share rate limits between keys
+- Store user metadata once, not per-key
+
+Use `externalId` to link to your own user IDs: `externalId: "user_123"`
+
+### Credits (Remaining)
+
+Limit how many times a key can be used. Different from rate limiting:
+
+| Feature | Credits | Rate Limits |
+|---------|---------|-------------|
+| Resets? | No (unless refill configured) | Yes, every window |
+| Use case | Total quota | Requests per time |
+| Example | "1000 requests total" | "100 requests/minute" |
+
+Credits decrement with each verification. When they hit 0, the key is invalid.
+
+### Refill
+
+Automatically restore credits on a schedule:
+- **Daily**: Reset at midnight UTC
+- **Monthly**: Reset on a specific day
+
+Example: "10,000 credits, refills on the 1st of each month"
+
+### Rate Limit
+
+Restrict requests within a time window. Prevents abuse and ensures fair usage.
+
+- **Limit**: Maximum requests allowed
+- **Duration**: Time window (e.g., 60 seconds)
+- **Namespace**: Grouping for related limits
+
+Example: "100 requests per minute"
+
+### Rate Limit Namespace
+
+A container for related rate limits. Namespaces let you:
+
+- Apply limits across keys or identities
+- Set overrides for specific identifiers
+- Track analytics per namespace
+
+Example namespaces: `api-requests`, `auth-attempts`, `file-uploads`
+
+### Override
+
+Custom rate limit for a specific identifier. Overrides let you:
+
+- Give VIP users higher limits
+- Throttle suspicious users
+- Test with elevated limits
+
+Configured in the dashboard — no code changes needed.
+
+## Permissions & Authorization
+
+### Permission
+
+A specific action a key can perform. Examples:
+
+- `documents.read`
+- `documents.write`
+- `billing.manage`
+
+Permissions are checked during verification.
+
+### Role
+
+A named collection of permissions. Examples:
+
+- `admin` → all permissions
+- `editor` → read + write permissions
+- `viewer` → read-only permissions
+
+Attach roles to keys instead of individual permissions for easier management.
+
+## Configuration
+
+### Prefix
+
+A string prepended to generated keys for identification:
+
+- `sk_live_` → production key
+- `sk_test_` → test environment key
+- `pk_` → publishable key
+
+Prefixes help users identify key types at a glance.
+
+### Metadata
+
+Custom JSON data attached to a key. Store anything relevant:
+
+```json
+{
+  "environment": "production",
+  "plan": "enterprise",
+  "customerId": "cust_123"
+}
+```
+
+Metadata is returned during verification.
+
+### External ID
+
+Your identifier for a user or entity. Links Unkey identities to your system:
+
+- `user_123` (your user ID)
+- `org_456` (your org ID)
+- `team_789` (your team ID)
+
+## Verification Responses
+
+### Valid
+
+Key exists and passed all checks (not expired, not disabled, has credits, not rate limited, has required permissions).
+
+### Code
+
+The reason a verification succeeded or failed:
+
+| Code | Meaning |
+|------|---------|
+| `VALID` | Key is valid |
+| `NOT_FOUND` | Key doesn't exist |
+| `EXPIRED` | Key past expiration date |
+| `DISABLED` | Key manually disabled |
+| `USAGE_EXCEEDED` | No credits remaining |
+| `RATE_LIMITED` | Rate limit exceeded |
+| `INSUFFICIENT_PERMISSIONS` | Missing required permission |
+| `FORBIDDEN` | IP whitelist violation |
+
+## Analytics
+
+### Verification
+
+A single key validation request. Each verification is logged with:
+
+- Timestamp
+- Key ID
+- Result (valid/invalid + code)
+- Tags (custom dimensions you add)
+- Geographic origin
+
+### Tags
+
+Custom strings attached to verifications for analytics:
+
+```
+path=/v1/users
+method=POST
+version=2024-01
+```
+
+Use tags to segment analytics by endpoint, feature, version, etc.

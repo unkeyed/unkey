@@ -251,7 +251,7 @@ function SuccessContent() {
       <Empty>
         <Empty.Title>Payment Processing Error</Empty.Title>
         <Empty.Description>
-          {error}. Please contact support@unkey.dev if this issue persists.
+          {error}. Please contact support@unkey.com if this issue persists.
         </Empty.Description>
       </Empty>
     );

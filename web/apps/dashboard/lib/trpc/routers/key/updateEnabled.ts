@@ -35,7 +35,7 @@ export const updateKeysEnabled = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to retrieve the keys. Please try again or contact support@unkey.dev",
+            "We were unable to retrieve the keys. Please try again or contact support@unkey.com",
         });
       });
 
@@ -43,7 +43,7 @@ export const updateKeysEnabled = workspaceProcedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find any of the specified keys. Please try again or contact support@unkey.dev.",
+          "We are unable to find any of the specified keys. Please try again or contact support@unkey.com.",
       });
     }
 
@@ -72,7 +72,7 @@ export const updateKeysEnabled = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We were unable to update enabled status on these keys. Please try again or contact support@unkey.dev",
+                "We were unable to update enabled status on these keys. Please try again or contact support@unkey.com",
             });
           });
 
@@ -111,7 +111,7 @@ export const updateKeysEnabled = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "We were unable to update enabled status on these keys. Please try again or contact support@unkey.dev",
+          "We were unable to update enabled status on these keys. Please try again or contact support@unkey.com",
       });
     }
 

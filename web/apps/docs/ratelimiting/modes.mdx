@@ -1,33 +1,130 @@
 ---
-title: Consistency vs Latency
-description: Optimize for consistency or latency with different ratelimiting modes.
+title: How Rate Limiting Works
+description: "Understanding Unkey's global rate limiting architecture"
 ---
 
-## Synchronous
+Unkey's rate limiting is designed for global, low-latency enforcement across distributed systems.
 
-The default ratelimiting mode is synchronous, which means that the request will be blocked until the current limit has been confirmed by the origin source of truth. The problem with this is that it can introduce more latency.
-We constantly relocate the origin dynamically to the closest edge location of the caller, but there's still a roundtrip to the origin to confirm the limit. And if the same identifier is being used in multiple geographic regions, only one of them is the closest, the remaining ones are likely doing longer network requests across the globe.
-The benefit of this mode is that it's absolutely correct, as every single request is checked against the same source of truth.
+## Architecture
 
+When you call `limiter.limit(identifier)`:
 
-## Asynchronous
-Asynchronous mode is a tradeoff between correctness and latency. It's faster because we don't need to confirm the limit with the origin before returning a decision, but it's also less correct because the limit is checked against the local edge cache and then updated asynchronously in the background. This means that if the same identifier is being used in multiple geographic regions, they might not be aware of each other's usage and could potentially exceed the limit until everything is synchronized to the edge.
+1. Request hits the nearest Unkey location
+2. Counter is checked and updated
+3. Decision returned in ~30ms globally
 
+```mermaid
+graph LR
+    A[Your API] --> B[Unkey]
+    B --> C[Check Counter]
+    C --> D{Under Limit?}
+    D -->|Yes| E[Allow + Decrement]
+    D -->|No| F[Reject]
+```
 
-<Warning>
-As you might notice, the `remaining` response value is not always accurate in async mode for low frequency requests.
-You should always use the returned `success` value to determine if the request was allowed or not.
-</Warning>
+## Sliding window algorithm
 
+Unkey uses a sliding window algorithm that provides smooth rate limiting without the "burst at window start" problem of fixed windows.
 
+**Fixed window problem:**
+- Limit: 100/minute
+- User sends 100 requests at 0:59
+- Window resets at 1:00
+- User sends 100 more at 1:01
+- Result: 200 requests in 2 seconds ❌
 
-## What should I use?
+**Sliding window solution:**
+- Limit: 100/minute
+- Considers requests from the past 60 seconds at any point
+- No burst exploitation possible
 
-With every request we measure whether our async `success` respones would have matched a synchronous `success` response and we observe 98% accuracy across all of our users.
+## Global consistency
 
-If you have strict requirements for correctness, you should use the synchronous mode.
-In all other cases, we recommend using the asynchronous mode to optimize for latency as that will give you the best performance and lowest latency for your users. Most of the time, your ratelimits will not get reached, so the small tradeoff in correctness is usually worth it for the performance gain. In case your API gets abused, the async mode will sync quickly due to the high frequency of requests and will stop the abuse quickly.
+Rate limits are enforced consistently across all regions. A user can't bypass limits by hitting different geographic endpoints.
 
-<Info>
-If you're still unsure which mode to use, please join our [Discord](https://unkey.com/discord) and we'll help you decide.
-</Info>
+## Response fields
+
+Every rate limit check returns:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | `true` if request is allowed |
+| `limit` | `number` | The configured limit |
+| `remaining` | `number` | Requests left in current window |
+| `reset` | `number` | Unix timestamp (ms) when window resets |
+
+## Handling the response
+
+```typescript
+const { success, remaining, reset } = await limiter.limit(identifier);
+
+if (!success) {
+  // Calculate retry time
+  const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+  
+  return new Response("Rate limit exceeded", {
+    status: 429,
+    headers: {
+      "Retry-After": retryAfter.toString(),
+      "X-RateLimit-Remaining": "0",
+      "X-RateLimit-Reset": reset.toString(),
+    },
+  });
+}
+
+// Request allowed
+```
+
+## Cost-based limiting
+
+Not all requests are equal. Use `cost` to deduct more from the limit for expensive operations:
+
+```typescript
+// Normal request: costs 1
+await limiter.limit(userId);
+
+// Expensive operation: costs 5
+await limiter.limit(userId, { cost: 5 });
+```
+
+With a limit of 100/minute:
+- 100 normal requests, OR
+- 20 expensive requests, OR
+- Mix of both
+
+## Timeout and fallback
+
+Configure behavior when Unkey is unreachable:
+
+```typescript
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "api",
+  limit: 100,
+  duration: "60s",
+  timeout: {
+    ms: 3000,  // Wait max 3 seconds
+    fallback: (identifier) => ({
+      success: true,  // Allow on timeout (or false to deny)
+      limit: 0,
+      remaining: 0,
+      reset: Date.now(),
+    }),
+  },
+  onError: (err, identifier) => {
+    console.error(`Rate limit error for ${identifier}:`, err);
+    return { success: true, limit: 0, remaining: 0, reset: Date.now() };
+  },
+});
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Custom overrides" icon="sliders" href="/ratelimiting/overrides">
+    Give specific users different limits
+  </Card>
+  <Card title="SDK reference" icon="book" href="/libraries/ts/ratelimit/ratelimit">
+    Full SDK documentation
+  </Card>
+</CardGroup>

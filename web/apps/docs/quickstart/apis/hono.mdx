@@ -1,47 +1,52 @@
 ---
 title: Hono
-description: API Authentication in Hono
-mode: "wide"
+description: Protect your Hono API routes with Unkey middleware
 ---
+
+## What you'll build
+
+A Hono app with API key authentication using the `@unkey/hono` middleware. All routes (or specific ones) require a valid API key.
+
+**Time to complete:** ~5 minutes
 
 ## Prerequisites
 
-- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
-- Created an API in the [Unkey dashboard](https://app.unkey.com/apis)
+- [Unkey account](https://app.unkey.com/auth/sign-up) (free)
+- [API created](https://app.unkey.com/apis) in your Unkey dashboard
+- Node.js 18+ or Bun
 
-<Card title="Skip the tutorial" icon="link" href="https://github.com/unkeyed/examples/tree/main/hono">
-  Don't want to read the tutorial? Click this to get an example ready to test.
+<Card title="Want to skip ahead?" icon="github" href="https://github.com/unkeyed/examples/tree/main/hono">
+  Clone the complete example and run it locally.
 </Card>
 
 <Steps titleSize="h3">
 
-<Step title="Create Hono Application">
-Run the following command to create your Hono project
+<Step title="Create a Hono app">
 
 <CodeGroup>
 
 ```bash npm
-npm create hono@latest
+npm create hono@latest unkey-hono
+cd unkey-hono
 ```
 
 ```bash pnpm
-pnpm create hono@latest
-```
-
-```bash yarn
-yarn create hono@latest
+pnpm create hono@latest unkey-hono
+cd unkey-hono
 ```
 
 ```bash bun
-bun create hono@latest
+bun create hono@latest unkey-hono
+cd unkey-hono
 ```
 
 </CodeGroup>
 
-</Step>
-<Step  title="Install">
+Choose your preferred runtime (Node.js, Bun, Cloudflare Workers, etc.)
 
-Now install the `@unkey/hono` package
+</Step>
+
+<Step title="Install the Unkey middleware">
 
 <CodeGroup>
 
@@ -53,32 +58,65 @@ npm install @unkey/hono
 pnpm add @unkey/hono
 ```
 
-```bash yarn
-yarn add @unkey/hono
-```
-
 ```bash bun
-bun install @unkey/hono
+bun add @unkey/hono
 ```
 
 </CodeGroup>
 
 </Step>
 
-<Step title="Update index to use our Hono SDK">
+<Step title="Add your root key">
 
-Create a new route and add the following code
+Create a `.env` file:
 
-```ts /src/index.ts
+```bash .env
+UNKEY_ROOT_KEY="unkey_..."
+```
+
+<Note>
+The Hono middleware verifies keys directly against your root key.
+</Note>
+
+</Step>
+
+<Step title="Add the middleware">
+
+Update `src/index.ts`:
+
+```ts src/index.ts
 import { Hono } from "hono";
 import { unkey, UnkeyContext } from "@unkey/hono";
 
+// Type the context so you get autocomplete for c.get("unkey")
 const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
 
-app.use("*", unkey());
+// Protect all routes with API key authentication
+app.use("*", unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+}));
 
+// This route now requires a valid API key
 app.get("/", (c) => {
-	return c.text("Hello Hono!");
+  // Access verification result from context
+  const keyInfo = c.get("unkey");
+  
+  return c.json({
+    message: "Hello from protected route!",
+    keyId: keyInfo.keyId,
+    valid: keyInfo.valid,
+  });
+});
+
+// Another protected route
+app.get("/secret", (c) => {
+  const keyInfo = c.get("unkey");
+  
+  return c.json({
+    secret: "data",
+    identity: keyInfo.identity,
+    meta: keyInfo.meta,
+  });
 });
 
 export default app;
@@ -86,7 +124,7 @@ export default app;
 
 </Step>
 
-<Step title="Running it">
+<Step title="Run your app">
 
 <CodeGroup>
 
@@ -95,11 +133,7 @@ npm run dev
 ```
 
 ```bash pnpm
-pnpm run dev
-```
-
-```bash yarn
-yarn run dev
+pnpm dev
 ```
 
 ```bash bun
@@ -110,31 +144,147 @@ bun run dev
 
 </Step>
 
-<Step  title="Try it out">
+<Step title="Test it">
 
-Go to https://app.unkey.com and create a new key. Then verify it with our new server:
+Create a test key in your [Unkey dashboard](https://app.unkey.com), then:
 
-```bash
-curl -XPOST 'http://localhost:8787/' \
-  -H "Authorization: Bearer <KEY>"
+```bash Test with valid key
+curl http://localhost:3000 \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-It should return `Hello Hono!"`
+You should see:
+```json
+{
+  "message": "Hello from protected route!",
+  "keyId": "key_...",
+  "valid": true
+}
+```
+
+Without a key, you'll get a 401:
+```bash Test without key
+curl http://localhost:3000
+```
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
 
 </Step>
 
 </Steps>
 
-## What is next?
+## Protecting specific routes
 
-Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+Instead of protecting all routes, you can apply the middleware to specific paths:
 
-<CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
-  <Card title="Unkey API Reference" icon="database" href="/api-reference">
-     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+```ts src/index.ts
+import { Hono } from "hono";
+import { unkey, UnkeyContext } from "@unkey/hono";
+
+const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
+
+// Public route — no middleware
+app.get("/", (c) => {
+  return c.json({ message: "Welcome! This route is public." });
+});
+
+// Protected routes — apply middleware to /api/* paths only
+app.use("/api/*", unkey({ rootKey: process.env.UNKEY_ROOT_KEY! }));
+
+app.get("/api/secret", (c) => {
+  const keyInfo = c.get("unkey");
+  return c.json({ secret: "data", keyId: keyInfo.keyId });
+});
+
+app.get("/api/user", (c) => {
+  const keyInfo = c.get("unkey");
+  return c.json({ identity: keyInfo.identity });
+});
+
+export default app;
+```
+
+## What's in the context?
+
+After verification, `c.get("unkey")` contains:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the key passed all checks |
+| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
+| `keyId` | `string` | The key's unique identifier |
+| `name` | `string?` | Human-readable name of the key |
+| `meta` | `object?` | Custom metadata associated with the key |
+| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
+| `credits` | `number?` | Remaining uses (if usage limits set) |
+| `enabled` | `boolean` | Whether the key is enabled |
+| `roles` | `string[]?` | Named role(s) assigned to the key, each representing a set of permissions |
+| `permissions` | `string[]?` | List of individual permissions granted to the key |
+| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
+| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+
+## Middleware options
+
+```ts
+unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY!,  // Required: Your root key
+  
+  // Optional: Custom error handling
+  onError: (c, error) => {
+    console.error("Unkey error:", error);
+    return c.json({ error: "Auth service unavailable" }, 503);
+  },
+  
+  // Optional: Custom unauthorized response
+  handleInvalidKey: (c, result) => {
+    return c.json({ 
+      error: "Invalid API key",
+      code: result.code 
+    }, 401);
+  },
+});
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Add rate limiting" icon="gauge-high" href="/apis/features/ratelimiting/overview">
+    Limit requests per key
   </Card>
-  <Card title="Hono SDK" icon="brackets-curly" href="/libraries/ts/hono">
-   Check out our Hono SDK and how they fit into your API.
+  <Card title="Set usage limits" icon="calculator" href="/apis/features/remaining">
+    Cap total requests per key
+  </Card>
+  <Card title="Add permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+    Fine-grained access control
+  </Card>
+  <Card title="Hono SDK Reference" icon="book" href="/libraries/ts/hono">
+    Full middleware documentation
   </Card>
 </CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Getting 401 even with a valid key?">
+    - Ensure the key hasn't expired or been revoked
+    - Verify the header format: `Authorization: Bearer YOUR_KEY`
+  </Accordion>
+  
+  <Accordion title="Environment variables not loading?">
+    - For Node.js: Install `dotenv` and add `import 'dotenv/config'` at the top
+    - For Bun: `.env` is loaded automatically
+    - For Cloudflare Workers: Use `wrangler secret` or `wrangler.toml`
+  </Accordion>
+  
+  <Accordion title="Deploying to Cloudflare Workers?">
+    Use wrangler secrets for your root key:
+    ```bash
+    npx wrangler secret put UNKEY_ROOT_KEY
+    ```
+    Then access it from your Hono bindings. Add `UNKEY_ROOT_KEY` to your `Bindings` type and read it via `ctx.env.UNKEY_ROOT_KEY` or `env.UNKEY_ROOT_KEY` in your handlers.
+  </Accordion>
+</AccordionGroup>

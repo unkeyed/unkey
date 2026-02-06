@@ -9,6 +9,15 @@ type Config struct {
 	// HttpPort defines the HTTP port for the API server to listen on (default: 7070)
 	HttpPort int
 
+	// Region is the cloud region where this instance is running
+	Region string
+
+	// OtelEnabled enables OpenTelemetry instrumentation
+	OtelEnabled bool
+
+	// OtelTraceSamplingRate is the sampling rate for traces (0.0 to 1.0)
+	OtelTraceSamplingRate float64
+
 	// S3Bucket is the bucket to store secrets in
 	S3Bucket string
 	// S3URL is the url to store secrets in

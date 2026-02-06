@@ -20,14 +20,14 @@ export const updateKeyRbac = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update RBAC for this key. Please try again or contact support@unkey.dev",
+            "We were unable to update RBAC for this key. Please try again or contact support@unkey.com",
         });
       });
 
     if (!key) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct key. Please try again or contact support@unkey.com.",
         code: "NOT_FOUND",
       });
     }
@@ -43,7 +43,7 @@ export const updateKeyRbac = workspaceProcedure
         .catch((_err) => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Unable to validate roles. Please try again or contact support@unkey.dev",
+            message: "Unable to validate roles. Please try again or contact support@unkey.com",
           });
         });
 
@@ -67,7 +67,7 @@ export const updateKeyRbac = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "Unable to validate permissions. Please try again or contact support@unkey.dev",
+              "Unable to validate permissions. Please try again or contact support@unkey.com",
           });
         });
 
@@ -97,7 +97,7 @@ export const updateKeyRbac = workspaceProcedure
                   throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message:
-                      "Unable to resolve role permissions. Please try again or contact support@unkey.dev",
+                      "Unable to resolve role permissions. Please try again or contact support@unkey.com",
                   });
                 })
             : [];
@@ -212,7 +212,7 @@ export const updateKeyRbac = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update RBAC for this key. Please try again or contact support@unkey.dev",
+            "We are unable to update RBAC for this key. Please try again or contact support@unkey.com",
         });
       });
 

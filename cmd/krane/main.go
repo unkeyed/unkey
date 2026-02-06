@@ -80,6 +80,14 @@ unkey run krane                                   # Run with default configurati
 		cli.String("cluster-id", "ID of the cluster",
 			cli.Default("local"),
 			cli.EnvVar("UNKEY_CLUSTER_ID")),
+
+		// Observability
+		cli.Bool("otel-enabled", "Enable OpenTelemetry tracing and logging",
+			cli.Default(false),
+			cli.EnvVar("UNKEY_OTEL_ENABLED")),
+		cli.Float("otel-trace-sampling-rate", "Sampling rate for traces (0.0 to 1.0)",
+			cli.Default(0.01),
+			cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
 	},
 	Action: action,
 }
@@ -87,18 +95,20 @@ unkey run krane                                   # Run with default configurati
 func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := krane.Config{
-		Clock:              nil,
-		Region:             cmd.RequireString("region"),
-		InstanceID:         cmd.RequireString("instance-id"),
-		RegistryURL:        cmd.RequireString("registry-url"),
-		RegistryUsername:   cmd.RequireString("registry-username"),
-		RegistryPassword:   cmd.RequireString("registry-password"),
-		RPCPort:            cmd.RequireInt("rpc-port"),
-		VaultURL:           cmd.String("vault-url"),
-		VaultToken:         cmd.String("vault-token"),
-		PrometheusPort:     cmd.RequireInt("prometheus-port"),
-		ControlPlaneURL:    cmd.RequireString("control-plane-url"),
-		ControlPlaneBearer: cmd.RequireString("control-plane-bearer"),
+		Clock:                 nil,
+		Region:                cmd.RequireString("region"),
+		InstanceID:            cmd.RequireString("instance-id"),
+		RegistryURL:           cmd.RequireString("registry-url"),
+		RegistryUsername:      cmd.RequireString("registry-username"),
+		RegistryPassword:      cmd.RequireString("registry-password"),
+		RPCPort:               cmd.RequireInt("rpc-port"),
+		VaultURL:              cmd.String("vault-url"),
+		VaultToken:            cmd.String("vault-token"),
+		PrometheusPort:        cmd.RequireInt("prometheus-port"),
+		ControlPlaneURL:       cmd.RequireString("control-plane-url"),
+		ControlPlaneBearer:    cmd.RequireString("control-plane-bearer"),
+		OtelEnabled:           cmd.Bool("otel-enabled"),
+		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 	}
 
 	// Validate configuration

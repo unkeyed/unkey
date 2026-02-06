@@ -34,7 +34,7 @@ export const deletePermissionWithRelations = workspaceProcedure
           code: "NOT_FOUND",
           message: `Permission(s) not found: ${missingIds.join(
             ", ",
-          )}. Please try again or contact support@unkey.dev.`,
+          )}. Please try again or contact support@unkey.com.`,
         });
       }
 
@@ -53,7 +53,7 @@ export const deletePermissionWithRelations = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to delete the permissions. Please try again or contact support@unkey.dev",
+              "We are unable to delete the permissions. Please try again or contact support@unkey.com",
           });
         });
 
@@ -71,7 +71,7 @@ export const deletePermissionWithRelations = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to delete the permissions. Please try again or contact support@unkey.dev",
+              "We are unable to delete the permissions. Please try again or contact support@unkey.com",
           });
         });
 
@@ -89,7 +89,7 @@ export const deletePermissionWithRelations = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to delete the permissions. Please try again or contact support@unkey.dev",
+              "We are unable to delete the permissions. Please try again or contact support@unkey.com",
           });
         });
 
@@ -115,7 +115,7 @@ export const deletePermissionWithRelations = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete the permissions. Please try again or contact support@unkey.dev.",
+            "We are unable to delete the permissions. Please try again or contact support@unkey.com.",
         });
       });
     });

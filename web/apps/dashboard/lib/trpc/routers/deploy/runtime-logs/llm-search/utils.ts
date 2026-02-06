@@ -49,7 +49,7 @@ export async function getStructuredSearchFromLLM(
           "• 'errors in the last hour'\n" +
           "• 'warnings containing timeout'\n" +
           "• 'debug logs from yesterday'\n" +
-          "For help, contact support@unkey.dev",
+          "For help, contact support@unkey.com",
       });
     }
 
@@ -74,7 +74,7 @@ export async function getStructuredSearchFromLLM(
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message:
-        "Failed to process your search query. Please try again or contact support@unkey.dev if the issue persists.",
+        "Failed to process your search query. Please try again or contact support@unkey.com if the issue persists.",
     });
   }
 }
