@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/unkey/cmd/deploy/internal/errors"
 	"github.com/unkeyed/unkey/cmd/deploy/internal/ui"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/git"
@@ -123,9 +124,9 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	terminal.StartSpinner("Creating deployment")
 	deploymentID, err := controlPlane.CreateDeployment(ctx, opts.DockerImage)
 	if err != nil {
-		terminal.StopSpinner("Failed to create deployment", false)
-		terminal.PrintErrorDetails(err.Error())
-		return err
+		terminal.StopSpinner(errors.FormatError(err), false)
+		// Don't return error it will just double print the error without formatting
+		return nil
 	}
 	terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
 
