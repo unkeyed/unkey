@@ -206,4 +206,3 @@ func TestSecurityRequirement_Empty(t *testing.T) {
 	err := ValidateSecurity(req, requirements, schemes, "test-req-id")
 	require.Nil(t, err, "empty security should pass")
 }
-

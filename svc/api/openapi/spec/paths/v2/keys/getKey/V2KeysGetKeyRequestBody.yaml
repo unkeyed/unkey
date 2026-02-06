@@ -30,7 +30,7 @@ examples:
       decrypt: false
     - keyId: key_5678efgh
       decrypt: true
-    - key: sk_1234abcdef5678
+    - keyId: sk_1234abcdef5678
       decrypt: false
     - keyId: key_9876zyxw
       decrypt: false

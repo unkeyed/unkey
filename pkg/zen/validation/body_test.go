@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -468,7 +469,7 @@ func TestMinMaxValidation(t *testing.T) {
 		},
 		{
 			name:    "invalid - name too long",
-			body:    `{"name": "` + string(make([]byte, 51)) + `"}`,
+			body:    `{"name": "` + strings.Repeat("a", 51) + `"}`,
 			isValid: false,
 		},
 	}

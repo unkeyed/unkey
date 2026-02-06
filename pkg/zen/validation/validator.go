@@ -100,7 +100,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (ValidationEr
 	compiledOp := v.compiler.GetOperation(op.OperationID)
 
 	// 4. Validate content-type for requests with body
-	if r.ContentLength > 0 || r.Body != nil {
+	if r.ContentLength > 0 || (r.Body != nil && r.Body != http.NoBody) {
 		_, ctSpan := tracing.Start(ctx, "validation.ValidateContentType")
 		ctErr := v.validateContentType(r, compiledOp, requestID)
 		ctSpan.End()
