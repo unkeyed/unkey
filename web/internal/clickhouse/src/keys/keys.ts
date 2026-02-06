@@ -256,29 +256,60 @@ export function getKeysOverviewLogs(ch: Querier) {
 
     const extendedParamsSchema = keysOverviewLogsParams.extend(paramSchemaExtension);
 
+    // Choose optimal aggregation table based on time range
+    const rangeMs = args.endTime - args.startTime;
+    const rangeDays = rangeMs / (1000 * 60 * 60 * 24);
+    
+    let aggregationTable: string;
+    let timeConversion: string;
+    
+    if (rangeDays <= 7) {
+      // Use per_minute for ranges <= 7 days (most granular, available for 7 days)
+      aggregationTable = 'key_verifications_per_minute_v2';
+      timeConversion = 'toUnixTimestamp(max(time)) * 1000';
+    } else if (rangeDays <= 30) {
+      // Use per_hour for ranges <= 30 days (available for 30 days)
+      aggregationTable = 'key_verifications_per_hour_v2';
+      timeConversion = 'toUnixTimestamp(max(time)) * 1000';
+    } else {
+      // Use per_day for ranges > 30 days (available for 100 days)
+      aggregationTable = 'key_verifications_per_day_v2';
+      timeConversion = 'toUnixTimestamp(toDateTime(max(time))) * 1000';
+    }
+
     const query = ch.query({
       query: `
 WITH
-    -- First CTE: Find top 50 most recently used keys from materialized view
+    -- First CTE: Find top 50 most recently used keys from optimal aggregation table
     top_keys AS (
       SELECT
           key_id,
-          workspace_id,
-          key_space_id,
-          max(time) as last_time,
-          anyLast(request_id) as last_request_id,
-          anyLast(tags) as last_tags
-      FROM default.keys_last_used_v1
+          ${timeConversion} as last_time
+      FROM default.${aggregationTable}
       WHERE workspace_id = {workspaceId: String}
           AND key_space_id = {keyspaceId: String}
+          AND time BETWEEN ${aggregationTable === 'key_verifications_per_day_v2' ? 'toDate' : 'toDateTime'}(fromUnixTimestamp64Milli({startTime: UInt64}))
+                       AND ${aggregationTable === 'key_verifications_per_day_v2' ? 'toDate' : 'toDateTime'}(fromUnixTimestamp64Milli({endTime: UInt64}))
           AND (${keyIdConditions})
-      GROUP BY key_id, workspace_id, key_space_id
-      HAVING last_time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-          ${havingCursorCondition ? havingCursorCondition : ""}
+      GROUP BY key_id
+      HAVING ${havingCursorCondition ? havingCursorCondition.replace("AND ", "") : "TRUE"}
       ORDER BY last_time ${timeDirection}
       LIMIT {limit: Int}
     ),
-    -- Second CTE: Get counts from hourly table (complete hours only)
+    -- Second CTE: Get metadata from raw table for these keys
+    key_metadata AS (
+      SELECT
+          key_id,
+          argMax(request_id, time) as last_request_id,
+          argMax(tags, time) as last_tags
+      FROM default.key_verifications_raw_v2
+      WHERE workspace_id = {workspaceId: String}
+          AND key_space_id = {keyspaceId: String}
+          AND key_id IN (SELECT key_id FROM top_keys)
+          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      GROUP BY key_id
+    ),
+    -- Third CTE: Get counts from hourly table (complete hours only)
     hourly_counts AS (
       SELECT
           h.key_id,
@@ -295,7 +326,7 @@ WITH
           AND (${tagConditions})
       GROUP BY h.key_id, h.outcome
     ),
-    -- Third CTE: Get counts from raw table for current incomplete hour
+    -- Fourth CTE: Get counts from raw table for current incomplete hour
     recent_counts AS (
       SELECT
           v.key_id,
@@ -311,13 +342,13 @@ WITH
           AND (${tagConditions})
       GROUP BY v.key_id, v.outcome
     ),
-    -- Fourth CTE: Combine hourly and recent counts
+    -- Fifth CTE: Combine hourly and recent counts
     combined_counts AS (
       SELECT key_id, outcome, count FROM hourly_counts
       UNION ALL
       SELECT key_id, outcome, count FROM recent_counts
     ),
-    -- Fifth CTE: Aggregate combined counts
+    -- Sixth CTE: Aggregate combined counts
     aggregated_counts AS (
       SELECT
           key_id,
@@ -326,7 +357,7 @@ WITH
       FROM combined_counts
       GROUP BY key_id
     ),
-    -- Sixth CTE: Build outcome distribution
+    -- Seventh CTE: Build outcome distribution
     outcome_counts AS (
       SELECT
           key_id,
@@ -335,25 +366,26 @@ WITH
       FROM combined_counts
       GROUP BY key_id, outcome
     )
-    -- Main query: Join metadata from MV with aggregated counts
+    -- Main query: Join everything together
     SELECT
       t.key_id as key_id,
       t.last_time as time,
-      t.last_request_id as request_id,
-      t.last_tags as tags,
+      COALESCE(m.last_request_id, '') as request_id,
+      COALESCE(m.last_tags, []) as tags,
       COALESCE(a.valid_count, 0) as valid_count,
       COALESCE(a.error_count, 0) as error_count,
       arrayFilter(x -> tupleElement(x, 1) IS NOT NULL, 
         groupArray(tuple(o.outcome, o.count))
       ) as outcome_counts_array
     FROM top_keys t
+    LEFT JOIN key_metadata m ON t.key_id = m.key_id
     LEFT JOIN aggregated_counts a ON t.key_id = a.key_id
     LEFT JOIN outcome_counts o ON t.key_id = o.key_id
     GROUP BY
       t.key_id,
       t.last_time,
-      t.last_request_id,
-      t.last_tags,
+      m.last_request_id,
+      m.last_tags,
       a.valid_count,
       a.error_count
     ORDER BY ${orderByClause}
