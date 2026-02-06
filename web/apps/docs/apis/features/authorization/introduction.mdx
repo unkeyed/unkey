@@ -1,9 +1,91 @@
 ---
-title: Overview
-description: 'Access Control with Roles and Permissions'
+title: Authorization Overview
+description: 'Control what each API key can access with roles and permissions'
 ---
 
-Role-Based Access Control (RBAC) is a security paradigm that restricts system access to authorized actors. It is based on the principle of assigning roles to actors and defining what actions or resources each role can access. We are taking this one step further and allowing you to attach arbitrary permissions to keys, for more flexibility (Coming in Q2). 
+Authorization controls *what* an authenticated key can do. While verification answers "is this key valid?", authorization answers "can this key perform this action?"
 
+Unkey provides Role-Based Access Control (RBAC) that lets you:
+- Define **permissions** (like `documents.read`, `billing.write`)
+- Group permissions into **roles** (like `admin`, `editor`, `viewer`)
+- Attach roles or permissions directly to keys
+- Check permissions during verification
 
+## When to use this
 
+<CardGroup cols={2}>
+  <Card title="Multi-tenant SaaS" icon="building">
+    Different customers get different feature access. Enterprise keys can do more than free-tier keys.
+  </Card>
+  <Card title="Team permissions" icon="users">
+    Admin keys can delete resources, editor keys can modify, viewer keys can only read.
+  </Card>
+  <Card title="Feature flags" icon="flag">
+    Only keys with `beta.access` permission can use new features.
+  </Card>
+  <Card title="Resource scoping" icon="folder-tree">
+    Keys can only access specific resources: `project.123.read`, `project.456.write`.
+  </Card>
+</CardGroup>
+
+## How it works
+
+<Steps>
+  <Step title="Define permissions">
+    Create permissions that map to actions in your app: `documents.read`, `documents.write`, `users.delete`.
+  </Step>
+  <Step title="Create roles (optional)">
+    Group permissions into roles for easier management. An `editor` role might include `documents.read` and `documents.write`.
+  </Step>
+  <Step title="Attach to keys">
+    When creating or updating keys, assign roles or direct permissions.
+  </Step>
+  <Step title="Check during verification">
+    Pass a permission query when verifying. Unkey checks if the key has the required permissions.
+  </Step>
+</Steps>
+
+## Quick example
+
+```typescript
+// When verifying, check for required permission
+try {
+  const { meta, data } = await unkey.keys.verifyKey({
+    key: "sk_...",
+    permissions: "documents.write",  // Key must have this permission
+  });
+
+  if (!data.valid) {
+    // Either invalid key OR missing permission
+    console.log(data.code);  // "VALID", "FORBIDDEN", "INSUFFICIENT_PERMISSIONS", etc.
+  }
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+## Permissions vs Roles
+
+| Concept | What it is | Example |
+|---------|------------|---------|
+| **Permission** | A specific action | `documents.read`, `billing.manage` |
+| **Role** | A group of permissions | `admin` = all permissions, `viewer` = read-only permissions |
+
+You can attach **either** (or both) directly to keys:
+- Attach roles when you want predefined access levels
+- Attach permissions directly for fine-grained control
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Create roles & permissions" icon="shield" href="/apis/features/authorization/roles-and-permissions">
+    Set up your authorization structure in the dashboard
+  </Card>
+  <Card title="Verify permissions" icon="check" href="/apis/features/authorization/verifying">
+    Check permissions when verifying keys
+  </Card>
+  <Card title="Full example" icon="code" href="/apis/features/authorization/example">
+    See a complete implementation
+  </Card>
+</CardGroup>

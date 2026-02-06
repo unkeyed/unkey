@@ -1,95 +1,300 @@
 ---
-title: Migrate keys to Unkey
+title: Migrate Keys to Unkey
+description: 'Step-by-step guide to importing existing API keys'
 ---
+
+This guide walks you through migrating existing API keys to Unkey.
 
 ## Prerequisites
 
-- Create an [Unkey account](https://app.unkey.com/auth/sign-up).
-- Create a `Workspace` and `API`. Save the `workspaceId` and `apiId` for later use.
-  - The workspaceId can be found in the upper right corner after navigating to `Settings/General` in the side menu.
-    <Frame>
-    <img src="workspace-general.png" alt="Workspace Page" />
-    </Frame>
-  - The apiId can be found in the upper right corner after navigating to `APIs/<Your API>` in the side menu.
-    <Frame>
-    <img src="your-api.png" alt="Api Page"/>
-    </Frame>
-- Create a `Root Key` under the Settings menu. It will need the `api.*.create_key` permission or `api.<api_id>.create_key` to migrate to a specific API.
-    <Frame>
-    <img src="migrate-root-key.png"/>
-    </Frame>
-- Email us to get a `migrationId` at [support@unkey.com](mailto:support@unkey.com) with:
-  - Your workspace ID.
-  - What service the keys will be migrated from.
+<Steps>
+  <Step title="Create an Unkey account">
+    Sign up at [app.unkey.com](https://app.unkey.com/auth/sign-up)
+  </Step>
   
-Extracting keys from your current system is likely the hardest part. It depends on how your keys are stored and how you can access them.
-Some providers have APIs to list all keys, while others require you to manually export them.
+  <Step title="Create a workspace and API">
+    Note your `workspaceId` and `apiId`:
+    
+    - **Workspace ID**: Settings → General (upper right corner)
+    <Frame>
+      <img src="workspace-general.png" alt="Workspace settings page" />
+    </Frame>
+    
+    - **API ID**: APIs → Your API (upper right corner)
+    <Frame>
+      <img src="your-api.png" alt="API page"/>
+    </Frame>
+  </Step>
+  
+  <Step title="Create a root key">
+    Go to Settings → Root Keys and create one with `api.*.create_key` and `api.*.verify_key` permissions.
+    <Frame>
+      <img src="migrate-root-key.png" alt="Root key creation"/>
+    </Frame>
+  </Step>
+  
+  <Step title="Get a migration ID">
+    Email [support@unkey.com](mailto:support@unkey.com) with:
+    - Your workspace ID
+    - Source system (PostgreSQL, Auth0, etc.)
+    - Hash algorithm used
+    
+    We'll send you a `migrationId`.
+  </Step>
+</Steps>
 
-You will need to provide the hash of your keys, as well as other settings to Unkey via the [keys.migrateKeys](/api-reference/v2/keys/migrate-api-keys) endpoint.
+## Supported hash formats
 
+| Variant | Description |
+|---------|-------------|
+| `sha256_base64` | SHA-256, base64 encoded |
+| `sha256_hex` | SHA-256, hex encoded |
+| `bcrypt` | bcrypt hash |
 
-## Node.js Example
+<Note>
+Need a different hash format? Contact us — we can add support for your algorithm.
+</Note>
 
-```js
-const { createHash } = require("node:crypto")
+## Export your keys
 
-function hash(key) {
+Extract key hashes from your current system. **Never include plaintext keys.**
+
+### Example: PostgreSQL
+
+```sql
+SELECT 
+  key_hash,
+  user_id,
+  created_at,
+  metadata
+FROM api_keys
+WHERE revoked = false;
+```
+
+### Example: MongoDB
+
+```javascript
+db.apiKeys.find(
+  { revoked: false },
+  { hash: 1, userId: 1, metadata: 1 }
+);
+```
+
+## Hash your keys (if not already hashed)
+
+If you have plaintext keys, hash them before migration:
+
+```javascript
+const { createHash } = require("node:crypto");
+
+function hashKey(plaintext) {
   return {
-    value: createHash("sha256").update(key).digest("base64"),
+    value: createHash("sha256").update(plaintext).digest("base64"),
     variant: "sha256_base64",
-  }
+  };
 }
+```
 
-const request = {
-  migrationId: "<UNKEY_MIGRATION_ID>", // the id of the migration you created
-  apiId: "<UNKEY_API_ID>", // the id of the API you created
-  keys: [
-    {
-      hash: hash("my-secret-key"),
-      //... other settings
-    },
-    {
-      hash: hash("my-other-secret-key"),
-      //... other settings
-    },
-  ]
-}
+## Migrate to Unkey
 
-fetch("https://api.unkey.com/v2/keys.migrateKeys", {
+Use the migration API to import your keys:
+
+```javascript
+const UNKEY_ROOT_KEY = process.env.UNKEY_ROOT_KEY;
+const MIGRATION_ID = "mig_...";  // From support
+const API_ID = "api_...";
+
+// Your exported keys
+const keysToMigrate = [
+  {
+    hash: {
+      value: "abc123...",  // The hash value
+      variant: "sha256_base64",
+    },
+    externalId: "user_123",  // Link to your user
+    meta: {
+      plan: "pro",
+      migratedFrom: "legacy-system",
+    },
+    ratelimits: [{
+      name: "requests",
+      limit: 1000,
+      duration: 60000,
+    }],
+  },
+  // ... more keys
+];
+
+const response = await fetch("https://api.unkey.com/v2/keys.migrateKeys", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    Authorization: "Bearer <UNKEY_ROOT_KEY>",
+    "Authorization": `Bearer ${UNKEY_ROOT_KEY}`,
   },
-  body: JSON.stringify(request)
-})
-.then(res => res.json())
-.then(res => {
-  console.log("Migrated keys:", res.data.migrated)
-  console.log("Failed hashes:", res.data.failed)
-})
-```
+  body: JSON.stringify({
+    migrationId: MIGRATION_ID,
+    apiId: API_ID,
+    keys: keysToMigrate,
+  }),
+});
 
+  const result = await response.json();
+  if (!response.ok) {
+    console.error("Migration failed:", result?.error || `HTTP ${response.status}`);
+    return;
+  }
+  if (!result?.data) {
+    console.error("Migration response missing data");
+    return;
+  }
+  console.log("Migrated:", result.data.migrated.length);
+  console.log("Failed:", result.data.failed.length);
+```
 
 ## Response
 
-The endpoint returns a list of successfully migrated keys and any failed hashes:
-
 ```json
 {
-  "meta": {
-    "requestId": "req_123"
-  },
+  "meta": { "requestId": "req_..." },
   "data": {
     "migrated": [
       {
         "hash": "abc123...",
-        "keyId": "key_123"
+        "keyId": "key_..."
       }
     ],
-    "failed": []
+    "failed": [
+      {
+        "hash": "xyz789...",
+        "error": "Key already exists"
+      }
+    ]
   }
 }
 ```
 
-Failed hashes indicate hashes that could not be migrated (e.g., already exist in the system).
+## Key configuration options
+
+Each key in the migration can include:
+
+| Field | Description |
+|-------|-------------|
+| `hash` | Required. The hash object with `value` and `variant` |
+| `prefix` | Key prefix (for display only, not verified) |
+| `name` | Human-readable name |
+| `externalId` | Link to your user/identity |
+| `meta` | Custom JSON metadata |
+| `roles` | Array of role names |
+| `permissions` | Array of permission names |
+| `ratelimits` | Rate limit configuration |
+| `credits` | Usage limit configuration |
+| `expires` | Expiration timestamp (Unix ms) |
+| `enabled` | Whether key is active (default: true) |
+
+## Batch migrations
+
+For large migrations, batch your requests:
+
+```javascript
+const BATCH_SIZE = 100;
+
+async function migrateAll(allKeys) {
+  const results = { migrated: 0, failed: 0 };
+  
+  for (let i = 0; i < allKeys.length; i += BATCH_SIZE) {
+    const batch = allKeys.slice(i, i + BATCH_SIZE);
+    
+    const response = await fetch("https://api.unkey.com/v2/keys.migrateKeys", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${UNKEY_ROOT_KEY}`,
+      },
+      body: JSON.stringify({
+        migrationId: MIGRATION_ID,
+        apiId: API_ID,
+        keys: batch,
+      }),
+    });
+    
+    const result = await response.json();
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    
+    if (!response.ok) {
+      console.error(`Batch ${batchNum} failed:`, result?.error || `HTTP ${response.status}`);
+      results.failed += batch.length;
+      continue;
+    }
+    if (!result?.data) {
+      console.error(`Batch ${batchNum} missing data`);
+      results.failed += batch.length;
+      continue;
+    }
+    
+    results.migrated += result.data.migrated.length;
+    results.failed += result.data.failed.length;
+    
+    console.log(`Batch ${batchNum}: ${result.data.migrated.length} migrated`);
+  }
+  
+  return results;
+}
+```
+
+## Update your verification
+
+After migration, update your API to verify keys with Unkey:
+
+```javascript
+// Before: Custom verification
+const isValid = await myDatabase.verifyKey(apiKey);
+
+// After: Unkey verification
+const response = await fetch("https://api.unkey.com/v2/keys.verifyKey", {
+  method: "POST",
+  headers: { 
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + process.env.UNKEY_ROOT_KEY 
+  },
+  body: JSON.stringify({ key: apiKey }),
+});
+const result = await response.json();
+if (!response.ok || !result?.data) {
+  // Handle error appropriately
+  return { valid: false, error: result?.error || "Verification failed" };
+}
+const isValid = result.data.valid;
+```
+
+## Rollback plan
+
+Keep your old verification system running in parallel during migration:
+
+```javascript
+async function verifyKey(apiKey) {
+  // Try Unkey first
+  const unkeyResult = await verifyWithUnkey(apiKey);
+  
+  if (unkeyResult.valid) {
+    return unkeyResult;
+  }
+  
+  // Fall back to legacy system (temporary)
+  const legacyResult = await verifyWithLegacy(apiKey);
+  
+  if (legacyResult.valid) {
+    const maskedKey = apiKey.slice(0, 5) + "..." + apiKey.slice(-5);
+    console.log("Key found in legacy, not yet migrated:", maskedKey);
+  }
+  
+  return legacyResult;
+}
+```
+
+Remove the fallback once migration is complete and verified.
+
+## Need help?
+
+<Card title="Contact support" icon="message" href="mailto:support@unkey.com">
+  We'll help you plan and execute your migration safely.
+</Card>

@@ -40,16 +40,46 @@ import { NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
 
 export const POST = withUnkey(
   async (req: NextRequestWithUnkeyContext) => {
-    // Process the request here
-    // You have access to the verification response using `req.unkey`
-    console.log(req.unkey);
+    // The key has already been verified at this point
+    // Access verification details via req.unkey.data
+    if (!req.unkey.data.valid) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
-    return new Response("Your API key is valid!");
+    // Your API logic here
+    return Response.json({
+      message: "Hello!",
+      keyId: req.unkey.data.keyId,
+      // If you set an externalId when creating the key:
+      externalId: req.unkey.data.identity?.externalId,
+    });
   },
   { rootKey: process.env.UNKEY_ROOT_KEY! }
 );
-);
 ```
+
+### What's in `req.unkey`?
+
+The `req.unkey.data` object contains the verification result:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the key passed all checks |
+| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
+| `keyId` | `string` | The key's unique identifier |
+| `name` | `string?` | Human-readable name of the key |
+| `meta` | `object?` | Custom metadata associated with the key |
+| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire (if set) |
+| `credits` | `number?` | Remaining uses (if usage limits set) |
+| `enabled` | `boolean` | Whether the key is enabled |
+| `roles` | `string[]?` | Roles attached to the key |
+| `permissions` | `string[]?` | Permissions attached to the key |
+| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
+| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+
+<Note>
+Access these via `req.unkey.data.valid`, `req.unkey.data.keyId`, etc.
+</Note>
 
 If you want to customize how `withUnkey` processes incoming requests, you can do so as follows:
 
@@ -67,6 +97,7 @@ export const GET = withUnkey(
     rootKey: process.env.UNKEY_ROOT_KEY!,
     getKey: (req) => new URL(req.url).searchParams.get("key"),
   }
+);
 ```
 
 ### `onError`
