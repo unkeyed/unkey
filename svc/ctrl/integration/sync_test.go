@@ -41,7 +41,6 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 )
 
@@ -84,7 +83,6 @@ func (m *mockStream) ResponseTrailer() http.Header {
 func newService(t *testing.T, database db.Database) *cluster.Service {
 	return cluster.New(cluster.Config{
 		Database: database,
-		Logger:   logging.NewNoop(),
 		Bearer:   "test-bearer",
 	})
 }

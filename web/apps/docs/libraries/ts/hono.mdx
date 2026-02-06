@@ -35,10 +35,10 @@ description: "Hono.js middleware for authenticating API keys"
 
 </CodeGroup>
 
-Let's dive straight in. The minimal setup looks like this. All you need is your root key with permission to verify keys. Go to [/settings/root-keys](https://app.unkey.com/settings/root-keys) and create a key with the `verify_key` permission.
+Let's dive straight in. The minimal setup looks like this. You need a root key with permission to verify keys. Go to [/settings/root-keys](https://app.unkey.com/settings/root-keys) and create a key with the `verify_key` permission.
 
-By default it tries to grab the api key from the `Authorization` header and then verifies it with unkey.
-The result of the verification will be written to the context and can be access with `c.get("unkey")`.
+By default it tries to grab the API key from the `Authorization` header and then verifies it with Unkey.
+The result of the verification will be written to the context and can be accessed with `c.get("unkey")`.
 
 ```ts
 import { Hono } from "hono"
@@ -47,15 +47,15 @@ import { type UnkeyContext, unkey } from "@unkey/hono";
 const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
 
 app.use("*", unkey({
-  rootKey: "<UNKEY_ROOT_KEY>"
+  rootKey: process.env.UNKEY_ROOT_KEY!
 }));
 
 
 app.get("/somewhere", (c) => {
   // access the unkey response here to get metadata of the key etc
-  const ... = c.get("unkey")
+  const keyInfo = c.get("unkey");
 
-  return c.text("yo")
+  return c.text(`Hello ${keyInfo.identity?.externalId ?? "user"}!`);
 })
 ```
 
@@ -69,7 +69,7 @@ By default the middleware tries to grab the api key from the `Authorization` hea
 app.use(
   "*",
   unkey({
-    rootKey: "<UNKEY_ROOT_KEY>",
+    rootKey: process.env.UNKEY_ROOT_KEY!,
     getKey: (c) => c.req.header("x-api-key"),
   })
 );
@@ -87,7 +87,7 @@ To customize the response in case the header is missing, just return a response 
 app.use(
   "*",
   unkey({
-    rootKey: "<UNKEY_ROOT_KEY>",
+    rootKey: process.env.UNKEY_ROOT_KEY!,
     getKey: (c) => {
       const key = c.req.header("x-api-key");
       if (!key) {
@@ -131,7 +131,7 @@ app.use(
       return c.json(
         {
           error: "unauthorized",
-          reason: result.data.code,
+          reason: result.code,
         },
         401
       );

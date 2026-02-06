@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // regionProximity maps regions to their closest regions in order of proximity.
@@ -42,7 +41,6 @@ var regionProximity = map[string][]string{
 }
 
 type service struct {
-	logger                      logging.Logger
 	region                      string
 	db                          db.Database
 	frontlineRouteCache         cache.Cache[string, db.FrontlineRoute]
@@ -53,7 +51,6 @@ var _ Service = (*service)(nil)
 
 func New(cfg Config) (*service, error) {
 	return &service{
-		logger:                      cfg.Logger,
 		region:                      cfg.Region,
 		db:                          cfg.DB,
 		frontlineRouteCache:         cfg.FrontlineRouteCache,

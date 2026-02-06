@@ -16,6 +16,6 @@ go_library(
         "//pkg/clock",
         "//pkg/fault",
         "//pkg/jwt",
-        "//pkg/otel/logging",
+        "//pkg/logger",
     ],
 )

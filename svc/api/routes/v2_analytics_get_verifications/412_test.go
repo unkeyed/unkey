@@ -22,7 +22,6 @@ func Test412_AnalyticsNotConfigured(t *testing.T) {
 	// This will cause GetConnection to fail
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,

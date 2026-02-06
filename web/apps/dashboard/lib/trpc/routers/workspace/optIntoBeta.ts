@@ -59,7 +59,7 @@ export const optWorkspaceIntoBeta = workspaceProcedure
         console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update workspace, Please try again or contact support@unkey.dev.",
+          message: "Failed to update workspace, Please try again or contact support@unkey.com.",
         });
       });
   });

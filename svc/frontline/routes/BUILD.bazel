@@ -11,7 +11,6 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//pkg/clock",
-        "//pkg/otel/logging",
         "//pkg/zen",
         "//svc/frontline/middleware",
         "//svc/frontline/routes/acme",

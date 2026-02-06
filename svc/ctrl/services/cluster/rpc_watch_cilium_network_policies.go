@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // WatchCiliumNetworkPolicies streams Cilium network policy state changes from the control plane to agents.
@@ -49,7 +50,7 @@ func (s *Service) WatchCiliumNetworkPolicies(
 
 		states, err := s.fetchCiliumNetworkPolicyStates(ctx, region, versionCursor)
 		if err != nil {
-			s.logger.Error("failed to fetch cilium network policy states", "error", err)
+			logger.Error("failed to fetch cilium network policy states", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
 		}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,18 +12,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/debug"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
+	"github.com/unkeyed/unkey/pkg/timing"
 )
 
 type cache[K comparable, V any] struct {
 	otter    otter.Cache[K, swrEntry[V]]
 	fresh    time.Duration
 	stale    time.Duration
-	logger   logging.Logger
 	resource string
 	clock    clock.Clock
 
@@ -41,8 +41,6 @@ type Config[K comparable, V any] struct {
 	// fetching from the origin server
 	Stale time.Duration
 
-	Logger logging.Logger
-
 	// Start evicting the least recently used entry when the cache grows to MaxSize
 	MaxSize int
 
@@ -57,7 +55,6 @@ var _ Cache[any, any] = (*cache[any, any])(nil)
 func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 	if err := assert.All(
 		assert.NotNil(config.Clock, "clock is required"),
-		assert.NotNil(config.Logger, "logger is required"),
 	); err != nil {
 		return nil, fmt.Errorf("invalid cache config: %w", err)
 	}
@@ -84,7 +81,6 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		otter:             otter,
 		fresh:             config.Fresh,
 		stale:             config.Stale,
-		logger:            config.Logger,
 		resource:          config.Resource,
 		clock:             config.Clock,
 		revalidateC:       make(chan func(), 1000),
@@ -111,11 +107,22 @@ func (c *cache[K, V]) registerMetrics() {
 	})
 }
 
+func (c *cache[K, V]) recordTiming(ctx context.Context, name, status string, start time.Time) {
+	timing.Record(ctx, timing.Entry{
+		Name:     name,
+		Duration: time.Since(start),
+		Attributes: map[string]string{
+			"cache":  c.resource,
+			"status": strings.ToLower(status),
+		},
+	})
+}
+
 func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 	start := time.Now()
 	e, ok := c.get(ctx, key)
 	if !ok {
-		debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+		c.recordTiming(ctx, "cache_get", "miss", start)
 		return value, Miss
 	}
 
@@ -126,12 +133,12 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 		if now.Before(e.Fresh) {
 			status = "FRESH"
 		}
-		debug.RecordCacheHit(ctx, c.resource, status, time.Since(start))
+		c.recordTiming(ctx, "cache_get", status, start)
 		return e.Value, e.Hit
 	}
 
 	c.otter.Delete(key)
-	debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+	c.recordTiming(ctx, "cache_get", "miss", start)
 
 	return value, Miss
 }
@@ -292,7 +299,7 @@ func (c *cache[K, V]) revalidate(
 	v, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
-		c.logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
+		logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
 	}
 
 	switch op(err) {
@@ -318,7 +325,7 @@ func (c *cache[K, V]) SWR(
 		// Cache Hit
 		if now.Before(e.Fresh) {
 			// We have data and it's fresh, so we return it
-			debug.RecordCacheHit(ctx, c.resource, "FRESH", time.Since(start))
+			c.recordTiming(ctx, "cache_swr", "fresh", start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -328,7 +335,7 @@ func (c *cache[K, V]) SWR(
 				// the api response is returned
 				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
 			}
-			debug.RecordCacheHit(ctx, c.resource, "STALE", time.Since(start))
+			c.recordTiming(ctx, "cache_swr", "stale", start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -338,7 +345,7 @@ func (c *cache[K, V]) SWR(
 
 	// Cache Miss - measure total time including all overhead
 	v, err := refreshFromOrigin(ctx)
-	debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+	c.recordTiming(ctx, "cache_swr", "miss", start)
 
 	switch op(err) {
 	case WriteValue:
@@ -483,7 +490,7 @@ func (c *cache[K, V]) SWRWithFallback(
 		// Found in cache
 		if now.Before(e.Fresh) {
 			// Fresh - return immediately
-			debug.RecordCacheHit(ctx, c.resource, "FRESH", time.Since(start))
+			c.recordTiming(ctx, "cache_swr_fallback", "fresh", start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -498,7 +505,7 @@ func (c *cache[K, V]) SWRWithFallback(
 				}
 			}
 			c.inflightMu.Unlock()
-			debug.RecordCacheHit(ctx, c.resource, "STALE", time.Since(start))
+			c.recordTiming(ctx, "cache_swr_fallback", "stale", start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -508,7 +515,7 @@ func (c *cache[K, V]) SWRWithFallback(
 
 	// Cache miss on all candidates - fetch from origin
 	v, canonicalKey, err := refreshFromOrigin(ctx)
-	debug.RecordCacheHit(ctx, c.resource, "MISS", time.Since(start))
+	c.recordTiming(ctx, "cache_swr_fallback", "miss", start)
 
 	operation := op(err)
 
@@ -548,7 +555,7 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
-		c.logger.Warn("failed to revalidate with canonical key", "error", err.Error())
+		logger.Warn("failed to revalidate with canonical key", "error", err.Error())
 		return
 	}
 
@@ -595,7 +602,7 @@ func (c *cache[K, V]) revalidateMany(
 	values, err := refreshFromOrigin(ctx, keysToRefresh)
 
 	if err != nil && !db.IsNotFound(err) {
-		c.logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keysToRefresh)
+		logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keysToRefresh)
 	}
 
 	switch op(err) {

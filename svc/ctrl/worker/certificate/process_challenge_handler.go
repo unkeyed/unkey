@@ -13,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 )
@@ -60,7 +61,7 @@ func (s *Service) ProcessChallenge(
 	ctx restate.ObjectContext,
 	req *hydrav1.ProcessChallengeRequest,
 ) (resp *hydrav1.ProcessChallengeResponse, err error) {
-	s.logger.Info("starting certificate challenge",
+	logger.Info("starting certificate challenge",
 		"workspace_id", req.GetWorkspaceId(),
 		"domain", req.GetDomain(),
 	)
@@ -121,7 +122,7 @@ func (s *Service) ProcessChallenge(
 		// Check if it's a rate limit error
 		if rle, ok := acme.AsRateLimitError(obtainErr); ok {
 			if rateLimitRetry >= maxRateLimitRetries {
-				s.logger.Error("max rate limit retries exceeded",
+				logger.Error("max rate limit retries exceeded",
 					"domain", req.GetDomain(),
 					"retries", rateLimitRetry,
 				)
@@ -140,7 +141,7 @@ func (s *Service) ProcessChallenge(
 				sleepDuration = 2 * time.Hour // cap at 2 hours
 			}
 
-			s.logger.Info("rate limited, sleeping until retry-after",
+			logger.Info("rate limited, sleeping until retry-after",
 				"domain", req.GetDomain(),
 				"retry_after", rle.RetryAfter,
 				"sleep_duration", sleepDuration,
@@ -183,7 +184,7 @@ func (s *Service) ProcessChallenge(
 		return nil, err
 	}
 
-	s.logger.Info("certificate challenge completed successfully",
+	logger.Info("certificate challenge completed successfully",
 		"domain", req.GetDomain(),
 		"certificate_id", certID,
 		"expires_at", cert.ExpiresAt,
@@ -212,7 +213,6 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*le
 	// Use a single global ACME user for all certificates
 	client, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
 		DB:          s.db,
-		Logger:      s.logger,
 		Vault:       s.vault,
 		WorkspaceID: globalAcmeUserID,
 		EmailDomain: s.emailDomain,
@@ -230,7 +230,7 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*le
 		if err := client.Challenge.SetDNS01Provider(s.dnsProvider); err != nil {
 			return nil, fmt.Errorf("failed to set DNS-01 provider: %w", err)
 		}
-		s.logger.Info("using DNS-01 challenge for wildcard domain", "domain", domain)
+		logger.Info("using DNS-01 challenge for wildcard domain", "domain", domain)
 	} else {
 		if s.httpProvider == nil {
 			return nil, fmt.Errorf("HTTP provider required for certificate: %s", domain)
@@ -238,7 +238,7 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*le
 		if err := client.Challenge.SetHTTP01Provider(s.httpProvider); err != nil {
 			return nil, fmt.Errorf("failed to set HTTP-01 provider: %w", err)
 		}
-		s.logger.Info("using HTTP-01 challenge for domain", "domain", domain)
+		logger.Info("using HTTP-01 challenge for domain", "domain", domain)
 	}
 
 	return client, nil
@@ -246,12 +246,12 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*le
 
 // obtainCertificate requests a certificate and encrypts the private key for storage.
 func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.CustomDomain, domain string) (EncryptedCertificate, error) {
-	s.logger.Info("creating ACME client", "domain", domain)
+	logger.Info("creating ACME client", "domain", domain)
 	client, err := s.getOrCreateAcmeClient(ctx, domain)
 	if err != nil {
 		return EncryptedCertificate{}, fmt.Errorf("failed to create ACME client: %w", err)
 	}
-	s.logger.Info("ACME client created, requesting certificate", "domain", domain)
+	logger.Info("ACME client created, requesting certificate", "domain", domain)
 
 	// Request certificate from Let's Encrypt
 	// Restate handles retries - we return TerminalError for non-retryable errors
@@ -264,7 +264,7 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 	certificates, err := client.Certificate.Obtain(request)
 	if err != nil {
 		parsed := acme.ParseACMEError(err)
-		s.logger.Error("certificate obtain failed",
+		logger.Error("certificate obtain failed",
 			"domain", domain,
 			"error_type", parsed.Type,
 			"message", parsed.Message,
@@ -291,7 +291,7 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 	// Parse certificate to get expiration
 	expiresAt, err := acme.GetCertificateExpiry(certificates.Certificate)
 	if err != nil {
-		s.logger.Warn("failed to parse certificate expiry, using default", "error", err)
+		logger.Warn("failed to parse certificate expiry, using default", "error", err)
 		expiresAt = time.Now().Add(90 * 24 * time.Hour).UnixMilli()
 	}
 
@@ -353,7 +353,7 @@ func (s *Service) markChallengeFailed(ctx restate.ObjectContext, domainID string
 			Status:    db.AcmeChallengesStatusFailed,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		}); updateErr != nil {
-			s.logger.Error("failed to update challenge status", "error", updateErr, "domain_id", domainID)
+			logger.Error("failed to update challenge status", "error", updateErr, "domain_id", domainID)
 		}
 		return restate.Void{}, nil
 	}, restate.WithName("mark failed"))

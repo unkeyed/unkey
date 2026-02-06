@@ -30,9 +30,8 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 		})
 
 		route := &handler.Handler{
-			Logger: h.Logger,
-			DB:     h.DB,
-			Keys:   h.Keys,
+			DB:   h.DB,
+			Keys: h.Keys,
 		}
 		h.Register(route)
 
@@ -78,9 +77,8 @@ func TestGetDeploymentWithWildcardPermission(t *testing.T) {
 	})
 
 	route := &handler.Handler{
-		Logger: h.Logger,
-		DB:     h.DB,
-		Keys:   h.Keys,
+		DB:   h.DB,
+		Keys: h.Keys,
 	}
 	h.Register(route)
 
@@ -118,9 +116,8 @@ func TestGetDeploymentWithSpecificProjectPermission(t *testing.T) {
 	})
 
 	route := &handler.Handler{
-		Logger: h.Logger,
-		DB:     h.DB,
-		Keys:   h.Keys,
+		DB:   h.DB,
+		Keys: h.Keys,
 	}
 	h.Register(route)
 

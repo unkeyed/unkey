@@ -3,13 +3,10 @@ package handler
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-type Handler struct {
-	Logger logging.Logger
-}
+type Handler struct{}
 
 func (h *Handler) Method() string {
 	return "GET"

@@ -19,7 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -31,7 +31,6 @@ type (
 )
 
 type Handler struct {
-	Logger       logging.Logger
 	DB           db.Database
 	Keys         keys.KeyService
 	Auditlogs    auditlogs.AuditLogService
@@ -51,8 +50,6 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.updateKey")
-
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
@@ -597,7 +594,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.KeyCache.Remove(ctx, key.Hash)
 	if req.Credits.IsSpecified() {
 		if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
-			h.Logger.Error("Failed to invalidate usage limit",
+			logger.Error("Failed to invalidate usage limit",
 				"error", err.Error(),
 				"key_id", key.ID,
 			)

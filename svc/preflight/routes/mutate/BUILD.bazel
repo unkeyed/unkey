@@ -6,7 +6,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/preflight/routes/mutate",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/zen",
         "//svc/preflight/internal/services/mutator",
         "@io_k8s_api//admission/v1:admission",

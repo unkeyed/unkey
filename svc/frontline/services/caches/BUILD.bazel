@@ -10,6 +10,5 @@ go_library(
         "//pkg/cache/middleware",
         "//pkg/clock",
         "//pkg/db",
-        "//pkg/otel/logging",
     ],
 )

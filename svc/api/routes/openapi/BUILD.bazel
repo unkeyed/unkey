@@ -6,7 +6,6 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/api/routes/openapi",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/otel/logging",
         "//pkg/zen",
         "//svc/api/openapi",
     ],

@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // TestS3_PutAndGet verifies basic put and get operations against real S3.
@@ -310,7 +309,6 @@ func newTestS3Storage(t *testing.T) Storage {
 	t.Helper()
 
 	s3Config := dockertest.S3(t)
-	logger := logging.NewNoop()
 
 	// Use a unique bucket name per test to ensure isolation
 	bucketName := fmt.Sprintf("test-%d", time.Now().UnixNano())
@@ -320,7 +318,6 @@ func newTestS3Storage(t *testing.T) Storage {
 		S3Bucket:          bucketName,
 		S3AccessKeyID:     s3Config.AccessKeyID,
 		S3AccessKeySecret: s3Config.SecretAccessKey,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 

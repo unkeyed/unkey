@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -15,7 +15,6 @@ import (
 // This ensures wildcard certificates exist for the default domain
 // and regional apex domains.
 type certificateBootstrap struct {
-	logger         logging.Logger
 	database       db.Database
 	defaultDomain  string
 	regionalDomain string
@@ -56,11 +55,11 @@ func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain strin
 	// Check if the domain already exists
 	_, err := db.Query.FindCustomDomainByDomain(ctx, c.database.RO(), domain)
 	if err == nil {
-		c.logger.Info("Domain already exists", "domain", domain)
+		logger.Info("Domain already exists", "domain", domain)
 		return
 	}
 	if !db.IsNotFound(err) {
-		c.logger.Error("Failed to check for existing domain", "error", err, "domain", domain)
+		logger.Error("Failed to check for existing domain", "error", err, "domain", domain)
 		return
 	}
 
@@ -85,7 +84,7 @@ func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain strin
 		UpdatedAt:          sql.NullInt64{Int64: now, Valid: true},
 	})
 	if err != nil {
-		c.logger.Error("Failed to create domain", "error", err, "domain", domain)
+		logger.Error("Failed to create domain", "error", err, "domain", domain)
 		return
 	}
 
@@ -102,9 +101,9 @@ func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain strin
 		ExpiresAt:     0, // Will be set when certificate is issued
 	})
 	if err != nil {
-		c.logger.Error("Failed to create ACME challenge for domain", "error", err, "domain", domain)
+		logger.Error("Failed to create ACME challenge for domain", "error", err, "domain", domain)
 		return
 	}
 
-	c.logger.Info("Bootstrapped domain for certificate issuance", "domain", domain)
+	logger.Info("Bootstrapped domain for certificate issuance", "domain", domain)
 }

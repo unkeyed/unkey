@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
@@ -23,9 +22,6 @@ import (
 // All fields except the optional configuration fields (ChproxyToken, Pprof*)
 // must be non-nil for the API to function correctly.
 type Services struct {
-	// Logger provides structured logging for all route handlers.
-	Logger logging.Logger
-
 	// Database provides access to the primary MySQL database for persistence.
 	Database db.Database
 

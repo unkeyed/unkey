@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -26,8 +25,6 @@ type Response = openapi.V2PermissionsCreatePermissionResponseBody
 
 // Handler implements zen.Route interface for the v2 permissions create permission endpoint
 type Handler struct {
-	// Services as public fields
-	Logger    logging.Logger
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService

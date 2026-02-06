@@ -17,7 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -47,7 +47,6 @@ var (
 
 // Handler implements zen.Route interface for the v2 Analytics get verifications endpoint
 type Handler struct {
-	Logger                     logging.Logger
 	DB                         db.Database
 	Keys                       keys.KeyService
 	ClickHouse                 clickhouse.ClickHouse
@@ -97,7 +96,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		TableAliases:      tableAliases,
 		AllowedTables:     allowedTables,
 		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
-		Logger:            h.Logger,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
@@ -131,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.Logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
+	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
 
 	// Execute query using workspace connection
 	verifications, err := conn.QueryToMaps(ctx, parsedQuery)

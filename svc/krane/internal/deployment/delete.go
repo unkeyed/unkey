@@ -4,6 +4,7 @@ import (
 	"context"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,7 +19,7 @@ import (
 // The method is idempotent: calling it multiple times for the same deployment
 // succeeds without error.
 func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) error {
-	c.logger.Info("deleting deployment",
+	logger.Info("deleting deployment",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
 	)

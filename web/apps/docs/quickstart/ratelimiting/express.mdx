@@ -1,143 +1,280 @@
 ---
 title: Express
-description: Ratelimiting endpoints with Express
-mode: "wide"
+description: Add rate limiting to your Express API routes
 ---
+
+## What you'll build
+
+An Express server with rate-limited endpoints. Users who exceed the limit get a 429 response.
+
+**Time to complete:** ~5 minutes
 
 ## Prerequisites
 
-- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
-- Created an [Unkey root key](https://app.unkey.com/settings/root-keys) with `ratelimit.*.create_namespace` and `ratelimit.*.limit` permissions.
-
-
-## Creating an express server
+- [Unkey account](https://app.unkey.com/auth/sign-up) (free)
+- [Root key](https://app.unkey.com/settings/root-keys) with `ratelimit.*.limit` permission
+- Node.js 18+
 
 <Steps titleSize="h3">
 
-<Step title="Create express application">
-
-First run the following:
-
+<Step title="Create your Express app">
 
 ```bash
-mkdir unkey-with-express
+mkdir unkey-express-ratelimit && cd unkey-express-ratelimit
 npm init -y
-npm install cors dotenv express ts-node
-npm install -D @types/cors @types/express ts-node-dev typescript
-```
-Then update your package.json to have the following
-
-```json
-"scripts": {
-    "start": "ts-node ./index.ts",
-    "build": "tsc",
-    "serve": "node dist/index.js"
-  },
-```
-</Step>
-
-<Step title="Install">
-
-Now install the `@unkey/ratelimit` package
-
-```bash
-npm install @unkey/ratelimit
+npm install express @unkey/ratelimit dotenv
 ```
 
 </Step>
 
-<Step  title="Add Root Key to env">
+<Step title="Add your root key">
 
-Add your root key to your `.env` file
+Create a `.env` file:
 
-```bash
-UNKEY_ROOT_KEY="YOUR_KEY"
+```bash .env
+UNKEY_ROOT_KEY="unkey_..."
 ```
+
+<Warning>
+Never commit your `.env` file. Add it to `.gitignore`.
+</Warning>
 
 </Step>
 
-<Step title="Creating the server">
+<Step title="Create your server">
 
-Create a file called `server.ts` and add the following code
+Create `index.js`:
 
-```ts server.ts
-import express, { Request, Response, Application } from 'express';
-import dotenv from 'dotenv';
-import { Ratelimit } from '@unkey/ratelimit';
-//For env File
-dotenv.config();
+```js index.js
+const express = require("express");
+const { Ratelimit } = require("@unkey/ratelimit");
+require("dotenv").config();
 
-const app: Application = express();
-const port = process.env.PORT || 8000;
+const app = express();
+const port = process.env.PORT || 3000;
 
-/**
-This can be a seperate util for easy configurable ratelimiting across
-multiple routes.
-
-namespace = The route identifier you would like to ratelimit
-limit = The amount of requests
-duration = amount of time to limit against for example "30s"
-
-**/
+// Create limiter instance
 const limiter = new Ratelimit({
-    namespace: "express-example",
-    limit: 2,
-    duration: "30s",
-    rootKey: process.env.UNKEY_ROOT_KEY
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "express-api",
+  limit: 10,       // 10 requests...
+  duration: "60s", // ...per minute
 });
 
-
-app.get('/', (req: Request, res: Response) => {
-  res.send('Welcome to Express & TypeScript Server');
+// Public route
+app.get("/", (req, res) => {
+  res.json({ message: "Welcome! Try /api/data" });
 });
 
-// This endpoint is protected by Unkey
-app.get('/secret', async (req: Request, res: Response) => {
-  const identifier = req.getUserId() // or ip or anything else you want
+// Rate-limited route
+app.get("/api/data", async (req, res) => {
+  // 1. Identify the user (IP, user ID, API key, etc.)
+  const identifier = req.headers["x-user-id"] 
+    || req.ip 
+    || "anonymous";
 
-  const ratelimit = await limiter.limit(identifier)
-  if (!ratelimit.success){
-    res.status(429).send("Please try again later")
+  // 2. Check the rate limit
+  const { success, remaining, reset } = await limiter.limit(identifier);
+
+  // 3. Set rate limit headers
+  res.set({
+    "X-RateLimit-Limit": "10",
+    "X-RateLimit-Remaining": remaining.toString(),
+    "X-RateLimit-Reset": reset.toString(),
+  });
+
+  if (!success) {
+    return res.status(429).json({
+      error: "Too many requests. Please try again later.",
+      retryAfter: Math.ceil((reset - Date.now()) / 1000),
+    });
   }
 
-  return res.status(200).send("ok");
-})
+  // 4. Request allowed
+  res.json({ 
+    message: "Here's your data!",
+    remaining,
+  });
+});
+
 app.listen(port, () => {
-  console.log(`Server is listening at http://localhost:${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 });
 ```
 
 </Step>
 
-<Step  title="Running the server">
+<Step title="Run your server">
 
 ```bash
-npm run start
+node index.js
 ```
 
 </Step>
 
-<Step  title="Try it out">
+<Step title="Test it">
 
 ```bash
-curl 'http://localhost:8000/secret'
+# Hit the endpoint 12 times
+for i in {1..12}; do
+  curl http://localhost:3000/api/data -H "x-user-id: test-user"
+  echo ""
+done
 ```
-You will need to curl a few times to see the ratelimiting error. Once you do, you, you will need to wait to perform the action again.
+
+First 10 requests succeed. Requests 11+ get:
+
+```json
+{
+  "error": "Too many requests. Please try again later.",
+  "retryAfter": 45
+}
+```
 
 </Step>
 
 </Steps>
 
-## What is next?
+## What's in the response?
 
-Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+`limiter.limit()` returns:
 
-<CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
-  <Card title="Unkey API Reference" icon="database" href="/api-reference">
-     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | `true` if allowed, `false` if rate limited |
+| `remaining` | `number` | Requests left in current window |
+| `reset` | `number` | Unix timestamp (ms) when window resets |
+| `limit` | `number` | The configured limit |
+
+## Using as middleware
+
+For cleaner code, create reusable middleware:
+
+```js middleware/ratelimit.js
+const { Ratelimit } = require("@unkey/ratelimit");
+
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "api",
+  limit: 100,
+  duration: "1m",
+});
+
+async function rateLimit(req, res, next) {
+  const identifier = req.headers["x-user-id"] || req.ip || "anonymous";
+  const { success, remaining, reset } = await limiter.limit(identifier);
+
+  res.set({
+    "X-RateLimit-Remaining": remaining.toString(),
+    "X-RateLimit-Reset": reset.toString(),
+  });
+
+  if (!success) {
+    return res.status(429).json({ error: "Rate limit exceeded" });
+  }
+
+  next();
+}
+
+module.exports = { rateLimit };
+```
+
+### createMiddleware helper
+
+Create an Express middleware from a Ratelimit instance:
+
+```js
+function createMiddleware(limiter) {
+  return async (req, res, next) => {
+    const identifier = req.ip ?? req.headers["x-forwarded-for"] ?? "unknown";
+    const { success, remaining, reset } = await limiter.limit(identifier);
+
+    if (!success) {
+      res.set("Retry-After", Math.ceil((reset - Date.now()) / 1000).toString());
+      res.set("X-RateLimit-Remaining", "0");
+      return res.status(429).json({ error: "Too many requests" });
+    }
+
+    res.set("X-RateLimit-Remaining", remaining.toString());
+    next();
+  };
+}
+```
+
+Use on any route:
+
+```js
+const { rateLimit } = require("./middleware/ratelimit");
+
+app.get("/api/data", rateLimit, (req, res) => {
+  res.json({ data: "protected content" });
+});
+
+app.post("/api/submit", rateLimit, (req, res) => {
+  res.json({ success: true });
+});
+```
+
+## Different limits per route
+
+Create multiple limiters:
+
+```js
+const apiLimiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "api",
+  limit: 100,
+  duration: "1m",
+});
+
+const authLimiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "auth",
+  limit: 5,
+  duration: "1m",
+});
+
+// 100/min for general API
+app.use("/api", createMiddleware(apiLimiter));
+
+// 5/min for login (prevent brute force)
+app.post("/login", createMiddleware(authLimiter), loginHandler);
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="How it works" icon="bolt" href="/ratelimiting/modes">
+    Understand the architecture
   </Card>
-  <Card title="SDKs" icon="brackets-curly" href="/libraries">
-   Check out our SDKs and how they fit into your Express application.
+  <Card title="Per-user overrides" icon="sliders" href="/ratelimiting/overrides">
+    Give specific users higher limits
+  </Card>
+  <Card title="SDK Reference" icon="book" href="/libraries/ts/ratelimit/ratelimit">
+    All configuration options
+  </Card>
+  <Card title="Add API key auth" icon="key" href="/quickstart/apis/express">
+    Combine with API key authentication
   </Card>
 </CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Rate limit not applying?">
+    - Verify `UNKEY_ROOT_KEY` is set and has `ratelimit.*.limit` permission
+    - Make sure you're using a consistent identifier per user
+    - Check that `.env` is loaded before creating the limiter
+  </Accordion>
+  
+  <Accordion title="TypeScript version?">
+    Install types and use imports:
+    ```bash
+    npm install -D typescript @types/express @types/node
+    ```
+    ```ts
+    import express from "express";
+    import { Ratelimit } from "@unkey/ratelimit";
+    ```
+  </Accordion>
+</AccordionGroup>

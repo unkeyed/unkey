@@ -10,6 +10,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -46,7 +47,7 @@ func (s *Service) RunCheck(
 	req *hydrav1.RunCheckRequest,
 ) (*hydrav1.RunCheckResponse, error) {
 	billingPeriod := restate.Key(ctx)
-	s.logger.Info("running quota check", "billing_period", billingPeriod)
+	logger.Info("running quota check", "billing_period", billingPeriod)
 
 	// Parse billing period to get year/month
 	year, month, err := parseBillingPeriod(billingPeriod)
@@ -81,7 +82,7 @@ func (s *Service) RunCheck(
 		return nil, fmt.Errorf("failed to get billable usage: %w", err)
 	}
 
-	s.logger.Info("fetched usage data", "workspaces_above_threshold", len(usageAboveThreshold))
+	logger.Info("fetched usage data", "workspaces_above_threshold", len(usageAboveThreshold))
 
 	// Extract workspace IDs from the usage map
 	workspaceIDs := make([]string, 0, len(usageAboveThreshold))
@@ -108,7 +109,7 @@ func (s *Service) RunCheck(
 		for _, ws := range batch {
 			workspacesChecked++
 			if workspacesChecked%1000 == 0 {
-				s.logger.Info("progress", "count", workspacesChecked)
+				logger.Info("progress", "count", workspacesChecked)
 			}
 
 			if !ws.Enabled {
@@ -166,7 +167,7 @@ func (s *Service) RunCheck(
 		restate.Set(ctx, stateKeyNotifiedWorkspaces, notifiedAt)
 	}
 
-	s.logger.Info("quota check complete",
+	logger.Info("quota check complete",
 		"billing_period", billingPeriod,
 		"workspaces_checked", workspacesChecked,
 		"workspaces_exceeded", len(exceeded),

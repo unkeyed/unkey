@@ -17,7 +17,7 @@ go_library(
     deps = [
         "//gen/proto/vault/v1:vault",
         "//pkg/encryption",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/vault/keys",
         "//pkg/vault/storage",

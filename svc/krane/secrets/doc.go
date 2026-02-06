@@ -37,7 +37,6 @@
 // Basic service setup with vault and token validation:
 //
 //	cfg := secrets.Config{
-//		Logger:         logger,
 //		Vault:          vaultService,
 //		TokenValidator: tokenValidator,
 //	}

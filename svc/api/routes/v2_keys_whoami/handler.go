@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -26,7 +26,6 @@ type (
 
 // Handler implements zen.Route interface for the v2 keys.whoami endpoint
 type Handler struct {
-	Logger    logging.Logger
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
@@ -162,7 +161,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			response.Identity.Meta = identityMeta
 
 			if err != nil {
-				h.Logger.Error("failed to unmarshal identity meta", "error", err)
+				logger.Error("failed to unmarshal identity meta", "error", err)
 			}
 		}
 	}
@@ -219,7 +218,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Set meta
 	meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
 	if err != nil {
-		h.Logger.Error("failed to unmarshal key meta", "error", err)
+		logger.Error("failed to unmarshal key meta", "error", err)
 	}
 
 	response.Meta = meta

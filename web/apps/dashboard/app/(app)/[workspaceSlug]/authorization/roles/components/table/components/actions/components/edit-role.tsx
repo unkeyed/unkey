@@ -29,14 +29,14 @@ export const EditRole = ({
       } else if (error.data?.code === "INTERNAL_SERVER_ERROR") {
         toast.error("Server Error", {
           description:
-            "We were unable to load role details. Please try again or contact support@unkey.dev",
+            "We were unable to load role details. Please try again or contact support@unkey.com",
         });
       } else {
         toast.error("Failed to Load Role Details", {
           description: error.message || "An unexpected error occurred. Please try again.",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       }

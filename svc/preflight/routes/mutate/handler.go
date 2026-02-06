@@ -10,13 +10,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/mutator"
 )
 
 type Handler struct {
-	Logger  logging.Logger
 	Mutator *mutator.Mutator
 }
 
@@ -26,24 +25,24 @@ func (h *Handler) Path() string   { return "/mutate" }
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	admissionReview, err := zen.BindBody[admissionv1.AdmissionReview](s)
 	if err != nil {
-		h.Logger.Error("failed to parse admission review", "error", err)
+		logger.Error("failed to parse admission review", "error", err)
 		return s.JSON(http.StatusBadRequest, map[string]string{"error": "failed to parse admission review"})
 	}
 
 	if admissionReview.Request == nil {
-		h.Logger.Error("missing admission request")
+		logger.Error("missing admission request")
 		return h.sendResponse(s, "", false, "missing admission request")
 	}
 
 	var pod corev1.Pod
 	if err := json.Unmarshal(admissionReview.Request.Object.Raw, &pod); err != nil {
-		h.Logger.Error("failed to parse pod", "error", err)
+		logger.Error("failed to parse pod", "error", err)
 		return h.sendResponse(s, admissionReview.Request.UID, false, "failed to parse pod")
 	}
 
 	namespace := admissionReview.Request.Namespace
 
-	h.Logger.Info("received admission request",
+	logger.Info("received admission request",
 		"pod", pod.Name,
 		"namespace", namespace,
 		"uid", admissionReview.Request.UID,
@@ -51,16 +50,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	result, err := h.Mutator.Mutate(ctx, &pod, namespace)
 	if err != nil {
-		h.Logger.Error("failed to mutate pod", "pod", pod.Name, "namespace", namespace, "error", err)
+		logger.Error("failed to mutate pod", "pod", pod.Name, "namespace", namespace, "error", err)
 		return h.sendResponse(s, admissionReview.Request.UID, false, err.Error())
 	}
 
 	if result.Mutated {
-		h.Logger.Info("mutated pod", "pod", pod.Name, "namespace", pod.Namespace, "message", result.Message)
+		logger.Info("mutated pod", "pod", pod.Name, "namespace", pod.Namespace, "message", result.Message)
 		return h.sendResponseWithPatch(s, admissionReview.Request.UID, result.Patch)
 	}
 
-	h.Logger.Info("skipped pod mutation", "pod", pod.Name, "namespace", pod.Namespace, "message", result.Message)
+	logger.Info("skipped pod mutation", "pod", pod.Name, "namespace", pod.Namespace, "message", result.Message)
 	return h.sendResponse(s, admissionReview.Request.UID, true, result.Message)
 }
 

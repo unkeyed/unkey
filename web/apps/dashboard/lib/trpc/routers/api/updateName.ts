@@ -28,14 +28,14 @@ export const updateApiName = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the API name. Please try again or contact support@unkey.dev.",
+            "We were unable to update the API name. Please try again or contact support@unkey.com.",
         });
       });
     if (!api) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct API. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct API. Please try again or contact support@unkey.com.",
       });
     }
     await db
@@ -50,7 +50,7 @@ export const updateApiName = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We were unable to update the API name. Please try again or contact support@unkey.dev.",
+                "We were unable to update the API name. Please try again or contact support@unkey.com.",
             });
           });
         await insertAuditLogs(tx, {
@@ -78,7 +78,7 @@ export const updateApiName = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the API name. Please try again or contact support@unkey.dev.",
+            "We were unable to update the API name. Please try again or contact support@unkey.com.",
         });
       });
   });

@@ -149,7 +149,7 @@ type RatelimitResponse struct {
 //
 //	func LoggingMiddleware(logger Logger) Middleware {
 //	    return func(next Service) Service {
-//	        return &loggingService{next: next, logger: logger}
+//	        return &loggingService{next: next}
 //	    }
 //	}
 type Middleware func(Service) Service

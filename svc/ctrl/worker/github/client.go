@@ -17,7 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/jwt"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // ClientConfig holds configuration for creating a [Client] instance.
@@ -45,13 +45,12 @@ type Client struct {
 	config     ClientConfig
 	httpClient *http.Client
 	signer     jwt.Signer[jwt.RegisteredClaims]
-	logger     logging.Logger
 	tokenCache cache.Cache[int64, InstallationToken]
 }
 
 // NewClient creates a [Client] with the given configuration. Returns an error if
 // the private key cannot be parsed for JWT signing.
-func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
+func NewClient(config ClientConfig) (*Client, error) {
 	signer, err := jwt.NewRS256Signer[jwt.RegisteredClaims](config.PrivateKeyPEM)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to create JWT signer"))
@@ -61,7 +60,6 @@ func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
 		Fresh:    55 * time.Minute,
 		Stale:    5 * time.Minute,
 		MaxSize:  10_000,
-		Logger:   logger,
 		Resource: "github_installation_token",
 		Clock:    clock.New(),
 	})
@@ -73,7 +71,6 @@ func NewClient(config ClientConfig, logger logging.Logger) (*Client, error) {
 		config:     config,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 		signer:     signer,
-		logger:     logger,
 		tokenCache: tokenCache,
 	}, nil
 }
@@ -103,7 +100,7 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 		context.Background(),
 		installationID,
 		func(ctx context.Context) (InstallationToken, error) {
-			c.logger.Info(
+			logger.Info(
 				"Getting GitHub installation token",
 				"installation_id", installationID,
 			)

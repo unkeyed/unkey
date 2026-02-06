@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	cacheMiddleware "github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/vault/keyring"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
 	"google.golang.org/protobuf/proto"
@@ -25,7 +24,6 @@ const LATEST = "LATEST"
 // themselves encrypted by key encryption keys (KEKs/master keys). The service
 // caches DEKs to reduce storage lookups and handles key rotation transparently.
 type Service struct {
-	logger   logging.Logger
 	keyCache cache.Cache[string, *vaultv1.DataEncryptionKey]
 
 	storage storage.Storage
@@ -38,7 +36,6 @@ type Service struct {
 
 // Config holds configuration for creating a new vault [Service].
 type Config struct {
-	Logger     logging.Logger
 	Storage    storage.Storage
 	MasterKeys []string
 }
@@ -56,7 +53,6 @@ func New(cfg Config) (*Service, error) {
 
 	kr, err := keyring.New(keyring.Config{
 		Store:          cfg.Storage,
-		Logger:         cfg.Logger,
 		DecryptionKeys: decryptionKeys,
 		EncryptionKey:  encryptionKey,
 	})
@@ -68,7 +64,6 @@ func New(cfg Config) (*Service, error) {
 		Fresh:    time.Hour,
 		Stale:    24 * time.Hour,
 		MaxSize:  10000,
-		Logger:   cfg.Logger,
 		Resource: "data_encryption_key",
 		Clock:    clock.New(),
 	})
@@ -77,7 +72,6 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	return &Service{
-		logger:         cfg.Logger,
 		storage:        cfg.Storage,
 		keyCache:       cacheMiddleware.WithTracing(cache),
 		decryptionKeys: decryptionKeys,

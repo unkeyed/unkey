@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -25,14 +24,10 @@ func TestEventStreamIntegration(t *testing.T) {
 	topicName := fmt.Sprintf("test-eventstream-%s", uid.New(uid.TestPrefix))
 	instanceID := uid.New(uid.TestPrefix)
 
-	// Use real logger to see what's happening
-	logger := logging.New()
-
 	config := eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
 		InstanceID: instanceID,
-		Logger:     logger,
 	}
 
 	t.Logf("Test config: topic=%s, instanceID=%s, brokers=%v", topicName, instanceID, brokers)
@@ -124,7 +119,6 @@ func TestEventStreamMultipleMessages(t *testing.T) {
 		Brokers:    brokers,
 		Topic:      topicName,
 		InstanceID: uid.New(uid.TestPrefix),
-		Logger:     logging.NewNoop(),
 	}
 
 	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](config)

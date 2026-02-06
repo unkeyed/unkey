@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -26,7 +26,6 @@ type (
 
 // Handler implements zen.Route interface for the v2 keys set roles endpoint
 type Handler struct {
-	Logger    logging.Logger
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
@@ -45,8 +44,6 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.setRoles")
-
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
@@ -292,7 +289,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		rolePerms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
 		if err != nil {
-			h.Logger.Error("failed to unmarshal role permissions", "roleId", role.ID, "error", err)
+			logger.Error("failed to unmarshal role permissions", "roleId", role.ID, "error", err)
 		}
 
 		for _, permission := range rolePerms {

@@ -21,7 +21,6 @@ func Test404_KeySpaceNotFound(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,

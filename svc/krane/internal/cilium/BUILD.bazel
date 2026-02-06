@@ -18,7 +18,7 @@ go_library(
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//pkg/assert",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/repeat",
         "//svc/krane/pkg/labels",
         "@com_connectrpc_connect//:connect",

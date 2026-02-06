@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -21,8 +20,7 @@ func TestGetBillableUsageAboveThreshold(t *testing.T) {
 
 	// Create ClickHouse client using the clickhouse package
 	client, err := clickhouse.New(clickhouse.Config{
-		URL:    dsn,
-		Logger: logging.NewNoop(),
+		URL: dsn,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })

@@ -60,7 +60,7 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
           description: err.message || "An unexpected error occurred. Please try again later.",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       }
@@ -112,7 +112,7 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
           description: err.message || "An unexpected error occurred. Please try again later.",
           action: {
             label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.dev", "_blank"),
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
           },
         });
       }
