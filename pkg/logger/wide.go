@@ -17,8 +17,8 @@ import (
 //
 // Typical usage:
 //
-//	ctx, _ := logger.StartWideEvent(ctx, "incoming http request", slog.String("operation", "createKey"))
-//	defer logger.End(ctx)
+//	ctx, event := logger.StartWideEvent(ctx, "incoming http request", slog.String("operation", "createKey"))
+//	defer event.End()
 func StartWideEvent(ctx context.Context, message string, attrs ...slog.Attr) (context.Context, *Event) {
 	now := time.Now()
 	event := &Event{
