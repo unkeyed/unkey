@@ -8,7 +8,6 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -26,7 +25,6 @@ import (
 type Controller struct {
 	clientSet       kubernetes.Interface
 	dynamicClient   dynamic.Interface
-	logger          logging.Logger
 	cluster         ctrlv1connect.ClusterServiceClient
 	cb              circuitbreaker.CircuitBreaker[any]
 	done            chan struct{}
@@ -47,9 +45,6 @@ type Config struct {
 	// resources that don't have generated Go types.
 	DynamicClient dynamic.Interface
 
-	// Logger is the structured logger for controller operations.
-	Logger logging.Logger
-
 	// Cluster is the control plane RPC client for WatchDeployments and
 	// ReportDeploymentStatus calls.
 	Cluster ctrlv1connect.ClusterServiceClient
@@ -67,7 +62,6 @@ func New(cfg Config) *Controller {
 	return &Controller{
 		clientSet:       cfg.ClientSet,
 		dynamicClient:   cfg.DynamicClient,
-		logger:          cfg.Logger.With("controller", "deployments"),
 		cluster:         cfg.Cluster,
 		cb:              circuitbreaker.New[any]("deployment_state_update"),
 		done:            make(chan struct{}),

@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
@@ -24,7 +23,6 @@ type (
 )
 
 type Handler struct {
-	Logger     logging.Logger
 	DB         db.Database
 	Keys       keys.KeyService
 	CtrlClient ctrlv1connect.DeploymentServiceClient

@@ -7,7 +7,6 @@ import (
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // InvalidationHandler is an interface that cluster caches implement
@@ -27,17 +26,15 @@ type InvalidationDispatcher struct {
 	mu       sync.RWMutex
 	handlers map[string]InvalidationHandler // keyed by cache name
 	consumer eventstream.Consumer[*cachev1.CacheInvalidationEvent]
-	logger   logging.Logger
 }
 
 // NewInvalidationDispatcher creates a new dispatcher that routes invalidation
 // events to registered caches.
 //
-// Returns an error if topic or logger is nil - use NewNoopDispatcher() if clustering is disabled.
-func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidationEvent], logger logging.Logger) (*InvalidationDispatcher, error) {
+// Returns an error if topic is nil - use NewNoopDispatcher() if clustering is disabled.
+func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidationEvent]) (*InvalidationDispatcher, error) {
 	err := assert.All(
 		assert.NotNil(topic, "topic is required for InvalidationDispatcher - use NewNoopDispatcher() if clustering is disabled"),
-		assert.NotNil(logger, "logger is required for InvalidationDispatcher"),
 	)
 	if err != nil {
 		return nil, err
@@ -47,7 +44,6 @@ func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidati
 		mu:       sync.RWMutex{},
 		consumer: nil,
 		handlers: make(map[string]InvalidationHandler),
-		logger:   logger,
 	}
 
 	d.consumer = topic.NewConsumer()

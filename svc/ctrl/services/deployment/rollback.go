@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // Rollback switches traffic from the source deployment to a previous target
@@ -16,7 +17,7 @@ import (
 // (blocking until complete) and is keyed by project ID to prevent concurrent
 // rollback operations on the same project.
 func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error) {
-	s.logger.Info("initiating rollback via Restate",
+	logger.Info("initiating rollback via Restate",
 		"source", req.Msg.GetSourceDeploymentId(),
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
@@ -27,7 +28,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", req.Msg.GetSourceDeploymentId()))
 		}
-		s.logger.Error("failed to get deployment",
+		logger.Error("failed to get deployment",
 			"deployment_id", req.Msg.GetSourceDeploymentId(),
 			"error", err.Error(),
 		)
@@ -44,7 +45,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		})
 
 	if err != nil {
-		s.logger.Error("rollback workflow failed",
+		logger.Error("rollback workflow failed",
 			"source", req.Msg.GetSourceDeploymentId(),
 			"target", req.Msg.GetTargetDeploymentId(),
 			"error", err.Error(),
@@ -52,7 +53,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("rollback workflow failed: %w", err))
 	}
 
-	s.logger.Info("rollback completed successfully via Restate",
+	logger.Info("rollback completed successfully via Restate",
 		"source", req.Msg.GetSourceDeploymentId(),
 		"target", req.Msg.GetTargetDeploymentId(),
 	)

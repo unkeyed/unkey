@@ -46,8 +46,9 @@ func TestDistributedCacheInvalidation_EndToEnd(t *testing.T) {
 		require.Equal(t, api.Name, resp.Body.Data.Name, "API name should match on node %d", i)
 
 		// Verify cache is populated (should show FRESH or MISS on first call)
-		cacheHeaders := resp.Headers.Values(timing.HeaderName)
-		require.NotEmpty(t, cacheHeaders, "Node %d should have cache debug headers", i)
+		timingHeaders := resp.Headers.Values("X-Unkey-Timing")
+		require.NotEmpty(t, timingHeaders, "Node %d should have cache debug headers", i)
+
 	}
 
 	// Step 2: Delete API from first node (this should trigger distributed invalidation)

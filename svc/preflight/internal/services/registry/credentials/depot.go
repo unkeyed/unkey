@@ -9,8 +9,6 @@ import (
 	"connectrpc.com/connect"
 	cliv1 "github.com/depot/depot-go/proto/depot/cli/v1"
 	"github.com/depot/depot-go/proto/depot/cli/v1/cliv1connect"
-
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 const (
@@ -20,19 +18,16 @@ const (
 
 // Depot fetches on-demand pull tokens from the Depot API for each image.
 type Depot struct {
-	logger      logging.Logger
 	buildClient cliv1connect.BuildServiceClient
 }
 
 type DepotConfig struct {
-	Logger logging.Logger
-	Token  string
+	Token string
 }
 
 // NewDepot creates a Depot registry that fetches on-demand pull tokens.
 func NewDepot(cfg *DepotConfig) *Depot {
 	return &Depot{
-		logger: cfg.Logger,
 		buildClient: cliv1connect.NewBuildServiceClient(
 			http.DefaultClient,
 			depotAPIURL,

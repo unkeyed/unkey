@@ -13,15 +13,13 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 var _ Service = (*service)(nil)
 
 // service provides a basic certificate manager.
 type service struct {
-	logger logging.Logger
-
 	db db.Database
 
 	vault vaultv1connect.VaultServiceClient
@@ -32,10 +30,9 @@ type service struct {
 // New creates a new certificate manager.
 func New(cfg Config) *service {
 	return &service{
-		logger: cfg.Logger,
-		db:     cfg.DB,
-		cache:  cfg.TLSCertificateCache,
-		vault:  cfg.Vault,
+		db:    cfg.DB,
+		cache: cfg.TLSCertificateCache,
+		vault: cfg.Vault,
 	}
 }
 
@@ -91,7 +88,7 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 	}, caches.DefaultFindFirstOp)
 
 	if err != nil && !db.IsNotFound(err) {
-		s.logger.Error("Failed to get certificate", "error", err)
+		logger.Error("Failed to get certificate", "error", err)
 		return nil, err
 	}
 

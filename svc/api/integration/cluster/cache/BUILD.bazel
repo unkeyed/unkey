@@ -12,7 +12,6 @@ go_test(
         "//gen/proto/cache/v1:cache",
         "//pkg/cache",
         "//pkg/eventstream",
-        "//pkg/otel/logging",
         "//pkg/testutil/containers",
         "//pkg/timing",
         "//pkg/uid",

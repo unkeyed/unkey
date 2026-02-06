@@ -46,7 +46,7 @@
 //		Database: database,
 //		Restate: restateClient,
 //		BuildService: buildService,
-//		Logger: logger,
+//	,
 //	})
 //
 //	// Register with Connect server

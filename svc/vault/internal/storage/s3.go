@@ -13,13 +13,12 @@ import (
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 type s3 struct {
 	client *awsS3.Client
 	config S3Config
-	logger logging.Logger
 }
 
 type S3Config struct {
@@ -27,12 +26,9 @@ type S3Config struct {
 	S3Bucket          string
 	S3AccessKeyID     string
 	S3AccessKeySecret string
-	Logger            logging.Logger
 }
 
 func NewS3(config S3Config) (Storage, error) {
-	logger := config.Logger.With("service", "storage")
-
 	logger.Info("using s3 storage")
 
 	// nolint:staticcheck
@@ -56,7 +52,6 @@ func NewS3(config S3Config) (Storage, error) {
 	}
 
 	client := awsS3.NewFromConfig(cfg)
-	logger.Info("creating bucket if necessary")
 	_, err = client.CreateBucket(context.Background(), &awsS3.CreateBucketInput{
 		Bucket: aws.String(config.S3Bucket),
 	})
@@ -66,7 +61,7 @@ func NewS3(config S3Config) (Storage, error) {
 
 	logger.Info("s3 storage initialized")
 
-	return &s3{config: config, client: client, logger: logger}, nil
+	return &s3{config: config, client: client}, nil
 }
 
 func (s *s3) Key(workspaceId string, dekID string) string {

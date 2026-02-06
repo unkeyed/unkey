@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
@@ -18,7 +18,6 @@ import (
 type Replica struct {
 	mode      string
 	db        *sql.DB // Underlying database connection
-	logger    logging.Logger
 	debugLogs bool
 }
 
@@ -36,7 +35,7 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (s
 	)
 
 	if r.debugLogs {
-		r.logger.Debug("ExecContext", "query", query)
+		logger.Debug("ExecContext", "query", query)
 	}
 
 	// Track metrics
@@ -67,7 +66,7 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 	)
 
 	if r.debugLogs {
-		r.logger.Debug("PrepareContext", "query", query)
+		logger.Debug("PrepareContext", "query", query)
 	}
 
 	// Track metrics
@@ -99,7 +98,7 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...any) (
 	)
 
 	if r.debugLogs {
-		r.logger.Debug("QueryContext", "query", query)
+		logger.Debug("QueryContext", "query", query)
 	}
 
 	// Track metrics
@@ -131,7 +130,7 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...any
 	)
 
 	if r.debugLogs {
-		r.logger.Debug("QueryRowContext", "query", query)
+		logger.Debug("QueryRowContext", "query", query)
 	}
 	// Track metrics
 	start := time.Now()

@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -232,7 +233,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	}
 
 	if err != nil {
-		k.logger.Error("Failed to ratelimit",
+		logger.Error("Failed to ratelimit",
 			"key_id", k.Key.ID,
 			"error", err.Error(),
 		)

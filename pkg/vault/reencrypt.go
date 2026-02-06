@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 func (s *Service) ReEncrypt(ctx context.Context, req *vaultv1.ReEncryptRequest) (*vaultv1.ReEncryptResponse, error) {
 	ctx, span := tracing.Start(ctx, "vault.ReEncrypt")
 	defer span.End()
-	s.logger.Info("reencrypting",
+	logger.Info("reencrypting",
 		"keyring", req.GetKeyring(),
 	)
 

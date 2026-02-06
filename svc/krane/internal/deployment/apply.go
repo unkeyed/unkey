@@ -9,6 +9,7 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
@@ -33,7 +34,7 @@ import (
 // isolation (RuntimeClass "gvisor") since they execute untrusted user code, and are
 // scheduled on Karpenter-managed untrusted nodes with zone-spread constraints.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
-	c.logger.Info("applying deployment",
+	logger.Info("applying deployment",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
 		"deployment_id", req.GetDeploymentId(),
@@ -134,7 +135,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	err = c.reportDeploymentStatus(ctx, status)
 	if err != nil {
-		c.logger.Error("failed to report deployment status", "deployment_id", req.GetDeploymentId(), "error", err)
+		logger.Error("failed to report deployment status", "deployment_id", req.GetDeploymentId(), "error", err)
 		return err
 	}
 

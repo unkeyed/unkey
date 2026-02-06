@@ -12,7 +12,6 @@ go_library(
         "//pkg/db",
         "//pkg/dockertest",
         "//pkg/healthcheck",
-        "//pkg/otel/logging",
         "//pkg/restate/admin",
         "//svc/ctrl/integration/seed",
         "//svc/ctrl/worker/clickhouseuser",

@@ -102,7 +102,6 @@ func (n *noop) Close() error {
 //	if config.ClickhouseURL != "" {
 //	    ch, err := clickhouse.New(clickhouse.Config{
 //	        URL:    config.ClickhouseURL,
-//	        Logger: logger,
 //	    })
 //	    if err != nil {
 //	        logger.Warn("Failed to initialize ClickHouse, analytics will be disabled")

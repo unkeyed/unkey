@@ -11,7 +11,7 @@ go_library(
     visibility = ["//svc/vault:__subpackages__"],
     deps = [
         "//pkg/fault",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "@com_github_aws_aws_sdk_go_v2//aws",
         "@com_github_aws_aws_sdk_go_v2_config//:config",
         "@com_github_aws_aws_sdk_go_v2_credentials//:credentials",
@@ -28,7 +28,6 @@ go_test(
     embed = [":storage"],
     deps = [
         "//pkg/dockertest",
-        "//pkg/otel/logging",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],
@@ -41,7 +40,6 @@ go_test(
     embed = [":storage"],
     deps = [
         "//pkg/dockertest",
-        "//pkg/otel/logging",
         "@com_github_stretchr_testify//require",
     ],
 )

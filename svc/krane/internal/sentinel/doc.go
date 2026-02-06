@@ -39,7 +39,6 @@
 //
 //	ctrl := sentinel.New(sentinel.Config{
 //	    ClientSet: kubeClient,
-//	    Logger:    logger.With("controller", "sentinels"),
 //	    Cluster:   clusterClient,
 //	    Region:    "us-east-1",
 //	})

@@ -12,6 +12,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -145,7 +146,7 @@ func (s *Service) CreateDeployment(
 		gitCommitTimestamp = gitCommit.GetTimestamp()
 	}
 
-	s.logger.Info("deployment will use prebuilt image",
+	logger.Info("deployment will use prebuilt image",
 		"deployment_id", deploymentID,
 		"image", dockerImage)
 
@@ -183,11 +184,11 @@ func (s *Service) CreateDeployment(
 		MemoryMib:                     256,
 	})
 	if err != nil {
-		s.logger.Error("failed to insert deployment", "error", err.Error())
+		logger.Error("failed to insert deployment", "error", err.Error())
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	s.logger.Info("starting deployment workflow",
+	logger.Info("starting deployment workflow",
 		"deployment_id", deploymentID,
 		"workspace_id", workspaceID,
 		"project_id", req.Msg.GetProjectId(),
@@ -218,11 +219,11 @@ func (s *Service) CreateDeployment(
 		Deploy().
 		Send(ctx, deployReq)
 	if err != nil {
-		s.logger.Error("failed to start deployment workflow", "error", err)
+		logger.Error("failed to start deployment workflow", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))
 	}
 
-	s.logger.Info("deployment workflow started",
+	logger.Info("deployment workflow started",
 		"deployment_id", deploymentID,
 		"invocation_id", invocation.Id,
 	)

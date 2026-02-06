@@ -12,6 +12,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -62,7 +63,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, restate.TerminalError(err)
 	}
 
-	w.logger.Info("deployment workflow started", "req", fmt.Sprintf("%+v", req))
+	logger.Info("deployment workflow started", "req", fmt.Sprintf("%+v", req))
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(runCtx, w.db.RW(), req.GetDeploymentId())
@@ -77,7 +78,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); err != nil {
-			w.logger.Error("deployment failed but we can not set the status", "error", err.Error())
+			logger.Error("deployment failed but we can not set the status", "error", err.Error())
 		}
 	}()
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
@@ -272,7 +273,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err := w.ensureCiliumNetworkPolicy(ctx, workspace, project, environment, topologies); err != nil {
 		return nil, err
 	}
-	w.logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
+	logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
 
 	readygates := make([]restate.Future, len(topologies))
 	for i, region := range topologies {
@@ -314,7 +315,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
-	w.logger.Info("deployments ready", "deployment_id", deployment.ID)
+	logger.Info("deployments ready", "deployment_id", deployment.ID)
 
 	allDomains := buildDomains(
 		workspace.Slug,
@@ -409,7 +410,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
-	w.logger.Info("deployment workflow completed",
+	logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
 		"domains", len(allDomains),

@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func TestRedact(t *testing.T) {
@@ -365,7 +364,6 @@ func (m *mockEventBuffer) getRequests() []schema.ApiRequest {
 }
 
 func TestWithMetrics_IPAddressExtraction(t *testing.T) {
-	logger := logging.New()
 
 	tests := []struct {
 		name          string
@@ -433,7 +431,7 @@ func TestWithMetrics_IPAddressExtraction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			eventBuffer := &mockEventBuffer{}
 
-			server, err := New(Config{Logger: logger})
+			server, err := New(Config{})
 			require.NoError(t, err)
 
 			server.RegisterRoute(
@@ -464,12 +462,11 @@ func TestWithMetrics_IPAddressExtraction(t *testing.T) {
 }
 
 func TestWithMetrics_HeaderFiltering(t *testing.T) {
-	logger := logging.New()
 
 	t.Run("filters out infrastructure headers", func(t *testing.T) {
 		eventBuffer := &mockEventBuffer{}
 
-		server, err := New(Config{Logger: logger})
+		server, err := New(Config{})
 		require.NoError(t, err)
 
 		server.RegisterRoute(
@@ -526,7 +523,7 @@ func TestWithMetrics_HeaderFiltering(t *testing.T) {
 	t.Run("redacts authorization header", func(t *testing.T) {
 		eventBuffer := &mockEventBuffer{}
 
-		server, err := New(Config{Logger: logger})
+		server, err := New(Config{})
 		require.NoError(t, err)
 
 		server.RegisterRoute(
@@ -563,12 +560,11 @@ func TestWithMetrics_HeaderFiltering(t *testing.T) {
 }
 
 func TestWithMetrics_InternalErrorLogging(t *testing.T) {
-	logger := logging.New()
 
 	t.Run("logs internal error message when handler returns error", func(t *testing.T) {
 		eventBuffer := &mockEventBuffer{}
 
-		server, err := New(Config{Logger: logger})
+		server, err := New(Config{})
 		require.NoError(t, err)
 
 		// Register a route with metrics and error handling middleware
@@ -576,7 +572,7 @@ func TestWithMetrics_InternalErrorLogging(t *testing.T) {
 		server.RegisterRoute(
 			[]Middleware{
 				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
-				withErrorHandling(logger),
+				withErrorHandling(),
 			},
 			NewRoute(http.MethodGet, "/error-test", func(ctx context.Context, s *Session) error {
 				return fault.New("something went wrong internally",
@@ -604,13 +600,13 @@ func TestWithMetrics_InternalErrorLogging(t *testing.T) {
 	t.Run("logs chained internal error messages", func(t *testing.T) {
 		eventBuffer := &mockEventBuffer{}
 
-		server, err := New(Config{Logger: logger})
+		server, err := New(Config{})
 		require.NoError(t, err)
 
 		server.RegisterRoute(
 			[]Middleware{
 				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
-				withErrorHandling(logger),
+				withErrorHandling(),
 			},
 			NewRoute(http.MethodGet, "/chained-error", func(ctx context.Context, s *Session) error {
 				baseErr := fault.New("database connection failed")
@@ -642,13 +638,13 @@ func TestWithMetrics_InternalErrorLogging(t *testing.T) {
 	t.Run("no error logged when handler succeeds", func(t *testing.T) {
 		eventBuffer := &mockEventBuffer{}
 
-		server, err := New(Config{Logger: logger})
+		server, err := New(Config{})
 		require.NoError(t, err)
 
 		server.RegisterRoute(
 			[]Middleware{
 				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
-				withErrorHandling(logger),
+				withErrorHandling(),
 			},
 			NewRoute(http.MethodGet, "/success", func(ctx context.Context, s *Session) error {
 				return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
@@ -670,13 +666,13 @@ func TestWithMetrics_InternalErrorLogging(t *testing.T) {
 	t.Run("logs error for not found responses", func(t *testing.T) {
 		eventBuffer := &mockEventBuffer{}
 
-		server, err := New(Config{Logger: logger})
+		server, err := New(Config{})
 		require.NoError(t, err)
 
 		server.RegisterRoute(
 			[]Middleware{
 				WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}),
-				withErrorHandling(logger),
+				withErrorHandling(),
 			},
 			NewRoute(http.MethodGet, "/not-found-test", func(ctx context.Context, s *Session) error {
 				return fault.New("key not found in database",

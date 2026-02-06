@@ -8,7 +8,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
@@ -56,9 +56,6 @@ var (
 type redisCounter struct {
 	// redis is the Redis client
 	redis *redis.Client
-
-	// logger for logging
-	logger logging.Logger
 }
 
 var _ Counter = (*redisCounter)(nil)
@@ -68,10 +65,6 @@ type RedisConfig struct {
 	// RedisURL is the connection URL for Redis.
 	// Format: redis://[[username][:password]@][host][:port][/database]
 	RedisURL string
-
-	// Logger is the logging implementation to use.
-	// Optional, but recommended for production use.
-	Logger logging.Logger
 }
 
 // NewRedis creates a new Redis-backed counter implementation.
@@ -85,7 +78,6 @@ type RedisConfig struct {
 func NewRedis(config RedisConfig) (Counter, error) {
 	err := assert.All(
 		assert.NotEmpty(config.RedisURL, "Redis URL must not be empty"),
-		assert.NotNil(config.Logger, "Logger must not be nil"),
 	)
 	if err != nil {
 		return nil, err
@@ -97,7 +89,7 @@ func NewRedis(config RedisConfig) (Counter, error) {
 	}
 
 	rdb := redis.NewClient(opts)
-	config.Logger.Debug("pinging redis")
+	logger.Debug("pinging redis")
 
 	// Test connection
 	_, err = rdb.Ping(context.Background()).Result()
@@ -106,8 +98,7 @@ func NewRedis(config RedisConfig) (Counter, error) {
 	}
 
 	return &redisCounter{
-		redis:  rdb,
-		logger: config.Logger,
+		redis: rdb,
 	}, nil
 }
 
@@ -138,7 +129,7 @@ func (r *redisCounter) Increment(ctx context.Context, key string, value int64, t
 	// set the expiration time
 	if len(ttl) > 0 && newValue == value {
 		if err := r.redis.Expire(ctx, key, ttl[0]).Err(); err != nil {
-			r.logger.Error("failed to set TTL on counter", "key", key, "error", err.Error())
+			logger.Error("failed to set TTL on counter", "key", key, "error", err.Error())
 			// We don't return the error since the increment operation was successful
 		}
 	}
@@ -187,7 +178,7 @@ func (r *redisCounter) Decrement(ctx context.Context, key string, value int64, t
 	// set the expiration time
 	if len(ttl) > 0 && newValue == -value {
 		if err := r.redis.Expire(ctx, key, ttl[0]).Err(); err != nil {
-			r.logger.Error("failed to set TTL on counter", "key", key, "error", err.Error())
+			logger.Error("failed to set TTL on counter", "key", key, "error", err.Error())
 			// We don't return the error since the decrement operation was successful
 		}
 	}
@@ -337,7 +328,7 @@ func (r *redisCounter) MultiGet(ctx context.Context, keys []string) (map[string]
 
 		s, ok := values[i].(string)
 		if !ok {
-			r.logger.Warn("unexpected type for counter value",
+			logger.Warn("unexpected type for counter value",
 				"key", key,
 				"type", fmt.Sprintf("%T", values[i]),
 			)
@@ -345,7 +336,7 @@ func (r *redisCounter) MultiGet(ctx context.Context, keys []string) (map[string]
 		}
 		v, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
-			r.logger.Warn("failed to parse counter value",
+			logger.Warn("failed to parse counter value",
 				"key", key,
 				"value", s,
 				"error", err,

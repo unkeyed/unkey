@@ -24,7 +24,6 @@ go_library(
         "//pkg/counter",
         "//pkg/db",
         "//pkg/dockertest",
-        "//pkg/otel/logging",
         "//pkg/rbac",
         "//pkg/testutil/containers",
         "//pkg/uid",

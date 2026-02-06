@@ -10,14 +10,13 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/services/router"
 )
 
 type Handler struct {
-	Logger        logging.Logger
 	AcmeClient    ctrlv1connect.AcmeServiceClient
 	RouterService router.Service
 }
@@ -43,7 +42,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	// Extract ACME token from path (last segment after /.well-known/acme-challenge/)
 	token := path.Base(req.URL.Path)
-	h.Logger.Info("Handling ACME challenge", "hostname", hostname, "token", token)
+	logger.Info("Handling ACME challenge", "hostname", hostname, "token", token)
 	createReq := connect.NewRequest(&ctrlv1.VerifyCertificateRequest{
 		Domain: hostname,
 		Token:  token,
@@ -51,7 +50,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	resp, err := h.AcmeClient.VerifyCertificate(ctx, createReq)
 	if err != nil {
-		h.Logger.Error("Failed to handle certificate verification", "error", err)
+		logger.Error("Failed to handle certificate verification", "error", err)
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Internal("failed to handle ACME challenge"),
@@ -60,6 +59,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	auth := resp.Msg.GetAuthorization()
-	h.Logger.Info("Certificate verification handled", "response", auth)
+	logger.Info("Certificate verification handled", "response", auth)
 	return sess.Plain(http.StatusOK, []byte(auth))
 }

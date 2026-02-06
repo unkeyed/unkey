@@ -9,6 +9,7 @@ import (
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // validateTimeRange ensures the query doesn't access data older than MaxQueryRangeDays
@@ -308,7 +309,7 @@ func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time,
 		default:
 			// Unsupported time function - log and return current time as safe default
 			// RLS policies at database level will enforce retention regardless
-			p.logger.Warn("unsupported time function in retention validation, using current time as safe default",
+			logger.Warn("unsupported time function in retention validation, using current time as safe default",
 				"function", funcName,
 				"workspace_id", p.config.WorkspaceID,
 			)
@@ -324,7 +325,7 @@ func (p *Parser) extractTimestampFromExpr(valueExpr clickhouse.Expr) (time.Time,
 	default:
 		// Unsupported expression type - log and return current time as safe default
 		// RLS policies at database level will enforce retention regardless
-		p.logger.Warn(
+		logger.Warn(
 			"unsupported timestamp expression type in retention validation, using current time as safe default",
 			"type", fmt.Sprintf("%T", valueExpr),
 			"workspace_id", p.config.WorkspaceID,

@@ -3,16 +3,15 @@ package zen
 import (
 	"context"
 	"encoding/json"
-	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatchAllRoute(t *testing.T) {
-	logger := logging.NewNoop()
-	srv, err := New(Config{Logger: logger})
+	srv, err := New(Config{})
 	require.NoError(t, err)
 
 	// Register a CATCHALL route
@@ -47,8 +46,7 @@ func TestCatchAllRoute(t *testing.T) {
 }
 
 func TestMethodSpecificRoute(t *testing.T) {
-	logger := logging.NewNoop()
-	srv, err := New(Config{Logger: logger})
+	srv, err := New(Config{})
 	require.NoError(t, err)
 
 	// Register method-specific routes
@@ -106,8 +104,7 @@ func TestMethodSpecificRoute(t *testing.T) {
 }
 
 func TestRoutePrecedence(t *testing.T) {
-	logger := logging.NewNoop()
-	srv, err := New(Config{Logger: logger})
+	srv, err := New(Config{})
 	require.NoError(t, err)
 
 	// Register a method-specific route first
@@ -178,8 +175,7 @@ func TestNewRoute(t *testing.T) {
 	})
 
 	t.Run("route integrates correctly with server", func(t *testing.T) {
-		logger := logging.NewNoop()
-		srv, err := New(Config{Logger: logger})
+		srv, err := New(Config{})
 		require.NoError(t, err)
 
 		called := false

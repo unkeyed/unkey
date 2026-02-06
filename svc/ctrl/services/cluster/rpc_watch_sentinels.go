@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // WatchSentinels streams sentinel state changes from the control plane to agents.
@@ -39,7 +40,7 @@ func (s *Service) WatchSentinels(
 	}
 	versionCursor := req.Msg.GetVersionLastSeen()
 
-	s.logger.Info("krane watching sentinels",
+	logger.Info("krane watching sentinels",
 		"region", region,
 		"version", versionCursor,
 	)
@@ -53,7 +54,7 @@ func (s *Service) WatchSentinels(
 
 		states, err := s.fetchSentinelStates(ctx, region, versionCursor)
 		if err != nil {
-			s.logger.Error("failed to fetch sentinel states", "error", err)
+			logger.Error("failed to fetch sentinel states", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
 		}
 
@@ -128,7 +129,7 @@ func (s *Service) sentinelRowToState(sentinel db.Sentinel) *ctrlv1.SentinelState
 			},
 		}
 	default:
-		s.logger.Error("unhandled sentinel desired state", "desiredState", sentinel.DesiredState)
+		logger.Error("unhandled sentinel desired state", "desiredState", sentinel.DesiredState)
 		return nil
 	}
 }

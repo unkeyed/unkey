@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // TestMemory_PutAndGet verifies basic put and get operations.
@@ -323,8 +322,7 @@ func TestMemory_DataIsolation(t *testing.T) {
 // newTestMemoryStorage creates a new memory storage for testing.
 func newTestMemoryStorage(t *testing.T) Storage {
 	t.Helper()
-	logger := logging.NewNoop()
-	store, err := NewMemory(MemoryConfig{Logger: logger})
+	store, err := NewMemory()
 	require.NoError(t, err)
 	return store
 }

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -68,7 +69,7 @@ func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) fun
 		req.Header.Set(HeaderFrontlineHops, strconv.Itoa(currentHops))
 
 		if currentHops >= s.maxHops-1 {
-			s.logger.Warn("approaching max hops limit",
+			logger.Warn("approaching max hops limit",
 				"currentHops", currentHops,
 				"maxHops", s.maxHops,
 				"hostname", req.Host,

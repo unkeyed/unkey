@@ -22,7 +22,6 @@ func TestMigrateKeysNotFound(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Logger:    h.Logger,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		ApiCache:  h.Caches.LiveApiByID,

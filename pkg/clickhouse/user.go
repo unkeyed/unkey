@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	driver "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 var (
@@ -98,7 +99,7 @@ func getTimeRetentionFilter(tableName string, retentionDays int32) string {
 // ConfigureUser creates or updates a ClickHouse user with all necessary permissions, quotas, and settings.
 // This is idempotent - it can be run multiple times to update settings.
 func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error {
-	logger := c.logger.With("workspace_id", config.WorkspaceID, "username", config.Username)
+	logger.Info("configuring clickhouse user", "workspace_id", config.WorkspaceID, "username", config.Username)
 
 	// Validate all identifiers to prevent SQL injection
 	if err := validateIdentifiers(config); err != nil {

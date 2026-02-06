@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -22,10 +21,8 @@ type (
 
 // Handler implements zen.Route interface for the v2 ratelimit list overrides endpoint
 type Handler struct {
-	// Services as public fields
-	Logger logging.Logger
-	DB     db.Database
-	Keys   keys.KeyService
+	DB   db.Database
+	Keys keys.KeyService
 }
 
 // Method returns the HTTP method this route responds to

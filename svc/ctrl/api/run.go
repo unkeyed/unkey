@@ -15,8 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -68,22 +68,18 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	logger := logging.New()
-	if cfg.InstanceID != "" {
-		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
-	}
-	if cfg.Region != "" {
-		logger = logger.With(slog.String("region", cfg.Region))
-	}
-	if pkgversion.Version != "" {
-		logger = logger.With(slog.String("version", pkgversion.Version))
-	}
+	// Add base attributes to global logger
+	logger.AddBaseAttrs(slog.GroupAttrs("instance",
+		slog.String("id", cfg.InstanceID),
+		slog.String("region", cfg.Region),
+		slog.String("version", pkgversion.Version),
+	))
 
 	if cfg.TLSConfig != nil {
 		logger.Info("TLS is enabled, server will use HTTPS")
 	}
 
-	r := runner.New(logger)
+	r := runner.New()
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
@@ -92,7 +88,6 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: "",
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -115,7 +110,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	c := cluster.New(cluster.Config{
 		Database: database,
-		Logger:   logger,
 		Bearer:   cfg.AuthToken,
 	})
 
@@ -125,7 +119,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
 		MaxSize:  10000,
-		Logger:   logger,
 		Resource: "domains",
 		Clock:    clk,
 	})
@@ -137,7 +130,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Fresh:    10 * time.Second,
 		Stale:    30 * time.Second,
 		MaxSize:  1000,
-		Logger:   logger,
 		Resource: "acme_challenges",
 		Clock:    clk,
 	})
@@ -154,14 +146,12 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
 		Database:         database,
 		Restate:          restateClient,
-		Logger:           logger,
 		AvailableRegions: cfg.AvailableRegions,
 	})))
 
-	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database, logger)))
+	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database)))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		DB:             database,
-		Logger:         logger,
 		DomainCache:    domainCache,
 		ChallengeCache: challengeCache,
 	})))
@@ -170,14 +160,12 @@ func Run(ctx context.Context, cfg Config) error {
 		Database:     database,
 		Restate:      restateClient,
 		RestateAdmin: restateAdminClient,
-		Logger:       logger,
 		CnameDomain:  cfg.CnameDomain,
 	})))
 
 	if cfg.GitHubWebhookSecret != "" {
 		mux.Handle("POST /webhooks/github", &GitHubWebhook{
 			db:            database,
-			logger:        logger,
 			restate:       restateClient,
 			webhookSecret: cfg.GitHubWebhookSecret,
 		})
@@ -240,7 +228,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Bootstrap certificates (wildcard domain records)
 	if cfg.DefaultDomain != "" {
 		certBootstrap := &certificateBootstrap{
-			logger:         logger,
 			database:       database,
 			defaultDomain:  cfg.DefaultDomain,
 			regionalDomain: cfg.RegionalDomain,
@@ -253,9 +240,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New(prometheus.Config{
-			Logger: logger,
-		})
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}
