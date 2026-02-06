@@ -18,7 +18,7 @@ export const EnvVarSaveActions = ({
     <>
       <Button
         type="submit"
-        variant="outline"
+        variant="primary"
         className="text-xs"
         disabled={save.disabled}
         loading={isSubmitting}
@@ -27,7 +27,7 @@ export const EnvVarSaveActions = ({
       </Button>
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         disabled={cancel.disabled}
         onClick={cancel.onClick}
         className="text-xs"

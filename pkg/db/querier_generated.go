@@ -177,6 +177,20 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
 	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
+	//FindCiliumNetworkPoliciesByEnvironmentID
+	//
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
+	FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]CiliumNetworkPolicy, error)
+	//FindCiliumNetworkPolicyByIDAndRegion
+	//
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  JOIN `workspaces` w ON w.id = n.workspace_id
+	//  WHERE n.region = ? AND n.id = ?
+	//  LIMIT 1
+	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (FindCiliumNetworkPolicyByIDAndRegionRow, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -1147,6 +1161,30 @@ type Querier interface {
 	//  encrypted_private_key = VALUES(encrypted_private_key),
 	//  updated_at = ?
 	InsertCertificate(ctx context.Context, db DBTX, arg InsertCertificateParams) error
+	//InsertCiliumNetworkPolicy
+	//
+	//  INSERT INTO cilium_network_policies (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      k8s_name,
+	//      region,
+	//      policy,
+	//      version,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertCiliumNetworkPolicy(ctx context.Context, db DBTX, arg InsertCiliumNetworkPolicyParams) error
 	//InsertClickhouseWorkspaceSettings
 	//
 	//  INSERT INTO `clickhouse_workspace_settings` (
@@ -1684,6 +1722,18 @@ type Querier interface {
 	//      true
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	// ListCiliumNetworkPoliciesByRegion returns cilium network policies for a region with version > after_version.
+	// Used by WatchCiliumNetworkPolicies to stream policy state changes to krane agents.
+	//
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  JOIN `workspaces` w ON w.id = n.workspace_id
+	//  WHERE n.region = ? AND n.version > ?
+	//  ORDER BY n.version ASC
+	//  LIMIT ?
+	ListCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX, arg ListCiliumNetworkPoliciesByRegionParams) ([]ListCiliumNetworkPoliciesByRegionRow, error)
 	//ListCustomDomainsByProjectID
 	//
 	//  SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
@@ -1721,6 +1771,17 @@ type Querier interface {
 	//  ORDER BY dt.deployment_id ASC
 	//  LIMIT ?
 	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
+	//ListDesiredNetworkPolicies
+	//
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  INNER JOIN `workspaces` w ON n.workspace_id = w.id
+	//  WHERE (? = '' OR n.region = ?) AND n.id > ?
+	//  ORDER BY n.id ASC
+	//  LIMIT ?
+	ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg ListDesiredNetworkPoliciesParams) ([]ListDesiredNetworkPoliciesRow, error)
 	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
 	// Used during bootstrap to stream all running sentinels to krane.
 	//
@@ -1744,7 +1805,7 @@ type Querier interface {
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
 	//  JOIN custom_domains d ON dc.domain_id = d.id
-	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= DATE_ADD(NOW(), INTERVAL 30 DAY)))
+	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
@@ -1907,6 +1968,17 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
+	//ListNetworkPolicyByRegion
+	//
+	//  SELECT
+	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
+	//      w.k8s_namespace
+	//  FROM `cilium_network_policies` n
+	//  INNER JOIN `workspaces` w ON n.workspace_id = w.id
+	//  WHERE n.region = ? AND n.version > ?
+	//  ORDER BY n.version ASC
+	//  LIMIT ?
+	ListNetworkPolicyByRegion(ctx context.Context, db DBTX, arg ListNetworkPolicyByRegionParams) ([]ListNetworkPolicyByRegionRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m

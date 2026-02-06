@@ -2,6 +2,7 @@ package krane
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -11,11 +12,13 @@ import (
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
+	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
@@ -53,7 +56,19 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := shutdown.New()
+	var shutdownGrafana func(context.Context) error
+	if cfg.OtelEnabled {
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
+			Application:     "krane",
+			Version:         pkgversion.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
+		}
+	}
 
 	logger := logging.New()
 	if cfg.InstanceID != "" {
@@ -65,6 +80,11 @@ func Run(ctx context.Context, cfg Config) error {
 	if pkgversion.Version != "" {
 		logger = logger.With(slog.String("version", pkgversion.Version))
 	}
+
+	r := runner.New(logger)
+	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.ControlPlaneURL,
@@ -87,6 +107,19 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
 	}
 
+	// Start the cilium controller (independent control loop)
+	ciliumCtrl := cilium.New(cilium.Config{
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Logger:        logger,
+		Cluster:       cluster,
+		Region:        cfg.Region,
+	})
+	if err := ciliumCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start cilium controller: %w", err)
+	}
+	r.Defer(ciliumCtrl.Stop)
+
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
 		ClientSet:     clientset,
@@ -98,7 +131,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
 	}
-	shutdowns.Register(deploymentCtrl.Stop)
+	r.Defer(deploymentCtrl.Stop)
 
 	// Start the sentinel controller (independent control loop)
 	sentinelCtrl := sentinel.New(sentinel.Config{
@@ -110,7 +143,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err := sentinelCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)
 	}
-	shutdowns.Register(sentinelCtrl.Stop)
+	r.Defer(sentinelCtrl.Stop)
 
 	// Create vault client for secrets decryption
 	var vaultClient vaultv1connect.VaultServiceClient
@@ -127,11 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the connect handler
 	mux := http.NewServeMux()
-
-	// Health check endpoint for load balancers and orchestrators
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r.RegisterHealth(mux)
 
 	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
 		Clientset: clientset,
@@ -159,18 +188,19 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Register server shutdown
-	shutdowns.RegisterCtx(server.Shutdown)
+	r.DeferCtx(server.Shutdown)
 
 	// Start server
-	go func() {
+	r.Go(func(ctx context.Context) error {
 		logger.Info("Starting ctrl server", "addr", addr, "tls")
 
 		err := server.ListenAndServe()
 
 		if err != nil && err != http.ErrServerClosed {
-			logger.Error("Server failed", "error", err)
+			return fmt.Errorf("server failed: %w", err)
 		}
-	}()
+		return nil
+	})
 
 	if cfg.PrometheusPort > 0 {
 
@@ -181,22 +211,25 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("failed to create prometheus server: %w", err)
 		}
 
-		shutdowns.RegisterCtx(prom.Shutdown)
 		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 		if err != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, err)
 		}
-		go func() {
+
+		r.DeferCtx(prom.Shutdown)
+		r.Go(func(ctx context.Context) error {
 			logger.Info("prometheus started", "port", cfg.PrometheusPort)
-			if err := prom.Serve(ctx, ln); err != nil {
-				logger.Error("failed to start prometheus server", "error", err)
+			if serveErr := prom.Serve(ctx, ln); serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("failed to start prometheus server: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 
 	}
+
 	// Wait for signal and handle shutdown
 	logger.Info("Krane server started successfully")
-	if err := shutdowns.WaitForSignal(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}

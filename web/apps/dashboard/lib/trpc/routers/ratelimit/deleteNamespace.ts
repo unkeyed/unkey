@@ -25,14 +25,14 @@ export const deleteNamespace = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete namespace. Please try again or contact support@unkey.dev",
+            "We are unable to delete namespace. Please try again or contact support@unkey.com",
         });
       });
     if (!namespace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct namespace. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct namespace. Please try again or contact support@unkey.com.",
       });
     }
 
@@ -77,7 +77,7 @@ export const deleteNamespace = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to delete the namespaces. Please try again or contact support@unkey.dev",
+                "We are unable to delete the namespaces. Please try again or contact support@unkey.com",
             });
           });
         await insertAuditLogs(
@@ -111,7 +111,7 @@ export const deleteNamespace = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to delete the namespaces. Please try again or contact support@unkey.dev",
+              "We are unable to delete the namespaces. Please try again or contact support@unkey.com",
           });
         });
       }

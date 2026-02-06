@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -20,11 +21,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
@@ -69,12 +72,36 @@ func Run(ctx context.Context, cfg Config) error {
 	// Must be set before creating any ACME DNS providers.
 	_ = os.Setenv("LEGO_DISABLE_CNAME_SUPPORT", "true")
 
-	shutdowns := shutdown.New()
+	// Initialize OTEL before logger so logger picks up OTLP handler
+	var shutdownGrafana func(context.Context) error
+	if cfg.OtelEnabled {
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
+			Application:     "worker",
+			Version:         version.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
+		}
+	}
 
 	logger := logging.New()
 	if cfg.InstanceID != "" {
 		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
 	}
+	if cfg.Region != "" {
+		logger = logger.With(slog.String("region", cfg.Region))
+	}
+	if version.Version != "" {
+		logger = logger.With(slog.String("version", version.Version))
+	}
+
+	r := runner.New(logger)
+	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
 
 	// Create vault client for remote vault service
 	var vaultClient vaultv1connect.VaultServiceClient
@@ -99,16 +126,23 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	shutdowns.Register(database.Close)
+	r.Defer(database.Close)
 
-	// Create GitHub client for deploy workflow
-	ghClient, err := githubclient.NewClient(githubclient.ClientConfig{
-		AppID:         cfg.GitHub.AppID,
-		PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
-		WebhookSecret: "",
-	}, logger)
-	if err != nil {
-		return fmt.Errorf("failed to create GitHub client: %w", err)
+	// Create GitHub client for deploy workflow (optional)
+	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
+	if cfg.GitHub.Enabled() {
+		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
+			AppID:         cfg.GitHub.AppID,
+			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			WebhookSecret: "",
+		}, logger)
+		if ghErr != nil {
+			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
+		}
+		ghClient = client
+		logger.Info("GitHub client initialized")
+	} else {
+		logger.Info("GitHub client disabled (credentials not configured)")
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
@@ -284,9 +318,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r.RegisterHealth(mux)
 	mux.Handle("/", restateHandler)
 
 	h2cHandler := h2c.NewHandler(mux, &http2.Server{
@@ -312,14 +344,14 @@ func Run(ctx context.Context, cfg Config) error {
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 
-	go func() {
+	r.DeferCtx(server.Shutdown)
+	r.Go(func(ctx context.Context) error {
 		logger.Info("Starting worker server", "addr", addr)
 		if serveErr := server.ListenAndServe(); serveErr != nil && serveErr != http.ErrServerClosed {
-			logger.Error("server failed", "error", serveErr)
+			return fmt.Errorf("server failed: %w", serveErr)
 		}
-	}()
-
-	shutdowns.RegisterCtx(server.Shutdown)
+		return nil
+	})
 
 	// Register with Restate admin API (only if RegisterAs is configured)
 	// In k8s environments, registration is handled externally
@@ -328,14 +360,16 @@ func Run(ctx context.Context, cfg Config) error {
 			BaseURL: cfg.Restate.AdminURL,
 			APIKey:  cfg.Restate.APIKey,
 		})
-		go func() {
+		r.Go(func(ctx context.Context) error {
 			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
 			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs); err != nil {
 				logger.Error("failed to register with Restate", "error", err)
-				return
+				return err
 			}
 			logger.Info("Successfully registered with Restate")
-		}()
+			return nil
+		})
+
 	} else {
 		logger.Info("Skipping Restate registration (restate-register-as not configured)")
 	}
@@ -348,22 +382,24 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}
 
-		shutdowns.RegisterCtx(prom.Shutdown)
 		ln, lnErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 		if lnErr != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, lnErr)
 		}
-		go func() {
+
+		r.DeferCtx(prom.Shutdown)
+		r.Go(func(ctx context.Context) error {
 			logger.Info("prometheus started", "port", cfg.PrometheusPort)
-			if serveErr := prom.Serve(ctx, ln); serveErr != nil {
-				logger.Error("failed to start prometheus server", "error", serveErr)
+			if serveErr := prom.Serve(ctx, ln); serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("failed to start prometheus server: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 	}
 
 	// Wait for signal and handle shutdown
 	logger.Info("Worker started successfully")
-	if err := shutdowns.WaitForSignal(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}

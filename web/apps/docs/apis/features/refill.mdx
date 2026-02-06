@@ -1,27 +1,114 @@
 ---
-title: Refill
-description: "Refill remaining key verifications on a set interval"
+title: Auto-Refill
+description: "Automatically restore credits on a daily or monthly schedule"
 ---
 
-This feature is useful for creating an API key that automatically refills daily or monthly.
-Daily refills trigger each night at midnight, while monthly refills are triggered on the first day of each month.
+Auto-refill works with [usage limits](/apis/features/remaining) to automatically restore a key's credits on a schedule. Perfect for subscription models where users get a fresh allocation each billing period.
 
-Example:
-Suppose you are selling API access, and a customer has purchased 1000 API uses per month. On the first day of the month, the 1000 uses will be refilled for that key.
+## When to use this
 
-Unkey allows you to set a refill interval and increment on individual keys, and we take care of refilling a key on its set interval.
+<CardGroup cols={2}>
+  <Card title="Monthly subscription quotas" icon="calendar">
+    "Pro plan: 50,000 requests/month" — credits reset on the 1st of each month.
+  </Card>
+  <Card title="Daily allowances" icon="sun">
+    Free tier users get 100 requests per day, resets at midnight UTC.
+  </Card>
+  <Card title="Rolling credits" icon="arrows-rotate">
+    Automatically restore credits without manual intervention.
+  </Card>
+</CardGroup>
 
-### Example
+## How it works
 
-Let's create a new key that can be used 100 times a day.
+1. You create a key with `credits.remaining` and `credits.refill` configured
+2. Unkey automatically refills the credits on your chosen schedule
+3. **Daily refills** trigger at midnight UTC
+4. **Monthly refills** trigger on a specific day of the month (default: 1st)
 
-```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.createKey \
-  --header 'Authorization: Bearer <ROOT_KEY>' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "apiId": "<API_ID>",
+<Note>
+Refill **replaces** the current credit balance — it doesn't add to it. A key with 50 remaining credits will have exactly 1000 after a refill of 1000, not 1050.
+</Note>
+
+## Create a key with auto-refill
+
+### Monthly refill (most common)
+
+Key gets 10,000 credits that reset on the 1st of each month:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "credits": {
+      "remaining": 10000,
+      "refill": {
+        "interval": "monthly",
+        "amount": 10000
+      }
+    }
+  }'
+```
+
+```typescript TypeScript
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_...",
+    remaining: 10000,
+    refill: {
+      interval: "monthly",
+      amount: 10000,
+    },
+  });
+  console.log(data.keyId);
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+</CodeGroup>
+
+### Monthly refill on a specific day
+
+If your billing cycle is mid-month, set `refillDay`:
+
+```json
+{
+  "apiId": "api_...",
+  "credits": {
+    "remaining": 10000,
+    "refill": {
+      "interval": "monthly",
+      "amount": 10000,
+      "refillDay": 15
+    }
+  }
+}
+```
+
+This refills on the 15th of each month.
+
+<Note>
+For months with fewer days (e.g., February), refills on the last day of the month if `refillDay` exceeds the month's length.
+</Note>
+
+### Daily refill
+
+Key gets 100 credits that reset every night at midnight UTC:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
     "credits": {
       "remaining": 100,
       "refill": {
@@ -32,36 +119,141 @@ curl --request POST \
   }'
 ```
 
-Now, when you verify the new key, you will receive the remaining verifications. After all of them are used up, the key becomes invalid.
+```typescript TypeScript
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_...",
+    remaining: 100,
+    refill: {
+      interval: "daily",
+      amount: 100,
+    },
+  });
+  console.log(data.keyId);
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+</CodeGroup>
+
+## Update refill settings
+
+Change an existing key's refill configuration:
 
 ```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.verifyKey \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "key": "<KEY>",
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
     "credits": {
-       "cost": 1
+      "remaining": 50000,
+      "refill": {
+        "interval": "monthly",
+        "amount": 50000
+      }
     }
   }'
 ```
 
-```json
-{
-  "meta": {
-    "requestId": "req_abc123def456"
-  },
-  "data": {
-    "valid": true,
-    "code": "VALID",
-    "keyId": "<KEY_ID>",
-    "credits": 99
-  }
+## Disable refill
+
+To stop auto-refill but keep the current credits:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "credits": {
+      "refill": null
+    }
+  }'
+```
+
+## Common patterns
+
+### Tiered subscription plans
+
+```typescript
+// Free tier: 100/day
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId,
+    remaining: 100,
+    refill: { interval: "daily", amount: 100 },
+  });
+  console.log(data.keyId);
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+
+// Pro tier: 50,000/month
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId,
+    remaining: 50000,
+    refill: { interval: "monthly", amount: 50000 },
+  });
+  console.log(data.keyId);
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+
+// Enterprise: Unlimited (no credits object)
+try {
+  const { meta, data } = await unkey.keys.create({ apiId });
+  console.log(data.keyId);
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
 }
 ```
 
-<Note>
-  The returned `credits` value represents how many verifications are remaining
-  after the current one. A value of 3, means you can verify the key successfully
-  3 more times.
-</Note>
+### Upgrade a user's plan
+
+When a user upgrades, update their key:
+
+```typescript
+// User upgraded from Free to Pro mid-month
+try {
+  const { meta, data } = await unkey.keys.update({
+    keyId: "key_...",
+    credits: {
+      remaining: 50000,  // Give them the new allocation immediately
+      refill: {
+        interval: "monthly",
+        amount: 50000,
+      },
+    },
+  });
+} catch (error) {
+  console.error(error);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+## Refill vs manual credit management
+
+| Approach | Best for |
+|----------|----------|
+| **Auto-refill** | Subscription models with predictable, recurring quotas |
+| **Manual increment** | Pay-as-you-go, top-ups, credit purchases |
+
+You can use both: set a base refill for the subscription, and manually increment when users purchase additional credits.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Usage limits" icon="calculator" href="/apis/features/remaining">
+    Learn more about credits and custom costs
+  </Card>
+  <Card title="Analytics" icon="chart-line" href="/apis/features/analytics">
+    Track usage patterns per key
+  </Card>
+</CardGroup>

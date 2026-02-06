@@ -612,6 +612,25 @@ CREATE TABLE `github_repo_connections` (
 	CONSTRAINT `github_repo_connections_project_id_unique` UNIQUE(`project_id`)
 );
 
+CREATE TABLE `cilium_network_policies` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
+	`workspace_id` varchar(255) NOT NULL,
+	`project_id` varchar(255) NOT NULL,
+	`environment_id` varchar(255) NOT NULL,
+	`k8s_name` varchar(64) NOT NULL,
+	`region` varchar(255) NOT NULL,
+	`policy` json NOT NULL,
+	`version` bigint unsigned NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
+	CONSTRAINT `cilium_network_policies_k8s_name_unique` UNIQUE(`k8s_name`),
+	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -645,4 +664,5 @@ CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
 CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_id`);
+CREATE INDEX `idx_environment_id` ON `cilium_network_policies` (`environment_id`);
 

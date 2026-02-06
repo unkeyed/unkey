@@ -1,3 +1,4 @@
+import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { trpc } from "@/lib/trpc/client";
 import { InfoTooltip } from "@unkey/ui";
 import { CardFooter } from "./components/card-footer";
@@ -40,9 +41,7 @@ export function SentinelNode({ node, deploymentId }: SentinelNodeProps) {
             className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
             position={{ align: "center", side: "top", sideOffset: 5 }}
           >
-            <div className="border rounded-[10px] border-grayA-3 size-9 bg-grayA-3 flex items-center justify-center">
-              <img src={`/images/flags/${flagCode}.svg`} alt={flagCode} className="size-4" />
-            </div>
+            <RegionFlag flagCode={flagCode} size="md" shape="rounded" />
           </InfoTooltip>
         }
         title={node.label}

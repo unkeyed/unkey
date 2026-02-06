@@ -24,6 +24,18 @@ spec:
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7091
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 7091
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 7091
+            initialDelaySeconds: 10
+            periodSeconds: 10
           env:
             # Server Configuration
             - name: UNKEY_HTTP_PORT
@@ -69,12 +81,13 @@ spec:
             - name: UNKEY_CNAME_DOMAIN
               value: "unkey.local"
 
-            # GitHub webhook
+            # GitHub webhook (optional)
             - name: UNKEY_GITHUB_APP_WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:
                   name: github-credentials
                   key: UNKEY_GITHUB_APP_WEBHOOK_SECRET
+                  optional: true
 
       initContainers:
         - name: wait-for-dependencies

@@ -29,7 +29,7 @@ export const updateRole = workspaceProcedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct role. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct role. Please try again or contact support@unkey.com.",
       });
     }
     await db
@@ -58,7 +58,7 @@ export const updateRole = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the role. Please try again or contact support@unkey.dev.",
+            "We are unable to update the role. Please try again or contact support@unkey.com.",
         });
       });
   });

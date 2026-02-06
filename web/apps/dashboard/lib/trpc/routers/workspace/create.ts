@@ -14,7 +14,7 @@ export const createWorkspace = protectedProcedure
     z.object({
       name: z.string().min(3).max(50),
       slug: z.string().regex(/^(?!-)[a-z0-9]+(?:-[a-z0-9]+)*(?<!-)$/, {
-        error: "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
+        message: "Use lowercase letters, numbers, and hyphens (no leading/trailing hyphens).",
       }),
     }),
   )
@@ -124,11 +124,12 @@ export const createWorkspace = protectedProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create the workspace. Please try again or contact support@unkey.dev",
+            "We are unable to create the workspace. Please try again or contact support@unkey.com",
         });
       });
 
     return {
       orgId,
+      slug: input.slug,
     };
   });

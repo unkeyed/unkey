@@ -208,7 +208,7 @@ export const PermissionsList = () => {
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-start">
                 <a
-                  href="https://www.unkey.com/docs/security/permissions"
+                  href="https://www.unkey.com/docs/apis/features/authorization/introduction"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -234,6 +234,7 @@ export const PermissionsList = () => {
               className={cn(
                 "text-xs align-middle whitespace-nowrap",
                 column.key === "permission" ? "py-[6px]" : "py-1",
+                column.cellClassName,
               )}
               style={{ height: `${rowHeight}px` }}
             >

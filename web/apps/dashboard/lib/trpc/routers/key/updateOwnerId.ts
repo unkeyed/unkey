@@ -54,7 +54,7 @@ export const updateKeyOwner = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to retrieve keys to update owner information. Please try again or contact support@unkey.dev",
+            "We were unable to retrieve keys to update owner information. Please try again or contact support@unkey.com",
         });
       });
 
@@ -62,7 +62,7 @@ export const updateKeyOwner = workspaceProcedure
     if (keys.length === 0) {
       throw new TRPCError({
         message:
-          "We were unable to find any of the specified keys. Please try again or contact support@unkey.dev.",
+          "We were unable to find any of the specified keys. Please try again or contact support@unkey.com.",
         code: "NOT_FOUND",
       });
     }
@@ -158,7 +158,7 @@ const updateOwnerV1 = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message:
-        "We were unable to update owner information on these keys. Please try again or contact support@unkey.dev",
+        "We were unable to update owner information on these keys. Please try again or contact support@unkey.com",
     });
   }
 
@@ -237,7 +237,7 @@ const updateOwnerV2 = async (
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message:
-        "We were unable to update identity information on these keys. Please try again or contact support@unkey.dev",
+        "We were unable to update identity information on these keys. Please try again or contact support@unkey.com",
     });
   }
 

@@ -5,11 +5,15 @@ go_library(
     srcs = [
         "client.go",
         "doc.go",
+        "interface.go",
+        "noop.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/github",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/assert",
+        "//pkg/cache",
+        "//pkg/clock",
         "//pkg/fault",
         "//pkg/jwt",
         "//pkg/otel/logging",

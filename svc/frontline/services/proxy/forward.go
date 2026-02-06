@@ -9,6 +9,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -30,9 +31,21 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 	defer func() {
 		totalTime := s.clock.Now().Sub(cfg.startTime)
 		if !proxyStartTime.IsZero() {
-			sess.ResponseWriter().Header().Set("X-Unkey-Frontline-Time", fmt.Sprintf("%dms", proxyStartTime.Sub(cfg.startTime).Milliseconds()))
+			timing.Write(sess.ResponseWriter(), timing.Entry{
+				Name:     "frontline",
+				Duration: proxyStartTime.Sub(cfg.startTime),
+				Attributes: map[string]string{
+					"scope": "frontline",
+				},
+			})
 		}
-		sess.ResponseWriter().Header().Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
+		timing.Write(sess.ResponseWriter(), timing.Entry{
+			Name:     "total",
+			Duration: totalTime,
+			Attributes: map[string]string{
+				"scope": "frontline",
+			},
+		})
 	}()
 
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
@@ -51,16 +64,25 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 		ModifyResponse: func(resp *http.Response) error {
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
-				resp.Header.Set("X-Unkey-Frontline-Time", fmt.Sprintf("%dms", proxyStartTime.Sub(cfg.startTime).Milliseconds()))
+				timing.Write(sess.ResponseWriter(), timing.Entry{
+					Name:     "frontline",
+					Duration: proxyStartTime.Sub(cfg.startTime),
+					Attributes: map[string]string{
+						"scope": "frontline",
+					},
+				})
 			}
-			resp.Header.Set("X-Unkey-Total-Time", fmt.Sprintf("%dms", totalTime.Milliseconds()))
+			timing.Write(sess.ResponseWriter(), timing.Entry{
+				Name:     "total",
+				Duration: totalTime,
+				Attributes: map[string]string{
+					"scope": "frontline",
+				},
+			})
 
 			if resp.StatusCode >= 500 && resp.Header.Get("X-Unkey-Error-Source") == "sentinel" {
-				if sentinelTime := resp.Header.Get("X-Unkey-Sentinel-Time"); sentinelTime != "" {
-					sess.ResponseWriter().Header().Set("X-Unkey-Sentinel-Time", sentinelTime)
-				}
-				if instanceTime := resp.Header.Get("X-Unkey-Instance-Time"); instanceTime != "" {
-					sess.ResponseWriter().Header().Set("X-Unkey-Instance-Time", instanceTime)
+				if sentinelTime := resp.Header.Get(timing.HeaderName); sentinelTime != "" {
+					sess.ResponseWriter().Header().Add(timing.HeaderName, sentinelTime)
 				}
 
 				urn := codes.Frontline.Proxy.BadGateway.URN()
