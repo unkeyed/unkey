@@ -10,7 +10,7 @@ post:
     **Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
 
     **Required Permissions**
-    
+
     Your root key must have the following permission:
     - `rbac.*.create_permission`
   operationId: permissions.createPermission

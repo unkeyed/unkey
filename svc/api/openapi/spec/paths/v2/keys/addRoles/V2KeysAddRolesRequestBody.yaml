@@ -6,7 +6,7 @@ properties:
   keyId:
     type: string
     minLength: 3
-    maxLength: 255 # Reasonable upper bound for database identifiers
+    maxLength: 255  # Reasonable upper bound for database identifiers
     pattern: "^[a-zA-Z0-9_]+$"
     description: |
       Specifies which key receives the additional roles using the database identifier returned from `createKey`.
@@ -17,7 +17,7 @@ properties:
   roles:
     type: array
     minItems: 1
-    maxItems: 100 # Reasonable limit for role assignments per key
+    maxItems: 100  # Reasonable limit for role assignments per key
     description: |
       Assigns additional roles to the key through direct assignment to existing workspace roles.
       Operations are idempotent - adding existing roles has no effect and causes no errors.
@@ -27,7 +27,7 @@ properties:
     items:
       type: string
       minLength: 3
-      maxLength: 255 # Reasonable upper bound for database identifiers
+      maxLength: 255  # Reasonable upper bound for database identifiers
       pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
       description: Specify the role by name.
 additionalProperties: false

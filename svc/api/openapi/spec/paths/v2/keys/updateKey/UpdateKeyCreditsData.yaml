@@ -1,6 +1,6 @@
-type: 
-    - object
-    - null
+type:
+  - object
+  - null
 description: Credit configuration and remaining balance for this key.
 properties:
   remaining:

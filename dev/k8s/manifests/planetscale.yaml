@@ -1,4 +1,3 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,14 +20,7 @@ spec:
           image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.12
           ports:
             - containerPort: 3900
-          args:
-            [
-              "-listen-port=3900",
-              "-mysql-dbname=unkey",
-              "-mysql-addr=mysql",
-              "-mysql-max-rows=100000",
-              "-mysql-idle-timeout=1s",
-            ]
+          args: ["-listen-port=3900", "-mysql-dbname=unkey", "-mysql-addr=mysql", "-mysql-max-rows=100000", "-mysql-idle-timeout=1s"]
           env:
             - name: DATABASE_HOST
               value: "mysql"

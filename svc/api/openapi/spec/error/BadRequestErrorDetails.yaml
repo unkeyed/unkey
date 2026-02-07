@@ -3,17 +3,10 @@ allOf:
   - type: object
     properties:
       errors:
-        description: List of individual validation errors that occurred in the
-          request. Each error provides specific details about what failed validation,
-          where the error occurred in the request, and suggestions for fixing
-          it. This granular information helps developers quickly identify and
-          resolve multiple issues in a single request without having to make repeated
-          API calls.
+        description: List of individual validation errors that occurred in the request. Each error provides specific details about what failed validation, where the error occurred in the request, and suggestions for fixing it. This granular information helps developers quickly identify and resolve multiple issues in a single request without having to make repeated API calls.
         items:
           $ref: "./ValidationError.yaml"
         type: array
     required:
       - errors
-description: Extended error details specifically for bad request (400) errors.
-  This builds on the BaseError structure by adding an array of individual validation
-  errors, making it easy to identify and fix multiple issues at once.
+description: Extended error details specifically for bad request (400) errors. This builds on the BaseError structure by adding an array of individual validation errors, making it easy to identify and fix multiple issues at once.

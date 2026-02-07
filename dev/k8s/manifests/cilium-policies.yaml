@@ -6,7 +6,6 @@
 # NOTE: Default deny for customer pods is handled implicitly - when krane creates
 # a CiliumNetworkPolicy in the customer namespace, Cilium automatically enables
 # default deny for the selected endpoints. We don't need an explicit deny-all policy.
----
 # 2. Block K8s API server access from customer pods
 # Prevents customer workloads from accessing the Kubernetes API
 apiVersion: cilium.io/v2

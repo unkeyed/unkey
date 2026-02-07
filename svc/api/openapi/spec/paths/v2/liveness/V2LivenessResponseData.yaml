@@ -1,15 +1,9 @@
 type: object
 properties:
   message:
-    description: Status message indicating the health of the service. A value
-      of 'OK' indicates that the service is functioning properly and ready to
-      accept requests. Any other value indicates a potential issue with the
-      service health.
+    description: Status message indicating the health of the service. A value of 'OK' indicates that the service is functioning properly and ready to accept requests. Any other value indicates a potential issue with the service health.
     example: OK
     type: string
 required:
   - message
-description: Response data for the liveness check endpoint. This provides a
-  simple indication of whether the Unkey API service is running and able to
-  process requests. Monitoring systems can use this endpoint to track service
-  availability and trigger alerts if the service becomes unhealthy.
+description: Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.

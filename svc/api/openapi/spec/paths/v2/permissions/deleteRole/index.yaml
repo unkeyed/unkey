@@ -8,7 +8,7 @@ post:
     **Important:** This operation cannot be undone and immediately affects all API keys that had this role assigned.
 
     **Required Permissions**
-    
+
     Your root key must have the following permission:
     - `rbac.*.delete_role`
   operationId: permissions.deleteRole

@@ -6,7 +6,7 @@ post:
     Retrieve details about a specific role including its assigned permissions.
 
     **Required Permissions**
-    
+
     Your root key must have the following permission:
     - `rbac.*.read_role`
   operationId: permissions.getRole

@@ -6,15 +6,15 @@ global:
 scrape_configs:
   - job_name: "prometheus"
     # Explicitly specify scrape protocol fallback for compatibility
-    scrape_protocols: 
+    scrape_protocols:
       - "OpenMetricsText1.0.0"
-      - "OpenMetricsText0.0.1" 
+      - "OpenMetricsText0.0.1"
       - "PrometheusText0.0.4"
-    
+
     # Enable HTTP/2 for scraping if supported
     http_config:
       enable_http2: true
-      
+
     http_sd_configs:
       - url: http://apiv2:2112/sd
         refresh_interval: "60s"

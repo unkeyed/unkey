@@ -47,8 +47,7 @@ get:
                   requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
                 error:
                   title: Precondition Failed
-                  detail: Service is in a degraded state. Some functionality may
-                    be limited.
+                  detail: Service is in a degraded state. Some functionality may be limited.
                   status: 412
                   type: https://unkey.dev/errors/precondition-failed
     "500":
@@ -64,8 +63,7 @@ get:
                   requestId: req_01H9TQPP77V5E48E9SH0BG0ZQY
                 error:
                   title: Internal Server Error
-                  detail: The service is currently experiencing issues and may
-                    not be fully operational.
+                  detail: The service is currently experiencing issues and may not be fully operational.
                   status: 500
                   type: https://unkey.dev/errors/internal-server-error
       description: |

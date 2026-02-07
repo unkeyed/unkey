@@ -18,7 +18,7 @@ examples:
         keyId: key_1234abcd
         key: sk_1234abcdef567890
   paidTierKey:
-    summary: Paid tier key created successfully  
+    summary: Paid tier key created successfully
     description: Successfully created a key for a paid subscriber with higher limits
     value:
       meta:

@@ -8,7 +8,7 @@ post:
     **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
 
     **Required Permissions**
-    
+
     Your root key must have the following permission:
     - `rbac.*.create_role`
   operationId: permissions.createRole

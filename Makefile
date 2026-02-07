@@ -43,8 +43,12 @@ nuke-docker: ## Stop all containers and clean up Docker system
 
 
 
+.PHONY: fmt-yaml
+fmt-yaml: ## Format YAML files
+	go tool yamlfmt .
+
 .PHONY: fmt
-fmt: ## Format code
+fmt: fmt-yaml ## Format code
 	go fmt ./...
 	go tool buf format -w
 

@@ -6,7 +6,7 @@ properties:
   keyId:
     type: string
     minLength: 3
-    maxLength: 255 # Reasonable upper bound for database identifiers
+    maxLength: 255  # Reasonable upper bound for database identifiers
     pattern: "^[a-zA-Z0-9_]+$"
     description: |
       Specifies which key gets the complete role replacement using the database identifier returned from createKey.
@@ -16,7 +16,7 @@ properties:
     example: key_2cGKbMxRyIzhCxo1Idjz8q
   roles:
     type: array
-    maxItems: 100 # Reasonable limit for role assignments per key
+    maxItems: 100  # Reasonable limit for role assignments per key
     description: |
       Replaces all existing role assignments with this complete list of roles.
       This is a wholesale replacement operation, not an incremental update like add/remove operations.
