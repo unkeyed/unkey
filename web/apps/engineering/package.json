@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "generate-docs": "./scripts/generate-cli-docs.sh",
-    "build": "next build",
+    "generate-docs": "./scripts/generate-cli-docs.sh && go run ../../../tools/docgen ../../../ ./content/packages",
+    "build": "go run ../../../tools/docgen ../../../ ./content/packages && next build",
     "dev": "next dev",
     "start": "next start",
     "postinstall": "fumadocs-mdx"
