@@ -99,7 +99,7 @@ export const CreateProjectDialog = () => {
         isOpen={isModalOpen}
         onOpenChange={handleModalClose}
         title="Create New Project"
-        subTitle="Set up a new project with a unique name and slug"
+        subTitle="Set up a new project with a unique slug"
         footer={
           <div className="flex flex-col items-center justify-center w-full gap-2">
             <Button
