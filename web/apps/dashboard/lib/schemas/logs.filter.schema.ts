@@ -6,7 +6,6 @@ import type {
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import { z } from "zod";
 
-// Configuration
 export const logsFilterFieldConfig: FilterFieldConfigs = {
   status: {
     type: "number",
@@ -29,15 +28,19 @@ export const logsFilterFieldConfig: FilterFieldConfigs = {
   },
   paths: {
     type: "string",
-    operators: ["is", "contains", "startsWith", "endsWith"],
+    operators: ["contains"],
   },
   host: {
     type: "string",
     operators: ["is"],
   },
-  requestId: {
+  deploymentId: {
     type: "string",
-    operators: ["is"],
+    operators: ["contains"],
+  },
+  environmentId: {
+    type: "string",
+    operators: ["contains"],
   },
   startTime: {
     type: "number",
@@ -60,14 +63,15 @@ export interface StatusConfig extends NumberConfig {
 }
 
 // Schemas
-export const logsFilterOperatorEnum = z.enum(["is", "contains", "startsWith", "endsWith"]);
+export const logsFilterOperatorEnum = z.enum(["is", "contains"]);
 
 export const logsFilterFieldEnum = z.enum([
-  "host",
-  "requestId",
   "methods",
   "paths",
   "status",
+  "host",
+  "deploymentId",
+  "environmentId",
   "startTime",
   "endTime",
   "since",
@@ -88,7 +92,8 @@ export type FilterFieldConfigs = {
   methods: StringConfig<LogsFilterOperator>;
   paths: StringConfig<LogsFilterOperator>;
   host: StringConfig<LogsFilterOperator>;
-  requestId: StringConfig<LogsFilterOperator>;
+  deploymentId: StringConfig<LogsFilterOperator>;
+  environmentId: StringConfig<LogsFilterOperator>;
   startTime: NumberConfig<LogsFilterOperator>;
   endTime: NumberConfig<LogsFilterOperator>;
   since: StringConfig<LogsFilterOperator>;
@@ -104,9 +109,8 @@ export type QuerySearchParams = {
   methods: LogsFilterUrlValue[] | null;
   paths: LogsFilterUrlValue[] | null;
   status: LogsFilterUrlValue[] | null;
+  host: LogsFilterUrlValue[] | null;
   startTime?: number | null;
   endTime?: number | null;
   since?: string | null;
-  host: LogsFilterUrlValue[] | null;
-  requestId: LogsFilterUrlValue[] | null;
 };

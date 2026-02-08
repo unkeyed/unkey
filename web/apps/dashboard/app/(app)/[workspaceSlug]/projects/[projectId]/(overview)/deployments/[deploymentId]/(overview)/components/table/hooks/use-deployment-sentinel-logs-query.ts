@@ -18,22 +18,28 @@ export function useDeploymentSentinelLogsQuery() {
 
   const environmentId = deployment.data.at(0)?.environmentId ?? "";
 
-  const { data, isLoading, error } = trpc.deploy.sentinelLogs.query.useQuery(
+  const { data, isLoading, error } = trpc.deploy.sentinelLogs.query.useInfiniteQuery(
     {
       projectId,
-      environmentId,
       deploymentId,
+      environmentId,
       limit: 50,
+      startTime: Date.now() - 6 * 60 * 60 * 1000,
+      endTime: Date.now(),
+      since: "6h",
+      statusCodes: null,
+      methods: null,
+      paths: null,
     },
     {
-      keepPreviousData: true,
       enabled: Boolean(environmentId) && Boolean(deploymentId),
       refetchInterval: 5000,
+      getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
     },
   );
 
   return {
-    logs: data ?? [],
+    logs: data?.pages[0]?.logs ?? [],
     isLoading,
     error,
   };

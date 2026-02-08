@@ -5,7 +5,6 @@ import {
 } from "@/components/logs/controls-container";
 import { SentinelLogsDateTime } from "./components/sentinel-logs-datetime";
 import { SentinelLogsFilters } from "./components/sentinel-logs-filters";
-import { SentinelLogsLiveSwitch } from "./components/sentinel-logs-live-switch";
 import { SentinelLogsRefresh } from "./components/sentinel-logs-refresh";
 import { SentinelLogsSearch } from "./components/sentinel-logs-search";
 
@@ -18,7 +17,6 @@ export function SentinelLogsControls() {
         <SentinelLogsDateTime />
       </ControlsLeft>
       <ControlsRight>
-        <SentinelLogsLiveSwitch />
         <SentinelLogsRefresh />
       </ControlsRight>
     </ControlsContainer>

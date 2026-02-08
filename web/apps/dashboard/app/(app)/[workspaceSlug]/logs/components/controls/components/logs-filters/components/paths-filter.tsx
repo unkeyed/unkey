@@ -5,11 +5,7 @@ import { logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
 export const PathsFilter = () => {
   const { filters, updateFilters } = useFilters();
 
-  const pathOperators = logsFilterFieldConfig.paths.operators;
-  const options = pathOperators.map((op) => ({
-    id: op,
-    label: op,
-  }));
+  const options = [{ id: "contains" as const, label: "contains" }];
 
   const activePathFilter = filters.find((f) => f.field === "paths");
 
@@ -26,7 +22,7 @@ export const PathsFilter = () => {
           {
             field: "paths",
             id: crypto.randomUUID(),
-            operator: id,
+            operator: "contains",
             value: text,
           },
         ]);

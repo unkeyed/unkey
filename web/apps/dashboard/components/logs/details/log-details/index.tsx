@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
+import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
@@ -23,7 +24,12 @@ const createPanelStyle = (distanceToTop: number) => ({
 });
 
 export type StandardLogTypes = Log | RatelimitLog;
-export type SupportedLogTypes = StandardLogTypes | KeysOverviewLog | AuditLog | RuntimeLog;
+export type SupportedLogTypes =
+  | StandardLogTypes
+  | KeysOverviewLog
+  | AuditLog
+  | RuntimeLog
+  | SentinelLogsResponse;
 
 type LogDetailsContextValue = {
   animated: boolean;
