@@ -63,6 +63,40 @@ try {
 }
 ```
 
+```go Go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	res, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{
+		APIID: "api_...",
+		Credits: &components.KeyCreditsData{
+			Remaining: func() *int64 { r := int64(1000); return &r }(),
+		},
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to create key: %v", err)
+	}
+
+	fmt.Printf("Key ID: %s\n", res.V2KeysCreateKeyResponseBody.KeyID)
+}
+```
+
 </CodeGroup>
 
 ## Verification response
@@ -135,6 +169,45 @@ try {
 }
 ```
 
+```go Go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	res, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
+		Key: "sk_...",
+		Credits: &components.V2KeysVerifyKeyRequestBodyCredits{
+			Cost: func() *int64 { c := int64(10); return &c }(),
+		},
+	})
+
+	if err != nil {
+		log.Fatalf("Verification failed: %v", err)
+	}
+
+	if !res.V2KeysVerifyKeyResponseBody.Valid {
+		log.Printf("Invalid key: %s", *res.V2KeysVerifyKeyResponseBody.Code)
+		return
+	}
+
+	log.Printf("Verification successful, credits remaining: %d", *res.V2KeysVerifyKeyResponseBody.Credits)
+}
+```
+
 </CodeGroup>
 
 <Warning>
@@ -179,6 +252,41 @@ try {
 } catch (err) {
   console.error(err);
   return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+```go Go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	_, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{
+		KeyID: "key_...",
+		Credits: &components.KeyCreditsData{
+			Operation: components.OperationIncrement.Pointer(),
+			Value: func() *int64 { v := int64(5000); return &v }(),
+		},
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to update credits: %v", err)
+	}
+
+	log.Println("Credits updated successfully")
 }
 ```
 

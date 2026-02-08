@@ -52,6 +52,39 @@ try {
 }
 ```
 
+```go Go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	enabled := false
+	_, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{
+		KeyID:   "key_...",
+		Enabled: &enabled,
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to disable key: %v", err)
+	}
+
+	log.Println("Key disabled successfully")
+}
+```
+
 </CodeGroup>
 
 ## Verification response
@@ -93,6 +126,39 @@ try {
 } catch (err) {
   console.error(err);
   return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+```go Go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	enabled := true
+	_, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{
+		KeyID:   "key_...",
+		Enabled: &enabled,
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to re-enable key: %v", err)
+	}
+
+	log.Println("Key re-enabled successfully")
 }
 ```
 

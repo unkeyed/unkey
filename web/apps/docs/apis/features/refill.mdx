@@ -71,6 +71,49 @@ try {
 }
 ```
 
+```go Go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	// Monthly refill: 10,000 credits reset on the 1st of each month
+	remaining := int64(10000)
+	amount := int64(10000)
+
+	res, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{
+		APIID: "api_...",
+		Credits: &components.KeyCreditsData{
+			Remaining: &remaining,
+			Refill: &components.CreditsRefillData{
+				Interval: components.CreditsRefillDataIntervalMonthly.Pointer(),
+				Amount:   &amount,
+			},
+		},
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to create key: %v", err)
+	}
+
+	fmt.Printf("Key ID: %s\n", res.V2KeysCreateKeyResponseBody.KeyID)
+}
+```
+
 </CodeGroup>
 
 ### Monthly refill on a specific day
@@ -133,6 +176,49 @@ try {
 } catch (error) {
   console.error(error);
   return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+```go Go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	// Daily refill: 100 credits reset every night at midnight UTC
+	remaining := int64(100)
+	amount := int64(100)
+
+	res, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{
+		APIID: "api_...",
+		Credits: &components.KeyCreditsData{
+			Remaining: &remaining,
+			Refill: &components.CreditsRefillData{
+				Interval: components.CreditsRefillDataIntervalDaily.Pointer(),
+				Amount:   &amount,
+			},
+		},
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to create key: %v", err)
+	}
+
+	fmt.Printf("Key ID: %s\n", res.V2KeysCreateKeyResponseBody.KeyID)
 }
 ```
 

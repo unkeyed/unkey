@@ -99,6 +99,48 @@ try {
 }
 ```
 
+```go Go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	res, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
+		Key:    "sk_...",
+		APIID:  "api_...",
+		Tags: []string{
+			"path=/v1/posts.create",
+			"postId=post_abc123",
+			"region=us-east-1",
+		},
+	})
+
+	if err != nil {
+		log.Fatalf("Verification failed: %v", err)
+	}
+
+	if !res.V2KeysVerifyKeyResponseBody.Valid {
+		log.Printf("Invalid key: %s", *res.V2KeysVerifyKeyResponseBody.Code)
+		return
+	}
+
+	log.Println("Verification successful")
+}
+```
+
 </CodeGroup>
 
 ### Tag format

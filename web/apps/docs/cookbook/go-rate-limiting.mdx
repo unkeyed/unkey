@@ -1,0 +1,323 @@
+---
+title: "Go Rate Limiting"
+description: "Implement rate limiting in Go with Unkey"
+---
+
+Rate limiting controls how many requests a client can make within a time window. Unkey provides fast, distributed rate limiting that works at the edge.
+
+## Basic Rate Limiting
+
+### Install the SDK
+
+```bash
+go get github.com/unkeyed/sdks/api/go/v2@latest
+```
+
+### Simple rate limit check
+
+```go main.go
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+	unkeyClient = unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+}
+
+func main() {
+	http.HandleFunc("/api/expensive", expensiveHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func expensiveHandler(w http.ResponseWriter, r *http.Request) {
+	// Rate limit namespace - create one in your dashboard or use a unique name
+	namespace := "expensive-operations"
+
+	// Use API key as identifier if authenticated, otherwise use IP
+	identifier := r.Header.Get("X-Forwarded-For")
+	if identifier == "" {
+		identifier = r.RemoteAddr
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5e9)
+	defer cancel()
+
+	// Check rate limit: 100 requests per minute
+	res, err := unkeyClient.Ratelimits.Limit(ctx, components.V2RatelimitsLimitRequestBody{
+		Namespace:  namespace,
+		Identifier: identifier,
+		Limit:      100,
+		Duration:   60000, // 60 seconds in milliseconds
+	})
+
+	if err != nil {
+		log.Printf("Rate limit check failed: %v", err)
+		// On error, you might want to allow the request or fail open
+		// For now, we'll allow but log the error
+		w.Write([]byte(`{"message": "Request processed (rate limit check failed)"}`))
+		return
+	}
+
+	// Set rate limit headers
+	w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", res.V2RatelimitsLimitResponseBody.Limit))
+	w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", res.V2RatelimitsLimitResponseBody.Remaining))
+	w.Header().Set("X-RateLimit-Reset", fmt.Sprintf("%d", res.V2RatelimitsLimitResponseBody.Reset))
+
+	if !res.V2RatelimitsLimitResponseBody.Success {
+		// Rate limited - return 429
+		retryAfter := (res.V2RatelimitsLimitResponseBody.Reset - (contextBackground().Unix() * 1000)) / 1000
+		if retryAfter < 0 {
+			retryAfter = 60
+		}
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write([]byte(`{"error": "Rate limit exceeded"}`))
+		return
+	}
+
+	w.Write([]byte(`{"message": "Request processed successfully"}`))
+}
+```
+
+---
+
+## Per-User Rate Limits
+
+Apply different rate limits based on user tier:
+
+```go main.go
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+// Define limits per tier
+var TIER_LIMITS = map[string]struct {
+	Limit    int64
+	Duration int64 // milliseconds
+}{
+	"free":       {Limit: 100, Duration: 3600000},       // 100 per hour
+	"pro":        {Limit: 1000, Duration: 3600000},       // 1000 per hour
+	"enterprise": {Limit: 10000, Duration: 3600000},      // 10000 per hour
+}
+
+func init() {
+	unkeyClient = unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+}
+
+func main() {
+	http.HandleFunc("/api/resource", resourceHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func getUserTier(userID string) string {
+	// Replace with your actual user lookup logic
+	// This is just an example
+	if userID == "" {
+		return "free"
+	}
+	// In a real app, query your database or cache
+	return "free"
+}
+
+func resourceHandler(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		http.Error(w, `{"error": "Missing user ID"}`, http.StatusUnauthorized)
+		return
+	}
+
+	tier := getUserTier(userID)
+	config := TIER_LIMITS[tier]
+	if config.Limit == 0 {
+		config = TIER_LIMITS["free"]
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5e9)
+	defer cancel()
+
+	res, err := unkeyClient.Ratelimits.Limit(ctx, components.V2RatelimitsLimitRequestBody{
+		Namespace:  "api",
+		Identifier: userID,
+		Limit:      config.Limit,
+		Duration:   config.Duration,
+	})
+
+	if err != nil {
+		log.Printf("Rate limit check failed: %v", err)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte(`{"error": "Rate limit service unavailable"}`))
+		return
+	}
+
+	// Set rate limit headers
+	w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", config.Limit))
+	w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", res.V2RatelimitsLimitResponseBody.Remaining))
+	w.Header().Set("X-RateLimit-Reset", fmt.Sprintf("%d", res.V2RatelimitsLimitResponseBody.Reset))
+	w.Header().Set("X-RateLimit-Tier", tier)
+
+	if !res.V2RatelimitsLimitResponseBody.Success {
+		retryAfter := (res.V2RatelimitsLimitResponseBody.Reset - ((contextBackground().Unix() * 1000))) / 1000
+		if retryAfter < 0 {
+			retryAfter = config.Duration / 1000
+		}
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write([]byte(`{"error": "Rate limit exceeded"}`))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"message": "Resource accessed successfully"}`))
+}
+
+// Helper function to get current time in milliseconds for reset calculation
+func contextBackground() time.Time {
+	return time.Now()
+}
+```
+
+---
+
+## With API Key Verification
+
+If you're already using Unkey for API keys, you can use the ratelimit associated with the key:
+
+```go
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+	unkeyClient = unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+}
+
+func authenticatedHandler(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, `{"error": "Missing API key"}`, http.StatusUnauthorized)
+		return
+	}
+
+	apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Verify key - this automatically checks key-level rate limits
+	res, err := unkeyClient.Keys.VerifyKey(r.Context(), components.V2KeysVerifyKeyRequestBody{
+		Key: apiKey,
+	})
+
+	if err != nil {
+		log.Printf("Verification failed: %v", err)
+		http.Error(w, `{"error": "Verification failed"}`, http.StatusServiceUnavailable)
+		return
+	}
+
+	if !res.V2KeysVerifyKeyResponseBody.Valid {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Invalid API key",
+			"code":  *res.V2KeysVerifyKeyResponseBody.Code,
+		})
+		return
+	}
+
+	// If the key has ratelimits configured, they're automatically checked
+	// You can access the ratelimit state from the response
+	if res.V2KeysVerifyKeyResponseBody.Ratelimits != nil {
+		for _, rl := range res.V2KeysVerifyKeyResponseBody.Ratelimits {
+			log.Printf("Rate limit %s: %d remaining, resets at %d",
+				rl.Name, rl.Remaining, rl.Reset)
+		}
+	}
+
+	w.Write([]byte(`{"message": "Request successful"}`))
+}
+```
+
+---
+
+## Environment Setup
+
+```bash .env
+UNKEY_ROOT_KEY=unkey_...
+```
+
+<Warning>
+Never expose `UNKEY_ROOT_KEY` to the client. It should only be used in server-side code.
+</Warning>
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Use consistent identifiers" icon="fingerprint">
+    Always use the same identifier format for accurate limiting across requests.
+  </Card>
+  <Card title="Return rate limit headers" icon="message">
+    Set headers so clients know their limits and can back off gracefully.
+  </Card>
+  <Card title="Consider burst allowance" icon="bolt">
+    Pro/Enterprise users often expect some burst capacity.
+  </Card>
+  <Card title="Log limit hits" icon="chart-line">
+    Track when users hit limits to inform pricing decisions.
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Go Authentication" icon="lock" href="/cookbook/go-auth">
+    Add API key authentication to your Go API
+  </Card>
+  <Card title="Gin middleware" icon="code" href="/cookbook/go-gin-middleware">
+    Using Unkey with Gin
+  </Card>
+  <Card title="Per-user rate limits" icon="user" href="/cookbook/per-user-ratelimit">
+    Learn about tiered rate limiting patterns
+  </Card>
+  <Card title="Key rate limits" icon="key" href="/apis/features/ratelimiting/overview">
+    Configure rate limits directly on keys
+  </Card>
+</CardGroup>

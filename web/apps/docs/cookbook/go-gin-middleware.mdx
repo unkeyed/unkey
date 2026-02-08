@@ -1,0 +1,272 @@
+---
+title: "Gin Middleware"
+description: "Protect your Gin API routes with Unkey"
+---
+
+Gin is a popular Go web framework. This recipe shows how to add Unkey authentication to your Gin API.
+
+## What you'll build
+
+A Gin server with protected routes that require valid API keys. Requests without valid keys get rejected with 401.
+
+## Install the SDK
+
+```bash
+go get github.com/unkeyed/sdks/api/go/v2@latest
+go get github.com/gin-gonic/gin@latest
+```
+
+## Create the middleware
+
+```go middleware/unkey.go
+package middleware
+
+import (
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+	unkeyClient = unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+}
+
+// UnkeyAuth returns a Gin middleware handler that verifies API keys
+func UnkeyAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Missing API key",
+			})
+			return
+		}
+
+		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+		if apiKey == authHeader {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid Authorization header format",
+			})
+			return
+		}
+
+		res, err := unkeyClient.Keys.VerifyKey(c.Request.Context(), components.V2KeysVerifyKeyRequestBody{
+			Key: apiKey,
+		})
+
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"error": "Verification service unavailable",
+			})
+			return
+		}
+
+		if !res.V2KeysVerifyKeyResponseBody.Valid {
+			code := "INVALID"
+			if res.V2KeysVerifyKeyResponseBody.Code != nil {
+				code = *res.V2KeysVerifyKeyResponseBody.Code
+			}
+
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid API key",
+				"code":  code,
+			})
+			return
+		}
+
+		// Store verification result in context
+		c.Set("unkeyResult", res.V2KeysVerifyKeyResponseBody)
+		c.Next()
+	}
+}
+
+// UnkeyAuthWithPermissions returns a middleware that checks for specific permissions
+func UnkeyAuthWithPermissions(permissions ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Missing API key",
+			})
+			return
+		}
+
+		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+		if apiKey == authHeader {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid Authorization header format",
+			})
+			return
+		}
+
+		res, err := unkeyClient.Keys.VerifyKey(c.Request.Context(), components.V2KeysVerifyKeyRequestBody{
+			Key:         apiKey,
+			Permissions: permissions,
+		})
+
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"error": "Verification service unavailable",
+			})
+			return
+		}
+
+		if !res.V2KeysVerifyKeyResponseBody.Valid {
+			code := "INVALID"
+			if res.V2KeysVerifyKeyResponseBody.Code != nil {
+				code = *res.V2KeysVerifyKeyResponseBody.Code
+			}
+
+			status := http.StatusUnauthorized
+			if code == "INSUFFICIENT_PERMISSIONS" {
+				status = http.StatusForbidden
+			}
+
+			c.AbortWithStatusJSON(status, gin.H{
+				"error": "Access denied",
+				"code":  code,
+			})
+			return
+		}
+
+		c.Set("unkeyResult", res.V2KeysVerifyKeyResponseBody)
+		c.Next()
+	}
+}
+
+// GetUnkeyResult retrieves the verification result from context
+func GetUnkeyResult(c *gin.Context) *components.V2KeysVerifyKeyResponseBody {
+	result, exists := c.Get("unkeyResult")
+	if !exists {
+		return nil
+	}
+	return result.(*components.V2KeysVerifyKeyResponseBody)
+}
+```
+
+## Create your server
+
+```go main.go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/example/your-app/middleware"
+	"github.com/gin-gonic/gin"
+)
+
+func main() {
+	r := gin.Default()
+
+	// Public route
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "Welcome! Try /secret with an API key.",
+		})
+	})
+
+	// Protected routes using middleware
+	api := r.Group("/api", middleware.UnkeyAuth())
+	{
+		api.GET("/secret", func(c *gin.Context) {
+			result := middleware.GetUnkeyResult(c)
+			c.JSON(200, gin.H{
+				"message": "Welcome to the secret route!",
+				"keyId":   result.KeyID,
+			})
+		})
+
+		api.GET("/data", func(c *gin.Context) {
+			result := middleware.GetUnkeyResult(c)
+			c.JSON(200, gin.H{
+				"data":     "Some protected data",
+				"keyId":    result.KeyID,
+				"ownerId":  result.OwnerID,
+			})
+		})
+	}
+
+	// Admin routes with specific permissions
+	admin := r.Group("/admin", middleware.UnkeyAuthWithPermissions("admin.read"))
+	admin.GET("/users", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "Admin user data",
+		})
+	})
+
+	// Start server
+	r.Run(":8080")
+}
+```
+
+## Environment Setup
+
+```bash .env
+UNKEY_ROOT_KEY=unkey_...
+```
+
+<Warning>
+Never expose `UNKEY_ROOT_KEY` to the client. It should only be used in server-side code.
+</Warning>
+
+## Testing
+
+Create a test key in your Unkey dashboard, then:
+
+```bash Test with valid key
+curl http://localhost:8080/api/secret \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Response
+{"message":"Welcome to the secret route!","keyId":"key_..."}
+```
+
+Test without a key:
+```bash Test without key
+curl http://localhost:8080/api/secret
+
+# Response
+{"error":"Missing API key"}
+```
+
+## What's in the result?
+
+After successful verification, the result contains:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Valid` | `bool` | Whether the key passed all checks |
+| `Code` | `*string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
+| `KeyID` | `*string` | The key's unique identifier |
+| `OwnerID` | `*string` | Owner external ID if set |
+| `Meta` | `map[string]any` | Custom metadata associated with the key |
+| `Expires` | `*int64` | Unix timestamp when the key expires |
+| `Credits` | `*int64` | Remaining uses if usage limits set |
+| `Permissions` | `[]string` | Permissions attached to the key |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Go Authentication" icon="lock" href="/cookbook/go-auth">
+    Basic Go authentication patterns
+  </Card>
+  <Card title="Go Rate Limiting" icon="gauge-high" href="/cookbook/go-rate-limiting">
+    Add rate limiting to your Gin API
+  </Card>
+  <Card title="Permissions" icon="shield" href="/apis/features/authorization/introduction">
+    Learn about fine-grained access control
+  </Card>
+  <Card title="Gin rate limiting" icon="code" href="/quickstart/ratelimiting/hono">
+    Rate limiting with Gin
+  </Card>
+</CardGroup>

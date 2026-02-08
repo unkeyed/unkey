@@ -75,6 +75,43 @@ result = unkey.keys.create_key(
 )
 ```
 
+```go Go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"os"
+	"time"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	// Key expires in 24 hours
+	expires := time.Now().Add(24 * time.Hour).UnixMilli()
+
+	res, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{
+		APIID:    "api_...",
+		Expires:  &expires,
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to create key: %v", err)
+	}
+
+	fmt.Printf("Key ID: %s\n", res.V2KeysCreateKeyResponseBody.KeyID)
+}
+```
+
 </CodeGroup>
 
 ## Common expiration times
@@ -131,6 +168,42 @@ try {
 } catch (err) {
   console.error(err);
   return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+```go Go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+	"time"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	// Extend by 7 more days from now
+	expires := time.Now().Add(7 * 24 * time.Hour).UnixMilli()
+
+	_, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{
+		KeyID:   "key_...",
+		Expires: &expires,
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to update key: %v", err)
+	}
+
+	log.Println("Key expiration updated successfully")
 }
 ```
 

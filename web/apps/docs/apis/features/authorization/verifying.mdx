@@ -43,6 +43,53 @@ try {
 }
 ```
 
+```go Go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"os"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+	ctx := context.Background()
+
+	client := unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+
+	res, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
+		Key:         "sk_...",
+		Permissions: []string{"documents.read"},
+	})
+
+	if err != nil {
+		log.Fatalf("Verification failed: %v", err)
+	}
+
+	if !res.V2KeysVerifyKeyResponseBody.Valid {
+		code := "INVALID"
+		if res.V2KeysVerifyKeyResponseBody.Code != nil {
+			code = *res.V2KeysVerifyKeyResponseBody.Code
+		}
+
+		if code == "INSUFFICIENT_PERMISSIONS" {
+			fmt.Println("Key valid but lacks permission")
+			return
+		}
+		fmt.Printf("Key invalid: %s\n", code)
+		return
+	}
+
+	fmt.Println("Key is valid - continue with API logic")
+}
+```
+
 </CodeGroup>
 
 ## Permission query syntax

@@ -1,0 +1,303 @@
+---
+title: "Go Authentication"
+description: "Protect your Go API with Unkey authentication"
+---
+
+Two approaches: use the raw Go SDK, or create reusable middleware for cleaner code.
+
+## Option 1: Using the Go SDK directly
+
+The simplest way to protect Go endpoints.
+
+### Install
+
+```bash
+go get github.com/unkeyed/sdks/api/go/v2@latest
+```
+
+### Standard library HTTP
+
+```go main.go
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+	unkeyClient = unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+}
+
+func main() {
+	http.HandleFunc("/api/protected", protectedHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func protectedHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. Extract API key from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, `{"error": "Missing API key"}`, http.StatusUnauthorized)
+		return
+	}
+
+	apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+	if apiKey == authHeader {
+		http.Error(w, `{"error": "Invalid Authorization header format"}`, http.StatusUnauthorized)
+		return
+	}
+
+	// 2. Verify with Unkey
+	res, err := unkeyClient.Keys.VerifyKey(r.Context(), components.V2KeysVerifyKeyRequestBody{
+		Key: apiKey,
+	})
+
+	if err != nil {
+		log.Printf("Unkey error: %v", err)
+		http.Error(w, `{"error": "Verification failed"}`, http.StatusServiceUnavailable)
+		return
+	}
+
+	if !res.V2KeysVerifyKeyResponseBody.Valid {
+		code := "INVALID"
+		if res.V2KeysVerifyKeyResponseBody.Code != nil {
+			code = *res.V2KeysVerifyKeyResponseBody.Code
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Invalid API key",
+			"code":  code,
+		})
+		return
+	}
+
+	// 3. Key is valid - return protected data
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Welcome to the protected route!",
+		"keyId":   res.V2KeysVerifyKeyResponseBody.KeyID,
+	})
+}
+```
+
+---
+
+## Option 2: Reusable Middleware Pattern
+
+Create middleware for consistent auth across routes:
+
+```go lib/auth.go
+package lib
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"os"
+	"strings"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var UnkeyClient *unkey.Unkey
+
+func init() {
+	UnkeyClient = unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+}
+
+// AuthenticatedHandler is a function that receives the verified key data
+type AuthenticatedHandler func(w http.ResponseWriter, r *http.Request, data *components.V2KeysVerifyKeyResponseBody)
+
+// AuthMiddleware verifies API keys and calls the handler with verification data
+func AuthMiddleware(handler AuthenticatedHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, `{"error": "Missing API key"}`, http.StatusUnauthorized)
+			return
+		}
+
+		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+		if apiKey == authHeader {
+			http.Error(w, `{"error": "Invalid Authorization header format"}`, http.StatusUnauthorized)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 5e9) // 5 second timeout
+		defer cancel()
+
+		res, err := UnkeyClient.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
+			Key: apiKey,
+		})
+
+		if err != nil {
+			log.Printf("Unkey verification error: %v", err)
+			http.Error(w, `{"error": "Verification service unavailable"}`, http.StatusServiceUnavailable)
+			return
+		}
+
+		if !res.V2KeysVerifyKeyResponseBody.Valid {
+			code := "INVALID"
+			if res.V2KeysVerifyKeyResponseBody.Code != nil {
+				code = *res.V2KeysVerifyKeyResponseBody.Code
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Invalid API key",
+				"code":  code,
+			})
+			return
+		}
+
+		handler(w, r, res.V2KeysVerifyKeyResponseBody)
+	}
+}
+```
+
+Use it in your routes:
+
+```go main.go
+package main
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/example/your-app/lib"
+)
+
+func main() {
+	http.HandleFunc("/api/protected", lib.AuthMiddleware(protectedHandler))
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func protectedHandler(w http.ResponseWriter, r *http.Request, data *lib.V2KeysVerifyKeyResponseBody) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Welcome to the protected route!",
+		"keyId":   data.KeyID,
+	})
+}
+```
+
+---
+
+## Check Permissions
+
+Require specific permissions for sensitive endpoints:
+
+```go
+package main
+
+import (
+	"context"
+	"net/http"
+	"os"
+	"strings"
+
+	unkey "github.com/unkeyed/sdks/api/go/v2"
+	"github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+	unkeyClient = unkey.New(
+		unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+	)
+}
+
+func main() {
+	http.HandleFunc("/api/admin/delete", adminHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, `{"error": "Missing API key"}`, http.StatusUnauthorized)
+		return
+	}
+
+	apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Verify with permission check
+	res, err := unkeyClient.Keys.VerifyKey(r.Context(), components.V2KeysVerifyKeyRequestBody{
+		Key:         apiKey,
+		Permissions: []string{"admin.delete"},
+	})
+
+	if err != nil {
+		http.Error(w, `{"error": "Verification failed"}`, http.StatusServiceUnavailable)
+		return
+	}
+
+	if !res.V2KeysVerifyKeyResponseBody.Valid {
+		code := "INVALID"
+		if res.V2KeysVerifyKeyResponseBody.Code != nil {
+			code = *res.V2KeysVerifyKeyResponseBody.Code
+		}
+
+		status := http.StatusUnauthorized
+		if code == "INSUFFICIENT_PERMISSIONS" {
+			status = http.StatusForbidden
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		w.Write([]byte(`{"error": "Access denied"}`))
+		return
+	}
+
+	w.Write([]byte(`{"message": "Resource deleted successfully"}`))
+}
+```
+
+---
+
+## Environment Setup
+
+```bash .env
+# Required for verification and key management
+UNKEY_ROOT_KEY=unkey_...
+```
+
+<Warning>
+Never expose `UNKEY_ROOT_KEY` to the client. It should only be used in server-side code.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Rate limiting" icon="gauge-high" href="/cookbook/go-rate-limiting">
+    Add rate limiting to your Go API
+  </Card>
+  <Card title="Gin middleware" icon="code" href="/cookbook/go-gin-middleware">
+    Using Unkey with the Gin framework
+  </Card>
+  <Card title="Go SDK reference" icon="book" href="/libraries/go/api">
+    Full Go SDK documentation
+  </Card>
+  <Card title="Permissions" icon="shield" href="/apis/features/authorization/introduction">
+    Fine-grained access control
+  </Card>
+</CardGroup>
