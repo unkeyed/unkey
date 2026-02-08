@@ -99,7 +99,7 @@ export const CreateProjectDialog = () => {
         isOpen={isModalOpen}
         onOpenChange={handleModalClose}
         title="Create New Project"
-        subTitle="Set up a new project with a unique name and optional Git repository"
+        subTitle="Set up a new project with a unique name and slug"
         footer={
           <div className="flex flex-col items-center justify-center w-full gap-2">
             <Button
@@ -144,15 +144,6 @@ export const CreateProjectDialog = () => {
             error={errors.slug?.message}
             {...register("slug")}
             placeholder="my-awesome-project"
-          />
-
-          <FormInput
-            label="Git Repository URL"
-            className="[&_input:first-of-type]:h-[36px]"
-            description="Optional: Link to your project's Git repository."
-            error={errors.gitRepositoryUrl?.message}
-            {...register("gitRepositoryUrl")}
-            placeholder="https://github.com/username/repo"
           />
         </form>
       </DialogContainer>
