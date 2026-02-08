@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// KeyRefillService refills API key usage limits on a scheduled basis.
+//
+// Keyed by date (YYYY-MM-DD) for idempotency - each date can only process once.
+// Uses Restate state to track processed keys for resumability if interrupted.
+service KeyRefillService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // RunRefill processes all keys that need their usage limits refilled.
+  // Keys are refilled if:
+  //   - refill_day is NULL (daily refill)
+  //   - refill_day matches today's day of month
+  //   - refill_day > today's day AND today is the last day of month
+  //
+  // Key: date in "YYYY-MM-DD" format (e.g., "2026-02-04")
+  rpc RunRefill(RunRefillRequest) returns (RunRefillResponse) {}
+}
+
+message RunRefillRequest {}
+
+message RunRefillResponse {
+  // Number of keys that were refilled
+  int32 keys_refilled = 1;
+}

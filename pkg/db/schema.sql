@@ -639,6 +639,7 @@ CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
+CREATE INDEX `idx_keys_refill` ON `keys` (`refill_amount`,`deleted_at_m`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
 CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
