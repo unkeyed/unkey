@@ -40,7 +40,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
   },
   {
     id: "environmentId",
-    label: "Environment ID",
+    label: "Environment",
     shortcut: "N",
     shortcutLabel: "N",
     component: <SentinelEnvironmentFilter />,

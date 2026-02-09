@@ -1,39 +1,37 @@
 "use client";
 
-import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
+import { useProject } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/layout-provider";
+import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
-
-const OPTIONS = [{ id: "contains" as const, label: "contains" }];
 
 export const SentinelEnvironmentFilter = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();
+  const { collections } = useProject();
 
-  const environmentFilter = filters.find((f) => f.field === "environmentId");
-  const defaultText = environmentFilter ? String(environmentFilter.value) : "";
+  const environments = useLiveQuery((q) => q.from({ environment: collections.environments }));
 
-  const handleApply = (_operator: string, text: string) => {
-    const otherFilters = filters.filter((f) => f.field !== "environmentId");
-    const newFilters = text
-      ? [
-          ...otherFilters,
-          {
-            id: crypto.randomUUID(),
-            field: "environmentId" as const,
-            operator: "contains" as const,
-            value: text,
-          },
-        ]
-      : otherFilters;
-    updateFilters(newFilters);
-  };
+  const options = environments.data.map((environment, i) => ({
+    id: i,
+    slug: environment.slug,
+    environmentId: environment.id,
+    checked: false,
+  }));
 
   return (
-    <FilterOperatorInput
-      label="Environment ID"
-      options={OPTIONS}
-      defaultOption="contains"
-      defaultText={defaultText}
-      onApply={handleApply}
+    <FilterCheckbox
+      options={options}
+      filterField="environmentId"
+      checkPath="slug"
+      selectionMode="multiple"
+      renderOptionContent={(checkbox) => (
+        <div className="text-accent-12 text-xs capitalize">{checkbox.slug}</div>
+      )}
+      createFilterValue={(option) => ({
+        value: option.environmentId,
+      })}
+      filters={filters}
+      updateFilters={updateFilters}
     />
   );
 };
