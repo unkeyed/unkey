@@ -53,7 +53,7 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
             {
               icon: Layers3,
               href: `${basePath}/${project.id}/deployments/${deploymentId}/runtime-logs`,
-              label: "Runtime Logs",
+              label: "Logs",
               active: currentDeploymentTab === "runtime-logs",
             },
             {
@@ -83,7 +83,7 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
         {
           icon: Layers3,
           href: `${basePath}/${project.id}/sentinel-logs`,
-          label: "Sentinel Logs",
+          label: "Requests",
           active: currentProjectActive && currentSubRoute === "sentinel-logs",
         },
         {

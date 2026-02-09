@@ -102,7 +102,7 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
         <div className="h-full overflow-y-auto" onScroll={handleScroll} ref={scrollRef}>
           {isLoading && filteredLogs.length === 0 ? (
             <div className="text-center text-gray-9 text-sm py-4 flex items-center justify-center h-full">
-              Loading runtime logs...
+              Loading logs...
             </div>
           ) : filteredLogs.length === 0 ? (
             <div className="text-center text-gray-9 text-sm py-4 flex items-center justify-center h-full">

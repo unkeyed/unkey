@@ -13,10 +13,10 @@ export function DeploymentLogsTrigger() {
       <Tabs value={logType} onValueChange={(val) => setLogType(val as "sentinel" | "runtime")}>
         <TabsList className="bg-gray-3 h-auto">
           <TabsTrigger value="sentinel" className="text-accent-12 text-xs px-2 py-1">
-            Logs
+            Requests
           </TabsTrigger>
           <TabsTrigger value="runtime" className="text-accent-12 text-xs px-2 py-1">
-            Runtime logs
+            Logs
           </TabsTrigger>
         </TabsList>
       </Tabs>

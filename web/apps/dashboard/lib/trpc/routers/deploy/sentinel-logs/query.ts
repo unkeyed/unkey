@@ -47,7 +47,7 @@ export const querySentinelLogs = workspaceProcedure
       if (logsResult.err) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch sentinel logs from ClickHouse.",
+          message: "Failed to fetch requests from ClickHouse.",
         });
       }
 
@@ -81,7 +81,7 @@ export const querySentinelLogs = workspaceProcedure
 
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to retrieve sentinel logs. If this persists, contact support@unkey.com.",
+        message: "Failed to retrieve requests. If this persists, contact support@unkey.com.",
       });
     }
   });

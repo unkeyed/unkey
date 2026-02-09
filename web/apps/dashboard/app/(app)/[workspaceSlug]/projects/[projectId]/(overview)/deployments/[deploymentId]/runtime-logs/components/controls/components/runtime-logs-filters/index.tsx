@@ -40,7 +40,7 @@ export function RuntimeLogsFilters() {
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             filterCount > 0 ? "bg-gray-4" : "",
           )}
-          aria-label="Filter runtime logs"
+          aria-label="Filter logs"
           aria-haspopup="true"
           title="Press 'F' to toggle filters"
         >

@@ -74,7 +74,7 @@ export const DeploymentListTableActions = ({
       },
       {
         id: "sentinel-logs",
-        label: "Go to Sentinel Logs...",
+        label: "Go to requests...",
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
@@ -84,7 +84,7 @@ export const DeploymentListTableActions = ({
       },
       {
         id: "runtime-logs",
-        label: "Go to Runtime Logs...",
+        label: "Go to logs...",
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(

@@ -47,7 +47,7 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
       },
       {
         id: "runtime-logs",
-        label: "Runtime Logs",
+        label: "Logs",
         href: `${basePath}/deployments/${deploymentId}/runtime-logs`,
       },
       {
@@ -100,7 +100,7 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
           currentTab === "overview"
             ? "Overview"
             : currentTab === "runtime-logs"
-              ? "Runtime Logs"
+              ? "Logs"
               : "Network",
         shouldRender: true,
         isLast: true,
