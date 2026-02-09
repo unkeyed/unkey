@@ -30,6 +30,10 @@ export { StatusCell } from "./components/cells";
 export { TimestampCell } from "./components/cells";
 export { BadgeCell } from "./components/cells";
 export { CopyCell } from "./components/cells";
+export { AssignedItemsCell } from "./components/cells";
+export { HiddenValueCell } from "./components/cells";
+export { LastUpdatedCell } from "./components/cells";
+export { RootKeyNameCell } from "./components/cells";
 
 // Skeletons
 export { 

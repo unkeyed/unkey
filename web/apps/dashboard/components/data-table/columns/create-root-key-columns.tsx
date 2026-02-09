@@ -1,7 +1,7 @@
-import { HiddenValueCell } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/hidden-value";
+import { HiddenValueCell } from "@/components/data-table/components/cells/hidden-value-cell";
 import type { DataTableColumnDef } from "@/components/data-table";
 import { RowActionSkeleton } from "@/components/data-table/components/cells/row-action-skeleton";
-import { RootKeyNameCell } from "@/components/data-table/components/cells/root-key-name";
+import { RootKeyNameCell } from "@/components/data-table/components/cells/root-key-name-cell";
 import { AssignedItemsCell } from "@/components/data-table/components/cells/assigned-items-cell";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ import { LastUpdatedCell } from "@/components/data-table/components/cells/last-u
 const RootKeysTableActions = dynamic(
   () =>
     import(
-      "../components/root-keys-table-action.popover"
+      "../components/settings-root-keys/root-keys-table-action.popover"
     ).then((mod) => mod.RootKeysTableActions),
   {
     loading: () => <RowActionSkeleton />,
@@ -33,7 +33,7 @@ export const createRootKeyColumns = ({
     accessorKey: "name",
     header: "Name",
     meta: {
-      width: "17%",
+      width: "20%",
       headerClassName: "pl-[18px]",
     },
     cell: ({ row }) => {
@@ -47,7 +47,7 @@ export const createRootKeyColumns = ({
     accessorKey: "start",
     header: "Key",
     meta: {
-      width: "15%",
+      width: "18%",
     },
     cell: ({ row }) => {
       const rootKey = row.original;
@@ -90,7 +90,7 @@ export const createRootKeyColumns = ({
     accessorKey: "createdAt",
     header: "Created At",
     meta: {
-      width: "20%",
+      width: "14%",
     },
     cell: ({ row }) => {
       const rootKey = row.original;

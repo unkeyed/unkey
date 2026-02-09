@@ -4,7 +4,7 @@ import { Navbar } from "@/components/navigation/navbar";
 import { ChevronExpandY, Gear } from "@unkey/icons";
 import { Badge, Button, CopyButton } from "@unkey/ui";
 import Link from "next/link";
-import { CreateRootKeyButton } from "./components/root-key/create-rootkey-button";
+import { CreateRootKeyButton } from "./components/dialog/create-rootkey-button";
 
 const settingsNavbar = [
   {
