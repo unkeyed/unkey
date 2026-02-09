@@ -14,6 +14,10 @@ const (
 	// CustomerNodeClass is the Karpenter nodepool name for untrusted customer
 	// workloads. Nodes in this pool have additional isolation and monitoring.
 	CustomerNodeClass = "untrusted"
+
+	// resourceRequestFraction is the fraction of limits used for resource requests.
+	// Requests determine scheduling; limits cap actual usage.
+	resourceRequestFraction = 4 // requests = limits / 4
 )
 
 // untrustedToleration allows deployment pods to be scheduled on nodes tainted

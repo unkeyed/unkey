@@ -305,6 +305,27 @@ type Querier interface {
 	//  FROM environment_variables
 	//  WHERE environment_id = ?
 	FindEnvironmentVariablesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) ([]FindEnvironmentVariablesByEnvironmentIdRow, error)
+	//FindEnvironmentWithSettingsByProjectIdAndSlug
+	//
+	//  SELECT
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.sentinel_config, e.delete_protection, e.created_at, e.updated_at,
+	//      bs.dockerfile,
+	//      bs.docker_context,
+	//      rs.port,
+	//      rs.cpu_millicores,
+	//      rs.memory_mib,
+	//      rs.command,
+	//      rs.restart_policy,
+	//      rs.shutdown_signal,
+	//      rs.healthcheck,
+	//      rs.region_config
+	//  FROM environments e
+	//  LEFT JOIN environment_build_settings bs ON bs.environment_id = e.id
+	//  LEFT JOIN environment_runtime_settings rs ON rs.environment_id = e.id
+	//  WHERE e.workspace_id = ?
+	//    AND e.project_id = ?
+	//    AND e.slug = ?
+	FindEnvironmentWithSettingsByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentWithSettingsByProjectIdAndSlugParams) (FindEnvironmentWithSettingsByProjectIdAndSlugRow, error)
 	//FindFrontlineRouteByFQDN
 	//
 	//  SELECT pk, id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?

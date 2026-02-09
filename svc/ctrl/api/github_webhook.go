@@ -1,6 +1,7 @@
 package api
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -12,7 +13,6 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
@@ -143,7 +143,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		envSlug = "production"
 	}
 
-	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
+	row, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
 		WorkspaceID: project.WorkspaceID,
 		ProjectID:   project.ID,
 		Slug:        envSlug,
@@ -153,34 +153,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		http.Error(w, "failed to find environment", http.StatusInternalServerError)
 		return
 	}
-
-	// Fetch build and runtime settings for the environment, falling back to defaults
-	buildSettings, buildErr := db.Query.FindEnvironmentBuildSettingsByEnvironmentId(ctx, s.db.RO(), env.ID)
-	dockerfilePath := "Dockerfile"
-	contextPath := "."
-	if buildErr == nil {
-		dockerfilePath = buildSettings.Dockerfile
-		contextPath = buildSettings.DockerContext
-	}
-
-	runtimeSettings, runtimeErr := db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(ctx, s.db.RO(), env.ID)
-	hasRuntimeSettings := runtimeErr == nil
-	cpuMillicores := int32(256)
-	memoryMib := int32(256)
-	var command dbtype.StringSlice
-	port := int32(8080)
-	restartPolicy := db.DeploymentsRestartPolicyAlways
-	shutdownSignal := db.DeploymentsShutdownSignalSIGTERM
-	var healthcheck dbtype.NullHealthcheck
-	if hasRuntimeSettings {
-		cpuMillicores = runtimeSettings.CpuMillicores
-		memoryMib = runtimeSettings.MemoryMib
-		command = runtimeSettings.Command
-		port = runtimeSettings.Port
-		restartPolicy = db.DeploymentsRestartPolicy(runtimeSettings.RestartPolicy)
-		shutdownSignal = db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal)
-		healthcheck = runtimeSettings.Healthcheck
-	}
+	env := row.Environment
 
 	// Create deployment record
 	deploymentID := uid.New(uid.DeploymentPrefix)
@@ -195,7 +168,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		EnvironmentID:                 env.ID,
 		SentinelConfig:                env.SentinelConfig,
 		EncryptedEnvironmentVariables: []byte{},
-		Command:                       command,
+		Command:                       row.Command,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
@@ -206,12 +179,12 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.authorAvatarURL, Valid: gitCommit.authorAvatarURL != ""},
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.timestamp, Valid: gitCommit.timestamp != 0},
 		OpenapiSpec:                   sql.NullString{Valid: false},
-		CpuMillicores:                 cpuMillicores,
-		MemoryMib:                     memoryMib,
-		Port:                          port,
-		RestartPolicy:                 restartPolicy,
-		ShutdownSignal:                shutdownSignal,
-		Healthcheck:                   healthcheck,
+		CpuMillicores:                 cmp.Or(row.CpuMillicores.Int32, 256),
+		MemoryMib:                     cmp.Or(row.MemoryMib.Int32, 256),
+		Port:                          cmp.Or(row.Port.Int32, 8080),
+		RestartPolicy:                 cmp.Or(db.DeploymentsRestartPolicy(row.RestartPolicy.EnvironmentRuntimeSettingsRestartPolicy), db.DeploymentsRestartPolicyAlways),
+		ShutdownSignal:                cmp.Or(db.DeploymentsShutdownSignal(row.ShutdownSignal.EnvironmentRuntimeSettingsShutdownSignal), db.DeploymentsShutdownSignalSIGTERM),
+		Healthcheck:                   row.Healthcheck,
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err)
@@ -237,8 +210,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 				InstallationId: repoConnection.InstallationID,
 				Repository:     payload.Repository.FullName,
 				CommitSha:      payload.After,
-				ContextPath:    contextPath,
-				DockerfilePath: dockerfilePath,
+				ContextPath:    cmp.Or(row.DockerContext.String, "."),
+				DockerfilePath: cmp.Or(row.Dockerfile.String, "Dockerfile"),
 			},
 		},
 	})

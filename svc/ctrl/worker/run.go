@@ -168,12 +168,12 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:                      ch,
 		AllowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 	}),
-		// Retry with exponential backoff: 5s → 10s → 20s → ... capped at 2 min, max 10 attempts
+		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(5*time.Second),
+			restate.WithInitialInterval(1*time.Minute),
 			restate.WithExponentiationFactor(2.0),
-			restate.WithMaxInterval(2*time.Minute),
-			restate.WithMaxAttempts(10),
+			restate.WithMaxInterval(10*time.Minute),
+			restate.WithMaxAttempts(150),
 			restate.KillOnMaxAttempts(),
 		),
 	))

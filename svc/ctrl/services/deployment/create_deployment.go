@@ -1,6 +1,7 @@
 package deployment
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -63,7 +63,7 @@ func (s *Service) CreateDeployment(
 	}
 	workspaceID := project.WorkspaceID
 
-	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
+	row, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
 		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
 		Slug:        req.Msg.GetEnvironmentSlug(),
@@ -77,6 +77,7 @@ func (s *Service) CreateDeployment(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup environment: %w", err))
 	}
+	env := row.Environment
 
 	// Fetch environment variables and build secrets blob
 	envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
@@ -150,41 +151,7 @@ func (s *Service) CreateDeployment(
 		"deployment_id", deploymentID,
 		"image", dockerImage)
 
-	// Fetch runtime settings for the environment to get defaults (command, CPU, memory)
-	runtimeSettings, runtimeSettingsErr := db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(ctx, s.db.RO(), env.ID)
-	hasRuntimeSettings := runtimeSettingsErr == nil
-
-	// Determine command: CLI override > runtime settings default > empty array
-	var command dbtype.StringSlice
-	if len(req.Msg.GetCommand()) > 0 {
-		// CLI provided command override
-		command = req.Msg.GetCommand()
-	} else if hasRuntimeSettings && len(runtimeSettings.Command) > 0 {
-		// Use environment runtime settings default command
-		command = runtimeSettings.Command
-	}
-
-	// Determine CPU and memory: runtime settings > hardcoded defaults
-	cpuMillicores := int32(256)
-	memoryMib := int32(256)
-	if hasRuntimeSettings {
-		cpuMillicores = runtimeSettings.CpuMillicores
-		memoryMib = runtimeSettings.MemoryMib
-	}
-
-	// Snapshot port, restart policy, shutdown signal, and healthcheck from runtime settings
-	port := int32(8080)
-	restartPolicy := db.DeploymentsRestartPolicyAlways
-	shutdownSignal := db.DeploymentsShutdownSignalSIGTERM
-	var healthcheck dbtype.NullHealthcheck
-	if hasRuntimeSettings {
-		port = runtimeSettings.Port
-		restartPolicy = db.DeploymentsRestartPolicy(runtimeSettings.RestartPolicy)
-		shutdownSignal = db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal)
-		healthcheck = runtimeSettings.Healthcheck
-	}
-
-	// Insert deployment into database
+	// Insert deployment into database, snapshotting settings from environment
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:                            deploymentID,
 		K8sName:                       uid.DNS1035(12),
@@ -194,7 +161,7 @@ func (s *Service) CreateDeployment(
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                env.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
-		Command:                       command,
+		Command:                       row.Command,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
@@ -204,12 +171,12 @@ func (s *Service) CreateDeployment(
 		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-		CpuMillicores:                 cpuMillicores,
-		MemoryMib:                     memoryMib,
-		Port:                          port,
-		RestartPolicy:                 restartPolicy,
-		ShutdownSignal:                shutdownSignal,
-		Healthcheck:                   healthcheck,
+		CpuMillicores:                 cmp.Or(row.CpuMillicores.Int32, 256),
+		MemoryMib:                     cmp.Or(row.MemoryMib.Int32, 256),
+		Port:                          cmp.Or(row.Port.Int32, 8080),
+		RestartPolicy:                 cmp.Or(db.DeploymentsRestartPolicy(row.RestartPolicy.EnvironmentRuntimeSettingsRestartPolicy), db.DeploymentsRestartPolicyAlways),
+		ShutdownSignal:                cmp.Or(db.DeploymentsShutdownSignal(row.ShutdownSignal.EnvironmentRuntimeSettingsShutdownSignal), db.DeploymentsShutdownSignalSIGTERM),
+		Healthcheck:                   row.Healthcheck,
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())

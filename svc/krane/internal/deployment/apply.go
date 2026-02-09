@@ -85,8 +85,8 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", req.GetCpuMillicores())),
-				corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", req.GetMemoryMib())),
+				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", max(req.GetCpuMillicores()/resourceRequestFraction, 1))),
+				corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", max(req.GetMemoryMib()/resourceRequestFraction, 1))),
 			},
 			Limits: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", req.GetCpuMillicores())),
@@ -97,24 +97,16 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	// Configure healthcheck probes if provided
 	if hc := unmarshalHealthcheck(req.GetHealthcheck()); hc != nil {
-		httpGet := &corev1.HTTPGetAction{
-			Path: hc.Path,
-			Port: intstr.FromInt32(req.GetPort()),
-		}
-		container.LivenessProbe = &corev1.Probe{
-			ProbeHandler:        corev1.ProbeHandler{HTTPGet: httpGet},
+		handler := buildProbeHandler(hc, req.GetPort())
+		probe := &corev1.Probe{
+			ProbeHandler:        handler,
 			InitialDelaySeconds: int32(hc.InitialDelaySeconds),
 			PeriodSeconds:       int32(hc.IntervalSeconds),
 			TimeoutSeconds:      int32(hc.TimeoutSeconds),
 			FailureThreshold:    int32(hc.FailureThreshold),
 		}
-		container.ReadinessProbe = &corev1.Probe{
-			ProbeHandler:        corev1.ProbeHandler{HTTPGet: httpGet},
-			InitialDelaySeconds: int32(hc.InitialDelaySeconds),
-			PeriodSeconds:       int32(hc.IntervalSeconds),
-			TimeoutSeconds:      int32(hc.TimeoutSeconds),
-			FailureThreshold:    int32(hc.FailureThreshold),
-		}
+		container.LivenessProbe = probe
+		container.ReadinessProbe = probe
 	}
 
 	// For non-SIGTERM shutdown signals, use a preStop lifecycle hook
@@ -221,6 +213,28 @@ func mapRestartPolicy(policy string) corev1.RestartPolicy {
 		return corev1.RestartPolicyNever
 	default:
 		return corev1.RestartPolicyAlways
+	}
+}
+
+// buildProbeHandler creates the K8s probe handler based on the healthcheck method.
+// GET uses a native HTTPGetAction. POST uses an exec probe with wget since K8s
+// doesn't support HTTP POST probes natively.
+func buildProbeHandler(hc *dbtype.Healthcheck, port int32) corev1.ProbeHandler {
+	if hc.Method == "POST" {
+		return corev1.ProbeHandler{
+			Exec: &corev1.ExecAction{
+				Command: []string{
+					"wget", "--spider", "--post-data=", "-q",
+					fmt.Sprintf("http://localhost:%d%s", port, hc.Path),
+				},
+			},
+		}
+	}
+	return corev1.ProbeHandler{
+		HTTPGet: &corev1.HTTPGetAction{
+			Path: hc.Path,
+			Port: intstr.FromInt32(port),
+		},
 	}
 }
 
