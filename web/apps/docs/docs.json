@@ -1,44 +1,32 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "colors": {
-    "dark": "#999999",
+    "primary": "#999999",
     "light": "#999999",
-    "primary": "#999999"
+    "dark": "#999999"
   },
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity"
-    ]
+    "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
   },
   "favicon": "/unkey.png",
-  "fonts": {
-    "family": "Geist"
-  },
-  "footer": {
-    "socials": {
-      "discord": "https://unkey.com/discord",
-      "github": "https://github.com/unkeyed/unkey",
-      "linkedin": "https://www.linkedin.com/company/unkeyed",
-      "x-twitter": "https://x.com/unkeydev"
-    }
-  },
+  "name": "Unkey Docs",
   "logo": {
     "dark": "/unkey-white.png",
     "light": "/unkey-black.png"
   },
-  "metadata": {
-    "timestamp": true
+  "footer": {
+    "socials": {
+      "discord": "https://unkey.com/discord",
+      "x-twitter": "https://x.com/unkeydev",
+      "github": "https://github.com/unkeyed/unkey",
+      "linkedin": "https://www.linkedin.com/company/unkeyed"
+    }
   },
-  "name": "Unkey Docs",
   "navbar": {
     "links": [
       {
         "href": "https://unkey.com/blog",
-        "label": "Blog \u0026 Tutorials"
+        "label": "Blog & Tutorials"
       },
       {
         "href": "https://unkey.com/discord",
@@ -58,22 +46,19 @@
     "dropdowns": [
       {
         "dropdown": "Documentation",
+        "icon": "book-open",
         "groups": [
           {
             "group": "Getting Started",
-            "pages": [
-              "introduction",
-              "quickstart/quickstart",
-              "glossary"
-            ]
+            "pages": ["introduction", "quickstart/quickstart", "glossary"]
           },
           {
             "group": "Framework Guides",
             "icon": "code",
             "pages": [
               {
-                "expanded": false,
                 "group": "API Key Authentication",
+                "expanded": false,
                 "pages": [
                   "quickstart/apis/nextjs",
                   "quickstart/apis/express",
@@ -82,8 +67,8 @@
                 ]
               },
               {
-                "expanded": false,
                 "group": "Rate Limiting",
+                "expanded": false,
                 "pages": [
                   "quickstart/ratelimiting/nextjs",
                   "quickstart/ratelimiting/express",
@@ -100,8 +85,8 @@
             "pages": [
               "cookbook/index",
               {
-                "expanded": false,
                 "group": "Recipes",
+                "expanded": false,
                 "pages": [
                   "cookbook/nextjs-api-routes",
                   "cookbook/express-middleware",
@@ -164,8 +149,8 @@
             "pages": [
               "analytics/overview",
               {
-                "expanded": false,
                 "group": "Reference",
+                "expanded": false,
                 "pages": [
                   "analytics/getting-started",
                   "analytics/quick-reference",
@@ -180,10 +165,7 @@
           {
             "group": "Audit Logs",
             "icon": "scroll",
-            "pages": [
-              "audit-log/introduction",
-              "audit-log/types"
-            ]
+            "pages": ["audit-log/introduction", "audit-log/types"]
           },
           {
             "group": "Security",
@@ -191,8 +173,8 @@
             "pages": [
               "security/overview",
               {
-                "expanded": false,
                 "group": "Topics",
+                "expanded": false,
                 "pages": [
                   "security/root-keys",
                   "security/recovering-keys",
@@ -209,8 +191,8 @@
             "pages": [
               "ai-code-gen/overview",
               {
-                "expanded": false,
                 "group": "Tools",
+                "expanded": false,
                 "pages": [
                   "ai-code-gen/cursor",
                   "ai-code-gen/windsurf",
@@ -222,10 +204,7 @@
           {
             "group": "Migrations",
             "icon": "arrows-rotate",
-            "pages": [
-              "migrations/introduction",
-              "migrations/keys"
-            ]
+            "pages": ["migrations/introduction", "migrations/keys"]
           },
           {
             "group": "Errors",
@@ -234,9 +213,11 @@
               "errors/overview",
               {
                 "group": "Unkey Errors",
+                "expanded": false,
                 "pages": [
                   {
                     "group": "Application",
+                    "expanded": false,
                     "pages": [
                       "errors/unkey/application/assertion_failed",
                       "errors/unkey/application/invalid_input",
@@ -248,6 +229,7 @@
                   },
                   {
                     "group": "Authentication",
+                    "expanded": false,
                     "pages": [
                       "errors/unkey/authentication/key_not_found",
                       "errors/unkey/authentication/malformed",
@@ -256,6 +238,7 @@
                   },
                   {
                     "group": "Authorization",
+                    "expanded": false,
                     "pages": [
                       "errors/unkey/authorization/forbidden",
                       "errors/unkey/authorization/insufficient_permissions",
@@ -265,6 +248,7 @@
                   },
                   {
                     "group": "Data",
+                    "expanded": false,
                     "pages": [
                       "errors/unkey/data/analytics_connection_failed",
                       "errors/unkey/data/analytics_not_configured",
@@ -291,9 +275,11 @@
               },
               {
                 "group": "User Errors",
+                "expanded": false,
                 "pages": [
                   {
                     "group": "Bad Request",
+                    "expanded": false,
                     "pages": [
                       "errors/user/bad_request/client_closed_request",
                       "errors/user/bad_request/invalid_analytics_function",
@@ -310,12 +296,14 @@
                   },
                   {
                     "group": "Too Many Requests",
+                    "expanded": false,
                     "pages": [
                       "errors/user/too_many_requests/query_quota_exceeded"
                     ]
                   },
                   {
                     "group": "Unprocessable Entity",
+                    "expanded": false,
                     "pages": [
                       "errors/user/unprocessable_entity/query_execution_timeout",
                       "errors/user/unprocessable_entity/query_memory_limit_exceeded",
@@ -326,11 +314,11 @@
               }
             ]
           }
-        ],
-        "icon": "book-open"
+        ]
       },
       {
         "dropdown": "API Reference",
+        "icon": "terminal",
         "groups": [
           {
             "group": "api.unkey.com/v2",
@@ -362,11 +350,11 @@
               "api-reference/v1/migration/errors"
             ]
           }
-        ],
-        "icon": "terminal"
+        ]
       },
       {
         "dropdown": "SDKs",
+        "icon": "code",
         "groups": [
           {
             "group": "Official Libraries",
@@ -399,17 +387,11 @@
               },
               {
                 "group": "Go",
-                "pages": [
-                  "libraries/go/overview",
-                  "libraries/go/api"
-                ]
+                "pages": ["libraries/go/overview", "libraries/go/api"]
               },
               {
                 "group": "Python",
-                "pages": [
-                  "libraries/py/overview",
-                  "libraries/py/api"
-                ]
+                "pages": ["libraries/py/overview", "libraries/py/api"]
               }
             ]
           },
@@ -418,86 +400,89 @@
             "pages": [
               {
                 "group": "Nuxt",
-                "pages": [
-                  "libraries/nuxt/overview"
-                ]
+                "pages": ["libraries/nuxt/overview"]
               }
             ]
           }
-        ],
-        "icon": "code"
+        ]
       }
     ]
   },
   "redirects": [
     {
-      "destination": "/quickstart/quickstart",
-      "source": "/quickstart/onboarding/onboarding-api"
+      "source": "/quickstart/onboarding/onboarding-api",
+      "destination": "/quickstart/quickstart"
     },
     {
-      "destination": "/quickstart/quickstart",
-      "source": "/onboarding/onboarding-api"
+      "source": "/onboarding/onboarding-api",
+      "destination": "/quickstart/quickstart"
     },
     {
-      "destination": "/quickstart/quickstart",
-      "source": "/onboarding"
+      "source": "/onboarding",
+      "destination": "/quickstart/quickstart"
     },
     {
-      "destination": "/ratelimiting/introduction",
-      "source": "/onboarding/onboarding-ratelimiting"
+      "source": "/onboarding/onboarding-ratelimiting",
+      "destination": "/ratelimiting/introduction"
     },
     {
-      "destination": "/ratelimiting/introduction",
-      "source": "/quickstart/onboarding/onboarding-ratelimiting"
+      "source": "/quickstart/onboarding/onboarding-ratelimiting",
+      "destination": "/ratelimiting/introduction"
     },
     {
-      "destination": "/api-reference/v2/overview",
-      "source": "/api-reference"
+      "source": "/api-reference",
+      "destination": "/api-reference/v2/overview"
     },
     {
-      "destination": "/quickstart/quickstart",
-      "source": "/quickstart"
+      "source": "/quickstart",
+      "destination": "/quickstart/quickstart"
     },
     {
-      "destination": "/libraries/ts/api",
-      "source": "/libraries"
+      "source": "/libraries",
+      "destination": "/libraries/ts/api"
     },
     {
-      "destination": "/introduction",
-      "source": "/integrations/vercel"
+      "source": "/integrations/vercel",
+      "destination": "/introduction"
     },
     {
-      "destination": "/api-reference/v1/migration/index",
-      "source": "/api-reference/v1/overview"
+      "source": "/api-reference/v1/overview",
+      "destination": "/api-reference/v1/migration/index"
     },
     {
-      "destination": "/api-reference/v1/migration/index",
-      "source": "/api-reference/v1/authentication"
+      "source": "/api-reference/v1/authentication",
+      "destination": "/api-reference/v1/migration/index"
     },
     {
-      "destination": "/api-reference/v1/migration/keys",
-      "source": "/api-reference/v1/keys/:path*"
+      "source": "/api-reference/v1/keys/:path*",
+      "destination": "/api-reference/v1/migration/keys"
     },
     {
-      "destination": "/api-reference/v1/migration/apis",
-      "source": "/api-reference/v1/apis/:path*"
+      "source": "/api-reference/v1/apis/:path*",
+      "destination": "/api-reference/v1/migration/apis"
     },
     {
-      "destination": "/api-reference/v1/migration/index",
-      "source": "/api-reference/v1/liveness"
+      "source": "/api-reference/v1/liveness",
+      "destination": "/api-reference/v1/migration/index"
     },
     {
-      "destination": "/docs/apis/features/authorization/introduction",
-      "source": "/docs/security/permissions"
+      "source": "/docs/security/permissions",
+      "destination": "/docs/apis/features/authorization/introduction"
     },
     {
-      "destination": "/docs/apis/features/authorization/introduction",
-      "source": "/docs/security/roles"
+      "source": "/docs/security/roles",
+      "destination": "/docs/apis/features/authorization/introduction"
     },
     {
-      "destination": "/docs/api-reference/v2/overview",
-      "source": "/docs/api-reference/overview"
+      "source": "/docs/api-reference/overview",
+      "destination": "/docs/api-reference/v2/overview"
     }
   ],
-  "theme": "maple"
+  "theme": "maple",
+  "fonts": {
+    "family": "Geist"
+  },
+  "metadata": {
+    "timestamp": true
+  }
 }
