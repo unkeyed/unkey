@@ -72,17 +72,23 @@ export const DeploymentListTableActions = ({
               )
             : undefined,
       },
-
       {
         id: "sentinel-logs",
         label: "Go to Sentinel Logs...",
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
-          //INFO: This will produce a long query, but once we start using `contains` instead of `is` this will be a shorter query.
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/sentinel-logs?host=${data
-              .map((item) => `is:${item.host}`)
-              .join(",")}`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/sentinel-logs?since=6h&deploymentId=contains:${selectedDeployment.id}`,
+          );
+        },
+      },
+      {
+        id: "runtime-logs",
+        label: "Go to Runtime Logs...",
+        icon: <Layers3 iconSize="md-regular" />,
+        onClick: () => {
+          router.push(
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${selectedDeployment.id}/runtime-logs`,
           );
         },
       },

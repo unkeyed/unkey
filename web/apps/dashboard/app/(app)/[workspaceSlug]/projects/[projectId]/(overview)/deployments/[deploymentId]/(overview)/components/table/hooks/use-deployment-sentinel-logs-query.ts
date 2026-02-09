@@ -24,8 +24,6 @@ export function useDeploymentSentinelLogsQuery() {
       deploymentId,
       environmentId,
       limit: 50,
-      startTime: Date.now() - 6 * 60 * 60 * 1000,
-      endTime: Date.now(),
       since: "6h",
       statusCodes: null,
       methods: null,

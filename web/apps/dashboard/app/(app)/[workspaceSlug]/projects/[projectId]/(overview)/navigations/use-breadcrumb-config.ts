@@ -74,6 +74,12 @@ export const useBreadcrumbConfig = ({
       href: `${basePath}/${projectId}/sentinel-logs`,
       segment: "sentinel-logs",
     },
+    {
+      id: "settings",
+      label: "Settings",
+      href: `${basePath}/${projectId}/settings`,
+      segment: "settings",
+    },
   ];
 
   // Determine active subpage based on segment
