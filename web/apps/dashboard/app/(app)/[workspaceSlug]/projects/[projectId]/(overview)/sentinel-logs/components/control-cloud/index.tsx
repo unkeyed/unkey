@@ -15,6 +15,8 @@ const formatFieldName = (field: string): string => {
       return "Path";
     case "methods":
       return "Method";
+    case "deploymentId":
+      return "Deplyoment ID";
     case "since":
       return "";
     default:

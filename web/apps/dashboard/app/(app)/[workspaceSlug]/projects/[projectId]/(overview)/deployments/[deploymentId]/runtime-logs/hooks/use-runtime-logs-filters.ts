@@ -42,7 +42,7 @@ export function useRuntimeLogsFilters() {
     ) {
       setSearchParams({ since: "6h" });
     }
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   const filters = useMemo(() => {
     const activeFilters: RuntimeLogsFilterValue[] = [];

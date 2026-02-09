@@ -48,7 +48,7 @@ export const useSentinelLogsFilters = () => {
     ) {
       setSearchParams({ since: "6h" });
     }
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   const filters = useMemo(() => {
     const activeFilters: SentinelLogsFilterValue[] = [];

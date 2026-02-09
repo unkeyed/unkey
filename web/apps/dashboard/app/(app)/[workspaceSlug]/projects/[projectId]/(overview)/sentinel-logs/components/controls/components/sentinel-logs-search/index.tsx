@@ -4,7 +4,7 @@ import { useSentinelLogsFilters } from "../../../../hooks/use-sentinel-logs-filt
 
 export const SentinelLogsSearch = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();
-  const queryLLMForStructuredOutput = trpc.logs.llmSearch.useMutation({
+  const queryLLMForStructuredOutput = trpc.deploy.sentinelLogs.llmSearch.useMutation({
     onSuccess(data) {
       if (data?.filters.length === 0 || !data) {
         toast.error(
@@ -49,9 +49,9 @@ export const SentinelLogsSearch = () => {
   return (
     <LLMSearch
       exampleQueries={[
-        "Show failed requests today",
-        "Show auth errors in the last 3h",
-        "Show API calls from a path that includes api/v1/",
+        "Show 404 errors in the last hour",
+        "POST requests to /api/users from staging",
+        "Failed requests from production in last 3h",
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"

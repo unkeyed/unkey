@@ -12,8 +12,6 @@ import type React from "react";
 import { useProject } from "../../../../layout-provider";
 import { useSentinelLogsContext } from "../../../context/sentinel-logs-provider";
 
-const ANIMATION_DELAY = 500;
-
 type Props = {
   distanceToTop: number;
 };
@@ -26,36 +24,28 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
     setSelectedLog(null);
   };
 
+  const { data } = useLiveQuery(
+    (q) => {
+      return q
+        .from({ deployment: collections.deployments })
+        .join({ environment: collections.environments }, ({ deployment, environment }) =>
+          eq(deployment.environmentId, environment.id),
+        )
+        .where(({ deployment }) => eq(deployment.id, log?.deployment_id));
+    },
+    [log?.deployment_id],
+  );
+  const deployment = data.at(0)?.deployment;
+  const environment = data.at(0)?.environment;
+
   if (!log) {
+    // Shouldn't happen
     return null;
   }
 
-  // Fetch deployment data for enrichment
-  const { data: deploymentData } = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collections.deployments })
-        .where(({ deployment }) => eq(deployment.id, log.deployment_id)),
-    [log.deployment_id],
-  );
-  const deployment = deploymentData.at(0);
-
-  const { data: environmentData } = useLiveQuery(
-    (q) => {
-      if (!deployment?.environmentId) {
-        return q.from({ environment: collections.environments }).where(() => false);
-      }
-      return q
-        .from({ environment: collections.environments })
-        .where(({ environment }) => eq(environment.id, deployment.environmentId));
-    },
-    [deployment?.environmentId],
-  );
-  const environment = environmentData.at(0);
-
   return (
     <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
-      <LogDetails.Header onClose={handleClose} >
+      <LogDetails.Header onClose={handleClose}>
         <SentinelLogHeader log={log} onClose={handleClose} />
       </LogDetails.Header>
 
@@ -209,15 +199,15 @@ const formatDeploymentInfo = (
   log: SentinelLogsResponse,
   deployment:
     | {
-      id: string;
-      environmentId: string;
-      gitBranch?: string | null;
-      gitCommitSha?: string | null;
-      gitCommitMessage?: string | null;
-      gitCommitAuthorHandle?: string | null;
-      gitCommitAuthorAvatarUrl?: string | null;
-      status?: string | null;
-    }
+        id: string;
+        environmentId: string;
+        gitBranch?: string | null;
+        gitCommitSha?: string | null;
+        gitCommitMessage?: string | null;
+        gitCommitAuthorHandle?: string | null;
+        gitCommitAuthorAvatarUrl?: string | null;
+        status?: string | null;
+      }
     | undefined,
   environment: { slug: string } | undefined,
 ): React.ReactNode => {
@@ -401,8 +391,11 @@ const formatMetaInfo = (log: SentinelLogsResponse): React.ReactNode => {
           {queryParamsEntries.map(([key, values]) => (
             <div key={key} className="flex items-center justify-between ml-2">
               <span className="text-gray-11 text-xs">{key}:</span>
-              <span className="font-mono text-xs truncate max-w-[200px]" title={values.join(", ")}>
-                {values.join(", ")}
+              <span
+                className="font-mono text-xs truncate max-w-[200px]"
+                title={(values as string[]).join(", ")}
+              >
+                {(values as string[]).join(", ")}
               </span>
             </div>
           ))}

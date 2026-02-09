@@ -14,7 +14,7 @@ export const PathsFilter = () => {
       options={options}
       defaultOption={activePathFilter?.operator}
       defaultText={activePathFilter?.value as string}
-      onApply={(id, text) => {
+      onApply={(_, text) => {
         const activeFiltersWithoutPaths = filters.filter((f) => f.field !== "paths");
         updateFilters([
           ...activeFiltersWithoutPaths,
