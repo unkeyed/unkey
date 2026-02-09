@@ -15,7 +15,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 type pushPayload struct {
@@ -183,12 +182,9 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 }
 
 func ensureGithubConnection(ctx context.Context, databaseURL, projectID string, installationID, repositoryID int64, repository string) error {
-	logger := logging.New()
-
 	database, err := db.New(db.Config{
 		PrimaryDSN:  databaseURL,
 		ReadOnlyDSN: "",
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)

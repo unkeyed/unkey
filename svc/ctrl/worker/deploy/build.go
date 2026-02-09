@@ -97,7 +97,7 @@ func (w *Workflow) buildDockerImageFromGit(
 		var ghToken githubclient.InstallationToken
 		if w.allowUnauthenticatedDeployments {
 			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
-			w.logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
+			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
 				"repository", params.Repository)
 		} else {
 			token, err := w.github.GetInstallationToken(params.InstallationID)

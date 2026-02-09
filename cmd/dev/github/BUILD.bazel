@@ -11,6 +11,5 @@ go_library(
     deps = [
         "//pkg/cli",
         "//pkg/db",
-        "//pkg/otel/logging",
     ],
 )
