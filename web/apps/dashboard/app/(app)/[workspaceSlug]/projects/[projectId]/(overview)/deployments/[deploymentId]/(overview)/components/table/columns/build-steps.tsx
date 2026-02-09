@@ -23,7 +23,6 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
           "font-mono text-xs truncate max-w-[300px] flex items-center gap-2",
           step.has_logs && "-ml-5",
         )}
-        title={step.name}
       >
         {step.has_logs && (
           <CaretUp
@@ -90,30 +89,6 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
         <span className="px-[6px] font-mono whitespace-nowrap tabular-nums">
           {formatLatency(duration)}
         </span>
-      );
-    },
-  },
-
-  {
-    key: "logs",
-    header: "Logs",
-    width: "100px",
-    render: (step) => {
-      if (!step.has_logs) {
-        return <span className="opacity-30">—</span>;
-      }
-      const logCount = step.logs?.length ?? 0;
-      return (
-        <div className="flex">
-          {logCount > 0 ? (
-            <span>
-              <span className="text-accent-11 tabular-nums">{logCount}</span>
-              <span> lines</span>
-            </span>
-          ) : (
-            "—"
-          )}
-        </div>
       );
     },
   },

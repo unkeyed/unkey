@@ -84,7 +84,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const isMobile = useIsMobile({ defaultValue: false });
 
     // Track expansion state internally if not controlled
-    const [internalExpandedIds, setInternalExpandedIds] = useState<Set<string>>(new Set());
+    const [internalExpandedIds, setInternalExpandedIds] = useState<Set<string | number>>(new Set());
     const expandedIds = controlledExpandedIds ?? internalExpandedIds;
 
     // Toggle expansion

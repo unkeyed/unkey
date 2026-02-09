@@ -26,20 +26,13 @@ export const getDeploymentBuildSteps = workspaceProcedure
   .query(async ({ ctx, input }) => {
     // Validate deployment exists and belongs to workspace
     const deployment = await db.query.deployments.findFirst({
-      where: (table, { eq }) => eq(table.id, input.deploymentId),
+      where: (table, { and, eq }) =>
+        and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
     });
-
     if (!deployment) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Deployment not found",
-      });
-    }
-
-    if (deployment.workspaceId !== ctx.workspace.id) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
 

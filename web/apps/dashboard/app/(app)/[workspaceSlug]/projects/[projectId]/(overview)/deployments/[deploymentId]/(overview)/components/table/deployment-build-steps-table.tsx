@@ -11,7 +11,7 @@ import { getBuildStepRowClass } from "./utils/get-build-step-row-class";
 
 export const DeploymentBuildStepsTable = () => {
   const { steps, isLoading } = useDeploymentBuildStepsQuery();
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<string | number>>(new Set());
 
   // Enrich steps with expansion state for chevron rendering
   const enrichedSteps = steps.map((step) => ({

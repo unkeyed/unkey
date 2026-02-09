@@ -4,6 +4,7 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Layers3 } from "@unkey/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@unkey/ui";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Section } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";
 import { useProject } from "../../../../../layout-provider";
@@ -28,11 +29,16 @@ export function DeploymentLogsSection() {
 
   // During build phase, default to "Build logs" and disable "Logs" tab
   const isBuildPhase = deploymentStatus === "building";
-  const defaultTab = isBuildPhase ? "build-logs" : "sentinel";
+
+  const [tab, setTab] = useState(isBuildPhase ? "build-logs" : "sentinel");
+
+  useEffect(() => {
+    setTab(isBuildPhase ? "build-logs" : "sentinel");
+  }, [isBuildPhase]);
 
   return (
     <Section>
-      <Tabs defaultValue={defaultTab}>
+      <Tabs value={tab} onValueChange={setTab}>
         <div className="flex items-center gap-2.5 py-1.5 px-2">
           <Layers3 iconSize="md-regular" className="text-gray-9" />
           <TabsList className="bg-gray-3">

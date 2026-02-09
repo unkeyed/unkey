@@ -82,11 +82,11 @@ export type VirtualTableProps<TTableData> = {
   /**
    * Expansion support - controlled state of expanded row IDs
    */
-  expandedIds?: Set<string>;
+  expandedIds?: Set<string | number>;
   /**
    * Callback when expansion state changes
    */
-  onExpandedChange?: (expandedIds: Set<string>) => void;
+  onExpandedChange?: (expandedIds: Set<string | number>) => void;
   /**
    * Render function for expanded row content
    */
