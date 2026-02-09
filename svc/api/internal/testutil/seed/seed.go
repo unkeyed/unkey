@@ -196,6 +196,8 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		sentinelConfig = req.SentinelConfig
 	}
 
+	now := time.Now().UnixMilli()
+
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
 		ID:             req.ID,
 		WorkspaceID:    req.WorkspaceID,
@@ -203,8 +205,34 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Slug:           req.Slug,
 		Description:    req.Description,
 		SentinelConfig: sentinelConfig,
-		CreatedAt:      time.Now().UnixMilli(),
+		CreatedAt:      now,
 		UpdatedAt:      sql.NullInt64{Int64: 0, Valid: false},
+	})
+	require.NoError(s.t, err)
+
+	err = db.Query.UpsertEnvironmentRuntimeSettings(ctx, s.DB.RW(), db.UpsertEnvironmentRuntimeSettingsParams{
+		ID:             uid.New(uid.EnvironmentRuntimeSettingsPrefix),
+		WorkspaceID:    req.WorkspaceID,
+		EnvironmentID:  req.ID,
+		Port:           8080,
+		CpuMillicores:  256,
+		MemoryMib:      256,
+		Command:        dbtype.StringSlice{},
+		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		RegionConfig:   dbtype.RegionConfig{},
+		RestartPolicy:  db.EnvironmentRuntimeSettingsRestartPolicyAlways,
+		ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
+		CreatedAt:      now,
+	})
+	require.NoError(s.t, err)
+
+	err = db.Query.UpsertEnvironmentBuildSettings(ctx, s.DB.RW(), db.UpsertEnvironmentBuildSettingsParams{
+		ID:            uid.New(uid.EnvironmentBuildSettingsPrefix),
+		WorkspaceID:   req.WorkspaceID,
+		EnvironmentID: req.ID,
+		Dockerfile:    "Dockerfile",
+		DockerContext: ".",
+		CreatedAt:     now,
 	})
 	require.NoError(s.t, err)
 
@@ -220,7 +248,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Description:      req.Description,
 		SentinelConfig:   sentinelConfig,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
-		CreatedAt:        time.Now().UnixMilli(),
+		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
 	}
 }
