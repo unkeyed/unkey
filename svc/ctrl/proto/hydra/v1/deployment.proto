@@ -2,7 +2,6 @@ syntax = "proto3";
 package hydra.v1;
 
 import "dev/restate/sdk/go.proto";
-import "hydra/v1/certificate.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 

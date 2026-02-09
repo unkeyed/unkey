@@ -72,6 +72,6 @@ jobs:
           curl -sf -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
-            -H "idempotency-key: github-$(date -u +'%Y-%m-%d')" \
+            -H "idempotency-key: scale-down-idle-$(date -u +'%Y-%m-%dT%H:%M')" \
             "${RESTATE_URL}/hydra.v1.DeploymentService/global/ScaleDownIdleDeployments/send" \
             -d '{}'
