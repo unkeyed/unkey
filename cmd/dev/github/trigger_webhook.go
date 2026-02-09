@@ -15,6 +15,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/runner"
 )
 
 type installationPayload struct {
@@ -27,10 +28,26 @@ type repositoryPayload struct {
 }
 
 type pushPayload struct {
-	Ref          string               `json:"ref"`
-	After        string               `json:"after"`
+	Ref          string              `json:"ref"`
+	After        string              `json:"after"`
 	Installation installationPayload `json:"installation"`
 	Repository   repositoryPayload   `json:"repository"`
+}
+
+var result struct {
+	ID int64 `json:"id"`
+}
+
+type Service struct {
+	db db.Database
+}
+
+type Config struct {
+	DB db.Database
+}
+
+func New(cfg Config) (*Service, error) {
+	return &Service{db: cfg.DB}, nil
 }
 
 var Cmd = &cli.Command{
@@ -68,6 +85,23 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	webhookSecret := cmd.String("webhook-secret")
 	databaseURL := cmd.String("database-url")
 
+	r := runner.New()
+	defer r.Recover()
+
+	database, err := db.New(db.Config{
+		PrimaryDSN:  databaseURL,
+		ReadOnlyDSN: "",
+	})
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+	r.Defer(database.Close)
+
+	svc, err := New(Config{DB: database})
+	if err != nil {
+		return fmt.Errorf("failed to create service: %w", err)
+	}
+
 	// Fetch repository ID from GitHub API
 	fmt.Printf("Fetching repository ID for %s...\n", repository)
 	repositoryID, err := fetchRepositoryID(ctx, repository)
@@ -83,7 +117,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 
 	// Ensure github_repo_connection exists
 	fmt.Println("Ensuring GitHub connection exists in database...")
-	if err := ensureGithubConnection(ctx, databaseURL, projectID, installationID, repositoryID, repository); err != nil {
+	if err := svc.ensureGithubConnection(ctx, projectID, installationID, repositoryID, repository); err != nil {
 		return fmt.Errorf("failed to create GitHub connection: %w", err)
 	}
 	fmt.Println("✔ GitHub connection ready")
@@ -183,20 +217,9 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	}
 }
 
-func ensureGithubConnection(ctx context.Context, databaseURL, projectID string, installationID, repositoryID int64, repository string) error {
-	database, err := db.New(db.Config{
-		PrimaryDSN:  databaseURL,
-		ReadOnlyDSN: "",
-	})
-	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
-	}
-	defer func() {
-		_ = database.Close()
-	}()
-
+func (s *Service) ensureGithubConnection(ctx context.Context, projectID string, installationID, repositoryID int64, repository string) error {
 	// Try to insert, ignore if already exists
-	err = db.Query.InsertGithubRepoConnection(ctx, database.RW(), db.InsertGithubRepoConnectionParams{
+	err := db.Query.InsertGithubRepoConnection(ctx, s.db.RW(), db.InsertGithubRepoConnectionParams{
 		ProjectID:          projectID,
 		InstallationID:     installationID,
 		RepositoryID:       repositoryID,
@@ -230,21 +253,23 @@ func fetchRepositoryID(ctx context.Context, repository string) (int64, error) {
 		_ = resp.Body.Close()
 	}()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		if resp.StatusCode == http.StatusNotFound {
-			return 0, fmt.Errorf("repository not found: %s\n\nThis tool only works with public repositories. If '%s' is private, make it public or use the actual repository ID directly", repository, repository)
-		}
-		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			return 0, fmt.Errorf("authentication required to access repository: %s\n\nThis tool only works with public repositories", repository)
-		}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// handled below
+	case http.StatusNotFound:
+		return 0, fmt.Errorf("repository not found: %s\n\nThis tool only works with public repositories. If '%s' is private, make it public or use the actual repository ID directly", repository, repository)
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return 0, fmt.Errorf("authentication required to access repository: %s\n\nThis tool only works with public repositories", repository)
+	default:
 		return 0, fmt.Errorf("GitHub API returned %d: %s", resp.StatusCode, string(body))
 	}
 
-	var result struct {
-		ID int64 `json:"id"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(body, &result); err != nil {
 		return 0, fmt.Errorf("failed to parse response: %w", err)
 	}
 

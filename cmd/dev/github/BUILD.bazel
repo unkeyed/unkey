@@ -11,5 +11,6 @@ go_library(
     deps = [
         "//pkg/cli",
         "//pkg/db",
+        "//pkg/runner",
     ],
 )
