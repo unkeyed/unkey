@@ -119,6 +119,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           <table className={tableClassName}>
             <colgroup>
               {columns.map((_, idx) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave
                 <col key={idx} style={{ width: colWidths[idx].width }} />
               ))}
             </colgroup>
@@ -163,6 +164,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           <table className={tableClassName}>
             <colgroup>
               {columns.map((_, idx) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave
                 <col key={idx} style={{ width: colWidths[idx].width }} />
               ))}
             </colgroup>

@@ -22,10 +22,6 @@ type LogEntry = {
 
 type LogFilter = "all" | "warnings" | "errors";
 
-type UseDeploymentLogsProps = {
-  deploymentId: string | null;
-};
-
 type UseDeploymentLogsReturn = {
   logFilter: LogFilter;
   searchTerm: string;
@@ -47,9 +43,7 @@ type UseDeploymentLogsReturn = {
   scrollRef: React.MutableRefObject<HTMLDivElement>;
 };
 
-export function useDeploymentLogs({
-  deploymentId,
-}: UseDeploymentLogsProps): UseDeploymentLogsReturn {
+export function useDeploymentLogs(): UseDeploymentLogsReturn {
   const [logFilter, setLogFilter] = useState<LogFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
