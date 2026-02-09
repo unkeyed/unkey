@@ -31,13 +31,6 @@ type TimeseriesData = {
   [key: string]: unknown;
 };
 
-export type ChartMouseEvent = {
-  activeLabel?: string | number;
-  activePayload?: ReadonlyArray<{
-    payload: TimeseriesData;
-  }>;
-};
-
 type LogsTimeseriesBarChartProps = {
   data?: TimeseriesData[];
   config: ChartConfig;
@@ -67,6 +60,16 @@ export function LogsTimeseriesBarChart({
     end: undefined,
   });
 
+  // Track if we're currently dragging for selection
+  const isDragging = useRef(false);
+  const dragStartData = useRef<{ index: number; timestamp: number } | null>(null);
+
+  // Ref to track latest selection for closure-safe access in handleMouseUp
+  const selectionRef = useRef(selection);
+  useEffect(() => {
+    selectionRef.current = selection;
+  }, [selection]);
+
   // Precompute timestamp-to-index mapping for O(1) lookup
   const timestampToIndexMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -90,64 +93,108 @@ export function LogsTimeseriesBarChart({
     }
   }, [onMount, isLoading, isError]);
 
-  const handleMouseDown = (e: ChartMouseEvent) => {
-    if (!enableSelection || e.activeLabel === undefined) {
+  // Helper to find data point from x coordinate
+  const getDataPointFromEvent = (
+    event: React.MouseEvent | MouseEvent,
+    container: HTMLDivElement,
+  ): { index: number; timestamp: number } | null => {
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const width = rect.width;
+    const relativeX = x / width;
+    const index = Math.floor(relativeX * data.length);
+
+    if (index >= 0 && index < data.length) {
+      const timestamp = data[index]?.originalTimestamp;
+      if (timestamp !== undefined) {
+        return { index, timestamp };
+      }
+    }
+    return null;
+  };
+
+  // Handle mouse down on container
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!enableSelection || !chartRef.current) {
       return;
     }
 
-    const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
-    const numericLabel = Number(e.activeLabel);
-
-    if (!Number.isFinite(numericLabel) || !timestamp) {
+    const point = getDataPointFromEvent(e, chartRef.current);
+    if (!point) {
       return;
     }
+
+    isDragging.current = true;
+    dragStartData.current = point;
 
     setSelection({
-      start: numericLabel,
-      end: numericLabel,
-      startTimestamp: timestamp,
-      endTimestamp: timestamp,
+      start: point.index,
+      end: point.index,
+      startTimestamp: point.timestamp,
+      endTimestamp: point.timestamp,
     });
   };
 
-  const handleMouseMove = (e: ChartMouseEvent) => {
-    if (!enableSelection || e.activeLabel === undefined) {
+  // Handle mouse move on container
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!enableSelection || !isDragging.current || !dragStartData.current || !chartRef.current) {
       return;
     }
-    if (selection.start !== undefined) {
-      const timestamp = e.activePayload?.[0]?.payload?.originalTimestamp;
-      const numericLabel = Number(e.activeLabel);
 
-      if (!Number.isFinite(numericLabel) || !timestamp) {
-        return;
-      }
-
-      setSelection((prev) => ({
-        ...prev,
-        end: numericLabel,
-        endTimestamp: timestamp,
-      }));
+    const point = getDataPointFromEvent(e, chartRef.current);
+    if (!point) {
+      return;
     }
+
+    setSelection((prev) => ({
+      ...prev,
+      end: point.index,
+      endTimestamp: point.timestamp,
+    }));
   };
 
+  // Handle mouse up to finalize selection
   const handleMouseUp = () => {
     if (!enableSelection) {
       return;
     }
-    if (selection.start !== undefined && selection.end !== undefined && onSelectionChange) {
-      if (selection.startTimestamp === undefined || selection.endTimestamp === undefined) {
-        return;
-      }
 
-      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
-      onSelectionChange({ start, end });
+    const currentSelection = selectionRef.current;
+    if (
+      currentSelection.start !== undefined &&
+      currentSelection.end !== undefined &&
+      onSelectionChange
+    ) {
+      if (
+        currentSelection.startTimestamp !== undefined &&
+        currentSelection.endTimestamp !== undefined
+      ) {
+        const [start, end] = [currentSelection.startTimestamp, currentSelection.endTimestamp].sort(
+          (a, b) => a - b,
+        );
+        onSelectionChange({ start, end });
+      }
     }
+
+    isDragging.current = false;
+    dragStartData.current = null;
     setSelection({
       start: undefined,
       end: undefined,
       startTimestamp: undefined,
       endTimestamp: undefined,
     });
+  };
+
+  // Handle mouse leave to cancel selection
+  const handleMouseLeave = () => {
+    if (isDragging.current) {
+      handleMouseUp();
+    }
   };
 
   if (isError) {
@@ -159,8 +206,16 @@ export function LogsTimeseriesBarChart({
   }
 
   return (
-    <div className="w-full relative" ref={chartRef} style={{ height: `${height}px` }}>
-      <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between pointer-events-none">
+    <div
+      ref={chartRef}
+      className="w-full relative"
+      style={{ height: `${height}px` }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between pointer-events-none z-10">
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
@@ -181,10 +236,11 @@ export function LogsTimeseriesBarChart({
           data={data}
           margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
           barCategoryGap={0.5}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          // Disable recharts' built-in event handling by using empty handlers
+          onMouseDown={() => {}}
+          onMouseMove={() => {}}
+          onMouseUp={() => {}}
+          onMouseLeave={() => {}}
         >
           <YAxis domain={[0, (dataMax: number) => dataMax * 1.5]} hide />
           <ChartTooltip
