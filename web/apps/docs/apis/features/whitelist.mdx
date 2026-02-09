@@ -1,14 +1,95 @@
 ---
 title: IP Whitelisting 
-description: 'Unkey offers IP whitelisting to restrict requests to a specific set of IP addresses.'
+description: 'Restrict API key usage to specific IP addresses'
 ---
 
-This is useful for restricting access to your API to a specific set of IP addresses, such as your own servers or a set of trusted partners.
+IP whitelisting lets you restrict which IP addresses can use a key. Even with a valid key, requests from non-whitelisted IPs are rejected.
 
 <Note>
-  This feature is available as an addon or with an Enterprise plan.
+This feature is available as an addon or with an Enterprise plan. [Contact us](https://unkey.com/contact) to enable it.
 </Note>
 
-<Frame caption="IP Whitelisting">
+## When to use this
+
+<CardGroup cols={2}>
+  <Card title="Server-to-server APIs" icon="server">
+    Keys should only work from your customer's known server IPs.
+  </Card>
+  <Card title="Partner integrations" icon="handshake">
+    Restrict partner keys to their office or datacenter IPs.
+  </Card>
+  <Card title="Internal tools" icon="building">
+    Ensure internal API keys only work from corporate network.
+  </Card>
+  <Card title="Compliance" icon="shield-check">
+    Meet security requirements that mandate IP-based access control.
+  </Card>
+</CardGroup>
+
+## How it works
+
+1. Configure allowed IP addresses or CIDR ranges on a key
+2. When the key is verified, Unkey checks the request's source IP
+3. If the IP isn't in the whitelist, verification fails with `code: FORBIDDEN`
+
+<Frame caption="IP Whitelisting Configuration">
   <img src="/images/ip-whitelist.png" alt="IP Whitelist example"/>
 </Frame>
+
+## Configuration
+
+IP whitelisting is configured through the dashboard:
+
+Supports:
+- Individual IPv4 addresses: `192.168.1.100`
+- IPv4 CIDR ranges: `10.0.0.0/8`
+- IPv6 addresses and ranges: `2001:db8::/32`
+
+## Verification response
+
+When a request comes from a non-whitelisted IP:
+
+```json
+{
+  "data": {
+    "valid": false,
+    "code": "FORBIDDEN",
+    "keyId": "key_..."
+  }
+}
+```
+
+## Combining with other security features
+
+IP whitelisting works alongside other key features:
+
+- **Rate limiting**: Still applies after IP check passes
+- **Permissions**: Authorization checks happen after IP verification
+- **Expiration**: Key must be valid AND IP must be whitelisted
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use CIDR ranges for flexibility">
+    Instead of listing individual IPs, use CIDR notation (`10.0.0.0/24`) so customers can add servers without updating the whitelist.
+  </Accordion>
+  
+  <Accordion title="Document for your users">
+    Let users know they need to provide IPs when requesting keys. Dynamic IPs won't work reliably.
+  </Accordion>
+  
+  <Accordion title="Consider fallback options">
+    For users with dynamic IPs, you might offer keys without IP restrictions but with stricter rate limits.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Rate limiting" icon="gauge" href="/apis/features/ratelimiting/overview">
+    Add another layer of protection
+  </Card>
+  <Card title="Contact sales" icon="message" href="https://unkey.com/contact">
+    Enable IP whitelisting for your account
+  </Card>
+</CardGroup>

@@ -1,91 +1,226 @@
 ---
-title: Usage limited keys
-description: 'Limiting the usage of keys'
+title: Usage Limits (Credits)
+description: 'Cap total API requests per key with automatic enforcement'
 ---
 
-Sometimes you would like to create an api key and automatically invalidate it after a certain number of uses.
+Usage limits let you set a maximum number of requests a key can make. After the limit is reached, the key becomes invalid until you add more credits or reset it. This is different from rate limiting, which controls *frequency* — usage limits control *total volume*.
 
-Example:
-You are selling API access and a customer has purchased 1000 api requests from you.
+## When to use this
 
-Unkey allows you to set/update usage limits on individual keys and we take care of invalidating a key after it has reached its limit.
+<CardGroup cols={2}>
+  <Card title="Pay-per-use APIs" icon="coins">
+    Sell API credits that get consumed with each request. Customer buys 10,000 requests, key stops working at 10,001.
+  </Card>
+  <Card title="Trial/freemium tiers" icon="flask">
+    Give new users 100 free requests to try your API. They upgrade or stop.
+  </Card>
+  <Card title="Subscription quotas" icon="calendar">
+    "Pro plan includes 50,000 requests/month" — combine with [auto-refill](/apis/features/refill) for recurring limits.
+  </Card>
+  <Card title="One-time tokens" icon="ticket">
+    Create a key that works exactly once — like a single-use download link.
+  </Card>
+</CardGroup>
 
+## How it works
 
+1. Create a key with `credits.remaining` set to your limit
+2. Each verification decrements the remaining count
+3. When remaining hits 0, verification fails with `code: USAGE_EXCEEDED`
+4. You can add more credits anytime via the API
 
+## Create a key with usage limits
 
+<CodeGroup>
 
-### Example
-
-Let's create a new key, which can be used 100 times.
-
-```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.createKey \
-  --header 'Authorization: Bearer <ROOT_KEY>' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "apiId": "<API_ID>",
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
     "credits": {
-      "remaining": 100
+      "remaining": 1000
     }
   }'
 ```
 
-Now when you verify the new key, you will receive back the remaining verifications and after all of them are used up, the key is invalid.
+```typescript TypeScript
+import { Unkey } from "@unkey/api";
 
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
-```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.verifyKey \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "key": "<KEY>"
-  }'
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_...",
+    remaining: 1000,
+  });
+
+  console.log(data.keyId); // Give this key to your user
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
+
+</CodeGroup>
+
+## Verification response
+
+When you verify a key with usage limits, the response includes the current credit count:
 
 ```json
 {
-  "meta": {
-    "requestId": "req_abc123def456"
-  },
+  "meta": { "requestId": "req_..." },
   "data": {
     "valid": true,
     "code": "VALID",
-    "keyId": "<KEY_ID>",
-    "credits": 99
+    "keyId": "key_...",
+    "credits": 999
   }
 }
 ```
 
-
 <Note>
-The returned `credits` value represents how many verifications are remaining after the current one.
-A value of 3, means you can verify the key successfully 3 more times.
+The `credits` value shows remaining credits **after** this verification. A value of `999` means the key can be verified 999 more times.
 </Note>
 
+When credits are exhausted:
 
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "valid": false,
+    "code": "USAGE_EXCEEDED",
+    "keyId": "key_...",
+    "credits": 0
+  }
+}
+```
 
-## Custom cost
+## Custom cost per request
 
-By default we deduct `1` from the remaining verifications, but in some cases you need to deduct more.
+By default, each verification costs 1 credit. But some operations should cost more — maybe a complex query costs 10 credits while a simple lookup costs 1.
 
-You can override this in the request body. In this example unkey would deduct `4` for every valid verification.
-If a key would only have 3 remaining, the request would be rejected, as there is not enough remaining left.
+Specify the cost at verification time:
 
+<CodeGroup>
 
-<Note>
-  There is a special case when you set `cost = 0`. In this case, the request will always be valid, but will not deduct anything.
-
-</Note>
-
-```bash {6-8}
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.verifyKey \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "key": "<KEY>",
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "sk_...",
     "credits": {
-      "cost": 4
+      "cost": 10
     }
   }'
 ```
+
+```typescript TypeScript
+try {
+  const { meta, data } = await verifyKey({
+    key: "sk_...",
+    apiId: "api_...",
+    cost: 10,  // Deduct 10 credits for this request
+  });
+
+  if (!data.valid) {
+    return Response.json({ error: data.code }, { status: 401 });
+  }
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+</CodeGroup>
+
+<Warning>
+If the key doesn't have enough remaining credits, the verification fails. A key with 5 remaining credits will reject a request with `cost: 10`.
+</Warning>
+
+### Cost of 0 (check without consuming)
+
+Set `cost: 0` to verify a key without consuming any credits. Useful for checking key validity or metadata without affecting the balance.
+
+```json
+{
+  "key": "sk_...",
+  "credits": { "cost": 0 }
+}
+```
+
+## Add more credits
+
+When a user purchases more credits or you need to refill manually:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.updateCredits \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "operation": "increment",
+    "value": 5000
+  }'
+```
+
+```typescript TypeScript
+try {
+  const { meta, data } = await unkey.keys.updateCredits({
+    keyId: "key_...",
+    operation: "increment",
+    value: 5000,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+</CodeGroup>
+
+Operations available:
+- `set` — Set credits to an exact value
+- `increment` — Add credits to current balance
+- `decrement` — Subtract credits from current balance
+
+## Remove usage limits
+
+To make a key unlimited again, set credits to `null`:
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "credits": null
+  }'
+```
+
+## Usage limits vs rate limits
+
+| Feature | Usage Limits | Rate Limits |
+|---------|--------------|-------------|
+| What it controls | Total requests ever | Requests per time window |
+| Resets automatically? | No (unless using refill) | Yes, after window expires |
+| Use case | Billing, quotas, trials | Abuse protection, fair usage |
+| Example | "1000 requests total" | "100 requests per minute" |
+
+**Use both together:** Rate limits protect against burst abuse, usage limits enforce billing quotas.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Auto-refill" icon="arrows-rotate" href="/apis/features/refill">
+    Automatically reset credits on a schedule (daily, monthly)
+  </Card>
+  <Card title="Rate limiting" icon="gauge-high" href="/apis/features/ratelimiting/overview">
+    Control request frequency, not just total volume
+  </Card>
+</CardGroup>

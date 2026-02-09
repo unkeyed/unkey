@@ -44,7 +44,7 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the workspace Stripe customer. Please try again or contact support@unkey.dev",
+            "We are unable to update the workspace Stripe customer. Please try again or contact support@unkey.com",
         });
       });
     // Invalidate workspace cache after successful update

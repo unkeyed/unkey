@@ -23,7 +23,7 @@ export const RoleWarningCallout = ({ count, type }: RoleWarningCalloutProps) => 
           className="underline"
           target="_blank"
           rel="noopener noreferrer"
-          href="https://www.unkey.com/docs/api-reference/overview"
+          href="https://www.unkey.com/docs/api-reference/v2/overview"
           label="API"
         />{" "}
         or {settingsText} to manage these assignments.

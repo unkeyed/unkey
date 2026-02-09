@@ -25,6 +25,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
@@ -73,7 +74,7 @@ func (w *Workflow) buildDockerImageFromGit(
 	platform := w.buildPlatform.Platform
 	architecture := w.buildPlatform.Architecture
 
-	w.logger.Info("Starting git build process",
+	logger.Info("Starting git build process",
 		"repository", params.Repository,
 		"commit_sha", params.CommitSHA,
 		"project_id", params.ProjectID,
@@ -87,7 +88,7 @@ func (w *Workflow) buildDockerImageFromGit(
 		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
 	}
 
-	w.logger.Info("Creating depot build",
+	logger.Info("Creating depot build",
 		"depot_project_id", depotProjectID,
 		"project_id", params.ProjectID)
 
@@ -115,12 +116,12 @@ func (w *Workflow) buildDockerImageFromGit(
 		}
 		defer func() { depotBuild.Finish(err) }()
 
-		w.logger.Info("Depot build created",
+		logger.Info("Depot build created",
 			"build_id", depotBuild.ID,
 			"depot_project_id", depotProjectID,
 			"project_id", params.ProjectID)
 
-		w.logger.Info("Acquiring build machine",
+		logger.Info("Acquiring build machine",
 			"build_id", depotBuild.ID,
 			"architecture", architecture,
 			"project_id", params.ProjectID)
@@ -131,11 +132,11 @@ func (w *Workflow) buildDockerImageFromGit(
 		}
 		defer func() {
 			if releaseErr := buildkit.Release(); releaseErr != nil {
-				w.logger.Error("unable to release buildkit", "error", releaseErr)
+				logger.Error("unable to release buildkit", "error", releaseErr)
 			}
 		}()
 
-		w.logger.Info("Build machine acquired, connecting to buildkit",
+		logger.Info("Build machine acquired, connecting to buildkit",
 			"build_id", depotBuild.ID,
 			"project_id", params.ProjectID)
 
@@ -145,7 +146,7 @@ func (w *Workflow) buildDockerImageFromGit(
 		}
 		defer func() {
 			if closeErr := buildClient.Close(); closeErr != nil {
-				w.logger.Error("unable to close client", "error", closeErr)
+				logger.Error("unable to close client", "error", closeErr)
 			}
 		}()
 
@@ -171,7 +172,7 @@ func (w *Workflow) buildDockerImageFromGit(
 			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", params.Repository, params.CommitSHA, contextPath)
 		}
 
-		w.logger.Info("Starting build execution",
+		logger.Info("Starting build execution",
 			"image_name", imageName,
 			"dockerfile", dockerfilePath,
 			"platform", platform,
@@ -197,7 +198,7 @@ func (w *Workflow) buildDockerImageFromGit(
 			return nil, fmt.Errorf("build failed: %w", err)
 		}
 
-		w.logger.Info("Build completed successfully")
+		logger.Info("Build completed successfully")
 
 		return &buildResult{
 			ImageName:      imageName,
@@ -302,7 +303,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 
 	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
 	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
-		w.logger.Info(
+		logger.Info(
 			"Returning existing depot project",
 			"depot_project_id", project.DepotProjectID,
 			"project_id", unkeyProjectID,
@@ -348,7 +349,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		return "", fmt.Errorf("failed to update depot_project_id: %w", err)
 	}
 
-	w.logger.Info("Created new Depot project",
+	logger.Info("Created new Depot project",
 		"depot_project_id", depotProjectID,
 		"project_id", unkeyProjectID,
 		"project_name", projectName)
@@ -372,7 +373,7 @@ func (w *Workflow) processBuildStatus(
 
 		for _, vertex := range status.Vertexes {
 			if vertex == nil {
-				w.logger.Warn("vertex is nil")
+				logger.Warn("vertex is nil")
 				continue
 			}
 			if vertex.Completed != nil && !completed[vertex.Digest] {

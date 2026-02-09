@@ -19,7 +19,6 @@ func TestBadRequests(t *testing.T) {
 	route := &handler.Handler{
 		DB:                      h.DB,
 		Keys:                    h.Keys,
-		Logger:                  h.Logger,
 		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 	}
 

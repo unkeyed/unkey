@@ -11,7 +11,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/assert",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/otel/tracing",
         "@com_github_redis_go_redis_v9//:go-redis",
     ],
@@ -24,7 +24,6 @@ go_test(
     embed = [":counter"],
     deps = [
         "//pkg/dockertest",
-        "//pkg/otel/logging",
         "//pkg/uid",
         "@com_github_stretchr_testify//require",
     ],

@@ -31,7 +31,6 @@ func TestUpdateKeySuccess(t *testing.T) {
 	route := &handler.Handler{
 		DB:           h.DB,
 		Keys:         h.Keys,
-		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -135,7 +134,6 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	route := &handler.Handler{
 		DB:           h.DB,
 		Keys:         h.Keys,
-		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -210,7 +208,6 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		Logger:       h.Logger,
 		DB:           h.DB,
 		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
@@ -293,7 +290,6 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	route := &handler.Handler{
 		DB:           h.DB,
 		Keys:         h.Keys,
-		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -380,7 +376,6 @@ func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 	route := &handler.Handler{
 		DB:           h.DB,
 		Keys:         h.Keys,
-		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,

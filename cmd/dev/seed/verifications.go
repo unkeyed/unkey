@@ -16,7 +16,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -40,13 +39,10 @@ var verificationsCmd = &cli.Command{
 const chunkSize = 50_000
 
 func seedVerifications(ctx context.Context, cmd *cli.Command) error {
-	logger := logging.New()
-
 	// Connect to MySQL
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -54,8 +50,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 
 	// Connect to ClickHouse
 	ch, err := clickhouse.New(clickhouse.Config{
-		URL:    cmd.String("clickhouse-url"),
-		Logger: logger,
+		URL: cmd.String("clickhouse-url"),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
@@ -63,7 +58,6 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 
 	// Create key service for proper key generation
 	keyService, err := keys.New(keys.Config{
-		Logger:       logger,
 		DB:           database,
 		RateLimiter:  nil,
 		RBAC:         nil,

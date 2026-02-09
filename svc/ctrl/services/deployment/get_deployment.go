@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // GetDeployment retrieves a deployment by ID including its current status,
@@ -24,7 +25,7 @@ func (s *Service) GetDeployment(
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, err)
 		}
-		s.logger.Error("failed to load deployment", "error", err, "deployment_id", req.Msg.GetDeploymentId())
+		logger.Error("failed to load deployment", "error", err, "deployment_id", req.Msg.GetDeploymentId())
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment"))
 	}
 
@@ -76,7 +77,7 @@ func (s *Service) GetDeployment(
 	// Fetch routes (fqdns) for this deployment
 	routes, err := db.Query.FindFrontlineRoutesByDeploymentID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
 	if err != nil {
-		s.logger.Warn("failed to fetch frontline routes for deployment", "error", err, "deployment_id", deployment.ID)
+		logger.Warn("failed to fetch frontline routes for deployment", "error", err, "deployment_id", deployment.ID)
 		// Continue without fqdns rather than failing the entire request
 	} else {
 		fqdns := make([]string, len(routes))

@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // ClusterCache wraps a local cache and automatically handles distributed invalidation
@@ -21,7 +21,6 @@ type ClusterCache[K comparable, V any] struct {
 	producer       eventstream.Producer[*cachev1.CacheInvalidationEvent]
 	cacheName      string
 	nodeID         string
-	logger         logging.Logger
 	keyToString    func(K) string
 	stringToKey    func(string) (K, error)
 	onInvalidation func(ctx context.Context, key K)
@@ -41,9 +40,6 @@ type Config[K comparable, V any] struct {
 	// Dispatcher routes invalidation events to this cache
 	// Required for receiving invalidations from other nodes
 	Dispatcher *InvalidationDispatcher
-
-	// Logger for debugging and error reporting
-	Logger logging.Logger
 
 	// Optional node ID (defaults to hostname)
 	NodeID string
@@ -101,7 +97,6 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 		topic:          config.Topic,
 		cacheName:      config.LocalCache.Name(),
 		nodeID:         config.NodeID,
-		logger:         config.Logger,
 		keyToString:    keyToString,
 		stringToKey:    stringToKey,
 		onInvalidation: func(ctx context.Context, key K) {
@@ -124,7 +119,7 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 		Flush: func(ctx context.Context, events []*cachev1.CacheInvalidationEvent) {
 			err := c.producer.Produce(ctx, events...)
 			if err != nil {
-				c.logger.Error("Failed to broadcast cache invalidations",
+				logger.Error("Failed to broadcast cache invalidations",
 					"error", err,
 					"cache", c.cacheName,
 					"event_count", len(events))
@@ -257,7 +252,7 @@ func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cach
 	// Convert string key back to K type
 	key, err := c.stringToKey(event.GetCacheKey())
 	if err != nil {
-		c.logger.Warn(
+		logger.Warn(
 			"Failed to convert cache key",
 			"cache", c.cacheName,
 			"key", event.GetCacheKey(),

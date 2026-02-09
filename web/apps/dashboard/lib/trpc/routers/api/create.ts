@@ -23,7 +23,7 @@ export const createApi = workspaceProcedure
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to create the API. Please try again or contact support@unkey.dev",
+        message: "We are unable to create the API. Please try again or contact support@unkey.com",
       });
     }
   });

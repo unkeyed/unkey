@@ -1,56 +1,112 @@
 ---
 title: Disabling Keys
-description: "Enable or disable a key. Disabled keys will not validate."
+description: "Temporarily disable keys without deleting them"
 ---
 
-This feature is useful for disabling a key temporarily. While disabled the key will act as an invalid key. 
+Disabling a key makes it invalid for verification without permanently deleting it. The key can be re-enabled at any time, restoring full access.
 
-Example:
-Suppose you have a customer that has not paid their bill. You may not want to delete the key and wait for the account balance to be current. The key can be disabled temporarily, preventing access until it is enabled.
+## When to use this
 
-Unkey allows you to disable a key on an individual basis. 
+<CardGroup cols={2}>
+  <Card title="Payment issues" icon="credit-card">
+    Customer's payment failed — disable their key until billing is resolved.
+  </Card>
+  <Card title="Suspicious activity" icon="shield-exclamation">
+    Investigate potential abuse without losing the key's configuration.
+  </Card>
+  <Card title="Scheduled maintenance" icon="wrench">
+    Temporarily block access during system updates.
+  </Card>
+  <Card title="Account suspension" icon="user-slash">
+    Suspend a user's API access while keeping their key for potential reactivation.
+  </Card>
+</CardGroup>
 
-### Example
+## Disable a key
 
-Let's disable a key temperarily blocking access with that key. 
+<CodeGroup>
 
-```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.updateKey \
-  --header 'Authorization: Bearer <ROOT_KEY>' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "keyId": "<KEY_ID>",
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
     "enabled": false
   }'
 ```
 
-Now, when you verify the updated key it will show as invalid.
+```typescript TypeScript
+import { Unkey } from "@unkey/api";
 
-```bash
-curl --request POST \
-  --url https://api.unkey.com/v2/keys.verifyKey \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "key": "<KEY>"
-  }'
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+try {
+  const { meta, data } = await unkey.keys.update({
+    keyId: "key_...",
+    enabled: false,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
 ```
 
+</CodeGroup>
+
+## Verification response
+
+When a disabled key is verified, it returns `valid: false` with code `DISABLED`:
 
 ```json
 {
-  "meta": {
-    "requestId": "req_abc123def456"
-  },
+  "meta": { "requestId": "req_..." },
   "data": {
     "valid": false,
-    "keyId": "<KEY_ID>",
-    "enabled": false,
-    "code": "DISABLED"
+    "code": "DISABLED",
+    "keyId": "key_...",
+    "enabled": false
   }
 }
 ```
 
-<Note>
-  The returned `enabled` value can be changed with the updateKey endpoint to re-enable the key. 
-</Note>
+## Re-enable a key
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "enabled": true
+  }'
+```
+
+```typescript TypeScript
+try {
+  const { meta, data } = await unkey.keys.update({
+    keyId: "key_...",
+    enabled: true,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+</CodeGroup>
+
+## Disabled vs Deleted
+
+| Action | Disabled | Deleted |
+|--------|----------|---------|
+| Key verifies? | ❌ No (`code: DISABLED`) | ❌ No (`code: NOT_FOUND`) |
+| Can be restored? | ✅ Yes | ❌ No |
+| Keeps configuration? | ✅ Yes | ❌ No |
+| Keeps analytics? | ✅ Yes | ⚠️ Limited |
+
+<Tip>
+Use disabling for temporary blocks. Only delete keys when you're sure the user won't need them again.
+</Tip>

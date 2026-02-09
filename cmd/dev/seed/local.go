@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -33,19 +33,15 @@ var localCmd = &cli.Command{
 }
 
 func seedLocal(ctx context.Context, cmd *cli.Command) error {
-	logger := logging.New()
-
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
 
 	keyService, err := keys.New(keys.Config{
-		Logger:       logger,
 		DB:           database,
 		RateLimiter:  nil,
 		RBAC:         nil,

@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
@@ -26,8 +25,6 @@ import (
 // it is explicitly rotated.
 func TestReuseDEKsForSameKeyring(t *testing.T) {
 
-	logger := logging.NewNoop()
-
 	s3 := dockertest.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
@@ -35,7 +32,6 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
@@ -46,7 +42,6 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
-		Logger:      logger,
 		MasterKeys:  []string{masterKey},
 		BearerToken: bearer,
 	})
@@ -78,8 +73,6 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 // affect other keyrings.
 func TestIndividualDEKsPerKeyring(t *testing.T) {
 
-	logger := logging.NewNoop()
-
 	s3 := dockertest.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
@@ -87,7 +80,6 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
@@ -97,7 +89,6 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
-		Logger:      logger,
 		MasterKeys:  []string{masterKey},
 		BearerToken: bearer,
 	})

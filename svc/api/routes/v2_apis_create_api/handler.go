@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -24,7 +23,6 @@ type Request = openapi.V2ApisCreateApiRequestBody
 type Response = openapi.V2ApisCreateApiResponseBody
 
 type Handler struct {
-	Logger    logging.Logger
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService

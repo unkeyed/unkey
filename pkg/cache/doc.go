@@ -13,7 +13,6 @@
 //	    Fresh:    time.Minute,    // Items considered fresh for 1 minute
 //	    Stale:    time.Hour,      // Items can be served stale for up to 1 hour
 //	    MaxSize:  10000,          // Store up to 10,000 items
-//	    Logger:   logger,
 //	    Resource: "users",        // For metrics and logging
 //	})
 //

@@ -24,7 +24,7 @@ export async function upsertPermission(
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to upsert the permission. Please try again or contact support@unkey.dev",
+            "We are unable to upsert the permission. Please try again or contact support@unkey.com",
         });
       });
 
@@ -49,7 +49,7 @@ export async function upsertPermission(
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to upsert the permission. Please try again or contact support@unkey.dev.",
+            "We are unable to upsert the permission. Please try again or contact support@unkey.com.",
         });
       });
     await insertAuditLogs(tx, {
@@ -73,7 +73,7 @@ export async function upsertPermission(
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "We are unable to upsert the permission. Please try again or contact support@unkey.dev",
+          "We are unable to upsert the permission. Please try again or contact support@unkey.com",
       });
     });
 

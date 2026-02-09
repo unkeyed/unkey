@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func TestParser_ErrorCodes(t *testing.T) {
@@ -21,7 +20,6 @@ func TestParser_ErrorCodes(t *testing.T) {
 		{
 			name: "invalid SQL syntax",
 			config: Config{
-				Logger:      logging.NewNoop(),
 				WorkspaceID: "ws_123",
 				AllowedTables: []string{
 					"default.keys_v2",
@@ -34,7 +32,6 @@ func TestParser_ErrorCodes(t *testing.T) {
 		{
 			name: "invalid table",
 			config: Config{
-				Logger:      logging.NewNoop(),
 				WorkspaceID: "ws_123",
 				AllowedTables: []string{
 					"default.keys_v2",
@@ -47,7 +44,6 @@ func TestParser_ErrorCodes(t *testing.T) {
 		{
 			name: "invalid function",
 			config: Config{
-				Logger:      logging.NewNoop(),
 				WorkspaceID: "ws_123",
 				AllowedTables: []string{
 					"default.keys_v2",
@@ -60,7 +56,6 @@ func TestParser_ErrorCodes(t *testing.T) {
 		{
 			name: "query not supported",
 			config: Config{
-				Logger:      logging.NewNoop(),
 				WorkspaceID: "ws_123",
 				AllowedTables: []string{
 					"default.keys_v2",

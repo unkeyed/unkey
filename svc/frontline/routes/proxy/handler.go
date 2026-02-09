@@ -4,14 +4,12 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/services/router"
 )
 
 type Handler struct {
-	Logger        logging.Logger
 	Region        string
 	RouterService router.Service
 	ProxyService  proxy.Service

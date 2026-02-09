@@ -4,13 +4,11 @@ import (
 	"fmt"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 )
 
 type Keyring struct {
-	store  storage.Storage
-	logger logging.Logger
+	store storage.Storage
 
 	// any of these can be used for decryption
 	decryptionKeys map[string]*vaultv1.KeyEncryptionKey
@@ -18,8 +16,7 @@ type Keyring struct {
 }
 
 type Config struct {
-	Store  storage.Storage
-	Logger logging.Logger
+	Store storage.Storage
 
 	DecryptionKeys map[string]*vaultv1.KeyEncryptionKey
 	EncryptionKey  *vaultv1.KeyEncryptionKey
@@ -29,7 +26,6 @@ func New(config Config) (*Keyring, error) {
 
 	return &Keyring{
 		store:          config.Store,
-		logger:         config.Logger,
 		encryptionKey:  config.EncryptionKey,
 		decryptionKeys: config.DecryptionKeys,
 	}, nil

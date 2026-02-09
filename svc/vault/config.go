@@ -1,6 +1,10 @@
 package vault
 
-import "github.com/unkeyed/unkey/pkg/assert"
+import (
+	"time"
+
+	"github.com/unkeyed/unkey/pkg/assert"
+)
 
 type Config struct {
 	// InstanceID is the unique identifier for this instance of the API server
@@ -33,6 +37,14 @@ type Config struct {
 	MasterKeys []string
 	// BearerToken is the authentication token for securing vault operations
 	BearerToken string
+
+	// --- Logging sampler configuration ---
+
+	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
+	LogSampleRate float64
+
+	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
+	LogSlowThreshold time.Duration
 }
 
 func (c Config) Validate() error {

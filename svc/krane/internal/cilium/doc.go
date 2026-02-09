@@ -22,7 +22,6 @@
 //	controller := cilium.New(cilium.Config{
 //	    ClientSet:     clientSet,
 //	    DynamicClient: dynamicClient,
-//	    Logger:        logger,
 //	    Cluster:       clusterClient,
 //	    Region:        "us-east-1",
 //	})

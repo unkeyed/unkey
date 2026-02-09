@@ -17,7 +17,6 @@ go_library(
         "//pkg/clock",
         "//pkg/db",
         "//pkg/eventstream",
-        "//pkg/otel/logging",
         "//pkg/uid",
     ],
 )

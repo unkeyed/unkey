@@ -21,8 +21,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -87,18 +87,14 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	logger := logging.New()
-	if cfg.InstanceID != "" {
-		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
-	}
-	if cfg.Region != "" {
-		logger = logger.With(slog.String("region", cfg.Region))
-	}
-	if version.Version != "" {
-		logger = logger.With(slog.String("version", version.Version))
-	}
+	// Add base attributes to global logger
+	logger.AddBaseAttrs(slog.GroupAttrs("instance",
+		slog.String("id", cfg.InstanceID),
+		slog.String("region", cfg.Region),
+		slog.String("version", version.Version),
+	))
 
-	r := runner.New(logger)
+	r := runner.New()
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
@@ -120,7 +116,6 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: "",
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -135,7 +130,7 @@ func Run(ctx context.Context, cfg Config) error {
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
 			WebhookSecret: "",
-		}, logger)
+		})
 		if ghErr != nil {
 			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
 		}
@@ -148,8 +143,7 @@ func Run(ctx context.Context, cfg Config) error {
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
 		chClient, chErr := clickhouse.New(clickhouse.Config{
-			URL:    cfg.ClickhouseURL,
-			Logger: logger,
+			URL: cfg.ClickhouseURL,
 		})
 		if chErr != nil {
 			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
@@ -158,11 +152,10 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Restate Server
-	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
+	// Restate Server - uses logging.GetHandler() for slog integration
+	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
-		Logger:                          logger,
 		DB:                              database,
 		DefaultDomain:                   cfg.DefaultDomain,
 		Vault:                           vaultClient,
@@ -177,7 +170,6 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
-		Logger:        logger,
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
 	}), restate.WithIngressPrivate(true)))
@@ -186,7 +178,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
 		DB:          database,
-		Logger:      logger,
 		CnameDomain: cfg.CnameDomain,
 	}),
 		// Retry every 1 minute for up to 24 hours (1440 attempts)
@@ -208,7 +199,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
 		MaxSize:  10000,
-		Logger:   logger,
 		Resource: "domains",
 		Clock:    clk,
 	})
@@ -223,7 +213,6 @@ func Run(ctx context.Context, cfg Config) error {
 		// HTTP-01 provider for regular (non-wildcard) domains
 		httpProv, httpErr := providers.NewHTTPProvider(providers.HTTPConfig{
 			DB:          database,
-			Logger:      logger,
 			DomainCache: domainCache,
 		})
 		if httpErr != nil {
@@ -236,7 +225,6 @@ func Run(ctx context.Context, cfg Config) error {
 		if cfg.Acme.Route53.Enabled {
 			r53Provider, r53Err := providers.NewRoute53Provider(providers.Route53Config{
 				DB:              database,
-				Logger:          logger,
 				AccessKeyID:     cfg.Acme.Route53.AccessKeyID,
 				SecretAccessKey: cfg.Acme.Route53.SecretAccessKey,
 				Region:          cfg.Acme.Route53.Region,
@@ -258,7 +246,6 @@ func Run(ctx context.Context, cfg Config) error {
 		certHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.CertRenewalHeartbeatURL)
 	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
-		Logger:        logger,
 		DB:            database,
 		Vault:         vaultClient,
 		EmailDomain:   cfg.Acme.EmailDomain,
@@ -275,8 +262,7 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Warn("ClickhouseUserService disabled: vault not configured")
 	} else {
 		chAdmin, chAdminErr := clickhouse.New(clickhouse.Config{
-			URL:    cfg.ClickhouseAdminURL,
-			Logger: logger,
+			URL: cfg.ClickhouseAdminURL,
 		})
 		if chAdminErr != nil {
 			logger.Warn("ClickhouseUserService disabled: failed to connect to admin",
@@ -287,7 +273,6 @@ func Run(ctx context.Context, cfg Config) error {
 				DB:         database,
 				Vault:      vaultClient,
 				Clickhouse: chAdmin,
-				Logger:     logger,
 			})))
 			logger.Info("ClickhouseUserService enabled")
 		}
@@ -301,7 +286,6 @@ func Run(ctx context.Context, cfg Config) error {
 	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
 		DB:              database,
 		Clickhouse:      ch,
-		Logger:          logger,
 		Heartbeat:       quotaHeartbeat,
 		SlackWebhookURL: cfg.QuotaCheckSlackWebhookURL,
 	})
@@ -376,9 +360,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New(prometheus.Config{
-			Logger: logger,
-		})
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}

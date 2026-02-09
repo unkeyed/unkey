@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/cmd/deploy/internal/ui"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/git"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -103,7 +102,6 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 
 func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	terminal := ui.NewUI()
-	logger := logging.New()
 	gitInfo := git.GetInfo()
 
 	// Auto-detect branch and commit from git if not specified
@@ -151,7 +149,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	// Poll for deployment completion
-	err = controlPlane.PollDeploymentStatus(ctx, logger, deploymentID, onStatusChange)
+	err = controlPlane.PollDeploymentStatus(ctx, deploymentID, onStatusChange)
 	if err != nil {
 		terminal.StopSpinner("Deployment failed", false)
 		return err

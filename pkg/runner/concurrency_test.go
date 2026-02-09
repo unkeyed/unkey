@@ -8,13 +8,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // TestConcurrency_GoIgnoredDuringShutdown verifies that tasks cannot be
 // registered after shutdown has started.
 func TestConcurrency_GoIgnoredDuringShutdown(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	var taskRan atomic.Bool
 
@@ -53,7 +52,7 @@ func TestConcurrency_GoIgnoredDuringShutdown(t *testing.T) {
 // TestConcurrency_Registration verifies that Go and Defer are safe for
 // concurrent use from multiple goroutines.
 func TestConcurrency_Registration(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	const numGoroutines = 10
 	const itemsPerGoroutine = 50
@@ -102,7 +101,7 @@ func TestConcurrency_Registration(t *testing.T) {
 // TestConcurrency_DeferIgnoredDuringShutdown verifies that Defer calls made
 // while shutdown is in progress are silently ignored.
 func TestConcurrency_DeferIgnoredDuringShutdown(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	registered := make(chan struct{})
 	r.DeferCtx(func(ctx context.Context) error {
@@ -139,7 +138,7 @@ func TestConcurrency_DeferIgnoredDuringShutdown(t *testing.T) {
 // TestConcurrency_GoStartsImmediately verifies that Go() starts tasks immediately,
 // not when Run() is called.
 func TestConcurrency_GoStartsImmediately(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	started := make(chan struct{})
 	r.Go(func(ctx context.Context) error {

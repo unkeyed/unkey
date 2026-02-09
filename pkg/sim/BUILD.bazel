@@ -12,7 +12,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/clock",
-        "//pkg/otel/logging",
+        "//pkg/logger",
     ],
 )
 

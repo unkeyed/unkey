@@ -19,8 +19,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -35,7 +35,6 @@ type (
 
 // Handler implements zen.Route interface for the v2 ratelimit multiLimit endpoint
 type Handler struct {
-	Logger                  logging.Logger
 	Keys                    keys.KeyService
 	DB                      db.Database
 	ClickHouse              clickhouse.Bufferer
@@ -116,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			overrides, err := db.UnmarshalNullableJSONTo[[]db.FindRatelimitNamespaceLimitOverride](row.Overrides)
 			if err != nil {
-				h.Logger.Error("failed to unmarshal overrides", "err", err)
+				logger.Error("failed to unmarshal overrides", "err", err)
 			}
 
 			for _, override := range overrides {
@@ -203,7 +202,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		header := s.Request().Header.Get("X-Test-Time")
 		if header != "" {
 			if ts, parseErr := strconv.ParseInt(header, 10, 64); parseErr != nil {
-				h.Logger.Warn("invalid test time", "header", header)
+				logger.Warn("invalid test time", "header", header)
 			} else {
 				reqTime = time.UnixMilli(ts)
 			}

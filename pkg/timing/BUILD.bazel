@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "timing",
+    srcs = [
+        "doc.go",
+        "entry.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/timing",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/zen"],
+)
+
+go_test(
+    name = "timing_test",
+    srcs = ["entry_test.go"],
+    embed = [":timing"],
+    deps = [
+        "//pkg/zen",
+        "@com_github_stretchr_testify//require",
+    ],
+)

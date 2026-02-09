@@ -8,6 +8,7 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
@@ -29,7 +30,7 @@ import (
 // ApplySentinel reports the available replica count back to the control plane after
 // applying, so the platform knows when the sentinel is ready to receive traffic.
 func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
-	c.logger.Info("applying sentinel",
+	logger.Info("applying sentinel",
 		"namespace", NamespaceSentinel,
 		"name", req.GetK8SName(),
 		"sentinel_id", req.GetSentinelId(),
@@ -84,7 +85,7 @@ func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		Health:            health,
 	})
 	if err != nil {
-		c.logger.Error("failed to reconcile sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
+		logger.Error("failed to reconcile sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
 		return err
 	}
 

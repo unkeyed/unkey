@@ -38,7 +38,6 @@ func TestUpdateKeyCorrectPermissions(t *testing.T) {
 			route := &handler.Handler{
 				DB:           h.DB,
 				Keys:         h.Keys,
-				Logger:       h.Logger,
 				Auditlogs:    h.Auditlogs,
 				KeyCache:     h.Caches.VerificationKeyByHash,
 				UsageLimiter: h.UsageLimiter,
@@ -91,7 +90,6 @@ func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 	route := &handler.Handler{
 		DB:           h.DB,
 		Keys:         h.Keys,
-		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -137,7 +135,6 @@ func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 	route := &handler.Handler{
 		DB:           h.DB,
 		Keys:         h.Keys,
-		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,15 +32,15 @@ func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
 		for event := range w.ResultChan() {
 			switch event.Type {
 			case watch.Error:
-				c.logger.Error("error watching sentinel", "event", event.Object)
+				logger.Error("error watching sentinel", "event", event.Object)
 			case watch.Bookmark:
 			case watch.Added, watch.Modified:
 				sentinel, ok := event.Object.(*appsv1.Deployment)
 				if !ok {
-					c.logger.Error("unable to cast object to deployment")
+					logger.Error("unable to cast object to deployment")
 					continue
 				}
-				c.logger.Info("sentinel added/modified", "name", sentinel.Name)
+				logger.Info("sentinel added/modified", "name", sentinel.Name)
 
 				desiredReplicas := int32(0)
 				if sentinel.Spec.Replicas != nil {
@@ -61,22 +62,22 @@ func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
 					Health:            health,
 				})
 				if err != nil {
-					c.logger.Error("error reporting sentinel status", "error", err.Error())
+					logger.Error("error reporting sentinel status", "error", err.Error())
 				}
 			case watch.Deleted:
 				sentinel, ok := event.Object.(*appsv1.Deployment)
 				if !ok {
-					c.logger.Error("unable to cast object to deployment")
+					logger.Error("unable to cast object to deployment")
 					continue
 				}
-				c.logger.Info("sentinel deleted", "name", sentinel.Name)
+				logger.Info("sentinel deleted", "name", sentinel.Name)
 				err := c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
 					K8SName:           sentinel.Name,
 					AvailableReplicas: 0,
 					Health:            ctrlv1.Health_HEALTH_UNHEALTHY,
 				})
 				if err != nil {
-					c.logger.Error("error reporting sentinel status", "error", err.Error())
+					logger.Error("error reporting sentinel status", "error", err.Error())
 				}
 			}
 		}

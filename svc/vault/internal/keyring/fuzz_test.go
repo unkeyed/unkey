@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/fuzz"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"google.golang.org/protobuf/proto"
 )
@@ -35,14 +34,11 @@ func setupTestKeyring(t *testing.T) *Keyring {
 		CreatedAt: time.Now().UnixMilli(),
 	}
 
-	store, err := storage.NewMemory(storage.MemoryConfig{
-		Logger: logging.NewNoop(),
-	})
+	store, err := storage.NewMemory()
 	require.NoError(t, err)
 
 	kr, err := New(Config{
 		Store:         store,
-		Logger:        logging.NewNoop(),
 		EncryptionKey: kek,
 		DecryptionKeys: map[string]*vaultv1.KeyEncryptionKey{
 			kek.GetId(): kek,
@@ -224,14 +220,11 @@ func FuzzDecodeWithWrongKEK(f *testing.F) {
 			kekA.Key[i] = byte(i)
 		}
 
-		storeA, err := storage.NewMemory(storage.MemoryConfig{
-			Logger: logging.NewNoop(),
-		})
+		storeA, err := storage.NewMemory()
 		require.NoError(t, err)
 
 		krA, err := New(Config{
 			Store:         storeA,
-			Logger:        logging.NewNoop(),
 			EncryptionKey: kekA,
 			DecryptionKeys: map[string]*vaultv1.KeyEncryptionKey{
 				kekA.GetId(): kekA,
@@ -249,14 +242,11 @@ func FuzzDecodeWithWrongKEK(f *testing.F) {
 			kekB.Key[i] = byte(255 - i)
 		}
 
-		storeB, err := storage.NewMemory(storage.MemoryConfig{
-			Logger: logging.NewNoop(),
-		})
+		storeB, err := storage.NewMemory()
 		require.NoError(t, err)
 
 		krB, err := New(Config{
 			Store:         storeB,
-			Logger:        logging.NewNoop(),
 			EncryptionKey: kekB,
 			DecryptionKeys: map[string]*vaultv1.KeyEncryptionKey{
 				kekB.GetId(): kekB,
