@@ -8,7 +8,6 @@ const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
-  gitRepositoryUrl: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
   liveDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
@@ -34,7 +33,6 @@ export const createProjectRequestSchema = z.object({
       /^[a-z0-9-]+$/,
       "Project slug must contain only lowercase letters, numbers, and hyphens",
     ),
-  gitRepositoryUrl: z.string().url("Must be a valid URL").trim().nullable().or(z.literal("")),
 });
 
 export type Project = z.infer<typeof schema>;
@@ -56,7 +54,6 @@ export const projects = createCollection<Project>(
       const createInput = createProjectRequestSchema.parse({
         name: changes.name,
         slug: changes.slug,
-        gitRepositoryUrl: changes.gitRepositoryUrl,
       });
       const mutation = trpcClient.deploy.project.create.mutate(createInput);
 
