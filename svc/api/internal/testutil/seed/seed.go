@@ -139,7 +139,6 @@ type CreateProjectRequest struct {
 	WorkspaceID      string
 	Name             string
 	Slug             string
-	GitRepositoryURL string
 	DefaultBranch    string
 	DeleteProtection bool
 }
@@ -152,7 +151,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		WorkspaceID:      req.WorkspaceID,
 		Name:             req.Name,
 		Slug:             req.Slug,
-		GitRepositoryUrl: sql.NullString{Valid: true, String: req.GitRepositoryURL},
 		DefaultBranch:    sql.NullString{Valid: true, String: req.DefaultBranch},
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        time.Now().UnixMilli(),
@@ -168,7 +166,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		WorkspaceID:      project.WorkspaceID,
 		Name:             project.Name,
 		Slug:             project.Slug,
-		GitRepositoryUrl: project.GitRepositoryUrl,
 		DefaultBranch:    project.DefaultBranch,
 		DeleteProtection: project.DeleteProtection,
 		CreatedAt:        project.CreatedAt,
@@ -177,7 +174,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		LiveDeploymentID: sql.NullString{String: "", Valid: false},
 		IsRolledBack:     false,
 		DepotProjectID:   sql.NullString{String: "", Valid: false},
-		Command:          nil,
 	}
 }
 

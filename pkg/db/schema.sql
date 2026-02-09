@@ -380,6 +380,42 @@ CREATE TABLE `environment_variables` (
 	CONSTRAINT `environment_id_key` UNIQUE(`environment_id`,`key`)
 );
 
+CREATE TABLE `environment_build_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
+	`docker_context` varchar(500) NOT NULL DEFAULT '.',
+	`build_cpu_millicores` int NOT NULL DEFAULT 2000,
+	`build_memory_mib` int NOT NULL DEFAULT 2048,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_build_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `environment_build_settings_id_unique` UNIQUE(`id`),
+	CONSTRAINT `env_build_settings_environment_id_idx` UNIQUE(`environment_id`)
+);
+
+CREATE TABLE `environment_runtime_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`port` int NOT NULL DEFAULT 8080,
+	`cpu_millicores` int NOT NULL DEFAULT 256,
+	`memory_mib` int NOT NULL DEFAULT 256,
+	`command` json NOT NULL DEFAULT ('[]'),
+	`healthcheck_path` varchar(256) NOT NULL DEFAULT '',
+	`region_config` json NOT NULL DEFAULT ('{}'),
+	`restart_policy` varchar(64) NOT NULL DEFAULT 'always',
+	`shutdown_signal` varchar(16) NOT NULL DEFAULT 'SIGTERM',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_runtime_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `environment_runtime_settings_id_unique` UNIQUE(`id`),
+	CONSTRAINT `env_runtime_settings_environment_id_idx` UNIQUE(`environment_id`)
+);
+
 CREATE TABLE `clickhouse_workspace_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -404,12 +440,10 @@ CREATE TABLE `projects` (
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
-	`git_repository_url` varchar(500),
 	`live_deployment_id` varchar(256),
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
 	`depot_project_id` varchar(255),
-	`command` json NOT NULL DEFAULT ('[]'),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,

@@ -74,7 +74,6 @@ export const createProject = workspaceProcedure
           workspaceId: ctx.workspace.id,
           name: input.name,
           slug: input.slug,
-          gitRepositoryUrl: null,
           liveDeploymentId: null,
           isRolledBack: false,
           defaultBranch: "main",
@@ -84,9 +83,12 @@ export const createProject = workspaceProcedure
           updatedAt: null,
         });
 
+        const prodEnvId = newId("environment");
+        const previewEnvId = newId("environment");
+
         await tx.insert(schema.environments).values([
           {
-            id: newId("environment"),
+            id: prodEnvId,
             workspaceId: ctx.workspace.id,
             projectId,
             slug: "production",
@@ -96,9 +98,8 @@ export const createProject = workspaceProcedure
             createdAt: Date.now(),
             updatedAt: null,
           },
-
           {
-            id: newId("environment"),
+            id: previewEnvId,
             workspaceId: ctx.workspace.id,
             projectId,
             slug: "preview",
@@ -107,6 +108,38 @@ export const createProject = workspaceProcedure
             deleteProtection: false,
             createdAt: Date.now(),
             updatedAt: null,
+          },
+        ]);
+
+        // Create default build settings for both environments
+        await tx.insert(schema.environmentBuildSettings).values([
+          {
+            id: newId("environmentBuildSettings"),
+            workspaceId: ctx.workspace.id,
+            environmentId: prodEnvId,
+            createdAt: Date.now(),
+          },
+          {
+            id: newId("environmentBuildSettings"),
+            workspaceId: ctx.workspace.id,
+            environmentId: previewEnvId,
+            createdAt: Date.now(),
+          },
+        ]);
+
+        // Create default runtime settings for both environments
+        await tx.insert(schema.environmentRuntimeSettings).values([
+          {
+            id: newId("environmentRuntimeSettings"),
+            workspaceId: ctx.workspace.id,
+            environmentId: prodEnvId,
+            createdAt: Date.now(),
+          },
+          {
+            id: newId("environmentRuntimeSettings"),
+            workspaceId: ctx.workspace.id,
+            environmentId: previewEnvId,
+            createdAt: Date.now(),
           },
         ]);
       });

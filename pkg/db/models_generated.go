@@ -993,6 +993,36 @@ type Environment struct {
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
+type EnvironmentBuildSetting struct {
+	Pk                 uint64        `db:"pk"`
+	ID                 string        `db:"id"`
+	WorkspaceID        string        `db:"workspace_id"`
+	EnvironmentID      string        `db:"environment_id"`
+	Dockerfile         string        `db:"dockerfile"`
+	DockerContext      string        `db:"docker_context"`
+	BuildCpuMillicores int32         `db:"build_cpu_millicores"`
+	BuildMemoryMib     int32         `db:"build_memory_mib"`
+	CreatedAt          int64         `db:"created_at"`
+	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+}
+
+type EnvironmentRuntimeSetting struct {
+	Pk              uint64              `db:"pk"`
+	ID              string              `db:"id"`
+	WorkspaceID     string              `db:"workspace_id"`
+	EnvironmentID   string              `db:"environment_id"`
+	Port            int32               `db:"port"`
+	CpuMillicores   int32               `db:"cpu_millicores"`
+	MemoryMib       int32               `db:"memory_mib"`
+	Command         dbtype.StringSlice  `db:"command"`
+	HealthcheckPath string              `db:"healthcheck_path"`
+	RegionConfig    dbtype.RegionConfig `db:"region_config"`
+	RestartPolicy   string              `db:"restart_policy"`
+	ShutdownSignal  string              `db:"shutdown_signal"`
+	CreatedAt       int64               `db:"created_at"`
+	UpdatedAt       sql.NullInt64       `db:"updated_at"`
+}
+
 type EnvironmentVariable struct {
 	Pk               uint64                   `db:"pk"`
 	ID               string                   `db:"id"`
@@ -1151,20 +1181,18 @@ type Permission struct {
 }
 
 type Project struct {
-	Pk               uint64             `db:"pk"`
-	ID               string             `db:"id"`
-	WorkspaceID      string             `db:"workspace_id"`
-	Name             string             `db:"name"`
-	Slug             string             `db:"slug"`
-	GitRepositoryUrl sql.NullString     `db:"git_repository_url"`
-	LiveDeploymentID sql.NullString     `db:"live_deployment_id"`
-	IsRolledBack     bool               `db:"is_rolled_back"`
-	DefaultBranch    sql.NullString     `db:"default_branch"`
-	DepotProjectID   sql.NullString     `db:"depot_project_id"`
-	Command          dbtype.StringSlice `db:"command"`
-	DeleteProtection sql.NullBool       `db:"delete_protection"`
-	CreatedAt        int64              `db:"created_at"`
-	UpdatedAt        sql.NullInt64      `db:"updated_at"`
+	Pk               uint64         `db:"pk"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
+	IsRolledBack     bool           `db:"is_rolled_back"`
+	DefaultBranch    sql.NullString `db:"default_branch"`
+	DepotProjectID   sql.NullString `db:"depot_project_id"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
 
 type Quotum struct {

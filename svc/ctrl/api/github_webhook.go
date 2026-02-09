@@ -154,6 +154,25 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		return
 	}
 
+	// Fetch build and runtime settings for the environment, falling back to defaults
+	buildSettings, buildErr := db.Query.FindEnvironmentBuildSettingsByEnvironmentId(ctx, s.db.RO(), env.ID)
+	dockerfilePath := "Dockerfile"
+	contextPath := "."
+	if buildErr == nil {
+		dockerfilePath = buildSettings.Dockerfile
+		contextPath = buildSettings.DockerContext
+	}
+
+	runtimeSettings, runtimeErr := db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(ctx, s.db.RO(), env.ID)
+	cpuMillicores := int32(256)
+	memoryMib := int32(256)
+	var command dbtype.StringSlice
+	if runtimeErr == nil {
+		cpuMillicores = runtimeSettings.CpuMillicores
+		memoryMib = runtimeSettings.MemoryMib
+		command = runtimeSettings.Command
+	}
+
 	// Create deployment record
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
@@ -167,7 +186,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		EnvironmentID:                 env.ID,
 		SentinelConfig:                env.SentinelConfig,
 		EncryptedEnvironmentVariables: []byte{},
-		Command:                       dbtype.StringSlice{},
+		Command:                       command,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
@@ -178,8 +197,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.authorAvatarURL, Valid: gitCommit.authorAvatarURL != ""},
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.timestamp, Valid: gitCommit.timestamp != 0},
 		OpenapiSpec:                   sql.NullString{Valid: false},
-		CpuMillicores:                 256,
-		MemoryMib:                     256,
+		CpuMillicores:                 cpuMillicores,
+		MemoryMib:                     memoryMib,
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err)
@@ -205,8 +224,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 				InstallationId: repoConnection.InstallationID,
 				Repository:     payload.Repository.FullName,
 				CommitSha:      payload.After,
-				ContextPath:    ".",          // TODO read from project settings
-				DockerfilePath: "Dockerfile", // TODO read from project settings
+				ContextPath:    contextPath,
+				DockerfilePath: dockerfilePath,
 			},
 		},
 	})

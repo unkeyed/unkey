@@ -150,14 +150,26 @@ func (s *Service) CreateDeployment(
 		"deployment_id", deploymentID,
 		"image", dockerImage)
 
-	// Determine command: CLI override > project default > empty array
+	// Fetch runtime settings for the environment to get defaults (command, CPU, memory)
+	runtimeSettings, runtimeSettingsErr := db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(ctx, s.db.RO(), env.ID)
+	hasRuntimeSettings := runtimeSettingsErr == nil
+
+	// Determine command: CLI override > runtime settings default > empty array
 	var command dbtype.StringSlice
 	if len(req.Msg.GetCommand()) > 0 {
 		// CLI provided command override
 		command = req.Msg.GetCommand()
-	} else if len(project.Command) > 0 {
-		// Use project's default command
-		command = project.Command
+	} else if hasRuntimeSettings && len(runtimeSettings.Command) > 0 {
+		// Use environment runtime settings default command
+		command = runtimeSettings.Command
+	}
+
+	// Determine CPU and memory: runtime settings > hardcoded defaults
+	cpuMillicores := int32(256)
+	memoryMib := int32(256)
+	if hasRuntimeSettings {
+		cpuMillicores = runtimeSettings.CpuMillicores
+		memoryMib = runtimeSettings.MemoryMib
 	}
 
 	// Insert deployment into database
@@ -180,8 +192,8 @@ func (s *Service) CreateDeployment(
 		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-		CpuMillicores:                 256,
-		MemoryMib:                     256,
+		CpuMillicores:                 cpuMillicores,
+		MemoryMib:                     memoryMib,
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())

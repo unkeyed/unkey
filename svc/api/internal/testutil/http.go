@@ -351,7 +351,6 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Name:             config.ProjectName,
 		ID:               uid.New(uid.ProjectPrefix),
 		Slug:             config.ProjectSlug,
-		GitRepositoryURL: "",
 		DefaultBranch:    "",
 		DeleteProtection: false,
 	})

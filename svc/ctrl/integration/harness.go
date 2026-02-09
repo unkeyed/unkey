@@ -87,11 +87,11 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	workspaceID := h.Seed.Resources.UserWorkspace.ID
 
 	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
-		ID:               uid.New("prj"),
-		WorkspaceID:      workspaceID,
-		Name:             "test-project",
-		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
+		ID:          uid.New("prj"),
+		WorkspaceID: workspaceID,
+		Name:        "test-project",
+		Slug:        uid.New("slug"),
+
 		DefaultBranch:    "",
 		DeleteProtection: false,
 	})
@@ -185,11 +185,11 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 	workspaceID := h.Seed.Resources.UserWorkspace.ID
 
 	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
-		ID:               uid.New("prj"),
-		WorkspaceID:      workspaceID,
-		Name:             "test-project-sentinel",
-		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
+		ID:          uid.New("prj"),
+		WorkspaceID: workspaceID,
+		Name:        "test-project-sentinel",
+		Slug:        uid.New("slug"),
+
 		DefaultBranch:    "",
 		DeleteProtection: false,
 	})

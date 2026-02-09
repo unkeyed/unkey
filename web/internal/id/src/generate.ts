@@ -30,6 +30,8 @@ const prefixes = {
   fake: "fake",
   environment: "env",
   environmentVariable: "evr",
+  environmentBuildSettings: "ebs",
+  environmentRuntimeSettings: "ers",
   project: "proj",
 } as const;
 

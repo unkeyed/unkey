@@ -268,6 +268,12 @@ type Querier interface {
 	//      AND dt.deployment_id = ?
 	//  LIMIT 1
 	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
+	//FindEnvironmentBuildSettingsByEnvironmentId
+	//
+	//  SELECT pk, id, workspace_id, environment_id, dockerfile, docker_context, build_cpu_millicores, build_memory_mib, created_at, updated_at
+	//  FROM environment_build_settings
+	//  WHERE environment_id = ?
+	FindEnvironmentBuildSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentBuildSetting, error)
 	//FindEnvironmentById
 	//
 	//  SELECT id, workspace_id, project_id, slug, description
@@ -282,6 +288,12 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
+	//FindEnvironmentRuntimeSettingsByEnvironmentId
+	//
+	//  SELECT pk, id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck_path, region_config, restart_policy, shutdown_signal, created_at, updated_at
+	//  FROM environment_runtime_settings
+	//  WHERE environment_id = ?
+	FindEnvironmentRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentRuntimeSetting, error)
 	//FindEnvironmentVariablesByEnvironmentId
 	//
 	//  SELECT `key`, value
@@ -862,15 +874,13 @@ type Querier interface {
 	//      workspace_id,
 	//      name,
 	//      slug,
-	//      git_repository_url,
 	//      default_branch,
 	//      delete_protection,
 	//      live_deployment_id,
 	//      is_rolled_back,
 	//      created_at,
 	//      updated_at,
-	//      depot_project_id,
-	//      command
+	//      depot_project_id
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
@@ -881,7 +891,6 @@ type Querier interface {
 	//      workspace_id,
 	//      name,
 	//      slug,
-	//      git_repository_url,
 	//      default_branch,
 	//      delete_protection,
 	//      created_at,
@@ -1569,13 +1578,12 @@ type Querier interface {
 	//      workspace_id,
 	//      name,
 	//      slug,
-	//      git_repository_url,
 	//      default_branch,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertProject(ctx context.Context, db DBTX, arg InsertProjectParams) error
 	//InsertRatelimitNamespace
@@ -2526,6 +2534,50 @@ type Querier interface {
 	//  ) VALUES (?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
 	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
+	//UpsertEnvironmentBuildSettings
+	//
+	//  INSERT INTO environment_build_settings (
+	//      id,
+	//      workspace_id,
+	//      environment_id,
+	//      dockerfile,
+	//      docker_context,
+	//      build_cpu_millicores,
+	//      build_memory_mib,
+	//      created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      dockerfile = VALUES(dockerfile),
+	//      docker_context = VALUES(docker_context),
+	//      build_cpu_millicores = VALUES(build_cpu_millicores),
+	//      build_memory_mib = VALUES(build_memory_mib)
+	UpsertEnvironmentBuildSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentBuildSettingsParams) error
+	//UpsertEnvironmentRuntimeSettings
+	//
+	//  INSERT INTO environment_runtime_settings (
+	//      id,
+	//      workspace_id,
+	//      environment_id,
+	//      port,
+	//      cpu_millicores,
+	//      memory_mib,
+	//      command,
+	//      healthcheck_path,
+	//      region_config,
+	//      restart_policy,
+	//      shutdown_signal,
+	//      created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      port = VALUES(port),
+	//      cpu_millicores = VALUES(cpu_millicores),
+	//      memory_mib = VALUES(memory_mib),
+	//      command = VALUES(command),
+	//      healthcheck_path = VALUES(healthcheck_path),
+	//      region_config = VALUES(region_config),
+	//      restart_policy = VALUES(restart_policy),
+	//      shutdown_signal = VALUES(shutdown_signal)
+	UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentRuntimeSettingsParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
 	// Use FindIdentityByExternalID after this to get the actual ID.
 	//
