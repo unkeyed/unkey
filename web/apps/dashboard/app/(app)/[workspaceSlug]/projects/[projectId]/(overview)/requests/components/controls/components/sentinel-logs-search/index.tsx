@@ -6,19 +6,6 @@ export const SentinelLogsSearch = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();
   const queryLLMForStructuredOutput = trpc.deploy.sentinelLogs.llmSearch.useMutation({
     onSuccess(data) {
-      if (data?.filters.length === 0 || !data) {
-        toast.error(
-          "Please provide more specific search criteria. Your query requires additional details for accurate results.",
-          {
-            duration: 8000,
-            position: "top-right",
-            style: {
-              whiteSpace: "pre-line",
-            },
-          },
-        );
-        return;
-      }
       const transformedFilters = transformStructuredOutputToFilters(
         data as {
           filters: Array<{

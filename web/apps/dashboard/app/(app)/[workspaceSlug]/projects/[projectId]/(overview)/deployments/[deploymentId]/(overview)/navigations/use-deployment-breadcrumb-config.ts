@@ -97,11 +97,7 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
         noop: true,
         active: true,
         children:
-          currentTab === "overview"
-            ? "Overview"
-            : currentTab === "logs"
-              ? "Logs"
-              : "Network",
+          currentTab === "overview" ? "Overview" : currentTab === "logs" ? "Logs" : "Network",
         shouldRender: true,
         isLast: true,
         quickNavConfig: {

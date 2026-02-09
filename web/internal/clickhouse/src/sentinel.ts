@@ -97,7 +97,7 @@ export const sentinelLogsResponseSchema = z.object({
   instance_latency: z.number().int(),
   sentinel_latency: z.number().int(),
   query_string: z.string(),
-  query_params: z.record(z.array(z.string())),
+  query_params: z.record(z.string(), z.array(z.string())),
   request_headers: z.array(z.string()),
   request_body: z.string(),
   response_headers: z.array(z.string()),
