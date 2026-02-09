@@ -2,7 +2,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { RootKeysListControlCloud } from "./components/control-cloud";
 import { RootKeysListControls } from "./components/controls";
-import { RootKeysList } from "./components/table/root-keys-list";
+import { RootKeysList } from "./components/root-keys-list-v2";
 import { Navigation } from "./navigation";
 
 export default function RootKeysPage() {
