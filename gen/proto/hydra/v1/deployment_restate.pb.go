@@ -18,6 +18,7 @@ type DeploymentServiceClient interface {
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
 	Rollback(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackRequest, *RollbackResponse]
 	Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse]
+	ScaleDownIdleDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*ScaleDownIdleDeploymentsRequest, *ScaleDownIdleDeploymentsResponse]
 }
 
 type deploymentServiceClient struct {
@@ -58,6 +59,14 @@ func (c *deploymentServiceClient) Promote(opts ...sdk_go.ClientOption) sdk_go.Cl
 	return sdk_go.WithRequestType[*PromoteRequest](sdk_go.Workflow[*PromoteResponse](c.ctx, "hydra.v1.DeploymentService", c.workflowID, "Promote", cOpts...))
 }
 
+func (c *deploymentServiceClient) ScaleDownIdleDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*ScaleDownIdleDeploymentsRequest, *ScaleDownIdleDeploymentsResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ScaleDownIdleDeploymentsRequest](sdk_go.Workflow[*ScaleDownIdleDeploymentsResponse](c.ctx, "hydra.v1.DeploymentService", c.workflowID, "ScaleDownIdleDeployments", cOpts...))
+}
+
 // DeploymentServiceIngressClient is the ingress client API for hydra.v1.DeploymentService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -65,6 +74,7 @@ type DeploymentServiceIngressClient interface {
 	Deploy() ingress.Requester[*DeployRequest, *DeployResponse]
 	Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse]
 	Promote() ingress.Requester[*PromoteRequest, *PromoteResponse]
+	ScaleDownIdleDeployments() ingress.Requester[*ScaleDownIdleDeploymentsRequest, *ScaleDownIdleDeploymentsResponse]
 }
 
 type deploymentServiceIngressClient struct {
@@ -96,6 +106,11 @@ func (c *deploymentServiceIngressClient) Promote() ingress.Requester[*PromoteReq
 	return ingress.NewRequester[*PromoteRequest, *PromoteResponse](c.client, c.serviceName, "Promote", &c.workflowID, &codec)
 }
 
+func (c *deploymentServiceIngressClient) ScaleDownIdleDeployments() ingress.Requester[*ScaleDownIdleDeploymentsRequest, *ScaleDownIdleDeploymentsResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ScaleDownIdleDeploymentsRequest, *ScaleDownIdleDeploymentsResponse](c.client, c.serviceName, "ScaleDownIdleDeployments", &c.workflowID, &codec)
+}
+
 // DeploymentServiceServer is the server API for hydra.v1.DeploymentService service.
 // All implementations should embed UnimplementedDeploymentServiceServer
 // for forward compatibility.
@@ -103,6 +118,7 @@ type DeploymentServiceServer interface {
 	Deploy(ctx sdk_go.WorkflowSharedContext, req *DeployRequest) (*DeployResponse, error)
 	Rollback(ctx sdk_go.WorkflowSharedContext, req *RollbackRequest) (*RollbackResponse, error)
 	Promote(ctx sdk_go.WorkflowSharedContext, req *PromoteRequest) (*PromoteResponse, error)
+	ScaleDownIdleDeployments(ctx sdk_go.WorkflowSharedContext, req *ScaleDownIdleDeploymentsRequest) (*ScaleDownIdleDeploymentsResponse, error)
 }
 
 // UnimplementedDeploymentServiceServer should be embedded to have
@@ -120,6 +136,9 @@ func (UnimplementedDeploymentServiceServer) Rollback(ctx sdk_go.WorkflowSharedCo
 }
 func (UnimplementedDeploymentServiceServer) Promote(ctx sdk_go.WorkflowSharedContext, req *PromoteRequest) (*PromoteResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Promote not implemented"), 501)
+}
+func (UnimplementedDeploymentServiceServer) ScaleDownIdleDeployments(ctx sdk_go.WorkflowSharedContext, req *ScaleDownIdleDeploymentsRequest) (*ScaleDownIdleDeploymentsResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method ScaleDownIdleDeployments not implemented"), 501)
 }
 func (UnimplementedDeploymentServiceServer) testEmbeddedByValue() {}
 
@@ -143,5 +162,6 @@ func NewDeploymentServiceServer(srv DeploymentServiceServer, opts ...sdk_go.Serv
 	router = router.Handler("Deploy", sdk_go.NewWorkflowSharedHandler(srv.Deploy))
 	router = router.Handler("Rollback", sdk_go.NewWorkflowSharedHandler(srv.Rollback))
 	router = router.Handler("Promote", sdk_go.NewWorkflowSharedHandler(srv.Promote))
+	router = router.Handler("ScaleDownIdleDeployments", sdk_go.NewWorkflowSharedHandler(srv.ScaleDownIdleDeployments))
 	return router
 }
