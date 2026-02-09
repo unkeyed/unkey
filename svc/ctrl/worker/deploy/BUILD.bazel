@@ -11,6 +11,7 @@ go_library(
         "helpers.go",
         "promote_handler.go",
         "rollback_handler.go",
+        "scale_down_idle_deployments.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/deploy",
