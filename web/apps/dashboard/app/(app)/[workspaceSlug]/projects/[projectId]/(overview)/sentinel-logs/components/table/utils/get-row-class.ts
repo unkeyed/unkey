@@ -72,6 +72,8 @@ export const getSelectedClassName = (log: SentinelLogsResponse, isSelected: bool
 export const getRowClassName = (
   log: SentinelLogsResponse,
   selectedLog?: SentinelLogsResponse | null,
+  isLive?: boolean,
+  realtimeLogs?: SentinelLogsResponse[],
 ): string => {
   // Early validation
   if (!log?.request_id) {
@@ -102,6 +104,14 @@ export const getRowClassName = (
   const conditionalClasses = [
     // Selected state
     isSelected && style.selected,
+
+    // Live mode opacity for historical logs
+    isLive &&
+      realtimeLogs &&
+      !realtimeLogs.some((rt) => rt.request_id === log.request_id) && [
+        "opacity-50",
+        "hover:opacity-100",
+      ],
 
     // Selection-based z-index and opacity
     selectedLog && {

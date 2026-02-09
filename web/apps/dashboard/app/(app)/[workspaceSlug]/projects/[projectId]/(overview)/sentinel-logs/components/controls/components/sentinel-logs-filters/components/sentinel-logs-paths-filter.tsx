@@ -1,5 +1,4 @@
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
-import { logsFilterFieldConfig as sentinelLogsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
 import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
 
 export const SentinelPathsFilter = () => {

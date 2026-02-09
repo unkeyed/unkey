@@ -17,12 +17,17 @@ import {
 } from "./utils/get-row-class";
 
 export const SentinelLogsTable = () => {
-  const { setSelectedLog, selectedLog } = useSentinelLogsContext();
-  const { logs, isLoading, isLoadingMore, loadMore, hasMore, total } = useSentinelLogsQuery();
+  const { setSelectedLog, selectedLog, isLive } = useSentinelLogsContext();
+  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, total } =
+    useSentinelLogsQuery({
+      startPolling: isLive,
+      pollIntervalMs: 2000,
+    });
 
   return (
     <VirtualTable
-      data={logs}
+      data={historicalLogs}
+      realtimeData={realtimeLogs}
       isLoading={isLoading}
       isFetchingNextPage={isLoadingMore}
       onLoadMore={loadMore}
@@ -30,7 +35,7 @@ export const SentinelLogsTable = () => {
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
-      rowClassName={(log) => getRowClassName(log, selectedLog)}
+      rowClassName={(log) => getRowClassName(log, selectedLog, isLive, realtimeLogs)}
       selectedClassName={getSelectedClassName}
       loadMoreFooterProps={{
         hide: isLoading,
@@ -39,7 +44,7 @@ export const SentinelLogsTable = () => {
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span>
-            <span className="text-accent-12">{formatNumber(logs.length)}</span>
+            <span className="text-accent-12">{formatNumber(historicalLogs.length)}</span>
             <span>of</span>
             {formatNumber(total)}
             <span>requests</span>

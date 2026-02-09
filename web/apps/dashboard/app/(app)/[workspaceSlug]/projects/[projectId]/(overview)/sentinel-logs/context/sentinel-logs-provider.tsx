@@ -6,6 +6,8 @@ import { useProject } from "../../layout-provider";
 type SentinelLogsContextType = {
   selectedLog: SentinelLogsResponse | null;
   setSelectedLog: (log: SentinelLogsResponse | null) => void;
+  isLive: boolean;
+  toggleLive: (value?: boolean) => void;
 };
 
 const SentinelLogsContext = createContext<SentinelLogsContextType | null>(null);
@@ -13,6 +15,11 @@ const SentinelLogsContext = createContext<SentinelLogsContextType | null>(null);
 export const SentinelLogsProvider = ({ children }: PropsWithChildren) => {
   const { setIsDetailsOpen } = useProject();
   const [selectedLog, setSelectedLog] = useState<SentinelLogsResponse | null>(null);
+  const [isLive, setIsLive] = useState(false);
+
+  const toggleLive = (value?: boolean) => {
+    setIsLive((prev) => (typeof value !== "undefined" ? value : !prev));
+  };
 
   return (
     <SentinelLogsContext.Provider
@@ -24,6 +31,8 @@ export const SentinelLogsProvider = ({ children }: PropsWithChildren) => {
           }
           setSelectedLog(log);
         },
+        isLive,
+        toggleLive,
       }}
     >
       {children}

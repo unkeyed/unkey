@@ -13,10 +13,7 @@ import {
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 
-const parseAsFilterValArray = parseAsFilterValueArray<LogsFilterOperator>([
-  "is",
-  "contains",
-]);
+const parseAsFilterValArray = parseAsFilterValueArray<LogsFilterOperator>(["is", "contains"]);
 export const queryParamsPayload = {
   requestId: parseAsFilterValArray,
   host: parseAsFilterValArray,
