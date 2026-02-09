@@ -34,7 +34,6 @@ export const createProjectRequestSchema = z.object({
       /^[a-z0-9-]+$/,
       "Project slug must contain only lowercase letters, numbers, and hyphens",
     ),
-  gitRepositoryUrl: z.string().url("Must be a valid URL").trim().nullable().or(z.literal("")),
 });
 
 export type Project = z.infer<typeof schema>;

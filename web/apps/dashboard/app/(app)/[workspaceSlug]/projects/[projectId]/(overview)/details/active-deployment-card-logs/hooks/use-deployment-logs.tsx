@@ -1,7 +1,8 @@
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EXCLUDED_HOSTS } from "../../../sentinel-logs/constants";
+import { useProject } from "../../../layout-provider";
 
 // const BUILD_STEPS_REFETCH_INTERVAL = 500;
 const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
@@ -11,6 +12,8 @@ const MAX_STORED_LOGS = 200;
 const SCROLL_RESET_DELAY = 50;
 const ERROR_STATUS_THRESHOLD = 500;
 const WARNING_STATUS_THRESHOLD = 400;
+
+
 
 type LogEntry = {
   type: "sentinel";
@@ -24,12 +27,12 @@ type LogFilter = "all" | "warnings" | "errors";
 
 type UseDeploymentLogsProps = {
   deploymentId: string | null;
+  projectId: string;
 };
 
 type UseDeploymentLogsReturn = {
   logFilter: LogFilter;
   searchTerm: string;
-  isExpanded: boolean;
   showFade: boolean;
   filteredLogs: LogEntry[];
   logCounts: {
@@ -40,7 +43,6 @@ type UseDeploymentLogsReturn = {
   isLoading: boolean;
   setLogFilter: (filter: LogFilter) => void;
   setSearchTerm: (term: string) => void;
-  setExpanded: (expanded: boolean) => void;
   handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   handleFilterChange: (filter: LogFilter) => void;
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -49,60 +51,40 @@ type UseDeploymentLogsReturn = {
 
 export function useDeploymentLogs({
   deploymentId,
+  projectId,
 }: UseDeploymentLogsProps): UseDeploymentLogsReturn {
   const [logFilter, setLogFilter] = useState<LogFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showFade, setShowFade] = useState(true);
   const [storedLogs, setStoredLogs] = useState<Map<string, LogEntry>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null) as React.MutableRefObject<HTMLDivElement>;
   const { queryTime: timestamp } = useQueryTime();
+  const { collections } = useProject();
 
-  // const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(
-  //   {
-  //     // without this check TS yells at us
-  //     deploymentId: deploymentId ?? "",
-  //   },
-  //   {
-  //     enabled: showBuildSteps && isExpanded && Boolean(deploymentId),
-  //     refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
-  //   },
-  // );
-
-  const { data: sentinelData, isLoading: sentinelLoading } = trpc.logs.queryLogs.useQuery(
+  const deployment = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collections.deployments })
+        .where(({ deployment }) => eq(deployment.id, deploymentId)),
+    [deploymentId],
+  );
+  const environmentId = deployment.data.at(0)?.environmentId ?? "";
+  const { data: sentinelData, isLoading: sentinelLoading } = trpc.deploy.sentinelLogs.query.useQuery(
     {
+      projectId,
+      deploymentId: deploymentId ?? "",
+      environmentId,
       limit: GATEWAY_LOGS_LIMIT,
-      endTime: timestamp,
-      startTime: timestamp,
-      host: { filters: [], exclude: EXCLUDED_HOSTS },
-      method: { filters: [] },
-      path: { filters: [] },
-      status: { filters: [] },
-      requestId: null,
-      since: GATEWAY_LOGS_SINCE,
+      since: "6h"
+      // startTime: timestamp - 6 * 60 * 60 * 1000,
+      // endTime: timestamp,
     },
     {
-      enabled: isExpanded,
+      enabled: Boolean(deploymentId) && Boolean(environmentId),
       refetchInterval: GATEWAY_LOGS_REFETCH_INTERVAL,
       refetchOnWindowFocus: false,
     },
   );
-
-  // // Update stored logs when build data changes
-  // useEffect(() => {
-  //   if (showBuildSteps && buildData?.logs) {
-  //     const logMap = new Map<string, LogEntry>();
-  //     buildData.logs.forEach((log) => {
-  //       logMap.set(log.id, {
-  //         type: "build",
-  //         id: log.id,
-  //         timestamp: log.timestamp,
-  //         message: log.message,
-  //       });
-  //     });
-  //     setStoredLogs(logMap);
-  //   }
-  // }, [showBuildSteps, buildData]);
 
   // Update stored logs when sentinel data changes
   useEffect(() => {
@@ -122,7 +104,7 @@ export function useDeploymentLogs({
             type: "sentinel",
             id: log.request_id,
             timestamp: log.time,
-            message: `${log.response_status} ${log.method} ${log.path} (${log.service_latency}ms)`,
+            message: `${log.response_status} ${log.method} ${log.path} (${log.total_latency}ms)`,
             level,
           });
         });
@@ -169,13 +151,6 @@ export function useDeploymentLogs({
     return filtered;
   }, [logs, logFilter, searchTerm]);
 
-  // Auto-expand when logs are available
-  useEffect(() => {
-    if (logs.length > 0) {
-      setIsExpanded(true);
-    }
-  }, [logs.length]);
-
   const resetScroll = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
@@ -183,12 +158,7 @@ export function useDeploymentLogs({
     }
   };
 
-  const setExpanded = (expanded: boolean) => {
-    setIsExpanded(expanded);
-    if (!expanded) {
-      setTimeout(resetScroll, SCROLL_RESET_DELAY);
-    }
-  };
+
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -209,14 +179,12 @@ export function useDeploymentLogs({
   return {
     logFilter,
     searchTerm,
-    isExpanded,
     showFade,
     filteredLogs,
     logCounts,
     isLoading: sentinelLoading,
     setLogFilter,
     setSearchTerm,
-    setExpanded,
     handleScroll,
     handleFilterChange,
     handleSearchChange,

@@ -2,7 +2,7 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Clone, Gear, Layers3, Trash } from "@unkey/icons";
+import { Clone, Cloud, Gear, Heart, Layers3, Trash } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -31,9 +31,10 @@ const getProjectActionItems = (
     {
       id: "favorite-project",
       label: "Add favorite",
-      icon: <Gear iconSize="md-medium" />,
-      onClick: () => {},
+      icon: <Heart iconSize="md-medium" />,
+      onClick: () => { },
       divider: true,
+      disabled: true
     },
     {
       id: "copy-project-id",
@@ -62,13 +63,19 @@ const getProjectActionItems = (
       },
     },
     {
+      id: "view-deployment",
+      label: "View deployments",
+      icon: <Cloud iconSize="md-regular" />,
+      onClick: () => {
+        router.push(`/${workspaceSlug}/projects/${projectId}/deployments`);
+      },
+    },
+    {
       id: "project-settings",
       label: "Project settings",
       icon: <Gear iconSize="md-medium" />,
       onClick: () => {
-        //INFO: This will change soon
-        const fakeDeploymentId = "idk";
-        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/settings`);
+        router.push(`/${workspaceSlug}/projects/${projectId}/settings`);
       },
       divider: true,
     },

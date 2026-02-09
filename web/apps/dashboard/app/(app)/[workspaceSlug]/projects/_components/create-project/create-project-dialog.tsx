@@ -28,7 +28,6 @@ export const CreateProjectDialog = () => {
     defaultValues: {
       name: "",
       slug: "",
-      gitRepositoryUrl: "",
     },
     mode: "onChange",
   });
@@ -38,7 +37,7 @@ export const CreateProjectDialog = () => {
       const tx = collection.projects.insert({
         name: values.name,
         slug: values.slug,
-        gitRepositoryUrl: values.gitRepositoryUrl || null,
+        gitRepositoryUrl: null,
         liveDeploymentId: null,
         isRolledBack: false,
         id: "will-be-replace-by-server",
@@ -144,15 +143,6 @@ export const CreateProjectDialog = () => {
             error={errors.slug?.message}
             {...register("slug")}
             placeholder="my-awesome-project"
-          />
-
-          <FormInput
-            label="Git Repository URL"
-            className="[&_input:first-of-type]:h-[36px]"
-            description="Optional: Link to your project's Git repository."
-            error={errors.gitRepositoryUrl?.message}
-            {...register("gitRepositoryUrl")}
-            placeholder="https://github.com/username/repo"
           />
         </form>
       </DialogContainer>
