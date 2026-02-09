@@ -1,4 +1,5 @@
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
+import { getBuildStepLogs, getBuildSteps } from "./build-steps";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import {
   getDailyActiveKeysTimeseries,
@@ -329,6 +330,12 @@ export class ClickHouse {
   public get runtimeLogs() {
     return {
       logs: getRuntimeLogs(this.querier),
+    };
+  }
+  public get buildSteps() {
+    return {
+      getSteps: getBuildSteps(this.querier),
+      getLogs: getBuildStepLogs(this.querier),
     };
   }
 }
