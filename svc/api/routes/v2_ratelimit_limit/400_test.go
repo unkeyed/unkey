@@ -22,7 +22,6 @@ func TestBadRequests(t *testing.T) {
 	route := &handler.Handler{
 		DB:                      h.DB,
 		Keys:                    h.Keys,
-		Logger:                  h.Logger,
 		Ratelimit:               h.Ratelimit,
 		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 		Auditlogs:               h.Auditlogs,
@@ -107,7 +106,6 @@ func TestMissingAuthorizationHeader(t *testing.T) {
 	route := &handler.Handler{
 		DB:                      h.DB,
 		Keys:                    h.Keys,
-		Logger:                  h.Logger,
 		Ratelimit:               h.Ratelimit,
 		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
 		Auditlogs:               h.Auditlogs,

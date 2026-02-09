@@ -11,10 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/timing"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -81,7 +80,6 @@ func TestAPI_ConsumesInvalidationEvents(t *testing.T) {
 		Brokers:    brokers,
 		Topic:      topicName,
 		InstanceID: uid.New(uid.TestPrefix), // Use unique ID to avoid conflicts with API node
-		Logger:     logging.NewNoop(),
 	})
 	require.NoError(t, err)
 

@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
@@ -27,7 +26,6 @@ import (
 // when the master key is rotated.
 func TestMigrateDeks(t *testing.T) {
 
-	logger := logging.NewNoop()
 	data := make(map[string]string)
 	bearerToken := "integration-test-token"
 	s3 := dockertest.S3(t)
@@ -37,7 +35,6 @@ func TestMigrateDeks(t *testing.T) {
 		S3Bucket:          "test",
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
@@ -46,7 +43,6 @@ func TestMigrateDeks(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
-		Logger:      logger,
 		MasterKeys:  []string{masterKeyOld},
 		BearerToken: bearerToken,
 	})
@@ -82,7 +78,6 @@ func TestMigrateDeks(t *testing.T) {
 
 	v, err = vault.New(vault.Config{
 		Storage:     storage,
-		Logger:      logger,
 		MasterKeys:  []string{masterKeyNew, masterKeyOld},
 		BearerToken: bearerToken,
 	})

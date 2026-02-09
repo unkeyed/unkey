@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/secrets/provider"
 )
 
@@ -18,8 +18,6 @@ func run(ctx context.Context, cfg config) error {
 	if len(cfg.Args) == 0 {
 		return fmt.Errorf("no command specified")
 	}
-
-	logger := logging.New()
 
 	// Clear sensitive UNKEY_* env vars first, before setting user secrets.
 	// This prevents leaking config like UNKEY_TOKEN to the child process,
@@ -46,7 +44,7 @@ func run(ctx context.Context, cfg config) error {
 		}
 	}
 
-	return execCommand(cfg.Args, logger)
+	return execCommand(cfg.Args)
 }
 
 func fetchSecrets(ctx context.Context, cfg config) (map[string]string, error) {
@@ -101,7 +99,7 @@ func clearSensitiveEnvVars() error {
 	return nil
 }
 
-func execCommand(args []string, logger logging.Logger) error {
+func execCommand(args []string) error {
 	binary, err := exec.LookPath(args[0])
 	if err != nil {
 		return fmt.Errorf("command not found: %s: %w", args[0], err)

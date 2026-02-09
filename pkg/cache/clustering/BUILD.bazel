@@ -15,7 +15,7 @@ go_library(
         "//pkg/batch",
         "//pkg/cache",
         "//pkg/eventstream",
-        "//pkg/otel/logging",
+        "//pkg/logger",
     ],
 )
 
@@ -33,7 +33,6 @@ go_test(
         "//pkg/cache",
         "//pkg/clock",
         "//pkg/eventstream",
-        "//pkg/otel/logging",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "@com_github_stretchr_testify//require",

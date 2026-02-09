@@ -153,7 +153,7 @@ type Counter interface {
 //
 //	func LoggingMiddleware(logger Logger) Middleware {
 //	    return func(next Counter) Counter {
-//	        return &loggingCounter{next: next, logger: logger}
+//	        return &loggingCounter{next: next}
 //	    }
 //	}
 type Middleware func(Counter) Counter

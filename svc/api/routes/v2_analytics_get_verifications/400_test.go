@@ -17,7 +17,6 @@ func Test400_EmptyQuery(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,
@@ -50,7 +49,6 @@ func Test400_InvalidSQLSyntax(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,
@@ -85,7 +83,6 @@ func Test400_UnknownColumn(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,
@@ -118,7 +115,6 @@ func Test400_InvalidTable(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,
@@ -151,7 +147,6 @@ func Test400_NonSelectQuery(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,
@@ -184,7 +179,6 @@ func Test400_QueryBeyond30Days(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,
@@ -218,7 +212,6 @@ func Test400_QueryBeyondCustomRetention90Days(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,

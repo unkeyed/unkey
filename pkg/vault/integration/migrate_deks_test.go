@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
@@ -21,7 +20,6 @@ import (
 // This scenario tests the re-encryption of a secret.
 func TestMigrateDeks(t *testing.T) {
 
-	logger := logging.NewNoop()
 	data := make(map[string]string)
 	s3 := containers.S3(t)
 
@@ -30,7 +28,6 @@ func TestMigrateDeks(t *testing.T) {
 		S3Bucket:          fmt.Sprintf("%d", time.Now().Unix()),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
@@ -39,7 +36,6 @@ func TestMigrateDeks(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:    storage,
-		Logger:     logger,
 		MasterKeys: []string{masterKeyOld},
 	})
 	require.NoError(t, err)
@@ -72,7 +68,6 @@ func TestMigrateDeks(t *testing.T) {
 
 	v, err = vault.New(vault.Config{
 		Storage:    storage,
-		Logger:     logger,
 		MasterKeys: []string{masterKeyOld, masterKeyNew},
 	})
 	require.NoError(t, err)
@@ -93,7 +88,6 @@ func TestMigrateDeks(t *testing.T) {
 
 	v, err = vault.New(vault.Config{
 		Storage:    storage,
-		Logger:     logger,
 		MasterKeys: []string{masterKeyNew},
 	})
 	require.NoError(t, err)

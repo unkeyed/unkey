@@ -7,13 +7,11 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
 // Handler handles pprof profiling endpoints
 type Handler struct {
-	Logger   logging.Logger
 	Username string
 	Password string
 }

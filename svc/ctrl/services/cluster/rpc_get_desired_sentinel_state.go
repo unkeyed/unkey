@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // GetDesiredSentinelState returns the target state for a single sentinel resource. This is
@@ -42,7 +43,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 
 	}
 
-	s.logger.Info("desired sentinel", "state", sentinel.DesiredState)
+	logger.Info("desired sentinel", "state", sentinel.DesiredState)
 	switch sentinel.DesiredState {
 	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
 		return connect.NewResponse(&ctrlv1.SentinelState{
@@ -70,7 +71,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 			},
 		}), nil
 	default:
-		s.logger.Error("unhandled sentinel desired state", "desiredState", sentinel.DesiredState)
+		logger.Error("unhandled sentinel desired state", "desiredState", sentinel.DesiredState)
 	}
 
 	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unhandled sentinel desired state: %s", sentinel.DesiredState))

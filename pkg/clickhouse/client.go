@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
@@ -20,7 +20,6 @@ import (
 // high volumes of data while minimizing connection overhead.
 type clickhouse struct {
 	conn           ch.Conn
-	logger         logging.Logger
 	circuitBreaker *circuitbreaker.CB[struct{}]
 	retry          *retry.Retry
 
@@ -44,9 +43,6 @@ type Config struct {
 	// URL is the ClickHouse connection string
 	// Format: clickhouse://username:password@host:port/database?param1=value1&...
 	URL string
-
-	// Logger for ClickHouse operations
-	Logger logging.Logger
 }
 
 // New creates a new ClickHouse client with the provided configuration.
@@ -60,7 +56,6 @@ type Config struct {
 //
 //	ch, err := clickhouse.New(clickhouse.Config{
 //	    URL:    "clickhouse://user:pass@clickhouse.example.com:9000/db",
-//	    Logger: logger,
 //	})
 //	if err != nil {
 //	    return fmt.Errorf("failed to initialize clickhouse: %w", err)
@@ -71,17 +66,17 @@ func New(config Config) (*clickhouse, error) {
 		return nil, fault.Wrap(err, fault.Internal("parsing clickhouse DSN failed"))
 	}
 
-	config.Logger.Info("initializing clickhouse client")
+	logger.Info("initializing clickhouse client")
 	opts.Debug = true
 	opts.Debugf = func(format string, v ...any) {
-		config.Logger.Debug(fmt.Sprintf(format, v...))
+		logger.Debug(fmt.Sprintf(format, v...))
 	}
 	opts.MaxOpenConns = 50
 	opts.ConnMaxLifetime = time.Hour
 	opts.ConnOpenStrategy = ch.ConnOpenRoundRobin
 	opts.DialTimeout = 5 * time.Second // Fail fast on connection issues
 
-	config.Logger.Info("connecting to clickhouse")
+	logger.Info("connecting to clickhouse")
 	conn, err := ch.Open(opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("opening clickhouse failed"))
@@ -105,8 +100,7 @@ func New(config Config) (*clickhouse, error) {
 	}
 
 	c := &clickhouse{
-		conn:   conn,
-		logger: config.Logger,
+		conn: conn,
 		circuitBreaker: circuitbreaker.New[struct{}](
 			"clickhouse_insert",
 			circuitbreaker.WithTripThreshold(5),
@@ -141,7 +135,7 @@ func New(config Config) (*clickhouse, error) {
 		Flush: func(ctx context.Context, rows []schema.ApiRequest) {
 			table := "default.api_requests_raw_v2"
 			if err := flush(c, ctx, table, rows); err != nil {
-				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+				logger.Error("failed to flush batch", "table", table, "error", err.Error())
 			}
 		},
 	})
@@ -156,7 +150,7 @@ func New(config Config) (*clickhouse, error) {
 		Flush: func(ctx context.Context, rows []schema.KeyVerification) {
 			table := "default.key_verifications_raw_v2"
 			if err := flush(c, ctx, table, rows); err != nil {
-				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+				logger.Error("failed to flush batch", "table", table, "error", err.Error())
 			}
 		},
 	})
@@ -171,7 +165,7 @@ func New(config Config) (*clickhouse, error) {
 		Flush: func(ctx context.Context, rows []schema.Ratelimit) {
 			table := "default.ratelimits_raw_v2"
 			if err := flush(c, ctx, table, rows); err != nil {
-				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+				logger.Error("failed to flush batch", "table", table, "error", err.Error())
 			}
 		},
 	})
@@ -186,7 +180,7 @@ func New(config Config) (*clickhouse, error) {
 		Flush: func(ctx context.Context, rows []schema.BuildStepV1) {
 			table := "default.build_steps_v1"
 			if err := flush(c, ctx, table, rows); err != nil {
-				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+				logger.Error("failed to flush batch", "table", table, "error", err.Error())
 			}
 		},
 	})
@@ -201,7 +195,7 @@ func New(config Config) (*clickhouse, error) {
 		Flush: func(ctx context.Context, rows []schema.BuildStepLogV1) {
 			table := "default.build_step_logs_v1"
 			if err := flush(c, ctx, table, rows); err != nil {
-				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+				logger.Error("failed to flush batch", "table", table, "error", err.Error())
 			}
 		},
 	})
@@ -216,7 +210,7 @@ func New(config Config) (*clickhouse, error) {
 		Flush: func(ctx context.Context, rows []schema.SentinelRequest) {
 			table := "default.sentinel_requests_raw_v1"
 			if err := flush(c, ctx, table, rows); err != nil {
-				c.logger.Error("failed to flush batch", "table", table, "error", err.Error())
+				logger.Error("failed to flush batch", "table", table, "error", err.Error())
 			}
 		},
 	})

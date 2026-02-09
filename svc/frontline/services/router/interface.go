@@ -5,7 +5,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 type RouteDecision struct {
@@ -25,7 +24,6 @@ type Service interface {
 }
 
 type Config struct {
-	Logger                 logging.Logger
 	Region                 string
 	DB                     db.Database
 	FrontlineRouteCache    cache.Cache[string, db.FrontlineRoute]

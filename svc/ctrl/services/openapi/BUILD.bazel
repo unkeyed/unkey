@@ -16,7 +16,6 @@ go_library(
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//pkg/db",
         "//pkg/fault",
-        "//pkg/otel/logging",
         "//pkg/ptr",
         "@com_connectrpc_connect//:connect",
         "@com_github_getkin_kin_openapi//openapi3",

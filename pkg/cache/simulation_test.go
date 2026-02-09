@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/sim"
 )
 
@@ -108,7 +107,6 @@ func TestSimulation(t *testing.T) {
 						Clock:    clk,
 						Fresh:    fresh,
 						Stale:    stale,
-						Logger:   logging.NewNoop(),
 						MaxSize:  rng.IntN(1_000_000) + 1, // Ensure at least size 1
 						Resource: "test",
 					})

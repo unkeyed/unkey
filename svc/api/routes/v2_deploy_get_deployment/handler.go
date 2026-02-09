@@ -8,7 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -20,9 +20,8 @@ type (
 )
 
 type Handler struct {
-	Logger logging.Logger
-	DB     db.Database
-	Keys   keys.KeyService
+	DB   db.Database
+	Keys keys.KeyService
 }
 
 func (h *Handler) Path() string {
@@ -97,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Fetch hostnames from frontline routes
 	routes, routesErr := db.Query.FindFrontlineRoutesByDeploymentID(ctx, h.DB.RO(), req.DeploymentId)
 	if routesErr != nil {
-		h.Logger.Warn("failed to fetch frontline routes for deployment", "error", routesErr, "deployment_id", deployment.ID)
+		logger.Warn("failed to fetch frontline routes for deployment", "error", routesErr, "deployment_id", deployment.ID)
 	} else if len(routes) > 0 {
 		hostnames := make([]string, len(routes))
 		for i, route := range routes {

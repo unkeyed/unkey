@@ -18,7 +18,6 @@
 //	// Create a ClickHouse client
 //	ch, err := clickhouse.New(clickhouse.Config{
 //	    URL:    "clickhouse://user:pass@clickhouse.example.com:9000/db?secure=true",
-//	    Logger: logger,
 //	})
 //	if err != nil {
 //	    return fmt.Errorf("failed to create clickhouse client: %w", err)

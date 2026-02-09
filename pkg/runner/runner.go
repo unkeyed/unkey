@@ -3,7 +3,6 @@ package runner
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -11,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // RunFunc is a long-running goroutine that should return nil on clean exit
@@ -41,7 +40,6 @@ type Runner struct {
 	cleanups []ShutdownFunc
 	state    runnerState
 	health   *healthState
-	logger   logging.Logger
 
 	wg     sync.WaitGroup
 	errCh  chan error
@@ -50,7 +48,7 @@ type Runner struct {
 }
 
 // New creates a new Runner.
-func New(logger logging.Logger) *Runner {
+func New() *Runner {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Runner{
@@ -58,7 +56,6 @@ func New(logger logging.Logger) *Runner {
 		cleanups: []ShutdownFunc{},
 		state:    runnerStateIdle,
 		health:   newHealthState(),
-		logger:   logger.With(slog.String("component", "runner")),
 		wg:       sync.WaitGroup{},
 		errCh:    make(chan error, 1),
 		ctx:      ctx,
@@ -69,7 +66,7 @@ func New(logger logging.Logger) *Runner {
 // Recover logs any panic that occurs in the calling goroutine.
 func (r *Runner) Recover() {
 	if recovered := recover(); recovered != nil {
-		r.logger.Error("panic",
+		logger.Error("panic",
 			"panic", recovered,
 			"stack", string(debug.Stack()),
 		)
@@ -89,7 +86,7 @@ func (r *Runner) Go(fn RunFunc) {
 	r.wg.Go(func() {
 		err := fn(r.ctx)
 		if err != nil && !errors.Is(err, context.Canceled) {
-			r.logger.Error("runner task failed", "error", err)
+			logger.Error("runner task failed", "error", err)
 			select {
 			case r.errCh <- err:
 			default:
@@ -188,7 +185,7 @@ func (r *Runner) Wait(ctx context.Context, opts ...RunOption) error {
 	r.mu.Lock()
 	if r.state == runnerStateRunning {
 		r.mu.Unlock()
-		r.logger.Error("runner already running")
+		logger.Error("runner already running")
 		return errors.New("runner is already running")
 	}
 	r.state = runnerStateRunning
@@ -198,7 +195,7 @@ func (r *Runner) Wait(ctx context.Context, opts ...RunOption) error {
 	}
 	r.mu.Unlock()
 
-	r.logger.Info("runner wait started",
+	logger.Info("runner wait started",
 		"timeout", cfg.Timeout,
 		"readiness_timeout", cfg.ReadinessTimeout,
 	)
@@ -212,19 +209,19 @@ func (r *Runner) Wait(ctx context.Context, opts ...RunOption) error {
 	select {
 	case sig := <-sigCh:
 		reason = "signal"
-		r.logger.Info("runner shutdown signal received", "signal", sig.String())
+		logger.Info("runner shutdown signal received", "signal", sig.String())
 	case <-ctx.Done():
 		reason = "context"
-		r.logger.Info("runner context canceled", "error", ctx.Err())
+		logger.Info("runner context canceled", "error", ctx.Err())
 	case cause = <-r.errCh:
 		reason = "error"
 	}
 
 	if cause != nil {
-		r.logger.Error("runner shutdown triggered by task error", "error", cause)
+		logger.Error("runner shutdown triggered by task error", "error", cause)
 	}
 
-	r.logger.Info("runner shutting down", "reason", reason)
+	logger.Info("runner shutting down", "reason", reason)
 
 	r.cancel()
 
@@ -237,20 +234,20 @@ func (r *Runner) Wait(ctx context.Context, opts ...RunOption) error {
 
 	if cause != nil && len(shutdownErrs) > 0 {
 		finalErr := errors.Join(append([]error{cause}, shutdownErrs...)...)
-		r.logger.Error("runner shutdown failed", "error", finalErr)
+		logger.Error("runner shutdown failed", "error", finalErr)
 		return finalErr
 	}
 	if cause != nil {
-		r.logger.Error("runner shutdown failed", "error", cause)
+		logger.Error("runner shutdown failed", "error", cause)
 		return cause
 	}
 	if len(shutdownErrs) > 0 {
 		finalErr := errors.Join(shutdownErrs...)
-		r.logger.Error("runner shutdown failed", "error", finalErr)
+		logger.Error("runner shutdown failed", "error", finalErr)
 		return finalErr
 	}
 
-	r.logger.Info("runner shutdown complete")
+	logger.Info("runner shutdown complete")
 	return nil
 }
 
@@ -272,7 +269,7 @@ func (r *Runner) shutdown(ctx context.Context) []error {
 			continue
 		}
 		if err := cleanups[i](ctx); err != nil {
-			r.logger.Error("runner cleanup failed", "error", err)
+			logger.Error("runner cleanup failed", "error", err)
 			errs = append(errs, err)
 		}
 	}

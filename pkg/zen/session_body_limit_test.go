@@ -11,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func TestSession_BodySizeLimit(t *testing.T) {
@@ -153,11 +152,9 @@ func TestSession_MaxBytesErrorMessage(t *testing.T) {
 
 func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 	// Test that oversized request bodies return 413 status through zen server
-	logger := logging.NewNoop()
 
 	// Create server with small body size limit
 	srv, err := New(Config{
-		Logger:             logger,
 		MaxRequestBodySize: 100, // 100 byte limit
 	})
 	require.NoError(t, err)
@@ -174,7 +171,7 @@ func TestSession_BodySizeLimitHTTPStatus(t *testing.T) {
 
 	srv.RegisterRoute(
 		[]Middleware{
-			withErrorHandling(logger),
+			withErrorHandling(),
 		},
 		testRoute,
 	)

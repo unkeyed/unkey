@@ -5,8 +5,5 @@ go_library(
     srcs = ["handler.go"],
     importpath = "github.com/unkeyed/unkey/svc/sentinel/routes/internal_health",
     visibility = ["//visibility:public"],
-    deps = [
-        "//pkg/otel/logging",
-        "//pkg/zen",
-    ],
+    deps = ["//pkg/zen"],
 )

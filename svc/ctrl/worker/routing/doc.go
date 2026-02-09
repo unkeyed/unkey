@@ -30,7 +30,6 @@
 //
 //	routingSvc := routing.New(routing.Config{
 //		DB:            mainDB,
-//		Logger:        logger,
 //		DefaultDomain: "unkey.app",
 //	})
 //

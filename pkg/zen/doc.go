@@ -23,7 +23,6 @@
 //	// Initialize a new server
 //	server, err := zen.New(zen.Config{
 //	    NodeID: "service-1",
-//	    Logger: logger,
 //	})
 //	if err != nil {
 //	    log.Fatalf("failed to create server: %v", err)
@@ -43,7 +42,7 @@
 //	server.RegisterRoute(
 //	    []zen.Middleware{
 //	        zen.WithTracing(),
-//	        zen.WithLogging(logger),
+//	        zen.WithLogging(),
 //	        zen.WithErrorHandling(),
 //	    },
 //	    route,

@@ -14,7 +14,7 @@ go_library(
         "//pkg/assert",
         "//pkg/cache",
         "//pkg/db",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "@com_github_go_acme_lego_v4//challenge",
         "@com_github_go_acme_lego_v4//providers/dns/route53",
     ],

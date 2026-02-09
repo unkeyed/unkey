@@ -11,7 +11,7 @@ go_library(
     visibility = ["//svc/preflight:__subpackages__"],
     deps = [
         "//pkg/assert",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//svc/preflight/internal/services/registry",
         "//svc/preflight/internal/services/registry/credentials",
         "@io_k8s_api//core/v1:core",

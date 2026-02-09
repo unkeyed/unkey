@@ -8,7 +8,6 @@ go_library(
     deps = [
         "//pkg/db",
         "//pkg/dockertest",
-        "//pkg/otel/logging",
         "//pkg/uid",
         "//svc/ctrl/integration/seed",
         "@com_github_stretchr_testify//require",

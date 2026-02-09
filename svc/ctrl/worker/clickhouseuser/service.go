@@ -5,7 +5,6 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // Service orchestrates ClickHouse user provisioning for workspaces.
@@ -22,7 +21,6 @@ type Service struct {
 	db         db.Database
 	vault      vaultv1connect.VaultServiceClient
 	clickhouse clickhouse.ClickHouse
-	logger     logging.Logger
 }
 
 var _ hydrav1.ClickhouseUserServiceServer = (*Service)(nil)
@@ -40,9 +38,6 @@ type Config struct {
 	// Must be connected as a user with CREATE/ALTER/DROP permissions for USER, QUOTA,
 	// ROW POLICY, and SETTINGS PROFILE, plus GRANT OPTION on analytics tables.
 	Clickhouse clickhouse.ClickHouse
-
-	// Logger receives structured log output from user provisioning operations.
-	Logger logging.Logger
 }
 
 // New creates a [Service] with the given configuration. The returned service is
@@ -53,6 +48,5 @@ func New(cfg Config) *Service {
 		db:                                       cfg.DB,
 		vault:                                    cfg.Vault,
 		clickhouse:                               cfg.Clickhouse,
-		logger:                                   cfg.Logger,
 	}
 }

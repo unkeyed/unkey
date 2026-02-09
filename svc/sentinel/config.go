@@ -3,6 +3,7 @@ package sentinel
 import (
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 )
@@ -29,6 +30,14 @@ type Config struct {
 	OtelEnabled           bool
 	OtelTraceSamplingRate float64
 	PrometheusPort        int
+
+	// --- Logging sampler configuration ---
+
+	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
+	LogSampleRate float64
+
+	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
+	LogSlowThreshold time.Duration
 }
 
 func (c Config) Validate() error {

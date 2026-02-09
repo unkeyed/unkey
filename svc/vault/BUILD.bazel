@@ -11,8 +11,8 @@ go_library(
     deps = [
         "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/assert",
+        "//pkg/logger",
         "//pkg/otel",
-        "//pkg/otel/logging",
         "//pkg/runner",
         "//pkg/version",
         "//svc/vault/internal/storage",

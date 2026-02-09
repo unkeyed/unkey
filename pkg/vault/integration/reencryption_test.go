@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
@@ -20,8 +19,6 @@ import (
 // This scenario tests the re-encryption of a secret.
 func TestReEncrypt(t *testing.T) {
 
-	logger := logging.NewNoop()
-
 	s3 := containers.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
@@ -29,7 +26,6 @@ func TestReEncrypt(t *testing.T) {
 		S3Bucket:          "vault",
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
@@ -38,7 +34,6 @@ func TestReEncrypt(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:    storage,
-		Logger:     logger,
 		MasterKeys: []string{masterKey},
 	})
 	require.NoError(t, err)

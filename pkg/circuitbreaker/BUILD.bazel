@@ -12,7 +12,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/clock",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/prometheus/metrics",
     ],
 )
@@ -24,7 +24,6 @@ go_test(
     embed = [":circuitbreaker"],
     deps = [
         "//pkg/clock",
-        "//pkg/otel/logging",
         "@com_github_stretchr_testify//require",
     ],
 )

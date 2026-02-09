@@ -33,9 +33,7 @@ export function DeploymentLogsContent({ projectId, deploymentId }: Props) {
     handleFilterChange,
     handleSearchChange,
     scrollRef,
-  } = useDeploymentLogs({
-    deploymentId,
-  });
+  } = useDeploymentLogs();
 
   if (logType === "runtime") {
     return <RuntimeLogsContent projectId={projectId} deploymentId={deploymentId} />;

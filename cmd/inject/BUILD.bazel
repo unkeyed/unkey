@@ -13,7 +13,7 @@ go_library(
     deps = [
         "//pkg/assert",
         "//pkg/cli",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/secrets/provider",
     ],
 )

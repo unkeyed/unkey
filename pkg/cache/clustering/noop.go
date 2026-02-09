@@ -1,10 +1,6 @@
 // nolint: all
 package clustering
 
-import (
-	"github.com/unkeyed/unkey/pkg/otel/logging"
-)
-
 // noopDispatcher is a no-op implementation that does nothing.
 // Used when clustering is disabled.
 type noopDispatcher struct{}
@@ -17,6 +13,5 @@ func (n *noopDispatcher) Close() error                         { return nil }
 func NewNoopDispatcher() *InvalidationDispatcher {
 	return &InvalidationDispatcher{
 		handlers: make(map[string]InvalidationHandler),
-		logger:   logging.NewNoop(),
 	}
 }

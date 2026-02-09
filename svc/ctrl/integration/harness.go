@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -34,7 +33,6 @@ func New(t *testing.T) *Harness {
 	mysqlHostDSN := mysqlCfg.DSN
 
 	database, err := db.New(db.Config{
-		Logger:      logging.NewNoop(),
 		PrimaryDSN:  mysqlHostDSN,
 		ReadOnlyDSN: "",
 	})

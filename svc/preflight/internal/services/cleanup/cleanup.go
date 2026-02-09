@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 const (
@@ -18,18 +18,15 @@ const (
 )
 
 type Config struct {
-	Logger    logging.Logger
 	Clientset kubernetes.Interface
 }
 
 type Service struct {
-	logger    logging.Logger
 	clientset kubernetes.Interface
 }
 
 func New(cfg *Config) *Service {
 	return &Service{
-		logger:    cfg.Logger,
 		clientset: cfg.Clientset,
 	}
 }
@@ -44,7 +41,7 @@ func (s *Service) Start(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
-			s.logger.Info("stopping secret cleanup loop")
+			logger.Info("stopping secret cleanup loop")
 			return
 		case <-ticker.C:
 		}
@@ -53,14 +50,14 @@ func (s *Service) Start(ctx context.Context) {
 
 // cleanupExpiredSecrets deletes all preflight-managed secrets that have expired.
 func (s *Service) cleanupExpiredSecrets(ctx context.Context) {
-	s.logger.Debug("running expired secret cleanup")
+	logger.Debug("running expired secret cleanup")
 
 	// List all secrets managed by preflight across all namespaces
 	secrets, err := s.clientset.CoreV1().Secrets("").List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
-		s.logger.Error("failed to list secrets for cleanup", "error", err)
+		logger.Error("failed to list secrets for cleanup", "error", err)
 		return
 	}
 
@@ -73,7 +70,7 @@ func (s *Service) cleanupExpiredSecrets(ctx context.Context) {
 		// Secret is expired or has no valid expiry annotation
 		err := s.clientset.CoreV1().Secrets(secret.Namespace).Delete(ctx, secret.Name, metav1.DeleteOptions{})
 		if err != nil {
-			s.logger.Warn("failed to delete expired secret",
+			logger.Warn("failed to delete expired secret",
 				"namespace", secret.Namespace,
 				"secret", secret.Name,
 				"error", err,
@@ -82,10 +79,10 @@ func (s *Service) cleanupExpiredSecrets(ctx context.Context) {
 		}
 
 		deleted++
-		s.logger.Info("deleted expired pull secret", "namespace", secret.Namespace, "secret", secret.Name)
+		logger.Info("deleted expired pull secret", "namespace", secret.Namespace, "secret", secret.Name)
 	}
 
-	s.logger.Info("cleanup complete", "deleted", deleted)
+	logger.Info("cleanup complete", "deleted", deleted)
 }
 
 // isSecretValid checks if the secret's token hasn't expired.
@@ -101,7 +98,7 @@ func (s *Service) isSecretValid(secret *corev1.Secret) bool {
 
 	expiresAt, err := time.Parse(time.RFC3339, expiresAtStr)
 	if err != nil {
-		s.logger.Warn("invalid expires-at annotation", "value", expiresAtStr, "error", err)
+		logger.Warn("invalid expires-at annotation", "value", expiresAtStr, "error", err)
 		return false
 	}
 

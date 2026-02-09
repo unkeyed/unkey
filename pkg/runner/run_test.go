@@ -9,13 +9,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // TestRun_ExecutesTasks verifies that Run starts all registered tasks
 // concurrently when called.
 func TestRun_ExecutesTasks(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	var executed atomic.Int32
 
@@ -51,7 +50,7 @@ func TestRun_ExecutesTasks(t *testing.T) {
 // TestRun_StopsOnContextCancel verifies that canceling the parent context
 // signals all tasks to stop via their context.
 func TestRun_StopsOnContextCancel(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	taskStopped := make(chan struct{})
 	r.Go(func(ctx context.Context) error {
@@ -83,7 +82,7 @@ func TestRun_StopsOnContextCancel(t *testing.T) {
 // TestRun_StopsOnTaskError verifies that when any task returns a non-nil
 // error, all other tasks are signaled to stop and the error is returned.
 func TestRun_StopsOnTaskError(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	taskErr := errors.New("task failed")
 	r.Go(func(ctx context.Context) error {
@@ -111,7 +110,7 @@ func TestRun_StopsOnTaskError(t *testing.T) {
 // TestRun_CanOnlyRunOnce verifies that Run returns an error if called while
 // already running. This prevents undefined behavior from concurrent Run calls.
 func TestRun_CanOnlyRunOnce(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -133,7 +132,7 @@ func TestRun_CanOnlyRunOnce(t *testing.T) {
 // TestRun_EmptyRunner verifies that a runner with no tasks or cleanups exits
 // cleanly when the context is canceled.
 func TestRun_EmptyRunner(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -146,7 +145,7 @@ func TestRun_EmptyRunner(t *testing.T) {
 // in reverse registration order (LIFO). This matches defer semantics and
 // ensures resources are released in the correct order.
 func TestRun_CleanupsExecutedInReverseOrder(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	var order []int
 	var mu sync.Mutex
@@ -183,7 +182,7 @@ func TestRun_CleanupsExecutedInReverseOrder(t *testing.T) {
 // TestRun_CleanupsReceiveContext verifies that context-aware cleanup handlers
 // receive a valid context with a deadline for timeout enforcement.
 func TestRun_CleanupsReceiveContext(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	var receivedCtx context.Context
 	r.DeferCtx(func(ctx context.Context) error {
@@ -203,7 +202,7 @@ func TestRun_CleanupsReceiveContext(t *testing.T) {
 // if one returns an error. This ensures resources are properly released even
 // during partial failures.
 func TestRun_ContinuesOnCleanupError(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	var called []int
 	var mu sync.Mutex
@@ -244,7 +243,7 @@ func TestRun_ContinuesOnCleanupError(t *testing.T) {
 // the cleanup context. Cleanup handlers that exceed this timeout will have
 // their context canceled.
 func TestWithTimeout_SetsTimeout(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	var cleanupCtx context.Context
 	r.DeferCtx(func(ctx context.Context) error {
