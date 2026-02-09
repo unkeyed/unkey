@@ -41,9 +41,17 @@ export const env = () =>
       CLICKHOUSE_URL: z.string().optional(),
       OPENAI_API_KEY: z.string().optional(),
 
-      AUTH_PROVIDER: z.enum(["workos", "local"]),
+      AUTH_PROVIDER: z.enum(["workos", "better-auth", "local"]),
 
       WORKOS_API_KEY: z.string().optional(),
+
+      // Better Auth configuration (required when AUTH_PROVIDER=better-auth)
+      BETTER_AUTH_SECRET: z.string().optional(),
+      BETTER_AUTH_URL: z.string().optional(),
+      GITHUB_CLIENT_ID: z.string().optional(),
+      GITHUB_CLIENT_SECRET: z.string().optional(),
+      GOOGLE_CLIENT_ID: z.string().optional(),
+      GOOGLE_CLIENT_SECRET: z.string().optional(),
       WORKOS_CLIENT_ID: z.string().optional(),
       WORKOS_WEBHOOK_SECRET: z.string().optional(),
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.string().optional(),

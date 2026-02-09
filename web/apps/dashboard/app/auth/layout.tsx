@@ -1,4 +1,6 @@
 import { getAuth } from "@/lib/auth/get-auth";
+import { getCookie } from "@/lib/auth/cookies";
+import { PENDING_SESSION_COOKIE } from "@/lib/auth/types";
 import { Page2 } from "@unkey/icons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -8,12 +10,20 @@ export const dynamic = "force-dynamic";
 
 export default async function AuthenticatedLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ slug?: string[] }>;
 }) {
   const { userId } = await getAuth(); // we want the one without redirect
 
-  if (userId) {
+  // Check if user is in org selection flow by checking for pending session cookie
+  // This cookie is set when user needs to select an org
+  const pendingSession = await getCookie(PENDING_SESSION_COOKIE);
+  const isInOrgSelectionFlow = !!pendingSession;
+
+  // Only redirect authenticated users if they're NOT in org selection flow
+  if (userId && !isInOrgSelectionFlow) {
     return redirect("/apis");
   }
 

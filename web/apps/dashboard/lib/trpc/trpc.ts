@@ -175,6 +175,7 @@ function handleTRPCError(
 /**
  * Middleware: Requires authenticated user with structured logging
  * Throws UNAUTHORIZED if user is not authenticated
+ * Throws PRECONDITION_FAILED if user has no active organization
  */
 const requireUser = t.middleware(({ next, ctx }) => {
   if (!ctx.user?.id) {
@@ -188,17 +189,32 @@ const requireUser = t.middleware(({ next, ctx }) => {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
 
+  // If user is authenticated but has no tenant (org), they need to select/create one
+  // Do NOT fall back to user.id - that causes workspace lookup failures
+  if (!ctx.tenant) {
+    logOperation("info", "User authenticated but no active organization", {
+      user_id: ctx.user.id,
+      user_agent: ctx.audit?.userAgent,
+      location: ctx.audit?.location,
+    });
+
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "No active organization. Please select or create a workspace.",
+    });
+  }
+
   // Log successful authentication
   logOperation("debug", "User authentication verified", {
     user_id: ctx.user.id,
-    tenant_id: ctx.tenant?.id || undefined,
-    tenant_role: ctx.tenant?.role || undefined,
+    tenant_id: ctx.tenant.id,
+    tenant_role: ctx.tenant.role ?? undefined,
   });
 
   return next({
     ctx: {
       user: ctx.user,
-      tenant: ctx.tenant ?? { id: ctx.user.id, role: "owner" },
+      tenant: ctx.tenant,
     },
   });
 });

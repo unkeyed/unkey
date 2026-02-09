@@ -28,3 +28,6 @@ export * from "./certificates";
 export * from "./frontline_routes";
 export * from "./github_app";
 export * from "./cilium";
+
+// Better Auth tables
+export * from "./better_auth";

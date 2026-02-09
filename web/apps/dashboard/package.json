@@ -69,6 +69,7 @@
     "@vercel/og": "0.6.2",
     "@workos-inc/node": "7.47.0",
     "autoprefixer": "10.4.19",
+    "better-auth": "^1.4.18",
     "class-variance-authority": "0.7.0",
     "clsx": "2.1.1",
     "cmdk": "1.0.0",

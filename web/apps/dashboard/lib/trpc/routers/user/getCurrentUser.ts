@@ -6,6 +6,14 @@ import { protectedProcedure } from "../../trpc";
 export const getCurrentUser = protectedProcedure.query(async ({ ctx }) => {
   try {
     const user = await authProvider.getUser(ctx.user.id);
+
+    if (!user) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "User not found",
+      });
+    }
+
     return {
       ...user,
       orgId: ctx.tenant.id,
@@ -13,6 +21,9 @@ export const getCurrentUser = protectedProcedure.query(async ({ ctx }) => {
     } as AuthenticatedUser;
   } catch (error) {
     console.error("Error fetching current user:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to fetch user data",

@@ -1,13 +1,32 @@
 import { env } from "@/lib/env";
 import type { BaseAuthProvider } from "./base-provider";
+import { BetterAuthProvider } from "./better-auth";
 import { LocalAuthProvider } from "./local";
 import { WorkOSAuthProvider } from "./workos";
 
-type SupportedProviders = "workos" | "local";
+type SupportedProviders = "workos" | "better-auth" | "local";
+
+// Use globalThis to persist singleton across HMR in development
+// This prevents memory leaks from recreating auth provider instances on every hot reload
+const globalForAuth = globalThis as unknown as {
+  authProviderInstance: BaseAuthProvider | undefined;
+  authProviderInitialized: boolean;
+};
+
 // biome-ignore lint/complexity/noStaticOnlyClass: intentional; AuthProvider class is inherited/extended by other providers
 class AuthProvider {
-  private static instance: BaseAuthProvider | null = null;
-  private static initialized = false;
+  private static get instance(): BaseAuthProvider | null {
+    return globalForAuth.authProviderInstance ?? null;
+  }
+  private static set instance(value: BaseAuthProvider | null) {
+    globalForAuth.authProviderInstance = value ?? undefined;
+  }
+  private static get initialized(): boolean {
+    return globalForAuth.authProviderInitialized ?? false;
+  }
+  private static set initialized(value: boolean) {
+    globalForAuth.authProviderInitialized = value;
+  }
 
   private static initialize(): void {
     if (AuthProvider.initialized) {
@@ -20,6 +39,11 @@ class AuthProvider {
     switch (authProvider) {
       case "workos": {
         AuthProvider.initializeWorkOS(environment);
+        break;
+      }
+
+      case "better-auth": {
+        AuthProvider.initializeBetterAuth();
         break;
       }
 
@@ -50,6 +74,11 @@ class AuthProvider {
 
   private static initializeLocal() {
     AuthProvider.instance = new LocalAuthProvider();
+  }
+
+  private static initializeBetterAuth() {
+    // BetterAuthProvider validates env vars (BETTER_AUTH_SECRET, BETTER_AUTH_URL) in its constructor
+    AuthProvider.instance = new BetterAuthProvider();
   }
 
   public static getInstance(): BaseAuthProvider {

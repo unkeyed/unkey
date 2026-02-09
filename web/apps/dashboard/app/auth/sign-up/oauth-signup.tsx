@@ -1,10 +1,10 @@
 "use client";
 
 import { GitHub, Google } from "@/components/ui/icons";
+import { signInWithSocial } from "@/lib/auth/better-auth-client";
 import type { OAuthStrategy } from "@/lib/auth/types";
 import { Loading, toast } from "@unkey/ui";
 import * as React from "react";
-import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
 
 export function OAuthSignUp() {
@@ -20,19 +20,10 @@ export function OAuthSignUp() {
   const oauthSignIn = async (provider: OAuthStrategy) => {
     try {
       setIsLoading(provider);
-      const url = await signInViaOAuth({
-        provider,
-        redirectUrlComplete,
-      });
-
-      if (url) {
-        window.location.assign(url);
-      } else {
-        throw new Error("Failed to get OAuth URL");
-      }
+      // Better Auth client handles the redirect automatically
+      await signInWithSocial(provider, redirectUrlComplete);
     } catch (_err) {
       toast.error("Failed to initiate login. Please try again.");
-    } finally {
       setIsLoading(null);
     }
   };

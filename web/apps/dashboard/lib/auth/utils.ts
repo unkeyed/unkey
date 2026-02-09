@@ -1,10 +1,11 @@
 "use server";
 
+import { env } from "@/lib/env";
 import { redirect } from "next/navigation";
 import { getAuth } from "../auth";
-import { deleteCookie } from "./cookies";
+import { deleteCookie, getCookie } from "./cookies";
 import { auth } from "./server";
-import { UNKEY_SESSION_COOKIE } from "./types";
+import { BETTER_AUTH_SESSION_COOKIE, UNKEY_SESSION_COOKIE } from "./types";
 
 // Helper function for ensuring a signed-in user
 export async function requireAuth(): Promise<{
@@ -36,7 +37,33 @@ export async function requireEmailMatch(params: {
 
 // Sign Out
 export async function signOut(): Promise<void> {
-  //const signOutUrl = await auth.getSignOutUrl();
+  const config = env();
+
+  if (config.AUTH_PROVIDER === "better-auth") {
+    // Get the session token to revoke it server-side
+    const sessionToken = await getCookie(BETTER_AUTH_SESSION_COOKIE);
+
+    if (sessionToken) {
+      // Revoke the session server-side using Better Auth API
+      const { getBetterAuthInstance } = await import("./better-auth-server");
+      const betterAuth = getBetterAuthInstance();
+
+      try {
+        await betterAuth.api.revokeSession({
+          body: { token: sessionToken },
+          headers: { cookie: `better-auth.session_token=${sessionToken}` },
+        });
+      } catch (_error) {
+        // Continue with cookie deletion even if revocation fails
+      }
+    }
+
+    // Delete the Better Auth session cookie
+    await deleteCookie(BETTER_AUTH_SESSION_COOKIE);
+  }
+
+  // Always delete the Unkey session cookie (used by WorkOS and local providers)
   await deleteCookie(UNKEY_SESSION_COOKIE);
+
   redirect("/auth/sign-in");
 }

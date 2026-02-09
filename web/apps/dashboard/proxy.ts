@@ -31,6 +31,7 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/auth/sso-callback",
     "/auth/oauth-sign-in",
     "/auth/join",
+    "/api/auth*",
     "/join",
     "/join/success",
     "/favicon.ico",

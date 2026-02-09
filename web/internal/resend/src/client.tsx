@@ -4,6 +4,8 @@ import { render } from "@react-email/render";
 // biome-ignore lint/correctness/noUnusedImports: React UMD bypass
 import React from "react";
 import { ApiV1Migration } from "../emails/api_v1_migration";
+import { OrgInvitationEmail } from "../emails/org_invitation";
+import { OtpVerificationEmail } from "../emails/otp_verification";
 import { PaymentIssue } from "../emails/payment_issue";
 import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
 import { WelcomeEmail } from "../emails/welcome_email";
@@ -113,6 +115,65 @@ export class Resend {
       throw result.error;
     } catch (error) {
       console.error("Error occurred sending API v1 migration email ", JSON.stringify(error));
+    }
+  }
+
+  public async sendOtpVerificationEmail(req: {
+    email: string;
+    otp: string;
+    type: "sign-in" | "email-verification" | "forget-password";
+  }): Promise<void> {
+    const subjectMap = {
+      "sign-in": "Your Unkey sign-in code",
+      "email-verification": "Verify your email address",
+      "forget-password": "Reset your password",
+    };
+
+    const html = await render(<OtpVerificationEmail otp={req.otp} type={req.type} />);
+    try {
+      const result = await this.client.emails.send({
+        to: req.email,
+        from: "Unkey <noreply@updates.unkey.com>",
+        replyTo: this.replyTo,
+        subject: subjectMap[req.type],
+        html,
+      });
+      if (!result.error) {
+        return;
+      }
+      throw result.error;
+    } catch (error) {
+      console.error("Error occurred sending OTP verification email ", JSON.stringify(error));
+    }
+  }
+
+  public async sendOrgInvitationEmail(req: {
+    email: string;
+    inviterEmail: string;
+    organizationName: string;
+    invitationUrl: string;
+  }): Promise<void> {
+    const html = await render(
+      <OrgInvitationEmail
+        inviterEmail={req.inviterEmail}
+        organizationName={req.organizationName}
+        invitationUrl={req.invitationUrl}
+      />,
+    );
+    try {
+      const result = await this.client.emails.send({
+        to: req.email,
+        from: "Unkey <noreply@updates.unkey.com>",
+        replyTo: this.replyTo,
+        subject: `You've been invited to join ${req.organizationName} on Unkey`,
+        html,
+      });
+      if (!result.error) {
+        return;
+      }
+      throw result.error;
+    } catch (error) {
+      console.error("Error occurred sending org invitation email ", JSON.stringify(error));
     }
   }
 }
