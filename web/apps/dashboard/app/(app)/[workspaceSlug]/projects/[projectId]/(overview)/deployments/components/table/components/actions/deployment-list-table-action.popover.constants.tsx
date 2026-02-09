@@ -78,7 +78,7 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/sentinel-logs?since=6h&deploymentId=contains:${selectedDeployment.id}`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/requests?since=6h&deploymentId=contains:${selectedDeployment.id}`,
           );
         },
       },
@@ -88,7 +88,7 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${selectedDeployment.id}/runtime-logs`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${selectedDeployment.id}/logs`,
           );
         },
       },

@@ -31,8 +31,8 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
   // Detect current tab from segments
   const currentTab = segments.includes("network")
     ? "network"
-    : segments.includes("runtime-logs")
-      ? "runtime-logs"
+    : segments.includes("logs")
+      ? "logs"
       : "overview";
 
   return useMemo(() => {
@@ -46,9 +46,9 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
         href: `${basePath}/deployments/${deploymentId}`,
       },
       {
-        id: "runtime-logs",
+        id: "logs",
         label: "Logs",
-        href: `${basePath}/deployments/${deploymentId}/runtime-logs`,
+        href: `${basePath}/deployments/${deploymentId}/logs`,
       },
       {
         id: "network",
@@ -99,7 +99,7 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
         children:
           currentTab === "overview"
             ? "Overview"
-            : currentTab === "runtime-logs"
+            : currentTab === "logs"
               ? "Logs"
               : "Network",
         shouldRender: true,

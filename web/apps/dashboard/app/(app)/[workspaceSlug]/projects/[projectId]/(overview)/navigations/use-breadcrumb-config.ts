@@ -69,10 +69,10 @@ export const useBreadcrumbConfig = ({
       segment: "deployments",
     },
     {
-      id: "sentinel-logs",
+      id: "requests",
       label: "Requests",
-      href: `${basePath}/${projectId}/sentinel-logs`,
-      segment: "sentinel-logs",
+      href: `${basePath}/${projectId}/requests`,
+      segment: "requests",
     },
     {
       id: "settings",

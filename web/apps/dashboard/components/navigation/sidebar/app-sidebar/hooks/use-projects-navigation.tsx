@@ -52,9 +52,9 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
             },
             {
               icon: Layers3,
-              href: `${basePath}/${project.id}/deployments/${deploymentId}/runtime-logs`,
+              href: `${basePath}/${project.id}/deployments/${deploymentId}/logs`,
               label: "Logs",
-              active: currentDeploymentTab === "runtime-logs",
+              active: currentDeploymentTab === "logs",
             },
             {
               icon: Connections,
@@ -82,9 +82,9 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
         },
         {
           icon: Layers3,
-          href: `${basePath}/${project.id}/sentinel-logs`,
+          href: `${basePath}/${project.id}/requests`,
           label: "Requests",
-          active: currentProjectActive && currentSubRoute === "sentinel-logs",
+          active: currentProjectActive && currentSubRoute === "requests",
         },
         {
           icon: Gear,
