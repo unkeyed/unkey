@@ -44,25 +44,25 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
       // deployment tab sub-items if viewing deployment detail
       const deploymentTabItems: NavItem[] | undefined = isOnDeploymentDetail
         ? [
-          {
-            icon: GridCircle,
-            href: `${basePath}/${project.id}/deployments/${deploymentId}`,
-            label: "Overview",
-            active: !currentDeploymentTab || currentDeploymentTab === "overview",
-          },
-          {
-            icon: Layers3,
-            href: `${basePath}/${project.id}/deployments/${deploymentId}/runtime-logs`,
-            label: "Runtime Logs",
-            active: currentDeploymentTab === "runtime-logs",
-          },
-          {
-            icon: Connections,
-            href: `${basePath}/${project.id}/deployments/${deploymentId}/network`,
-            label: "Network",
-            active: currentDeploymentTab === "network",
-          },
-        ]
+            {
+              icon: GridCircle,
+              href: `${basePath}/${project.id}/deployments/${deploymentId}`,
+              label: "Overview",
+              active: !currentDeploymentTab || currentDeploymentTab === "overview",
+            },
+            {
+              icon: Layers3,
+              href: `${basePath}/${project.id}/deployments/${deploymentId}/runtime-logs`,
+              label: "Runtime Logs",
+              active: currentDeploymentTab === "runtime-logs",
+            },
+            {
+              icon: Connections,
+              href: `${basePath}/${project.id}/deployments/${deploymentId}/network`,
+              label: "Network",
+              active: currentDeploymentTab === "network",
+            },
+          ]
         : undefined;
 
       // Create sub-items

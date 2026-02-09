@@ -49,6 +49,47 @@ export const projects = createCollection<Project>(
       return await trpcClient.deploy.project.list.query();
     },
     getKey: (item) => item.id,
+    onDelete: async ({ transaction }) => {
+      const mutation = transaction.mutations[0];
+      const projectId = mutation.original.id;
+
+      const deleteMutation = trpcClient.deploy.project.delete.mutate({ projectId });
+
+      toast.promise(deleteMutation, {
+        loading: "Deleting project...",
+        success: "Project deleted successfully",
+        error: (err) => {
+          console.error("Failed to delete project", err);
+
+          switch (err.data?.code) {
+            case "NOT_FOUND":
+              return {
+                message: "Project Deletion Failed",
+                description: "Unable to find the project. Please refresh and try again.",
+              };
+            case "FORBIDDEN":
+              return {
+                message: "Permission Denied",
+                description: "You don't have permission to delete this project.",
+              };
+            case "INTERNAL_SERVER_ERROR":
+              return {
+                message: "Server Error",
+                description:
+                  "We encountered an issue while deleting your project. Please try again later or contact support at support@unkey.com",
+              };
+            default:
+              return {
+                message: "Failed to Delete Project",
+                description: err.message || "An unexpected error occurred. Please try again later.",
+              };
+          }
+        },
+      });
+
+      await deleteMutation;
+      // Automatically refetches query after delete
+    },
     onInsert: async ({ transaction }) => {
       const { changes } = transaction.mutations[0];
 

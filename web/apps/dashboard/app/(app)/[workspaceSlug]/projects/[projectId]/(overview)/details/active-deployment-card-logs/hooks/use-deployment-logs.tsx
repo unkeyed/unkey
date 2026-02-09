@@ -1,5 +1,4 @@
 import { trpc } from "@/lib/trpc/client";
-import { useQueryTime } from "@/providers/query-time-provider";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../../../layout-provider";
@@ -9,8 +8,6 @@ const GATEWAY_LOGS_LIMIT = 20;
 const MAX_STORED_LOGS = 200;
 const ERROR_STATUS_THRESHOLD = 500;
 const WARNING_STATUS_THRESHOLD = 400;
-
-
 
 type LogEntry = {
   type: "sentinel";
@@ -55,7 +52,6 @@ export function useDeploymentLogs({
   const [showFade, setShowFade] = useState(true);
   const [storedLogs, setStoredLogs] = useState<Map<string, LogEntry>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null) as React.MutableRefObject<HTMLDivElement>;
-  const { queryTime: timestamp } = useQueryTime();
   const { collections } = useProject();
 
   const deployment = useLiveQuery(
@@ -66,22 +62,23 @@ export function useDeploymentLogs({
     [deploymentId],
   );
   const environmentId = deployment.data.at(0)?.environmentId ?? "";
-  const { data: sentinelData, isLoading: sentinelLoading } = trpc.deploy.sentinelLogs.query.useQuery(
-    {
-      projectId,
-      deploymentId: deploymentId ?? "",
-      environmentId,
-      limit: GATEWAY_LOGS_LIMIT,
-      since: "6h"
-      // startTime: timestamp - 6 * 60 * 60 * 1000,
-      // endTime: timestamp,
-    },
-    {
-      enabled: Boolean(deploymentId) && Boolean(environmentId),
-      refetchInterval: GATEWAY_LOGS_REFETCH_INTERVAL,
-      refetchOnWindowFocus: false,
-    },
-  );
+  const { data: sentinelData, isLoading: sentinelLoading } =
+    trpc.deploy.sentinelLogs.query.useQuery(
+      {
+        projectId,
+        deploymentId: deploymentId ?? "",
+        environmentId,
+        limit: GATEWAY_LOGS_LIMIT,
+        since: "6h",
+        // startTime: timestamp - 6 * 60 * 60 * 1000,
+        // endTime: timestamp,
+      },
+      {
+        enabled: Boolean(deploymentId) && Boolean(environmentId),
+        refetchInterval: GATEWAY_LOGS_REFETCH_INTERVAL,
+        refetchOnWindowFocus: false,
+      },
+    );
 
   // Update stored logs when sentinel data changes
   useEffect(() => {
@@ -154,8 +151,6 @@ export function useDeploymentLogs({
       setShowFade(true);
     }
   };
-
-
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;

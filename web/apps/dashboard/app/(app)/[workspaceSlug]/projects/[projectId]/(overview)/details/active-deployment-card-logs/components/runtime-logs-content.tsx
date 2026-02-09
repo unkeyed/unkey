@@ -133,14 +133,20 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
                       {format(new Date(log.time), "HH:mm:ss.SSS")}
                     </span>
                     <span>{log.region}</span>
-                    <span >{log.message}</span>
-                    <InfoTooltip content={<pre className="text-left">
-                      <code>{JSON.stringify(log.attributes, null, 2)}</code>
-                    </pre>} asChild className="cursor-pointer" position={{
-                      align: "center",
-                      side: "top"
-
-                    }}>
+                    <span>{log.message}</span>
+                    <InfoTooltip
+                      content={
+                        <pre className="text-left">
+                          <code>{JSON.stringify(log.attributes, null, 2)}</code>
+                        </pre>
+                      }
+                      asChild
+                      className="cursor-pointer"
+                      position={{
+                        align: "center",
+                        side: "top",
+                      }}
+                    >
                       <span className="text-grayA-8 text-[11px] max-w-[200px] truncate">
                         {JSON.stringify(log.attributes)}
                       </span>
@@ -153,11 +159,9 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
         </div>
       </div>
 
-      {
-        showFade && (
-          <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-1 to-transparent pointer-events-none transition-opacity duration-300 ease-out" />
-        )
-      }
-    </div >
+      {showFade && (
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-1 to-transparent pointer-events-none transition-opacity duration-300 ease-out" />
+      )}
+    </div>
   );
 }

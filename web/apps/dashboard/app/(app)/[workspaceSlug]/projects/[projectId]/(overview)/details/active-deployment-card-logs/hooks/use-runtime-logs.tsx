@@ -83,12 +83,8 @@ export function useRuntimeLogs({
   }, [storedLogs]);
 
   const logCounts = useMemo(() => {
-    const warnings = logs.filter((log) =>
-      log.severity.toUpperCase() === "WARN"
-    ).length;
-    const errors = logs.filter((log) =>
-      log.severity.toUpperCase() === "ERROR"
-    ).length;
+    const warnings = logs.filter((log) => log.severity.toUpperCase() === "WARN").length;
+    const errors = logs.filter((log) => log.severity.toUpperCase() === "ERROR").length;
 
     return {
       total: logs.length,
@@ -101,18 +97,14 @@ export function useRuntimeLogs({
     let filtered = logs;
 
     if (logFilter === "warnings") {
-      filtered = logs.filter((log) =>
-        log.severity.toUpperCase() === "WARN"
-      );
+      filtered = logs.filter((log) => log.severity.toUpperCase() === "WARN");
     } else if (logFilter === "errors") {
-      filtered = logs.filter((log) =>
-        log.severity.toUpperCase() === "ERROR"
-      );
+      filtered = logs.filter((log) => log.severity.toUpperCase() === "ERROR");
     }
 
     if (searchTerm.trim()) {
       filtered = filtered.filter((log) =>
-        log.message.toLowerCase().includes(searchTerm.toLowerCase())
+        log.message.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 

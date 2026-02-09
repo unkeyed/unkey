@@ -64,6 +64,7 @@ import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
 import { createProject } from "./deploy/project/create";
+import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
 import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
@@ -386,6 +387,7 @@ export const router = t.router({
     project: t.router({
       list: listProjects,
       create: createProject,
+      delete: deleteProject,
     }),
     environment: t.router({
       list: listEnvironments,
