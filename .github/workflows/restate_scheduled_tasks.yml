@@ -6,6 +6,7 @@ on:
   schedule:
     - cron: "0 15 * * *" # Quota check: Daily at 15:00 UTC
     - cron: "0 3 * * *" # Cert renewal: Daily at 03:00 UTC
+    - cron: "*/15 * * * *" # Deployment Sleeping: Every 15 min
   workflow_dispatch:
     inputs:
       task:
@@ -17,6 +18,7 @@ on:
           - all
           - quota-check
           - cert-renewal
+          - scale-down-idle-deployments
 
 jobs:
   quota-check:
@@ -56,3 +58,20 @@ jobs:
             -H "idempotency-key: cert-renewal-$(date -u +'%Y-%m-%d')" \
             "${RESTATE_URL}/hydra.v1.CertificateService/global/RenewExpiringCertificates/send" \
             -d '{"daysBeforeExpiry": 30}'
+
+  scale-down-idle-deployments:
+    if: github.event.schedule == '*/15 * * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'scale-down-idle-deployments'
+    environment: operations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke Restate
+        env:
+          RESTATE_URL: ${{ secrets.RESTATE_URL }}
+          RESTATE_API_KEY: ${{ secrets.RESTATE_API_KEY }}
+        run: |
+          curl -sf -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${RESTATE_API_KEY}" \
+            -H "idempotency-key: scale-down-idle-$(date -u +'%Y-%m-%dT%H:%M')" \
+            "${RESTATE_URL}/hydra.v1.DeploymentService/global/ScaleDownIdleDeployments/send" \
+            -d '{}'
