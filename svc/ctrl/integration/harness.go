@@ -131,7 +131,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Port:                          8080,
 		RestartPolicy:                 db.DeploymentsRestartPolicyAlways,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
-		Healthcheck:                   dbtype.NullHealthcheck{},
+		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		CreatedAt:                     h.Now(),
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 		Command:                       nil,

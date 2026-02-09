@@ -635,7 +635,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Port:                          8080,
 		RestartPolicy:                 db.DeploymentsRestartPolicyAlways,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
-		Healthcheck:                   dbtype.NullHealthcheck{},
+		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})
