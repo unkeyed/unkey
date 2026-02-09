@@ -10,7 +10,11 @@ service DeploymentService {
   rpc Deploy(DeployRequest) returns (DeployResponse) {}
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
+  rpc ScaleDownIdleDeployments(ScaleDownIdleDeploymentsRequest) returns (ScaleDownIdleDeploymentsResponse) {}
 }
+
+message ScaleDownIdleDeploymentsRequest {}
+message ScaleDownIdleDeploymentsResponse {}
 
 message DockerImage {
   string image = 1;
