@@ -164,13 +164,22 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 	}
 
 	runtimeSettings, runtimeErr := db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(ctx, s.db.RO(), env.ID)
+	hasRuntimeSettings := runtimeErr == nil
 	cpuMillicores := int32(256)
 	memoryMib := int32(256)
 	var command dbtype.StringSlice
-	if runtimeErr == nil {
+	port := int32(8080)
+	restartPolicy := db.DeploymentsRestartPolicyAlways
+	shutdownSignal := db.DeploymentsShutdownSignalSIGTERM
+	var healthcheck dbtype.NullHealthcheck
+	if hasRuntimeSettings {
 		cpuMillicores = runtimeSettings.CpuMillicores
 		memoryMib = runtimeSettings.MemoryMib
 		command = runtimeSettings.Command
+		port = runtimeSettings.Port
+		restartPolicy = db.DeploymentsRestartPolicy(runtimeSettings.RestartPolicy)
+		shutdownSignal = db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal)
+		healthcheck = runtimeSettings.Healthcheck
 	}
 
 	// Create deployment record
@@ -199,6 +208,10 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		OpenapiSpec:                   sql.NullString{Valid: false},
 		CpuMillicores:                 cpuMillicores,
 		MemoryMib:                     memoryMib,
+		Port:                          port,
+		RestartPolicy:                 restartPolicy,
+		ShutdownSignal:                shutdownSignal,
+		Healthcheck:                   healthcheck,
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err)

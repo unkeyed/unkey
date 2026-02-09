@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/assert"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"

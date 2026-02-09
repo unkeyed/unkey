@@ -195,7 +195,9 @@ func (w *Workflow) buildDockerImageFromGit(
 
 		_, err = buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
 		if err != nil {
-			return nil, fmt.Errorf("build failed: %w", err)
+			// Build failures (bad Dockerfile, compilation errors, etc.) won't fix
+			// themselves on retry — mark as terminal to stop Restate from retrying.
+			return nil, restate.TerminalError(fmt.Errorf("build failed: %w", err))
 		}
 
 		logger.Info("Build completed successfully")

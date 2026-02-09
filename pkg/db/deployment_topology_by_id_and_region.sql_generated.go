@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const findDeploymentTopologyByIDAndRegion = `-- name: FindDeploymentTopologyByIDAndRegion :one
@@ -25,7 +27,12 @@ SELECT
     d.memory_mib,
     dt.desired_replicas,
     d.desired_state,
-    d.encrypted_environment_variables
+    d.encrypted_environment_variables,
+    d.command,
+    d.port,
+    d.restart_policy,
+    d.shutdown_signal,
+    d.healthcheck
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
@@ -40,20 +47,25 @@ type FindDeploymentTopologyByIDAndRegionParams struct {
 }
 
 type FindDeploymentTopologyByIDAndRegionRow struct {
-	ID                            string                  `db:"id"`
-	K8sName                       string                  `db:"k8s_name"`
-	K8sNamespace                  sql.NullString          `db:"k8s_namespace"`
-	WorkspaceID                   string                  `db:"workspace_id"`
-	ProjectID                     string                  `db:"project_id"`
-	EnvironmentID                 string                  `db:"environment_id"`
-	BuildID                       sql.NullString          `db:"build_id"`
-	Image                         sql.NullString          `db:"image"`
-	Region                        string                  `db:"region"`
-	CpuMillicores                 int32                   `db:"cpu_millicores"`
-	MemoryMib                     int32                   `db:"memory_mib"`
-	DesiredReplicas               int32                   `db:"desired_replicas"`
-	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
-	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
+	ID                            string                    `db:"id"`
+	K8sName                       string                    `db:"k8s_name"`
+	K8sNamespace                  sql.NullString            `db:"k8s_namespace"`
+	WorkspaceID                   string                    `db:"workspace_id"`
+	ProjectID                     string                    `db:"project_id"`
+	EnvironmentID                 string                    `db:"environment_id"`
+	BuildID                       sql.NullString            `db:"build_id"`
+	Image                         sql.NullString            `db:"image"`
+	Region                        string                    `db:"region"`
+	CpuMillicores                 int32                     `db:"cpu_millicores"`
+	MemoryMib                     int32                     `db:"memory_mib"`
+	DesiredReplicas               int32                     `db:"desired_replicas"`
+	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
+	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
+	Command                       dbtype.StringSlice        `db:"command"`
+	Port                          int32                     `db:"port"`
+	RestartPolicy                 DeploymentsRestartPolicy  `db:"restart_policy"`
+	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
+	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
 }
 
 // FindDeploymentTopologyByIDAndRegion
@@ -72,7 +84,12 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    d.memory_mib,
 //	    dt.desired_replicas,
 //	    d.desired_state,
-//	    d.encrypted_environment_variables
+//	    d.encrypted_environment_variables,
+//	    d.command,
+//	    d.port,
+//	    d.restart_policy,
+//	    d.shutdown_signal,
+//	    d.healthcheck
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
@@ -97,6 +114,11 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 		&i.DesiredReplicas,
 		&i.DesiredState,
 		&i.EncryptedEnvironmentVariables,
+		&i.Command,
+		&i.Port,
+		&i.RestartPolicy,
+		&i.ShutdownSignal,
+		&i.Healthcheck,
 	)
 	return i, err
 }

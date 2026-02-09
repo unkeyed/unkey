@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -127,6 +128,10 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Status:                        db.DeploymentsStatusReady,
 		CpuMillicores:                 100,
 		MemoryMib:                     128,
+		Port:                          8080,
+		RestartPolicy:                 db.DeploymentsRestartPolicyAlways,
+		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
+		Healthcheck:                   dbtype.NullHealthcheck{},
 		CreatedAt:                     h.Now(),
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 		Command:                       nil,

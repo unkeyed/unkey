@@ -127,9 +127,12 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create project: %w", err)
 		}
 
+		previewEnvID := uid.New(uid.EnvironmentPrefix)
+		productionEnvID := uid.New(uid.EnvironmentPrefix)
+
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
 			{
-				ID:             uid.New(uid.EnvironmentPrefix),
+				ID:             previewEnvID,
 				WorkspaceID:    workspaceID,
 				ProjectID:      projectID,
 				Slug:           "preview",
@@ -138,7 +141,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				UpdatedAt:      sql.NullInt64{Valid: false, Int64: 0},
 				SentinelConfig: []byte{},
 			}, {
-				ID:             uid.New(uid.EnvironmentPrefix),
+				ID:             productionEnvID,
 				WorkspaceID:    workspaceID,
 				ProjectID:      projectID,
 				Slug:           "production",
@@ -148,6 +151,67 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				SentinelConfig: []byte{},
 			},
 		})
+		if err != nil {
+			return fmt.Errorf("failed to create environments: %w", err)
+		}
+
+		// Create default runtime settings for each environment
+		err = db.BulkQuery.UpsertEnvironmentRuntimeSettings(ctx, tx, []db.UpsertEnvironmentRuntimeSettingsParams{
+			{
+				ID:             uid.New(uid.EnvironmentRuntimeSettingsPrefix),
+				WorkspaceID:    workspaceID,
+				EnvironmentID:  previewEnvID,
+				Port:           8080,
+				CpuMillicores:  256,
+				MemoryMib:      256,
+				Command:        dbtype.StringSlice{},
+				Healthcheck:    dbtype.NullHealthcheck{},
+				RegionConfig:   dbtype.RegionConfig{},
+				RestartPolicy:  db.EnvironmentRuntimeSettingsRestartPolicyAlways,
+				ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
+				CreatedAt:      now,
+			},
+			{
+				ID:             uid.New(uid.EnvironmentRuntimeSettingsPrefix),
+				WorkspaceID:    workspaceID,
+				EnvironmentID:  productionEnvID,
+				Port:           8080,
+				CpuMillicores:  256,
+				MemoryMib:      256,
+				Command:        dbtype.StringSlice{},
+				Healthcheck:    dbtype.NullHealthcheck{},
+				RegionConfig:   dbtype.RegionConfig{},
+				RestartPolicy:  db.EnvironmentRuntimeSettingsRestartPolicyAlways,
+				ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
+				CreatedAt:      now,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create runtime settings: %w", err)
+		}
+
+		// Create default build settings for each environment
+		err = db.BulkQuery.UpsertEnvironmentBuildSettings(ctx, tx, []db.UpsertEnvironmentBuildSettingsParams{
+			{
+				ID:            uid.New(uid.EnvironmentBuildSettingsPrefix),
+				WorkspaceID:   workspaceID,
+				EnvironmentID: previewEnvID,
+				Dockerfile:    "Dockerfile",
+				DockerContext: ".",
+				CreatedAt:     now,
+			},
+			{
+				ID:            uid.New(uid.EnvironmentBuildSettingsPrefix),
+				WorkspaceID:   workspaceID,
+				EnvironmentID: productionEnvID,
+				Dockerfile:    "Dockerfile",
+				DockerContext: ".",
+				CreatedAt:     now,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create build settings: %w", err)
+		}
 
 		err = db.BulkQuery.UpsertQuota(ctx, tx, []db.UpsertQuotaParams{
 			{
