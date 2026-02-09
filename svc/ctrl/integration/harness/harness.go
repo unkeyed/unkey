@@ -75,7 +75,7 @@ type Harness struct {
 }
 
 // New creates a new test harness with all services started and registered.
-// All resources are automatically cleaned up when the test completes.
+// and arranges automatic cleanup of all resources when the provided testing.T completes.
 func New(t *testing.T) *Harness {
 	t.Helper()
 
