@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -31,7 +30,6 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 		Brokers:    brokers,
 		Topic:      topicName,
 		InstanceID: uid.New(uid.TestPrefix),
-		Logger:     logging.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -56,7 +54,6 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 		Stale:    10 * time.Minute,
 		MaxSize:  1000,
 		Resource: "test-cache",
-		Logger:   logging.NewNoop(),
 		Clock:    clock.New(),
 	})
 	require.NoError(t, err)
@@ -67,7 +64,6 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 		Topic:      topic,
 		Dispatcher: dispatcher,
 		NodeID:     "test-node-1",
-		Logger:     logging.NewNoop(),
 	})
 	require.NoError(t, err)
 

@@ -5,21 +5,19 @@ import (
 	"testing"
 
 	"fmt"
+	"time"
+
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/vault/keys"
 	"github.com/unkeyed/unkey/pkg/vault/storage"
-	"time"
 )
 
 // When encrypting multiple secrets with the same keyring, the same DEK should be reused for all of them.
 func TestReuseDEKsForSameKeyring(t *testing.T) {
-
-	logger := logging.NewNoop()
 
 	s3 := containers.S3(t)
 
@@ -28,7 +26,6 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
@@ -37,7 +34,6 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:    storage,
-		Logger:     logger,
 		MasterKeys: []string{masterKey},
 	})
 	require.NoError(t, err)
@@ -62,8 +58,6 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 // When encrypting multiple secrets with different keyrings, a different DEK should be used for each keyring.
 func TestIndividualDEKsPerKeyring(t *testing.T) {
 
-	logger := logging.NewNoop()
-
 	s3 := containers.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
@@ -71,7 +65,6 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
@@ -80,7 +73,6 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:    storage,
-		Logger:     logger,
 		MasterKeys: []string{masterKey},
 	})
 	require.NoError(t, err)

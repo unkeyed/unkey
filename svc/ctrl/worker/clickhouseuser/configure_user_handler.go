@@ -12,6 +12,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
@@ -61,7 +62,7 @@ func (s *Service) ConfigureUser(
 	req *hydrav1.ConfigureUserRequest,
 ) (*hydrav1.ConfigureUserResponse, error) {
 	workspaceID := restate.Key(ctx)
-	s.logger.Info("configuring clickhouse user", "workspace_id", workspaceID)
+	logger.Info("configuring clickhouse user", "workspace_id", workspaceID)
 
 	quotas := resolveQuotaSettings(req)
 
@@ -88,7 +89,7 @@ func (s *Service) ConfigureUser(
 	var retentionDays int32
 
 	if !result.Found {
-		s.logger.Info("creating new user", "workspace_id", workspaceID)
+		logger.Info("creating new user", "workspace_id", workspaceID)
 
 		// Fetch retention days from workspace quota
 		quota, err := restate.Run(ctx, func(rc restate.RunContext) (db.Quotum, error) {
@@ -166,7 +167,7 @@ func (s *Service) ConfigureUser(
 		}
 
 	} else {
-		s.logger.Info("updating existing user", "workspace_id", workspaceID)
+		logger.Info("updating existing user", "workspace_id", workspaceID)
 		retentionDays = result.Row.Quotas.LogsRetentionDays
 		encryptedPassword = result.Row.ClickhouseWorkspaceSetting.PasswordEncrypted
 
@@ -216,7 +217,7 @@ func (s *Service) ConfigureUser(
 		return nil, fmt.Errorf("configure clickhouse: %w", err)
 	}
 
-	s.logger.Info("configured clickhouse user", "workspace_id", workspaceID, "retention_days", retentionDays)
+	logger.Info("configured clickhouse user", "workspace_id", workspaceID, "retention_days", retentionDays)
 
 	return &hydrav1.ConfigureUserResponse{}, nil
 }

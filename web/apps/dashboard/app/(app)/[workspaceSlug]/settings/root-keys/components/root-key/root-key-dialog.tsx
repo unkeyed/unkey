@@ -6,6 +6,7 @@ import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import * as React from "react";
 import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
@@ -45,6 +46,19 @@ export const RootKeyDialog = ({
   editMode = false,
   existingKey,
 }: RootKeyDialogProps) => {
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
+  const handleOpenSheet = () => {
+    setIsSheetOpen(true);
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      setIsSheetOpen(false);
+    }
+  };
+
   const {
     name,
     setName,
@@ -90,29 +104,20 @@ export const RootKeyDialog = ({
           <Label className="text-[13px] font-regular text-gray-10">
             {ROOT_KEY_MESSAGES.DESCRIPTIONS.PERMISSIONS}
           </Label>
-          <PermissionSheet
-            selectedPermissions={selectedPermissions}
-            apis={allApis}
-            onChange={handlePermissionChange}
-            loadMore={fetchMoreApis}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            editMode={editMode}
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="rounded-lg font-light text-grayA-8 text-[13px] border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
+            disabled={isBusy}
+            onClick={handleOpenSheet}
           >
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="rounded-lg font-light text-grayA-8 text-[13px] border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
-              disabled={isBusy}
-            >
-              {isBusy
-                ? ROOT_KEY_MESSAGES.UI.LOADING
-                : editMode
-                  ? ROOT_KEY_MESSAGES.UI.EDIT_PERMISSIONS
-                  : ROOT_KEY_MESSAGES.UI.SELECT_PERMISSIONS}
-            </Button>
-          </PermissionSheet>
+            {isBusy
+              ? ROOT_KEY_MESSAGES.UI.LOADING
+              : editMode
+                ? ROOT_KEY_MESSAGES.UI.EDIT_PERMISSIONS
+                : ROOT_KEY_MESSAGES.UI.SELECT_PERMISSIONS}
+          </Button>
         </div>
       </div>
       <ScrollArea className="w-full overflow-y-auto pt-0 mb-4">
@@ -167,16 +172,29 @@ export const RootKeyDialog = ({
       {!key.data?.key && (
         <DynamicDialogContainer
           isOpen={isOpen}
-          onOpenChange={onOpenChange}
+          onOpenChange={handleDialogOpenChange}
           title={title}
           contentClassName="p-0 mb-0 gap-0"
           className="max-w-[460px]"
           subTitle={subTitle}
           footer={footerContent}
+          modal={true}
+          preventOutsideClose={isSheetOpen}
         >
           {dialogContent}
         </DynamicDialogContainer>
       )}
+      <PermissionSheet
+        selectedPermissions={selectedPermissions}
+        apis={allApis}
+        onChange={handlePermissionChange}
+        loadMore={fetchMoreApis}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        editMode={editMode}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+      />
       <RootKeySuccess keyValue={key.data?.key} onClose={handleClose} />
     </>
   );

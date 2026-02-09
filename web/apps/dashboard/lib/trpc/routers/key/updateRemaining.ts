@@ -25,7 +25,7 @@ export const updateKeyRemaining = workspaceProcedure
         if (!key) {
           throw new TRPCError({
             message:
-              "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
+              "We are unable to find the correct key. Please try again or contact support@unkey.com.",
             code: "NOT_FOUND",
           });
         }
@@ -50,7 +50,7 @@ export const updateKeyRemaining = workspaceProcedure
               throw new TRPCError({
                 code: "INTERNAL_SERVER_ERROR",
                 message:
-                  "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
+                  "We were unable to update remaining on this key. Please try again or contact support@unkey.com",
               });
             });
         } else {
@@ -67,7 +67,7 @@ export const updateKeyRemaining = workspaceProcedure
               throw new TRPCError({
                 code: "INTERNAL_SERVER_ERROR",
                 message:
-                  "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
+                  "We were unable to update remaining on this key. Please try again or contact support@unkey.com",
               });
             });
         }
@@ -112,7 +112,7 @@ export const updateKeyRemaining = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update remaining limits on this key. Please try again or contact support@unkey.dev",
+            "We were unable to update remaining limits on this key. Please try again or contact support@unkey.com",
         });
       });
     return { keyId: input.keyId };

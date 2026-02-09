@@ -22,10 +22,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
-	debugpkg "github.com/unkeyed/unkey/pkg/debug"
 	"github.com/unkeyed/unkey/pkg/eventstream"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -45,6 +44,24 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	logger.SetSampler(logger.TailSampler{
+		SlowThreshold: cfg.LogSlowThreshold,
+		SampleRate:    cfg.LogSampleRate,
+	})
+	logger.AddBaseAttrs(slog.GroupAttrs("instance",
+		slog.String("id", cfg.InstanceID),
+		slog.String("platform", cfg.Platform),
+		slog.String("region", cfg.Region),
+		slog.String("version", version.Version),
+	))
+
+	if cfg.TestMode {
+		logger.AddBaseAttrs(slog.Bool("testmode", true))
+	}
+	if cfg.TLSConfig != nil {
+		logger.AddBaseAttrs(slog.Bool("tls_enabled", true))
+	}
+
 	clk := clock.New()
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
@@ -62,39 +79,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	logger := logging.New()
-	if cfg.InstanceID != "" {
-		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
-	}
-
-	if cfg.Platform != "" {
-		logger = logger.With(slog.String("platform", cfg.Platform))
-	}
-
-	if cfg.Region != "" {
-		logger = logger.With(slog.String("region", cfg.Region))
-	}
-
-	if version.Version != "" {
-		logger = logger.With(slog.String("version", version.Version))
-	}
-
-	if cfg.TestMode {
-		logger = logger.With("testmode", true)
-		logger.Warn("TESTMODE IS ENABLED. This is not secure in production!")
-	}
-
-	if cfg.TLSConfig != nil {
-		logger.Info("TLS is enabled, server will use HTTPS")
-	}
-
-	// Enable debug cache headers if configured
-	if cfg.DebugCacheHeaders {
-		debugpkg.EnableCacheHeaders()
-		logger.Info("Debug cache headers enabled - X-Unkey-Debug-Cache headers will be added to responses")
-	}
-
-	r := runner.New(logger)
+	r := runner.New()
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
@@ -102,7 +87,6 @@ func Run(ctx context.Context, cfg Config) error {
 	db, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -111,9 +95,7 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(db.Close)
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New(prometheus.Config{
-			Logger: logger,
-		})
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
@@ -136,8 +118,7 @@ func Run(ctx context.Context, cfg Config) error {
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickhouseURL != "" {
 		ch, err = clickhouse.New(clickhouse.Config{
-			URL:    cfg.ClickhouseURL,
-			Logger: logger,
+			URL: cfg.ClickhouseURL,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
@@ -146,7 +127,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Caches will be created after invalidation consumer is set up
 	srv, err := zen.New(zen.Config{
-		Logger: logger,
 		Flags: &zen.Flags{
 			TestMode: cfg.TestMode,
 		},
@@ -170,14 +150,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	ctr, err := counter.NewRedis(counter.RedisConfig{
 		RedisURL: cfg.RedisUrl,
-		Logger:   logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create counter: %w", err)
 	}
 
 	rlSvc, err := ratelimit.New(ratelimit.Config{
-		Logger:  logger,
 		Clock:   clk,
 		Counter: ctr,
 	})
@@ -189,7 +167,6 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(rlSvc.Close)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		Logger:  logger,
 		DB:      db,
 		Counter: ctr,
 		TTL:     60 * time.Second,
@@ -202,7 +179,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
 		var vaultStorage storage.Storage
 		vaultStorage, err = storage.NewS3(storage.S3Config{
-			Logger:            logger,
 			S3URL:             cfg.VaultS3.URL,
 			S3Bucket:          cfg.VaultS3.Bucket,
 			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
@@ -213,7 +189,6 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		vaultSvc, err = vault.New(vault.Config{
-			Logger:     logger,
 			Storage:    vaultStorage,
 			MasterKeys: cfg.VaultMasterKeys,
 		})
@@ -223,8 +198,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{
-		Logger: logger,
-		DB:     db,
+		DB: db,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create auditlogs service: %w", err)
@@ -244,7 +218,6 @@ func Run(ctx context.Context, cfg Config) error {
 			Brokers:    cfg.KafkaBrokers,
 			Topic:      topicName,
 			InstanceID: cfg.InstanceID,
-			Logger:     logger,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create cache invalidation topic: %w", err)
@@ -255,7 +228,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	caches, err := caches.New(caches.Config{
-		Logger:                 logger,
 		Clock:                  clk,
 		CacheInvalidationTopic: cacheInvalidationTopic,
 		NodeID:                 cfg.InstanceID,
@@ -265,7 +237,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		Logger:       logger,
 		DB:           db,
 		KeyCache:     caches.VerificationKeyByHash,
 		RateLimiter:  rlSvc,
@@ -287,7 +258,6 @@ func Run(ctx context.Context, cfg Config) error {
 		analyticsConnMgr, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 			SettingsCache: caches.ClickhouseSetting,
 			Database:      db,
-			Logger:        logger,
 			Clock:         clk,
 			BaseURL:       cfg.ClickhouseAnalyticsURL,
 			Vault:         vaultSvc,
@@ -309,7 +279,6 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.Info("CTRL clients initialized", "url", cfg.CtrlURL)
 
 	routes.Register(srv, &routes.Services{
-		Logger:                     logger,
 		Database:                   db,
 		ClickHouse:                 ch,
 		Keys:                       keySvc,

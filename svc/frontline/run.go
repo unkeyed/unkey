@@ -15,8 +15,8 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -43,6 +43,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	logger.SetSampler(logger.TailSampler{
+		SlowThreshold: cfg.LogSlowThreshold,
+		SampleRate:    cfg.LogSampleRate,
+	})
+
 	// Create cached clock with millisecond resolution for efficient time tracking
 	clk := clock.New()
 
@@ -61,29 +66,26 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Create logger after InitGrafana so it picks up the OTLP handler
-	logger := logging.New()
+	// Configure global logger with base attributes
 	if cfg.FrontlineID != "" {
-		logger = logger.With(slog.String("instanceID", cfg.FrontlineID))
+		logger.AddBaseAttrs(slog.String("instanceID", cfg.FrontlineID))
 	}
 
 	if cfg.Region != "" {
-		logger = logger.With(slog.String("region", cfg.Region))
+		logger.AddBaseAttrs(slog.String("region", cfg.Region))
 	}
 
 	if version.Version != "" {
-		logger = logger.With(slog.String("version", version.Version))
+		logger.AddBaseAttrs(slog.String("version", version.Version))
 	}
 
-	r := runner.New(logger)
+	r := runner.New()
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New(prometheus.Config{
-			Logger: logger,
-		})
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
@@ -120,7 +122,6 @@ func Run(ctx context.Context, cfg Config) error {
 	db, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
@@ -129,8 +130,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
-		Logger: logger,
-		Clock:  clk,
+		Clock: clk,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -140,7 +140,6 @@ func Run(ctx context.Context, cfg Config) error {
 	var certManager certmanager.Service
 	if vaultClient != nil {
 		certManager = certmanager.New(certmanager.Config{
-			Logger:              logger,
 			DB:                  db,
 			TLSCertificateCache: cache.TLSCertificates,
 			Vault:               vaultClient,
@@ -149,7 +148,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize router service
 	routerSvc, err := router.New(router.Config{
-		Logger:                 logger,
 		Region:                 cfg.Region,
 		DB:                     db,
 		FrontlineRouteCache:    cache.FrontlineRoutes,
@@ -162,7 +160,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize proxy service with shared transport for connection pooling
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
-		Logger:      logger,
 		FrontlineID: cfg.FrontlineID,
 		Region:      cfg.Region,
 		ApexDomain:  cfg.ApexDomain,
@@ -208,7 +205,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	acmeClient := ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr)
 	svcs := &routes.Services{
-		Logger:        logger,
 		Region:        cfg.Region,
 		RouterService: routerSvc,
 		ProxyService:  proxySvc,
@@ -219,8 +215,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start HTTPS frontline server (main proxy server)
 	if cfg.HttpsPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
-			Logger: logger,
-			TLS:    tlsConfig,
+			TLS: tlsConfig,
 			// Use longer timeouts for proxy operations
 			// WriteTimeout must be longer than the transport's ResponseHeaderTimeout (30s)
 			// so that transport timeouts can be caught and handled properly in ErrorHandler
@@ -257,7 +252,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start HTTP challenge server (ACME only for Let's Encrypt)
 	if cfg.HttpPort > 0 {
 		httpSrv, httpErr := zen.New(zen.Config{
-			Logger:             logger,
 			TLS:                nil,
 			Flags:              nil,
 			EnableH2C:          false,

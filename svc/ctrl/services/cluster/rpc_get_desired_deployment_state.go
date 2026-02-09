@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // GetDesiredDeploymentState returns the target state for a single deployment in the caller's
@@ -80,7 +81,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			},
 		}), nil
 	default:
-		s.logger.Error("unhandled Deployment desired state", "desiredState", deployment.DesiredState)
+		logger.Error("unhandled Deployment desired state", "desiredState", deployment.DesiredState)
 	}
 
 	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unhandled Deployment desired state: %s", deployment.DesiredState))

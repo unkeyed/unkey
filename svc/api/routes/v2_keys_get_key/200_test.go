@@ -25,7 +25,6 @@ func TestGetKeyByKeyID(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
-		Logger:    h.Logger,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
@@ -124,7 +123,6 @@ func TestGetKeyByKeyID(t *testing.T) {
 func TestGetKey_AdditionalScenarios(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		Logger:    h.Logger,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,

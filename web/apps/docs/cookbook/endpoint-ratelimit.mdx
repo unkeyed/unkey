@@ -1,0 +1,342 @@
+---
+title: "Endpoint-Specific Rate Limits"
+description: "Apply different rate limits to different API endpoints"
+---
+
+Not all endpoints are equal. Your `/health` endpoint can handle thousands of requests, but your `/ai/generate` endpoint calls an expensive LLM. This recipe shows how to apply different rate limits per endpoint.
+
+## The pattern
+
+```typescript
+// Define limits per endpoint pattern
+const ENDPOINT_LIMITS = {
+  "/api/ai/*": { limit: 10, duration: "1m" },      // Expensive AI calls
+  "/api/export/*": { limit: 5, duration: "1h" },   // Heavy data exports
+  "/api/*": { limit: 100, duration: "1m" },        // Default API routes
+};
+
+// Match request path to limits
+function getLimits(path: string) {
+  for (const [pattern, config] of Object.entries(ENDPOINT_LIMITS)) {
+    if (matchPath(pattern, path)) return config;
+  }
+  return { limit: 100, duration: "1m" }; // fallback
+}
+```
+
+## Full implementation
+
+### Next.js Middleware
+
+```typescript
+// middleware.ts
+import { Ratelimit } from "@unkey/ratelimit";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "api",
+  limit: 100,
+  duration: "1m",
+});
+
+// Define endpoint-specific limits (most specific first)
+const ENDPOINT_LIMITS: Array<{
+  pattern: RegExp;
+  limit: number;
+  duration: string;
+  namespace: string;
+}> = [
+  // Expensive AI endpoints - very tight limits
+  { 
+    pattern: /^\/api\/ai\/.*/,
+    limit: 10,
+    duration: "1m",
+    namespace: "ai",
+  },
+  // Data export - limit per hour
+  { 
+    pattern: /^\/api\/export\/.*/,
+    limit: 5,
+    duration: "1h",
+    namespace: "export",
+  },
+  // Write operations - moderate limits
+  { 
+    pattern: /^\/api\/.*\/(create|update|delete)/,
+    limit: 30,
+    duration: "1m",
+    namespace: "writes",
+  },
+  // Default API routes
+  { 
+    pattern: /^\/api\/.*/,
+    limit: 100,
+    duration: "1m",
+    namespace: "api",
+  },
+];
+
+function getEndpointConfig(pathname: string) {
+  for (const config of ENDPOINT_LIMITS) {
+    if (config.pattern.test(pathname)) {
+      return config;
+    }
+  }
+  return ENDPOINT_LIMITS[ENDPOINT_LIMITS.length - 1]; // default
+}
+
+export async function middleware(request: NextRequest) {
+  // Skip non-API routes
+  if (!request.nextUrl.pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
+  const userId = request.headers.get("x-user-id") ?? 
+                 request.ip ?? 
+                 "anonymous";
+
+  const config = getEndpointConfig(request.nextUrl.pathname);
+
+  // Use endpoint-specific namespace for separate counters
+  const { success, remaining, reset } = await limiter.limit(
+    `${config.namespace}:${userId}`,
+    {
+      limit: config.limit,
+      duration: config.duration as any,
+    }
+  );
+
+  if (!success) {
+    return NextResponse.json(
+      { 
+        error: "Rate limit exceeded",
+        endpoint: config.namespace,
+        retryAfter: Math.ceil((reset - Date.now()) / 1000),
+      },
+      { 
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": config.limit.toString(),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": reset.toString(),
+          "Retry-After": Math.ceil((reset - Date.now()) / 1000).toString(),
+        },
+      }
+    );
+  }
+
+  const response = NextResponse.next();
+  response.headers.set("X-RateLimit-Limit", config.limit.toString());
+  response.headers.set("X-RateLimit-Remaining", remaining.toString());
+  response.headers.set("X-RateLimit-Reset", reset.toString());
+  
+  return response;
+}
+
+export const config = {
+  matcher: "/api/:path*",
+};
+```
+
+### Express with route-specific middleware
+
+```typescript
+// middleware/ratelimit.ts
+import { Ratelimit } from "@unkey/ratelimit";
+import type { Request, Response, NextFunction } from "express";
+
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "api",
+  limit: 100,
+  duration: "1m",
+});
+
+interface RateLimitOptions {
+  limit: number;
+  duration: string;
+  namespace?: string;
+  identifierFn?: (req: Request) => string;
+}
+
+export function rateLimit(options: RateLimitOptions) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const identifier = options.identifierFn?.(req) ?? 
+                       req.headers["x-user-id"] as string ?? 
+                       req.ip ?? 
+                       "anonymous";
+
+    const namespace = options.namespace ?? "api";
+
+    const { success, remaining, reset } = await limiter.limit(
+      `${namespace}:${identifier}`,
+      {
+        limit: options.limit,
+        duration: options.duration as any,
+      }
+    );
+
+    res.set({
+      "X-RateLimit-Limit": options.limit.toString(),
+      "X-RateLimit-Remaining": remaining.toString(),
+      "X-RateLimit-Reset": reset.toString(),
+    });
+
+    if (!success) {
+      return res.status(429).json({
+        error: "Rate limit exceeded",
+        retryAfter: Math.ceil((reset - Date.now()) / 1000),
+      });
+    }
+
+    next();
+  };
+}
+
+// Usage in routes
+import express from "express";
+import { rateLimit } from "./middleware/ratelimit";
+
+const app = express();
+
+// Expensive AI endpoint - 10 requests per minute
+app.post("/api/ai/generate", 
+  rateLimit({ limit: 10, duration: "1m", namespace: "ai" }),
+  async (req, res) => {
+    // Call your AI provider
+  }
+);
+
+// Data export - 5 per hour
+app.get("/api/export/:type",
+  rateLimit({ limit: 5, duration: "1h", namespace: "export" }),
+  async (req, res) => {
+    // Generate export
+  }
+);
+
+// Regular endpoints - 100 per minute (default)
+app.use("/api",
+  rateLimit({ limit: 100, duration: "1m" })
+);
+```
+
+### Hono with route groups
+
+```typescript
+import { Hono } from "hono";
+import { Ratelimit } from "@unkey/ratelimit";
+
+const app = new Hono();
+
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "api",
+  limit: 100,
+  duration: "1m",
+});
+
+// Middleware factory for different limits
+function rateLimitMiddleware(options: { 
+  limit: number; 
+  duration: string; 
+  namespace: string;
+}) {
+  return async (c: any, next: any) => {
+    const identifier = c.req.header("x-user-id") ?? "anonymous";
+    
+    const { success, remaining, reset } = await limiter.limit(
+      `${options.namespace}:${identifier}`,
+      { limit: options.limit, duration: options.duration as any }
+    );
+
+    c.header("X-RateLimit-Limit", options.limit.toString());
+    c.header("X-RateLimit-Remaining", remaining.toString());
+    c.header("X-RateLimit-Reset", reset.toString());
+
+    if (!success) {
+      return c.json({ error: "Rate limit exceeded" }, 429);
+    }
+
+    await next();
+  };
+}
+
+// AI routes - strict limits
+const ai = new Hono();
+ai.use("*", rateLimitMiddleware({ limit: 10, duration: "1m", namespace: "ai" }));
+ai.post("/generate", (c) => c.json({ result: "..." }));
+ai.post("/embed", (c) => c.json({ result: "..." }));
+
+// Export routes - hourly limits
+const exports = new Hono();
+exports.use("*", rateLimitMiddleware({ limit: 5, duration: "1h", namespace: "export" }));
+exports.get("/csv", (c) => c.json({ url: "..." }));
+exports.get("/json", (c) => c.json({ url: "..." }));
+
+// Mount route groups
+app.route("/api/ai", ai);
+app.route("/api/export", exports);
+
+// Default API routes
+app.use("/api/*", rateLimitMiddleware({ limit: 100, duration: "1m", namespace: "api" }));
+
+export default app;
+```
+
+## Cost-based limiting
+
+For endpoints where some operations are more expensive than others, use cost-based limiting:
+
+```typescript
+app.post("/api/ai/generate", async (req, res) => {
+  const { model, tokens } = req.body;
+  
+  // Different models have different costs
+  const cost = model === "gpt-4" ? 10 : 
+               model === "gpt-3.5" ? 2 : 1;
+
+  const { success } = await limiter.limit(userId, { cost });
+
+  if (!success) {
+    return res.status(429).json({ error: "Rate limit exceeded" });
+  }
+
+  // Process request...
+});
+```
+
+With a limit of 100/minute:
+- 100 cheap model calls, OR
+- 50 gpt-3.5 calls, OR
+- 10 gpt-4 calls
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Use separate namespaces" icon="layer-group">
+    Different namespaces mean separate counters. A user can hit their AI limit without affecting their regular API quota.
+  </Card>
+  <Card title="Order patterns correctly" icon="list-ol">
+    When matching paths, put more specific patterns first. `/api/ai/*` should come before `/api/*`.
+  </Card>
+  <Card title="Consider the user experience" icon="user">
+    Tight limits on expensive endpoints are fine, but communicate them clearly in your API docs.
+  </Card>
+  <Card title="Monitor and adjust" icon="chart-line">
+    Use Unkey analytics to see which endpoints hit limits most often, then adjust accordingly.
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Per-user limits" icon="user" href="/cookbook/per-user-ratelimit">
+    Combine with user tiers for complete rate limiting
+  </Card>
+  <Card title="Rate limit modes" icon="gauge" href="/ratelimiting/modes">
+    Understand how rate limiting works under the hood
+  </Card>
+</CardGroup>

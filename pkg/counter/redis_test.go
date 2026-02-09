@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -20,7 +19,6 @@ func TestRedisCounter(t *testing.T) {
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
-		Logger:   logging.New(),
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, ctr.Close()) }()
@@ -299,7 +297,6 @@ func TestRedisCounterConnection(t *testing.T) {
 		// Test with invalid URL
 		_, err := NewRedis(RedisConfig{
 			RedisURL: "invalid://url",
-			Logger:   logging.New(),
 		})
 		require.Error(t, err)
 	})
@@ -308,7 +305,6 @@ func TestRedisCounterConnection(t *testing.T) {
 		// Test with non-existent Redis server
 		_, err := NewRedis(RedisConfig{
 			RedisURL: "redis://localhost:12345",
-			Logger:   logging.New(),
 		})
 		require.Error(t, err)
 	})
@@ -317,7 +313,6 @@ func TestRedisCounterConnection(t *testing.T) {
 		// Test with empty URL
 		_, err := NewRedis(RedisConfig{
 			RedisURL: "",
-			Logger:   logging.New(),
 		})
 		require.Error(t, err)
 	})
@@ -330,7 +325,6 @@ func TestRedisCounterMultiGet(t *testing.T) {
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
-		Logger:   logging.New(),
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, ctr.Close()) }()
@@ -452,7 +446,6 @@ func TestRedisCounterDecrement(t *testing.T) {
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
-		Logger:   logging.New(),
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, ctr.Close()) }()
@@ -544,7 +537,6 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
-		Logger:   logging.New(),
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, ctr.Close()) }()
@@ -651,12 +643,10 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 // TestRedisCounterDelete tests the Delete operation on the Redis counter.
 func TestRedisCounterDelete(t *testing.T) {
 	ctx := context.Background()
-	logger := logging.New()
 	redisURL := dockertest.Redis(t)
 
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
-		Logger:   logger,
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, ctr.Close()) }()
@@ -731,12 +721,10 @@ func TestRedisCounterDelete(t *testing.T) {
 // TestRedisCounterDecrementLogic tests the decrement logic that avoids negative values
 func TestRedisCounterDecrementLogic(t *testing.T) {
 	ctx := context.Background()
-	logger := logging.New()
 	redisURL := dockertest.Redis(t)
 
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
-		Logger:   logger,
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, ctr.Close()) }()

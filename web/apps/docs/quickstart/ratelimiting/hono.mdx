@@ -1,44 +1,48 @@
 ---
 title: Hono
-description: Ratelimiting endpoints with Hono
-mode: "wide"
+description: Add rate limiting to your Hono API routes
 ---
+
+## What you'll build
+
+A Hono app with rate-limited endpoints. Users who exceed the limit get a 429 response.
+
+**Time to complete:** ~5 minutes
 
 ## Prerequisites
 
-- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
-- Created an [Unkey root key](https://app.unkey.com/settings/root-keys) with `ratelimit.*.create_namespace` and `ratelimit.*.limit` permissions.
-
+- [Unkey account](https://app.unkey.com/auth/sign-up) (free)
+- [Root key](https://app.unkey.com/settings/root-keys) with `ratelimit.*.limit` permission
+- Node.js 18+ or Bun
 
 <Steps titleSize="h3">
 
-<Step title="Create Hono Application">
-Run the following command to create your Hono project
+<Step title="Create a Hono app">
 
 <CodeGroup>
 
 ```bash npm
-npm create hono@latest
+npm create hono@latest unkey-hono-ratelimit
+cd unkey-hono-ratelimit
 ```
 
 ```bash pnpm
-pnpm create hono@latest
-```
-
-```bash yarn
-yarn create hono@latest
+pnpm create hono@latest unkey-hono-ratelimit
+cd unkey-hono-ratelimit
 ```
 
 ```bash bun
-bun create hono@latest
+bun create hono@latest unkey-hono-ratelimit
+cd unkey-hono-ratelimit
 ```
 
 </CodeGroup>
 
-</Step>
-<Step  title="Install">
+Choose your preferred runtime.
 
-Now install the `@unkey/ratelimit` package
+</Step>
+
+<Step title="Install the SDK">
 
 <CodeGroup>
 
@@ -50,52 +54,71 @@ npm install @unkey/ratelimit
 pnpm add @unkey/ratelimit
 ```
 
-```bash yarn
-yarn add @unkey/ratelimit
-```
-
 ```bash bun
-bun install @unkey/ratelimit
+bun add @unkey/ratelimit
 ```
 
 </CodeGroup>
 
 </Step>
 
-<Step  title="Add Root Key to env">
+<Step title="Add your root key">
 
-Add your root key to your `.env` file
+Create a `.env` file:
 
-```bash
-UNKEY_ROOT_KEY="YOUR_KEY"
+```bash .env
+UNKEY_ROOT_KEY="unkey_..."
 ```
 
 </Step>
 
-<Step title="Update index to use our Hono SDK">
+<Step title="Add rate limiting">
 
-Create a new route and add the following code
+Update `src/index.ts`:
 
-```ts /src/index.ts
+```ts src/index.ts
 import { Hono } from "hono";
 import { Ratelimit } from "@unkey/ratelimit";
 
 const app = new Hono();
 
+// Create limiter instance
 const limiter = new Ratelimit({
-	namespace: "hono-example",
- 	limit: 2,
- 	duration: "30s",
- 	rootKey: process.env.UNKEY_ROOT_KEY
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "hono-api",
+  limit: 10,       // 10 requests...
+  duration: "60s", // ...per minute
 });
 
+// Public route
 app.get("/", (c) => {
-  const identifier = getUserId(); // or ip or anything else you want
-  const ratelimit = await limiter.limit(identifier)
-  if (!ratelimit.success){
-   return c.status(429).text("Please try again later")
+  return c.json({ message: "Welcome! Try /api/data" });
+});
+
+// Rate-limited route
+app.get("/api/data", async (c) => {
+  // 1. Identify the user
+  const identifier = c.req.header("x-user-id") 
+    ?? c.req.header("x-forwarded-for")
+    ?? "anonymous";
+
+  // 2. Check the rate limit
+  const { success, remaining, reset } = await limiter.limit(identifier);
+
+  // 3. Set headers
+  c.header("X-RateLimit-Limit", "10");
+  c.header("X-RateLimit-Remaining", remaining.toString());
+  c.header("X-RateLimit-Reset", reset.toString());
+
+  if (!success) {
+    return c.json(
+      { error: "Too many requests. Try again later." },
+      429
+    );
   }
-	return c.text("Hello Hono!");
+
+  // 4. Request allowed
+  return c.json({ message: "Here's your data!", remaining });
 });
 
 export default app;
@@ -103,7 +126,7 @@ export default app;
 
 </Step>
 
-<Step title="Running it">
+<Step title="Run your app">
 
 <CodeGroup>
 
@@ -112,45 +135,180 @@ npm run dev
 ```
 
 ```bash pnpm
-pnpm run dev
-```
-
-```bash yarn
-yarn run dev
+pnpm dev
 ```
 
 ```bash bun
-bun run dev
+bun dev
 ```
 
 </CodeGroup>
 
 </Step>
 
-<Step  title="Try it out">
-
+<Step title="Test it">
 
 ```bash
-curl -XPOST 'http://localhost:8787/'
+# Hit the endpoint 12 times
+for i in {1..12}; do
+  curl http://localhost:3000/api/data -H "x-user-id: test-user"
+  echo ""
+done
 ```
 
-You will need to curl a few times to see the ratelimiting error. Once you do, you, you will need to wait to perform the action again.
+First 10 requests succeed. Requests 11+ get:
 
+```json
+{ "error": "Too many requests. Try again later." }
+```
 
 </Step>
 
 </Steps>
 
-## What is next?
+## What's in the response?
 
-Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+`limiter.limit()` returns:
 
-<CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
-  <Card title="Unkey API Reference" icon="database" href="/api-reference">
-     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | `true` if allowed, `false` if rate limited |
+| `remaining` | `number` | Requests left in current window |
+| `reset` | `number` | Unix timestamp (ms) when window resets |
+| `limit` | `number` | The configured limit |
+
+## Using as middleware
+
+Create reusable middleware for cleaner code:
+
+```ts src/middleware/ratelimit.ts
+import { Context, Next } from "hono";
+import { Ratelimit } from "@unkey/ratelimit";
+
+const limiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "api",
+  limit: 100,
+  duration: "60s",
+});
+
+export async function rateLimit(c: Context, next: Next) {
+  const identifier = c.req.header("x-user-id") 
+    ?? c.req.header("x-forwarded-for") 
+    ?? "anonymous";
+
+  const { success, remaining, reset } = await limiter.limit(identifier);
+
+  c.header("X-RateLimit-Remaining", remaining.toString());
+  c.header("X-RateLimit-Reset", reset.toString());
+
+  if (!success) {
+    return c.json({ error: "Rate limit exceeded" }, 429);
+  }
+
+  await next();
+}
+```
+
+Apply to routes:
+
+```ts src/index.ts
+import { Hono } from "hono";
+import { rateLimit } from "./middleware/ratelimit";
+
+const app = new Hono();
+
+// Public
+app.get("/", (c) => c.json({ message: "Welcome" }));
+
+// Rate-limited routes
+app.use("/api/*", rateLimit);
+
+app.get("/api/data", (c) => {
+  return c.json({ data: "protected content" });
+});
+
+app.get("/api/user", (c) => {
+  return c.json({ user: "info" });
+});
+
+export default app;
+```
+
+## Different limits per route group
+
+```ts
+const apiLimiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "api",
+  limit: 100,
+  duration: "60s",
+});
+
+const authLimiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "auth", 
+  limit: 5,
+  duration: "60s",
+});
+
+// Apply different limiters to different route groups
+app.use("/api/*", createRateLimitMiddleware(apiLimiter));
+app.use("/auth/*", createRateLimitMiddleware(authLimiter));
+```
+
+## Deploying to Cloudflare Workers
+
+For Cloudflare Workers, access env through the context:
+
+```ts
+app.get("/api/data", async (c) => {
+  const limiter = new Ratelimit({
+    rootKey: c.env.UNKEY_ROOT_KEY,  // Access from c.env
+    namespace: "api",
+    limit: 10,
+    duration: "60s",
+  });
+
+  const { success } = await limiter.limit("user-id");
+  // ...
+});
+```
+
+Set your secret with wrangler:
+```bash
+npx wrangler secret put UNKEY_ROOT_KEY
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="How it works" icon="bolt" href="/ratelimiting/modes">
+    Understand the architecture
   </Card>
-  <Card title="Hono SDK" icon="brackets-curly" href="/libraries/ts/hono">
-   Check out our Hono SDK and how they fit into your API.
+  <Card title="Per-user overrides" icon="sliders" href="/ratelimiting/overrides">
+    Give specific users higher limits
+  </Card>
+  <Card title="SDK Reference" icon="book" href="/libraries/ts/ratelimit/ratelimit">
+    All configuration options
+  </Card>
+  <Card title="Add API key auth" icon="key" href="/quickstart/apis/hono">
+    Combine with API key authentication
   </Card>
 </CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Rate limit not applying?">
+    - Verify `UNKEY_ROOT_KEY` is set correctly
+    - For Workers: use `c.env.UNKEY_ROOT_KEY`, not `process.env`
+    - Check your root key has `ratelimit.*.limit` permission
+  </Accordion>
+  
+  <Accordion title="Environment not loading locally?">
+    - For Node.js: Install `dotenv` and add `import 'dotenv/config'`
+    - For Bun: `.env` loads automatically
+    - Restart the dev server after changes
+  </Accordion>
+</AccordionGroup>

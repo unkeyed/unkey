@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -16,8 +18,14 @@ func (s *service) makeSentinelDirector(sess *zen.Session, deploymentID string, s
 		req.Header.Set(HeaderRegion, s.region)
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
-		frontlineRoutingTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
-		req.Header.Set(HeaderFrontlineTime, strconv.FormatInt(frontlineRoutingTimeMs, 10))
+		frontlineRoutingTime := s.clock.Now().Sub(startTime)
+		timing.Write(sess.ResponseWriter(), timing.Entry{
+			Name:     "frontline_routing",
+			Duration: frontlineRoutingTime,
+			Attributes: map[string]string{
+				"scope": "frontline",
+			},
+		})
 
 		req.Header.Set(HeaderForwardedProto, "https")
 
@@ -33,8 +41,14 @@ func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) fun
 		req.Header.Set(HeaderRegion, s.region)
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
-		frontlineRoutingTimeMs := s.clock.Now().Sub(startTime).Milliseconds()
-		req.Header.Set(HeaderFrontlineTime, strconv.FormatInt(frontlineRoutingTimeMs, 10))
+		frontlineRoutingTime := s.clock.Now().Sub(startTime)
+		timing.Write(sess.ResponseWriter(), timing.Entry{
+			Name:     "frontline_routing",
+			Duration: frontlineRoutingTime,
+			Attributes: map[string]string{
+				"scope": "frontline",
+			},
+		})
 
 		// Preserve original Host so we know where to actually route the request
 		req.Host = sess.Request().Host
@@ -55,7 +69,7 @@ func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) fun
 		req.Header.Set(HeaderFrontlineHops, strconv.Itoa(currentHops))
 
 		if currentHops >= s.maxHops-1 {
-			s.logger.Warn("approaching max hops limit",
+			logger.Warn("approaching max hops limit",
 				"currentHops", currentHops,
 				"maxHops", s.maxHops,
 				"hostname", req.Host,

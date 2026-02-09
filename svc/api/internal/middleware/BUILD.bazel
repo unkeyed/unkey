@@ -8,7 +8,7 @@ go_library(
     deps = [
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/zen",
         "//svc/api/openapi",
     ],

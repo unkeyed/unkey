@@ -49,7 +49,6 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,

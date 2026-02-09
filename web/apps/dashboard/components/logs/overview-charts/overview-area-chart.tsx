@@ -1,6 +1,5 @@
 "use client";
 
-import type { ChartMouseEvent } from "@/components/logs/chart";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { formatTooltipInterval } from "@/components/logs/utils";
@@ -13,7 +12,7 @@ import {
 import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { cn } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 
@@ -58,7 +57,18 @@ export const OverviewAreaChart = ({
   labels,
   granularity,
 }: TimeseriesAreaChartProps) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
+
+  // Track if we're currently dragging for selection
+  const isDragging = useRef(false);
+  const dragStartData = useRef<{ index: number; timestamp: number } | null>(null);
+
+  // Ref to track latest selection for closure-safe access in handleMouseUp
+  const selectionRef = useRef(selection);
+  useEffect(() => {
+    selectionRef.current = selection;
+  }, [selection]);
 
   // Precompute timestamp-to-index map for O(1) lookups during hover/tooltip
   const timestampToIndexMap = useMemo(() => {
@@ -80,49 +90,108 @@ export const OverviewAreaChart = ({
     reverse: labels.reverse !== undefined ? labels.reverse : false,
   };
 
-  const handleMouseDown = (e: ChartMouseEvent) => {
-    if (!enableSelection || e.activeLabel === undefined) {
+  // Helper to find data point from x coordinate
+  const getDataPointFromEvent = (
+    event: React.MouseEvent | MouseEvent,
+    container: HTMLDivElement,
+  ): { index: number; timestamp: number } | null => {
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const width = rect.width;
+    const relativeX = x / width;
+    const index = Math.floor(relativeX * data.length);
+
+    if (index >= 0 && index < data.length) {
+      const timestamp = data[index]?.originalTimestamp;
+      if (timestamp !== undefined) {
+        return { index, timestamp };
+      }
+    }
+    return null;
+  };
+
+  // Handle mouse down on container
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!enableSelection || !chartRef.current) {
       return;
     }
-    const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
+
+    const point = getDataPointFromEvent(e, chartRef.current);
+    if (!point) {
+      return;
+    }
+
+    isDragging.current = true;
+    dragStartData.current = point;
+
     setSelection({
-      start: e.activeLabel,
-      end: e.activeLabel,
-      startTimestamp: timestamp,
-      endTimestamp: timestamp,
+      start: point.index,
+      end: point.index,
+      startTimestamp: point.timestamp,
+      endTimestamp: point.timestamp,
     });
   };
 
-  const handleMouseMove = (e: ChartMouseEvent) => {
-    if (!enableSelection || !selection.start || e.activeLabel === undefined) {
+  // Handle mouse move on container
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!enableSelection || !isDragging.current || !dragStartData.current || !chartRef.current) {
       return;
     }
-    const timestamp = e?.activePayload?.[0]?.payload?.originalTimestamp;
-    const activeLabel = e.activeLabel;
+
+    const point = getDataPointFromEvent(e, chartRef.current);
+    if (!point) {
+      return;
+    }
+
     setSelection((prev) => ({
       ...prev,
-      end: activeLabel,
-      endTimestamp: timestamp,
+      end: point.index,
+      endTimestamp: point.timestamp,
     }));
   };
 
+  // Handle mouse up to finalize selection
   const handleMouseUp = () => {
     if (!enableSelection) {
       return;
     }
-    if (selection.start && selection.end && onSelectionChange) {
-      if (!selection.startTimestamp || !selection.endTimestamp) {
-        return;
+
+    const currentSelection = selectionRef.current;
+    if (
+      currentSelection.start !== undefined &&
+      currentSelection.end !== undefined &&
+      onSelectionChange
+    ) {
+      if (
+        currentSelection.startTimestamp !== undefined &&
+        currentSelection.endTimestamp !== undefined
+      ) {
+        const [start, end] = [currentSelection.startTimestamp, currentSelection.endTimestamp].sort(
+          (a, b) => a - b,
+        );
+        onSelectionChange({ start, end });
       }
-      const [start, end] = [selection.startTimestamp, selection.endTimestamp].sort((a, b) => a - b);
-      onSelectionChange({ start, end });
     }
+
+    isDragging.current = false;
+    dragStartData.current = null;
     setSelection({
       start: "",
       end: "",
       startTimestamp: undefined,
       endTimestamp: undefined,
     });
+  };
+
+  // Handle mouse leave to cancel selection
+  const handleMouseLeave = () => {
+    if (isDragging.current) {
+      handleMouseUp();
+    }
   };
 
   if (isError) {
@@ -148,7 +217,14 @@ export const OverviewAreaChart = ({
   const primaryMetric = labelsWithDefaults.metrics[0];
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className="flex flex-col h-full"
+      ref={chartRef}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+    >
       <div
         className={cn(
           "pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10",
@@ -204,10 +280,11 @@ export const OverviewAreaChart = ({
           <AreaChart
             data={data}
             margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            // Disable recharts' built-in event handling
+            onMouseDown={() => {}}
+            onMouseMove={() => {}}
+            onMouseUp={() => {}}
+            onMouseLeave={() => {}}
           >
             <defs>
               {labelsWithDefaults.metrics.map((metric) => (

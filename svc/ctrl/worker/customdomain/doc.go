@@ -38,7 +38,6 @@
 //
 //	svc := customdomain.New(customdomain.Config{
 //	    DB:          database,
-//	    Logger:      logger,
 //	    CnameDomain: "unkey-dns.com",
 //	})
 //

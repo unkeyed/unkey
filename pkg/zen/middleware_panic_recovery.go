@@ -8,14 +8,14 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // WithPanicRecovery returns middleware that recovers from panics and converts them
 // into appropriate HTTP error responses.
-func WithPanicRecovery(logger logging.Logger) Middleware {
+func WithPanicRecovery() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) (err error) {
 			defer func() {

@@ -25,7 +25,7 @@ export const ratelimitItemSchema = z.object({
     .positive({
       message: "Limit must be greater than 0",
     }),
-  autoApply: z.boolean(),
+  autoApply: z.boolean().default(false),
 });
 
 export const ratelimitValidationSchema = z.object({

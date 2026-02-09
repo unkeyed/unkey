@@ -18,7 +18,7 @@ go_library(
         "//pkg/cache/middleware",
         "//pkg/clock",
         "//pkg/encryption",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/vault/keyring",
         "//pkg/vault/storage",

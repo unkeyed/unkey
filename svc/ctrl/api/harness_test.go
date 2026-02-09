@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"golang.org/x/net/http2"
@@ -47,7 +47,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 
 	restateCfg := dockertest.Restate(t)
 
-	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
+	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 	for _, service := range cfg.Services {
 		restateSrv.Bind(service)
 	}
@@ -74,7 +74,6 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 
 	mysqlCfg := dockertest.MySQL(t)
 	database, err := db.New(db.Config{
-		Logger:      logging.NewNoop(),
 		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
 	})

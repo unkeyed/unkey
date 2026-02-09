@@ -23,7 +23,7 @@ go_library(
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
         "//pkg/db",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/ptr",
         "//pkg/uid",
         "//svc/ctrl/worker/github",

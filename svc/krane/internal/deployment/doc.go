@@ -40,7 +40,6 @@
 //	ctrl := deployment.New(deployment.Config{
 //	    ClientSet:     kubeClient,
 //	    DynamicClient: dynamicClient,
-//	    Logger:        logger,
 //	    Cluster:       clusterClient,
 //	    Region:        "us-east-1",
 //	})

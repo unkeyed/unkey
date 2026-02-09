@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry/credentials"
 )
@@ -26,7 +26,6 @@ const (
 )
 
 type Mutator struct {
-	logger                  logging.Logger
 	registry                *registry.Registry
 	clientset               kubernetes.Interface
 	credentials             *credentials.Manager
@@ -37,7 +36,6 @@ type Mutator struct {
 
 func New(cfg Config) *Mutator {
 	return &Mutator{
-		logger:                  cfg.Logger,
 		registry:                cfg.Registry,
 		clientset:               cfg.Clientset,
 		credentials:             cfg.Credentials,
@@ -164,7 +162,7 @@ func (m *Mutator) ensurePullSecrets(ctx context.Context, pod *corev1.Pod, namesp
 	for _, image := range images {
 		secretName, err := m.ensurePullSecretForImage(ctx, namespace, image, buildID)
 		if err != nil {
-			m.logger.Error("failed to ensure pull secret for image",
+			logger.Error("failed to ensure pull secret for image",
 				"image", image,
 				"error", err,
 			)
@@ -224,19 +222,19 @@ func (m *Mutator) ensurePullSecretForImage(ctx context.Context, namespace, image
 	if err == nil {
 		// Secret exists - check if it's still valid
 		if m.isSecretValid(existing) {
-			m.logger.Debug("reusing existing pull secret",
+			logger.Debug("reusing existing pull secret",
 				"secret", secretName,
 				"image", image,
 			)
 			return secretName, nil
 		}
 		// Secret expired - delete and recreate
-		m.logger.Info("pull secret expired, refreshing",
+		logger.Info("pull secret expired, refreshing",
 			"secret", secretName,
 			"image", image,
 		)
 		if delErr := m.clientset.CoreV1().Secrets(namespace).Delete(ctx, secretName, metav1.DeleteOptions{}); delErr != nil {
-			m.logger.Warn("failed to delete expired secret", "error", delErr)
+			logger.Warn("failed to delete expired secret", "error", delErr)
 		}
 	} else if !apierrors.IsNotFound(err) {
 		return "", fmt.Errorf("failed to check for existing secret: %w", err)
@@ -286,7 +284,7 @@ func (m *Mutator) ensurePullSecretForImage(ctx context.Context, namespace, image
 		return "", fmt.Errorf("failed to create secret: %w", err)
 	}
 
-	m.logger.Info("created pull secret",
+	logger.Info("created pull secret",
 		"namespace", namespace,
 		"secret", secretName,
 		"image", image,
@@ -309,7 +307,7 @@ func (m *Mutator) isSecretValid(secret *corev1.Secret) bool {
 
 	expiresAt, err := time.Parse(time.RFC3339, expiresAtStr)
 	if err != nil {
-		m.logger.Warn("invalid expires-at annotation", "value", expiresAtStr, "error", err)
+		logger.Warn("invalid expires-at annotation", "value", expiresAtStr, "error", err)
 		return false
 	}
 

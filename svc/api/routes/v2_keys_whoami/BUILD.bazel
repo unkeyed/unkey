@@ -12,7 +12,7 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/hash",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/rbac",
         "//pkg/vault",
         "//pkg/zen",

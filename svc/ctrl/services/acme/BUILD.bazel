@@ -20,7 +20,7 @@ go_library(
         "//internal/services/caches",
         "//pkg/cache",
         "//pkg/db",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/uid",
         "@com_connectrpc_connect//:connect",
         "@com_github_go_acme_lego_v4//acme",

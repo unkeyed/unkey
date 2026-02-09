@@ -15,7 +15,7 @@ go_library(
         "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/clickhouse",
         "//pkg/db",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/ptr",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//:sdk-go",

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func TestParser_ValidateTimeRange_WithRetention(t *testing.T) {
@@ -205,7 +204,6 @@ func TestParser_ValidateTimeRange_WithRetention(t *testing.T) {
 					"default.key_verifications_per_hour_v2",
 				},
 				MaxQueryRangeDays: tt.retentionDays,
-				Logger:            logging.NewNoop(),
 			})
 
 			_, err := parser.Parse(context.Background(), tt.query)
@@ -232,7 +230,6 @@ func TestParser_ValidateTimeRange_NoRetentionLimit(t *testing.T) {
 			"default.key_verifications_per_hour_v2",
 		},
 		MaxQueryRangeDays: 0, // No limit
-		Logger:            logging.NewNoop(),
 	})
 
 	tests := []struct {
@@ -300,7 +297,6 @@ func TestParser_ValidateTimeRange_DifferentOperators(t *testing.T) {
 			"default.key_verifications_per_hour_v2",
 		},
 		MaxQueryRangeDays: 7,
-		Logger:            logging.NewNoop(),
 	})
 
 	for _, tt := range tests {
@@ -368,7 +364,6 @@ func TestParser_ValidateTimeRange_IntervalUnits(t *testing.T) {
 			"default.key_verifications_per_hour_v2",
 		},
 		MaxQueryRangeDays: 7,
-		Logger:            logging.NewNoop(),
 	})
 
 	for _, tt := range tests {
@@ -394,7 +389,6 @@ func TestParser_InjectDefaultTimeFilter(t *testing.T) {
 			"default.key_verifications_per_hour_v2",
 		},
 		MaxQueryRangeDays: 7,
-		Logger:            logging.NewNoop(),
 	})
 
 	tests := []struct {
@@ -473,7 +467,6 @@ func TestParser_ValidateTimeRange_EdgeCases(t *testing.T) {
 					"default.key_verifications_per_hour_v2",
 				},
 				MaxQueryRangeDays: tt.retention,
-				Logger:            logging.NewNoop(),
 			})
 
 			_, err := parser.Parse(context.Background(), tt.query)
@@ -520,7 +513,6 @@ func TestParser_ValidateTimeRange_NumericTimestamps(t *testing.T) {
 			"default.key_verifications_per_hour_v2",
 		},
 		MaxQueryRangeDays: 7,
-		Logger:            logging.NewNoop(),
 	})
 
 	for _, tt := range tests {
@@ -596,7 +588,6 @@ func TestParser_ValidateTimeRange_ReversedComparisons(t *testing.T) {
 			"default.key_verifications_per_hour_v2",
 		},
 		MaxQueryRangeDays: 7,
-		Logger:            logging.NewNoop(),
 	})
 
 	for _, tt := range tests {
@@ -622,7 +613,6 @@ func TestParser_ValidateTimeRange_UpperBoundOnly(t *testing.T) {
 			"default.key_verifications_per_hour_v2",
 		},
 		MaxQueryRangeDays: 7,
-		Logger:            logging.NewNoop(),
 	})
 
 	tests := []struct {

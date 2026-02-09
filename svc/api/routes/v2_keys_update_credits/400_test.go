@@ -19,7 +19,6 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 	route := &handler.Handler{
 		DB:           h.DB,
 		Keys:         h.Keys,
-		Logger:       h.Logger,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,

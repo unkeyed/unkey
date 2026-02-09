@@ -7,7 +7,7 @@ import (
 
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/version"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
@@ -117,7 +117,7 @@ func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) 
 		log.WithProcessor(processor),
 	)
 
-	logging.AddHandler(otelslog.NewHandler(
+	logger.AddHandler(otelslog.NewHandler(
 		config.Application,
 		otelslog.WithLoggerProvider(logProvider),
 		otelslog.WithVersion(version.Version),

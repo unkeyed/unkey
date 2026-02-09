@@ -73,9 +73,9 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
         const errorMessage =
           error instanceof Error
             ? error.message
-            : "Failed to complete organization selection. Please re-authenticate or contact support@unkey.dev";
+            : "Failed to complete organization selection. Please re-authenticate or contact support@unkey.com";
         toast.error(
-          "Failed to complete organization selection. Please re-authenticate or contact support@unkey.dev",
+          "Failed to complete organization selection. Please re-authenticate or contact support@unkey.com",
         );
         setError(errorMessage);
         setIsLoading(false);
@@ -139,7 +139,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
               <div className="flex flex-col gap-2 w-full max-w-sm">
                 <Button
                   onClick={() => {
-                    window.location.href = "mailto:support@unkey.dev";
+                    window.location.href = "mailto:support@unkey.com";
                   }}
                   className="w-full"
                   size="lg"

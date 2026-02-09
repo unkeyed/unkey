@@ -28,17 +28,27 @@ No response, but if no error is returned the override has been deleted successfu
 
 <RequestExample>
 ```ts
-await unkey.deleteOverride({
+try {
+  const { meta, data } = await unkey.deleteOverride({
     identifier: "user_123",
     namespaceName: "email.outbound",
-})
+  });
+} catch (err) {
+  console.error(err);
+  throw err;
+}
 
 ```
 ```ts
-await unkey.deleteOverride({
+try {
+  const { meta, data } = await unkey.deleteOverride({
     identifier: "user_123",
     namespaceId:"rlns_12345", 
-})
+  });
+} catch (err) {
+  console.error(err);
+  throw err;
+}
 ```
 </RequestExample>
 

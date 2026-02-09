@@ -22,7 +22,7 @@ go_library(
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//pkg/assert",
         "//pkg/db",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/uid",
         "@com_connectrpc_connect//:connect",
     ],
