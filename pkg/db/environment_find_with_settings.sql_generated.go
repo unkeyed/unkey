@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
@@ -26,8 +25,8 @@ SELECT
     rs.healthcheck,
     rs.region_config
 FROM environments e
-LEFT JOIN environment_build_settings bs ON bs.environment_id = e.id
-LEFT JOIN environment_runtime_settings rs ON rs.environment_id = e.id
+INNER JOIN environment_build_settings bs ON bs.environment_id = e.id
+INNER JOIN environment_runtime_settings rs ON rs.environment_id = e.id
 WHERE e.workspace_id = ?
   AND e.project_id = ?
   AND e.slug = ?
@@ -40,17 +39,17 @@ type FindEnvironmentWithSettingsByProjectIdAndSlugParams struct {
 }
 
 type FindEnvironmentWithSettingsByProjectIdAndSlugRow struct {
-	Environment    Environment                                  `db:"environment"`
-	Dockerfile     sql.NullString                               `db:"dockerfile"`
-	DockerContext  sql.NullString                               `db:"docker_context"`
-	Port           sql.NullInt32                                `db:"port"`
-	CpuMillicores  sql.NullInt32                                `db:"cpu_millicores"`
-	MemoryMib      sql.NullInt32                                `db:"memory_mib"`
-	Command        dbtype.StringSlice                           `db:"command"`
-	RestartPolicy  NullEnvironmentRuntimeSettingsRestartPolicy  `db:"restart_policy"`
-	ShutdownSignal NullEnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
-	Healthcheck    dbtype.NullHealthcheck                       `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig                          `db:"region_config"`
+	Environment    Environment                              `db:"environment"`
+	Dockerfile     string                                   `db:"dockerfile"`
+	DockerContext  string                                   `db:"docker_context"`
+	Port           int32                                    `db:"port"`
+	CpuMillicores  int32                                    `db:"cpu_millicores"`
+	MemoryMib      int32                                    `db:"memory_mib"`
+	Command        dbtype.StringSlice                       `db:"command"`
+	RestartPolicy  EnvironmentRuntimeSettingsRestartPolicy  `db:"restart_policy"`
+	ShutdownSignal EnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
+	Healthcheck    dbtype.NullHealthcheck                   `db:"healthcheck"`
+	RegionConfig   dbtype.RegionConfig                      `db:"region_config"`
 }
 
 // FindEnvironmentWithSettingsByProjectIdAndSlug
@@ -68,8 +67,8 @@ type FindEnvironmentWithSettingsByProjectIdAndSlugRow struct {
 //	    rs.healthcheck,
 //	    rs.region_config
 //	FROM environments e
-//	LEFT JOIN environment_build_settings bs ON bs.environment_id = e.id
-//	LEFT JOIN environment_runtime_settings rs ON rs.environment_id = e.id
+//	INNER JOIN environment_build_settings bs ON bs.environment_id = e.id
+//	INNER JOIN environment_runtime_settings rs ON rs.environment_id = e.id
 //	WHERE e.workspace_id = ?
 //	  AND e.project_id = ?
 //	  AND e.slug = ?

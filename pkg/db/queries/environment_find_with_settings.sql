@@ -12,8 +12,8 @@ SELECT
     rs.healthcheck,
     rs.region_config
 FROM environments e
-LEFT JOIN environment_build_settings bs ON bs.environment_id = e.id
-LEFT JOIN environment_runtime_settings rs ON rs.environment_id = e.id
+INNER JOIN environment_build_settings bs ON bs.environment_id = e.id
+INNER JOIN environment_runtime_settings rs ON rs.environment_id = e.id
 WHERE e.workspace_id = sqlc.arg(workspace_id)
   AND e.project_id = sqlc.arg(project_id)
   AND e.slug = sqlc.arg(slug);

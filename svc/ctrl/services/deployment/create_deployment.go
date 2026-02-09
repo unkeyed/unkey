@@ -1,7 +1,6 @@
 package deployment
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
@@ -63,7 +62,7 @@ func (s *Service) CreateDeployment(
 	}
 	workspaceID := project.WorkspaceID
 
-	row, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
+	envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
 		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
 		Slug:        req.Msg.GetEnvironmentSlug(),
@@ -77,7 +76,7 @@ func (s *Service) CreateDeployment(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup environment: %w", err))
 	}
-	env := row.Environment
+	env := envSettings.Environment
 
 	// Fetch environment variables and build secrets blob
 	envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
@@ -161,7 +160,7 @@ func (s *Service) CreateDeployment(
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                env.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
-		Command:                       row.Command,
+		Command:                       envSettings.Command,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
@@ -171,12 +170,12 @@ func (s *Service) CreateDeployment(
 		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-		CpuMillicores:                 cmp.Or(row.CpuMillicores.Int32, 256),
-		MemoryMib:                     cmp.Or(row.MemoryMib.Int32, 256),
-		Port:                          cmp.Or(row.Port.Int32, 8080),
-		RestartPolicy:                 cmp.Or(db.DeploymentsRestartPolicy(row.RestartPolicy.EnvironmentRuntimeSettingsRestartPolicy), db.DeploymentsRestartPolicyAlways),
-		ShutdownSignal:                cmp.Or(db.DeploymentsShutdownSignal(row.ShutdownSignal.EnvironmentRuntimeSettingsShutdownSignal), db.DeploymentsShutdownSignalSIGTERM),
-		Healthcheck:                   row.Healthcheck,
+		CpuMillicores:                 envSettings.CpuMillicores,
+		MemoryMib:                     envSettings.MemoryMib,
+		Port:                          envSettings.Port,
+		RestartPolicy:                 db.DeploymentsRestartPolicy(envSettings.RestartPolicy),
+		ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.ShutdownSignal),
+		Healthcheck:                   envSettings.Healthcheck,
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())
