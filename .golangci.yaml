@@ -36,7 +36,7 @@ linters:
   settings:
     gosec:
       excludes:
-        - G115  # Potential integer overflow when converting between integer types
+        - G115 # Potential integer overflow when converting between integer types
         - G404
     nestif:
       min-complexity: 15

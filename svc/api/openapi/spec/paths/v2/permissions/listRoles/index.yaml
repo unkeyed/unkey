@@ -2,7 +2,14 @@ post:
   tags:
     - permissions
   summary: List roles
-  description: "Retrieve all roles in your workspace including their assigned permissions. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_role`\n"
+  description: |
+    Retrieve all roles in your workspace including their assigned permissions.
+    Results are paginated and sorted by their id.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `rbac.*.read_role`
   operationId: permissions.listRoles
   x-speakeasy-name-override: ListRoles
   security:

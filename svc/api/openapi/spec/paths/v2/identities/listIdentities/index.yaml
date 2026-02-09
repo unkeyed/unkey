@@ -2,7 +2,13 @@ post:
   tags:
     - identities
   summary: List Identities
-  description: "Get a paginated list of all identities in your workspace. Returns metadata and rate limit configurations.\n\nPerfect for building management dashboards, auditing configurations, or browsing your identities.\n\n> **Important**  \n> Requires `identity.*.read_identity` permission\n"
+  description: |
+    Get a paginated list of all identities in your workspace. Returns metadata and rate limit configurations.
+
+    Perfect for building management dashboards, auditing configurations, or browsing your identities.
+
+    > **Important**
+    > Requires `identity.*.read_identity` permission
   operationId: identities.listIdentities
   x-speakeasy-name-override: listIdentities
   security:

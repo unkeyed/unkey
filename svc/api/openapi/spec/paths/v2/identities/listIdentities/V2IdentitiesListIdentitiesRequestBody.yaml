@@ -5,10 +5,12 @@ properties:
     minimum: 1
     maximum: 100
     default: 100
-    description: The maximum number of identities to return in a single request. Use this to control response size and loading performance.
+    description: The maximum number of identities to return in a single request.
+      Use this to control response size and loading performance.
     example: 50
   cursor:
     type: string
-    description: Pagination cursor from a previous response. Use this to fetch subsequent pages of results when the response contains a cursor value.
+    description: Pagination cursor from a previous response. Use this to fetch
+      subsequent pages of results when the response contains a cursor value.
     example: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
 additionalProperties: false

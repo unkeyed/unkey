@@ -5,7 +5,10 @@ required:
 properties:
   keyId:
     type: string
-    description: The ID of the key to update (begins with `key_`). This is the database reference ID for the key, not the actual API key string that users authenticate with. This ID uniquely identifies which key's credits will be updated.
+    description: The ID of the key to update (begins with `key_`). This is the
+      database reference ID for the key, not the actual API key string that
+      users authenticate with. This ID uniquely identifies which key's credits
+      will be updated.
     example: key_2cGKbMxRyIzhCxo1Idjz8q
     minLength: 3
   value:

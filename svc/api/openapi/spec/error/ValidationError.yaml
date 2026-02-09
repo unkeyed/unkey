@@ -11,15 +11,24 @@ properties:
     type: string
     example: body.permissions[0].name
   message:
-    description: Detailed error message explaining what validation rule was violated. This provides specific information about why the field or parameter was rejected, such as format errors, invalid values, or constraint violations.
+    description: Detailed error message explaining what validation rule was
+      violated. This provides specific information about why the field or parameter
+      was rejected, such as format errors, invalid values, or constraint violations.
     type: string
     example: Must be at least 3 characters long
   fix:
-    description: A human-readable suggestion describing how to fix the error. This provides practical guidance on what changes would satisfy the validation requirements. Not all validation errors include fix suggestions, but when present, they offer specific remediation advice.
+    description: A human-readable suggestion describing how to fix the error.
+      This provides practical guidance on what changes would satisfy the validation
+      requirements. Not all validation errors include fix suggestions, but when
+      present, they offer specific remediation advice.
     type: string
-    example: Ensure the name uses only alphanumeric characters, underscores, and hyphens
+    example: Ensure the name uses only alphanumeric characters, underscores,
+      and hyphens
 required:
   - location
   - message
 type: object
-description: Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
+description:
+  Individual validation error details. Each validation error provides
+  precise information about what failed, where it failed, and how to fix it,
+  enabling efficient error resolution.

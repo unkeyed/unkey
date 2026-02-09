@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,7 +26,7 @@ spec:
         - name: ctrl-worker
           image: unkey/go:latest
           args: ["run", "ctrl", "worker"]
-          imagePullPolicy: Never  # Use local images
+          imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 9080
           livenessProbe:
@@ -127,7 +128,12 @@ spec:
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36
-          command: ["sh", "-c", "until nc -z mysql 3306 && nc -z restate 8080 && nc -z vault 8060; do echo waiting for dependencies; sleep 2; done;"]
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z mysql 3306 && nc -z restate 8080 && nc -z vault 8060; do echo waiting for dependencies; sleep 2; done;",
+            ]
 
 ---
 apiVersion: v1

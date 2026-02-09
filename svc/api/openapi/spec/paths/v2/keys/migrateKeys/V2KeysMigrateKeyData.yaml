@@ -28,7 +28,7 @@ properties:
   meta:
     type: object
     additionalProperties: true
-    maxProperties: 100  # Prevent DoS while allowing rich metadata
+    maxProperties: 100 # Prevent DoS while allowing rich metadata
     description: |
       Stores arbitrary JSON metadata returned during key verification for contextual information.
       Eliminates additional database lookups during verification, improving performance for stateless services.
@@ -45,11 +45,11 @@ properties:
         renewal: "2024-12-31"
   roles:
     type: array
-    maxItems: 100  # Reasonable limit for role assignments per key
+    maxItems: 100 # Reasonable limit for role assignments per key
     items:
       type: string
       minLength: 1
-      maxLength: 100  # Keep role names concise and readable
+      maxLength: 100 # Keep role names concise and readable
     description: |
       Assigns existing roles to this key for permission management through role-based access control.
       Roles must already exist in your workspace before assignment.
@@ -60,11 +60,11 @@ properties:
       - billing_reader
   permissions:
     type: array
-    maxItems: 1000  # Allow extensive permission sets for complex applications
+    maxItems: 1000 # Allow extensive permission sets for complex applications
     items:
       type: string
       minLength: 1
-      maxLength: 100  # Keep permission names concise and readable
+      maxLength: 100 # Keep permission names concise and readable
     description: |
       Grants specific permissions directly to this key without requiring role membership.
       Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -77,7 +77,7 @@ properties:
     type: integer
     format: int64
     minimum: 0
-    maximum: 4102444800000  # January 1, 2100 - reasonable future limit
+    maximum: 4102444800000 # January 1, 2100 - reasonable future limit
     description: |
       Sets when this key automatically expires as a Unix timestamp in milliseconds.
       Verification fails with code=EXPIRED immediately after this time passes.
@@ -104,7 +104,7 @@ properties:
       Omitting this field creates unlimited usage, while setting null is not allowed during creation.
   ratelimits:
     type: array
-    maxItems: 50  # Reasonable limit for rate limit configurations per identity
+    maxItems: 50 # Reasonable limit for rate limit configurations per identity
     items:
       "$ref": "../../../../common/RatelimitRequest.yaml"
     description: |

@@ -13,6 +13,7 @@ install-brew-tools: ## Install Homebrew tools if they don't exist
 	@command -v ctlptl >/dev/null 2>&1 || { echo "Installing ctlptl..."; brew install ctlptl; }
 	@command -v minikube >/dev/null 2>&1 || { echo "Installing minikube..."; brew install minikube; }
 	@command -v bazel >/dev/null 2>&1 || { echo "Installing bazel..."; brew install bazelisk; }
+	@command -v dprint >/dev/null 2>&1 || { echo "Installing dprint..."; brew install dprint; }
 
 .PHONY: install
 install: install-go ## Install all dependencies
@@ -45,7 +46,7 @@ nuke-docker: ## Stop all containers and clean up Docker system
 
 .PHONY: fmt-yaml
 fmt-yaml: ## Format YAML files
-	go tool yamlfmt .
+	dprint fmt --config dev/dprint.json
 
 .PHONY: fmt
 fmt: fmt-yaml ## Format code

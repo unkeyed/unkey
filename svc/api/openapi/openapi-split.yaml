@@ -5,6 +5,7 @@ info:
   description: |-
     Unkey's API provides programmatic access for all resources within our platform.
 
+
     ### Authentication
     #
     This API uses HTTP Bearer authentication with root keys. Most endpoints require specific permissions associated with your root key. When making requests, include your root key in the `Authorization` header:

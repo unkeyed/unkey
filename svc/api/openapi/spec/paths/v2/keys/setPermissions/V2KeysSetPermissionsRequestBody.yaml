@@ -6,7 +6,7 @@ properties:
   keyId:
     type: string
     minLength: 3
-    maxLength: 255  # Reasonable upper bound for database identifiers
+    maxLength: 255 # Reasonable upper bound for database identifiers
     pattern: "^[a-zA-Z0-9_]+$"
     description: |
       Specifies which key receives the additional permissions using the database identifier returned from `keys.createKey`.

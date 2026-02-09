@@ -38,7 +38,7 @@ spec:
         - name: krane
           image: unkey/go:latest
           args: ["run", "krane"]
-          imagePullPolicy: Never  # Use local images
+          imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 8070
           readinessProbe:

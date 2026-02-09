@@ -13,7 +13,7 @@ jobs:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     runs-on: depot-ubuntu-24.04-4
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
       - name: Setup Node
         uses: ./.github/actions/setup-node
@@ -21,7 +21,10 @@ jobs:
       - name: Setup Go
         uses: ./.github/actions/setup-go
 
+      - name: Install dprint
+        run: curl -fsSL https://dprint.dev/install.sh | sh && echo "$HOME/.dprint/bin" >> $GITHUB_PATH
+
       - name: Format
         run: make fmt
 
-      - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27  # v1.3.2
+      - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27 # v1.3.2

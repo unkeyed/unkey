@@ -1,8 +1,8 @@
 name: Runbook Freshness Check
 # Security: Limit permissions to minimum required
 permissions:
-  contents: read  # Required: checkout repo + git log for file history
-  issues: write  # Required: create and update issues for stale runbooks
+  contents: read # Required: checkout repo + git log for file history
+  issues: write # Required: create and update issues for stale runbooks
   # Explicitly deny all other permissions
   actions: none
   checks: none
@@ -18,7 +18,7 @@ on:
   schedule:
     # Run daily at 9 AM UTC
     - cron: "0 9 * * *"
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch: # Allow manual trigger
 jobs:
   check-runbook-freshness:
     runs-on: depot-ubuntu-24.04-4
@@ -29,17 +29,17 @@ jobs:
       name: runbook-maintenance
     steps:
       - name: Checkout repository
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
           # Security: Limit checkout to specific path and minimal history
           sparse-checkout: |
             apps/engineering/content/docs/runbooks
           sparse-checkout-cone-mode: false
-          fetch-depth: 0  # Required for git log to get file modification dates
+          fetch-depth: 0 # Required for git log to get file modification dates
           # Security: Use specific token with limited scope
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Check runbook freshness and create issues
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           # Security: Use explicit token with limited permissions
           github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -3,7 +3,7 @@ properties:
   cursor:
     type: string
     minLength: 1
-    maxLength: 1024  # Reasonable upper bound for cursor tokens
+    maxLength: 1024 # Reasonable upper bound for cursor tokens
     description: |
       Opaque pagination token for retrieving the next page of results.
       Include this exact value in the cursor field of subsequent requests.
@@ -19,4 +19,6 @@ properties:
 required:
   - hasMore
 additionalProperties: false
-description: Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+description:
+  Pagination metadata for list endpoints. Provides information necessary
+  to traverse through large result sets efficiently using cursor-based pagination.

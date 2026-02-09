@@ -71,7 +71,9 @@ post:
                   requestId: req_0uVwX4yZaAbCdEfGhIjKl
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'ratelimit.*.delete_override' permission to perform this operation
+                  detail:
+                    Your root key requires the 'ratelimit.*.delete_override'
+                    permission to perform this operation
                   status: 403
                   type: forbidden
     "404":

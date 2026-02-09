@@ -6,7 +6,10 @@ properties:
     minLength: 1
     maxLength: 255
   cursor:
-    description: Pagination cursor from a previous response. Include this when fetching subsequent pages of results. Each response containing more results than the requested limit will include a cursor value in the pagination object that can be used here.
+    description: Pagination cursor from a previous response. Include this when
+      fetching subsequent pages of results. Each response containing more results
+      than the requested limit will include a cursor value in the pagination
+      object that can be used here.
     type: string
   limit:
     description: |-

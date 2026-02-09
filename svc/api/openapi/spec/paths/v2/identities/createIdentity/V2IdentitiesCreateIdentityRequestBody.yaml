@@ -5,7 +5,7 @@ properties:
   externalId:
     type: string
     minLength: 1
-    maxLength: 255  # Match database varchar limits for external identifiers
+    maxLength: 255 # Match database varchar limits for external identifiers
     pattern: "^[a-zA-Z0-9_.-]+$"
     description: |
       Creates an identity using your system's unique identifier for a user, organization, or entity.
@@ -20,7 +20,7 @@ properties:
   meta:
     type: object
     additionalProperties: true
-    maxProperties: 100  # Prevent DoS while allowing rich metadata
+    maxProperties: 100 # Prevent DoS while allowing rich metadata
     description: |
       Stores arbitrary JSON metadata returned during key verification for contextual information.
       Eliminates additional database lookups during verification, improving performance for stateless services.
@@ -31,7 +31,7 @@ properties:
       Metadata is returned as-is whenever keys associated with this identity are verified.
   ratelimits:
     type: array
-    maxItems: 50  # Reasonable limit for rate limit configurations per identity
+    maxItems: 50 # Reasonable limit for rate limit configurations per identity
     items:
       "$ref": "../../../../common/RatelimitRequest.yaml"
     description: |

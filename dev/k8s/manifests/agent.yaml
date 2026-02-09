@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,7 +46,12 @@ spec:
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36
-          command: ["sh", "-c", "until nc -z s3 3902 && nc -z clickhouse 9000; do echo waiting for dependencies; sleep 2; done;"]
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z s3 3902 && nc -z clickhouse 9000; do echo waiting for dependencies; sleep 2; done;",
+            ]
 
 ---
 apiVersion: v1
