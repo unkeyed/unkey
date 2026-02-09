@@ -17,16 +17,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
+type installationPayload struct {
+	ID int64 `json:"id"`
+}
+
+type repositoryPayload struct {
+	ID       int64  `json:"id"`
+	FullName string `json:"full_name"`
+}
+
 type pushPayload struct {
-	Ref          string `json:"ref"`
-	After        string `json:"after"`
-	Installation struct {
-		ID int64 `json:"id"`
-	} `json:"installation"`
-	Repository struct {
-		ID       int64  `json:"id"`
-		FullName string `json:"full_name"`
-	} `json:"repository"`
+	Ref          string               `json:"ref"`
+	After        string               `json:"after"`
+	Installation installationPayload `json:"installation"`
+	Repository   repositoryPayload   `json:"repository"`
 }
 
 var Cmd = &cli.Command{
@@ -102,15 +106,10 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	payload := pushPayload{
 		Ref:   fmt.Sprintf("refs/heads/%s", branch),
 		After: commitSHA,
-		Installation: struct {
-			ID int64 `json:"id"`
-		}{
+		Installation: installationPayload{
 			ID: installationID,
 		},
-		Repository: struct {
-			ID       int64  `json:"id"`
-			FullName string `json:"full_name"`
-		}{
+		Repository: repositoryPayload{
 			ID:       repositoryID,
 			FullName: repository,
 		},
@@ -147,7 +146,10 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 		_ = resp.Body.Close()
 	}()
 
-	bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	// Handle response
 	switch resp.StatusCode {
