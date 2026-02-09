@@ -63,6 +63,11 @@ type Querier interface {
 	// This pre-filters in ClickHouse rather than returning all workspaces, making it efficient for quota checking.
 	// Returns a map from workspace ID to total usage count (only for workspaces >= minUsage).
 	GetBillableUsageAboveThreshold(ctx context.Context, year, month int, minUsage int64) (map[string]int64, error)
+
+	// GetDeploymentRequestCount returns the number of sentinel requests routed to a
+	// deployment within a recent time window, used to detect idle deployments for scale-down.
+	// Returns 0 (not an error) when the deployment has received no traffic.
+	GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error)
 }
 
 type ClickHouse interface {

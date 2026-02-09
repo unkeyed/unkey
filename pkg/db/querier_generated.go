@@ -1755,6 +1755,14 @@ type Querier interface {
 	//  ORDER BY dt.version ASC
 	//  LIMIT ?
 	ListDeploymentTopologyByRegion(ctx context.Context, db DBTX, arg ListDeploymentTopologyByRegionParams) ([]ListDeploymentTopologyByRegionRow, error)
+	//ListDeploymentsByEnvironmentIdAndStatus
+	//
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, status, created_at, updated_at FROM `deployments`
+	//  WHERE environment_id = ?
+	//    AND status = ?
+	//    AND created_at < ?
+	//    AND (updated_at IS null OR updated_at < ? )
+	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, db DBTX, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
 	// ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.
 	// Used during bootstrap to stream all running deployments to krane.
 	//
@@ -2018,6 +2026,15 @@ type Querier interface {
 	//  WHERE rp.role_id = ?
 	//  ORDER BY p.slug
 	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
+	//ListPreviewEnvironments
+	//
+	//  SELECT pk, id, workspace_id, project_id, slug, description, sentinel_config, delete_protection, created_at, updated_at
+	//  FROM environments
+	//  WHERE slug = 'preview'
+	//  AND pk > ?
+	//  ORDER BY pk ASC
+	//  LIMIT ?
+	ListPreviewEnvironments(ctx context.Context, db DBTX, arg ListPreviewEnvironmentsParams) ([]Environment, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
@@ -2306,6 +2323,12 @@ type Querier interface {
 	//  SET build_id = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentBuildID(ctx context.Context, db DBTX, arg UpdateDeploymentBuildIDParams) error
+	//UpdateDeploymentDesiredState
+	//
+	//  UPDATE deployments
+	//  SET desired_state = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
