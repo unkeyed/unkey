@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -87,14 +88,14 @@ func (s *Service) VerifyDomain(
 	cnameResult := <-cnameCh
 
 	if txtResult.err != nil {
-		s.logger.Warn("TXT check error",
+		logger.Warn("TXT check error",
 			"domain", dom.Domain,
 			"error", txtResult.err,
 			"elapsed", elapsed,
 		)
 	}
 	if cnameResult.err != nil {
-		s.logger.Warn("CNAME check error",
+		logger.Warn("CNAME check error",
 			"domain", dom.Domain,
 			"error", cnameResult.err,
 			"elapsed", elapsed,
@@ -126,7 +127,7 @@ func (s *Service) VerifyDomain(
 	}
 
 	// Log current status
-	s.logger.Info("DNS verification check complete",
+	logger.Info("DNS verification check complete",
 		"domain", dom.Domain,
 		"txt_verified", txtVerified,
 		"cname_verified", cnameVerified,
@@ -150,7 +151,7 @@ func (s *Service) RetryVerification(
 	_ *hydrav1.RetryVerificationRequest,
 ) (*hydrav1.RetryVerificationResponse, error) {
 	domain := restate.Key(ctx)
-	s.logger.Info("retrying domain verification", "domain", domain)
+	logger.Info("retrying domain verification", "domain", domain)
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.ResetCustomDomainVerification(stepCtx, s.db.RW(), db.ResetCustomDomainVerificationParams{
@@ -291,7 +292,7 @@ func (s *Service) onVerificationSuccess(
 		return nil, fault.Wrap(err, fault.Internal("failed to create frontline route"))
 	}
 
-	s.logger.Info("domain verification completed successfully",
+	logger.Info("domain verification completed successfully",
 		"domain", dom.Domain,
 	)
 
@@ -317,7 +318,7 @@ func (s *Service) onVerificationFailed(
 		return nil, fault.Wrap(err, fault.Internal("failed to mark domain as failed"))
 	}
 
-	s.logger.Info("domain verification failed",
+	logger.Info("domain verification failed",
 		"domain", dom.Domain,
 		"error", errorMsg,
 	)

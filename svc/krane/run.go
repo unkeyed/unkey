@@ -12,8 +12,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -56,6 +56,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
+	logger.SetSampler(logger.TailSampler{
+		SlowThreshold: cfg.LogSlowThreshold,
+		SampleRate:    cfg.LogSampleRate,
+	})
+
 	var shutdownGrafana func(context.Context) error
 	if cfg.OtelEnabled {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
@@ -70,18 +75,18 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	logger := logging.New()
-	if cfg.InstanceID != "" {
-		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
-	}
-	if cfg.Region != "" {
-		logger = logger.With(slog.String("region", cfg.Region))
-	}
-	if pkgversion.Version != "" {
-		logger = logger.With(slog.String("version", pkgversion.Version))
-	}
+	// Add base attributes to global logger
+	logger.AddBaseAttrs(slog.GroupAttrs("instance",
+		slog.String("id", cfg.InstanceID),
+		slog.String("region", cfg.Region),
+		slog.String("version", pkgversion.Version),
+	))
 
-	r := runner.New(logger)
+	r := runner.New()
+	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
+
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
@@ -111,7 +116,6 @@ func Run(ctx context.Context, cfg Config) error {
 	ciliumCtrl := cilium.New(cilium.Config{
 		ClientSet:     clientset,
 		DynamicClient: dynamicClient,
-		Logger:        logger,
 		Cluster:       cluster,
 		Region:        cfg.Region,
 	})
@@ -124,7 +128,6 @@ func Run(ctx context.Context, cfg Config) error {
 	deploymentCtrl := deployment.New(deployment.Config{
 		ClientSet:     clientset,
 		DynamicClient: dynamicClient,
-		Logger:        logger,
 		Cluster:       cluster,
 		Region:        cfg.Region,
 	})
@@ -136,7 +139,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start the sentinel controller (independent control loop)
 	sentinelCtrl := sentinel.New(sentinel.Config{
 		ClientSet: clientset,
-		Logger:    logger,
 		Cluster:   cluster,
 		Region:    cfg.Region,
 	})
@@ -169,7 +171,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register secrets service if vault is configured
 	if vaultClient != nil {
 		secretsSvc := secrets.New(secrets.Config{
-			Logger:         logger,
 			Vault:          vaultClient,
 			TokenValidator: tokenValidator,
 		})
@@ -204,9 +205,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.PrometheusPort > 0 {
 
-		prom, err := prometheus.New(prometheus.Config{
-			Logger: logger,
-		})
+		prom, err := prometheus.New()
 		if err != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", err)
 		}

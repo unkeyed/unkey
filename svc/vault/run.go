@@ -3,13 +3,12 @@ package vault
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
@@ -22,6 +21,11 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+
+	logger.SetSampler(logger.TailSampler{
+		SlowThreshold: cfg.LogSlowThreshold,
+		SampleRate:    cfg.LogSampleRate,
+	})
 
 	var shutdownGrafana func(context.Context) error
 	if cfg.OtelEnabled {
@@ -37,12 +41,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	logger := logging.New()
-	if cfg.InstanceID != "" {
-		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
-	}
-
-	r := runner.New(logger)
+	r := runner.New()
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
@@ -56,7 +55,6 @@ func Run(ctx context.Context, cfg Config) error {
 		S3Bucket:          cfg.S3Bucket,
 		S3AccessKeyID:     cfg.S3AccessKeyID,
 		S3AccessKeySecret: cfg.S3AccessKeySecret,
-		Logger:            logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create s3 storage: %w", err)
@@ -64,7 +62,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	s3 = storagemiddleware.WithTracing("s3", s3)
 	v, err := vault.New(vault.Config{
-		Logger:      logger,
 		Storage:     s3,
 		MasterKeys:  cfg.MasterKeys,
 		BearerToken: cfg.BearerToken,

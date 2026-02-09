@@ -21,7 +21,6 @@ Example Usage:
 	// Create a Redis-backed counter
 	redisCounter, err := counter.NewRedis(counter.RedisConfig{
 		RedisURL: "redis://localhost:6379",
-		Logger:   logger,
 	})
 	if err != nil {
 		return err

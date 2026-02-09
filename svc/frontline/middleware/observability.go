@@ -13,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"go.opentelemetry.io/otel/attribute"
@@ -102,7 +102,7 @@ func categorizeErrorTypeFrontline(urn codes.URN, statusCode int, hasError bool) 
 	return "unknown"
 }
 
-func WithObservability(logger logging.Logger, region string) zen.Middleware {
+func WithObservability(region string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()

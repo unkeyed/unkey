@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -25,12 +24,10 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 	topicName := fmt.Sprintf("test-clustering-e2e-%s", uid.New(uid.TestPrefix))
 
 	// Create eventstream topic with real logger for debugging
-	logger := logging.New()
 	topic, err := eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
 		Brokers:    brokers,
 		Topic:      topicName,
 		InstanceID: uid.New(uid.TestPrefix),
-		Logger:     logger,
 	})
 	require.NoError(t, err)
 
@@ -45,7 +42,7 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create dispatcher (one per process in production)
-	dispatcher, err := clustering.NewInvalidationDispatcher(topic, logger)
+	dispatcher, err := clustering.NewInvalidationDispatcher(topic)
 	require.NoError(t, err)
 	defer func() { require.NoError(t, dispatcher.Close()) }()
 
@@ -60,7 +57,6 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 			Stale:    10 * time.Minute,
 			MaxSize:  1000,
 			Resource: "test-cache",
-			Logger:   logging.NewNoop(),
 			Clock:    clock.New(),
 		})
 		if err != nil {
@@ -73,7 +69,6 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 			Topic:      topic,
 			Dispatcher: dispatcher,
 			NodeID:     nodeID,
-			Logger:     logger,
 		})
 		if err != nil {
 			return nil, nil, err

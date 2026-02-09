@@ -81,7 +81,7 @@ export const querySentinelLogs = workspaceProcedure
 
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to retrieve sentinel logs. If this persists, contact support@unkey.dev.",
+        message: "Failed to retrieve sentinel logs. If this persists, contact support@unkey.com.",
       });
     }
   });

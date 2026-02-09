@@ -11,18 +11,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func TestSWR_CacheHit(t *testing.T) {
 	ctx := context.Background()
 	mockClock := clock.NewTestClock()
-	logger := logging.New()
 
 	c, err := cache.New(cache.Config[string, string]{
 		Fresh:    1 * time.Minute,
 		Stale:    5 * time.Minute,
-		Logger:   logger,
 		MaxSize:  100,
 		Resource: "test",
 		Clock:    mockClock,

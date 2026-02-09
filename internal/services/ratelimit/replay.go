@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
@@ -38,7 +39,7 @@ func (s *service) replayRequests() {
 	for req := range s.replayBuffer.Consume() {
 		err := s.syncWithOrigin(context.Background(), req)
 		if err != nil {
-			s.logger.Error("failed to replay request", "error", err.Error())
+			logger.Error("failed to replay request", "error", err.Error())
 		}
 	}
 }

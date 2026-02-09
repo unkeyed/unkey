@@ -13,7 +13,6 @@ go_library(
         "//pkg/clock",
         "//pkg/db",
         "//pkg/dockertest",
-        "//pkg/otel/logging",
         "//pkg/testutil/containers",
         "//svc/api",
         "//svc/api/internal/testutil/seed",

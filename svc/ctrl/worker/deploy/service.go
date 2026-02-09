@@ -5,7 +5,6 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
@@ -40,8 +39,7 @@ type RegistryConfig struct {
 // concurrent deploy/rollback/promote operations.
 type Workflow struct {
 	hydrav1.UnimplementedDeploymentServiceServer
-	db     db.Database
-	logger logging.Logger
+	db db.Database
 
 	defaultDomain    string
 	vault            vaultv1connect.VaultServiceClient
@@ -60,9 +58,6 @@ var _ hydrav1.DeploymentServiceServer = (*Workflow)(nil)
 
 // Config holds the configuration for creating a deployment workflow.
 type Config struct {
-	// Logger for structured logging.
-	Logger logging.Logger
-
 	// DB is the main database connection for workspace, project, and deployment data.
 	DB db.Database
 
@@ -99,7 +94,6 @@ func New(cfg Config) *Workflow {
 	return &Workflow{
 		UnimplementedDeploymentServiceServer: hydrav1.UnimplementedDeploymentServiceServer{},
 		db:                                   cfg.DB,
-		logger:                               cfg.Logger,
 		defaultDomain:                        cfg.DefaultDomain,
 		vault:                                cfg.Vault,
 		sentinelImage:                        cfg.SentinelImage,

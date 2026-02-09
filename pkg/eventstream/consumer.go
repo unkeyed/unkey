@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -26,7 +26,6 @@ type consumer[T proto.Message] struct {
 	handler       func(context.Context, T) error
 	reader        *kafka.Reader
 	instanceID    string
-	logger        logging.Logger
 	mu            sync.Mutex
 	subscribed    bool
 	fromBeginning bool
@@ -94,7 +93,6 @@ func (t *Topic[T]) NewConsumer(opts ...ConsumerOption) Consumer[T] {
 		brokers:       t.brokers,
 		topic:         t.topic,
 		instanceID:    t.instanceID,
-		logger:        t.logger,
 		fromBeginning: cfg.fromBeginning,
 		isPointerType: isPointerType,
 	}
@@ -218,7 +216,7 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 
 				// EOF is expected when there are no more messages - don't log it
 				if !isEOF(err) {
-					c.logger.Warn("Failed to read message from Kafka", "error", err.Error(), "topic", c.topic)
+					logger.Warn("Failed to read message from Kafka", "error", err.Error(), "topic", c.topic)
 				}
 
 				continue
@@ -233,14 +231,14 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 				var ok bool
 				t, ok = newInstance.(T)
 				if !ok {
-					c.logger.Error("Failed to cast reflected type to expected type", "topic", c.topic)
+					logger.Error("Failed to cast reflected type to expected type", "topic", c.topic)
 					continue
 				}
 			}
 
 			// Deserialize protobuf event
 			if err := proto.Unmarshal(msg.Value, t); err != nil {
-				c.logger.Warn("Failed to deserialize protobuf message", "error", err.Error(), "topic", c.topic)
+				logger.Warn("Failed to deserialize protobuf message", "error", err.Error(), "topic", c.topic)
 				continue
 			}
 
@@ -248,7 +246,7 @@ func (c *consumer[T]) consumeLoop(ctx context.Context) {
 			if c.handler != nil {
 				handlerCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 				if err := c.handler(handlerCtx, t); err != nil {
-					c.logger.Error("Error handling event", "error", err.Error(), "topic", c.topic)
+					logger.Error("Error handling event", "error", err.Error(), "topic", c.topic)
 				}
 				cancel()
 			}

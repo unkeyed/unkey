@@ -10,7 +10,7 @@ go_library(
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/zen",
         "//svc/frontline/services/proxy",
         "//svc/frontline/services/router",

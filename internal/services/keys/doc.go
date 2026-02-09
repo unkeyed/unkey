@@ -27,7 +27,6 @@ The verification system uses a flexible, option-based approach that supports:
 To create a new keys service:
 
 	svc, err := keys.New(keys.Config{
-	    Logger:       logger,
 	    DB:           database,
 	    RateLimiter:  rateLimiter,
 	    UsageLimiter: usageLimiter,

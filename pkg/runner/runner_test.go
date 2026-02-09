@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // TestNew verifies that a fresh Runner starts in a clean state with no
 // cleanups registered and neither running nor shutting down.
 func TestNew(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 	require.NotNil(t, r)
 	require.Empty(t, r.cleanups)
 	require.Equal(t, runnerStateIdle, r.state)
@@ -22,7 +21,7 @@ func TestNew(t *testing.T) {
 
 // TestGo_StartsImmediately verifies that Go starts the task immediately.
 func TestGo_StartsImmediately(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	started := make(chan struct{})
 	r.Go(func(ctx context.Context) error {
@@ -46,7 +45,7 @@ func TestGo_StartsImmediately(t *testing.T) {
 // TestDefer_RegistersCleanup verifies that Defer adds a cleanup function and
 // that it gets called during shutdown.
 func TestDefer_RegistersCleanup(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	called := false
 	r.Defer(func() error {
@@ -69,7 +68,7 @@ func TestDefer_RegistersCleanup(t *testing.T) {
 // TestDeferCtx_RegistersCleanup verifies that DeferCtx adds a context-aware
 // cleanup function and that it gets called during shutdown.
 func TestDeferCtx_RegistersCleanup(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	called := false
 	r.DeferCtx(func(ctx context.Context) error {
@@ -93,7 +92,7 @@ func TestDeferCtx_RegistersCleanup(t *testing.T) {
 // identically to DeferCtx. This alias exists for compatibility with the
 // otel.Registrar interface.
 func TestRegisterCtx_AliasForDeferCtx(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 
 	called := false
 	r.RegisterCtx(func(ctx context.Context) error {

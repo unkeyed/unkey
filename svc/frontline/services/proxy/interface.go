@@ -7,7 +7,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -26,9 +25,6 @@ type Service interface {
 
 // Config holds configuration for the proxy service.
 type Config struct {
-	// Logger for debugging and monitoring
-	Logger logging.Logger
-
 	// FrontlineID is the current frontline instance ID
 	FrontlineID string
 

@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/unkey/cmd/deploy/internal/errors"
 	"github.com/unkeyed/unkey/cmd/deploy/internal/ui"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/git"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -103,7 +103,6 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 
 func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	terminal := ui.NewUI()
-	logger := logging.New()
 	gitInfo := git.GetInfo()
 
 	// Auto-detect branch and commit from git if not specified
@@ -125,9 +124,9 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	terminal.StartSpinner("Creating deployment")
 	deploymentID, err := controlPlane.CreateDeployment(ctx, opts.DockerImage)
 	if err != nil {
-		terminal.StopSpinner("Failed to create deployment", false)
-		terminal.PrintErrorDetails(err.Error())
-		return err
+		terminal.StopSpinner(errors.FormatError(err), false)
+		// Don't return error it will just double print the error without formatting
+		return nil
 	}
 	terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
 
@@ -151,7 +150,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	// Poll for deployment completion
-	err = controlPlane.PollDeploymentStatus(ctx, logger, deploymentID, onStatusChange)
+	err = controlPlane.PollDeploymentStatus(ctx, deploymentID, onStatusChange)
 	if err != nil {
 		terminal.StopSpinner("Deployment failed", false)
 		return err

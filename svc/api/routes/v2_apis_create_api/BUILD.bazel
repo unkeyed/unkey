@@ -12,7 +12,6 @@ go_library(
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
-        "//pkg/otel/logging",
         "//pkg/rbac",
         "//pkg/uid",
         "//pkg/zen",

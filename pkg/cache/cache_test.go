@@ -10,7 +10,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func TestWriteRead(t *testing.T) {
@@ -20,7 +19,6 @@ func TestWriteRead(t *testing.T) {
 
 		Fresh:    time.Minute,
 		Stale:    time.Minute * 5,
-		Logger:   logging.NewNoop(),
 		Resource: "test", Clock: clock.New(),
 	})
 	require.NoError(t, err)
@@ -38,7 +36,6 @@ func TestEviction(t *testing.T) {
 
 		Fresh:    time.Second,
 		Stale:    time.Second,
-		Logger:   logging.NewNoop(),
 		Resource: "test",
 		Clock:    clk,
 	})
@@ -61,7 +58,6 @@ func TestRefresh(t *testing.T) {
 
 		Fresh:    time.Second * 2,
 		Stale:    time.Minute * 5,
-		Logger:   logging.NewNoop(),
 		Resource: "test",
 		Clock:    clk,
 	})
@@ -84,7 +80,6 @@ func TestNull(t *testing.T) {
 		MaxSize:  10_000,
 		Fresh:    time.Second * 1,
 		Stale:    time.Minute * 5,
-		Logger:   logging.NewNoop(),
 		Resource: "test",
 		Clock:    clock.New(),
 	})

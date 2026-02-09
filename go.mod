@@ -54,7 +54,6 @@ require (
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20260114192324-795787c558e1
 	github.com/gordonklaus/ineffassign v0.2.0
 	github.com/kisielk/errcheck v1.9.0
-	github.com/lmittmann/tint v1.1.2
 	github.com/maypok86/otter v1.2.4
 	github.com/moby/buildkit v0.26.3
 	github.com/nishanths/exhaustive v0.12.0

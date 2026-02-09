@@ -42,7 +42,6 @@ func Test429_QueryQuotaExceeded(t *testing.T) {
 	}
 
 	route := &Handler{
-		Logger:                     h.Logger,
 		DB:                         h.DB,
 		Keys:                       h.Keys,
 		ClickHouse:                 h.ClickHouse,

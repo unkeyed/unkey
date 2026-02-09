@@ -9,6 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 const (
@@ -67,7 +69,7 @@ func (r *Runner) RegisterHealth(mux *http.ServeMux, prefix ...string) {
 	if len(prefix) > 0 {
 		base = strings.TrimRight(prefix[0], "/")
 	}
-	r.logger.Info("registering health endpoints", "base", base)
+	logger.Info("registering health endpoints", "base", base)
 	mux.HandleFunc(fmt.Sprintf("GET %s/live", base), r.handleLive)
 	mux.HandleFunc(fmt.Sprintf("GET %s/ready", base), r.handleReady)
 	mux.HandleFunc(fmt.Sprintf("GET %s/startup", base), r.handleStartup)

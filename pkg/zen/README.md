@@ -42,7 +42,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -62,13 +62,10 @@ type CreateUserResponse struct {
 }
 
 func main() {
-	// Initialize logger
-	logger := logging.New()
 
 	// Create a new server
 	server, err := zen.New(zen.Config{
 		NodeID: "quickstart-server",
-		Logger: logger,
 	})
 	if err != nil {
 		log.Fatalf("failed to create server: %v", err)
@@ -122,8 +119,8 @@ func main() {
 	// Register routes with middleware
 	server.RegisterRoute(
 		[]zen.Middleware{
-			zen.WithLogging(logger),
-			zen.WithErrorHandling(logger),
+			zen.WithLogging(),
+			zen.WithErrorHandling(),
 		},
 		helloRoute,
 	)
@@ -131,8 +128,8 @@ func main() {
 	server.RegisterRoute(
 		[]zen.Middleware{
 			zen.WithObservability(),
-			zen.WithLogging(logger),
-			zen.WithErrorHandling(logger),
+			zen.WithLogging(),
+			zen.WithErrorHandling(),
 			zen.WithValidation(validator),
 		},
 		createUserRoute,

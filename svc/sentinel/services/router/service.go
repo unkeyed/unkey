@@ -12,13 +12,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 var _ Service = (*service)(nil)
 
 type service struct {
-	logger        logging.Logger
 	db            db.Database
 	clock         clock.Clock
 	environmentID string
@@ -30,7 +29,6 @@ type service struct {
 
 func New(cfg Config) (*service, error) {
 	deploymentCache, err := cache.New[string, db.Deployment](cache.Config[string, db.Deployment]{
-		Logger:   cfg.Logger,
 		Resource: "deployment",
 		Clock:    cfg.Clock,
 		MaxSize:  1000,
@@ -43,7 +41,6 @@ func New(cfg Config) (*service, error) {
 
 	instancesCache, err := cache.New[string, []db.Instance](cache.Config[string, []db.Instance]{
 		Clock:    cfg.Clock,
-		Logger:   cfg.Logger,
 		Resource: "instance",
 		MaxSize:  1000,
 		Fresh:    10 * time.Second,
@@ -54,7 +51,6 @@ func New(cfg Config) (*service, error) {
 	}
 
 	return &service{
-		logger:          cfg.Logger,
 		db:              cfg.DB,
 		clock:           cfg.Clock,
 		environmentID:   cfg.EnvironmentID,
@@ -85,7 +81,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 	}
 
 	if deployment.EnvironmentID != s.environmentID {
-		s.logger.Warn("deployment does not belong to this environment",
+		logger.Warn("deployment does not belong to this environment",
 			"deploymentID", deploymentID,
 			"deploymentEnv", deployment.EnvironmentID,
 			"sentinelEnv", s.environmentID,

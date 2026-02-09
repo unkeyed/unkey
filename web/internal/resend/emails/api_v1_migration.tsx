@@ -68,7 +68,7 @@ export function ApiV1Migration({
 
       <Text>
         Need help with your migration? Please reach out to{" "}
-        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this email.
+        <Link href="mailto:support@unkey.com">support@unkey.com</Link> or just reply to this email.
         Our team is ready to help with anything.
       </Text>
 

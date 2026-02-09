@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func checkHealthEndpoint(t *testing.T, mux *http.ServeMux, endpoint string, wantCode int, wantStatus string) {
@@ -28,7 +27,7 @@ func checkHealthEndpoint(t *testing.T, mux *http.ServeMux, endpoint string, want
 }
 
 func TestHealthEndpoints_Lifecycle(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux, "/health")
 
@@ -56,7 +55,7 @@ func TestHealthEndpoints_Lifecycle(t *testing.T) {
 }
 
 func TestHealthReady_WithChecks_AllPass(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux, "/health")
 	r.health.started.Store(true)
@@ -83,7 +82,7 @@ func TestHealthReady_WithChecks_AllPass(t *testing.T) {
 }
 
 func TestHealthReady_WithChecks_OneFails(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux, "/health")
 	r.health.started.Store(true)
@@ -110,7 +109,7 @@ func TestHealthReady_WithChecks_OneFails(t *testing.T) {
 }
 
 func TestHealthReady_CheckTimeout(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux, "/health")
 	r.health.started.Store(true)
@@ -138,21 +137,21 @@ func TestHealthReady_CheckTimeout(t *testing.T) {
 }
 
 func TestAddReadinessCheck_PanicsOnEmptyName(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 	require.Panics(t, func() {
 		r.AddReadinessCheck("", func(ctx context.Context) error { return nil })
 	})
 }
 
 func TestAddReadinessCheck_PanicsOnNilCheck(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 	require.Panics(t, func() {
 		r.AddReadinessCheck("test", nil)
 	})
 }
 
 func TestHealthReady_ChecksRunInParallel(t *testing.T) {
-	r := New(logging.NewNoop())
+	r := New()
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux, "/health")
 	r.health.started.Store(true)

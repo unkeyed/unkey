@@ -28,7 +28,6 @@
 //
 //	svc := acme.New(acme.Config{
 //		DB:           database,
-//		Logger:        logger,
 //		DomainCache:   caches.Domains,
 //		ChallengeCache: caches.Challenges,
 //	})

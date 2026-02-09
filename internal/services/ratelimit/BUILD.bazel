@@ -21,7 +21,7 @@ go_library(
         "//pkg/circuitbreaker",
         "//pkg/clock",
         "//pkg/counter",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/prometheus/metrics",
         "//pkg/repeat",

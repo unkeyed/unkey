@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 func TestGetMany(t *testing.T) {
@@ -20,7 +19,6 @@ func TestGetMany(t *testing.T) {
 		MaxSize:  10_000,
 		Fresh:    time.Minute,
 		Stale:    time.Minute * 5,
-		Logger:   logging.NewNoop(),
 		Resource: "test",
 		Clock:    clock.New(),
 	})
@@ -108,7 +106,6 @@ func TestGetMany_Eviction(t *testing.T) {
 		MaxSize:  10_000,
 		Fresh:    time.Second,
 		Stale:    time.Second,
-		Logger:   logging.NewNoop(),
 		Resource: "test",
 		Clock:    clk,
 	})
@@ -136,7 +133,6 @@ func TestSetMany(t *testing.T) {
 		MaxSize:  10_000,
 		Fresh:    time.Minute,
 		Stale:    time.Minute * 5,
-		Logger:   logging.NewNoop(),
 		Resource: "test",
 		Clock:    clock.New(),
 	})
@@ -188,7 +184,6 @@ func TestSetNullMany(t *testing.T) {
 		MaxSize:  10_000,
 		Fresh:    time.Minute,
 		Stale:    time.Minute * 5,
-		Logger:   logging.NewNoop(),
 		Resource: "test",
 		Clock:    clock.New(),
 	})
@@ -229,7 +224,6 @@ func TestSWRMany(t *testing.T) {
 	c, err := cache.New(cache.Config[string, string]{
 		Fresh:    1 * time.Minute,
 		Stale:    5 * time.Minute,
-		Logger:   logging.NewNoop(),
 		MaxSize:  100,
 		Resource: "test",
 		Clock:    mockClock,

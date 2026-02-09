@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // Promote reassigns all domains to the target deployment via a Restate workflow.
@@ -16,7 +17,7 @@ import (
 // The workflow runs synchronously (blocking until complete) and is keyed by
 // project ID to prevent concurrent promotion operations on the same project.
 func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.PromoteRequest]) (*connect.Response[ctrlv1.PromoteResponse], error) {
-	s.logger.Info("initiating promotion via Restate",
+	logger.Info("initiating promotion via Restate",
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
 
@@ -26,7 +27,7 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", req.Msg.GetTargetDeploymentId()))
 		}
-		s.logger.Error("failed to get deployment",
+		logger.Error("failed to get deployment",
 			"deployment_id", req.Msg.GetTargetDeploymentId(),
 			"error", err.Error(),
 		)
@@ -42,14 +43,14 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		})
 
 	if err != nil {
-		s.logger.Error("promotion workflow failed",
+		logger.Error("promotion workflow failed",
 			"target", req.Msg.GetTargetDeploymentId(),
 			"error", err.Error(),
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("promotion workflow failed: %w", err))
 	}
 
-	s.logger.Info("promotion completed successfully via Restate",
+	logger.Info("promotion completed successfully via Restate",
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
 

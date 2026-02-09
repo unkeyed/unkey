@@ -11,10 +11,9 @@ go_test(
     deps = [
         "//gen/proto/cache/v1:cache",
         "//pkg/cache",
-        "//pkg/debug",
         "//pkg/eventstream",
-        "//pkg/otel/logging",
         "//pkg/testutil/containers",
+        "//pkg/timing",
         "//pkg/uid",
         "//svc/api/integration",
         "//svc/api/internal/testutil/seed",

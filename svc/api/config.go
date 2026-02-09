@@ -2,6 +2,7 @@ package api
 
 import (
 	"net"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -124,10 +125,13 @@ type Config struct {
 	// This helps prevent DoS attacks from excessively large request bodies.
 	MaxRequestBodySize int64
 
-	// DebugCacheHeaders enables cache debug headers (X-Unkey-Debug-Cache) in responses.
-	// When enabled, cache operations add headers showing hit/miss status and latency.
-	// Should typically only be enabled in development or specific production debugging.
-	DebugCacheHeaders bool
+	// --- Logging sampler configuration ---
+
+	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
+	LogSampleRate float64
+
+	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
+	LogSlowThreshold time.Duration
 }
 
 func (c Config) Validate() error {

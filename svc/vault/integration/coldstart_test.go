@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
@@ -28,14 +27,11 @@ func Test_ColdStart(t *testing.T) {
 
 	s3 := dockertest.S3(t)
 
-	logger := logging.NewNoop()
-
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.URL,
 		S3Bucket:          "test",
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
@@ -44,7 +40,6 @@ func Test_ColdStart(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
-		Logger:      logger,
 		MasterKeys:  []string{masterKey},
 		BearerToken: "test-bearer-token",
 	})

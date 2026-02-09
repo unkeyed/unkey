@@ -4,7 +4,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry/credentials"
 )
@@ -24,7 +23,6 @@ const (
 )
 
 type Config struct {
-	Logger                  logging.Logger
 	Registry                *registry.Registry
 	Clientset               kubernetes.Interface
 	Credentials             *credentials.Manager

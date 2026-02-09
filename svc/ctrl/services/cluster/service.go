@@ -3,7 +3,6 @@ package cluster
 import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // Service implements [ctrlv1connect.ClusterServiceHandler] to synchronize desired state
@@ -13,7 +12,6 @@ import (
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
 	db     db.Database
-	logger logging.Logger
 	bearer string
 }
 
@@ -21,9 +19,6 @@ type Service struct {
 type Config struct {
 	// Database provides read and write access for querying and updating resource state.
 	Database db.Database
-
-	// Logger is used for structured logging throughout the service.
-	Logger logging.Logger
 
 	// Bearer is the authentication token that agents must provide in the Authorization header.
 	Bearer string
@@ -35,7 +30,6 @@ func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedClusterServiceHandler: ctrlv1connect.UnimplementedClusterServiceHandler{},
 		db:                                 cfg.Database,
-		logger:                             cfg.Logger,
 		bearer:                             cfg.Bearer,
 	}
 }

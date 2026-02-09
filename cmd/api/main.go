@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -111,9 +112,11 @@ var Cmd = &cli.Command{
 		cli.Int64("max-request-body-size", "Maximum allowed request body size in bytes. Set to 0 or negative to disable limit. Default: 10485760 (10MB)",
 			cli.Default(int64(10485760)), cli.EnvVar("UNKEY_MAX_REQUEST_BODY_SIZE")),
 
-		// Debug Configuration
-		cli.Bool("debug-cache-headers", "Enable cache debug headers (X-Unkey-Debug-Cache) in HTTP responses for debugging cache behavior",
-			cli.Default(false), cli.EnvVar("UNKEY_DEBUG_CACHE_HEADERS")),
+		// Logging Sampler Configuration
+		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
+			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SAMPLE_RATE")),
+		cli.Duration("log-slow-threshold", "Duration threshold for slow event sampling. Default: 1s",
+			cli.Default(time.Second), cli.EnvVar("UNKEY_LOG_SLOW_THRESHOLD")),
 
 		// CTRL Service Configuration
 		cli.String("ctrl-url", "CTRL service connection URL for deployment management. Example: http://ctrl:7091",
@@ -207,8 +210,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Request body configuration
 		MaxRequestBodySize: cmd.Int64("max-request-body-size"),
 
-		// Debug configuration
-		DebugCacheHeaders: cmd.Bool("debug-cache-headers"),
+		// Logging sampler configuration
+		LogSampleRate:    cmd.Float("log-sample-rate"),
+		LogSlowThreshold: cmd.Duration("log-slow-threshold"),
 	}
 
 	err := config.Validate()

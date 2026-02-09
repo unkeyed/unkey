@@ -17,7 +17,7 @@ go_library(
         "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/db",
         "//pkg/healthcheck",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/uid",
         "//svc/ctrl/services/acme",
         "@com_connectrpc_connect//:connect",

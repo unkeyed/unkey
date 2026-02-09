@@ -18,7 +18,7 @@ go_library(
         "//pkg/clickhouse/schema",
         "//pkg/db",
         "//pkg/db/types",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/uid",
     ],
 )

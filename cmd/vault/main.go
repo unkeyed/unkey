@@ -2,6 +2,7 @@ package vault
 
 import (
 	"context"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -55,6 +56,12 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
 		cli.String("region", "Cloud region identifier",
 			cli.EnvVar("UNKEY_REGION")),
+
+		// Logging Sampler Configuration
+		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
+			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SAMPLE_RATE")),
+		cli.Duration("log-slow-threshold", "Duration threshold for slow event sampling. Default: 1s",
+			cli.Default(time.Second), cli.EnvVar("UNKEY_LOG_SLOW_THRESHOLD")),
 	},
 	Action: action,
 }
@@ -76,6 +83,10 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelEnabled:           cmd.Bool("otel-enabled"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 		Region:                cmd.String("region"),
+
+		// Logging sampler configuration
+		LogSampleRate:    cmd.Float("log-sample-rate"),
+		LogSlowThreshold: cmd.Duration("log-slow-threshold"),
 	}
 
 	err := config.Validate()

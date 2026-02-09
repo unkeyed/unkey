@@ -87,7 +87,7 @@ export const projects = createCollection<Project>(
               return {
                 message: "Server Error",
                 description:
-                  "We encountered an issue while creating your project. Please try again later or contact support at support@unkey.dev",
+                  "We encountered an issue while creating your project. Please try again later or contact support at support@unkey.com",
               };
             case "NOT_FOUND":
               return {

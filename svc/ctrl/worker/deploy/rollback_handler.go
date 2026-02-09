@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // Rollback performs a rollback to a previous deployment.
@@ -29,7 +30,7 @@ import (
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
 func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.RollbackRequest) (*hydrav1.RollbackResponse, error) {
-	w.logger.Info("initiating rollback",
+	logger.Info("initiating rollback",
 		"source", req.GetSourceDeploymentId(),
 		"target", req.GetTargetDeploymentId(),
 	)
@@ -104,7 +105,7 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, restate.TerminalError(fmt.Errorf("no frontlineRoutes to rollback"), 400)
 	}
 
-	w.logger.Info("found frontlineRoutes for rollback", "count", len(frontlineRoutes), "deployment_id", sourceDeployment.ID)
+	logger.Info("found frontlineRoutes for rollback", "count", len(frontlineRoutes), "deployment_id", sourceDeployment.ID)
 
 	// Collect frontlineRoute IDs
 	var routeIDs []string
@@ -136,14 +137,14 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		if err != nil {
 			return restate.Void{}, fmt.Errorf("failed to update project's live deployment id: %w", err)
 		}
-		w.logger.Info("updated project live deployment", "project_id", project.ID, "live_deployment_id", targetDeployment.ID)
+		logger.Info("updated project live deployment", "project_id", project.ID, "live_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
 	}, restate.WithName("updating project live deployment"))
 	if err != nil {
 		return nil, err
 	}
 
-	w.logger.Info("rollback completed successfully",
+	logger.Info("rollback completed successfully",
 		"source", req.GetSourceDeploymentId(),
 		"target", req.GetTargetDeploymentId(),
 		"frontlineRoutes_rolled_back", len(routeIDs))

@@ -8,7 +8,7 @@ go_library(
     deps = [
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/zen",
         "@com_github_prometheus_client_golang//prometheus",

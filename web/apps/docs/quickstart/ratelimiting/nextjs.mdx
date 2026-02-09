@@ -1,46 +1,48 @@
 ---
 title: Next.js
-description: Ratelimiting endpoints with Next.js
-mode: "wide"
+description: Add rate limiting to your Next.js API routes
 ---
+
+## What you'll build
+
+A Next.js API route that limits each user to a set number of requests per time window. Excess requests get rejected with a 429.
+
+**Time to complete:** ~5 minutes
 
 ## Prerequisites
 
-- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
-- Created an [Unkey root key](https://app.unkey.com/settings/root-keys) with the following permissions:
-  - `ratelimit.*.create_namespace` - to create namespaces
-  - `ratelimit.*.limit` - to check rate limits
-
+- [Unkey account](https://app.unkey.com/auth/sign-up) (free)
+- [Root key](https://app.unkey.com/settings/root-keys) with `ratelimit.*.limit` permission
+- Node.js 18+
 
 <Steps titleSize="h3">
 
-<Step title="Create Next.js Application">
-Run the following command to init your Next.js project
+<Step title="Create a Next.js app">
+
+Skip if you have an existing project.
 
 <CodeGroup>
 
 ```bash npm
-npx create-next-app@latest
+npx create-next-app@latest my-app
+cd my-app
 ```
 
 ```bash pnpm
-pnpm create next-app@latest
-```
-
-```bash yarn
-yarn create-next-app@latest
+pnpm create next-app@latest my-app
+cd my-app
 ```
 
 ```bash bun
-bunx create-next-app
+bunx create-next-app my-app
+cd my-app
 ```
 
 </CodeGroup>
 
 </Step>
-<Step  title="Install">
 
-Now install the `@unkey/ratelimit` package
+<Step title="Install the SDK">
 
 <CodeGroup>
 
@@ -52,69 +54,76 @@ npm install @unkey/ratelimit
 pnpm add @unkey/ratelimit
 ```
 
-```bash yarn
-yarn add @unkey/ratelimit
-```
-
 ```bash bun
-bun install @unkey/ratelimit
+bun add @unkey/ratelimit
 ```
 
 </CodeGroup>
 
 </Step>
 
-<Step  title="Add Root Key to env">
+<Step title="Add your root key">
 
-Add your root key to your `.env` file
+Create or update `.env.local`:
 
-```bash
-UNKEY_ROOT_KEY="YOUR_KEY"
+```bash .env.local
+UNKEY_ROOT_KEY="unkey_..."
 ```
+
+<Warning>
+Never commit your root key. Add `.env.local` to `.gitignore`.
+</Warning>
 
 </Step>
 
-<Step  title="Creating a protected route">
+<Step title="Create a rate-limited route">
 
-Create a new route and add the following code
-
-```ts /app/protected/route.ts
-import { NextResponse } from 'next/server';
+```ts app/api/protected/route.ts
+import { NextResponse } from "next/server";
 import { Ratelimit } from "@unkey/ratelimit";
 
-
-if (!process.env.UNKEY_ROOT_KEY) {
-  throw new Error("UNKEY_ROOT_KEY environment variable is not set");
-}
-
+// Create limiter instance outside the handler
 const limiter = new Ratelimit({
-  namespace: "next-example",
-  limit: 2,
-  duration: "30s",
-  rootKey: process.env.UNKEY_ROOT_KEY
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "my-app",  // Group related limits
+  limit: 10,            // 10 requests...
+  duration: "60s",      // ...per minute
 });
 
-export const POST = async (req: Request) => {
-  // Extract user identifier from request headers
-  // Use any identifier: userId, visitorId, IP address, etc.
-  const identifier = req.headers.get('x-user-id') ?? 'anonymous';
+export async function POST(req: Request) {
+  // 1. Identify the user (IP, user ID, API key, etc.)
+  const identifier = req.headers.get("x-user-id") 
+    ?? req.headers.get("x-forwarded-for") 
+    ?? "anonymous";
 
-  const ratelimit = await limiter.limit(identifier);
+  // 2. Check the rate limit
+  const { success, remaining, reset } = await limiter.limit(identifier);
 
-  if (!ratelimit.success) {
+  // 3. Add rate limit headers (optional but nice for clients)
+  const headers = {
+    "X-RateLimit-Limit": "10",
+    "X-RateLimit-Remaining": remaining.toString(),
+    "X-RateLimit-Reset": reset.toString(),
+  };
+
+  if (!success) {
     return NextResponse.json(
-      { error: "Please try again later" },
-      { status: 429 }
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers }
     );
   }
 
-  return NextResponse.json({ message: "Hello!" });
-};
+  // 4. Request allowed — do your thing
+  return NextResponse.json(
+    { message: "Hello!", remaining },
+    { headers }
+  );
+}
 ```
 
 </Step>
 
-<Step title="Running it">
+<Step title="Run your app">
 
 <CodeGroup>
 
@@ -123,47 +132,135 @@ npm run dev
 ```
 
 ```bash pnpm
-pnpm run dev
-```
-
-```bash yarn
-yarn run dev
+pnpm dev
 ```
 
 ```bash bun
-bun run dev
+bun dev
 ```
 
 </CodeGroup>
 
 </Step>
 
-<Step  title="Try it out">
-
-Test your ratelimited endpoint:
+<Step title="Test it">
 
 ```bash
-curl -XPOST 'http://localhost:3000/protected' \
-  -H "x-user-id: test-user"
+# Hit the endpoint multiple times
+for i in {1..12}; do
+  curl -X POST http://localhost:3000/api/protected \
+    -H "x-user-id: test-user"
+  echo ""
+done
 ```
 
-You will need to curl a few times to see the ratelimiting error. Once you do, you, you will need to wait to perform the action again.
+First 10 requests return `200`. Requests 11+ return `429`:
 
+```json
+{ "error": "Too many requests. Please try again later." }
+```
+
+Wait 60 seconds and the limit resets.
 
 </Step>
 
 </Steps>
 
-## What is next?
+## What's in the response?
 
-Now that you've seen the power of Unkey ratelimiting, check out some resources below to continue your journey.
+`limiter.limit()` returns:
 
-<CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
-  <Card title="Ratelimit SDK" icon="brackets-curly" href="/libraries/ts/ratelimit/ratelimit">
-     Explore advanced SDK features like timeouts, error handling, and custom costs.
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | `true` if request is allowed, `false` if rate limited |
+| `remaining` | `number` | Requests remaining in current window |
+| `reset` | `number` | Unix timestamp (ms) when the window resets |
+| `limit` | `number` | The configured limit |
+
+## Choosing an identifier
+
+The identifier determines *who* gets rate limited. Common choices:
+
+| Identifier | Use case | Example |
+|------------|----------|---------|
+| User ID | Authenticated users | `req.auth.userId` |
+| API key | Per-key limits | `req.headers.get("x-api-key")` |
+| IP address | Anonymous/public endpoints | `req.headers.get("x-forwarded-for")` |
+| Combo | Extra specificity | `${userId}:${endpoint}` |
+
+## Creating a reusable limiter
+
+For cleaner code, create a utility:
+
+```ts lib/ratelimit.ts
+import { Ratelimit } from "@unkey/ratelimit";
+
+export const apiLimiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "api",
+  limit: 100,
+  duration: "1m",
+});
+
+export const authLimiter = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "auth",
+  limit: 5,
+  duration: "1m",
+});
+```
+
+Then use in routes:
+
+```ts app/api/login/route.ts
+import { authLimiter } from "@/lib/ratelimit";
+
+export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  const { success } = await authLimiter.limit(ip);
+  
+  if (!success) {
+    return Response.json({ error: "Too many login attempts" }, { status: 429 });
+  }
+  
+  // Handle login...
+}
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="How it works" icon="bolt" href="/ratelimiting/modes">
+    Understand the rate limiting architecture
   </Card>
-  <Card title="API Reference" icon="database" href="/api-reference/v2/overview">
-     Learn about our v2 API for managing APIs, keys, ratelimits and analytics.
+  <Card title="Per-user overrides" icon="sliders" href="/ratelimiting/overrides">
+    Give specific users higher limits
+  </Card>
+  <Card title="SDK Reference" icon="book" href="/libraries/ts/ratelimit/ratelimit">
+    All configuration options
+  </Card>
+  <Card title="Add API key auth" icon="key" href="/quickstart/apis/nextjs">
+    Combine rate limiting with authentication
   </Card>
 </CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Rate limit not working?">
+    - Check that `UNKEY_ROOT_KEY` is set in `.env.local`
+    - Verify your root key has `ratelimit.*.limit` permission
+    - Make sure you're using the same identifier each request
+    - Restart the dev server after changing `.env.local`
+  </Accordion>
+  
+  <Accordion title="Getting network errors?">
+    - Unkey's SDK retries failed requests automatically
+    - If errors persist, check [status.unkey.com](https://status.unkey.com)
+    - Check [status.unkey.com](https://status.unkey.com) if issues persist
+  </Accordion>
+  
+  <Accordion title="Want different limits per route?">
+    Create multiple `Ratelimit` instances with different namespaces and limits. Each namespace tracks limits independently.
+  </Accordion>
+</AccordionGroup>

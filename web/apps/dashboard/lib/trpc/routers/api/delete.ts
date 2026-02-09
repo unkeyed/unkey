@@ -26,13 +26,13 @@ export const deleteApi = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete this API. Please try again or contact support@unkey.dev",
+            "We are unable to delete this API. Please try again or contact support@unkey.com",
         });
       });
     if (!api) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "The API does not exist. Please try again or contact support@unkey.dev",
+        message: "The API does not exist. Please try again or contact support@unkey.com",
       });
     }
     if (api.deleteProtection) {
@@ -47,7 +47,7 @@ export const deleteApi = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "This API is missing required authentication configuration and cannot be deleted. Please contact support@unkey.dev",
+          "This API is missing required authentication configuration and cannot be deleted. Please contact support@unkey.com",
       });
     }
     try {
@@ -119,7 +119,7 @@ export const deleteApi = workspaceProcedure
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to delete the API. Please try again or contact support@unkey.dev",
+        message: "We are unable to delete the API. Please try again or contact support@unkey.com",
       });
     }
   });

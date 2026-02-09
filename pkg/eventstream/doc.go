@@ -18,12 +18,10 @@
 //
 // Basic event streaming setup:
 //
-//	logger := logging.NewLogger()
 //	topic := eventstream.NewTopic[*MyEvent](eventstream.TopicConfig{
 //		Brokers:    []string{"kafka:9092"},
 //		Topic:      "my-events",
 //		InstanceID: "instance-1",
-//		Logger:     logger,
 //	})
 //
 //	// Publishing events

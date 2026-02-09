@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
@@ -28,8 +27,6 @@ import (
 //   - Old ciphertexts remain valid after DEK rotation
 func TestReEncrypt(t *testing.T) {
 
-	logger := logging.NewNoop()
-
 	s3 := dockertest.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
@@ -37,7 +34,6 @@ func TestReEncrypt(t *testing.T) {
 		S3Bucket:          "vault",
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
@@ -48,7 +44,6 @@ func TestReEncrypt(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
-		Logger:      logger,
 		MasterKeys:  []string{masterKey},
 		BearerToken: bearer,
 	})

@@ -6,7 +6,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // Service implements the QuotaCheckService Restate virtual object.
@@ -14,7 +13,6 @@ type Service struct {
 	hydrav1.UnimplementedQuotaCheckServiceServer
 	db              db.Database
 	clickhouse      clickhouse.ClickHouse
-	logger          logging.Logger
 	heartbeat       healthcheck.Heartbeat
 	slackWebhookURL string
 }
@@ -25,7 +23,6 @@ var _ hydrav1.QuotaCheckServiceServer = (*Service)(nil)
 type Config struct {
 	DB         db.Database
 	Clickhouse clickhouse.ClickHouse
-	Logger     logging.Logger
 	// Heartbeat sends health signals after successful quota check runs.
 	// Must not be nil - use healthcheck.NewNoop() if monitoring is not needed.
 	Heartbeat healthcheck.Heartbeat
@@ -44,7 +41,6 @@ func New(cfg Config) (*Service, error) {
 		UnimplementedQuotaCheckServiceServer: hydrav1.UnimplementedQuotaCheckServiceServer{},
 		db:                                   cfg.DB,
 		clickhouse:                           cfg.Clickhouse,
-		logger:                               cfg.Logger,
 		heartbeat:                            cfg.Heartbeat,
 		slackWebhookURL:                      cfg.SlackWebhookURL,
 	}, nil

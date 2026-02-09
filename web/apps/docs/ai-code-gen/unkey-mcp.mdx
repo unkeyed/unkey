@@ -61,7 +61,7 @@ The main Unkey MCP server provides access to the complete Unkey API:
          "command": "npx",
          "args": [
            "mcp-remote",
-           "https://mcp.unkey.com/mcp/v1",
+           "https://mcp.unkey.com/mcp/v2",
            "--header",
            "MCP-UNKEY-BEARER-AUTH:${UNKEY_ROOT_KEY}"
          ]
@@ -121,7 +121,7 @@ For specialized rate limiting operations, use the dedicated ratelimiting MCP ser
          "command": "npx",
          "args": [
            "mcp-remote",
-           "https://mcp.unkey.com/mcp/v1",
+           "https://mcp.unkey.com/mcp/v2",
            "--header",
            "MCP-UNKEY-BEARER-AUTH:${UNKEY_ROOT_KEY}"
          ]
@@ -316,7 +316,7 @@ You can use custom environment variable names:
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://mcp.unkey.com/mcp/v1",
+        "https://mcp.unkey.com/mcp/v2",
         "--header",
         "MCP-UNKEY-BEARER-AUTH:${MY_CUSTOM_UNKEY_KEY}"
       ]
@@ -336,7 +336,7 @@ Configure multiple Unkey workspaces:
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://mcp.unkey.com/mcp/v1",
+        "https://mcp.unkey.com/mcp/v2",
         "--header",
         "MCP-UNKEY-BEARER-AUTH:${UNKEY_PROD_KEY}"
       ]
@@ -345,7 +345,7 @@ Configure multiple Unkey workspaces:
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://mcp.unkey.com/mcp/v1",
+        "https://mcp.unkey.com/mcp/v2",
         "--header",
         "MCP-UNKEY-BEARER-AUTH:${UNKEY_STAGING_KEY}"
       ]
