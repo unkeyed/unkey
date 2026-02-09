@@ -260,8 +260,8 @@ export function getKeysOverviewLogs(ch: Querier) {
     const now = Date.now();
     // If user explicitly filtered by time, use historical path to find ALL keys with activity in window
     // Otherwise use MV fast path for recent "last used" data
-    const isRollingWindow = !args.useTimeFrameFilter && (args.endTime >= now - (5 * 60 * 1000));
-    
+    const isRollingWindow = !args.useTimeFrameFilter && args.endTime >= now - 5 * 60 * 1000;
+
     const extendedParamsSchema = keysOverviewLogsParams.extend(paramSchemaExtension);
 
     // Build top_keys CTE based on query type
@@ -414,6 +414,7 @@ WITH
       t.last_tags,
       a.valid_count,
       a.error_count
+    HAVING COALESCE(a.valid_count, 0) > 0 OR COALESCE(a.error_count, 0) > 0
     ORDER BY ${orderByClause}
     LIMIT {limit: Int}
 `,
