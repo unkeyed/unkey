@@ -93,7 +93,7 @@ const columns: Column<SentinelLogsResponse>[] = [
   {
     key: "time",
     header: "Time",
-    width: "180px",
+    width: "10%",
     headerClassName: "pl-8",
     render: (log) => (
       <div className="flex items-center gap-3 px-2">
@@ -110,7 +110,7 @@ const columns: Column<SentinelLogsResponse>[] = [
   {
     key: "response_status",
     header: "Status",
-    width: "120px",
+    width: "10%",
     render: (log) => {
       const style = getStatusStyle(log.response_status);
       return (
@@ -128,7 +128,7 @@ const columns: Column<SentinelLogsResponse>[] = [
   {
     key: "region",
     header: "Region",
-    width: "100px",
+    width: "10%",
     render: (log) => (
       <div className="font-mono pr-4 truncate" title={log.region}>
         {log.region}
@@ -138,7 +138,7 @@ const columns: Column<SentinelLogsResponse>[] = [
   {
     key: "method",
     header: "Method",
-    width: "80px",
+    width: "10%",
     render: (log) => (
       <Badge
         className={cn(
@@ -151,29 +151,19 @@ const columns: Column<SentinelLogsResponse>[] = [
     ),
   },
   {
-    key: "path",
-    header: "Path",
-    width: "250px",
+    key: "host",
+    header: "Host",
+    width: "10%",
     render: (log) => (
-      <div className="font-mono pr-4 truncate" title={log.path}>
-        {log.path}
+      <div className="font-mono pr-4 truncate max-w-[250px]" title={log.host}>
+        {log.host}
       </div>
     ),
   },
   {
     key: "total_latency",
     header: "Total Latency",
-    width: "120px",
+    width: "10%",
     render: (log) => <div className="font-mono pr-4">{log.total_latency}ms</div>,
-  },
-  {
-    key: "deployment_id",
-    header: "Deployment ID",
-    width: "1fr",
-    render: (log) => (
-      <div className="font-mono whitespace-nowrap truncate max-w-[200px]" title={log.deployment_id}>
-        {log.deployment_id}
-      </div>
-    ),
   },
 ];

@@ -91,10 +91,19 @@ export const sentinelLogsResponseSchema = z.object({
   region: z.string(),
   method: z.string(),
   path: z.string(),
+  host: z.string(),
   response_status: z.number().int(),
   total_latency: z.number().int(),
   instance_latency: z.number().int(),
   sentinel_latency: z.number().int(),
+  query_string: z.string(),
+  query_params: z.record(z.array(z.string())),
+  request_headers: z.array(z.string()),
+  request_body: z.string(),
+  response_headers: z.array(z.string()),
+  response_body: z.string(),
+  user_agent: z.string(),
+  ip_address: z.string(),
 });
 
 export type SentinelLogsResponse = z.infer<typeof sentinelLogsResponseSchema>;
@@ -156,8 +165,10 @@ export function getSentinelLogs(ch: Querier) {
 
     const logsQuery = ch.query({
       query: `
-        SELECT request_id, time, deployment_id, region, method, path,
-               response_status, total_latency, instance_latency, sentinel_latency
+        SELECT request_id, time, deployment_id, region, method, path, host,
+               response_status, total_latency, instance_latency, sentinel_latency,
+               query_string, query_params, request_headers, request_body,
+               response_headers, response_body, user_agent, ip_address
         FROM ${TABLE}
         WHERE ${filterConditions}
           AND ({cursor: Nullable(UInt64)} IS NULL OR time < {cursor: Nullable(UInt64)})
