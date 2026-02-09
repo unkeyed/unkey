@@ -212,6 +212,57 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	}
 }
 
+type CreateDeploymentRequest struct {
+	ID            string
+	WorkspaceID   string
+	ProjectID     string
+	EnvironmentID string
+	Status        db.DeploymentsStatus
+	CreatedAt     int64
+	UpdatedAt     sql.NullInt64
+}
+
+func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
+	id := req.ID
+	if id == "" {
+		id = uid.New(uid.DeploymentPrefix)
+	}
+
+	createdAt := req.CreatedAt
+	if createdAt == 0 {
+		createdAt = time.Now().UnixMilli()
+	}
+
+	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
+		ID:                            id,
+		K8sName:                       uid.New("k8s"),
+		WorkspaceID:                   req.WorkspaceID,
+		ProjectID:                     req.ProjectID,
+		EnvironmentID:                 req.EnvironmentID,
+		GitCommitSha:                  sql.NullString{String: "", Valid: false},
+		GitBranch:                     sql.NullString{String: "", Valid: false},
+		SentinelConfig:                []byte("{}"),
+		GitCommitMessage:              sql.NullString{String: "", Valid: false},
+		GitCommitAuthorHandle:         sql.NullString{String: "", Valid: false},
+		GitCommitAuthorAvatarUrl:      sql.NullString{String: "", Valid: false},
+		GitCommitTimestamp:            sql.NullInt64{Int64: 0, Valid: false},
+		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
+		EncryptedEnvironmentVariables: []byte("{}"),
+		Command:                       nil,
+		Status:                        req.Status,
+		CpuMillicores:                 256,
+		MemoryMib:                     256,
+		CreatedAt:                     createdAt,
+		UpdatedAt:                     req.UpdatedAt,
+	})
+	require.NoError(s.t, err)
+
+	deployment, err := db.Query.FindDeploymentById(ctx, s.DB.RO(), id)
+	require.NoError(s.t, err)
+
+	return deployment
+}
+
 // CreateRootKey creates a root key with optional permissions
 func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissions ...string) string {
 	key := uid.New("test_root_key")

@@ -98,3 +98,52 @@ func (s *ClickHouseSeeder) InsertRatelimits(ctx context.Context, workspaceID str
 		require.NoError(s.t, err)
 	}
 }
+
+// InsertSentinelRequests inserts sentinel request records for a workspace.
+func (s *ClickHouseSeeder) InsertSentinelRequests(ctx context.Context, workspaceID, projectID, environmentID, deploymentID string, count int, timestamp time.Time) {
+	const batchSize = 10_000
+	for i := 0; i < count; i += batchSize {
+		batchCount := min(batchSize, count-i)
+		requests := make([]schema.SentinelRequest, batchCount)
+		for j := range batchCount {
+			requests[j] = schema.SentinelRequest{
+				RequestID:       uid.New(uid.RequestPrefix),
+				Time:            timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
+				WorkspaceID:     workspaceID,
+				ProjectID:       projectID,
+				EnvironmentID:   environmentID,
+				DeploymentID:    deploymentID,
+				SentinelID:      uid.New(uid.SentinelPrefix),
+				InstanceID:      uid.New(uid.InstancePrefix),
+				InstanceAddress: "10.0.0.1:8080",
+				Region:          "us-east-1",
+				Method:          "GET",
+				Host:            "test.example.com",
+				Path:            "/",
+				QueryString:     "",
+				QueryParams:     map[string][]string{},
+				RequestHeaders:  []string{},
+				RequestBody:     "",
+				ResponseStatus:  200,
+				ResponseHeaders: []string{},
+				ResponseBody:    "",
+				UserAgent:       "test-agent",
+				IPAddress:       "127.0.0.1",
+				TotalLatency:    10,
+				InstanceLatency: 8,
+				SentinelLatency: 2,
+			}
+		}
+
+		batch, err := s.conn.PrepareBatch(ctx, "INSERT INTO default.sentinel_requests_raw_v1")
+		require.NoError(s.t, err)
+
+		for _, r := range requests {
+			err = batch.AppendStruct(&r)
+			require.NoError(s.t, err)
+		}
+
+		err = batch.Send()
+		require.NoError(s.t, err)
+	}
+}
