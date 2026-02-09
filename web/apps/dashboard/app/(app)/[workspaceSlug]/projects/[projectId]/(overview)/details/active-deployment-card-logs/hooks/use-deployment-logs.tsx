@@ -1,11 +1,10 @@
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useProject } from "../../../layout-provider";
 
-const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
-const GATEWAY_LOGS_LIMIT = 20;
-const MAX_STORED_LOGS = 200;
+const GATEWAY_LOGS_REFETCH_INTERVAL = 5000;
+const GATEWAY_LOGS_LIMIT = 50;
 const ERROR_STATUS_THRESHOLD = 500;
 const WARNING_STATUS_THRESHOLD = 400;
 
@@ -50,7 +49,6 @@ export function useDeploymentLogs({
   const [logFilter, setLogFilter] = useState<LogFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showFade, setShowFade] = useState(true);
-  const [storedLogs, setStoredLogs] = useState<Map<string, LogEntry>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null) as React.MutableRefObject<HTMLDivElement>;
   const { collections } = useProject();
 
@@ -70,8 +68,6 @@ export function useDeploymentLogs({
         environmentId,
         limit: GATEWAY_LOGS_LIMIT,
         since: "6h",
-        // startTime: timestamp - 6 * 60 * 60 * 1000,
-        // endTime: timestamp,
       },
       {
         enabled: Boolean(deploymentId) && Boolean(environmentId),
@@ -80,41 +76,28 @@ export function useDeploymentLogs({
       },
     );
 
-  // Update stored logs when sentinel data changes
-  useEffect(() => {
-    if (sentinelData?.logs) {
-      setStoredLogs((prev) => {
-        const newMap = new Map(prev);
-
-        sentinelData.logs.forEach((log) => {
-          let level: "warning" | "error" | undefined;
-          if (log.response_status >= ERROR_STATUS_THRESHOLD) {
-            level = "error";
-          } else if (log.response_status >= WARNING_STATUS_THRESHOLD) {
-            level = "warning";
-          }
-
-          newMap.set(log.request_id, {
-            type: "sentinel",
-            id: log.request_id,
-            timestamp: log.time,
-            message: `${log.response_status} ${log.method} ${log.path} (${log.total_latency}ms)`,
-            level,
-          });
-        });
-
-        const sortedEntries = Array.from(newMap.entries())
-          .sort((a, b) => b[1].timestamp - a[1].timestamp)
-          .slice(0, MAX_STORED_LOGS);
-
-        return new Map(sortedEntries);
-      });
-    }
-  }, [sentinelData]);
-
   const logs = useMemo(() => {
-    return Array.from(storedLogs.values()).sort((a, b) => b.timestamp - a.timestamp);
-  }, [storedLogs]);
+    if (!sentinelData?.logs) {
+      return [];
+    }
+
+    return sentinelData.logs.map((log) => {
+      let level: "warning" | "error" | undefined;
+      if (log.response_status >= ERROR_STATUS_THRESHOLD) {
+        level = "error";
+      } else if (log.response_status >= WARNING_STATUS_THRESHOLD) {
+        level = "warning";
+      }
+
+      return {
+        type: "sentinel" as const,
+        id: log.request_id,
+        timestamp: log.time,
+        message: `${log.response_status} ${log.method} ${log.path} (${log.total_latency}ms)`,
+        level,
+      };
+    });
+  }, [sentinelData]);
 
   const logCounts = useMemo(() => {
     const warnings = logs.filter((log) => log.level === "warning").length;

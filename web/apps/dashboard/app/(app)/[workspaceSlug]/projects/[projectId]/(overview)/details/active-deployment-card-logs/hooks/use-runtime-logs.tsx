@@ -3,8 +3,8 @@ import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const RUNTIME_LOGS_REFETCH_INTERVAL = 2000;
-const RUNTIME_LOGS_LIMIT = 20;
+const RUNTIME_LOGS_REFETCH_INTERVAL = 5000;
+const RUNTIME_LOGS_LIMIT = 50;
 const RUNTIME_LOGS_SINCE = "6h";
 const MAX_STORED_LOGS = 200;
 
