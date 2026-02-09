@@ -4,12 +4,9 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../../../layout-provider";
 
-// const BUILD_STEPS_REFETCH_INTERVAL = 500;
 const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
 const GATEWAY_LOGS_LIMIT = 20;
-const GATEWAY_LOGS_SINCE = "1m";
 const MAX_STORED_LOGS = 200;
-const SCROLL_RESET_DELAY = 50;
 const ERROR_STATUS_THRESHOLD = 500;
 const WARNING_STATUS_THRESHOLD = 400;
 
