@@ -11,7 +11,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
+// how long a deployment must be idle for before we scale it down to 0
+var idleTime = 6 * time.Hour
+
 func (w *Workflow) ScaleDownIdleDeployments(ctx restate.WorkflowSharedContext, req *hydrav1.ScaleDownIdleDeploymentsRequest) (*hydrav1.ScaleDownIdleDeploymentsResponse, error) {
+
+	cutoff := time.Now().Add(-idleTime).UnixMilli()
 
 	cursor := uint64(0)
 	for {
@@ -37,6 +42,8 @@ func (w *Workflow) ScaleDownIdleDeployments(ctx restate.WorkflowSharedContext, r
 				return db.Query.ListDeploymentsByEnvironmentIdAndStatus(runCtx, w.db.RO(), db.ListDeploymentsByEnvironmentIdAndStatusParams{
 					EnvironmentID: environment.ID,
 					Status:        db.DeploymentsStatusReady,
+					CreatedBefore: cutoff,
+					UpdatedBefore: sql.NullInt64{Valid: true, Int64: cutoff},
 				})
 			}, restate.WithName(fmt.Sprintf("get deployments for %s", environment.ID)))
 			if err != nil {
@@ -44,25 +51,15 @@ func (w *Workflow) ScaleDownIdleDeployments(ctx restate.WorkflowSharedContext, r
 			}
 
 			for _, deployment := range deployments {
-				if time.Since(time.UnixMilli(deployment.CreatedAt)) < (6 * time.Hour) {
-					// don't spint down recently created deployments
-					continue
-				}
-
-				if deployment.UpdatedAt.Valid == true && time.Since(time.UnixMilli(deployment.UpdatedAt.Int64)) < (15*time.Minute) {
-					// recently updated deployments should not be put to sleep in case the user just woke them up.
-					continue
-				}
-
 				requests, err := restate.Run(ctx, func(runCtx restate.RunContext) (int64, error) {
 					return w.clickhouse.GetDeploymentRequestCount(runCtx, clickhouse.GetDeploymentRequestCountRequest{
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
 						EnvironmentID: deployment.EnvironmentID,
 						DeploymentID:  deployment.ID,
-						Duration:      6 * time.Hour,
+						Duration:      idleTime,
 					})
-				}, restate.WithName("fetch request count"))
+				}, restate.WithName(fmt.Sprintf("fetch request count for %s", deployment.ID)))
 				if err != nil {
 					return nil, err
 				}
