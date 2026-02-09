@@ -1,8 +1,25 @@
 import { relations, sql } from "drizzle-orm";
-import { bigint, int, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  int,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
+
+export type Healthcheck = {
+  method: "GET" | "POST";
+  path: string;
+  intervalSeconds: number;
+  timeoutSeconds: number;
+  failureThreshold: number;
+  initialDelaySeconds: number;
+};
 
 export const environmentRuntimeSettings = mysqlTable(
   "environment_runtime_settings",
@@ -17,15 +34,23 @@ export const environmentRuntimeSettings = mysqlTable(
     cpuMillicores: int("cpu_millicores").notNull().default(256),
     memoryMib: int("memory_mib").notNull().default(256),
     command: json("command").$type<string[]>().notNull().default(sql`('[]')`),
-    healthcheckPath: varchar("healthcheck_path", { length: 256 }).notNull().default(""),
+
+    // null = no healthcheck configured
+    healthcheck: json("healthcheck").$type<Healthcheck>(),
+
     // Maps region ID to replica count, e.g. {"us-east-1": 3, "eu-central-1": 1}
     // Empty object = 1 replica in all available regions (default behavior)
     regionConfig: json("region_config")
       .$type<Record<string, number>>()
       .notNull()
       .default(sql`('{}')`),
-    restartPolicy: varchar("restart_policy", { length: 64 }).notNull().default("always"),
-    shutdownSignal: varchar("shutdown_signal", { length: 16 }).notNull().default("SIGTERM"),
+
+    restartPolicy: mysqlEnum("restart_policy", ["always", "on-failure", "never"])
+      .notNull()
+      .default("always"),
+    shutdownSignal: mysqlEnum("shutdown_signal", ["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"])
+      .notNull()
+      .default("SIGTERM"),
 
     ...lifecycleDates,
   },

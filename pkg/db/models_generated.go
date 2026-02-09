@@ -314,6 +314,93 @@ func (ns NullDeploymentsDesiredState) Value() (driver.Value, error) {
 	return string(ns.DeploymentsDesiredState), nil
 }
 
+type DeploymentsRestartPolicy string
+
+const (
+	DeploymentsRestartPolicyAlways    DeploymentsRestartPolicy = "always"
+	DeploymentsRestartPolicyOnFailure DeploymentsRestartPolicy = "on-failure"
+	DeploymentsRestartPolicyNever     DeploymentsRestartPolicy = "never"
+)
+
+func (e *DeploymentsRestartPolicy) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsRestartPolicy(s)
+	case string:
+		*e = DeploymentsRestartPolicy(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsRestartPolicy: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsRestartPolicy struct {
+	DeploymentsRestartPolicy DeploymentsRestartPolicy
+	Valid                    bool // Valid is true if DeploymentsRestartPolicy is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsRestartPolicy) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsRestartPolicy, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsRestartPolicy.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsRestartPolicy) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsRestartPolicy), nil
+}
+
+type DeploymentsShutdownSignal string
+
+const (
+	DeploymentsShutdownSignalSIGTERM DeploymentsShutdownSignal = "SIGTERM"
+	DeploymentsShutdownSignalSIGINT  DeploymentsShutdownSignal = "SIGINT"
+	DeploymentsShutdownSignalSIGQUIT DeploymentsShutdownSignal = "SIGQUIT"
+	DeploymentsShutdownSignalSIGKILL DeploymentsShutdownSignal = "SIGKILL"
+)
+
+func (e *DeploymentsShutdownSignal) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsShutdownSignal(s)
+	case string:
+		*e = DeploymentsShutdownSignal(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsShutdownSignal: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsShutdownSignal struct {
+	DeploymentsShutdownSignal DeploymentsShutdownSignal
+	Valid                     bool // Valid is true if DeploymentsShutdownSignal is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsShutdownSignal) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsShutdownSignal, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsShutdownSignal.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsShutdownSignal), nil
+}
+
 type DeploymentsStatus string
 
 const (
@@ -358,6 +445,93 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DeploymentsStatus), nil
+}
+
+type EnvironmentRuntimeSettingsRestartPolicy string
+
+const (
+	EnvironmentRuntimeSettingsRestartPolicyAlways    EnvironmentRuntimeSettingsRestartPolicy = "always"
+	EnvironmentRuntimeSettingsRestartPolicyOnFailure EnvironmentRuntimeSettingsRestartPolicy = "on-failure"
+	EnvironmentRuntimeSettingsRestartPolicyNever     EnvironmentRuntimeSettingsRestartPolicy = "never"
+)
+
+func (e *EnvironmentRuntimeSettingsRestartPolicy) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EnvironmentRuntimeSettingsRestartPolicy(s)
+	case string:
+		*e = EnvironmentRuntimeSettingsRestartPolicy(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EnvironmentRuntimeSettingsRestartPolicy: %T", src)
+	}
+	return nil
+}
+
+type NullEnvironmentRuntimeSettingsRestartPolicy struct {
+	EnvironmentRuntimeSettingsRestartPolicy EnvironmentRuntimeSettingsRestartPolicy
+	Valid                                   bool // Valid is true if EnvironmentRuntimeSettingsRestartPolicy is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEnvironmentRuntimeSettingsRestartPolicy) Scan(value interface{}) error {
+	if value == nil {
+		ns.EnvironmentRuntimeSettingsRestartPolicy, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EnvironmentRuntimeSettingsRestartPolicy.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEnvironmentRuntimeSettingsRestartPolicy) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EnvironmentRuntimeSettingsRestartPolicy), nil
+}
+
+type EnvironmentRuntimeSettingsShutdownSignal string
+
+const (
+	EnvironmentRuntimeSettingsShutdownSignalSIGTERM EnvironmentRuntimeSettingsShutdownSignal = "SIGTERM"
+	EnvironmentRuntimeSettingsShutdownSignalSIGINT  EnvironmentRuntimeSettingsShutdownSignal = "SIGINT"
+	EnvironmentRuntimeSettingsShutdownSignalSIGQUIT EnvironmentRuntimeSettingsShutdownSignal = "SIGQUIT"
+	EnvironmentRuntimeSettingsShutdownSignalSIGKILL EnvironmentRuntimeSettingsShutdownSignal = "SIGKILL"
+)
+
+func (e *EnvironmentRuntimeSettingsShutdownSignal) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EnvironmentRuntimeSettingsShutdownSignal(s)
+	case string:
+		*e = EnvironmentRuntimeSettingsShutdownSignal(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EnvironmentRuntimeSettingsShutdownSignal: %T", src)
+	}
+	return nil
+}
+
+type NullEnvironmentRuntimeSettingsShutdownSignal struct {
+	EnvironmentRuntimeSettingsShutdownSignal EnvironmentRuntimeSettingsShutdownSignal
+	Valid                                    bool // Valid is true if EnvironmentRuntimeSettingsShutdownSignal is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEnvironmentRuntimeSettingsShutdownSignal) Scan(value interface{}) error {
+	if value == nil {
+		ns.EnvironmentRuntimeSettingsShutdownSignal, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EnvironmentRuntimeSettingsShutdownSignal.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEnvironmentRuntimeSettingsShutdownSignal) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EnvironmentRuntimeSettingsShutdownSignal), nil
 }
 
 type EnvironmentVariablesType string
@@ -932,30 +1106,34 @@ type CustomDomain struct {
 }
 
 type Deployment struct {
-	Pk                            uint64                  `db:"pk"`
-	ID                            string                  `db:"id"`
-	K8sName                       string                  `db:"k8s_name"`
-	WorkspaceID                   string                  `db:"workspace_id"`
-	ProjectID                     string                  `db:"project_id"`
-	EnvironmentID                 string                  `db:"environment_id"`
-	Image                         sql.NullString          `db:"image"`
-	BuildID                       sql.NullString          `db:"build_id"`
-	GitCommitSha                  sql.NullString          `db:"git_commit_sha"`
-	GitBranch                     sql.NullString          `db:"git_branch"`
-	GitCommitMessage              sql.NullString          `db:"git_commit_message"`
-	GitCommitAuthorHandle         sql.NullString          `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl      sql.NullString          `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp            sql.NullInt64           `db:"git_commit_timestamp"`
-	SentinelConfig                []byte                  `db:"sentinel_config"`
-	OpenapiSpec                   sql.NullString          `db:"openapi_spec"`
-	CpuMillicores                 int32                   `db:"cpu_millicores"`
-	MemoryMib                     int32                   `db:"memory_mib"`
-	DesiredState                  DeploymentsDesiredState `db:"desired_state"`
-	EncryptedEnvironmentVariables []byte                  `db:"encrypted_environment_variables"`
-	Command                       dbtype.StringSlice      `db:"command"`
-	Status                        DeploymentsStatus       `db:"status"`
-	CreatedAt                     int64                   `db:"created_at"`
-	UpdatedAt                     sql.NullInt64           `db:"updated_at"`
+	Pk                            uint64                    `db:"pk"`
+	ID                            string                    `db:"id"`
+	K8sName                       string                    `db:"k8s_name"`
+	WorkspaceID                   string                    `db:"workspace_id"`
+	ProjectID                     string                    `db:"project_id"`
+	EnvironmentID                 string                    `db:"environment_id"`
+	Image                         sql.NullString            `db:"image"`
+	BuildID                       sql.NullString            `db:"build_id"`
+	GitCommitSha                  sql.NullString            `db:"git_commit_sha"`
+	GitBranch                     sql.NullString            `db:"git_branch"`
+	GitCommitMessage              sql.NullString            `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString            `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
+	SentinelConfig                []byte                    `db:"sentinel_config"`
+	OpenapiSpec                   sql.NullString            `db:"openapi_spec"`
+	CpuMillicores                 int32                     `db:"cpu_millicores"`
+	MemoryMib                     int32                     `db:"memory_mib"`
+	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
+	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
+	Command                       dbtype.StringSlice        `db:"command"`
+	Port                          int32                     `db:"port"`
+	RestartPolicy                 DeploymentsRestartPolicy  `db:"restart_policy"`
+	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
+	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
+	Status                        DeploymentsStatus         `db:"status"`
+	CreatedAt                     int64                     `db:"created_at"`
+	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
 }
 
 type DeploymentTopology struct {
@@ -994,33 +1172,31 @@ type Environment struct {
 }
 
 type EnvironmentBuildSetting struct {
-	Pk                 uint64        `db:"pk"`
-	ID                 string        `db:"id"`
-	WorkspaceID        string        `db:"workspace_id"`
-	EnvironmentID      string        `db:"environment_id"`
-	Dockerfile         string        `db:"dockerfile"`
-	DockerContext      string        `db:"docker_context"`
-	BuildCpuMillicores int32         `db:"build_cpu_millicores"`
-	BuildMemoryMib     int32         `db:"build_memory_mib"`
-	CreatedAt          int64         `db:"created_at"`
-	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+	Pk            uint64        `db:"pk"`
+	ID            string        `db:"id"`
+	WorkspaceID   string        `db:"workspace_id"`
+	EnvironmentID string        `db:"environment_id"`
+	Dockerfile    string        `db:"dockerfile"`
+	DockerContext string        `db:"docker_context"`
+	CreatedAt     int64         `db:"created_at"`
+	UpdatedAt     sql.NullInt64 `db:"updated_at"`
 }
 
 type EnvironmentRuntimeSetting struct {
-	Pk              uint64              `db:"pk"`
-	ID              string              `db:"id"`
-	WorkspaceID     string              `db:"workspace_id"`
-	EnvironmentID   string              `db:"environment_id"`
-	Port            int32               `db:"port"`
-	CpuMillicores   int32               `db:"cpu_millicores"`
-	MemoryMib       int32               `db:"memory_mib"`
-	Command         dbtype.StringSlice  `db:"command"`
-	HealthcheckPath string              `db:"healthcheck_path"`
-	RegionConfig    dbtype.RegionConfig `db:"region_config"`
-	RestartPolicy   string              `db:"restart_policy"`
-	ShutdownSignal  string              `db:"shutdown_signal"`
-	CreatedAt       int64               `db:"created_at"`
-	UpdatedAt       sql.NullInt64       `db:"updated_at"`
+	Pk             uint64                                   `db:"pk"`
+	ID             string                                   `db:"id"`
+	WorkspaceID    string                                   `db:"workspace_id"`
+	EnvironmentID  string                                   `db:"environment_id"`
+	Port           int32                                    `db:"port"`
+	CpuMillicores  int32                                    `db:"cpu_millicores"`
+	MemoryMib      int32                                    `db:"memory_mib"`
+	Command        dbtype.StringSlice                       `db:"command"`
+	Healthcheck    dbtype.NullHealthcheck                   `db:"healthcheck"`
+	RegionConfig   dbtype.RegionConfig                      `db:"region_config"`
+	RestartPolicy  EnvironmentRuntimeSettingsRestartPolicy  `db:"restart_policy"`
+	ShutdownSignal EnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
+	CreatedAt      int64                                    `db:"created_at"`
+	UpdatedAt      sql.NullInt64                            `db:"updated_at"`
 }
 
 type EnvironmentVariable struct {

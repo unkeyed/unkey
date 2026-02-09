@@ -172,6 +172,18 @@ func (s *Service) CreateDeployment(
 		memoryMib = runtimeSettings.MemoryMib
 	}
 
+	// Snapshot port, restart policy, shutdown signal, and healthcheck from runtime settings
+	port := int32(8080)
+	restartPolicy := db.DeploymentsRestartPolicyAlways
+	shutdownSignal := db.DeploymentsShutdownSignalSIGTERM
+	var healthcheck dbtype.NullHealthcheck
+	if hasRuntimeSettings {
+		port = runtimeSettings.Port
+		restartPolicy = db.DeploymentsRestartPolicy(runtimeSettings.RestartPolicy)
+		shutdownSignal = db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal)
+		healthcheck = runtimeSettings.Healthcheck
+	}
+
 	// Insert deployment into database
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:                            deploymentID,
@@ -194,6 +206,10 @@ func (s *Service) CreateDeployment(
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
 		CpuMillicores:                 cpuMillicores,
 		MemoryMib:                     memoryMib,
+		Port:                          port,
+		RestartPolicy:                 restartPolicy,
+		ShutdownSignal:                shutdownSignal,
+		Healthcheck:                   healthcheck,
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())

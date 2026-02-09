@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "types",
     srcs = [
+        "healthcheck.go",
         "null_string.go",
         "region_config.go",
         "string_slice.go",

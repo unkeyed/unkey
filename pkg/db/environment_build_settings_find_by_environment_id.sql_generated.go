@@ -10,14 +10,14 @@ import (
 )
 
 const findEnvironmentBuildSettingsByEnvironmentId = `-- name: FindEnvironmentBuildSettingsByEnvironmentId :one
-SELECT pk, id, workspace_id, environment_id, dockerfile, docker_context, build_cpu_millicores, build_memory_mib, created_at, updated_at
+SELECT pk, id, workspace_id, environment_id, dockerfile, docker_context, created_at, updated_at
 FROM environment_build_settings
 WHERE environment_id = ?
 `
 
 // FindEnvironmentBuildSettingsByEnvironmentId
 //
-//	SELECT pk, id, workspace_id, environment_id, dockerfile, docker_context, build_cpu_millicores, build_memory_mib, created_at, updated_at
+//	SELECT pk, id, workspace_id, environment_id, dockerfile, docker_context, created_at, updated_at
 //	FROM environment_build_settings
 //	WHERE environment_id = ?
 func (q *Queries) FindEnvironmentBuildSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentBuildSetting, error) {
@@ -30,8 +30,6 @@ func (q *Queries) FindEnvironmentBuildSettingsByEnvironmentId(ctx context.Contex
 		&i.EnvironmentID,
 		&i.Dockerfile,
 		&i.DockerContext,
-		&i.BuildCpuMillicores,
-		&i.BuildMemoryMib,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

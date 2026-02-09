@@ -18,6 +18,10 @@ INSERT INTO `deployments` (
     status,
     cpu_millicores,
     memory_mib,
+    port,
+    restart_policy,
+    shutdown_signal,
+    healthcheck,
     created_at,
     updated_at
 )
@@ -40,6 +44,10 @@ VALUES (
     sqlc.arg(status),
     sqlc.arg(cpu_millicores),
     sqlc.arg(memory_mib),
+    sqlc.arg(port),
+    sqlc.arg(restart_policy),
+    sqlc.arg(shutdown_signal),
+    sqlc.arg(healthcheck),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 );

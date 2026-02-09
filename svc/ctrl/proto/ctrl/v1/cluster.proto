@@ -297,6 +297,20 @@ message ApplyDeployment {
   // command is the container command override (e.g., ["./app", "serve"]).
   // If empty, the container's default entrypoint/cmd from the Dockerfile is used.
   repeated string command = 13;
+
+  // port is the container port the application listens on.
+  int32 port = 14;
+
+  // restart_policy controls pod restart behavior: "always", "on-failure", or "never".
+  string restart_policy = 15;
+
+  // shutdown_signal is the signal sent to the container for graceful shutdown.
+  // "SIGTERM", "SIGINT", "SIGQUIT", or "SIGKILL".
+  string shutdown_signal = 16;
+
+  // healthcheck is a JSON-encoded Healthcheck struct for configuring liveness/readiness probes.
+  // If empty, no probes are configured.
+  optional bytes healthcheck = 17;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.

@@ -5,12 +5,8 @@ INSERT INTO environment_build_settings (
     environment_id,
     dockerfile,
     docker_context,
-    build_cpu_millicores,
-    build_memory_mib,
     created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     dockerfile = VALUES(dockerfile),
-    docker_context = VALUES(docker_context),
-    build_cpu_millicores = VALUES(build_cpu_millicores),
-    build_memory_mib = VALUES(build_memory_mib);
+    docker_context = VALUES(docker_context);

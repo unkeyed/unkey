@@ -16,26 +16,20 @@ INSERT INTO environment_build_settings (
     environment_id,
     dockerfile,
     docker_context,
-    build_cpu_millicores,
-    build_memory_mib,
     created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     dockerfile = VALUES(dockerfile),
-    docker_context = VALUES(docker_context),
-    build_cpu_millicores = VALUES(build_cpu_millicores),
-    build_memory_mib = VALUES(build_memory_mib)
+    docker_context = VALUES(docker_context)
 `
 
 type UpsertEnvironmentBuildSettingsParams struct {
-	ID                 string `db:"id"`
-	WorkspaceID        string `db:"workspace_id"`
-	EnvironmentID      string `db:"environment_id"`
-	Dockerfile         string `db:"dockerfile"`
-	DockerContext      string `db:"docker_context"`
-	BuildCpuMillicores int32  `db:"build_cpu_millicores"`
-	BuildMemoryMib     int32  `db:"build_memory_mib"`
-	CreatedAt          int64  `db:"created_at"`
+	ID            string `db:"id"`
+	WorkspaceID   string `db:"workspace_id"`
+	EnvironmentID string `db:"environment_id"`
+	Dockerfile    string `db:"dockerfile"`
+	DockerContext string `db:"docker_context"`
+	CreatedAt     int64  `db:"created_at"`
 }
 
 // UpsertEnvironmentBuildSettings
@@ -46,15 +40,11 @@ type UpsertEnvironmentBuildSettingsParams struct {
 //	    environment_id,
 //	    dockerfile,
 //	    docker_context,
-//	    build_cpu_millicores,
-//	    build_memory_mib,
 //	    created_at
-//	) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+//	) VALUES (?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    dockerfile = VALUES(dockerfile),
-//	    docker_context = VALUES(docker_context),
-//	    build_cpu_millicores = VALUES(build_cpu_millicores),
-//	    build_memory_mib = VALUES(build_memory_mib)
+//	    docker_context = VALUES(docker_context)
 func (q *Queries) UpsertEnvironmentBuildSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentBuildSettingsParams) error {
 	_, err := db.ExecContext(ctx, upsertEnvironmentBuildSettings,
 		arg.ID,
@@ -62,8 +52,6 @@ func (q *Queries) UpsertEnvironmentBuildSettings(ctx context.Context, db DBTX, a
 		arg.EnvironmentID,
 		arg.Dockerfile,
 		arg.DockerContext,
-		arg.BuildCpuMillicores,
-		arg.BuildMemoryMib,
 		arg.CreatedAt,
 	)
 	return err

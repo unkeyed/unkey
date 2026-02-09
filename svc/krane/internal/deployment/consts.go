@@ -3,10 +3,6 @@ package deployment
 import corev1 "k8s.io/api/core/v1"
 
 const (
-	// DeploymentPort is the port all user deployment containers expose. The routing
-	// layer and sentinel proxies use this port to forward traffic to user code.
-	DeploymentPort = 8080
-
 	// runtimeClassGvisor specifies the gVisor sandbox RuntimeClass for running
 	// untrusted user workloads with kernel-level isolation.
 	runtimeClassGvisor = "gvisor"

@@ -73,6 +73,24 @@
                 "package": "dbtype",
                 "import": "github.com/unkeyed/unkey/pkg/db/types"
               }
+            },
+            {
+              "column": "environment_runtime_settings.healthcheck",
+              "go_type": {
+                "type": "NullHealthcheck",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              },
+              "nullable": true
+            },
+            {
+              "column": "deployments.healthcheck",
+              "go_type": {
+                "type": "NullHealthcheck",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              },
+              "nullable": true
             }
           ]
         }

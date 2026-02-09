@@ -20,7 +20,7 @@ INSERT INTO environment_runtime_settings (
     cpu_millicores,
     memory_mib,
     command,
-    healthcheck_path,
+    healthcheck,
     region_config,
     restart_policy,
     shutdown_signal,
@@ -31,25 +31,25 @@ ON DUPLICATE KEY UPDATE
     cpu_millicores = VALUES(cpu_millicores),
     memory_mib = VALUES(memory_mib),
     command = VALUES(command),
-    healthcheck_path = VALUES(healthcheck_path),
+    healthcheck = VALUES(healthcheck),
     region_config = VALUES(region_config),
     restart_policy = VALUES(restart_policy),
     shutdown_signal = VALUES(shutdown_signal)
 `
 
 type UpsertEnvironmentRuntimeSettingsParams struct {
-	ID              string              `db:"id"`
-	WorkspaceID     string              `db:"workspace_id"`
-	EnvironmentID   string              `db:"environment_id"`
-	Port            int32               `db:"port"`
-	CpuMillicores   int32               `db:"cpu_millicores"`
-	MemoryMib       int32               `db:"memory_mib"`
-	Command         dbtype.StringSlice  `db:"command"`
-	HealthcheckPath string              `db:"healthcheck_path"`
-	RegionConfig    dbtype.RegionConfig `db:"region_config"`
-	RestartPolicy   string              `db:"restart_policy"`
-	ShutdownSignal  string              `db:"shutdown_signal"`
-	CreatedAt       int64               `db:"created_at"`
+	ID             string                                   `db:"id"`
+	WorkspaceID    string                                   `db:"workspace_id"`
+	EnvironmentID  string                                   `db:"environment_id"`
+	Port           int32                                    `db:"port"`
+	CpuMillicores  int32                                    `db:"cpu_millicores"`
+	MemoryMib      int32                                    `db:"memory_mib"`
+	Command        dbtype.StringSlice                       `db:"command"`
+	Healthcheck    dbtype.NullHealthcheck                   `db:"healthcheck"`
+	RegionConfig   dbtype.RegionConfig                      `db:"region_config"`
+	RestartPolicy  EnvironmentRuntimeSettingsRestartPolicy  `db:"restart_policy"`
+	ShutdownSignal EnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
+	CreatedAt      int64                                    `db:"created_at"`
 }
 
 // UpsertEnvironmentRuntimeSettings
@@ -62,7 +62,7 @@ type UpsertEnvironmentRuntimeSettingsParams struct {
 //	    cpu_millicores,
 //	    memory_mib,
 //	    command,
-//	    healthcheck_path,
+//	    healthcheck,
 //	    region_config,
 //	    restart_policy,
 //	    shutdown_signal,
@@ -73,7 +73,7 @@ type UpsertEnvironmentRuntimeSettingsParams struct {
 //	    cpu_millicores = VALUES(cpu_millicores),
 //	    memory_mib = VALUES(memory_mib),
 //	    command = VALUES(command),
-//	    healthcheck_path = VALUES(healthcheck_path),
+//	    healthcheck = VALUES(healthcheck),
 //	    region_config = VALUES(region_config),
 //	    restart_policy = VALUES(restart_policy),
 //	    shutdown_signal = VALUES(shutdown_signal)
@@ -86,7 +86,7 @@ func (q *Queries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX,
 		arg.CpuMillicores,
 		arg.MemoryMib,
 		arg.Command,
-		arg.HealthcheckPath,
+		arg.Healthcheck,
 		arg.RegionConfig,
 		arg.RestartPolicy,
 		arg.ShutdownSignal,

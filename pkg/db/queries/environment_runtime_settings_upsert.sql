@@ -7,7 +7,7 @@ INSERT INTO environment_runtime_settings (
     cpu_millicores,
     memory_mib,
     command,
-    healthcheck_path,
+    healthcheck,
     region_config,
     restart_policy,
     shutdown_signal,
@@ -18,7 +18,7 @@ ON DUPLICATE KEY UPDATE
     cpu_millicores = VALUES(cpu_millicores),
     memory_mib = VALUES(memory_mib),
     command = VALUES(command),
-    healthcheck_path = VALUES(healthcheck_path),
+    healthcheck = VALUES(healthcheck),
     region_config = VALUES(region_config),
     restart_policy = VALUES(restart_policy),
     shutdown_signal = VALUES(shutdown_signal);

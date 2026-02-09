@@ -9,12 +9,12 @@ import (
 )
 
 // bulkUpsertEnvironmentRuntimeSettings is the base query for bulk insert
-const bulkUpsertEnvironmentRuntimeSettings = `INSERT INTO environment_runtime_settings ( id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck_path, region_config, restart_policy, shutdown_signal, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertEnvironmentRuntimeSettings = `INSERT INTO environment_runtime_settings ( id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, restart_policy, shutdown_signal, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
     memory_mib = VALUES(memory_mib),
     command = VALUES(command),
-    healthcheck_path = VALUES(healthcheck_path),
+    healthcheck = VALUES(healthcheck),
     region_config = VALUES(region_config),
     restart_policy = VALUES(restart_policy),
     shutdown_signal = VALUES(shutdown_signal)`
@@ -44,7 +44,7 @@ func (q *BulkQueries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db D
 		allArgs = append(allArgs, arg.CpuMillicores)
 		allArgs = append(allArgs, arg.MemoryMib)
 		allArgs = append(allArgs, arg.Command)
-		allArgs = append(allArgs, arg.HealthcheckPath)
+		allArgs = append(allArgs, arg.Healthcheck)
 		allArgs = append(allArgs, arg.RegionConfig)
 		allArgs = append(allArgs, arg.RestartPolicy)
 		allArgs = append(allArgs, arg.ShutdownSignal)

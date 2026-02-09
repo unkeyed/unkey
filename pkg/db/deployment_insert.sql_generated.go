@@ -32,10 +32,18 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     status,
     cpu_millicores,
     memory_mib,
+    port,
+    restart_policy,
+    shutdown_signal,
+    healthcheck,
     created_at,
     updated_at
 )
 VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -60,26 +68,30 @@ VALUES (
 `
 
 type InsertDeploymentParams struct {
-	ID                            string             `db:"id"`
-	K8sName                       string             `db:"k8s_name"`
-	WorkspaceID                   string             `db:"workspace_id"`
-	ProjectID                     string             `db:"project_id"`
-	EnvironmentID                 string             `db:"environment_id"`
-	GitCommitSha                  sql.NullString     `db:"git_commit_sha"`
-	GitBranch                     sql.NullString     `db:"git_branch"`
-	SentinelConfig                []byte             `db:"sentinel_config"`
-	GitCommitMessage              sql.NullString     `db:"git_commit_message"`
-	GitCommitAuthorHandle         sql.NullString     `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl      sql.NullString     `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp            sql.NullInt64      `db:"git_commit_timestamp"`
-	OpenapiSpec                   sql.NullString     `db:"openapi_spec"`
-	EncryptedEnvironmentVariables []byte             `db:"encrypted_environment_variables"`
-	Command                       dbtype.StringSlice `db:"command"`
-	Status                        DeploymentsStatus  `db:"status"`
-	CpuMillicores                 int32              `db:"cpu_millicores"`
-	MemoryMib                     int32              `db:"memory_mib"`
-	CreatedAt                     int64              `db:"created_at"`
-	UpdatedAt                     sql.NullInt64      `db:"updated_at"`
+	ID                            string                    `db:"id"`
+	K8sName                       string                    `db:"k8s_name"`
+	WorkspaceID                   string                    `db:"workspace_id"`
+	ProjectID                     string                    `db:"project_id"`
+	EnvironmentID                 string                    `db:"environment_id"`
+	GitCommitSha                  sql.NullString            `db:"git_commit_sha"`
+	GitBranch                     sql.NullString            `db:"git_branch"`
+	SentinelConfig                []byte                    `db:"sentinel_config"`
+	GitCommitMessage              sql.NullString            `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString            `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
+	OpenapiSpec                   sql.NullString            `db:"openapi_spec"`
+	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
+	Command                       dbtype.StringSlice        `db:"command"`
+	Status                        DeploymentsStatus         `db:"status"`
+	CpuMillicores                 int32                     `db:"cpu_millicores"`
+	MemoryMib                     int32                     `db:"memory_mib"`
+	Port                          int32                     `db:"port"`
+	RestartPolicy                 DeploymentsRestartPolicy  `db:"restart_policy"`
+	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
+	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
+	CreatedAt                     int64                     `db:"created_at"`
+	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
 }
 
 // InsertDeployment
@@ -103,10 +115,18 @@ type InsertDeploymentParams struct {
 //	    status,
 //	    cpu_millicores,
 //	    memory_mib,
+//	    port,
+//	    restart_policy,
+//	    shutdown_signal,
+//	    healthcheck,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -148,6 +168,10 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.Status,
 		arg.CpuMillicores,
 		arg.MemoryMib,
+		arg.Port,
+		arg.RestartPolicy,
+		arg.ShutdownSignal,
+		arg.Healthcheck,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

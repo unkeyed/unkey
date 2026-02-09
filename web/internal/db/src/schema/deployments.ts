@@ -65,6 +65,22 @@ export const deployments = mysqlTable(
     // If empty, the container's default entrypoint/cmd is used
     command: json("command").$type<string[]>().notNull().default(sql`('[]')`),
 
+    // Port the container listens on
+    port: int("port").notNull().default(8080),
+
+    // Restart policy for the container
+    restartPolicy: mysqlEnum("restart_policy", ["always", "on-failure", "never"])
+      .notNull()
+      .default("always"),
+
+    // Signal sent to the container for graceful shutdown
+    shutdownSignal: mysqlEnum("shutdown_signal", ["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"])
+      .notNull()
+      .default("SIGTERM"),
+
+    // HTTP healthcheck configuration (null = no healthcheck)
+    healthcheck: json("healthcheck").$type<import("./environment_runtime_settings").Healthcheck>(),
+
     // Deployment status
     status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])
       .notNull()

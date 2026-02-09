@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, int, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -15,8 +15,6 @@ export const environmentBuildSettings = mysqlTable(
 
     dockerfile: varchar("dockerfile", { length: 500 }).notNull().default("Dockerfile"),
     dockerContext: varchar("docker_context", { length: 500 }).notNull().default("."),
-    buildCpuMillicores: int("build_cpu_millicores").notNull().default(2000),
-    buildMemoryMib: int("build_memory_mib").notNull().default(2048),
 
     ...lifecycleDates,
   },
