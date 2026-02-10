@@ -61,6 +61,9 @@ type BadRequestErrorDetails struct {
 	// Errors List of individual validation errors that occurred in the request. Each error provides specific details about what failed validation, where the error occurred in the request, and suggestions for fixing it. This granular information helps developers quickly identify and resolve multiple issues in a single request without having to make repeated API calls.
 	Errors []ValidationError `json:"errors"`
 
+	// Schema URL reference to the OpenAPI schema definition for this request.
+	Schema *string `json:"schema,omitempty"`
+
 	// Status HTTP status code that corresponds to this error. This will match the status code in the HTTP response. Common codes include `400` (Bad Request), `401` (Unauthorized), `403` (Forbidden), `404` (Not Found), `409` (Conflict), and `500` (Internal Server Error).
 	Status int `json:"status"`
 

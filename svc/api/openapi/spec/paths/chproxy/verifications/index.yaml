@@ -25,13 +25,13 @@ post:
       description: Events successfully queued for processing
     "400":
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../error/BadRequestErrorResponse.yaml"
       description: Invalid request body or malformed events
     "529":
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../error/InternalServerErrorResponse.yaml"
       description: Service overloaded, unable to process events

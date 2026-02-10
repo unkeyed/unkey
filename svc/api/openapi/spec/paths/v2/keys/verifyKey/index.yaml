@@ -124,7 +124,7 @@ post:
     "400":
       description: Bad request
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
           examples:
@@ -145,25 +145,25 @@ post:
     "401":
       description: Unauthorized
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
       description: |
         Forbidden. Returned when the root key has no verify permissions at all (neither `api.*.verify_key` nor `api.<api_id>.verify_key` for any API).
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: Not found
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "500":
       description: Internal server error
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"

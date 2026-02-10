@@ -24,6 +24,8 @@ func BuildSchemaURL(schemaName string) *string {
 
 // TransformErrors converts jsonschema validation errors to the API response format
 func TransformErrors(err error, requestID string, schemaName string) openapi.BadRequestErrorResponse {
+	schemaURL := BuildSchemaURL(schemaName)
+
 	validationErr, ok := err.(*jsonschema.ValidationError)
 	if !ok {
 		return openapi.BadRequestErrorResponse{
@@ -36,6 +38,7 @@ func TransformErrors(err error, requestID string, schemaName string) openapi.Bad
 				Status: http.StatusBadRequest,
 				Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
 				Errors: []openapi.ValidationError{},
+				Schema: schemaURL,
 			},
 		}
 	}
@@ -60,6 +63,7 @@ func TransformErrors(err error, requestID string, schemaName string) openapi.Bad
 			Status: http.StatusBadRequest,
 			Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
 			Errors: errors,
+			Schema: schemaURL,
 		},
 	}
 }

@@ -27,7 +27,7 @@ func WithValidation(validator validation.OpenAPIValidator) Middleware {
 			errResp, valid := validator.Validate(ctx, s.r)
 			if !valid && errResp != nil {
 				errResp.SetRequestID(s.requestID)
-				return s.JSON(errResp.GetStatus(), errResp)
+				return s.ProblemJSON(errResp.GetStatus(), errResp)
 			}
 
 			return next(ctx, s)

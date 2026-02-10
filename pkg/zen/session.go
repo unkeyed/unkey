@@ -451,6 +451,33 @@ func (s *Session) JSON(status int, body any) error {
 	return s.send(status, b)
 }
 
+// ProblemJSON sends a JSON error response with content negotiation for RFC 7807.
+// If the client sends "Accept: application/problem+json", the response Content-Type
+// will be "application/problem+json". Otherwise, it falls back to "application/json"
+// for backwards compatibility with older SDKs.
+func (s *Session) ProblemJSON(status int, body any) error {
+	b, err := json.Marshal(body)
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Internal("json marshal failed"),
+			fault.Public("The response body could not be marshalled to JSON."),
+		)
+	}
+
+	// Content negotiation for backwards compatibility with older SDKs.
+	// Older SDKs send "Accept: application/json" and expect that content type back.
+	// Newer clients can opt-in to RFC 7807 by sending "Accept: application/problem+json".
+	accept := s.Request().Header.Get("Accept")
+	if strings.Contains(accept, "application/problem+json") {
+		s.ResponseWriter().Header().Set("Content-Type", "application/problem+json")
+	} else {
+		s.ResponseWriter().Header().Set("Content-Type", "application/json")
+	}
+
+	return s.send(status, b)
+}
+
 // HTML sends an HTML response with the given status code.
 func (s *Session) HTML(status int, body []byte) error {
 	s.w.Header().Set("Content-Type", "text/html")

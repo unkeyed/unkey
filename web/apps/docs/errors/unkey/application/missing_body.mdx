@@ -1,0 +1,82 @@
+---
+title: "missing_body"
+description: "Request body is required but was not provided"
+---
+
+<Danger>`err:unkey:application:missing_body`</Danger>
+
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Request body is required but was not provided",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "https://unkey.com/docs/errors/unkey/application/missing_body",
+    "errors": [
+      {
+        "location": "body",
+        "message": "request body is required",
+        "fix": "Provide a request body in the expected format"
+      }
+    ]
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you make a request to an endpoint that requires a request body, but no body was provided. Most POST and PUT endpoints in the Unkey API require a JSON request body.
+
+Common causes include:
+- Forgetting to include the `-d` or `--data` flag in curl
+- HTTP client not sending the body properly
+- Empty string passed as the body
+
+Here's an example of a request that would trigger this error:
+
+```bash
+# Incorrect: Missing request body
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY"
+```
+
+## How To Fix
+
+Include a valid JSON request body with your request:
+
+```bash
+# Correct: Including the required request body
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{"key": "my_api_key"}'
+```
+
+If you're using an HTTP client library, ensure you're passing the body correctly:
+
+```typescript
+// Using fetch
+fetch("https://api.unkey.com/v2/keys.verifyKey", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer unkey_YOUR_API_KEY"
+  },
+  body: JSON.stringify({ key: "my_api_key" })  // Don't forget this!
+});
+```
+
+## Common Mistakes
+
+- **Forgetting the body entirely**: Easy to miss when copying curl commands
+- **Empty body**: Passing `""` or `{}` when the endpoint requires specific fields
+- **GET instead of POST**: Using the wrong HTTP method that doesn't support bodies
+
+## Related Errors
+- [err:unkey:application:invalid_input](./invalid_input) - When the request body fails validation
+- [err:unkey:application:unsupported_media_type](./unsupported_media_type) - When the Content-Type header is wrong
