@@ -48,10 +48,11 @@ type Workflow struct {
 	github           githubclient.GitHubClient
 
 	// Build dependencies
-	depotConfig    DepotConfig
-	registryConfig RegistryConfig
-	buildPlatform  BuildPlatform
-	clickhouse     clickhouse.ClickHouse
+	depotConfig                     DepotConfig
+	registryConfig                  RegistryConfig
+	buildPlatform                   BuildPlatform
+	clickhouse                      clickhouse.ClickHouse
+	allowUnauthenticatedDeployments bool
 }
 
 var _ hydrav1.DeploymentServiceServer = (*Workflow)(nil)
@@ -87,6 +88,10 @@ type Config struct {
 
 	// Clickhouse receives build step telemetry for observability.
 	Clickhouse clickhouse.ClickHouse
+
+	// AllowUnauthenticatedDeployments controls whether builds can skip GitHub authentication.
+	// Set to true only for local development with public repositories.
+	AllowUnauthenticatedDeployments bool
 }
 
 // New creates a new deployment workflow instance.
@@ -103,5 +108,6 @@ func New(cfg Config) *Workflow {
 		registryConfig:                       cfg.RegistryConfig,
 		buildPlatform:                        cfg.BuildPlatform,
 		clickhouse:                           cfg.Clickhouse,
+		allowUnauthenticatedDeployments:      cfg.AllowUnauthenticatedDeployments,
 	}
 }

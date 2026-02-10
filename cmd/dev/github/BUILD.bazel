@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "github",
+    srcs = [
+        "signature.go",
+        "trigger_webhook.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/dev/github",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/cli",
+        "//pkg/db",
+        "//pkg/runner",
+    ],
+)
