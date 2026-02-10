@@ -183,7 +183,7 @@ func New(t *testing.T) *Harness {
 	restateSrv := restateServer.NewRestate()
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploySvc))
+	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
 
 	restateHandler, err := restateSrv.Handler()
 	require.NoError(t, err)

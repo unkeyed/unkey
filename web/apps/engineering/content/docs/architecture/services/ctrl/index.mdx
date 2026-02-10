@@ -5,8 +5,6 @@ description: The control plane service for managing deployments and infrastructu
 
 import { Mermaid } from "@/app/components/mermaid";
 
-
-
 The ctrl service provides a deployment platform similar to Vercel, Railway, or Fly.io. When a customer deploys their application, ctrl:
 
 1. **Builds** container images from source code using Depot.dev
@@ -21,9 +19,9 @@ All multi-step operations are durable, using Restate workflows to ensure consist
 
 ### Service Composition
 
-The ctrl service is composed of several specialized services and workflows. The RPC services handle synchronous operations like pull-based infrastructure coordination through `ClusterService`, container image building through `BuildService`, deployment creation and management through `DeploymentService`, ACME challenge coordination through `AcmeService`, OpenAPI spec management through `OpenApiService`, and health checks through `CtrlService`.
+The ctrl service is composed of several specialized services and workflows. The RPC services handle synchronous operations like pull-based infrastructure coordination through `ClusterService`, container image building through `BuildService`, deployment creation and management through `DeployService`, ACME challenge coordination through `AcmeService`, OpenAPI spec management through `OpenApiService`, and health checks through `CtrlService`.
 
-Running alongside these are the Restate workflows that provide durable orchestration. The `DeploymentService` workflow orchestrates the full deployment lifecycle, the `RoutingService` workflow manages domain and sentinel configuration, and the `CertificateService` workflow handles TLS certificate provisioning through the ACME protocol.
+Running alongside these are the Restate workflows that provide durable orchestration. The `DeployService` workflow orchestrates the full deployment lifecycle, the `RoutingService` workflow manages domain and sentinel configuration, and the `CertificateService` workflow handles TLS certificate provisioning through the ACME protocol.
 
 ### Technology Stack
 

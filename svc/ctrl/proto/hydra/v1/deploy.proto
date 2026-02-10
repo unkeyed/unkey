@@ -1,0 +1,109 @@
+syntax = "proto3";
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// DeployService orchestrates the lifecycle of application deployments as
+// durable Restate workflows. Each RPC is idempotent and can safely resume from
+// any step after a crash.
+//
+// Deploy handles the full pipeline from building Docker images through
+// provisioning containers and configuring domain routing. Rollback and Promote
+// manage traffic switching between deployments by reassigning sticky frontline
+// routes atomically through the routing service.
+//
+// ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
+// received no traffic for 6 hours and sets them to standby. SetDeploymentDesiredState
+// targets a single deployment, typically sent with a 30-minute delay after a new
+// deployment replaces it.
+service DeployService {
+  option (dev.restate.sdk.go.service_type) = WORKFLOW;
+
+  // Deploy executes the full deployment workflow: build (if git source), provision
+  // containers across regions, wait for health, configure domain routing, and
+  // update the project's live deployment pointer for production environments.
+  // Sets deployment status to failed on any error.
+  rpc Deploy(DeployRequest) returns (DeployResponse) {}
+
+  // Rollback switches sticky frontline routes (environment and live) from the
+  // current live deployment back to a previous one. Marks the project as rolled
+  // back so future deploys don't automatically reclaim live routes.
+  // Source must be the current live deployment; both must share the same project
+  // and environment.
+  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
+
+  // Promote reassigns sticky frontline routes to a target deployment and clears
+  // the rolled-back flag, restoring normal deployment flow.
+  // Target must be in ready status and not already the live deployment.
+  rpc Promote(PromoteRequest) returns (PromoteResponse) {}
+
+  // ScaleDownIdlePreviewDeployments iterates all preview environments and sets any
+  // deployment to standby that has received zero requests in the last 6 hours.
+  // Intended to be called by a cron job.
+  rpc ScaleDownIdlePreviewDeployments(ScaleDownIdlePreviewDeploymentsRequest) returns (ScaleDownIdlePreviewDeploymentsResponse) {}
+
+}
+
+message ScaleDownIdlePreviewDeploymentsRequest {}
+message ScaleDownIdlePreviewDeploymentsResponse {}
+
+// DockerImage references a pre-built container image to deploy directly,
+// skipping the build step.
+message DockerImage {
+  string image = 1;
+}
+
+// GitSource specifies a repository and commit to build a Docker image from.
+message GitSource {
+  // GitHub App installation ID used to clone the repository.
+  int64 installation_id = 1;
+
+  // Full repository identifier (e.g., "owner/repo").
+  string repository = 2;
+
+  string commit_sha = 3;
+
+  // Subdirectory within the repository to use as the Docker build context.
+  string context_path = 4;
+
+  // Path to the Dockerfile, relative to context_path.
+  string dockerfile_path = 5;
+}
+
+message DeployRequest {
+  string deployment_id = 1;
+
+  // TODO: remove this field, it is unused.
+  optional string key_auth_id = 2;
+
+  oneof source {
+    GitSource git = 3;
+    DockerImage docker_image = 4;
+  }
+
+  // Container command override (e.g., ["./app", "serve"])
+  repeated string command = 5;
+}
+
+message DeployResponse {}
+
+// RollbackRequest identifies the deployment to roll back from and the
+// deployment to restore. Both must belong to the same project and environment.
+message RollbackRequest {
+  // The current live deployment to roll back from.
+  string source_deployment_id = 1;
+
+  // A previous deployment to restore traffic to.
+  string target_deployment_id = 2;
+}
+
+message RollbackResponse {}
+
+// PromoteRequest identifies a ready deployment to promote to live.
+message PromoteRequest {
+  string target_deployment_id = 1;
+}
+
+message PromoteResponse {}

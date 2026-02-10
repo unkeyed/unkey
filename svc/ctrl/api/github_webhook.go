@@ -197,7 +197,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 	)
 
 	// Start deploy workflow with GitSource
-	deployClient := hydrav1.NewDeploymentServiceIngressClient(s.restate, deploymentID)
+	deployClient := hydrav1.NewDeployServiceIngressClient(s.restate, deploymentID)
 	invocation, err := deployClient.Deploy().Send(ctx, &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
 		Source: &hydrav1.DeployRequest_Git{

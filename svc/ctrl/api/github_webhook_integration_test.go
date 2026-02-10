@@ -24,7 +24,7 @@ const testRepoFullName = "acme/repo"
 func TestGitHubWebhook_Push_TriggersDeployWorkflow(t *testing.T) {
 	deployRequests := make(chan *hydrav1.DeployRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeploymentServiceServer(&mockDeploymentService{requests: deployRequests})},
+		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: deployRequests})},
 	})
 	projectID := insertRepoConnection(t, harness, testRepoFullName, 101, 202)
 
@@ -50,7 +50,7 @@ func TestGitHubWebhook_Push_TriggersDeployWorkflow(t *testing.T) {
 func TestGitHubWebhook_InvalidSignature(t *testing.T) {
 	deployRequests := make(chan *hydrav1.DeployRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeploymentServiceServer(&mockDeploymentService{requests: deployRequests})},
+		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: deployRequests})},
 	})
 	_ = insertRepoConnection(t, harness, testRepoFullName, 101, 202)
 

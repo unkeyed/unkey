@@ -15,12 +15,12 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
 
-type mockDeploymentService struct {
-	hydrav1.UnimplementedDeploymentServiceServer
+type mockDeployService struct {
+	hydrav1.UnimplementedDeployServiceServer
 	requests chan *hydrav1.DeployRequest
 }
 
-func (m *mockDeploymentService) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
+func (m *mockDeployService) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	m.requests <- req
 	return &hydrav1.DeployResponse{}, nil
 }
@@ -28,7 +28,7 @@ func (m *mockDeploymentService) Deploy(ctx restate.WorkflowSharedContext, req *h
 func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 	requests := make(chan *hydrav1.DeployRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeploymentServiceServer(&mockDeploymentService{requests: requests})},
+		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: requests})},
 	})
 
 	ctx := harness.RequestContext()
@@ -52,7 +52,7 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		DeleteProtection: false,
 	})
 
-	client := ctrlv1connect.NewDeploymentServiceClient(harness.ConnectClient(), harness.CtrlURL, harness.ConnectOptions()...)
+	client := ctrlv1connect.NewDeployServiceClient(harness.ConnectClient(), harness.CtrlURL, harness.ConnectOptions()...)
 	resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
 		ProjectId:       project.ID,
 		EnvironmentSlug: environment.Slug,

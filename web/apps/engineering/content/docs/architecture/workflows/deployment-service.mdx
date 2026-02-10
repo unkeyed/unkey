@@ -5,7 +5,7 @@ description: Durable deployment workflow orchestration
 
 # Deployment Service
 
-The `DeploymentService` orchestrates the complete deployment lifecycle, from building containers to assigning domains.
+The `DeployService` orchestrates the complete deployment lifecycle, from building containers to assigning domains.
 
 **Location:** `go/apps/ctrl/workflows/deploy/`
 **Proto:** `go/proto/hydra/v1/deployment.proto`
@@ -31,9 +31,11 @@ The `DeploymentService` orchestrates the complete deployment lifecycle, from bui
 
     style AssignRoutes fill:#e1f5fe
     style StatusReady fill:#c8e6c9
+
 `} />
 
 Creates a new deployment:
+
 1. Fetch deployment, workspace, project, environment metadata
 2. Create deployment in Krane
 3. Poll until instances are running
@@ -55,9 +57,11 @@ Implementation: `go/apps/ctrl/workflows/deploy/deploy_handler.go`
 
     style UpdateRoutes fill:#e1f5fe
     style UpdateProject fill:#c8e6c9
+
 `} />
 
 Rolls back to a previous deployment:
+
 1. Validate source/target deployments
 2. Find sticky frontline routes (live + environment level)
 3. Update frontline routes to point to target deployment
@@ -75,9 +79,11 @@ Implementation: `go/apps/ctrl/workflows/deploy/rollback_handler.go`
     UpdateProject --> End([Success])
 
     style UpdateRoutes fill:#e1f5fe
+
 `} />
 
 Promotes a deployment to live, removing rolled-back state:
+
 1. Validate deployment is ready
 2. Find all project frontline routes
 3. Update frontline routes to point to new deployment
@@ -88,6 +94,7 @@ Implementation: `go/apps/ctrl/workflows/deploy/promote_handler.go`
 ## Why RoutingService?
 
 All frontline route operations are delegated to `RoutingService` to:
+
 - Ensure atomic updates to routing configuration
 - Serialize frontline route operations per project
 - Provide rollback capabilities for failed routing changes

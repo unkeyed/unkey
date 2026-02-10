@@ -14,7 +14,13 @@ import (
 // how long a deployment must be idle for before we scale it down to 0
 var idleTime = 6 * time.Hour
 
-func (w *Workflow) ScaleDownIdleDeployments(ctx restate.WorkflowSharedContext, req *hydrav1.ScaleDownIdleDeploymentsRequest) (*hydrav1.ScaleDownIdleDeploymentsResponse, error) {
+// ScaleDownIdlePreviewDeployments reclaims resources from preview deployments
+// that have received no traffic within the idle window defined by idleTime.
+// Preview environments can accumulate many running deployments from feature
+// branches that are no longer actively used, so this workflow paginates through
+// all preview environments and transitions idle deployments to standby by
+// checking request counts in ClickHouse.
+func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.WorkflowSharedContext, req *hydrav1.ScaleDownIdlePreviewDeploymentsRequest) (*hydrav1.ScaleDownIdlePreviewDeploymentsResponse, error) {
 
 	cutoff := time.Now().Add(-idleTime).UnixMilli()
 
@@ -82,5 +88,5 @@ func (w *Workflow) ScaleDownIdleDeployments(ctx restate.WorkflowSharedContext, r
 
 	}
 
-	return &hydrav1.ScaleDownIdleDeploymentsResponse{}, nil
+	return &hydrav1.ScaleDownIdlePreviewDeploymentsResponse{}, nil
 }

@@ -144,7 +144,7 @@ message PromoteRequest {
 
 message PromoteResponse {}
 
-service DeploymentService {
+service DeployService {
   // Create a new deployment with a prebuilt docker image
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
 

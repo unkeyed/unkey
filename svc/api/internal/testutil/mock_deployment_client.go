@@ -9,7 +9,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 )
 
-var _ ctrlv1connect.DeploymentServiceClient = (*MockDeploymentClient)(nil)
+var _ ctrlv1connect.DeployServiceClient = (*MockDeploymentClient)(nil)
 
 // MockDeploymentClient is a test double for the control plane's deployment service.
 //

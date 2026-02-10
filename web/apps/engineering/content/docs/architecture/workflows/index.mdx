@@ -16,7 +16,7 @@ Unkey uses [Restate](https://restate.dev) for durable workflow execution in crit
 
 ### Virtual Objects
 
-Virtual Objects provide key-based concurrency control - only one handler can execute at a time per object key. Example: `DeploymentService` is keyed by `project_id`, ensuring only one deployment per project runs at a time.
+Virtual Objects provide key-based concurrency control - only one handler can execute at a time per object key. Example: `DeployService` is keyed by `project_id`, ensuring only one deployment per project runs at a time.
 
 ### Durable Steps
 
@@ -28,7 +28,7 @@ Workflows call each other using blocking (`Object.Request`) or fire-and-forget (
 
 ## Workflow Services
 
-### DeploymentService
+### DeployService
 
 **Location:** `go/apps/ctrl/workflows/deploy/`
 **Proto:** `go/proto/hydra/v1/deployment.proto`
