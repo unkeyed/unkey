@@ -3,7 +3,6 @@ import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EXCLUDED_HOSTS } from "../../../sentinel-logs/constants";
 
-// const BUILD_STEPS_REFETCH_INTERVAL = 500;
 const GATEWAY_LOGS_REFETCH_INTERVAL = 2000;
 const GATEWAY_LOGS_LIMIT = 20;
 const GATEWAY_LOGS_SINCE = "1m";
@@ -52,17 +51,6 @@ export function useDeploymentLogs(): UseDeploymentLogsReturn {
   const scrollRef = useRef<HTMLDivElement>(null) as React.MutableRefObject<HTMLDivElement>;
   const { queryTime: timestamp } = useQueryTime();
 
-  // const { data: buildData, isLoading: buildLoading } = trpc.deploy.deployment.buildSteps.useQuery(
-  //   {
-  //     // without this check TS yells at us
-  //     deploymentId: deploymentId ?? "",
-  //   },
-  //   {
-  //     enabled: showBuildSteps && isExpanded && Boolean(deploymentId),
-  //     refetchInterval: BUILD_STEPS_REFETCH_INTERVAL,
-  //   },
-  // );
-
   const { data: sentinelData, isLoading: sentinelLoading } = trpc.logs.queryLogs.useQuery(
     {
       limit: GATEWAY_LOGS_LIMIT,
@@ -81,22 +69,6 @@ export function useDeploymentLogs(): UseDeploymentLogsReturn {
       refetchOnWindowFocus: false,
     },
   );
-
-  // // Update stored logs when build data changes
-  // useEffect(() => {
-  //   if (showBuildSteps && buildData?.logs) {
-  //     const logMap = new Map<string, LogEntry>();
-  //     buildData.logs.forEach((log) => {
-  //       logMap.set(log.id, {
-  //         type: "build",
-  //         id: log.id,
-  //         timestamp: log.timestamp,
-  //         message: log.message,
-  //       });
-  //     });
-  //     setStoredLogs(logMap);
-  //   }
-  // }, [showBuildSteps, buildData]);
 
   // Update stored logs when sentinel data changes
   useEffect(() => {

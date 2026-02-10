@@ -21,6 +21,9 @@ jobs:
       - name: Setup Go
         uses: ./.github/actions/setup-go
 
+      - name: Install dprint
+        run: curl -fsSL https://dprint.dev/install.sh | sh -s 0.51.1 && echo "$HOME/.dprint/bin" >> $GITHUB_PATH
+
       - name: Format
         run: make fmt
 

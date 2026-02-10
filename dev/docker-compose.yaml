@@ -144,7 +144,7 @@ services:
       UNKEY_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       UNKEY_BEARER_TOKEN: "vault-test-token-123"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8060/v1.vault.VaultService/Liveness"]
+      test: ["CMD", "/unkey", "healthcheck", "http://localhost:8060/health/live"]
       timeout: 10s
       retries: 5
       start_period: 30s
@@ -349,7 +349,7 @@ services:
     ports:
       - "9080:9080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      test: ["CMD", "/unkey", "healthcheck", "http://localhost:9080/health/live"]
       timeout: 5s
       retries: 5
       start_period: 10s
