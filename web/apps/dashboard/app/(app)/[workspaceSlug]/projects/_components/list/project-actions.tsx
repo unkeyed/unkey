@@ -66,9 +66,7 @@ const getProjectActionItems = (
       label: "Project settings",
       icon: <Gear iconSize="md-medium" />,
       onClick: () => {
-        //INFO: This will change soon
-        const fakeDeploymentId = "idk";
-        router.push(`/projects/${projectId}/deployments/${fakeDeploymentId}/settings`);
+        router.push(`/${workspaceSlug}/projects/${projectId}/settings`);
       },
       divider: true,
     },
