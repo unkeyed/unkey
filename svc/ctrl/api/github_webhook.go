@@ -105,124 +105,121 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		return
 	}
 
-	repoConnection, err := db.Query.FindGithubRepoConnection(ctx, s.db.RO(), db.FindGithubRepoConnectionParams{
+	repoConnections, err := db.Query.ListGithubRepoConnections(ctx, s.db.RO(), db.ListGithubRepoConnectionsParams{
 		InstallationID: payload.Installation.ID,
 		RepositoryID:   payload.Repository.ID,
 	})
 	if err != nil {
-		if db.IsNotFound(err) {
-			logger.Info("No repo connection found for repository", "repository", payload.Repository.FullName)
-			w.WriteHeader(http.StatusOK)
+		logger.Error("failed to find repo connections", "error", err, "repository", payload.Repository.FullName)
+		http.Error(w, "failed to find repo connections", http.StatusInternalServerError)
+		return
+	}
+
+	for _, repo := range repoConnections {
+
+		project, err := db.Query.FindProjectById(ctx, s.db.RO(), repo.ProjectID)
+		if err != nil {
+			if db.IsNotFound(err) {
+				logger.Info("No project found for repo connection", "projectId", repo.ProjectID)
+				continue
+			}
+			logger.Error("failed to find project", "error", err, "projectId", repo.ProjectID)
+			http.Error(w, "failed to find project", http.StatusInternalServerError)
 			return
 		}
-		logger.Error("failed to find repo connection", "error", err, "repository", payload.Repository.FullName)
-		http.Error(w, "failed to find repo connection", http.StatusInternalServerError)
-		return
-	}
 
-	project, err := db.Query.FindProjectById(ctx, s.db.RO(), repoConnection.ProjectID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			logger.Info("No project found for repo connection", "projectId", repoConnection.ProjectID)
-			w.WriteHeader(http.StatusOK)
+		defaultBranch := "main"
+		if project.DefaultBranch.Valid && project.DefaultBranch.String != "" {
+			defaultBranch = project.DefaultBranch.String
+		}
+
+		// Determine environment based on branch
+		envSlug := "preview"
+		if branch == defaultBranch {
+			envSlug = "production"
+		}
+
+		env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
+			WorkspaceID: project.WorkspaceID,
+			ProjectID:   project.ID,
+			Slug:        envSlug,
+		})
+		if err != nil {
+			logger.Error("failed to find environment", "error", err, "projectId", project.ID, "envSlug", envSlug)
+			http.Error(w, "failed to find environment", http.StatusInternalServerError)
 			return
 		}
-		logger.Error("failed to find project", "error", err, "projectId", repoConnection.ProjectID)
-		http.Error(w, "failed to find project", http.StatusInternalServerError)
-		return
-	}
 
-	defaultBranch := "main"
-	if project.DefaultBranch.Valid && project.DefaultBranch.String != "" {
-		defaultBranch = project.DefaultBranch.String
-	}
+		// Create deployment record
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		now := time.Now().UnixMilli()
+		gitCommit := s.extractGitCommitInfo(&payload, branch)
 
-	// Determine environment based on branch
-	envSlug := "preview"
-	if branch == defaultBranch {
-		envSlug = "production"
-	}
+		err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
+			ID:                            deploymentID,
+			K8sName:                       uid.DNS1035(12),
+			WorkspaceID:                   project.WorkspaceID,
+			ProjectID:                     project.ID,
+			EnvironmentID:                 env.ID,
+			SentinelConfig:                env.SentinelConfig,
+			EncryptedEnvironmentVariables: []byte{},
+			Command:                       dbtype.StringSlice{},
+			Status:                        db.DeploymentsStatusPending,
+			CreatedAt:                     now,
+			UpdatedAt:                     sql.NullInt64{Valid: false},
+			GitCommitSha:                  sql.NullString{String: payload.After, Valid: payload.After != ""},
+			GitBranch:                     sql.NullString{String: branch, Valid: branch != ""},
+			GitCommitMessage:              sql.NullString{String: gitCommit.message, Valid: gitCommit.message != ""},
+			GitCommitAuthorHandle:         sql.NullString{String: gitCommit.authorHandle, Valid: gitCommit.authorHandle != ""},
+			GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.authorAvatarURL, Valid: gitCommit.authorAvatarURL != ""},
+			GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.timestamp, Valid: gitCommit.timestamp != 0},
+			OpenapiSpec:                   sql.NullString{Valid: false},
+			CpuMillicores:                 256,
+			MemoryMib:                     256,
+		})
+		if err != nil {
+			logger.Error("failed to insert deployment", "error", err)
+			http.Error(w, "failed to create deployment", http.StatusInternalServerError)
+			return
+		}
 
-	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
-		WorkspaceID: project.WorkspaceID,
-		ProjectID:   project.ID,
-		Slug:        envSlug,
-	})
-	if err != nil {
-		logger.Error("failed to find environment", "error", err, "projectId", project.ID, "envSlug", envSlug)
-		http.Error(w, "failed to find environment", http.StatusInternalServerError)
-		return
-	}
+		logger.Info("Created deployment record",
+			"deployment_id", deploymentID,
+			"project_id", project.ID,
+			"repository", payload.Repository.FullName,
+			"commit_sha", payload.After,
+			"branch", branch,
+			"environment", envSlug,
+		)
 
-	// Create deployment record
-	deploymentID := uid.New(uid.DeploymentPrefix)
-	now := time.Now().UnixMilli()
-	gitCommit := s.extractGitCommitInfo(&payload, branch)
-
-	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-		ID:                            deploymentID,
-		K8sName:                       uid.DNS1035(12),
-		WorkspaceID:                   project.WorkspaceID,
-		ProjectID:                     project.ID,
-		EnvironmentID:                 env.ID,
-		SentinelConfig:                env.SentinelConfig,
-		EncryptedEnvironmentVariables: []byte{},
-		Command:                       dbtype.StringSlice{},
-		Status:                        db.DeploymentsStatusPending,
-		CreatedAt:                     now,
-		UpdatedAt:                     sql.NullInt64{Valid: false},
-		GitCommitSha:                  sql.NullString{String: payload.After, Valid: payload.After != ""},
-		GitBranch:                     sql.NullString{String: branch, Valid: branch != ""},
-		GitCommitMessage:              sql.NullString{String: gitCommit.message, Valid: gitCommit.message != ""},
-		GitCommitAuthorHandle:         sql.NullString{String: gitCommit.authorHandle, Valid: gitCommit.authorHandle != ""},
-		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.authorAvatarURL, Valid: gitCommit.authorAvatarURL != ""},
-		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.timestamp, Valid: gitCommit.timestamp != 0},
-		OpenapiSpec:                   sql.NullString{Valid: false},
-		CpuMillicores:                 256,
-		MemoryMib:                     256,
-	})
-	if err != nil {
-		logger.Error("failed to insert deployment", "error", err)
-		http.Error(w, "failed to create deployment", http.StatusInternalServerError)
-		return
-	}
-
-	logger.Info("Created deployment record",
-		"deployment_id", deploymentID,
-		"project_id", project.ID,
-		"repository", payload.Repository.FullName,
-		"commit_sha", payload.After,
-		"branch", branch,
-		"environment", envSlug,
-	)
-
-	// Start deploy workflow with GitSource
-	deployClient := hydrav1.NewDeploymentServiceIngressClient(s.restate, deploymentID)
-	invocation, err := deployClient.Deploy().Send(ctx, &hydrav1.DeployRequest{
-		DeploymentId: deploymentID,
-		Source: &hydrav1.DeployRequest_Git{
-			Git: &hydrav1.GitSource{
-				InstallationId: repoConnection.InstallationID,
-				Repository:     payload.Repository.FullName,
-				CommitSha:      payload.After,
-				ContextPath:    ".",          // TODO read from project settings
-				DockerfilePath: "Dockerfile", // TODO read from project settings
+		// Start deploy workflow with GitSource
+		deployClient := hydrav1.NewDeploymentServiceIngressClient(s.restate, deploymentID)
+		invocation, err := deployClient.Deploy().Send(ctx, &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			Source: &hydrav1.DeployRequest_Git{
+				Git: &hydrav1.GitSource{
+					InstallationId: repo.InstallationID,
+					Repository:     payload.Repository.FullName,
+					CommitSha:      payload.After,
+					ContextPath:    ".",          // TODO read from project settings
+					DockerfilePath: "Dockerfile", // TODO read from project settings
+				},
 			},
-		},
-	})
-	if err != nil {
-		logger.Error("failed to start deployment workflow", "error", err)
-		http.Error(w, "failed to start workflow", http.StatusInternalServerError)
-		return
-	}
+		})
+		if err != nil {
+			logger.Error("failed to start deployment workflow", "error", err)
+			http.Error(w, "failed to start workflow", http.StatusInternalServerError)
+			return
+		}
 
-	logger.Info("Deployment workflow started",
-		"invocation_id", invocation.Id,
-		"deployment_id", deploymentID,
-		"project_id", project.ID,
-		"repository", payload.Repository.FullName,
-		"commit_sha", payload.After,
-	)
+		logger.Info("Deployment workflow started",
+			"invocation_id", invocation.Id,
+			"deployment_id", deploymentID,
+			"project_id", project.ID,
+			"repository", payload.Repository.FullName,
+			"commit_sha", payload.After,
+		)
+	}
 
 	w.WriteHeader(http.StatusOK)
 }

@@ -330,20 +330,6 @@ type Querier interface {
 	//    AND sticky IN (/*SLICE:sticky*/?)
 	//  ORDER BY created_at ASC
 	FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
-	//FindGithubRepoConnection
-	//
-	//  SELECT
-	//      pk,
-	//      project_id,
-	//      installation_id,
-	//      repository_id,
-	//      repository_full_name,
-	//      created_at,
-	//      updated_at
-	//  FROM github_repo_connections
-	//  WHERE installation_id = ?
-	//    AND repository_id = ?
-	FindGithubRepoConnection(ctx context.Context, db DBTX, arg FindGithubRepoConnectionParams) (GithubRepoConnection, error)
 	//FindIdentities
 	//
 	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -1817,6 +1803,20 @@ type Querier interface {
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
+	//ListGithubRepoConnections
+	//
+	//  SELECT
+	//      pk,
+	//      project_id,
+	//      installation_id,
+	//      repository_id,
+	//      repository_full_name,
+	//      created_at,
+	//      updated_at
+	//  FROM github_repo_connections
+	//  WHERE installation_id = ?
+	//    AND repository_id = ?
+	ListGithubRepoConnections(ctx context.Context, db DBTX, arg ListGithubRepoConnectionsParams) ([]GithubRepoConnection, error)
 	//ListIdentities
 	//
 	//  SELECT
