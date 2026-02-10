@@ -166,16 +166,17 @@ func New(t *testing.T) *Harness {
 	})
 
 	deploySvc := deploy.New(deploy.Config{
-		DB:               database,
-		Clickhouse:       chClient,
-		DefaultDomain:    "test.example.com",
-		Vault:            testVault.Client,
-		SentinelImage:    "test-sentinel:latest",
-		AvailableRegions: []string{"us-east-1"},
-		GitHub:           nil,
-		DepotConfig:      deploy.DepotConfig{APIUrl: "", ProjectRegion: ""},
-		RegistryConfig:   deploy.RegistryConfig{URL: "", Username: "", Password: ""},
-		BuildPlatform:    deploy.BuildPlatform{Platform: "", Architecture: ""},
+		DB:                              database,
+		Clickhouse:                      chClient,
+		DefaultDomain:                   "test.example.com",
+		Vault:                           testVault.Client,
+		SentinelImage:                   "test-sentinel:latest",
+		AvailableRegions:                []string{"us-east-1"},
+		GitHub:                          nil,
+		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: ""},
+		RegistryConfig:                  deploy.RegistryConfig{URL: "", Username: "", Password: ""},
+		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+		AllowUnauthenticatedDeployments: false,
 	})
 
 	// Set up Restate server with all services
