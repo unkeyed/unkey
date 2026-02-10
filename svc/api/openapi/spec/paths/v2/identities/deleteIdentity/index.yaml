@@ -7,9 +7,9 @@ post:
 
     Use this for data cleanup, compliance requirements, or when removing entities from your system.
 
-    > **Important**  
-    > Requires `identity.*.delete_identity` permission  
-    > Associated API keys remain functional but lose shared resources  
+    > **Important**
+    > Requires `identity.*.delete_identity` permission
+    > Associated API keys remain functional but lose shared resources
     > External ID becomes available for reuse immediately
   operationId: identities.deleteIdentity
   x-speakeasy-name-override: deleteIdentity
