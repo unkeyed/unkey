@@ -34,7 +34,7 @@ type pushPayload struct {
 	Repository   repositoryPayload   `json:"repository"`
 }
 
-var result struct {
+type repositoryResponse struct {
 	ID int64 `json:"id"`
 }
 
@@ -104,7 +104,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 
 	// Fetch repository ID from GitHub API
 	fmt.Printf("Fetching repository ID for %s...\n", repository)
-	repositoryID, err := fetchRepositoryID(ctx, repository)
+	repositoryID, err := svc.fetchRepositoryID(ctx, repository)
 	if err != nil {
 		return fmt.Errorf("failed to fetch repository ID: %w\n\nMake sure the repository exists and is publicly accessible", err)
 	}
@@ -234,7 +234,7 @@ func (s *Service) ensureGithubConnection(ctx context.Context, projectID string, 
 	return nil
 }
 
-func fetchRepositoryID(ctx context.Context, repository string) (int64, error) {
+func (s *Service) fetchRepositoryID(ctx context.Context, repository string) (int64, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s", repository)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -269,6 +269,7 @@ func fetchRepositoryID(ctx context.Context, repository string) (int64, error) {
 		return 0, fmt.Errorf("GitHub API returned %d: %s", resp.StatusCode, string(body))
 	}
 
+	var result repositoryResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		return 0, fmt.Errorf("failed to parse response: %w", err)
 	}
