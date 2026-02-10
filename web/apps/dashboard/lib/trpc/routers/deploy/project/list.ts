@@ -56,7 +56,9 @@ export const listProjects = workspaceProcedure
     `);
 
     return (result.rows as ProjectRow[]).map((row): Project => {
-      const hasDeployment = row.latest_deployment_id !== null;
+      // Single source of truth for "has deployment" in the UI:
+      // we consider a deployment present when we have commit metadata from the joined row.
+      const hasDeployment = row.git_commit_timestamp !== null;
 
       return {
         id: row.id,
@@ -68,9 +70,11 @@ export const listProjects = workspaceProcedure
         commitTitle: row.git_commit_message,
         branch: row.git_branch ?? "main",
         author: row.git_commit_author_handle,
-        commitTimestamp: Number(row.git_commit_timestamp),
+        // Preserve null instead of coercing to 0 when there is no deployment
+        commitTimestamp:
+          row.git_commit_timestamp === null ? null : Number(row.git_commit_timestamp),
         authorAvatar: row.git_commit_author_avatar_url,
-        // Only show regions/domain when there is at least one deployment
+        // Only show regions/domain when we have a deployment (and thus commit data)
         regions: hasDeployment ? ["local.dev"] : [],
         domain: hasDeployment ? row.domain : null,
         latestDeploymentId: row.latest_deployment_id,
