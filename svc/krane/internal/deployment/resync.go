@@ -59,11 +59,6 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					continue
 				}
 
-				logger.Warn("desired state",
-					"deployment_id", deploymentID,
-					"res", res.Msg,
-				)
-
 				switch res.Msg.GetState().(type) {
 				case *ctrlv1.DeploymentState_Apply:
 					if err := c.ApplyDeployment(ctx, res.Msg.GetApply()); err != nil {
