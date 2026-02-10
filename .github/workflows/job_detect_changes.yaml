@@ -71,7 +71,6 @@ jobs:
               - 'web/packages/error/**'
               - 'web/packages/rbac/**'
 
-
             # Go services (API v2, Ctrl, Deploy services)
             go:
               - 'cmd/**'

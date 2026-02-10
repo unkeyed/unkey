@@ -6,7 +6,7 @@ post:
     Retrieve details about a specific permission including its name, description, and metadata.
 
     **Required Permissions**
-    
+
     Your root key must have the following permission:
     - `rbac.*.read_permission`
   operationId: permissions.getPermission
