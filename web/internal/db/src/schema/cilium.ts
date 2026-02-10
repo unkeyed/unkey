@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -12,6 +13,7 @@ export const ciliumNetworkPolicies = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
+    deploymentId: varchar("deployment_id", { length: 128 }).notNull(),
     k8sName: varchar("k8s_name", { length: 64 }).notNull(),
     k8sNamespace: varchar("k8s_namespace", { length: 255 }).notNull(),
     region: varchar("region", { length: 255 }).notNull(),
@@ -29,7 +31,8 @@ export const ciliumNetworkPolicies = mysqlTable(
   },
   (table) => [
     index("idx_environment_id").on(table.environmentId),
-    uniqueIndex("one_env_per_region").on(table.environmentId, table.region, table.k8sName),
+    index("idx_deployment_id").on(table.deploymentId),
+    uniqueIndex("one_deployment_per_region").on(table.deploymentId, table.region, table.k8sName),
     uniqueIndex("unique_version_per_region").on(table.region, table.version),
   ],
 );
@@ -42,5 +45,9 @@ export const ciliumNetworkPoliciesRelations = relations(ciliumNetworkPolicies, (
   environment: one(environments, {
     fields: [ciliumNetworkPolicies.environmentId],
     references: [environments.id],
+  }),
+  deployment: one(deployments, {
+    fields: [ciliumNetworkPolicies.deploymentId],
+    references: [deployments.id],
   }),
 }));

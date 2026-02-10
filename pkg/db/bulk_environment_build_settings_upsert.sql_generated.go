@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertEnvironmentBuildSettings is the base query for bulk insert
-const bulkUpsertEnvironmentBuildSettings = `INSERT INTO environment_build_settings ( id, workspace_id, environment_id, dockerfile, docker_context, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertEnvironmentBuildSettings = `INSERT INTO environment_build_settings ( workspace_id, environment_id, dockerfile, docker_context, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     dockerfile = VALUES(dockerfile),
     docker_context = VALUES(docker_context),
     updated_at = VALUES(updated_at)`
@@ -24,7 +24,7 @@ func (q *BulkQueries) UpsertEnvironmentBuildSettings(ctx context.Context, db DBT
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertEnvironmentBuildSettings, strings.Join(valueClauses, ", "))
@@ -32,7 +32,6 @@ func (q *BulkQueries) UpsertEnvironmentBuildSettings(ctx context.Context, db DBT
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
-		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.Dockerfile)

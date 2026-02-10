@@ -12,14 +12,13 @@ import (
 
 const upsertEnvironmentBuildSettings = `-- name: UpsertEnvironmentBuildSettings :exec
 INSERT INTO environment_build_settings (
-    id,
     workspace_id,
     environment_id,
     dockerfile,
     docker_context,
     created_at,
     updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     dockerfile = VALUES(dockerfile),
     docker_context = VALUES(docker_context),
@@ -27,7 +26,6 @@ ON DUPLICATE KEY UPDATE
 `
 
 type UpsertEnvironmentBuildSettingsParams struct {
-	ID            string        `db:"id"`
 	WorkspaceID   string        `db:"workspace_id"`
 	EnvironmentID string        `db:"environment_id"`
 	Dockerfile    string        `db:"dockerfile"`
@@ -39,21 +37,19 @@ type UpsertEnvironmentBuildSettingsParams struct {
 // UpsertEnvironmentBuildSettings
 //
 //	INSERT INTO environment_build_settings (
-//	    id,
 //	    workspace_id,
 //	    environment_id,
 //	    dockerfile,
 //	    docker_context,
 //	    created_at,
 //	    updated_at
-//	) VALUES (?, ?, ?, ?, ?, ?, ?)
+//	) VALUES (?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    dockerfile = VALUES(dockerfile),
 //	    docker_context = VALUES(docker_context),
 //	    updated_at = VALUES(updated_at)
 func (q *Queries) UpsertEnvironmentBuildSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentBuildSettingsParams) error {
 	_, err := db.ExecContext(ctx, upsertEnvironmentBuildSettings,
-		arg.ID,
 		arg.WorkspaceID,
 		arg.EnvironmentID,
 		arg.Dockerfile,

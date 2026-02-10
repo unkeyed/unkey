@@ -158,7 +158,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		// Create default runtime settings for each environment
 		err = db.BulkQuery.UpsertEnvironmentRuntimeSettings(ctx, tx, []db.UpsertEnvironmentRuntimeSettingsParams{
 			{
-				ID:            uid.New(uid.EnvironmentRuntimeSettingsPrefix),
 				WorkspaceID:   workspaceID,
 				EnvironmentID: previewEnvID,
 				Port:          8080,
@@ -173,7 +172,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
 			},
 			{
-				ID:            uid.New(uid.EnvironmentRuntimeSettingsPrefix),
 				WorkspaceID:   workspaceID,
 				EnvironmentID: productionEnvID,
 				Port:          8080,
@@ -195,7 +193,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		// Create default build settings for each environment
 		err = db.BulkQuery.UpsertEnvironmentBuildSettings(ctx, tx, []db.UpsertEnvironmentBuildSettingsParams{
 			{
-				ID:            uid.New(uid.EnvironmentBuildSettingsPrefix),
 				WorkspaceID:   workspaceID,
 				EnvironmentID: previewEnvID,
 				Dockerfile:    "Dockerfile",
@@ -204,7 +201,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
 			{
-				ID:            uid.New(uid.EnvironmentBuildSettingsPrefix),
 				WorkspaceID:   workspaceID,
 				EnvironmentID: productionEnvID,
 				Dockerfile:    "Dockerfile",

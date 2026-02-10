@@ -177,13 +177,17 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
 	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
+	//FindCiliumNetworkPoliciesByDeploymentID
+	//
+	//  SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE deployment_id = ?
+	FindCiliumNetworkPoliciesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]CiliumNetworkPolicy, error)
 	//FindCiliumNetworkPoliciesByEnvironmentID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
+	//  SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
 	FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]CiliumNetworkPolicy, error)
 	//FindCiliumNetworkPolicyByIDAndRegion
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
 	//  FROM `cilium_network_policies`
 	//  WHERE region = ? AND id = ?
 	//  LIMIT 1
@@ -271,7 +275,7 @@ type Querier interface {
 	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
 	//FindEnvironmentBuildSettingsByEnvironmentId
 	//
-	//  SELECT pk, id, workspace_id, environment_id, dockerfile, docker_context, created_at, updated_at
+	//  SELECT pk, workspace_id, environment_id, dockerfile, docker_context, created_at, updated_at
 	//  FROM environment_build_settings
 	//  WHERE environment_id = ?
 	FindEnvironmentBuildSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentBuildSetting, error)
@@ -291,7 +295,7 @@ type Querier interface {
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
 	//FindEnvironmentRuntimeSettingsByEnvironmentId
 	//
-	//  SELECT pk, id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, created_at, updated_at
+	//  SELECT pk, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, created_at, updated_at
 	//  FROM environment_runtime_settings
 	//  WHERE environment_id = ?
 	FindEnvironmentRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentRuntimeSetting, error)
@@ -1198,6 +1202,7 @@ type Querier interface {
 	//      workspace_id,
 	//      project_id,
 	//      environment_id,
+	//      deployment_id,
 	//      k8s_name,
 	//      k8s_namespace,
 	//      region,
@@ -1205,6 +1210,7 @@ type Querier interface {
 	//      version,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1762,7 +1768,7 @@ type Querier interface {
 	// ListCiliumNetworkPoliciesByRegion returns cilium network policies for a region with version > after_version.
 	// Used by WatchCiliumNetworkPolicies to stream policy state changes to krane agents.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
 	//  FROM `cilium_network_policies`
 	//  WHERE region = ? AND version > ?
 	//  ORDER BY version ASC
@@ -1815,7 +1821,7 @@ type Querier interface {
 	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
 	//ListDesiredNetworkPolicies
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
 	//  FROM `cilium_network_policies`
 	//  WHERE (? = '' OR region = ?) AND id > ?
 	//  ORDER BY id ASC
@@ -2009,7 +2015,7 @@ type Querier interface {
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListNetworkPolicyByRegion
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
 	//  FROM `cilium_network_policies`
 	//  WHERE region = ? AND version > ?
 	//  ORDER BY version ASC
@@ -2567,14 +2573,13 @@ type Querier interface {
 	//UpsertEnvironmentBuildSettings
 	//
 	//  INSERT INTO environment_build_settings (
-	//      id,
 	//      workspace_id,
 	//      environment_id,
 	//      dockerfile,
 	//      docker_context,
 	//      created_at,
 	//      updated_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?)
+	//  ) VALUES (?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      dockerfile = VALUES(dockerfile),
 	//      docker_context = VALUES(docker_context),
@@ -2583,7 +2588,6 @@ type Querier interface {
 	//UpsertEnvironmentRuntimeSettings
 	//
 	//  INSERT INTO environment_runtime_settings (
-	//      id,
 	//      workspace_id,
 	//      environment_id,
 	//      port,
@@ -2595,7 +2599,7 @@ type Querier interface {
 	//      shutdown_signal,
 	//      created_at,
 	//      updated_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      port = VALUES(port),
 	//      cpu_millicores = VALUES(cpu_millicores),

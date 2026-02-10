@@ -1,6 +1,5 @@
 -- name: UpsertEnvironmentRuntimeSettings :exec
 INSERT INTO environment_runtime_settings (
-    id,
     workspace_id,
     environment_id,
     port,
@@ -12,7 +11,7 @@ INSERT INTO environment_runtime_settings (
     shutdown_signal,
     created_at,
     updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),

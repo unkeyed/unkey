@@ -73,6 +73,7 @@ go_library(
         "certificate_find_by_hostname.sql_generated.go",
         "certificate_find_by_hostnames.sql_generated.go",
         "certificate_insert.sql_generated.go",
+        "cilium_network_policy_find_by_deployment_id.sql_generated.go",
         "cilium_network_policy_find_by_environment_id.sql_generated.go",
         "cilium_network_policy_find_by_id_and_region.sql_generated.go",
         "cilium_network_policy_find_by_versions.sql_generated.go",

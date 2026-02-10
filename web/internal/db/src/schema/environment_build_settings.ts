@@ -8,7 +8,6 @@ export const environmentBuildSettings = mysqlTable(
   "environment_build_settings",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 128 }).notNull().unique(),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     environmentId: varchar("environment_id", { length: 128 }).notNull(),

@@ -382,7 +382,6 @@ CREATE TABLE `environment_variables` (
 
 CREATE TABLE `environment_build_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
@@ -390,13 +389,11 @@ CREATE TABLE `environment_build_settings` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `environment_build_settings_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `environment_build_settings_id_unique` UNIQUE(`id`),
 	CONSTRAINT `env_build_settings_environment_id_idx` UNIQUE(`environment_id`)
 );
 
 CREATE TABLE `environment_runtime_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`port` int NOT NULL DEFAULT 8080,
@@ -409,7 +406,6 @@ CREATE TABLE `environment_runtime_settings` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `environment_runtime_settings_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `environment_runtime_settings_id_unique` UNIQUE(`id`),
 	CONSTRAINT `env_runtime_settings_environment_id_idx` UNIQUE(`environment_id`)
 );
 
@@ -652,6 +648,7 @@ CREATE TABLE `cilium_network_policies` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
+	`deployment_id` varchar(128) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_namespace` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
@@ -661,7 +658,7 @@ CREATE TABLE `cilium_network_policies` (
 	`updated_at` bigint,
 	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
-	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`,`k8s_name`),
+	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region`,`k8s_name`),
 	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
 );
 
@@ -699,4 +696,5 @@ CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
 CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_id`);
 CREATE INDEX `idx_environment_id` ON `cilium_network_policies` (`environment_id`);
+CREATE INDEX `idx_deployment_id` ON `cilium_network_policies` (`deployment_id`);
 

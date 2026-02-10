@@ -23,12 +23,10 @@ const (
 	OrgPrefix                 Prefix = "org"
 
 	// Control plane prefixes
-	ProjectPrefix                    Prefix = "proj"
-	EnvironmentPrefix                Prefix = "env"
-	EnvironmentRuntimeSettingsPrefix Prefix = "ers"
-	EnvironmentBuildSettingsPrefix   Prefix = "ebs"
-	DomainPrefix                     Prefix = "dom"
-	DeploymentPrefix                 Prefix = "d"
-	FrontlineRoutePrefix             Prefix = "flr"
-	CertificatePrefix                Prefix = "cert"
+	ProjectPrefix        Prefix = "proj"
+	EnvironmentPrefix    Prefix = "env"
+	DomainPrefix         Prefix = "dom"
+	DeploymentPrefix     Prefix = "d"
+	FrontlineRoutePrefix Prefix = "flr"
+	CertificatePrefix    Prefix = "cert"
 )

@@ -10,7 +10,7 @@ import (
 )
 
 const listDesiredNetworkPolicies = `-- name: ListDesiredNetworkPolicies :many
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
 FROM ` + "`" + `cilium_network_policies` + "`" + `
 WHERE (? = '' OR region = ?) AND id > ?
 ORDER BY id ASC
@@ -25,7 +25,7 @@ type ListDesiredNetworkPoliciesParams struct {
 
 // ListDesiredNetworkPolicies
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
 //	FROM `cilium_network_policies`
 //	WHERE (? = '' OR region = ?) AND id > ?
 //	ORDER BY id ASC
@@ -50,6 +50,7 @@ func (q *Queries) ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg L
 			&i.WorkspaceID,
 			&i.ProjectID,
 			&i.EnvironmentID,
+			&i.DeploymentID,
 			&i.K8sName,
 			&i.K8sNamespace,
 			&i.Region,

@@ -194,7 +194,6 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	require.NoError(s.t, err)
 
 	err = db.Query.UpsertEnvironmentRuntimeSettings(ctx, s.DB.RW(), db.UpsertEnvironmentRuntimeSettingsParams{
-		ID:             uid.New(uid.EnvironmentRuntimeSettingsPrefix),
 		WorkspaceID:    req.WorkspaceID,
 		EnvironmentID:  req.ID,
 		Port:           8080,
@@ -210,7 +209,6 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	require.NoError(s.t, err)
 
 	err = db.Query.UpsertEnvironmentBuildSettings(ctx, s.DB.RW(), db.UpsertEnvironmentBuildSettingsParams{
-		ID:            uid.New(uid.EnvironmentBuildSettingsPrefix),
 		WorkspaceID:   req.WorkspaceID,
 		EnvironmentID: req.ID,
 		Dockerfile:    "Dockerfile",

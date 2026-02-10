@@ -14,7 +14,6 @@ import (
 
 const upsertEnvironmentRuntimeSettings = `-- name: UpsertEnvironmentRuntimeSettings :exec
 INSERT INTO environment_runtime_settings (
-    id,
     workspace_id,
     environment_id,
     port,
@@ -26,7 +25,7 @@ INSERT INTO environment_runtime_settings (
     shutdown_signal,
     created_at,
     updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
@@ -39,7 +38,6 @@ ON DUPLICATE KEY UPDATE
 `
 
 type UpsertEnvironmentRuntimeSettingsParams struct {
-	ID             string                                   `db:"id"`
 	WorkspaceID    string                                   `db:"workspace_id"`
 	EnvironmentID  string                                   `db:"environment_id"`
 	Port           int32                                    `db:"port"`
@@ -56,7 +54,6 @@ type UpsertEnvironmentRuntimeSettingsParams struct {
 // UpsertEnvironmentRuntimeSettings
 //
 //	INSERT INTO environment_runtime_settings (
-//	    id,
 //	    workspace_id,
 //	    environment_id,
 //	    port,
@@ -68,7 +65,7 @@ type UpsertEnvironmentRuntimeSettingsParams struct {
 //	    shutdown_signal,
 //	    created_at,
 //	    updated_at
-//	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    port = VALUES(port),
 //	    cpu_millicores = VALUES(cpu_millicores),
@@ -80,7 +77,6 @@ type UpsertEnvironmentRuntimeSettingsParams struct {
 //	    updated_at = VALUES(updated_at)
 func (q *Queries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentRuntimeSettingsParams) error {
 	_, err := db.ExecContext(ctx, upsertEnvironmentRuntimeSettings,
-		arg.ID,
 		arg.WorkspaceID,
 		arg.EnvironmentID,
 		arg.Port,

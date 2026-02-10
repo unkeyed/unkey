@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertEnvironmentRuntimeSettings is the base query for bulk insert
-const bulkUpsertEnvironmentRuntimeSettings = `INSERT INTO environment_runtime_settings ( id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertEnvironmentRuntimeSettings = `INSERT INTO environment_runtime_settings ( workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
     memory_mib = VALUES(memory_mib),
@@ -29,7 +29,7 @@ func (q *BulkQueries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db D
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertEnvironmentRuntimeSettings, strings.Join(valueClauses, ", "))
@@ -37,7 +37,6 @@ func (q *BulkQueries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db D
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
-		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.Port)

@@ -27,25 +27,26 @@ type ciliumPolicySpec struct {
 
 // ensureCiliumNetworkPolicy persists or updates Cilium policies for all deployment regions.
 //
-// Two policies are created per environment per region:
+// Two policies are created per deployment per region:
 //  1. Ingress: in the workspace namespace, allows sentinel → deployment on the deployment port
 //  2. Egress: in the sentinel namespace, allows sentinel → deployment on the deployment port
 //
 // The control plane stores policies in the database so regional reconcilers can apply
 // them without recomputing intent. The port is taken from the deployment's snapshotted
-// settings so the policy always matches the running container port. Existing policies
-// are updated when the port changes between deploys.
+// settings so the policy always matches the running container port. Each deployment owns
+// its own policies so that old deployments (serving traffic via SHA URLs) are not broken
+// when a new deployment changes the port.
 func (w *Workflow) ensureCiliumNetworkPolicy(
 	ctx restate.WorkflowSharedContext,
 	workspace db.Workspace,
 	project db.FindProjectByIdRow,
 	environment db.FindEnvironmentByIdRow,
 	topologies []db.InsertDeploymentTopologyParams,
-	deploymentPort int32,
+	deployment db.Deployment,
 ) error {
 
 	existingPolicies, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.CiliumNetworkPolicy, error) {
-		return db.Query.FindCiliumNetworkPoliciesByEnvironmentID(runCtx, w.db.RO(), environment.ID)
+		return db.Query.FindCiliumNetworkPoliciesByDeploymentID(runCtx, w.db.RO(), deployment.ID)
 	}, restate.WithName("find existing cilium policies"))
 
 	if err != nil {
@@ -60,7 +61,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 	}
 
 	for _, topo := range topologies {
-		specs := buildPolicySpecs(workspace, environment, deploymentPort)
+		specs := buildPolicySpecs(workspace, environment, deployment)
 
 		for _, spec := range specs {
 			lookupKey := topo.Region + ":" + spec.k8sName
@@ -111,6 +112,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					WorkspaceID:   workspace.ID,
 					ProjectID:     project.ID,
 					EnvironmentID: environment.ID,
+					DeploymentID:  deployment.ID,
 					K8sName:       spec.k8sName,
 					K8sNamespace:  spec.k8sNamespace,
 					Region:        topo.Region,
@@ -132,26 +134,28 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 	return nil
 }
 
-// buildPolicySpecs returns the ingress and egress policy specs for an environment.
+// buildPolicySpecs returns the ingress and egress policy specs for a deployment.
 func buildPolicySpecs(
 	workspace db.Workspace,
 	environment db.FindEnvironmentByIdRow,
-	deploymentPort int32,
+	deployment db.Deployment,
 ) []ciliumPolicySpec {
-	portStr := fmt.Sprintf("%d", deploymentPort)
+	portStr := fmt.Sprintf("%d", deployment.Port)
 
-	ingressName := fmt.Sprintf("sentinel-to-deployment-in-%s", environment.Slug)
-	egressName := fmt.Sprintf("sentinel-egress-to-%s", environment.Slug)
+	ingressName := fmt.Sprintf("sentinel-ingress-to-%s", deployment.K8sName)
+	egressName := fmt.Sprintf("sentinel-egress-to-%s", deployment.K8sName)
 
 	ingressLabels := labels.New().
 		ManagedByKrane().
 		ComponentDeployment().
+		DeploymentID(deployment.ID).
 		EnvironmentID(environment.ID).
 		WorkspaceID(workspace.ID)
 
 	egressLabels := labels.New().
 		ManagedByKrane().
 		ComponentSentinel().
+		DeploymentID(deployment.ID).
 		EnvironmentID(environment.ID).
 		WorkspaceID(workspace.ID)
 
@@ -167,10 +171,10 @@ func buildPolicySpecs(
 			Labels:    ingressLabels,
 		},
 		Spec: &api.Rule{
-			Description: fmt.Sprintf("Allow ingress from sentinel for workspace %s environment %s", workspace.ID, environment.ID),
+			Description: fmt.Sprintf("Allow ingress from sentinel for workspace %s deployment %s", workspace.ID, deployment.ID),
 			EndpointSelector: api.EndpointSelector{
 				LabelSelector: &slim_metav1.LabelSelector{
-					MatchLabels: labels.New().ManagedByKrane().ComponentDeployment().EnvironmentID(environment.ID),
+					MatchLabels: labels.New().ManagedByKrane().ComponentDeployment().DeploymentID(deployment.ID),
 				},
 			},
 			Ingress: []api.IngressRule{
@@ -211,7 +215,7 @@ func buildPolicySpecs(
 			Labels:    egressLabels,
 		},
 		Spec: &api.Rule{
-			Description: fmt.Sprintf("Allow sentinel egress to deployment for workspace %s environment %s", workspace.ID, environment.ID),
+			Description: fmt.Sprintf("Allow sentinel egress to deployment %s for workspace %s", deployment.ID, workspace.ID),
 			EndpointSelector: api.EndpointSelector{
 				LabelSelector: &slim_metav1.LabelSelector{
 					MatchLabels: labels.New().ComponentSentinel().EnvironmentID(environment.ID).WorkspaceID(workspace.ID),
@@ -223,7 +227,7 @@ func buildPolicySpecs(
 						ToEndpoints: []api.EndpointSelector{
 							{
 								LabelSelector: &slim_metav1.LabelSelector{
-									MatchLabels: labels.New().Namespace(workspace.K8sNamespace.String).ManagedByKrane().ComponentDeployment().EnvironmentID(environment.ID),
+									MatchLabels: labels.New().Namespace(workspace.K8sNamespace.String).ManagedByKrane().ComponentDeployment().DeploymentID(deployment.ID),
 								},
 							},
 						},

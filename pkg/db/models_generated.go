@@ -975,6 +975,7 @@ type CiliumNetworkPolicy struct {
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
 	EnvironmentID string          `db:"environment_id"`
+	DeploymentID  string          `db:"deployment_id"`
 	K8sName       string          `db:"k8s_name"`
 	K8sNamespace  string          `db:"k8s_namespace"`
 	Region        string          `db:"region"`
@@ -1087,7 +1088,6 @@ type Environment struct {
 
 type EnvironmentBuildSetting struct {
 	Pk            uint64        `db:"pk"`
-	ID            string        `db:"id"`
 	WorkspaceID   string        `db:"workspace_id"`
 	EnvironmentID string        `db:"environment_id"`
 	Dockerfile    string        `db:"dockerfile"`
@@ -1098,7 +1098,6 @@ type EnvironmentBuildSetting struct {
 
 type EnvironmentRuntimeSetting struct {
 	Pk             uint64                                   `db:"pk"`
-	ID             string                                   `db:"id"`
 	WorkspaceID    string                                   `db:"workspace_id"`
 	EnvironmentID  string                                   `db:"environment_id"`
 	Port           int32                                    `db:"port"`
