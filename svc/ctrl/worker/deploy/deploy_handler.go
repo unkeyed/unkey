@@ -48,7 +48,7 @@ const (
 // new deployment. For production deployments, the project's live deployment
 // pointer is updated unless the project is in a rolled-back state. After a
 // successful deploy, the previous live deployment is scheduled for standby after
-// 1 minute via DeploymentService.ScheduleDesiredStateChange.
+// 30 minutes via DeploymentService.ScheduleDesiredStateChange.
 //
 // If any step fails, the deployment status is automatically set to failed via a
 // deferred cleanup handler, ensuring the database reflects the true deployment state.
