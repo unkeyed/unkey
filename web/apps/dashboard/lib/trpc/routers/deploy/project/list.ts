@@ -55,8 +55,10 @@ export const listProjects = workspaceProcedure
       ORDER BY ${projects.updatedAt} DESC
     `);
 
-    return (result.rows as ProjectRow[]).map(
-      (row): Project => ({
+    return (result.rows as ProjectRow[]).map((row): Project => {
+      const hasDeployment = row.latest_deployment_id !== null;
+
+      return {
         id: row.id,
         name: row.name,
         slug: row.slug,
@@ -68,9 +70,10 @@ export const listProjects = workspaceProcedure
         author: row.git_commit_author_handle,
         commitTimestamp: Number(row.git_commit_timestamp),
         authorAvatar: row.git_commit_author_avatar_url,
-        regions: ["local.dev"],
-        domain: row.domain,
+        // Only show regions/domain when there is at least one deployment
+        regions: hasDeployment ? ["local.dev"] : [],
+        domain: hasDeployment ? row.domain : null,
         latestDeploymentId: row.latest_deployment_id,
-      }),
-    );
+      };
+    });
   });
