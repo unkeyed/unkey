@@ -12,8 +12,11 @@ import (
 	"strconv"
 	"strings"
 
+	"cmp"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -42,6 +45,11 @@ type Session struct {
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
+
+	sanitizedRequestBody     string
+	sanitizedResponseBody    string
+	sanitizedRequestHeaders  []string
+	sanitizedResponseHeaders []string
 
 	// ClickHouse request logging control - defaults to true (log by default)
 	logRequestToClickHouse bool
@@ -498,6 +506,30 @@ func (s *Session) Send(status int, body []byte) error {
 	return s.send(status, body)
 }
 
+// LoggableRequestBody returns sanitized request body if set by WithValidation,
+// otherwise falls back to raw request body.
+func (s *Session) LoggableRequestBody() string {
+	return cmp.Or(s.sanitizedRequestBody, string(s.requestBody))
+}
+
+// LoggableResponseBody returns sanitized response body if set by WithValidation,
+// otherwise falls back to raw response body.
+func (s *Session) LoggableResponseBody() string {
+	return cmp.Or(s.sanitizedResponseBody, string(s.responseBody))
+}
+
+// LoggableRequestHeaders returns sanitized request headers if set by WithValidation,
+// otherwise falls back to basic header formatting with infra filtering.
+func (s *Session) LoggableRequestHeaders() []string {
+	return ptr.OrSlice(s.sanitizedRequestHeaders, buildRawRequestHeaders(s.r))
+}
+
+// LoggableResponseHeaders returns sanitized response headers if set by WithValidation,
+// otherwise falls back to basic header formatting.
+func (s *Session) LoggableResponseHeaders() []string {
+	return ptr.OrSlice(s.sanitizedResponseHeaders, buildRawResponseHeaders(s.w))
+}
+
 // reset is called automatically before the session is returned to the pool.
 // It resets all fields to their null value to prevent leaking data between
 // requests.
@@ -510,6 +542,10 @@ func (s *Session) reset() {
 	s.requestBody = nil
 	s.responseStatus = 0
 	s.responseBody = nil
+	s.sanitizedRequestBody = ""
+	s.sanitizedResponseBody = ""
+	s.sanitizedRequestHeaders = nil
+	s.sanitizedResponseHeaders = nil
 	s.logRequestToClickHouse = true // Reset ClickHouse logging control to default (enabled)
 	s.internalError = ""
 }

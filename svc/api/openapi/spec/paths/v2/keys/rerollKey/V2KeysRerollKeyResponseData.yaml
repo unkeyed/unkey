@@ -15,6 +15,7 @@ properties:
     example: key_2cGKbMxRyIzhCxo1Idjz8q
   key:
     type: string
+    x-unkey-redact: true
     description: |
       The newly generated API key token (the actual secret that authenticates requests).
 

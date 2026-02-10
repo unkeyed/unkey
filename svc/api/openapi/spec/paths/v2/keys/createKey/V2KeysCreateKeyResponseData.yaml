@@ -10,6 +10,7 @@ properties:
     example: key_2cGKbMxRyIzhCxo1Idjz8q
   key:
     type: string
+    x-unkey-redact: true
     description: "The full generated API key that should be securely provided
       to your user.
 
