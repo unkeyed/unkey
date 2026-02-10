@@ -121,8 +121,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		if err != nil {
 			if db.IsNotFound(err) {
 				logger.Info("No project found for repo connection", "projectId", repo.ProjectID)
-				w.WriteHeader(http.StatusOK)
-				return
+				continue
 			}
 			logger.Error("failed to find project", "error", err, "projectId", repo.ProjectID)
 			http.Error(w, "failed to find project", http.StatusInternalServerError)
