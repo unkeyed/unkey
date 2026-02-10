@@ -301,12 +301,9 @@ message ApplyDeployment {
   // port is the container port the application listens on.
   int32 port = 14;
 
-  // restart_policy controls pod restart behavior: "always", "on-failure", or "never".
-  string restart_policy = 15;
-
   // shutdown_signal is the signal sent to the container for graceful shutdown.
   // "SIGTERM", "SIGINT", "SIGQUIT", or "SIGKILL".
-  string shutdown_signal = 16;
+  string shutdown_signal = 15;
 
   // healthcheck is a JSON-encoded Healthcheck struct for configuring liveness/readiness probes.
   // If empty, no probes are configured.

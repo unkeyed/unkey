@@ -16,7 +16,6 @@ SELECT
     d.encrypted_environment_variables,
     d.command,
     d.port,
-    d.restart_policy,
     d.shutdown_signal,
     d.healthcheck
 FROM `deployment_topology` dt

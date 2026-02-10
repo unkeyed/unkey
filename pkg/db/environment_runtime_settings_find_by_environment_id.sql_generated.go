@@ -10,14 +10,14 @@ import (
 )
 
 const findEnvironmentRuntimeSettingsByEnvironmentId = `-- name: FindEnvironmentRuntimeSettingsByEnvironmentId :one
-SELECT pk, id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, restart_policy, shutdown_signal, created_at, updated_at
+SELECT pk, id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, created_at, updated_at
 FROM environment_runtime_settings
 WHERE environment_id = ?
 `
 
 // FindEnvironmentRuntimeSettingsByEnvironmentId
 //
-//	SELECT pk, id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, restart_policy, shutdown_signal, created_at, updated_at
+//	SELECT pk, id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, created_at, updated_at
 //	FROM environment_runtime_settings
 //	WHERE environment_id = ?
 func (q *Queries) FindEnvironmentRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentRuntimeSetting, error) {
@@ -34,7 +34,6 @@ func (q *Queries) FindEnvironmentRuntimeSettingsByEnvironmentId(ctx context.Cont
 		&i.Command,
 		&i.Healthcheck,
 		&i.RegionConfig,
-		&i.RestartPolicy,
 		&i.ShutdownSignal,
 		&i.CreatedAt,
 		&i.UpdatedAt,

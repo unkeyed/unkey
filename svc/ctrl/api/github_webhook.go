@@ -181,7 +181,6 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		CpuMillicores:                 envSettings.CpuMillicores,
 		MemoryMib:                     envSettings.MemoryMib,
 		Port:                          envSettings.Port,
-		RestartPolicy:                 db.DeploymentsRestartPolicy(envSettings.RestartPolicy),
 		ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.ShutdownSignal),
 		Healthcheck:                   envSettings.Healthcheck,
 	})

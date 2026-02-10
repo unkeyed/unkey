@@ -45,9 +45,6 @@ export const environmentRuntimeSettings = mysqlTable(
       .notNull()
       .default(sql`('{}')`),
 
-    restartPolicy: mysqlEnum("restart_policy", ["always", "on-failure", "never"])
-      .notNull()
-      .default("always"),
     shutdownSignal: mysqlEnum("shutdown_signal", ["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"])
       .notNull()
       .default("SIGTERM"),

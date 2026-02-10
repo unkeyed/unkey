@@ -134,7 +134,6 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 			BuildId:                       buildID,
 			Command:                       row.Deployment.Command,
 			Port:                          row.Deployment.Port,
-			RestartPolicy:                 string(row.Deployment.RestartPolicy),
 			ShutdownSignal:                string(row.Deployment.ShutdownSignal),
 		}
 

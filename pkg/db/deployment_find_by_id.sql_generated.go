@@ -10,12 +10,12 @@ import (
 )
 
 const findDeploymentById = `-- name: FindDeploymentById :one
-SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, restart_policy, shutdown_signal, healthcheck, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE id = ?
+SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE id = ?
 `
 
 // FindDeploymentById
 //
-//	SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, restart_policy, shutdown_signal, healthcheck, status, created_at, updated_at FROM `deployments` WHERE id = ?
+//	SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, status, created_at, updated_at FROM `deployments` WHERE id = ?
 func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error) {
 	row := db.QueryRowContext(ctx, findDeploymentById, id)
 	var i Deployment
@@ -42,7 +42,6 @@ func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (D
 		&i.EncryptedEnvironmentVariables,
 		&i.Command,
 		&i.Port,
-		&i.RestartPolicy,
 		&i.ShutdownSignal,
 		&i.Healthcheck,
 		&i.Status,

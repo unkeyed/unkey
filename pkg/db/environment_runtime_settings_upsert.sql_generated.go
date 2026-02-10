@@ -23,11 +23,10 @@ INSERT INTO environment_runtime_settings (
     command,
     healthcheck,
     region_config,
-    restart_policy,
     shutdown_signal,
     created_at,
     updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
@@ -35,7 +34,6 @@ ON DUPLICATE KEY UPDATE
     command = VALUES(command),
     healthcheck = VALUES(healthcheck),
     region_config = VALUES(region_config),
-    restart_policy = VALUES(restart_policy),
     shutdown_signal = VALUES(shutdown_signal),
     updated_at = VALUES(updated_at)
 `
@@ -50,7 +48,6 @@ type UpsertEnvironmentRuntimeSettingsParams struct {
 	Command        dbtype.StringSlice                       `db:"command"`
 	Healthcheck    dbtype.NullHealthcheck                   `db:"healthcheck"`
 	RegionConfig   dbtype.RegionConfig                      `db:"region_config"`
-	RestartPolicy  EnvironmentRuntimeSettingsRestartPolicy  `db:"restart_policy"`
 	ShutdownSignal EnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	CreatedAt      int64                                    `db:"created_at"`
 	UpdatedAt      sql.NullInt64                            `db:"updated_at"`
@@ -68,11 +65,10 @@ type UpsertEnvironmentRuntimeSettingsParams struct {
 //	    command,
 //	    healthcheck,
 //	    region_config,
-//	    restart_policy,
 //	    shutdown_signal,
 //	    created_at,
 //	    updated_at
-//	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    port = VALUES(port),
 //	    cpu_millicores = VALUES(cpu_millicores),
@@ -80,7 +76,6 @@ type UpsertEnvironmentRuntimeSettingsParams struct {
 //	    command = VALUES(command),
 //	    healthcheck = VALUES(healthcheck),
 //	    region_config = VALUES(region_config),
-//	    restart_policy = VALUES(restart_policy),
 //	    shutdown_signal = VALUES(shutdown_signal),
 //	    updated_at = VALUES(updated_at)
 func (q *Queries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentRuntimeSettingsParams) error {
@@ -94,7 +89,6 @@ func (q *Queries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX,
 		arg.Command,
 		arg.Healthcheck,
 		arg.RegionConfig,
-		arg.RestartPolicy,
 		arg.ShutdownSignal,
 		arg.CreatedAt,
 		arg.UpdatedAt,

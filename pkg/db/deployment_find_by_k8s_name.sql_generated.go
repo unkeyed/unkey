@@ -10,12 +10,12 @@ import (
 )
 
 const findDeploymentByK8sName = `-- name: FindDeploymentByK8sName :one
-SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, restart_policy, shutdown_signal, healthcheck, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE k8s_name = ?
+SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE k8s_name = ?
 `
 
 // FindDeploymentByK8sName
 //
-//	SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, restart_policy, shutdown_signal, healthcheck, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+//	SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 func (q *Queries) FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error) {
 	row := db.QueryRowContext(ctx, findDeploymentByK8sName, k8sName)
 	var i Deployment
@@ -42,7 +42,6 @@ func (q *Queries) FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName 
 		&i.EncryptedEnvironmentVariables,
 		&i.Command,
 		&i.Port,
-		&i.RestartPolicy,
 		&i.ShutdownSignal,
 		&i.Healthcheck,
 		&i.Status,

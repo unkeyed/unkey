@@ -30,7 +30,6 @@ SELECT
     d.encrypted_environment_variables,
     d.command,
     d.port,
-    d.restart_policy,
     d.shutdown_signal,
     d.healthcheck
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
@@ -63,7 +62,6 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
 	Command                       dbtype.StringSlice        `db:"command"`
 	Port                          int32                     `db:"port"`
-	RestartPolicy                 DeploymentsRestartPolicy  `db:"restart_policy"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
 }
@@ -87,7 +85,6 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    d.encrypted_environment_variables,
 //	    d.command,
 //	    d.port,
-//	    d.restart_policy,
 //	    d.shutdown_signal,
 //	    d.healthcheck
 //	FROM `deployment_topology` dt
@@ -116,7 +113,6 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 		&i.EncryptedEnvironmentVariables,
 		&i.Command,
 		&i.Port,
-		&i.RestartPolicy,
 		&i.ShutdownSignal,
 		&i.Healthcheck,
 	)

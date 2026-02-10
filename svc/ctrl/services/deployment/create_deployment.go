@@ -173,7 +173,6 @@ func (s *Service) CreateDeployment(
 		CpuMillicores:                 envSettings.CpuMillicores,
 		MemoryMib:                     envSettings.MemoryMib,
 		Port:                          envSettings.Port,
-		RestartPolicy:                 db.DeploymentsRestartPolicy(envSettings.RestartPolicy),
 		ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.ShutdownSignal),
 		Healthcheck:                   envSettings.Healthcheck,
 	})

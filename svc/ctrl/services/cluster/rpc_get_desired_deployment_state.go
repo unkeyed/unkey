@@ -78,7 +78,6 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			BuildId:                       buildID,
 			Command:                       deployment.Command,
 			Port:                          deployment.Port,
-			RestartPolicy:                 string(deployment.RestartPolicy),
 			ShutdownSignal:                string(deployment.ShutdownSignal),
 		}
 

@@ -20,7 +20,6 @@ SELECT
     rs.cpu_millicores,
     rs.memory_mib,
     rs.command,
-    rs.restart_policy,
     rs.shutdown_signal,
     rs.healthcheck,
     rs.region_config
@@ -46,7 +45,6 @@ type FindEnvironmentWithSettingsByProjectIdAndSlugRow struct {
 	CpuMillicores  int32                                    `db:"cpu_millicores"`
 	MemoryMib      int32                                    `db:"memory_mib"`
 	Command        dbtype.StringSlice                       `db:"command"`
-	RestartPolicy  EnvironmentRuntimeSettingsRestartPolicy  `db:"restart_policy"`
 	ShutdownSignal EnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck    dbtype.NullHealthcheck                   `db:"healthcheck"`
 	RegionConfig   dbtype.RegionConfig                      `db:"region_config"`
@@ -62,7 +60,6 @@ type FindEnvironmentWithSettingsByProjectIdAndSlugRow struct {
 //	    rs.cpu_millicores,
 //	    rs.memory_mib,
 //	    rs.command,
-//	    rs.restart_policy,
 //	    rs.shutdown_signal,
 //	    rs.healthcheck,
 //	    rs.region_config
@@ -92,7 +89,6 @@ func (q *Queries) FindEnvironmentWithSettingsByProjectIdAndSlug(ctx context.Cont
 		&i.CpuMillicores,
 		&i.MemoryMib,
 		&i.Command,
-		&i.RestartPolicy,
 		&i.ShutdownSignal,
 		&i.Healthcheck,
 		&i.RegionConfig,

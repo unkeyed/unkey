@@ -203,7 +203,6 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Command:        dbtype.StringSlice{},
 		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		RegionConfig:   dbtype.RegionConfig{},
-		RestartPolicy:  db.EnvironmentRuntimeSettingsRestartPolicyAlways,
 		ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
 		CreatedAt:      now,
 		UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
@@ -281,7 +280,6 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     req.UpdatedAt,
 		Port:                          8080,
-		RestartPolicy:                 db.DeploymentsRestartPolicyAlways,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 	})

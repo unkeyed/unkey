@@ -144,7 +144,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 				},
 				Spec: corev1.PodSpec{
 					RuntimeClassName:          ptr.P(runtimeClassGvisor),
-					RestartPolicy:             mapRestartPolicy(req.GetRestartPolicy()),
+					RestartPolicy:             corev1.RestartPolicyAlways,
 					Tolerations:               []corev1.Toleration{untrustedToleration},
 					TopologySpreadConstraints: deploymentTopologySpread(req.GetDeploymentId()),
 					Affinity:                  deploymentAffinity(req.GetEnvironmentId()),
@@ -202,18 +202,6 @@ func buildDeploymentEnv(req *ctrlv1.ApplyDeployment) []corev1.EnvVar {
 	}
 
 	return env
-}
-
-// mapRestartPolicy converts the string restart policy from the proto to a K8s RestartPolicy enum.
-func mapRestartPolicy(policy string) corev1.RestartPolicy {
-	switch policy {
-	case "on-failure":
-		return corev1.RestartPolicyOnFailure
-	case "never":
-		return corev1.RestartPolicyNever
-	default:
-		return corev1.RestartPolicyAlways
-	}
 }
 
 // buildProbeHandler creates the K8s probe handler based on the healthcheck method.

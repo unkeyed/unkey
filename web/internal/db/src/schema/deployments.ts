@@ -68,11 +68,6 @@ export const deployments = mysqlTable(
     // Port the container listens on
     port: int("port").notNull().default(8080),
 
-    // Restart policy for the container
-    restartPolicy: mysqlEnum("restart_policy", ["always", "on-failure", "never"])
-      .notNull()
-      .default("always"),
-
     // Signal sent to the container for graceful shutdown
     shutdownSignal: mysqlEnum("shutdown_signal", ["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"])
       .notNull()

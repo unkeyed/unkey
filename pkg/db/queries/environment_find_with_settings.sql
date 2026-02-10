@@ -7,7 +7,6 @@ SELECT
     rs.cpu_millicores,
     rs.memory_mib,
     rs.command,
-    rs.restart_policy,
     rs.shutdown_signal,
     rs.healthcheck,
     rs.region_config

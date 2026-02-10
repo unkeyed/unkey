@@ -1280,11 +1280,9 @@ type ApplyDeployment struct {
 	Command []string `protobuf:"bytes,13,rep,name=command,proto3" json:"command,omitempty"`
 	// port is the container port the application listens on.
 	Port int32 `protobuf:"varint,14,opt,name=port,proto3" json:"port,omitempty"`
-	// restart_policy controls pod restart behavior: "always", "on-failure", or "never".
-	RestartPolicy string `protobuf:"bytes,15,opt,name=restart_policy,json=restartPolicy,proto3" json:"restart_policy,omitempty"`
 	// shutdown_signal is the signal sent to the container for graceful shutdown.
 	// "SIGTERM", "SIGINT", "SIGQUIT", or "SIGKILL".
-	ShutdownSignal string `protobuf:"bytes,16,opt,name=shutdown_signal,json=shutdownSignal,proto3" json:"shutdown_signal,omitempty"`
+	ShutdownSignal string `protobuf:"bytes,15,opt,name=shutdown_signal,json=shutdownSignal,proto3" json:"shutdown_signal,omitempty"`
 	// healthcheck is a JSON-encoded Healthcheck struct for configuring liveness/readiness probes.
 	// If empty, no probes are configured.
 	Healthcheck   []byte `protobuf:"bytes,17,opt,name=healthcheck,proto3,oneof" json:"healthcheck,omitempty"`
@@ -1418,13 +1416,6 @@ func (x *ApplyDeployment) GetPort() int32 {
 		return x.Port
 	}
 	return 0
-}
-
-func (x *ApplyDeployment) GetRestartPolicy() string {
-	if x != nil {
-		return x.RestartPolicy
-	}
-	return ""
 }
 
 func (x *ApplyDeployment) GetShutdownSignal() string {
@@ -1755,7 +1746,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
 	"memory_mib\x18\t \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\x81\x05\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xda\x04\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1773,9 +1764,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\bbuild_id\x18\v \x01(\tH\x00R\abuildId\x88\x01\x01\x12F\n" +
 	"\x1fencrypted_environment_variables\x18\f \x01(\fR\x1dencryptedEnvironmentVariables\x12\x18\n" +
 	"\acommand\x18\r \x03(\tR\acommand\x12\x12\n" +
-	"\x04port\x18\x0e \x01(\x05R\x04port\x12%\n" +
-	"\x0erestart_policy\x18\x0f \x01(\tR\rrestartPolicy\x12'\n" +
-	"\x0fshutdown_signal\x18\x10 \x01(\tR\x0eshutdownSignal\x12%\n" +
+	"\x04port\x18\x0e \x01(\x05R\x04port\x12'\n" +
+	"\x0fshutdown_signal\x18\x0f \x01(\tR\x0eshutdownSignal\x12%\n" +
 	"\vhealthcheck\x18\x11 \x01(\fH\x01R\vhealthcheck\x88\x01\x01B\v\n" +
 	"\t_build_idB\x0e\n" +
 	"\f_healthcheck\"R\n" +

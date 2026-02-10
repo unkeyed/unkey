@@ -314,49 +314,6 @@ func (ns NullDeploymentsDesiredState) Value() (driver.Value, error) {
 	return string(ns.DeploymentsDesiredState), nil
 }
 
-type DeploymentsRestartPolicy string
-
-const (
-	DeploymentsRestartPolicyAlways    DeploymentsRestartPolicy = "always"
-	DeploymentsRestartPolicyOnFailure DeploymentsRestartPolicy = "on-failure"
-	DeploymentsRestartPolicyNever     DeploymentsRestartPolicy = "never"
-)
-
-func (e *DeploymentsRestartPolicy) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DeploymentsRestartPolicy(s)
-	case string:
-		*e = DeploymentsRestartPolicy(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DeploymentsRestartPolicy: %T", src)
-	}
-	return nil
-}
-
-type NullDeploymentsRestartPolicy struct {
-	DeploymentsRestartPolicy DeploymentsRestartPolicy
-	Valid                    bool // Valid is true if DeploymentsRestartPolicy is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDeploymentsRestartPolicy) Scan(value interface{}) error {
-	if value == nil {
-		ns.DeploymentsRestartPolicy, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DeploymentsRestartPolicy.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDeploymentsRestartPolicy) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DeploymentsRestartPolicy), nil
-}
-
 type DeploymentsShutdownSignal string
 
 const (
@@ -445,49 +402,6 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DeploymentsStatus), nil
-}
-
-type EnvironmentRuntimeSettingsRestartPolicy string
-
-const (
-	EnvironmentRuntimeSettingsRestartPolicyAlways    EnvironmentRuntimeSettingsRestartPolicy = "always"
-	EnvironmentRuntimeSettingsRestartPolicyOnFailure EnvironmentRuntimeSettingsRestartPolicy = "on-failure"
-	EnvironmentRuntimeSettingsRestartPolicyNever     EnvironmentRuntimeSettingsRestartPolicy = "never"
-)
-
-func (e *EnvironmentRuntimeSettingsRestartPolicy) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = EnvironmentRuntimeSettingsRestartPolicy(s)
-	case string:
-		*e = EnvironmentRuntimeSettingsRestartPolicy(s)
-	default:
-		return fmt.Errorf("unsupported scan type for EnvironmentRuntimeSettingsRestartPolicy: %T", src)
-	}
-	return nil
-}
-
-type NullEnvironmentRuntimeSettingsRestartPolicy struct {
-	EnvironmentRuntimeSettingsRestartPolicy EnvironmentRuntimeSettingsRestartPolicy
-	Valid                                   bool // Valid is true if EnvironmentRuntimeSettingsRestartPolicy is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullEnvironmentRuntimeSettingsRestartPolicy) Scan(value interface{}) error {
-	if value == nil {
-		ns.EnvironmentRuntimeSettingsRestartPolicy, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.EnvironmentRuntimeSettingsRestartPolicy.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullEnvironmentRuntimeSettingsRestartPolicy) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.EnvironmentRuntimeSettingsRestartPolicy), nil
 }
 
 type EnvironmentRuntimeSettingsShutdownSignal string
@@ -1129,7 +1043,6 @@ type Deployment struct {
 	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
 	Command                       dbtype.StringSlice        `db:"command"`
 	Port                          int32                     `db:"port"`
-	RestartPolicy                 DeploymentsRestartPolicy  `db:"restart_policy"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
 	Status                        DeploymentsStatus         `db:"status"`
@@ -1194,7 +1107,6 @@ type EnvironmentRuntimeSetting struct {
 	Command        dbtype.StringSlice                       `db:"command"`
 	Healthcheck    dbtype.NullHealthcheck                   `db:"healthcheck"`
 	RegionConfig   dbtype.RegionConfig                      `db:"region_config"`
-	RestartPolicy  EnvironmentRuntimeSettingsRestartPolicy  `db:"restart_policy"`
 	ShutdownSignal EnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	CreatedAt      int64                                    `db:"created_at"`
 	UpdatedAt      sql.NullInt64                            `db:"updated_at"`
