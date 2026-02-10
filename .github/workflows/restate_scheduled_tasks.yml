@@ -41,7 +41,7 @@ jobs:
           curl -sf -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
-            -H "idempotency-key: quota-check-${{ matrix.environment }}-$(date -u +'%Y-%m-%d')" \
+            -H "idempotency-key: quota-check-$(date -u +'%Y-%m-%d')" \
             "${RESTATE_INGRESS_URL}/hydra.v1.QuotaCheckService/${{ steps.billing.outputs.period }}/RunCheck/send" \
             -d '{}'
 
@@ -61,7 +61,7 @@ jobs:
           curl -sf -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
-            -H "idempotency-key: cert-renewal-${{ matrix.environment }}-$(date -u +'%Y-%m-%d')" \
+            -H "idempotency-key: cert-renewal-$(date -u +'%Y-%m-%d')" \
             "${RESTATE_INGRESS_URL}/hydra.v1.CertificateService/global/RenewExpiringCertificates/send" \
             -d '{"daysBeforeExpiry": 30}'
 
@@ -81,6 +81,6 @@ jobs:
           curl -sf -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
-            -H "idempotency-key: scale-down-idle-${{ matrix.environment }}-$(date -u +'%Y-%m-%dT%H:%M')" \
+            -H "idempotency-key: scale-down-idle-$(date -u +'%Y-%m-%dT%H:%M')" \
             "${RESTATE_INGRESS_URL}/hydra.v1.DeploymentService/global/ScaleDownIdleDeployments/send" \
             -d '{}'
