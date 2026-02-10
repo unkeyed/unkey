@@ -2,14 +2,16 @@
 
 // generate_bundle.go bundles a split OpenAPI specification into a single file.
 //
-// This tool performs two main operations:
-// 1. Preprocesses path definitions by inlining external $ref files
-// 2. Bundles the complete specification using libopenapi
+// This tool performs a single-pass traversal of the reference graph, following
+// $ref chains from the entry point and only loading files that are actually referenced.
+// It produces a bundled specification with all schemas collected in components/schemas/.
 //
-// The preprocessing step is necessary because:
-// - It resolves path-level $refs before the bundler processes them
-// - It adjusts relative paths to maintain correct references after inlining
-// - It ensures OpenAPI 3.0 compatibility (prevents 3.1 conversion)
+// Performance characteristics:
+// - O(n) where n = number of referenced files (not total files)
+// - Single pass through the reference graph
+// - Lazy loading - files only loaded when referenced
+// - Path cache - each file loaded at most once
+// - No filesystem walks - follows refs only
 //
 // Usage:
 //   go run generate_bundle.go -input openapi-split.yaml -output openapi-generated.yaml
@@ -24,50 +26,46 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pb33f/libopenapi"
-	"github.com/pb33f/libopenapi/bundler"
-	"github.com/pb33f/libopenapi/datamodel"
 	"gopkg.in/yaml.v3"
 )
 
 var (
-	input  = flag.String("input", "openapi-split.yaml", "Input OpenAPI file")
-	output = flag.String("output", "openapi-generated.yaml", "Output bundled OpenAPI file")
+	input    = flag.String("input", "openapi-split.yaml", "Input OpenAPI file")
+	output   = flag.String("output", "openapi-generated.yaml", "Output bundled OpenAPI file")
+	output30 = flag.String("output30", "", "Optional output for OpenAPI 3.0 downgraded spec (converts type: [T, null] to type: T + nullable: true)")
 )
+
+// Bundler handles the bundling of split OpenAPI specifications
+type Bundler struct {
+	baseDir    string
+	schemas    map[string]any    // schemaName -> resolved schema
+	pathToName map[string]string // absolute path -> schemaName (cache)
+}
+
+// NewBundler creates a new Bundler instance
+func NewBundler(baseDir string) *Bundler {
+	return &Bundler{
+		baseDir:    baseDir,
+		schemas:    make(map[string]any),
+		pathToName: make(map[string]string),
+	}
+}
 
 func main() {
 	flag.Parse()
 
-	// Step 1: Preprocess paths to inline external references
-	// This resolves path-level $refs and adjusts relative paths
-	preprocessedSpec, err := preprocessPaths(*input)
+	baseDir := filepath.Dir(*input)
+	bundler := NewBundler(baseDir)
+
+	spec, err := bundler.bundle(*input)
 	if err != nil {
-		log.Fatalf("Failed to preprocess paths: %v", err)
+		log.Fatalf("Failed to bundle: %v", err)
 	}
 
-	// Step 2: Configure libopenapi for bundling
-	config := datamodel.NewDocumentConfiguration()
-	config.BasePath = "."
-	config.ExtractRefsSequentially = true
-
-	// Parse the preprocessed specification
-	document, err := libopenapi.NewDocumentWithConfiguration(preprocessedSpec, config)
+	// Marshal to YAML
+	bundledBytes, err := yaml.Marshal(spec)
 	if err != nil {
-		log.Fatalf("Failed to parse OpenAPI document: %v", err)
-	}
-
-	// Build the OpenAPI v3 model
-	v3Model, err := document.BuildV3Model()
-	if err != nil {
-		log.Fatalf("Failed to build v3 model: %v", err)
-	}
-
-	log.Printf("Model built successfully using version %s", v3Model.Model.Version)
-
-	// Step 3: Bundle all references into a single document
-	bundledBytes, err := bundler.BundleDocumentComposed(&v3Model.Model, nil)
-	if err != nil {
-		log.Fatalf("Failed to bundle document: %v", err)
+		log.Fatalf("Failed to marshal bundled spec: %v", err)
 	}
 
 	// Add auto-generated comment header
@@ -85,109 +83,282 @@ func main() {
 	}
 
 	fmt.Printf("Successfully bundled OpenAPI spec to %s\n", *output)
-}
+	fmt.Printf("Collected %d schemas\n", len(bundler.schemas))
 
-// preprocessPaths reads the OpenAPI spec and resolves path $refs inline
-func preprocessPaths(inputFile string) ([]byte, error) {
-	// Read the original file
-	data, err := os.ReadFile(inputFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read input file: %w", err)
-	}
+	// Optionally output a 3.0 downgraded version
+	if *output30 != "" {
+		spec30 := deepCopy(spec).(map[string]any)
+		nullableCount := downgrade31To30(spec30)
+		spec30["openapi"] = "3.0.0"
 
-	// Parse the YAML
-	var spec map[string]interface{}
-	if err := yaml.Unmarshal(data, &spec); err != nil {
-		return nil, fmt.Errorf("failed to parse yaml: %w", err)
-	}
-
-	// Process paths to inline $refs
-	if paths, ok := spec["paths"].(map[string]interface{}); ok {
-		newPaths := make(map[string]interface{})
-
-		for pathKey, pathValue := range paths {
-			if pathMap, ok := pathValue.(map[string]interface{}); ok {
-				if ref, ok := pathMap["$ref"].(string); ok {
-					// Read the referenced file
-					refData, err := os.ReadFile(ref)
-					if err != nil {
-						return nil, fmt.Errorf("failed to read path ref %s: %w", ref, err)
-					}
-
-					var pathContent interface{}
-					if err := yaml.Unmarshal(refData, &pathContent); err != nil {
-						return nil, fmt.Errorf("failed to parse path ref %s: %w", ref, err)
-					}
-
-					// Fix relative refs in the inlined content
-					refDir := filepath.Dir(ref)
-					pathContent = fixRelativeRefs(pathContent, refDir)
-
-					// Replace the $ref with the actual content
-					newPaths[pathKey] = pathContent
-				} else {
-					// Keep as-is if no $ref
-					newPaths[pathKey] = pathValue
-				}
-			} else {
-				// Keep as-is if not a map
-				newPaths[pathKey] = pathValue
-			}
+		bytes30, err := yaml.Marshal(spec30)
+		if err != nil {
+			log.Fatalf("Failed to marshal 3.0 spec: %v", err)
 		}
 
-		// Replace the entire paths object
+		header30 := fmt.Sprintf(`# Code generated by generate_bundle.go; DO NOT EDIT.
+# Source: %s (downgraded to OpenAPI 3.0)
+
+`, *input)
+
+		err = os.WriteFile(*output30, append([]byte(header30), bytes30...), 0644)
+		if err != nil {
+			log.Fatalf("Failed to write 3.0 output file %s: %v", *output30, err)
+		}
+
+		fmt.Printf("Successfully wrote OpenAPI 3.0 spec to %s (converted %d nullable types)\n", *output30, nullableCount)
+	}
+}
+
+// bundle loads the entry spec and bundles all references
+func (b *Bundler) bundle(inputFile string) (map[string]any, error) {
+	// Load entry spec
+	spec, err := loadYAML(inputFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load entry spec: %w", err)
+	}
+
+	// Get the directory of the input file for resolving relative refs
+	inputDir := filepath.Dir(inputFile)
+
+	// Process paths - inline path refs, collect schema refs
+	if paths, ok := spec["paths"].(map[string]any); ok {
+		newPaths := make(map[string]any)
+		for pathKey, pathVal := range paths {
+			if pathMap, ok := pathVal.(map[string]any); ok {
+				if ref, ok := pathMap["$ref"].(string); ok && len(pathMap) == 1 {
+					// This is a path-level $ref - inline it
+					resolved := b.resolveRef(ref, inputDir)
+					newPaths[pathKey] = resolved
+				} else {
+					// No $ref or has other properties - resolve nested refs
+					newPaths[pathKey] = b.resolveRefs(pathVal, inputDir)
+				}
+			} else {
+				newPaths[pathKey] = b.resolveRefs(pathVal, inputDir)
+			}
+		}
 		spec["paths"] = newPaths
 	}
 
-	// Marshal back to YAML
-	preprocessedYAML, err := yaml.Marshal(spec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal preprocessed spec: %w", err)
+	// Build components with collected schemas
+	components, ok := spec["components"].(map[string]any)
+	if !ok {
+		components = make(map[string]any)
+		spec["components"] = components
 	}
 
-	return preprocessedYAML, nil
+	// Merge collected schemas into components
+	if len(b.schemas) > 0 {
+		existing, ok := components["schemas"].(map[string]any)
+		if !ok {
+			existing = make(map[string]any)
+		}
+		for name, schema := range b.schemas {
+			if _, conflict := existing[name]; conflict {
+				return nil, fmt.Errorf("schema conflict: %q exists in both components/schemas and collected refs", name)
+			}
+			existing[name] = schema
+		}
+		components["schemas"] = existing
+	}
+
+	return spec, nil
 }
 
-// fixRelativeRefs recursively fixes relative $refs in the data structure
-func fixRelativeRefs(data interface{}, baseDir string) interface{} {
+// resolveRef loads a file ref and processes it
+// - For schema files: add to b.schemas, return internal $ref
+// - For path files (index.yaml): inline content with resolved refs
+func (b *Bundler) resolveRef(ref string, fromDir string) any {
+	// Already an internal ref - return as-is
+	if strings.HasPrefix(ref, "#/") {
+		return map[string]any{"$ref": ref}
+	}
+
+	// Build absolute path
+	absPath := filepath.Join(fromDir, ref)
+	absPath = filepath.Clean(absPath)
+
+	// Cache hit - return internal ref
+	if name, ok := b.pathToName[absPath]; ok {
+		return map[string]any{"$ref": "#/components/schemas/" + name}
+	}
+
+	// Load the file
+	content, err := loadYAML(absPath)
+	if err != nil {
+		log.Printf("Warning: failed to load ref %s: %v", ref, err)
+		return map[string]any{"$ref": ref}
+	}
+
+	// Determine if this is a schema file (not an index.yaml path file)
+	if isSchemaFile(absPath) {
+		name := schemaNameFromPath(absPath)
+		b.pathToName[absPath] = name
+
+		// Recursively resolve nested $refs in schema
+		resolved := b.resolveRefs(content, filepath.Dir(absPath))
+		b.schemas[name] = resolved
+
+		return map[string]any{"$ref": "#/components/schemas/" + name}
+	}
+
+	// Path file (index.yaml) - inline with resolved refs
+	return b.resolveRefs(content, filepath.Dir(absPath))
+}
+
+// resolveRefs recursively processes a data structure, resolving all $refs
+func (b *Bundler) resolveRefs(data any, fromDir string) any {
 	switch v := data.(type) {
-	case map[string]interface{}:
-		result := make(map[string]interface{})
-		for key, value := range v {
-			if key != "$ref" {
-				result[key] = fixRelativeRefs(value, baseDir)
-				continue
+	case map[string]any:
+		// Check if this map contains a $ref
+		if ref, ok := v["$ref"].(string); ok {
+			if len(v) == 1 {
+				// Pure $ref - resolve and return
+				return b.resolveRef(ref, fromDir)
 			}
 
-			refStr, ok := value.(string)
-
-			if !ok {
-				result[key] = value
-				continue
-			}
-
-			// Only fix relative file refs, not internal refs (#/) or URLs
-			if !strings.HasPrefix(refStr, "#/") && !strings.HasPrefix(refStr, "http") && strings.HasSuffix(refStr, ".yaml") {
-				// Convert relative path to be relative from the root
-				newRef := filepath.Join(baseDir, refStr)
-				newRef = filepath.Clean(newRef)
-				// Make sure it starts with ./ for consistency
-				if !strings.HasPrefix(newRef, "./") && !strings.HasPrefix(newRef, "../") {
-					newRef = "./" + newRef
+			// $ref with siblings (OpenAPI 3.1 allows this)
+			// Resolve the $ref and keep siblings
+			result := make(map[string]any, len(v))
+			for k, val := range v {
+				if k == "$ref" {
+					// Resolve this ref
+					resolved := b.resolveRef(ref, fromDir)
+					if resolvedMap, ok := resolved.(map[string]any); ok {
+						if newRef, ok := resolvedMap["$ref"].(string); ok {
+							result["$ref"] = newRef
+						}
+					}
+				} else {
+					// Process siblings recursively
+					result[k] = b.resolveRefs(val, fromDir)
 				}
-
-				result[key] = newRef
-				continue
 			}
-
-			result[key] = value
+			return result
 		}
 
+		// No $ref - process all keys recursively
+		result := make(map[string]any, len(v))
+		for k, val := range v {
+			result[k] = b.resolveRefs(val, fromDir)
+		}
 		return result
-	case []interface{}:
-		result := make([]interface{}, len(v))
+
+	case []any:
+		result := make([]any, len(v))
 		for i, item := range v {
-			result[i] = fixRelativeRefs(item, baseDir)
+			result[i] = b.resolveRefs(item, fromDir)
+		}
+		return result
+
+	default:
+		return v
+	}
+}
+
+// loadYAML loads and parses a YAML file
+func loadYAML(path string) (map[string]any, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]any
+	if err := yaml.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// isSchemaFile returns true if the file is a schema file (not index.yaml)
+func isSchemaFile(path string) bool {
+	return filepath.Base(path) != "index.yaml"
+}
+
+// schemaNameFromPath extracts the schema name from a file path
+func schemaNameFromPath(path string) string {
+	return strings.TrimSuffix(filepath.Base(path), ".yaml")
+}
+
+// downgrade31To30 walks the spec tree and converts OpenAPI 3.1 type arrays
+// like type: [T, "null"] to OpenAPI 3.0 type: T + nullable: true.
+// Returns the number of conversions made.
+func downgrade31To30(data any) int {
+	count := 0
+	downgrade31To30Walk(data, &count)
+	return count
+}
+
+func downgrade31To30Walk(data any, count *int) {
+	switch v := data.(type) {
+	case map[string]any:
+		// Check if this map has a "type" field that is an array
+		if typeVal, ok := v["type"]; ok {
+			if typeArr, ok := typeVal.([]any); ok {
+				nonNull, hasNull := extractNullableType(typeArr)
+				if hasNull && nonNull != "" {
+					v["type"] = nonNull
+					v["nullable"] = true
+					*count++
+				}
+			}
+		}
+		// Recurse into all values
+		for _, val := range v {
+			downgrade31To30Walk(val, count)
+		}
+	case []any:
+		for _, item := range v {
+			downgrade31To30Walk(item, count)
+		}
+	}
+}
+
+// extractNullableType checks if a type array is [T, "null"] or ["null", T]
+// and returns the non-null type and whether "null" was present.
+// Handles both "null" (quoted string) and null (YAML null → Go nil).
+func extractNullableType(types []any) (string, bool) {
+	if len(types) != 2 {
+		return "", false
+	}
+	aNull := isNullType(types[0])
+	bNull := isNullType(types[1])
+	if aNull && !bNull {
+		if s, ok := types[1].(string); ok {
+			return s, true
+		}
+	}
+	if bNull && !aNull {
+		if s, ok := types[0].(string); ok {
+			return s, true
+		}
+	}
+	return "", false
+}
+
+func isNullType(v any) bool {
+	if v == nil {
+		return true
+	}
+	s, ok := v.(string)
+	return ok && s == "null"
+}
+
+// deepCopy creates a deep copy of an arbitrary data structure (maps, slices, scalars).
+func deepCopy(data any) any {
+	switch v := data.(type) {
+	case map[string]any:
+		result := make(map[string]any, len(v))
+		for k, val := range v {
+			result[k] = deepCopy(val)
+		}
+		return result
+	case []any:
+		result := make([]any, len(v))
+		for i, item := range v {
+			result[i] = deepCopy(item)
 		}
 		return result
 	default:
