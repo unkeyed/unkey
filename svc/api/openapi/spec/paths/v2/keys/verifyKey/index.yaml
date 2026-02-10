@@ -72,7 +72,11 @@ post:
                   enabled: true
                   keyId: key_1234abcd
                   name: "user-dashboard-key"
-                  permissions: ["documents.read", "documents.write", "users.view"]
+                  permissions: [
+                    "documents.read",
+                    "documents.write",
+                    "users.view",
+                  ]
                   roles: ["editor"]
                   credits: 950
                   expires: 1735689600000
