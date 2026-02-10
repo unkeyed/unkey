@@ -28,7 +28,7 @@ properties:
       The key format follows: `[prefix]_[random_bytes]`
       - Prefix is extracted from the original key or uses API default
       - Random bytes follow API configuration (default: 16 bytes)
-      
+
       This is NOT the keyId - it's the actual secret token used for authentication.
     example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
 required:
