@@ -3402,7 +3402,7 @@ components:
                         - Any conditions or limitations
                         - Related permissions that might be needed
                     example: Grants read-only access to user profile information, account settings, and subscription status.
-                    maxLength: 128
+                    maxLength: 512
                     type: string
                 name:
                     description: |
@@ -3489,7 +3489,7 @@ components:
                         - Any security considerations or limitations
                         - Related roles that might be used together
                     example: Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities.
-                    maxLength: 2048
+                    maxLength: 512
                     type: string
                 name:
                     description: |

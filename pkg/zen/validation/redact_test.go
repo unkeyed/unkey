@@ -251,10 +251,10 @@ func TestSanitizeResponse_Integration(t *testing.T) {
 func TestSanitizeHeaders(t *testing.T) {
 	t.Run("filters infra headers and redacts specified ones", func(t *testing.T) {
 		headers := http.Header{
-			"X-Forwarded-For":  []string{"1.2.3.4"},
-			"Authorization":    []string{"Bearer secret"},
-			"Content-Type":     []string{"application/json"},
-			"X-Amzn-Trace-Id":  []string{"trace"},
+			"X-Forwarded-For": []string{"1.2.3.4"},
+			"Authorization":   []string{"Bearer secret"},
+			"Content-Type":    []string{"application/json"},
+			"X-Amzn-Trace-Id": []string{"trace"},
 		}
 		redact := map[string]bool{"authorization": true}
 		result := SanitizeHeaders(headers, redact)

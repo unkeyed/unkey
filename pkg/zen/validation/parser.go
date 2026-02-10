@@ -36,12 +36,12 @@ type Operation struct {
 
 // SpecParser parses an OpenAPI specification and extracts operations and schemas
 type SpecParser struct {
-	operations              map[string]*Operation        // "POST /v2/keys.setRoles" -> Operation
-	schemas                 map[string]any               // component schemas for $ref resolution
-	securitySchemes         map[string]SecurityScheme    // component security schemes
-	globalSecurity          []SecurityRequirement        // default security requirements
-	redactions              map[string]*RedactionConfig  // "POST /v2/keys.createKey" -> config
-	redactedSecurityHeaders map[string]bool              // lowercase header names from x-unkey-redact on security schemes
+	operations              map[string]*Operation       // "POST /v2/keys.setRoles" -> Operation
+	schemas                 map[string]any              // component schemas for $ref resolution
+	securitySchemes         map[string]SecurityScheme   // component security schemes
+	globalSecurity          []SecurityRequirement       // default security requirements
+	redactions              map[string]*RedactionConfig // "POST /v2/keys.createKey" -> config
+	redactedSecurityHeaders map[string]bool             // lowercase header names from x-unkey-redact on security schemes
 }
 
 // openAPISpec represents the structure of an OpenAPI 3.1 document
