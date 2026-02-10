@@ -12,7 +12,8 @@ export const ciliumNetworkPolicies = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
-    k8sName: varchar("k8s_name", { length: 64 }).notNull().unique(),
+    k8sName: varchar("k8s_name", { length: 64 }).notNull(),
+    k8sNamespace: varchar("k8s_namespace", { length: 255 }).notNull(),
     region: varchar("region", { length: 255 }).notNull(),
 
     // json representation of the policy
@@ -28,7 +29,7 @@ export const ciliumNetworkPolicies = mysqlTable(
   },
   (table) => [
     index("idx_environment_id").on(table.environmentId),
-    uniqueIndex("one_env_per_region").on(table.environmentId, table.region),
+    uniqueIndex("one_env_per_region").on(table.environmentId, table.region, table.k8sName),
     uniqueIndex("unique_version_per_region").on(table.region, table.version),
   ],
 );

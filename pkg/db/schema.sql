@@ -655,6 +655,7 @@ CREATE TABLE `cilium_network_policies` (
 	`project_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
+	`k8s_namespace` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
 	`policy` json NOT NULL,
 	`version` bigint unsigned NOT NULL,
@@ -662,8 +663,7 @@ CREATE TABLE `cilium_network_policies` (
 	`updated_at` bigint,
 	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
-	CONSTRAINT `cilium_network_policies_k8s_name_unique` UNIQUE(`k8s_name`),
-	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`),
+	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`,`k8s_name`),
 	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
 );
 

@@ -179,18 +179,15 @@ type Querier interface {
 	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
 	//FindCiliumNetworkPoliciesByEnvironmentID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
 	FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]CiliumNetworkPolicy, error)
 	//FindCiliumNetworkPolicyByIDAndRegion
 	//
-	//  SELECT
-	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
-	//      w.k8s_namespace
-	//  FROM `cilium_network_policies` n
-	//  JOIN `workspaces` w ON w.id = n.workspace_id
-	//  WHERE n.region = ? AND n.id = ?
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+	//  FROM `cilium_network_policies`
+	//  WHERE region = ? AND id = ?
 	//  LIMIT 1
-	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (FindCiliumNetworkPolicyByIDAndRegionRow, error)
+	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (CiliumNetworkPolicy, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -1204,11 +1201,13 @@ type Querier interface {
 	//      project_id,
 	//      environment_id,
 	//      k8s_name,
+	//      k8s_namespace,
 	//      region,
 	//      policy,
 	//      version,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1767,15 +1766,12 @@ type Querier interface {
 	// ListCiliumNetworkPoliciesByRegion returns cilium network policies for a region with version > after_version.
 	// Used by WatchCiliumNetworkPolicies to stream policy state changes to krane agents.
 	//
-	//  SELECT
-	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
-	//      w.k8s_namespace
-	//  FROM `cilium_network_policies` n
-	//  JOIN `workspaces` w ON w.id = n.workspace_id
-	//  WHERE n.region = ? AND n.version > ?
-	//  ORDER BY n.version ASC
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+	//  FROM `cilium_network_policies`
+	//  WHERE region = ? AND version > ?
+	//  ORDER BY version ASC
 	//  LIMIT ?
-	ListCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX, arg ListCiliumNetworkPoliciesByRegionParams) ([]ListCiliumNetworkPoliciesByRegionRow, error)
+	ListCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX, arg ListCiliumNetworkPoliciesByRegionParams) ([]CiliumNetworkPolicy, error)
 	//ListCustomDomainsByProjectID
 	//
 	//  SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
@@ -1823,15 +1819,12 @@ type Querier interface {
 	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
 	//ListDesiredNetworkPolicies
 	//
-	//  SELECT
-	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
-	//      w.k8s_namespace
-	//  FROM `cilium_network_policies` n
-	//  INNER JOIN `workspaces` w ON n.workspace_id = w.id
-	//  WHERE (? = '' OR n.region = ?) AND n.id > ?
-	//  ORDER BY n.id ASC
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+	//  FROM `cilium_network_policies`
+	//  WHERE (? = '' OR region = ?) AND id > ?
+	//  ORDER BY id ASC
 	//  LIMIT ?
-	ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg ListDesiredNetworkPoliciesParams) ([]ListDesiredNetworkPoliciesRow, error)
+	ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg ListDesiredNetworkPoliciesParams) ([]CiliumNetworkPolicy, error)
 	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
 	// Used during bootstrap to stream all running sentinels to krane.
 	//
@@ -2020,15 +2013,12 @@ type Querier interface {
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListNetworkPolicyByRegion
 	//
-	//  SELECT
-	//      n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
-	//      w.k8s_namespace
-	//  FROM `cilium_network_policies` n
-	//  INNER JOIN `workspaces` w ON n.workspace_id = w.id
-	//  WHERE n.region = ? AND n.version > ?
-	//  ORDER BY n.version ASC
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+	//  FROM `cilium_network_policies`
+	//  WHERE region = ? AND version > ?
+	//  ORDER BY version ASC
 	//  LIMIT ?
-	ListNetworkPolicyByRegion(ctx context.Context, db DBTX, arg ListNetworkPolicyByRegionParams) ([]ListNetworkPolicyByRegionRow, error)
+	ListNetworkPolicyByRegion(ctx context.Context, db DBTX, arg ListNetworkPolicyByRegionParams) ([]CiliumNetworkPolicy, error)
 	//ListPermissions
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2310,7 +2300,7 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
-	//UpdateCiliumNetworkPolicyByEnvironmentAndRegion
+	//UpdateCiliumNetworkPolicyByEnvironmentRegionAndName
 	//
 	//  UPDATE cilium_network_policies
 	//  SET policy = ?,
@@ -2318,7 +2308,8 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE environment_id = ?
 	//    AND region = ?
-	UpdateCiliumNetworkPolicyByEnvironmentAndRegion(ctx context.Context, db DBTX, arg UpdateCiliumNetworkPolicyByEnvironmentAndRegionParams) error
+	//    AND k8s_name = ?
+	UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(ctx context.Context, db DBTX, arg UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams) error
 	//UpdateClickhouseWorkspaceSettingsLimits
 	//
 	//  UPDATE `clickhouse_workspace_settings`

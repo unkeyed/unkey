@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -17,7 +18,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ciliumPolicySpec holds everything needed to upsert a single Cilium policy row.
+type ciliumPolicySpec struct {
+	k8sName      string
+	k8sNamespace string
+	policy       ciliumv2.CiliumNetworkPolicy
+}
+
 // ensureCiliumNetworkPolicy persists or updates Cilium policies for all deployment regions.
+//
+// Two policies are created per environment per region:
+//  1. Ingress: in the workspace namespace, allows sentinel → deployment on the deployment port
+//  2. Egress: in the sentinel namespace, allows sentinel → deployment on the deployment port
 //
 // The control plane stores policies in the database so regional reconcilers can apply
 // them without recomputing intent. The port is taken from the deployment's snapshotted
@@ -40,113 +52,199 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 		return fmt.Errorf("failed to query existing cilium policies: %w", err)
 	}
 
-	policyByRegion := make(map[string]db.CiliumNetworkPolicy)
+	// Key by region:k8s_name so we can distinguish ingress vs egress per region.
+	existingByKey := make(map[string]db.CiliumNetworkPolicy)
 	for _, policy := range existingPolicies {
-		policyByRegion[policy.Region] = policy
+		key := policy.Region + ":" + policy.K8sName
+		existingByKey[key] = policy
 	}
 
 	for _, topo := range topologies {
-		existing, hasExisting := policyByRegion[topo.Region]
+		specs := buildPolicySpecs(workspace, environment, deploymentPort)
 
-		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		for _, spec := range specs {
+			lookupKey := topo.Region + ":" + spec.k8sName
+			existing, hasExisting := existingByKey[lookupKey]
 
-			policyVersion, err := hydrav1.NewVersioningServiceClient(ctx, topo.Region).NextVersion().Request(&hydrav1.NextVersionRequest{})
-			if err != nil {
-				return fmt.Errorf("failed to get next version for cilium policy: %w", err)
-			}
-
+			// Build the policy payload with the correct ID label before comparing.
 			policyID := uid.New(uid.CiliumNetworkPolicyPrefix)
 			if hasExisting {
 				policyID = existing.ID
 			}
 
-			policyLabels := labels.New().
-				ManagedByKrane().
-				ComponentDeployment().
-				NetworkPolicyID(policyID).
-				EnvironmentID(environment.ID).
-				WorkspaceID(workspace.ID)
-			//nolint:exhaustruct
-			policy := ciliumv2.CiliumNetworkPolicy{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "cilium.io/v2",
-					Kind:       "CiliumNetworkPolicy",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("sentinel-to-deployment-in-%s", environment.Slug),
-					Namespace: workspace.K8sNamespace.String,
-					Labels:    policyLabels,
-				},
-				Spec: &api.Rule{
-					Description: fmt.Sprintf("Allow ingress from sentinel for workspace %s environment %s", workspace.ID, environment.ID),
-					EndpointSelector: api.EndpointSelector{
-						LabelSelector: &slim_metav1.LabelSelector{
-							MatchLabels: labels.New().ManagedByKrane().ComponentDeployment().EnvironmentID(environment.ID),
-						},
-					},
-
-					Ingress: []api.IngressRule{
-						{
-							IngressCommonRule: api.IngressCommonRule{
-								FromEndpoints: []api.EndpointSelector{
-									{
-										LabelSelector: &slim_metav1.LabelSelector{
-											MatchLabels: labels.New().Namespace(sentinelNamespace).WorkspaceID(workspace.ID).EnvironmentID(environment.ID),
-										},
-									},
-								},
-							},
-							ToPorts: api.PortRules{
-								{
-									Ports: []api.PortProtocol{
-										{
-											Port:     fmt.Sprintf("%d", deploymentPort),
-											Protocol: api.ProtoTCP,
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+			policyObj := spec.policy
+			if policyObj.Labels == nil {
+				policyObj.Labels = make(map[string]string)
 			}
+			policyObj.Labels[labels.LabelKeyNetworkPolicyID] = policyID
 
-			policyPayload, err := json.Marshal(policy)
+			policyPayload, err := json.Marshal(policyObj)
 			if err != nil {
-				return fmt.Errorf("failed to marshal cilium policy: %w", err)
+				return fmt.Errorf("failed to marshal cilium policy %s: %w", spec.k8sName, err)
 			}
 
-			if hasExisting {
-				return db.Query.UpdateCiliumNetworkPolicyByEnvironmentAndRegion(runCtx, w.db.RW(), db.UpdateCiliumNetworkPolicyByEnvironmentAndRegionParams{
+			// Skip the DB write if the policy is unchanged.
+			if hasExisting && bytes.Equal(existing.Policy, policyPayload) {
+				continue
+			}
+
+			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+
+				policyVersion, err := hydrav1.NewVersioningServiceClient(ctx, topo.Region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+				if err != nil {
+					return fmt.Errorf("failed to get next version for cilium policy %s: %w", spec.k8sName, err)
+				}
+
+				if hasExisting {
+					return db.Query.UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(runCtx, w.db.RW(), db.UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams{
+						Policy:        policyPayload,
+						Version:       policyVersion.GetVersion(),
+						UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+						EnvironmentID: environment.ID,
+						Region:        topo.Region,
+						K8sName:       spec.k8sName,
+					})
+				}
+
+				err = db.Query.InsertCiliumNetworkPolicy(runCtx, w.db.RW(), db.InsertCiliumNetworkPolicyParams{
+					ID:            policyID,
+					WorkspaceID:   workspace.ID,
+					ProjectID:     project.ID,
+					EnvironmentID: environment.ID,
+					K8sName:       spec.k8sName,
+					K8sNamespace:  spec.k8sNamespace,
+					Region:        topo.Region,
 					Policy:        policyPayload,
 					Version:       policyVersion.GetVersion(),
-					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-					EnvironmentID: environment.ID,
-					Region:        topo.Region,
+					CreatedAt:     time.Now().UnixMilli(),
 				})
-			}
+				if err != nil && !db.IsDuplicateKeyError(err) {
+					return fmt.Errorf("failed to insert cilium policy %s into db: %w", spec.k8sName, err)
+				}
+				return nil
 
-			err = db.Query.InsertCiliumNetworkPolicy(runCtx, w.db.RW(), db.InsertCiliumNetworkPolicyParams{
-				ID:            policyID,
-				WorkspaceID:   workspace.ID,
-				ProjectID:     project.ID,
-				EnvironmentID: environment.ID,
-				K8sName:       policy.GetName(),
-				Region:        topo.Region,
-				Policy:        policyPayload,
-				Version:       policyVersion.GetVersion(),
-				CreatedAt:     time.Now().UnixMilli(),
-			})
-			if err != nil && !db.IsDuplicateKeyError(err) {
-				return fmt.Errorf("failed to insert cilium policy into db: %w", err)
+			}, restate.WithName(fmt.Sprintf("upsert network policy %s", spec.k8sName)))
+			if err != nil {
+				return err
 			}
-			return nil
-
-		}, restate.WithName("upsert network policy"))
-		if err != nil {
-			return err
 		}
-
 	}
 	return nil
+}
+
+// buildPolicySpecs returns the ingress and egress policy specs for an environment.
+func buildPolicySpecs(
+	workspace db.Workspace,
+	environment db.FindEnvironmentByIdRow,
+	deploymentPort int32,
+) []ciliumPolicySpec {
+	portStr := fmt.Sprintf("%d", deploymentPort)
+
+	ingressName := fmt.Sprintf("sentinel-to-deployment-in-%s", environment.Slug)
+	egressName := fmt.Sprintf("sentinel-egress-to-%s", environment.Slug)
+
+	ingressLabels := labels.New().
+		ManagedByKrane().
+		ComponentDeployment().
+		EnvironmentID(environment.ID).
+		WorkspaceID(workspace.ID)
+
+	egressLabels := labels.New().
+		ManagedByKrane().
+		ComponentSentinel().
+		EnvironmentID(environment.ID).
+		WorkspaceID(workspace.ID)
+
+	//nolint:exhaustruct
+	ingress := ciliumv2.CiliumNetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "cilium.io/v2",
+			Kind:       "CiliumNetworkPolicy",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ingressName,
+			Namespace: workspace.K8sNamespace.String,
+			Labels:    ingressLabels,
+		},
+		Spec: &api.Rule{
+			Description: fmt.Sprintf("Allow ingress from sentinel for workspace %s environment %s", workspace.ID, environment.ID),
+			EndpointSelector: api.EndpointSelector{
+				LabelSelector: &slim_metav1.LabelSelector{
+					MatchLabels: labels.New().ManagedByKrane().ComponentDeployment().EnvironmentID(environment.ID),
+				},
+			},
+			Ingress: []api.IngressRule{
+				{
+					IngressCommonRule: api.IngressCommonRule{
+						FromEndpoints: []api.EndpointSelector{
+							{
+								LabelSelector: &slim_metav1.LabelSelector{
+									MatchLabels: labels.New().Namespace(sentinelNamespace).WorkspaceID(workspace.ID).EnvironmentID(environment.ID),
+								},
+							},
+						},
+					},
+					ToPorts: api.PortRules{
+						{
+							Ports: []api.PortProtocol{
+								{
+									Port:     portStr,
+									Protocol: api.ProtoTCP,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	//nolint:exhaustruct
+	egress := ciliumv2.CiliumNetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "cilium.io/v2",
+			Kind:       "CiliumNetworkPolicy",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      egressName,
+			Namespace: sentinelNamespace,
+			Labels:    egressLabels,
+		},
+		Spec: &api.Rule{
+			Description: fmt.Sprintf("Allow sentinel egress to deployment for workspace %s environment %s", workspace.ID, environment.ID),
+			EndpointSelector: api.EndpointSelector{
+				LabelSelector: &slim_metav1.LabelSelector{
+					MatchLabels: labels.New().ComponentSentinel().EnvironmentID(environment.ID).WorkspaceID(workspace.ID),
+				},
+			},
+			Egress: []api.EgressRule{
+				{
+					EgressCommonRule: api.EgressCommonRule{
+						ToEndpoints: []api.EndpointSelector{
+							{
+								LabelSelector: &slim_metav1.LabelSelector{
+									MatchLabels: labels.New().Namespace(workspace.K8sNamespace.String).ManagedByKrane().ComponentDeployment().EnvironmentID(environment.ID),
+								},
+							},
+						},
+					},
+					ToPorts: api.PortRules{
+						{
+							Ports: []api.PortProtocol{
+								{
+									Port:     portStr,
+									Protocol: api.ProtoTCP,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return []ciliumPolicySpec{
+		{k8sName: ingressName, k8sNamespace: workspace.K8sNamespace.String, policy: ingress},
+		{k8sName: egressName, k8sNamespace: sentinelNamespace, policy: egress},
+	}
 }

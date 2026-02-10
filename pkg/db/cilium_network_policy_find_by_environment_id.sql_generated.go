@@ -10,12 +10,12 @@ import (
 )
 
 const findCiliumNetworkPoliciesByEnvironmentID = `-- name: FindCiliumNetworkPoliciesByEnvironmentID :many
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
+SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
 `
 
 // FindCiliumNetworkPoliciesByEnvironmentID
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
+//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
 func (q *Queries) FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]CiliumNetworkPolicy, error) {
 	rows, err := db.QueryContext(ctx, findCiliumNetworkPoliciesByEnvironmentID, environmentID)
 	if err != nil {
@@ -32,6 +32,7 @@ func (q *Queries) FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, 
 			&i.ProjectID,
 			&i.EnvironmentID,
 			&i.K8sName,
+			&i.K8sNamespace,
 			&i.Region,
 			&i.Policy,
 			&i.Version,

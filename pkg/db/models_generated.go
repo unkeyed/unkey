@@ -1062,6 +1062,7 @@ type CiliumNetworkPolicy struct {
 	ProjectID     string          `db:"project_id"`
 	EnvironmentID string          `db:"environment_id"`
 	K8sName       string          `db:"k8s_name"`
+	K8sNamespace  string          `db:"k8s_namespace"`
 	Region        string          `db:"region"`
 	Policy        json.RawMessage `db:"policy"`
 	Version       uint64          `db:"version"`

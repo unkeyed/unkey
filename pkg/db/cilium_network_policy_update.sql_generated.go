@@ -11,24 +11,26 @@ import (
 	"encoding/json"
 )
 
-const updateCiliumNetworkPolicyByEnvironmentAndRegion = `-- name: UpdateCiliumNetworkPolicyByEnvironmentAndRegion :exec
+const updateCiliumNetworkPolicyByEnvironmentRegionAndName = `-- name: UpdateCiliumNetworkPolicyByEnvironmentRegionAndName :exec
 UPDATE cilium_network_policies
 SET policy = ?,
     version = ?,
     updated_at = ?
 WHERE environment_id = ?
   AND region = ?
+  AND k8s_name = ?
 `
 
-type UpdateCiliumNetworkPolicyByEnvironmentAndRegionParams struct {
+type UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams struct {
 	Policy        json.RawMessage `db:"policy"`
 	Version       uint64          `db:"version"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 	EnvironmentID string          `db:"environment_id"`
 	Region        string          `db:"region"`
+	K8sName       string          `db:"k8s_name"`
 }
 
-// UpdateCiliumNetworkPolicyByEnvironmentAndRegion
+// UpdateCiliumNetworkPolicyByEnvironmentRegionAndName
 //
 //	UPDATE cilium_network_policies
 //	SET policy = ?,
@@ -36,13 +38,15 @@ type UpdateCiliumNetworkPolicyByEnvironmentAndRegionParams struct {
 //	    updated_at = ?
 //	WHERE environment_id = ?
 //	  AND region = ?
-func (q *Queries) UpdateCiliumNetworkPolicyByEnvironmentAndRegion(ctx context.Context, db DBTX, arg UpdateCiliumNetworkPolicyByEnvironmentAndRegionParams) error {
-	_, err := db.ExecContext(ctx, updateCiliumNetworkPolicyByEnvironmentAndRegion,
+//	  AND k8s_name = ?
+func (q *Queries) UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(ctx context.Context, db DBTX, arg UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams) error {
+	_, err := db.ExecContext(ctx, updateCiliumNetworkPolicyByEnvironmentRegionAndName,
 		arg.Policy,
 		arg.Version,
 		arg.UpdatedAt,
 		arg.EnvironmentID,
 		arg.Region,
+		arg.K8sName,
 	)
 	return err
 }

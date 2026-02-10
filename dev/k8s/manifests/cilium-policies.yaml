@@ -80,28 +80,6 @@ spec:
             - port: "8040"
               protocol: TCP
 ---
-# 5. Allow sentinel egress to customer pods
-# Fine-grained workspace/environment matching is done via per-workload policies created by Krane
-apiVersion: cilium.io/v2
-kind: CiliumClusterwideNetworkPolicy
-metadata:
-  name: allow-sentinel-to-customer
-spec:
-  description: "Allow sentinel pods to reach customer pods (fine-grained matching via Krane-created policies)"
-  endpointSelector:
-    matchLabels:
-      io.kubernetes.pod.namespace: sentinel
-      app.kubernetes.io/component: sentinel
-  egress:
-    - toEndpoints:
-        - matchLabels:
-            app.kubernetes.io/managed-by: krane
-            app.kubernetes.io/component: deployment
-      toPorts:
-        - ports:
-            - port: "8080"
-              protocol: TCP
----
 # 5b. Allow sentinel egress to MySQL and ClickHouse
 # Sentinels need database access for routing and state management
 apiVersion: cilium.io/v2
