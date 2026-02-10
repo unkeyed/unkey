@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -16,22 +17,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	// deploymentPort is the port exposed by customer deployments for sentinel traffic.
-	deploymentPort = 8080
-)
-
-// ensureCiliumNetworkPolicy persists missing Cilium policies for all deployment regions.
+// ensureCiliumNetworkPolicy persists or updates Cilium policies for all deployment regions.
 //
 // The control plane stores policies in the database so regional reconcilers can apply
-// them without recomputing intent. Policies are queried once per deployment to avoid
-// per-region reads while still skipping regions that already have policy records.
+// them without recomputing intent. The port is taken from the deployment's snapshotted
+// settings so the policy always matches the running container port. Existing policies
+// are updated when the port changes between deploys.
 func (w *Workflow) ensureCiliumNetworkPolicy(
 	ctx restate.WorkflowSharedContext,
 	workspace db.Workspace,
 	project db.FindProjectByIdRow,
 	environment db.FindEnvironmentByIdRow,
 	topologies []db.InsertDeploymentTopologyParams,
+	deploymentPort int32,
 ) error {
 
 	existingPolicies, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.CiliumNetworkPolicy, error) {
@@ -48,9 +46,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 	}
 
 	for _, topo := range topologies {
-		if _, ok := policyByRegion[topo.Region]; ok {
-			continue
-		}
+		existing, hasExisting := policyByRegion[topo.Region]
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 
@@ -60,6 +56,10 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 			}
 
 			policyID := uid.New(uid.CiliumNetworkPolicyPrefix)
+			if hasExisting {
+				policyID = existing.ID
+			}
+
 			policyLabels := labels.New().
 				ManagedByKrane().
 				ComponentDeployment().
@@ -115,6 +115,17 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 			if err != nil {
 				return fmt.Errorf("failed to marshal cilium policy: %w", err)
 			}
+
+			if hasExisting {
+				return db.Query.UpdateCiliumNetworkPolicyByEnvironmentAndRegion(runCtx, w.db.RW(), db.UpdateCiliumNetworkPolicyByEnvironmentAndRegionParams{
+					Policy:        policyPayload,
+					Version:       policyVersion.GetVersion(),
+					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					EnvironmentID: environment.ID,
+					Region:        topo.Region,
+				})
+			}
+
 			err = db.Query.InsertCiliumNetworkPolicy(runCtx, w.db.RW(), db.InsertCiliumNetworkPolicyParams{
 				ID:            policyID,
 				WorkspaceID:   workspace.ID,
@@ -131,7 +142,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 			}
 			return nil
 
-		}, restate.WithName("create network policy"))
+		}, restate.WithName("upsert network policy"))
 		if err != nil {
 			return err
 		}
