@@ -85,6 +85,8 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		desiredState = db.DeploymentsDesiredStateArchived
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED:
 		return nil, restate.TerminalErrorf("invalid state: %s", req.GetState())
+	default:
+		return nil, restate.TerminalErrorf("unhandled state: %s", req.GetState())
 	}
 
 	// actually do state change here
