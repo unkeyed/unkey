@@ -47,7 +47,7 @@ export function DeploymentLogsSection() {
               className="text-accent-12 text-[13px]"
               disabled={isBuildPhase}
             >
-              Logs
+              Requests
             </TabsTrigger>
             <TabsTrigger value="build-logs" className="text-accent-12 text-[13px]">
               Build logs
