@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertEnvironmentRuntimeSettings is the base query for bulk insert
-const bulkUpsertEnvironmentRuntimeSettings = `INSERT INTO environment_runtime_settings ( id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, restart_policy, shutdown_signal, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertEnvironmentRuntimeSettings = `INSERT INTO environment_runtime_settings ( id, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, restart_policy, shutdown_signal, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
     memory_mib = VALUES(memory_mib),
@@ -17,7 +17,8 @@ const bulkUpsertEnvironmentRuntimeSettings = `INSERT INTO environment_runtime_se
     healthcheck = VALUES(healthcheck),
     region_config = VALUES(region_config),
     restart_policy = VALUES(restart_policy),
-    shutdown_signal = VALUES(shutdown_signal)`
+    shutdown_signal = VALUES(shutdown_signal),
+    updated_at = VALUES(updated_at)`
 
 // UpsertEnvironmentRuntimeSettings performs bulk insert in a single query
 func (q *BulkQueries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, args []UpsertEnvironmentRuntimeSettingsParams) error {
@@ -29,7 +30,7 @@ func (q *BulkQueries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db D
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertEnvironmentRuntimeSettings, strings.Join(valueClauses, ", "))
@@ -49,6 +50,7 @@ func (q *BulkQueries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db D
 		allArgs = append(allArgs, arg.RestartPolicy)
 		allArgs = append(allArgs, arg.ShutdownSignal)
 		allArgs = append(allArgs, arg.CreatedAt)
+		allArgs = append(allArgs, arg.UpdatedAt)
 	}
 
 	// Execute the bulk insert

@@ -223,6 +223,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		RestartPolicy:  db.EnvironmentRuntimeSettingsRestartPolicyAlways,
 		ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
 		CreatedAt:      now,
+		UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
 	})
 	require.NoError(s.t, err)
 
@@ -233,6 +234,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Dockerfile:    "Dockerfile",
 		DockerContext: ".",
 		CreatedAt:     now,
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 	})
 	require.NoError(s.t, err)
 

@@ -11,8 +11,9 @@ INSERT INTO environment_runtime_settings (
     region_config,
     restart_policy,
     shutdown_signal,
-    created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    created_at,
+    updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
@@ -21,4 +22,5 @@ ON DUPLICATE KEY UPDATE
     healthcheck = VALUES(healthcheck),
     region_config = VALUES(region_config),
     restart_policy = VALUES(restart_policy),
-    shutdown_signal = VALUES(shutdown_signal);
+    shutdown_signal = VALUES(shutdown_signal),
+    updated_at = VALUES(updated_at);

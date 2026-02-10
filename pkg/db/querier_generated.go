@@ -2576,11 +2576,13 @@ type Querier interface {
 	//      environment_id,
 	//      dockerfile,
 	//      docker_context,
-	//      created_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?)
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      dockerfile = VALUES(dockerfile),
-	//      docker_context = VALUES(docker_context)
+	//      docker_context = VALUES(docker_context),
+	//      updated_at = VALUES(updated_at)
 	UpsertEnvironmentBuildSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentBuildSettingsParams) error
 	//UpsertEnvironmentRuntimeSettings
 	//
@@ -2596,8 +2598,9 @@ type Querier interface {
 	//      region_config,
 	//      restart_policy,
 	//      shutdown_signal,
-	//      created_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      port = VALUES(port),
 	//      cpu_millicores = VALUES(cpu_millicores),
@@ -2606,7 +2609,8 @@ type Querier interface {
 	//      healthcheck = VALUES(healthcheck),
 	//      region_config = VALUES(region_config),
 	//      restart_policy = VALUES(restart_policy),
-	//      shutdown_signal = VALUES(shutdown_signal)
+	//      shutdown_signal = VALUES(shutdown_signal),
+	//      updated_at = VALUES(updated_at)
 	UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentRuntimeSettingsParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
 	// Use FindIdentityByExternalID after this to get the actual ID.

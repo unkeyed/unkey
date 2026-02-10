@@ -170,6 +170,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				RestartPolicy:  db.EnvironmentRuntimeSettingsRestartPolicyAlways,
 				ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
 				CreatedAt:      now,
+				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
 			},
 			{
 				ID:             uid.New(uid.EnvironmentRuntimeSettingsPrefix),
@@ -184,6 +185,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				RestartPolicy:  db.EnvironmentRuntimeSettingsRestartPolicyAlways,
 				ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
 				CreatedAt:      now,
+				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
 			},
 		})
 		if err != nil {
@@ -199,6 +201,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",
 				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
 			{
 				ID:            uid.New(uid.EnvironmentBuildSettingsPrefix),
@@ -207,6 +210,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",
 				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
 		})
 		if err != nil {

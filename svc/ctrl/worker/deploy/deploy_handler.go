@@ -184,7 +184,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	runtimeSettings, runtimeSettingsErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.EnvironmentRuntimeSetting, error) {
 		return db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(runCtx, w.db.RO(), deployment.EnvironmentID)
 	}, restate.WithName("find runtime settings for region config"))
-	if runtimeSettingsErr == nil && len(runtimeSettings.RegionConfig) > 0 {
+	if runtimeSettingsErr != nil {
+		return nil, fmt.Errorf("failed to find runtime settings for environment %s: %w", deployment.EnvironmentID, runtimeSettingsErr)
+	}
+	if len(runtimeSettings.RegionConfig) > 0 {
 		for region, count := range runtimeSettings.RegionConfig {
 			regionConfig[region] = count
 		}

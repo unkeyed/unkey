@@ -27,7 +27,7 @@ func (r *RegionConfig) Scan(value interface{}) error {
 		return fmt.Errorf("RegionConfig.Scan: expected []byte or string, got %T", value)
 	}
 
-	if len(bytes) == 0 {
+	if len(bytes) == 0 || string(bytes) == "null" {
 		*r = RegionConfig{}
 		return nil
 	}
