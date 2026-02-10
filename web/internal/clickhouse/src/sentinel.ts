@@ -59,8 +59,27 @@ const timeseriesPointSchema = z.object({ x: z.number().int(), y: z.number() });
 // Logs
 // ─────────────────────────────────────────────────────────────
 
-export const sentinelLogsRequestSchema = baseDeploymentParams.extend({
+export const sentinelLogsRequestSchema = z.object({
+  workspaceId: z.string(),
+  projectId: z.string(),
+  deploymentId: z.string().nullable().default(null),
+  environmentId: z.string().nullable().default(null),
   limit: z.number().int().positive().default(50),
+  startTime: z.number().int().default(0),
+  endTime: z.number().int().default(0),
+  since: z.string().default(""),
+  statusCodes: z.array(z.number().int()).nullable().default(null),
+  methods: z.array(z.string()).nullable().default(null),
+  paths: z
+    .array(
+      z.object({
+        operator: z.literal("contains"),
+        value: z.string(),
+      }),
+    )
+    .nullable()
+    .default(null),
+  cursor: z.number().int().nullable().optional(),
 });
 
 export type SentinelLogsRequest = z.infer<typeof sentinelLogsRequestSchema>;
@@ -72,31 +91,99 @@ export const sentinelLogsResponseSchema = z.object({
   region: z.string(),
   method: z.string(),
   path: z.string(),
+  host: z.string(),
   response_status: z.number().int(),
   total_latency: z.number().int(),
   instance_latency: z.number().int(),
   sentinel_latency: z.number().int(),
+  query_string: z.string(),
+  query_params: z.record(z.string(), z.array(z.string())),
+  request_headers: z.array(z.string()),
+  request_body: z.string(),
+  response_headers: z.array(z.string()),
+  response_body: z.string(),
+  user_agent: z.string(),
+  ip_address: z.string(),
 });
 
 export type SentinelLogsResponse = z.infer<typeof sentinelLogsResponseSchema>;
 
 export function getSentinelLogs(ch: Querier) {
   return async (args: SentinelLogsRequest) => {
-    const query = ch.query({
+    // Build path filter conditions
+    let pathConditions = "TRUE";
+    const pathParams: Record<string, z.ZodString> = {};
+
+    if (args.paths && args.paths.length > 0) {
+      const conditions = args.paths.map((_, i) => {
+        const key = `pathValue${i}`;
+        pathParams[key] = z.string();
+        return `position(path, {${key}: String}) > 0`;
+      });
+      pathConditions = `(${conditions.join(" OR ")})`;
+    }
+
+    // Build base filters (workspace + project only)
+    const baseFilter = `
+      workspace_id = {workspaceId: String}
+      AND project_id = {projectId: String}
+    `;
+
+    const filterConditions = `
+      ${baseFilter}
+      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      AND (CASE WHEN {deploymentId: Nullable(String)} IS NOT NULL
+           THEN position(deployment_id, {deploymentId: Nullable(String)}) > 0
+           ELSE TRUE END)
+      AND (CASE WHEN {environmentId: Nullable(String)} IS NOT NULL
+           THEN position(environment_id, {environmentId: Nullable(String)}) > 0
+           ELSE TRUE END)
+      AND (CASE WHEN length({statusCodes: Array(Int32)}) > 0
+           THEN response_status IN {statusCodes: Array(Int32)}
+           ELSE TRUE END)
+      AND (CASE WHEN length({methods: Array(String)}) > 0
+           THEN method IN {methods: Array(String)}
+           ELSE TRUE END)
+      AND ${pathConditions}
+    `;
+
+    // Convert path params to actual values
+    const pathValues: Record<string, string> = {};
+    if (args.paths) {
+      args.paths.forEach((p, i) => {
+        pathValues[`pathValue${i}`] = p.value;
+      });
+    }
+
+    const totalQuery = ch.query({
+      query: `SELECT count(*) as total_count FROM ${TABLE} WHERE ${filterConditions}`,
+      params: sentinelLogsRequestSchema.extend(
+        Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
+      ),
+      schema: z.object({ total_count: z.number().int() }),
+    });
+
+    const logsQuery = ch.query({
       query: `
-        SELECT
-          request_id, time, deployment_id, region, method, path,
-          response_status, total_latency, instance_latency, sentinel_latency
+        SELECT request_id, time, deployment_id, region, method, path, host,
+               response_status, total_latency, instance_latency, sentinel_latency,
+               query_string, query_params, request_headers, request_body,
+               response_headers, response_body, user_agent, ip_address
         FROM ${TABLE}
-        WHERE ${SQL.deploymentFilter}
-          AND ${SQL.recentHours}
+        WHERE ${filterConditions}
+          AND ({cursor: Nullable(UInt64)} IS NULL OR time < {cursor: Nullable(UInt64)})
         ORDER BY time DESC
         LIMIT {limit: Int}`,
-      params: sentinelLogsRequestSchema.extend({ windowHours: z.number() }),
+      params: sentinelLogsRequestSchema.extend(
+        Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
+      ),
       schema: sentinelLogsResponseSchema,
     });
 
-    return query({ ...args, windowHours: TIMESERIES_WINDOW_HOURS });
+    return {
+      totalQuery: totalQuery({ ...args, ...pathValues } as never),
+      logsQuery: logsQuery({ ...args, ...pathValues } as never),
+    };
   };
 }
 

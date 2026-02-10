@@ -23,7 +23,7 @@ export const queryRuntimeLogs = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to retrieve runtime logs due to an error. If this issue persists, please contact support@unkey.com.",
+            "Failed to retrieve logs due to an error. If this issue persists, please contact support@unkey.com.",
         });
       });
 

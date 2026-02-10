@@ -48,7 +48,7 @@ export const OpenApiDiff = () => {
       newDeploymentId: newDeployment?.id ?? "",
       oldDeploymentId: liveDeploymentId ?? "",
     },
-    { enabled: Boolean(newDeployment?.id) && Boolean(liveDeploymentId) },
+    { enabled: false },
   );
 
   // @ts-expect-error I have no idea why this whines about type diff

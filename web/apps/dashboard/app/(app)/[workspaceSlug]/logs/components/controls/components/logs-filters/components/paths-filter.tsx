@@ -1,15 +1,10 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/logs/hooks/use-filters";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
-import { logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
 
 export const PathsFilter = () => {
   const { filters, updateFilters } = useFilters();
 
-  const pathOperators = logsFilterFieldConfig.paths.operators;
-  const options = pathOperators.map((op) => ({
-    id: op,
-    label: op,
-  }));
+  const options = [{ id: "contains" as const, label: "contains" }];
 
   const activePathFilter = filters.find((f) => f.field === "paths");
 
@@ -19,14 +14,14 @@ export const PathsFilter = () => {
       options={options}
       defaultOption={activePathFilter?.operator}
       defaultText={activePathFilter?.value as string}
-      onApply={(id, text) => {
+      onApply={(_, text) => {
         const activeFiltersWithoutPaths = filters.filter((f) => f.field !== "paths");
         updateFilters([
           ...activeFiltersWithoutPaths,
           {
             field: "paths",
             id: crypto.randomUUID(),
-            operator: id,
+            operator: "contains",
             value: text,
           },
         ]);
