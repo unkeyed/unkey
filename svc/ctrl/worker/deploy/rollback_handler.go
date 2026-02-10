@@ -23,6 +23,8 @@ import (
 // belong to the same project and environment, and that there are sticky frontline
 // routes to rollback.
 //
+// Before switching routes, any pending scheduled state changes on the target
+// deployment are cleared so it won't be spun down while serving live traffic.
 // After switching routes, the project is marked as rolled back to prevent new
 // deployments from automatically taking over the live routes.
 //
@@ -84,6 +86,12 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 	// Validate source deployment is the live deployment
 	if !project.LiveDeploymentID.Valid || project.LiveDeploymentID.String != sourceDeployment.ID {
 		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current live deployment"), 400)
+	}
+
+	// ensure the rolled back deployment does not get spun down from existing scheduled actions
+	_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
+	if err != nil {
+		return nil, err
 	}
 
 	// Get all frontlineRoutes on the live deployment that are sticky

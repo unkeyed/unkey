@@ -48,7 +48,7 @@ const (
 // new deployment. For production deployments, the project's live deployment
 // pointer is updated unless the project is in a rolled-back state. After a
 // successful deploy, the previous live deployment is scheduled for standby after
-// 30 minutes via DeploymentService.ScheduleDesiredStateChange.
+// 1 minute via DeploymentService.ScheduleDesiredStateChange.
 //
 // If any step fails, the deployment status is automatically set to failed via a
 // deferred cleanup handler, ensuring the database reflects the true deployment state.
@@ -419,14 +419,17 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	if previousLiveDeploymentID.Valid {
-		hydrav1.NewDeploymentServiceClient(ctx, previousLiveDeploymentID.String).
-			ScheduleDesiredStateChange().Send(
+		_, err = hydrav1.NewDeploymentServiceClient(ctx, previousLiveDeploymentID.String).
+			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
-				After: time.Now().Add(30 * time.Minute).UnixMilli(),
-				State: hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+				DelayMillis: (30 * time.Minute).Milliseconds(),
+				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
 			},
 			restate.WithIdempotencyKey(deployment.ID),
 		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	logger.Info("deployment workflow completed",

@@ -30,19 +30,19 @@ Workflows call each other using blocking (`Object.Request`) or fire-and-forget (
 
 ### DeployService
 
-**Location:** `go/apps/ctrl/workflows/deploy/`
-**Proto:** `go/proto/hydra/v1/deployment.proto`
+**Location:** `svc/ctrl/worker/deploy/`
+**Proto:** `svc/ctrl/proto/hydra/v1/deployment.proto`
 **Key:** `project_id`
-**Operations:** Deploy, Rollback, Promote
+**Operations:** Deploy, Rollback, Promote, ScaleDownIdlePreviewDeployments
 
-Handles deployment lifecycle: building containers via Krane, polling status, scraping OpenAPI specs, and assigning domains.
+Handles deployment lifecycle: building containers via Depot, creating regional topologies, polling instance readiness, and assigning frontline routes.
 
 See: [Deployment Service](./deployment-service)
 
 ### RoutingService
 
-**Location:** `go/apps/ctrl/workflows/routing/`
-**Proto:** `go/proto/hydra/v1/routing.proto`
+**Location:** `svc/ctrl/worker/routing/`
+**Proto:** `svc/ctrl/proto/hydra/v1/routing.proto`
 **Key:** `project_id`
 **Operations:** AssignFrontlineRoutes
 
@@ -52,8 +52,8 @@ See: [Routing Service](./routing-service)
 
 ### CertificateService
 
-**Location:** `go/apps/ctrl/workflows/certificate/`
-**Proto:** `go/proto/hydra/v1/certificate.proto`
+**Location:** `svc/ctrl/worker/certificate/`
+**Proto:** `svc/ctrl/proto/hydra/v1/certificate.proto`
 **Key:** `domain`
 **Operations:** ProcessChallenge
 
@@ -61,7 +61,7 @@ Handles ACME certificate challenges and issuance for custom domains.
 
 ## Configuration
 
-Services auto-register with Restate on startup via `go/apps/ctrl/run.go`. Config fields (see `go/apps/ctrl/config.go`):
+Services auto-register with Restate on startup via `svc/ctrl/worker/run.go`. Config fields (see `svc/ctrl/worker/config.go`):
 
 - `Restate.URL`: Restate ingress endpoint for invoking workflows
 - `Restate.AdminURL`: Restate admin endpoint for service registration

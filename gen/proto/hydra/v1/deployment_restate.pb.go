@@ -14,9 +14,44 @@ import (
 )
 
 // DeploymentServiceClient is the client API for hydra.v1.DeploymentService service.
+//
+// DeploymentService manages desired-state transitions for a single deployment
+// as a Restate virtual object keyed by deployment ID. The virtual object key
+// guarantees that only one state change operation executes per deployment at a
+// time, preventing conflicting concurrent transitions.
+//
+// State transitions use last-writer-wins semantics: calling
+// ScheduleDesiredStateChange while a previous transition is still pending
+// overwrites it. This is implemented via a nonce — each schedule generates a
+// unique nonce stored in Restate state, and ChangeDesiredState silently no-ops
+// if its nonce doesn't match the stored one, meaning the transition was
+// superseded by a newer schedule.
+//
+// Typical flow:
+//  1. Caller invokes ScheduleDesiredStateChange with a target state and a
+//     relative delay in milliseconds for when the change should take effect.
+//  2. The handler stores the transition record and sends a delayed
+//     ChangeDesiredState call to itself.
+//  3. When the delay elapses, ChangeDesiredState verifies the nonce still
+//     matches and persists the new desired state to the database.
 type DeploymentServiceClient interface {
+	// ScheduleDesiredStateChange registers a future desired-state transition for
+	// this deployment. It generates a nonce, stores a transition record in Restate
+	// state, and sends a delayed ChangeDesiredState call to itself after the
+	// requested delay. Calling this again before the previous transition fires
+	// replaces it (last-writer-wins via nonce).
 	ScheduleDesiredStateChange(opts ...sdk_go.ClientOption) sdk_go.Client[*ScheduleDesiredStateChangeRequest, *ScheduleDesiredStateChangeResponse]
+	// ChangeDesiredState is an internal handler invoked by the delayed call from
+	// ScheduleDesiredStateChange. It verifies the nonce matches the stored
+	// transition record — if it doesn't, the transition was superseded and the
+	// call no-ops. On match, it persists the new desired state to the database.
+	// The deployment ID is derived from the virtual object key.
 	ChangeDesiredState(opts ...sdk_go.ClientOption) sdk_go.Client[*ChangeDesiredStateRequest, *ChangeDesiredStateResponse]
+	// ClearScheduledStateChanges removes the pending transition record from
+	// Restate state, effectively cancelling any scheduled ChangeDesiredState
+	// call. The delayed call may still fire, but it will no-op because
+	// ChangeDesiredState requires a stored transition to exist.
+	ClearScheduledStateChanges(opts ...sdk_go.ClientOption) sdk_go.Client[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse]
 }
 
 type deploymentServiceClient struct {
@@ -49,12 +84,35 @@ func (c *deploymentServiceClient) ChangeDesiredState(opts ...sdk_go.ClientOption
 	return sdk_go.WithRequestType[*ChangeDesiredStateRequest](sdk_go.Object[*ChangeDesiredStateResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "ChangeDesiredState", cOpts...))
 }
 
+func (c *deploymentServiceClient) ClearScheduledStateChanges(opts ...sdk_go.ClientOption) sdk_go.Client[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ClearScheduledStateChangesRequest](sdk_go.Object[*ClearScheduledStateChangesResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "ClearScheduledStateChanges", cOpts...))
+}
+
 // DeploymentServiceIngressClient is the ingress client API for hydra.v1.DeploymentService service.
 //
 // This client is used to call the service from outside of a Restate context.
 type DeploymentServiceIngressClient interface {
+	// ScheduleDesiredStateChange registers a future desired-state transition for
+	// this deployment. It generates a nonce, stores a transition record in Restate
+	// state, and sends a delayed ChangeDesiredState call to itself after the
+	// requested delay. Calling this again before the previous transition fires
+	// replaces it (last-writer-wins via nonce).
 	ScheduleDesiredStateChange() ingress.Requester[*ScheduleDesiredStateChangeRequest, *ScheduleDesiredStateChangeResponse]
+	// ChangeDesiredState is an internal handler invoked by the delayed call from
+	// ScheduleDesiredStateChange. It verifies the nonce matches the stored
+	// transition record — if it doesn't, the transition was superseded and the
+	// call no-ops. On match, it persists the new desired state to the database.
+	// The deployment ID is derived from the virtual object key.
 	ChangeDesiredState() ingress.Requester[*ChangeDesiredStateRequest, *ChangeDesiredStateResponse]
+	// ClearScheduledStateChanges removes the pending transition record from
+	// Restate state, effectively cancelling any scheduled ChangeDesiredState
+	// call. The delayed call may still fire, but it will no-op because
+	// ChangeDesiredState requires a stored transition to exist.
+	ClearScheduledStateChanges() ingress.Requester[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse]
 }
 
 type deploymentServiceIngressClient struct {
@@ -81,12 +139,52 @@ func (c *deploymentServiceIngressClient) ChangeDesiredState() ingress.Requester[
 	return ingress.NewRequester[*ChangeDesiredStateRequest, *ChangeDesiredStateResponse](c.client, c.serviceName, "ChangeDesiredState", &c.key, &codec)
 }
 
+func (c *deploymentServiceIngressClient) ClearScheduledStateChanges() ingress.Requester[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse](c.client, c.serviceName, "ClearScheduledStateChanges", &c.key, &codec)
+}
+
 // DeploymentServiceServer is the server API for hydra.v1.DeploymentService service.
 // All implementations should embed UnimplementedDeploymentServiceServer
 // for forward compatibility.
+//
+// DeploymentService manages desired-state transitions for a single deployment
+// as a Restate virtual object keyed by deployment ID. The virtual object key
+// guarantees that only one state change operation executes per deployment at a
+// time, preventing conflicting concurrent transitions.
+//
+// State transitions use last-writer-wins semantics: calling
+// ScheduleDesiredStateChange while a previous transition is still pending
+// overwrites it. This is implemented via a nonce — each schedule generates a
+// unique nonce stored in Restate state, and ChangeDesiredState silently no-ops
+// if its nonce doesn't match the stored one, meaning the transition was
+// superseded by a newer schedule.
+//
+// Typical flow:
+//  1. Caller invokes ScheduleDesiredStateChange with a target state and a
+//     relative delay in milliseconds for when the change should take effect.
+//  2. The handler stores the transition record and sends a delayed
+//     ChangeDesiredState call to itself.
+//  3. When the delay elapses, ChangeDesiredState verifies the nonce still
+//     matches and persists the new desired state to the database.
 type DeploymentServiceServer interface {
+	// ScheduleDesiredStateChange registers a future desired-state transition for
+	// this deployment. It generates a nonce, stores a transition record in Restate
+	// state, and sends a delayed ChangeDesiredState call to itself after the
+	// requested delay. Calling this again before the previous transition fires
+	// replaces it (last-writer-wins via nonce).
 	ScheduleDesiredStateChange(ctx sdk_go.ObjectContext, req *ScheduleDesiredStateChangeRequest) (*ScheduleDesiredStateChangeResponse, error)
+	// ChangeDesiredState is an internal handler invoked by the delayed call from
+	// ScheduleDesiredStateChange. It verifies the nonce matches the stored
+	// transition record — if it doesn't, the transition was superseded and the
+	// call no-ops. On match, it persists the new desired state to the database.
+	// The deployment ID is derived from the virtual object key.
 	ChangeDesiredState(ctx sdk_go.ObjectContext, req *ChangeDesiredStateRequest) (*ChangeDesiredStateResponse, error)
+	// ClearScheduledStateChanges removes the pending transition record from
+	// Restate state, effectively cancelling any scheduled ChangeDesiredState
+	// call. The delayed call may still fire, but it will no-op because
+	// ChangeDesiredState requires a stored transition to exist.
+	ClearScheduledStateChanges(ctx sdk_go.ObjectContext, req *ClearScheduledStateChangesRequest) (*ClearScheduledStateChangesResponse, error)
 }
 
 // UnimplementedDeploymentServiceServer should be embedded to have
@@ -101,6 +199,9 @@ func (UnimplementedDeploymentServiceServer) ScheduleDesiredStateChange(ctx sdk_g
 }
 func (UnimplementedDeploymentServiceServer) ChangeDesiredState(ctx sdk_go.ObjectContext, req *ChangeDesiredStateRequest) (*ChangeDesiredStateResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method ChangeDesiredState not implemented"), 501)
+}
+func (UnimplementedDeploymentServiceServer) ClearScheduledStateChanges(ctx sdk_go.ObjectContext, req *ClearScheduledStateChangesRequest) (*ClearScheduledStateChangesResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method ClearScheduledStateChanges not implemented"), 501)
 }
 func (UnimplementedDeploymentServiceServer) testEmbeddedByValue() {}
 
@@ -123,5 +224,6 @@ func NewDeploymentServiceServer(srv DeploymentServiceServer, opts ...sdk_go.Serv
 	router := sdk_go.NewObject("hydra.v1.DeploymentService", sOpts...)
 	router = router.Handler("ScheduleDesiredStateChange", sdk_go.NewObjectHandler(srv.ScheduleDesiredStateChange))
 	router = router.Handler("ChangeDesiredState", sdk_go.NewObjectHandler(srv.ChangeDesiredState))
+	router = router.Handler("ClearScheduledStateChanges", sdk_go.NewObjectHandler(srv.ClearScheduledStateChanges))
 	return router
 }

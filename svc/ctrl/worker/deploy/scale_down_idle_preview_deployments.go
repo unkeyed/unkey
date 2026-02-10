@@ -18,7 +18,7 @@ var idleTime = 6 * time.Hour
 // that have received no traffic within the idle window defined by idleTime.
 // Preview environments can accumulate many running deployments from feature
 // branches that are no longer actively used, so this workflow paginates through
-// all preview environments and transitions idle deployments to standby by
+// all preview environments and transitions idle deployments to archived by
 // checking request counts in ClickHouse.
 func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.WorkflowSharedContext, req *hydrav1.ScaleDownIdlePreviewDeploymentsRequest) (*hydrav1.ScaleDownIdlePreviewDeploymentsResponse, error) {
 
@@ -71,13 +71,11 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.WorkflowSharedCon
 				}
 
 				if requests == 0 {
-					err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-						return db.Query.UpdateDeploymentDesiredState(runCtx, w.db.RW(), db.UpdateDeploymentDesiredStateParams{
-							ID:           deployment.ID,
-							UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-							DesiredState: db.DeploymentsDesiredStateStandby,
-						})
-					}, restate.WithName(fmt.Sprintf("set standby state for %s", deployment.ID)))
+					_, err = hydrav1.NewDeploymentServiceClient(ctx, deployment.ID).ScheduleDesiredStateChange().Request(&hydrav1.ScheduleDesiredStateChangeRequest{
+						DelayMillis: 0,
+						State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_ARCHIVED,
+					})
+
 					if err != nil {
 						return nil, err
 					}

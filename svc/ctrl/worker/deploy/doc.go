@@ -39,7 +39,7 @@
 // resumes.
 //
 // [Workflow.ScaleDownIdlePreviewDeployments] paginates through preview
-// environments and sets any deployment to standby that has been idle (zero
+// environments and sets any deployment to archived that has been idle (zero
 // requests in ClickHouse) for longer than six hours.
 //
 // # Image Builds

@@ -7,8 +7,8 @@ description: Durable deployment workflow orchestration
 
 The `DeployService` orchestrates the complete deployment lifecycle, from building containers to assigning domains.
 
-**Location:** `go/apps/ctrl/workflows/deploy/`
-**Proto:** `go/proto/hydra/v1/deployment.proto`
+**Location:** `svc/ctrl/worker/deploy/`
+**Proto:** `svc/ctrl/proto/hydra/v1/deployment.proto`
 **Key:** `project_id`
 
 ## Operations
@@ -17,18 +17,23 @@ The `DeployService` orchestrates the complete deployment lifecycle, from buildin
 
 <Mermaid chart={`flowchart TD
     Start([Deploy Request]) --> FetchMeta[Fetch Metadata]
-    FetchMeta --> StatusBuilding[Status: Building]
-    StatusBuilding --> CreateKrane[Create in Krane]
-    CreateKrane --> PollStatus{Poll Until Ready}
-    PollStatus --> UpsertVMs[Upsert VM Records]
-    UpsertVMs --> PollStatus
-    PollStatus --> ScrapeAPI[Scrape OpenAPI Spec]
-    ScrapeAPI --> BuildRoutes[Build Frontline Routes]
+    FetchMeta --> CheckSource{Source Type?}
+    CheckSource -->|GitSource| BuildGit[Build from Git via Depot]
+    CheckSource -->|DockerImage| UseImage[Use Pre-built Image]
+    BuildGit --> StatusDeploying[Status: Deploying]
+    UseImage --> StatusDeploying
+    StatusDeploying --> CreateTopology[Create Regional Topologies]
+    CreateTopology --> EnsureSentinels[Ensure Sentinels Exist]
+    EnsureSentinels --> EnsureNetPol[Ensure Cilium Network Policy]
+    EnsureNetPol --> WaitReady[Wait for Instances Ready]
+    WaitReady --> BuildRoutes[Build Frontline Routes]
     BuildRoutes --> AssignRoutes[Call RoutingService]
     AssignRoutes --> StatusReady[Status: Ready]
     StatusReady --> UpdateLive[Update Live Deployment]
-    UpdateLive --> End([Complete])
+    UpdateLive --> ScheduleStandby[Schedule Previous Standby]
+    ScheduleStandby --> End([Complete])
 
+    style BuildGit fill:#e1f5fe
     style AssignRoutes fill:#e1f5fe
     style StatusReady fill:#c8e6c9
 
@@ -37,13 +42,14 @@ The `DeployService` orchestrates the complete deployment lifecycle, from buildin
 Creates a new deployment:
 
 1. Fetch deployment, workspace, project, environment metadata
-2. Create deployment in Krane
-3. Poll until instances are running
-4. Scrape OpenAPI spec
-5. Call RoutingService to assign frontline routes atomically
-6. Update project's live deployment ID
+2. Build Docker image from Git via Depot (or use pre-built image)
+3. Create regional deployment topologies and ensure sentinels + Cilium network policies exist
+4. Poll in parallel until all instances are running
+5. Build frontline routes and call RoutingService to assign them atomically
+6. Update project's live deployment pointer (production, non-rolled-back only)
+7. Schedule previous live deployment for standby via DeploymentService
 
-Implementation: `go/apps/ctrl/workflows/deploy/deploy_handler.go`
+Implementation: `svc/ctrl/worker/deploy/deploy_handler.go`
 
 ### Rollback
 
@@ -67,7 +73,7 @@ Rolls back to a previous deployment:
 3. Update frontline routes to point to target deployment
 4. Update project metadata
 
-Implementation: `go/apps/ctrl/workflows/deploy/rollback_handler.go`
+Implementation: `svc/ctrl/worker/deploy/rollback_handler.go`
 
 ### Promote
 
@@ -89,7 +95,7 @@ Promotes a deployment to live, removing rolled-back state:
 3. Update frontline routes to point to new deployment
 4. Clear rolled_back flag
 
-Implementation: `go/apps/ctrl/workflows/deploy/promote_handler.go`
+Implementation: `svc/ctrl/worker/deploy/promote_handler.go`
 
 ## Why RoutingService?
 

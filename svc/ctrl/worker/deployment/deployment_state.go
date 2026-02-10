@@ -16,7 +16,6 @@ const transitionKey = "transition"
 // identified and discarded by nonce mismatch in ChangeDesiredState.
 type transition struct {
 	Nonce string
-	After int64
 	To    hydrav1.DeploymentDesiredState
 }
 
@@ -31,26 +30,36 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 
 	t := transition{
 		Nonce: nonce,
-		After: req.GetAfter(),
 		To:    req.GetState(),
 	}
 
 	restate.Set(ctx, transitionKey, &t)
 
+	delay := time.Duration(req.GetDelayMillis()) * time.Millisecond
+
+	if delay <= 0 {
+		_, err := hydrav1.NewDeploymentServiceClient(ctx, restate.Key(ctx)).ChangeDesiredState().Request(&hydrav1.ChangeDesiredStateRequest{
+			Nonce: nonce,
+			State: req.GetState(),
+		})
+		return &hydrav1.ScheduleDesiredStateChangeResponse{}, err
+	}
+
 	hydrav1.NewDeploymentServiceClient(ctx, restate.Key(ctx)).ChangeDesiredState().Send(&hydrav1.ChangeDesiredStateRequest{
 		Nonce: nonce,
 		State: req.GetState(),
-	}, restate.WithDelay(time.Until(time.UnixMilli(req.GetAfter()))))
+	}, restate.WithDelay(delay))
 
 	return &hydrav1.ScheduleDesiredStateChangeResponse{}, nil
 }
 
 // ChangeDesiredState applies a previously scheduled desired state transition to
-// the database. It first validates the request nonce against the stored
-// transition: a mismatch means a newer schedule has superseded this one, so
-// the call returns successfully without making any changes. On match, it maps
-// the protobuf state enum to the database representation and updates the
-// deployment's desired state.
+// the database. It validates the request nonce against the stored transition:
+// if no transition exists (already applied and cleared) or the nonce mismatches
+// (a newer schedule has superseded this one), the call returns successfully
+// without making any changes. On match, it maps the protobuf state enum to the
+// database representation, updates the deployment's desired state, and clears
+// the stored transition.
 func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.ChangeDesiredStateRequest) (*hydrav1.ChangeDesiredStateResponse, error) {
 
 	t, err := restate.Get[*transition](ctx, transitionKey)
@@ -58,7 +67,8 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		return nil, err
 	}
 	if t == nil {
-		return nil, restate.TerminalErrorf("no state found")
+		// This is a noop, since the request was removed
+		return &hydrav1.ChangeDesiredStateResponse{}, nil
 	}
 	if t.Nonce != req.GetNonce() {
 		// This is a noop, since the request is outdated
@@ -88,6 +98,8 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	if err != nil {
 		return nil, err
 	}
+
+	restate.Clear(ctx, transitionKey)
 
 	return &hydrav1.ChangeDesiredStateResponse{}, nil
 }

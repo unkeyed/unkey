@@ -20,7 +20,7 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 //
 // Typical flow:
 //   1. Caller invokes ScheduleDesiredStateChange with a target state and a
-//      Unix-millisecond timestamp for when the change should take effect.
+//      relative delay in milliseconds for when the change should take effect.
 //   2. The handler stores the transition record and sends a delayed
 //      ChangeDesiredState call to itself.
 //   3. When the delay elapses, ChangeDesiredState verifies the nonce still
@@ -30,8 +30,8 @@ service DeploymentService {
 
   // ScheduleDesiredStateChange registers a future desired-state transition for
   // this deployment. It generates a nonce, stores a transition record in Restate
-  // state, and sends a delayed ChangeDesiredState call to itself timed for the
-  // requested timestamp. Calling this again before the previous transition fires
+  // state, and sends a delayed ChangeDesiredState call to itself after the
+  // requested delay. Calling this again before the previous transition fires
   // replaces it (last-writer-wins via nonce).
   rpc ScheduleDesiredStateChange(ScheduleDesiredStateChangeRequest) returns (ScheduleDesiredStateChangeResponse) {}
 
@@ -41,7 +41,16 @@ service DeploymentService {
   // call no-ops. On match, it persists the new desired state to the database.
   // The deployment ID is derived from the virtual object key.
   rpc ChangeDesiredState(ChangeDesiredStateRequest) returns (ChangeDesiredStateResponse) {}
+
+  // ClearScheduledStateChanges removes the pending transition record from
+  // Restate state, effectively cancelling any scheduled ChangeDesiredState
+  // call. The delayed call may still fire, but it will no-op because
+  // ChangeDesiredState requires a stored transition to exist.
+  rpc ClearScheduledStateChanges(ClearScheduledStateChangesRequest) returns (ClearScheduledStateChangesResponse) {}
 }
+
+message ClearScheduledStateChangesRequest {}
+message ClearScheduledStateChangesResponse {}
 
 // DeploymentDesiredState represents the target lifecycle state for a deployment.
 // UNSPECIFIED is treated as an error and causes a terminal failure in
@@ -61,9 +70,9 @@ enum DeploymentDesiredState {
 }
 
 message ScheduleDesiredStateChangeRequest {
-  // Unix timestamp in milliseconds indicating when the state change should
-  // take effect. Set to 0 or a past timestamp to execute immediately.
-  int64 after = 1;
+  // Relative delay in milliseconds before the state change should take effect.
+  // Set to 0 to execute immediately.
+  int64 delay_millis = 1;
 
   DeploymentDesiredState state = 2;
 }

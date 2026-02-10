@@ -5,18 +5,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
-// VirtualObject manages desired state transitions for a single deployment.
-//
-// It is a Restate virtual object keyed by deployment ID, which guarantees that
-// only one state transition executes per deployment at a time. This serialization
-// is critical because desired state changes can be scheduled with arbitrary delays
-// and a newer schedule must be able to supersede an older one without races.
-//
-// The object exposes two operations. ScheduleDesiredStateChange records a
-// pending transition and enqueues a delayed self-call. ChangeDesiredState
-// executes the transition only if its nonce still matches the latest schedule,
-// implementing last-writer-wins semantics so that superseded transitions
-// become harmless no-ops.
+// VirtualObject serialises all mutations targeting a single deployment. See
+// the package documentation for an explanation of the virtual object keying
+// and the nonce-based last-writer-wins mechanism used for scheduled state
+// changes.
 type VirtualObject struct {
 	hydrav1.UnimplementedDeploymentServiceServer
 	db db.Database

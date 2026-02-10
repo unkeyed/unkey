@@ -23,7 +23,9 @@ import (
 //
 // After switching domains atomically through the routing service, the project's live
 // deployment pointer is updated and the rolled back flag is cleared, allowing future
-// deployments to automatically take over sticky domains.
+// deployments to automatically take over sticky domains. Any pending scheduled
+// state changes on the promoted deployment are cleared (so it won't be spun down),
+// and the previous live deployment is scheduled for standby after 30 minutes.
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
@@ -116,6 +118,18 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	if err != nil {
 		return nil, err
 	}
+
+	// ensure the new promoted deployment does not get spun down from existing scheduled actions
+	_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	// schedule old deployment to be spun down
+	hydrav1.NewDeploymentServiceClient(ctx, project.LiveDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
+		State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+		DelayMillis: (30 * time.Minute).Milliseconds(),
+	})
 
 	logger.Info("promotion completed successfully",
 		"target", req.GetTargetDeploymentId(),
