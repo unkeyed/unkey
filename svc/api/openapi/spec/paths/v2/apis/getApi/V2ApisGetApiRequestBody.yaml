@@ -6,7 +6,7 @@ properties:
     type: string
     minLength: 8
     maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
+    pattern: "^api_[a-zA-Z0-9_]+$"
     description: |
       Specifies which API to retrieve by its unique identifier.
       Must be a valid API ID that begins with 'api_' and exists within your workspace.

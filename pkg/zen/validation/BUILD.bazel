@@ -2,23 +2,76 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "validation",
-    srcs = ["validator.go"],
+    srcs = [
+        "compiler.go",
+        "errors.go",
+        "matcher.go",
+        "noop.go",
+        "parameters.go",
+        "parser.go",
+        "redact.go",
+        "security.go",
+        "styles.go",
+        "types.go",
+        "validate_body.go",
+        "validate_params.go",
+        "validator.go",
+    ],
     importpath = "github.com/unkeyed/unkey/pkg/zen/validation",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/ctxutil",
         "//pkg/fault",
         "//pkg/otel/tracing",
+        "//pkg/ptr",
         "//svc/api/openapi",
-        "@com_github_pb33f_libopenapi//:libopenapi",
-        "@com_github_pb33f_libopenapi_validator//:libopenapi-validator",
+        "@com_github_santhosh_tekuri_jsonschema_v6//:jsonschema",
+        "@in_gopkg_yaml_v3//:yaml_v3",
     ],
 )
 
+# Default test target (without old validator comparison)
 go_test(
     name = "validation_test",
     size = "small",
-    srcs = ["validator_test.go"],
+    srcs = [
+        "body_test.go",
+        "compiler_test.go",
+        "discriminator_test.go",
+        "errors_test.go",
+        "matcher_test.go",
+        "parameters_test.go",
+        "redact_test.go",
+        "security_test.go",
+        "test_helpers_test.go",
+        "tuple_test.go",
+        "validator_test.go",
+    ],
     embed = [":validation"],
     deps = ["@com_github_stretchr_testify//require"],
 )
+
+# Comparison benchmark test target (with old libopenapi validator)
+# This target is DISABLED because libopenapi is not included as a dependency.
+# To run comparison benchmarks, see instructions in benchmark_comparison_old_test.go
+#
+# go_test(
+#     name = "validation_comparison_test",
+#     size = "medium",
+#     srcs = [
+#         "benchmark_comparison_old_test.go",
+#         "benchmark_test.go",
+#         "errors_test.go",
+#         "matcher_test.go",
+#         "security_test.go",
+#         "validator_old.go",
+#         "validator_test.go",
+#     ],
+#     embed = [":validation"],
+#     gotags = ["benchmark_comparison"],
+#     deps = [
+#         "@com_github_pb33f_libopenapi//:libopenapi",
+#         "@com_github_pb33f_libopenapi_validator//:libopenapi-validator",
+#         "@com_github_stretchr_testify//require",
+#     ],
+# )

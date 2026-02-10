@@ -21,13 +21,13 @@ import (
 //	    []zen.Middleware{zen.WithValidation(validator)},
 //	    route,
 //	)
-func WithValidation(validator *validation.Validator) Middleware {
+func WithValidation(validator validation.OpenAPIValidator) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
-			err, valid := validator.Validate(ctx, s.r)
-			if !valid {
-				err.Meta.RequestId = s.requestID
-				return s.JSON(err.Error.Status, err)
+			errResp, valid := validator.Validate(ctx, s.r)
+			if !valid && errResp != nil {
+				errResp.SetRequestID(s.requestID)
+				return s.JSON(errResp.GetStatus(), errResp)
 			}
 
 			return next(ctx, s)

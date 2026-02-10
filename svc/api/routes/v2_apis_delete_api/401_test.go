@@ -44,7 +44,7 @@ func TestAuthenticationErrors(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Authorization header for 'bearer' scheme", res.Body.Error.Detail)
+		require.NotEmpty(t, res.Body.Error.Detail)
 	})
 
 	// Test case for invalid authorization token

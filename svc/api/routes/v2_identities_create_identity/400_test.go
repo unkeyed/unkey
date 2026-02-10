@@ -38,9 +38,8 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
@@ -52,9 +51,8 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
@@ -72,9 +70,8 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -95,9 +92,8 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
 	})
@@ -120,9 +116,8 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -144,9 +139,8 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -168,9 +162,8 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
-		require.Equal(t, "POST request body for '/v2/identities.createIdentity' failed to validate schema", res.Body.Error.Detail)
-		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 

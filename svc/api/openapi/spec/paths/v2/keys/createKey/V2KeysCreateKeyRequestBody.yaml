@@ -78,7 +78,7 @@ properties:
       type: string
       minLength: 1
       maxLength: 100 # Keep role names concise and readable
-      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+      pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
     description: |
       Assigns existing roles to this key for permission management through role-based access control.
       Roles must already exist in your workspace before assignment.
@@ -94,7 +94,7 @@ properties:
       type: string
       minLength: 1
       maxLength: 100 # Keep permission names concise and readable
-    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+      pattern: "^[a-zA-Z][a-zA-Z0-9._*-]*$"
     description: |
       Grants specific permissions directly to this key without requiring role membership.
       Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.

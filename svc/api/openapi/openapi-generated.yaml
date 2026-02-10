@@ -946,7 +946,7 @@ components:
                     example: api_1234abcd
                     maxLength: 255
                     minLength: 8
-                    pattern: ^[a-zA-Z0-9_]+$
+                    pattern: ^api_[a-zA-Z0-9_]+$
                     type: string
             required:
                 - apiId
@@ -982,7 +982,7 @@ components:
                     example: api_1234abcd
                     maxLength: 255
                     minLength: 8
-                    pattern: ^[a-zA-Z0-9_]+$
+                    pattern: ^api_[a-zA-Z0-9_]+$
                     type: string
             required:
                 - apiId
@@ -1598,7 +1598,7 @@ components:
                     items:
                         description: Specify the permission by its slug.
                         minLength: 3
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        pattern: ^[a-zA-Z][a-zA-Z0-9._*-]*$
                         type: string
                     maxItems: 1000
                     minItems: 1
@@ -1815,9 +1815,9 @@ components:
                     items:
                         maxLength: 100
                         minLength: 1
+                        pattern: ^[a-zA-Z][a-zA-Z0-9._*-]*$
                         type: string
                     maxItems: 1000
-                    pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                     type: array
                 prefix:
                     description: |
@@ -1869,7 +1869,7 @@ components:
                     items:
                         maxLength: 100
                         minLength: 1
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                         type: string
                     maxItems: 100
                     type: array
@@ -2367,7 +2367,7 @@ components:
                     items:
                         description: Specify the permission by its slug.
                         minLength: 3
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        pattern: ^[a-zA-Z][a-zA-Z0-9._*-]*$
                         type: string
                     maxItems: 1000
                     minItems: 1
@@ -2424,7 +2424,7 @@ components:
                         description: Specify the role by name.
                         maxLength: 255
                         minLength: 3
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                         type: string
                     maxItems: 100
                     minItems: 1
@@ -2581,7 +2581,7 @@ components:
                     items:
                         description: Specify the permission by its slug.
                         minLength: 3
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        pattern: ^[a-zA-Z][a-zA-Z0-9._*-]*$
                         type: string
                     type: array
             required:
@@ -2639,7 +2639,7 @@ components:
                         description: Specify the role by name.
                         maxLength: 255
                         minLength: 3
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                         type: string
                     maxItems: 100
                     type: array
@@ -2940,15 +2940,15 @@ components:
                             Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
                             Direct permissions supplement any permissions inherited from assigned roles.
                         maxLength: 100
-                        minLength: 3
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        minLength: 1
+                        pattern: ^[a-zA-Z][a-zA-Z0-9._*-]*$
                         type: string
                     maxItems: 1000
                     type: array
                 ratelimits:
                     description: |
                         Defines time-based rate limits that protect against abuse by controlling request frequency.
-                        Omitting this field preserves existing rate limits, while setting null removes all rate limits.
+                        Omitting this field preserves existing rate limits, while setting an empty array removes all rate limits.
                         Unlike credits which track total usage, rate limits reset automatically after each window expires.
                         Multiple rate limits can control different operation types with separate thresholds and windows.
                     items:
@@ -2967,7 +2967,7 @@ components:
                             Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
                         maxLength: 100
                         minLength: 1
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                         type: string
                     maxItems: 100
                     type: array

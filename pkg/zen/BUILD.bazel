@@ -33,6 +33,7 @@ go_library(
         "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/prometheus/metrics",
+        "//pkg/ptr",
         "//pkg/tls",
         "//pkg/uid",
         "//pkg/zen/validation",

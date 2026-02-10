@@ -4,99 +4,209 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/pb33f/libopenapi"
-	validator "github.com/pb33f/libopenapi-validator"
 	"github.com/unkeyed/unkey/pkg/ctxutil"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
+// ValidationErrorResponse is an interface for error responses returned by validation
+type ValidationErrorResponse interface {
+	GetStatus() int
+	SetRequestID(requestID string)
+}
+
+// OpenAPIValidator defines the interface for validating HTTP requests against an OpenAPI spec
 type OpenAPIValidator interface {
 	// Validate reads the request and validates it against the OpenAPI spec
 	//
-	// Returns a BadRequestError if the request is invalid that should be
+	// Returns an error response if the request is invalid that should be
 	// marshalled and returned to the client.
 	// The second return value is a boolean that is true if the request is valid.
-	Validate(r *http.Request) (openapi.BadRequestErrorResponse, bool)
+	Validate(ctx context.Context, r *http.Request) (ValidationErrorResponse, bool)
+
+	// SanitizeRequest redacts body fields per spec, filters infra headers,
+	// redacts x-unkey-redact-annotated headers, and returns compact JSON body
+	// and formatted header strings suitable for logging.
+	SanitizeRequest(r *http.Request, body []byte, headers http.Header) (string, []string)
+
+	// SanitizeResponse redacts response body fields per spec, formats response
+	// headers, and returns compact JSON body and formatted header strings.
+	SanitizeResponse(r *http.Request, body []byte, headers http.Header) (string, []string)
 }
 
+// Validator implements OpenAPIValidator using a parsed and compiled OpenAPI spec
 type Validator struct {
-	validator validator.Validator
+	matcher         *PathMatcher
+	compiler        *SchemaCompiler
+	securitySchemes map[string]SecurityScheme
+	redactions      map[string]*RedactionConfig
 }
 
+// New creates a new Validator from the embedded OpenAPI spec
 func New() (*Validator, error) {
-	document, err := libopenapi.NewDocument(openapi.Spec)
+	parser, err := NewSpecParser(openapi.Spec)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to create OpenAPI document"))
+		return nil, fault.Wrap(err, fault.Internal("failed to parse OpenAPI spec"))
 	}
 
-	v, errors := validator.NewValidator(document)
-	if len(errors) > 0 {
-		messages := make([]fault.Wrapper, len(errors))
-		for i, e := range errors {
-			messages[i] = fault.Internal(e.Error())
-		}
-		// nolint:wrapcheck
-		return nil, fault.New("failed to create validator", messages...)
-	}
-	valid, docErrors := v.ValidateDocument()
-	if !valid {
-		messages := make([]fault.Wrapper, len(docErrors))
-		for i, e := range docErrors {
-			messages[i] = fault.Internal(e.Message)
-		}
-
-		return nil, fault.New("openapi document is invalid", messages...)
+	compiler, err := NewSchemaCompiler(parser, openapi.Spec)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to compile schemas"))
 	}
 
-	return &Validator{
-		validator: v,
-	}, nil
+	matcher := NewPathMatcher(parser.Operations())
+
+	return NewValidator(matcher, compiler, parser.SecuritySchemes(), parser.Redactions()), nil
 }
 
-func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool) {
-	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
+// NewValidator creates a Validator with the given components
+func NewValidator(matcher *PathMatcher, compiler *SchemaCompiler, securitySchemes map[string]SecurityScheme, redactions map[string]*RedactionConfig) *Validator {
+	return &Validator{
+		matcher:         matcher,
+		compiler:        compiler,
+		securitySchemes: securitySchemes,
+		redactions:      redactions,
+	}
+}
+
+// SanitizeRequest redacts request body fields and headers per spec.
+func (v *Validator) SanitizeRequest(r *http.Request, body []byte, headers http.Header) (string, []string) {
+	routeKey := r.Method + " " + r.URL.Path
+	redactedBody := string(RedactJSON(v.redactions, routeKey, false, body))
+	redactedHeaders := v.redactedHeadersForRoute(routeKey)
+	sanitizedHeaders := SanitizeHeaders(headers, redactedHeaders)
+	return redactedBody, sanitizedHeaders
+}
+
+// SanitizeResponse redacts response body fields and formats headers.
+func (v *Validator) SanitizeResponse(r *http.Request, body []byte, headers http.Header) (string, []string) {
+	routeKey := r.Method + " " + r.URL.Path
+	redactedBody := string(RedactJSON(v.redactions, routeKey, true, body))
+	sanitizedHeaders := SanitizeHeaders(headers, nil)
+	return redactedBody, sanitizedHeaders
+}
+
+// redactedHeadersForRoute returns the merged set of header names to redact for a route.
+func (v *Validator) redactedHeadersForRoute(routeKey string) map[string]bool {
+	config := v.redactions[routeKey]
+	if config == nil || len(config.RedactedHeaders) == 0 {
+		return nil
+	}
+	return config.RedactedHeaders
+}
+
+// BadRequestError wraps BadRequestErrorResponse to implement ValidationErrorResponse
+type BadRequestError struct {
+	openapi.BadRequestErrorResponse
+}
+
+func (e *BadRequestError) GetStatus() int {
+	return e.Error.Status
+}
+
+func (e *BadRequestError) SetRequestID(requestID string) {
+	e.Meta.RequestId = requestID
+}
+
+// Validate validates an HTTP request against the OpenAPI spec
+func (v *Validator) Validate(ctx context.Context, r *http.Request) (ValidationErrorResponse, bool) {
+	ctx, validationSpan := tracing.Start(ctx, "openapi.Validate")
 	defer validationSpan.End()
 
-	valid, errors := v.validator.ValidateHttpRequest(r)
+	requestID := ctxutil.GetRequestID(ctx)
 
-	if valid {
-		// nolint:exhaustruct
-		return openapi.BadRequestErrorResponse{}, true
-	}
-	res := openapi.BadRequestErrorResponse{
-		Meta: openapi.Meta{
-			RequestId: ctxutil.GetRequestID(r.Context()),
-		},
-		Error: openapi.BadRequestErrorDetails{
-			Title:  "Bad Request",
-			Detail: "One or more fields failed validation",
-			Status: http.StatusBadRequest,
-			Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
-			Errors: []openapi.ValidationError{},
-		},
+	// 1. Match request to operation
+	matchResult, found := v.matcher.Match(r.Method, r.URL.Path)
+	if !found {
+		// No matching operation - pass through (let the router handle 404)
+		return nil, true
 	}
 
-	if len(errors) > 0 {
-		err := errors[0]
-		res.Error.Detail = err.Message
-		for _, verr := range err.SchemaValidationErrors {
-			res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
-				Message:  verr.Reason,
-				Location: verr.Location,
-				Fix:      nil,
-			})
-		}
-		if len(res.Error.Errors) == 0 {
-			res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
-				Message:  err.Reason,
-				Location: err.ValidationType,
-				Fix:      &err.HowToFix,
-			})
+	op := matchResult.Operation
+
+	// 2. Validate security (fail fast)
+	_, secSpan := tracing.Start(ctx, "validation.ValidateSecurity")
+	secErr := v.validateSecurity(r, op.Security, requestID)
+	secSpan.End()
+	if secErr != nil {
+		return secErr, false
+	}
+
+	// 3. Get compiled operation schemas
+	compiledOp := v.compiler.GetOperation(op.OperationID)
+
+	// 4. Validate content-type for requests with body
+	if r.ContentLength > 0 || (r.Body != nil && r.Body != http.NoBody) {
+		_, ctSpan := tracing.Start(ctx, "validation.ValidateContentType")
+		ctErr := v.validateContentType(r, compiledOp, requestID)
+		ctSpan.End()
+		if ctErr != nil {
+			return ctErr, false
 		}
 	}
 
-	return res, false
+	// 5. Validate parameters (aggregate errors)
+	var paramErrors []openapi.ValidationError
+	if compiledOp != nil {
+		// Validate path parameters
+		if len(compiledOp.Parameters.Path) > 0 && matchResult.PathParams != nil {
+			_, pathSpan := tracing.Start(ctx, "validation.ValidatePathParams")
+			paramErrors = append(paramErrors, v.validatePathParams(matchResult.PathParams, compiledOp.Parameters.Path)...)
+			pathSpan.End()
+		}
+		if len(compiledOp.Parameters.Query) > 0 {
+			_, querySpan := tracing.Start(ctx, "validation.ValidateQueryParams")
+			paramErrors = append(paramErrors, v.validateQueryParams(r, compiledOp.Parameters.Query)...)
+			querySpan.End()
+		}
+		if len(compiledOp.Parameters.Header) > 0 {
+			_, headerSpan := tracing.Start(ctx, "validation.ValidateHeaders")
+			paramErrors = append(paramErrors, v.validateHeaderParams(r, compiledOp.Parameters.Header)...)
+			headerSpan.End()
+		}
+		if len(compiledOp.Parameters.Cookie) > 0 {
+			_, cookieSpan := tracing.Start(ctx, "validation.ValidateCookies")
+			paramErrors = append(paramErrors, v.validateCookieParams(r, compiledOp.Parameters.Cookie)...)
+			cookieSpan.End()
+		}
+	}
 
+	if len(paramErrors) > 0 {
+		detail := "One or more parameters failed validation"
+		if len(paramErrors) == 1 {
+			detail = paramErrors[0].Message
+		}
+		return &BadRequestError{
+			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
+				Meta: openapi.Meta{
+					RequestId: requestID,
+				},
+				Error: openapi.BadRequestErrorDetails{
+					Title:  "Bad Request",
+					Detail: detail,
+					Status: http.StatusBadRequest,
+					Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
+					Errors: paramErrors,
+				},
+			},
+		}, false
+	}
+
+	// 6. Validate body
+	_, bodySpan := tracing.Start(ctx, "validation.ValidateBody")
+	result, valid := v.validateBody(ctx, r, compiledOp)
+	bodySpan.End()
+	return result, valid
+}
+
+// validateSecurity validates security requirements for the operation
+func (v *Validator) validateSecurity(r *http.Request, requirements []SecurityRequirement, requestID string) *SecurityError {
+	// If no security requirements defined, the operation is public
+	if len(requirements) == 0 {
+		return nil
+	}
+
+	// ValidateSecurity handles OR/AND semantics and provides detailed error messages
+	return ValidateSecurity(r, requirements, v.securitySchemes, requestID)
 }

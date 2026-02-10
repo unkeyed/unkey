@@ -116,7 +116,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "valid root key")
+		require.Contains(t, res.Body.Error.Detail, "Bearer")
 	})
 
 	t.Run("empty bearer token", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestAuthenticationErrors(t *testing.T) {
 
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
-		require.Contains(t, res.Body.Error.Detail, "valid root key")
+		require.Contains(t, res.Body.Error.Detail, "Bearer")
 	})
 
 	t.Run("disabled root key", func(t *testing.T) {
