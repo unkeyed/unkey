@@ -29,6 +29,19 @@ post:
       application/json:
         schema:
           "$ref": "./V2ApisListKeysRequestBody.yaml"
+        examples:
+          basic:
+            summary: List all keys
+            description: List all keys in an API namespace
+            value:
+              apiId: api_1234abcd
+          filterByUser:
+            summary: List keys for specific user
+            description: Filter keys by external ID to show user-specific keys
+            value:
+              apiId: api_1234abcd
+              externalId: user_1234abcd
+              limit: 50
     required: true
   responses:
     "200":
@@ -36,6 +49,115 @@ post:
         application/json:
           schema:
             "$ref": "./V2ApisListKeysResponseBody.yaml"
+          examples:
+            dashboardKeyList:
+              summary: Dashboard key management display
+              description: Typical response for displaying user keys in a dashboard interface
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  - keyId: key_1234abcd
+                    start: sk_prod
+                    enabled: true
+                    name: Production API Key
+                    createdAt: 1704067200000
+                    expires: 1735689600000
+                    meta:
+                      plan: premium
+                      userId: user_5678
+                      environment: production
+                    permissions:
+                      - documents.read
+                      - documents.write
+                    roles:
+                      - editor
+                    credits:
+                      remaining: 8500
+                      refill:
+                        amount: 10000
+                        interval: monthly
+                        refillDay: 1
+                    identity:
+                      externalId: user_5678
+                      meta:
+                        plan: premium
+                        signupDate: "2024-01-15"
+                  - keyId: key_5678efgh
+                    start: sk_dev
+                    enabled: true
+                    name: Development Key
+                    createdAt: 1704153600000
+                    meta:
+                      environment: development
+                    permissions:
+                      - documents.read
+                    credits:
+                      remaining: 500
+                pagination:
+                  cursor: key_5678efgh
+                  hasMore: false
+            paginatedResponse:
+              summary: Paginated key listing with more results
+              description: Response showing pagination when there are more keys than the requested limit
+              value:
+                meta:
+                  requestId: req_5678efgh
+                data:
+                  - keyId: key_1111aaaa
+                    start: sk_user
+                    enabled: true
+                    name: User Mobile Key
+                    createdAt: 1704067200000
+                    identity:
+                      externalId: user_mobile_123
+                    permissions:
+                      - profile.read
+                      - profile.update
+                  - keyId: key_2222bbbb
+                    start: sk_web
+                    enabled: true
+                    name: Web Dashboard Key
+                    createdAt: 1704153600000
+                    identity:
+                      externalId: user_mobile_123
+                    permissions:
+                      - profile.read
+                      - documents.read
+                pagination:
+                  cursor: key_2222bbbb
+                  hasMore: true
+            emptyResponse:
+              summary: Empty key list
+              description: Response when no keys match the filter criteria or API has no keys
+              value:
+                meta:
+                  requestId: req_9876zyxw
+                data: []
+                pagination:
+                  cursor: null
+                  hasMore: false
+            decryptedKeyList:
+              summary: Key list with plaintext values
+              description: Administrative response including decrypted key values for recovery purposes
+              value:
+                meta:
+                  requestId: req_admin_decrypt
+                data:
+                  - keyId: key_admin_123
+                    start: sk_admin
+                    enabled: true
+                    name: Admin Recovery Key
+                    plaintext: sk_admin_1234abcdef5678
+                    createdAt: 1704067200000
+                    permissions:
+                      - admin.all
+                    meta:
+                      recoverable: true
+                      purpose: emergency_access
+                pagination:
+                  cursor: null
+                  hasMore: false
       description: |
         Successfully retrieved paginated keys. Use the pagination cursor for additional results when `hasMore: true`.
     "400":

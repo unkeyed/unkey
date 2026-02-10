@@ -18,6 +18,12 @@ post:
       application/json:
         schema:
           "$ref": "./V2PermissionsGetPermissionRequestBody.yaml"
+        examples:
+          basic:
+            summary: Retrieve permission details
+            description: Get information about a specific permission
+            value:
+              permissionId: perm_1234567890abcdef
     required: true
   responses:
     "200":
@@ -26,6 +32,19 @@ post:
         application/json:
           schema:
             "$ref": "./V2PermissionsGetPermissionResponseBody.yaml"
+          examples:
+            success:
+              summary: Permission retrieved successfully
+              description: Standard successful permission retrieval response
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: perm_1234567890abcdef
+                  name: documents.read
+                  slug: documents-read
+                  description: Allows reading document resources
+                  createdAt: 1640995200000
     "400":
       description: Bad Request
       content:

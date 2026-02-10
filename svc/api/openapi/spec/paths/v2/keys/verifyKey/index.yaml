@@ -31,6 +31,20 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysVerifyKeyRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic verification
+            description: Check if a key is valid
+            value:
+              apiId: api_1234abcd
+              key: sk_1234abcdef
+          withPermissions:
+            summary: Check permissions
+            description: Verify key has required permissions
+            value:
+              apiId: api_1234abcd
+              key: sk_1234abcdef
+              permissions: "documents.read"
   responses:
     "200":
       description: |
@@ -45,6 +59,64 @@ post:
         application/json:
           schema:
             "$ref": "./V2KeysVerifyKeyResponseBody.yaml"
+          examples:
+            validKey:
+              summary: Valid key with full details
+              description: Successful verification returning complete key information
+              value:
+                meta:
+                  requestId: req_abc123def456
+                data:
+                  code: VALID
+                  valid: true
+                  enabled: true
+                  keyId: key_1234abcd
+                  name: "user-dashboard-key"
+                  permissions: ["documents.read", "documents.write", "users.view"]
+                  roles: ["editor"]
+                  credits: 950
+                  expires: 1735689600000
+                  meta:
+                    userId: "user_12345"
+                    plan: "premium"
+                    region: "us-east-1"
+            expiredKey:
+              summary: Expired key verification
+              description: Key verification failed due to expiration
+              value:
+                meta:
+                  requestId: req_def456ghi789
+                data:
+                  code: EXPIRED
+                  valid: false
+                  enabled: true
+                  keyId: key_5678efgh
+                  name: "temporary-access-key"
+                  expires: 1704067200000
+            insufficientCredits:
+              summary: Credit exhaustion failure
+              description: Key verification failed due to insufficient remaining credits
+              value:
+                meta:
+                  requestId: req_ghi789jkl012
+                data:
+                  code: USAGE_EXCEEDED
+                  valid: false
+                  enabled: true
+                  keyId: key_9012ijkl
+                  credits: 0
+            permissionDenied:
+              summary: Permission verification failure
+              description: Key lacks the required permissions for the requested operation
+              value:
+                meta:
+                  requestId: req_jkl012mno345
+                data:
+                  code: FORBIDDEN
+                  valid: false
+                  enabled: true
+                  keyId: key_3456mnop
+                  permissions: ["documents.read"]
     "400":
       description: Bad request
       content:

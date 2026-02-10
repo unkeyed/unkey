@@ -27,31 +27,11 @@ properties:
     example: false
 additionalProperties: false
 examples:
-  userRequestedDeletion:
-    summary: User requests key deletion
-    description: Delete key when user clicks "Delete" in your dashboard
-    value:
-      keyId: key_1234abcd
-  accountDeletion:
-    summary: User deletes their account
-    description: Remove keys during complete account deletion workflow
-    value:
-      keyId: key_5678efgh
-      permanent: false
-  permanentCleanup:
-    summary: Permanent deletion for compliance
-    description: Permanently remove key for GDPR compliance or security requirements
-    value:
-      keyId: key_9876wxyz
-      permanent: true
-  testKeyCleanup:
-    summary: Clean up development keys
-    description: Remove test or development keys that are no longer needed
-    value:
-      keyId: key_test_abcd
-  keyRotation:
-    summary: Delete old key during rotation
-    description: Remove previous key after successful key rotation
-    value:
-      keyId: key_old_5678
-      permanent: false
+  - keyId: key_1234abcd
+  - keyId: key_5678efgh
+    permanent: false
+  - keyId: key_9876wxyz
+    permanent: true
+  - keyId: key_test_abcd
+  - keyId: key_old_5678
+    permanent: false

@@ -23,12 +23,38 @@ post:
   x-speakeasy-name-override: createKey
   security:
     - rootKey: []
-
   requestBody:
     content:
       application/json:
         schema:
           "$ref": "./V2KeysCreateKeyRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic key creation
+            description: Create a simple key for user authentication
+            value:
+              apiId: api_1234abcd
+              name: "User API key"
+              externalId: "user_123"
+          withPermissions:
+            summary: Key with permissions and limits
+            description: Create a key with specific permissions, rate limits, and credits
+            value:
+              apiId: api_1234abcd
+              name: "Service API key"
+              externalId: "service_456"
+              permissions:
+                - "documents.read"
+                - "documents.write"
+              credits:
+                remaining: 1000
+              ratelimits:
+                - name: "api_requests"
+                  limit: 100
+                  duration: 60000
+              meta:
+                service: "document_processor"
+                version: "1.0"
     required: true
   responses:
     "200":
@@ -36,11 +62,35 @@ post:
         application/json:
           schema:
             "$ref": "./V2KeysCreateKeyResponseBody.yaml"
-      description: "Successfully created a new API key. The response includes
-        both the keyId (for reference in your system) and the full key string.
-        IMPORTANT: This is the only time the complete key is available - it cannot
-        be retrieved later. You must securely provide this key to your end user
-        immediately."
+          examples:
+            freeTierKey:
+              summary: Free tier key created successfully
+              description: Successfully created a key for a free tier user with limited credits
+              value:
+                meta:
+                  requestId: req_abc123def456
+                data:
+                  keyId: key_1234abcd
+                  key: sk_1234abcdef567890
+            paidTierKey:
+              summary: Paid tier key created successfully
+              description: Successfully created a key for a paid subscriber with higher limits
+              value:
+                meta:
+                  requestId: req_def456ghi789
+                data:
+                  keyId: key_5678efgh
+                  key: sk_5678efgh90123456
+            enterpriseKey:
+              summary: Enterprise key created successfully
+              description: Successfully created a key for enterprise customer with custom permissions
+              value:
+                meta:
+                  requestId: req_ghi789jkl012
+                data:
+                  keyId: key_9012ijkl
+                  key: sk_9012ijkl34567890
+      description: "Successfully created a new API key. The response includes both the keyId (for reference in your system) and the full key string. IMPORTANT: This is the only time the complete key is available - it cannot be retrieved later. You must securely provide this key to your end user immediately."
     "400":
       description: Bad request
       content:

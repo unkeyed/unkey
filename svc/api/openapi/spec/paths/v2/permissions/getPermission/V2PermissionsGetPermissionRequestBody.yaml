@@ -12,8 +12,4 @@ properties:
     example: perm_1234567890abcdef
 additionalProperties: false
 examples:
-  basic:
-    summary: Retrieve permission details
-    description: Get information about a specific permission
-    value:
-      permissionId: perm_1234567890abcdef
+  - permissionId: perm_1234567890abcdef

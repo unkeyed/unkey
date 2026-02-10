@@ -37,6 +37,15 @@ post:
         application/json:
           schema:
             "$ref": "./V2PermissionsCreateRoleResponseBody.yaml"
+          examples:
+            success:
+              summary: Role created successfully
+              description: Standard successful role creation response
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  roleId: role_5678efgh9012wxyz
       description: Role created successfully
     "400":
       description: Bad Request

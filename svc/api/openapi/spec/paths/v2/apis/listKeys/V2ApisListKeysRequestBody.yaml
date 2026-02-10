@@ -52,15 +52,7 @@ properties:
       This parameter comes with a performance cost and should be used sparingly.
 additionalProperties: false
 examples:
-  basic:
-    summary: List all keys
-    description: List all keys in an API namespace
-    value:
-      apiId: api_1234abcd
-  filterByUser:
-    summary: List keys for specific user
-    description: Filter keys by external ID to show user-specific keys
-    value:
-      apiId: api_1234abcd
-      externalId: user_1234abcd
-      limit: 50
+  - apiId: api_1234abcd
+  - apiId: api_1234abcd
+    externalId: user_1234abcd
+    limit: 50

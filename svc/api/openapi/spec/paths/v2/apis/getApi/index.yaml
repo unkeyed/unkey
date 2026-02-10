@@ -21,6 +21,32 @@ post:
       application/json:
         schema:
           "$ref": "./V2ApisGetApiRequestBody.yaml"
+        examples:
+          basicLookup:
+            summary: Basic API information retrieval
+            description: Retrieve basic information about an API by its ID
+            value:
+              apiId: api_1234abcd
+          verifyAccess:
+            summary: Verify API access
+            description: Check if you have access to a specific API namespace
+            value:
+              apiId: api_prod_5678
+          developmentApi:
+            summary: Development API lookup
+            description: Retrieve information about a development environment API
+            value:
+              apiId: api_dev_9876
+          stagingApi:
+            summary: Staging API lookup
+            description: Get details for a staging environment API
+            value:
+              apiId: api_staging_abcd
+          troubleshooting:
+            summary: Troubleshooting API lookup
+            description: Verify API exists during debugging or support scenarios
+            value:
+              apiId: api_support_case
     required: true
   responses:
     "200":
@@ -29,6 +55,52 @@ post:
         application/json:
           schema:
             "$ref": "./V2ApisGetApiResponseBody.yaml"
+          examples:
+            basicApiInfo:
+              summary: Basic API information
+              description: Standard response showing API ID and name
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: api_1234abcd
+                  name: Payment Service Production
+            developmentApi:
+              summary: Development API information
+              description: Response for a development environment API
+              value:
+                meta:
+                  requestId: req_dev_5678
+                data:
+                  id: api_dev_5678
+                  name: Payment Service Development
+            stagingApi:
+              summary: Staging API information
+              description: Response for a staging environment API
+              value:
+                meta:
+                  requestId: req_staging_9876
+                data:
+                  id: api_staging_9876
+                  name: Payment Service Staging
+            simpleApi:
+              summary: Simple API name
+              description: Response for an API with a simple name
+              value:
+                meta:
+                  requestId: req_simple_abcd
+                data:
+                  id: api_simple_abcd
+                  name: Analytics API
+            descriptiveApi:
+              summary: Descriptive API name
+              description: Response for an API with a longer descriptive name
+              value:
+                meta:
+                  requestId: req_desc_efgh
+                data:
+                  id: api_desc_efgh
+                  name: User Management Microservice Production
     "400":
       description: Bad request
       content:

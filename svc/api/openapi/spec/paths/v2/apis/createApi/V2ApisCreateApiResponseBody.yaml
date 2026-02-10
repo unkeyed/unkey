@@ -9,27 +9,15 @@ properties:
     $ref: "./V2ApisCreateApiResponseData.yaml"
 additionalProperties: false
 examples:
-  productionApi:
-    summary: Production API namespace created
-    description: Successfully created a production API namespace for a payment service
-    value:
-      meta:
-        requestId: req_abc123def456
-      data:
-        apiId: api_1234abcd
-  developmentApi:
-    summary: Development environment API created
-    description: API namespace created for development and testing purposes
-    value:
-      meta:
-        requestId: req_def456ghi789
-      data:
-        apiId: api_5678efgh
-  microserviceApi:
-    summary: Microservice-specific API created
-    description: Isolated API namespace for a user management microservice
-    value:
-      meta:
-        requestId: req_ghi789jkl012
-      data:
-        apiId: api_9012ijkl
+  - meta:
+      requestId: req_abc123def456
+    data:
+      apiId: api_1234abcd
+  - meta:
+      requestId: req_def456ghi789
+    data:
+      apiId: api_5678efgh
+  - meta:
+      requestId: req_ghi789jkl012
+    data:
+      apiId: api_9012ijkl

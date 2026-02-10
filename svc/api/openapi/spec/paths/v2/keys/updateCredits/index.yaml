@@ -28,6 +28,49 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysUpdateCreditsRequestBody.yaml"
+        examples:
+          planUpgrade:
+            summary: Upgrade user to higher credit tier
+            description: Increase credits when user upgrades to a higher-tier plan
+            value:
+              keyId: key_1234abcd
+              operation: set
+              value: 10000
+          creditPurchase:
+            summary: Add purchased credits to existing balance
+            description: User bought additional credits to add to their current quota
+            value:
+              keyId: key_5678efgh
+              operation: increment
+              value: 5000
+          unlimitedUpgrade:
+            summary: Upgrade to unlimited usage plan
+            description: Remove credit restrictions for enterprise tier users
+            value:
+              keyId: key_9876wxyz
+              operation: set
+              value: null
+          billingCycleReset:
+            summary: Reset monthly quota at billing cycle
+            description: Refresh user's monthly credit allocation
+            value:
+              keyId: key_cycle_abcd
+              operation: set
+              value: 25000
+          policyViolation:
+            summary: Reduce credits for policy violation
+            description: Subtract credits as penalty for terms of service violation
+            value:
+              keyId: key_violation_123
+              operation: decrement
+              value: 1000
+          refundCredits:
+            summary: Refund unused credits
+            description: Remove credits when processing a partial refund
+            value:
+              keyId: key_refund_789
+              operation: decrement
+              value: 3000
   responses:
     "200":
       description: |
@@ -36,6 +79,52 @@ post:
         application/json:
           schema:
             "$ref": "./V2KeysUpdateCreditsResponseBody.yaml"
+          examples:
+            planUpgradeSuccess:
+              summary: Plan upgrade completed
+              description: Credits updated after user upgraded to higher tier
+              value:
+                meta:
+                  requestId: req_upgrade_1234
+                data:
+                  remaining: 10000
+                  refill:
+                    interval: monthly
+                    amount: 10000
+                    refillDay: 1
+            creditPurchaseSuccess:
+              summary: Credit purchase completed
+              description: Additional credits added to user's balance
+              value:
+                meta:
+                  requestId: req_purchase_5678
+                data:
+                  remaining: 8500
+                  refill:
+                    interval: monthly
+                    amount: 5000
+                    refillDay: 15
+            unlimitedUpgradeSuccess:
+              summary: Unlimited upgrade completed
+              description: User upgraded to unlimited usage plan
+              value:
+                meta:
+                  requestId: req_unlimited_9876
+                data:
+                  remaining: null
+                  refill: null
+            billingResetSuccess:
+              summary: Billing cycle reset completed
+              description: Monthly quota refreshed at billing cycle
+              value:
+                meta:
+                  requestId: req_reset_abcd
+                data:
+                  remaining: 25000
+                  refill:
+                    interval: monthly
+                    amount: 25000
+                    refillDay: 1
     "400":
       description: Bad request
       content:

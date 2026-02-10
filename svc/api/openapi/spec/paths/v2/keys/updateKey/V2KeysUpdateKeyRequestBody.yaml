@@ -135,90 +135,66 @@ properties:
       - settings.view
 additionalProperties: false
 examples:
-  planUpgrade:
-    summary: Upgrade user from free to paid plan
-    description: Update key when user upgrades to paid plan with higher limits
-    value:
-      keyId: key_1234abcd
-      meta:
-        plan: paid
-        billingCycle: monthly
-        upgradeDate: "2024-01-15T10:30:00Z"
-      credits:
-        remaining: 10000
-        refill:
-          interval: monthly
-          amount: 10000
-          refillDay: 15
-      ratelimits:
-        - name: requests
-          limit: 1000
-          duration: 60000
-          autoApply: true
-  planDowngrade:
-    summary: Downgrade user to free tier
-    description: Reduce limits when user cancels paid subscription
-    value:
-      keyId: key_5678efgh
-      meta:
-        plan: free
-        downgradeDate: "2024-01-15T10:30:00Z"
-        reason: subscription_cancelled
-      credits:
-        remaining: 1000
-        refill:
-          interval: monthly
-          amount: 1000
-          refillDay: 1
-      ratelimits:
-        - name: requests
-          limit: 100
-          duration: 60000
-          autoApply: true
-  roleChange:
-    summary: Update user permissions after role change
-    description: Modify key permissions when user's role changes in your system
-    value:
-      keyId: key_9876wxyz
-      externalId: user_admin_456
-      meta:
-        role: admin
-        promotedDate: "2024-01-15T10:30:00Z"
-      permissions:
-        - users.read
-        - users.write
-        - admin.dashboard
-        - billing.view
-      roles:
-        - admin
-  suspendAccount:
-    summary: Temporarily disable key for suspended account
-    description: Disable key when user account is suspended for policy violations
-    value:
-      keyId: key_suspended_123
-      enabled: false
-      meta:
-        status: suspended
-        suspendedDate: "2024-01-15T10:30:00Z"
-        reason: policy_violation
-        suspendedBy: support_agent_789
-  updateIdentity:
-    summary: Link key to different user identity
-    description: Update key association when user changes their identifier
-    value:
-      keyId: key_identity_456
-      externalId: new_user_id_789
-      name: "Production API Key - New User"
-      meta:
-        previousId: old_user_id_123
-        transferredDate: "2024-01-15T10:30:00Z"
-  removeExpiration:
-    summary: Make temporary key permanent
-    description: Remove expiration from a key that was initially created with time limits
-    value:
-      keyId: key_temp_789
-      expires: null
-      meta:
-        status: permanent
-        convertedDate: "2024-01-15T10:30:00Z"
-        originalExpiry: "2024-02-15T10:30:00Z"
+  - keyId: key_1234abcd
+    meta:
+      plan: paid
+      billingCycle: monthly
+      upgradeDate: "2024-01-15T10:30:00Z"
+    credits:
+      remaining: 10000
+      refill:
+        interval: monthly
+        amount: 10000
+        refillDay: 15
+    ratelimits:
+      - name: requests
+        limit: 1000
+        duration: 60000
+        autoApply: true
+  - keyId: key_5678efgh
+    meta:
+      plan: free
+      downgradeDate: "2024-01-15T10:30:00Z"
+      reason: subscription_cancelled
+    credits:
+      remaining: 1000
+      refill:
+        interval: monthly
+        amount: 1000
+        refillDay: 1
+    ratelimits:
+      - name: requests
+        limit: 100
+        duration: 60000
+        autoApply: true
+  - keyId: key_9876wxyz
+    externalId: user_admin_456
+    meta:
+      role: admin
+      promotedDate: "2024-01-15T10:30:00Z"
+    permissions:
+      - users.read
+      - users.write
+      - admin.dashboard
+      - billing.view
+    roles:
+      - admin
+  - keyId: key_suspended_123
+    enabled: false
+    meta:
+      status: suspended
+      suspendedDate: "2024-01-15T10:30:00Z"
+      reason: policy_violation
+      suspendedBy: support_agent_789
+  - keyId: key_identity_456
+    externalId: new_user_id_789
+    name: "Production API Key - New User"
+    meta:
+      previousId: old_user_id_123
+      transferredDate: "2024-01-15T10:30:00Z"
+  - keyId: key_temp_789
+    expires: null
+    meta:
+      status: permanent
+      convertedDate: "2024-01-15T10:30:00Z"
+      originalExpiry: "2024-02-15T10:30:00Z"

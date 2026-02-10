@@ -30,15 +30,7 @@ properties:
     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
 additionalProperties: false
 examples:
-  adminRole:
-    summary: Create admin role
-    description: Create a role for administrative users
-    value:
-      name: admin
-      description: Full administrative access to all resources
-  editorRole:
-    summary: Create editor role
-    description: Create a role for content editors
-    value:
-      name: editor
-      description: Can create and edit content but not manage users
+  - name: admin
+    description: Full administrative access to all resources
+  - name: editor
+    description: Can create and edit content but not manage users

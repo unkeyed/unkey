@@ -46,16 +46,8 @@ properties:
     example: "Grants read-only access to user profile information, account settings, and subscription status."
 additionalProperties: false
 examples:
-  withDescription:
-    summary: Create permission with description
-    description: Standard permission creation with documentation
-    value:
-      name: documents.read
-      slug: documents-read
-      description: Allows reading document resources
-  withoutDescription:
-    summary: Create permission without description
-    description: Minimal permission creation when description is optional
-    value:
-      name: files.upload
-      slug: files-upload
+  - name: documents.read
+    slug: documents-read
+    description: Allows reading document resources
+  - name: files.upload
+    slug: files-upload

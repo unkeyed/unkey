@@ -22,6 +22,17 @@ post:
       application/json:
         schema:
           "$ref": "./V2ApisCreateApiRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic API creation
+            description: Create an API for a payment service
+            value:
+              name: payment-service-prod
+          withEnvironment:
+            summary: Environment-specific API
+            description: Create separate APIs for different environments
+            value:
+              name: user-api-dev
     required: true
   responses:
     "200":
@@ -29,6 +40,31 @@ post:
         application/json:
           schema:
             "$ref": "./V2ApisCreateApiResponseBody.yaml"
+          examples:
+            productionApi:
+              summary: Production API namespace created
+              description: Successfully created a production API namespace for a payment service
+              value:
+                meta:
+                  requestId: req_abc123def456
+                data:
+                  apiId: api_1234abcd
+            developmentApi:
+              summary: Development environment API created
+              description: API namespace created for development and testing purposes
+              value:
+                meta:
+                  requestId: req_def456ghi789
+                data:
+                  apiId: api_5678efgh
+            microserviceApi:
+              summary: Microservice-specific API created
+              description: Isolated API namespace for a user management microservice
+              value:
+                meta:
+                  requestId: req_ghi789jkl012
+                data:
+                  apiId: api_9012ijkl
       description: |
         API namespace created successfully. The response contains the unique API ID for referencing this namespace in key operations.
     "400":
