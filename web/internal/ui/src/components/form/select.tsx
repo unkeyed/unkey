@@ -103,6 +103,10 @@ const SelectContent = React.forwardRef<
         className,
       )}
       position={position}
+      // Prevent Dialog's RemoveScroll from blocking wheel/keyboard events
+      // https://github.com/radix-ui/primitives/issues/1159
+      onWheel={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
       {...props}
     >
       <SelectPrimitive.Viewport
