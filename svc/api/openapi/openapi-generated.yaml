@@ -5271,6 +5271,7 @@ paths:
                                             requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
                             schema:
                                 $ref: '#/components/schemas/V2IdentitiesCreateIdentityResponseBody'
+                    description: Identity successfully created.
                 "400":
                     content:
                         application/json:
@@ -5666,15 +5667,15 @@ paths:
                 "200":
                     content:
                         application/json:
+                            examples:
+                                success:
+                                    summary: Update successful
+                                    value:
+                                        meta:
+                                            requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                             schema:
                                 $ref: '#/components/schemas/V2IdentitiesUpdateIdentityResponseBody'
                     description: Identity successfully updated
-                    examples:
-                        success:
-                            summary: Update successful
-                            value:
-                                meta:
-                                    requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
                         application/json:
@@ -7485,6 +7486,8 @@ paths:
                                             requestId: req_01H9TQPP77V5E48E9SH0BG0ZQX
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: |
+                        Service is in a degraded state. Some functionality may be limited or unavailable.
                 "500":
                     content:
                         application/json:
@@ -8079,16 +8082,16 @@ paths:
                 "200":
                     content:
                         application/json:
+                            examples:
+                                standard:
+                                    summary: Override deleted successfully
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                             schema:
                                 $ref: '#/components/schemas/V2RatelimitDeleteOverrideResponseBody'
                     description: Override successfully deleted. Affected identifiers now use default limits.
-                    examples:
-                        standard:
-                            summary: Override deleted successfully
-                            value:
-                                data: {}
-                                meta:
-                                    requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
                         application/json:
@@ -8179,21 +8182,21 @@ paths:
                 "200":
                     content:
                         application/json:
+                            examples:
+                                standard:
+                                    summary: Override details retrieved
+                                    value:
+                                        data:
+                                            duration: 60000
+                                            identifier: premium_user_123
+                                            limit: 1000
+                                            namespaceId: ns_1234567890abcdef
+                                            overrideId: ovr_1234567890abcdef
+                                        meta:
+                                            requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                             schema:
                                 $ref: '#/components/schemas/V2RatelimitGetOverrideResponseBody'
                     description: Override found and returned successfully.
-                    examples:
-                        standard:
-                            summary: Override details retrieved
-                            value:
-                                data:
-                                    duration: 60000
-                                    identifier: premium_user_123
-                                    limit: 1000
-                                    namespaceId: ns_1234567890abcdef
-                                    overrideId: ovr_1234567890abcdef
-                                meta:
-                                    requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
                         application/json:
@@ -8410,34 +8413,34 @@ paths:
                 "200":
                     content:
                         application/json:
+                            examples:
+                                empty:
+                                    summary: No overrides found
+                                    value:
+                                        data:
+                                            cursor: null
+                                            overrides: []
+                                        meta:
+                                            requestId: req_7zF4mNyP9BsRj2aQwDxVkT
+                                withOverrides:
+                                    summary: List of overrides returned
+                                    value:
+                                        data:
+                                            cursor: cursor_eyJsYXN0SWQiOiJvdnJfMmhGTGNOeVN6SnppRHlwMkpla2E5ciJ9
+                                            overrides:
+                                                - duration: 60000
+                                                  identifier: premium_user_123
+                                                  limit: 1000
+                                                  overrideId: ovr_1234567890abcdef
+                                                - duration: 60000
+                                                  identifier: premium_*
+                                                  limit: 500
+                                                  overrideId: ovr_2345678901bcdefg
+                                        meta:
+                                            requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                             schema:
                                 $ref: '#/components/schemas/V2RatelimitListOverridesResponseBody'
                     description: Overrides retrieved successfully. Includes pagination metadata if more results are available.
-                    examples:
-                        empty:
-                            summary: No overrides found
-                            value:
-                                data:
-                                    cursor: null
-                                    overrides: []
-                                meta:
-                                    requestId: req_7zF4mNyP9BsRj2aQwDxVkT
-                        withOverrides:
-                            summary: List of overrides returned
-                            value:
-                                data:
-                                    cursor: cursor_eyJsYXN0SWQiOiJvdnJfMmhGTGNOeVN6SnppRHlwMkpla2E5ciJ9
-                                    overrides:
-                                        - duration: 60000
-                                          identifier: premium_user_123
-                                          limit: 1000
-                                          overrideId: ovr_1234567890abcdef
-                                        - duration: 60000
-                                          identifier: premium_*
-                                          limit: 500
-                                          overrideId: ovr_2345678901bcdefg
-                                meta:
-                                    requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
                         application/json:
@@ -8690,17 +8693,17 @@ paths:
                 "200":
                     content:
                         application/json:
+                            examples:
+                                standard:
+                                    summary: Override created successfully
+                                    value:
+                                        data:
+                                            overrideId: ovr_1234567890abcdef
+                                        meta:
+                                            requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                             schema:
                                 $ref: '#/components/schemas/V2RatelimitSetOverrideResponseBody'
                     description: Override successfully created or updated and is now active.
-                    examples:
-                        standard:
-                            summary: Override created successfully
-                            value:
-                                data:
-                                    overrideId: ovr_1234567890abcdef
-                                meta:
-                                    requestId: req_2cGKbMxRyIzhCxo1Idjz8q
                 "400":
                     content:
                         application/json:

@@ -41,15 +41,15 @@ post:
         application/json:
           schema:
             "$ref": "./V2RatelimitSetOverrideResponseBody.yaml"
+          examples:
+            standard:
+              summary: Override created successfully
+              value:
+                meta:
+                  requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+                data:
+                  overrideId: ovr_1234567890abcdef
       description: Override successfully created or updated and is now active.
-      examples:
-        standard:
-          summary: Override created successfully
-          value:
-            meta:
-              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-            data:
-              overrideId: ovr_1234567890abcdef
     "400":
       description: Bad request
       content:
