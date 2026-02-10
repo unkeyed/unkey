@@ -77,6 +77,14 @@ local_resource(
 )
 
 local_resource(
+  'hubble-ui',
+  serve_cmd='kubectl port-forward -n kube-system svc/hubble-ui 12000:80',
+  resource_deps=['hubble'],
+  labels=['observability'],
+  links=['http://localhost:12000'],
+)
+
+local_resource(
     'depot-credentials',
     'if [ -f ./.env.depot ]; then kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping depot-credentials (no .env.depot file)"; fi',
     resource_deps=['namespace'],
