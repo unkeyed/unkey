@@ -3,7 +3,7 @@
 import { VirtualTable } from "@/components/virtual-table/index";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BuildStepLogsExpanded } from "./build-step-logs-expanded";
 import { buildStepsColumns } from "./columns/build-steps";
 import { useDeploymentBuildStepsQuery } from "./hooks/use-deployment-build-steps-query";
@@ -11,7 +11,9 @@ import { getBuildStepRowClass } from "./utils/get-build-step-row-class";
 
 export const DeploymentBuildStepsTable = () => {
   const { steps, isLoading } = useDeploymentBuildStepsQuery();
-  const [expandedIds, setExpandedIds] = useState<Set<string | number>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<string | number>>(
+    new Set(),
+  );
 
   // Enrich steps with expansion state for chevron rendering
   const enrichedSteps = steps.map((step) => ({
@@ -37,8 +39,8 @@ export const DeploymentBuildStepsTable = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>Build Steps</Empty.Title>
             <Empty.Description className="text-left">
-              No build steps found for this deployment. Build steps will appear here once the
-              deployment starts building.
+              No build steps found for this deployment. Build steps will appear
+              here once the deployment starts building.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a

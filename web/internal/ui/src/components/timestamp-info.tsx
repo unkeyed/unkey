@@ -21,6 +21,11 @@ const timestampLocalFormatter = (value: string | number) => {
   return format(date, "MMM dd HH:mm:ss");
 };
 
+const timestampLocalHoursWithMillisFormatter = (value: string | number) => {
+  const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
+  return format(date, "HH:mm:ss.SSS");
+};
+
 const timestampUtcFormatter = (value: string | number) => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
   const isoDate = date.toISOString();
@@ -36,7 +41,7 @@ const timestampRelativeFormatter = (value: string | number): string => {
   });
 };
 
-type DisplayType = "local" | "utc" | "relative";
+type DisplayType = "local" | "local_hours_with_millis" | "utc" | "relative";
 
 const TimestampInfo: React.FC<{
   value: string | number;
@@ -98,6 +103,8 @@ const TimestampInfo: React.FC<{
         return utc;
       case "relative":
         return relative;
+      case "local_hours_with_millis":
+        return timestampLocalHoursWithMillisFormatter(value);
       default:
         return timestampLocalFormatter(value);
     }
@@ -117,7 +124,12 @@ const TimestampInfo: React.FC<{
         className="flex items-center hover:bg-gray-3 text-left cursor-pointer w-full px-5 py-2"
       >
         <span className="w-32 text-left truncate text-accent-9">{label}</span>
-        <span className={cn("ml-2 text-xs text-accent-12", copied ? "text-success-11" : "")}>
+        <span
+          className={cn(
+            "ml-2 text-xs text-accent-12",
+            copied ? "text-success-11" : "",
+          )}
+        >
           {copied ? "Copied!" : value}
         </span>
       </span>
@@ -130,12 +142,17 @@ const TimestampInfo: React.FC<{
         // If external trigger is provided, use a span and the external trigger
         <>
           <TooltipTrigger asChild>
-            <span className={cn("text-xs", className)}>{getDisplayValue()}</span>
+            <span className={cn("text-xs", className)}>
+              {getDisplayValue()}
+            </span>
           </TooltipTrigger>
         </>
       ) : (
         // Otherwise use the internal trigger ref for the button
-        <TooltipTrigger ref={internalTriggerRef} className={cn("text-xs", className)}>
+        <TooltipTrigger
+          ref={internalTriggerRef}
+          className={cn("text-xs", className)}
+        >
           <span>{getDisplayValue()}</span>
         </TooltipTrigger>
       )}

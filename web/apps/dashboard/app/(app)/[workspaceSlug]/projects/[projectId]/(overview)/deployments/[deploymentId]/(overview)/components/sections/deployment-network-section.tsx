@@ -12,17 +12,17 @@ import { useDeploymentRps } from "../../hooks/use-deployment-rps";
 import { MetricCard } from "../metrics/metric-card";
 
 export function DeploymentNetworkSection() {
-  const [latencyPercentile, setLatencyPercentile] = useState<keyof typeof PERCENTILE_VALUES>("p50");
+  const [latencyPercentile, setLatencyPercentile] =
+    useState<keyof typeof PERCENTILE_VALUES>("p50");
 
   const params = useParams();
   const deploymentId = params?.deploymentId as string;
   const projectId = params?.projectId as string;
 
-  const { currentRps, timeseries: rpsTimeseries } = useDeploymentRps(deploymentId);
-  const { currentLatency, timeseries: latencyTimeseries } = useDeploymentLatency(
-    deploymentId,
-    latencyPercentile,
-  );
+  const { currentRps, timeseries: rpsTimeseries } =
+    useDeploymentRps(deploymentId);
+  const { currentLatency, timeseries: latencyTimeseries } =
+    useDeploymentLatency(deploymentId, latencyPercentile);
 
   return (
     <Section>
@@ -32,7 +32,10 @@ export function DeploymentNetworkSection() {
       />
       <div className="flex gap-2 flex-col">
         <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 h-[600px] gap-2">
-          <DeploymentNetworkView projectId={projectId} deploymentId={deploymentId} />
+          <DeploymentNetworkView
+            projectId={projectId}
+            deploymentId={deploymentId}
+          />
         </Card>
         <div className="flex gap-2">
           <MetricCard
@@ -40,7 +43,9 @@ export function DeploymentNetworkSection() {
             metricType="latency"
             currentValue={currentLatency}
             percentile={latencyPercentile}
-            onPercentileChange={(value) => setLatencyPercentile(value as typeof latencyPercentile)}
+            onPercentileChange={(value) =>
+              setLatencyPercentile(value as typeof latencyPercentile)
+            }
             chartData={{
               data: latencyTimeseries,
               dataKey: "y",

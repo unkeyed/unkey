@@ -1,9 +1,12 @@
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
-import type { BuildStep, BuildStepLog } from "@unkey/clickhouse/src/build-steps";
-import { CaretUp } from "@unkey/icons";
-import { Badge, TimestampInfo } from "@unkey/ui";
+import type {
+  BuildStep,
+  BuildStepLog,
+} from "@unkey/clickhouse/src/build-steps";
+import { Bolt, TriangleWarning, CaretRight } from "@unkey/icons";
+import { TimestampInfo, InfoTooltip } from "@unkey/ui";
 
 export type BuildStepRow = BuildStep & {
   logs?: Omit<BuildStepLog, "step_id">[];
@@ -12,33 +15,51 @@ export type BuildStepRow = BuildStep & {
 
 export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
+    key: "expand",
+    width: "32px",
+    render: (step) =>
+      step.has_logs ? (
+        <div className="size-4 flex items-center justify-center ">
+          <CaretRight
+            iconSize="sm-regular"
+            className={cn(
+              "shrink-0 transition-transform text-gray-9  ",
+              step._isExpanded && "rotate-90",
+            )}
+          />
+        </div>
+      ) : null,
+  },
+  {
     key: "started_at",
     header: "Started At",
     width: "180px",
-    headerClassName: "pl-8",
-    cellClassName: "pl-8",
     render: (step) => (
-      <div
-        className={cn(
-          "font-mono text-xs truncate max-w-[300px] flex items-center gap-2",
-          step.has_logs && "-ml-5",
-        )}
-      >
-        {step.has_logs && (
-          <CaretUp
-            iconSize="sm-regular"
-            className={cn(
-              "shrink-0 transition-transform text-gray-9",
-              step._isExpanded && "rotate-180",
-            )}
-          />
-        )}
+      <div className="font-mono text-xs truncate max-w-[300px] flex items-center gap-2 ">
         <TimestampInfo
+          displayType="local_hours_with_millis"
           value={step.started_at}
           className="font-mono group-hover:underline decoration-dotted"
         />
       </div>
     ),
+  },
+  {
+    key: "status",
+    width: "32px",
+    render: (step) => {
+      if (step.error) {
+        return <TriangleWarning className="text-error-11" />;
+      }
+      if (step.cached) {
+        return (
+          <InfoTooltip content="This step was cached" asChild>
+            <Bolt className="text-primary-11" />
+          </InfoTooltip>
+        );
+      }
+      return null;
+    },
   },
   {
     key: "name",
@@ -53,32 +74,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
       </div>
     ),
   },
-  {
-    key: "status",
-    header: "Status",
-    width: "120px",
-    render: (step) => {
-      if (step.error) {
-        return (
-          <Badge className="uppercase px-[6px] rounded-md font-mono whitespace-nowrap bg-error-4 text-error-11 group-hover:bg-error-5">
-            Failed
-          </Badge>
-        );
-      }
-      if (step.cached) {
-        return (
-          <Badge className="uppercase px-[6px] rounded-md font-mono whitespace-nowrap bg-blue-4 text-blue-11 group-hover:bg-blue-5">
-            Cached
-          </Badge>
-        );
-      }
-      return (
-        <Badge className="uppercase px-[6px] rounded-md font-mono whitespace-nowrap bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5">
-          Success
-        </Badge>
-      );
-    },
-  },
+
   {
     key: "duration",
     header: "Duration",

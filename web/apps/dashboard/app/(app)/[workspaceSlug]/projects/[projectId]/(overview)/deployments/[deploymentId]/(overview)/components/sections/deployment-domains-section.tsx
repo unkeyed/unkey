@@ -4,7 +4,11 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Earth } from "@unkey/icons";
 import { useParams } from "next/navigation";
 import { Section, SectionHeader } from "../../../../../../components/section";
-import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "../../../../../details/domain-row";
+import {
+  DomainRow,
+  DomainRowEmpty,
+  DomainRowSkeleton,
+} from "../../../../../details/domain-row";
 import { useProject } from "../../../../../layout-provider";
 
 export function DeploymentDomainsSection() {
@@ -20,6 +24,7 @@ export function DeploymentDomainsSection() {
         .where(({ domain }) => eq(domain.deploymentId, deploymentId)),
     [deploymentId],
   );
+
   return (
     <Section>
       <SectionHeader
@@ -34,7 +39,10 @@ export function DeploymentDomainsSection() {
           </>
         ) : (domains?.length ?? 0) > 0 ? (
           domains?.map((domain) => (
-            <DomainRow key={domain.id} domain={domain.fullyQualifiedDomainName} />
+            <DomainRow
+              key={domain.id}
+              domain={domain.fullyQualifiedDomainName}
+            />
           ))
         ) : (
           <DomainRowEmpty />
