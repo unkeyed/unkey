@@ -1,15 +1,15 @@
 type: object
 required:
-    - permission
+  - permission
 properties:
-    permission:
-        type: string
-        minLength: 3
-        maxLength: 255
-        pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
-        description: |
-            The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
-        example: perm_1234567890abcdef
+  permission:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+    description: |
+      The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
+    example: perm_1234567890abcdef
 additionalProperties: false
 examples:
-    - permission: perm_1234567890abcdef
+  - permission: perm_1234567890abcdef

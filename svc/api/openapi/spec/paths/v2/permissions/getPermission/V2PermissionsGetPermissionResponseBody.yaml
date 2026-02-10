@@ -1,19 +1,19 @@
 type: object
 required:
-    - meta
-    - data
+  - meta
+  - data
 properties:
-    meta:
-        "$ref": "../../../../common/Meta.yaml"
-    data:
-        "$ref": "../../../../common/Permission.yaml"
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/Permission.yaml"
 additionalProperties: false
 examples:
-    - meta:
-        requestId: req_1234abcd
-      data:
-        id: perm_1234567890abcdef
-        name: documents.read
-        slug: documents-read
-        description: Allows reading document resources
-        createdAt: 1640995200000
+  - meta:
+      requestId: req_1234abcd
+    data:
+      id: perm_1234567890abcdef
+      name: documents.read
+      slug: documents-read
+      description: Allows reading document resources
+      createdAt: 1640995200000

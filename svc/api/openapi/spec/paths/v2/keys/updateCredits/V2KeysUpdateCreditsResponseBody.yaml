@@ -1,40 +1,40 @@
 type: object
 required:
-    - meta
-    - data
+  - meta
+  - data
 properties:
-    meta:
-        "$ref": "../../../../common/Meta.yaml"
-    data:
-        "$ref": "../../../../common/KeyCreditsData.yaml"
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/KeyCreditsData.yaml"
 additionalProperties: false
 examples:
-    - meta:
-        requestId: req_upgrade_1234
-      data:
-        remaining: 10000
-        refill:
-            interval: monthly
-            amount: 10000
-            refillDay: 1
-    - meta:
-        requestId: req_purchase_5678
-      data:
-        remaining: 8500
-        refill:
-            interval: monthly
-            amount: 5000
-            refillDay: 15
-    - meta:
-        requestId: req_unlimited_9876
-      data:
-        remaining: null
-        refill: null
-    - meta:
-        requestId: req_reset_abcd
-      data:
-        remaining: 25000
-        refill:
-            interval: monthly
-            amount: 25000
-            refillDay: 1
+  - meta:
+      requestId: req_upgrade_1234
+    data:
+      remaining: 10000
+      refill:
+        interval: monthly
+        amount: 10000
+        refillDay: 1
+  - meta:
+      requestId: req_purchase_5678
+    data:
+      remaining: 8500
+      refill:
+        interval: monthly
+        amount: 5000
+        refillDay: 15
+  - meta:
+      requestId: req_unlimited_9876
+    data:
+      remaining: null
+      refill: null
+  - meta:
+      requestId: req_reset_abcd
+    data:
+      remaining: 25000
+      refill:
+        interval: monthly
+        amount: 25000
+        refillDay: 1

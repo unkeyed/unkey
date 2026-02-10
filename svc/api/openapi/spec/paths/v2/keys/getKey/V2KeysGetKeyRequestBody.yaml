@@ -1,38 +1,38 @@
 type: object
 properties:
-    keyId:
-        type: string
-        minLength: 3
-        maxLength: 255 # Reasonable upper bound for database identifiers
-        pattern: "^[a-zA-Z0-9_]+$"
-        description: |
-            Specifies which key to retrieve using the database identifier returned from `keys.createKey`.
-            Do not confuse this with the actual API key string that users include in requests.
-            Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless `decrypt=true`.
-            Find this ID in creation responses, key listings, dashboard, or verification responses.
-        example: key_1234abcd
-    decrypt:
-        type: boolean
-        default: false
-        description: |
-            Controls whether to include the plaintext key value in the response for recovery purposes.
-            Only works for keys created with `recoverable=true` and requires the `decrypt_key` permission.
-            Returned keys must be handled securely, never logged, cached, or stored insecurely.
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255 # Reasonable upper bound for database identifiers
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which key to retrieve using the database identifier returned from `keys.createKey`.
+      Do not confuse this with the actual API key string that users include in requests.
+      Key data includes metadata, permissions, usage statistics, and configuration but never the plaintext key value unless `decrypt=true`.
+      Find this ID in creation responses, key listings, dashboard, or verification responses.
+    example: key_1234abcd
+  decrypt:
+    type: boolean
+    default: false
+    description: |
+      Controls whether to include the plaintext key value in the response for recovery purposes.
+      Only works for keys created with `recoverable=true` and requires the `decrypt_key` permission.
+      Returned keys must be handled securely, never logged, cached, or stored insecurely.
 
-            Use only for legitimate recovery scenarios like user password resets or emergency access.
-            Most applications should keep this false to maintain security best practices and avoid accidental key exposure.
-            Decryption requests are audited and may trigger security alerts in enterprise environments.
+      Use only for legitimate recovery scenarios like user password resets or emergency access.
+      Most applications should keep this false to maintain security best practices and avoid accidental key exposure.
+      Decryption requests are audited and may trigger security alerts in enterprise environments.
 additionalProperties: false
 required:
-    - keyId
+  - keyId
 examples:
-    - keyId: key_1234abcd
-      decrypt: false
-    - keyId: key_5678efgh
-      decrypt: true
-    - keyId: sk_1234abcdef5678
-      decrypt: false
-    - keyId: key_9876zyxw
-      decrypt: false
-    - keyId: key_dev_test
-      decrypt: true
+  - keyId: key_1234abcd
+    decrypt: false
+  - keyId: key_5678efgh
+    decrypt: true
+  - keyId: sk_1234abcdef5678
+    decrypt: false
+  - keyId: key_9876zyxw
+    decrypt: false
+  - keyId: key_dev_test
+    decrypt: true

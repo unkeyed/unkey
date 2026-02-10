@@ -1,58 +1,58 @@
 type: object
 required:
-    - apiId
+  - apiId
 properties:
-    apiId:
-        type: string
-        minLength: 1
-        description: |
-            The API namespace whose keys you want to list.
-            Returns all keys in this API, subject to pagination and filters.
-        example: api_1234abcd
-    limit:
-        type: integer
-        description: |
-            Maximum number of keys to return per request.
-            Balance between response size and number of pagination calls needed.
-        default: 100
-        minimum: 1
-        maximum: 100
-    cursor:
-        type: string
-        description: |
-            Pagination cursor from previous response to fetch next page.
-            Use when `hasMore: true` in previous response.
-        example: key_1234abcd
-    externalId:
-        type: string
-        minLength: 1
-        description: |
-            Filter keys by external ID to find keys for a specific user or entity.
-            Must exactly match the externalId set during key creation.
-        example: user_1234abcd
-    decrypt:
-        type: boolean
-        description: |-
-            When true, attempts to include the plaintext key value in the response. SECURITY WARNING:
-            - This requires special permissions on the calling root key
-            - Only works for keys created with 'recoverable: true'
-            - Exposes sensitive key material in the response
-            - Should only be used in secure administrative contexts
-            - Never enable this in user-facing applications
-        default: false
-    revalidateKeysCache:
-        type: boolean
-        default: false
-        description: |-
-            EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
-            - You've just created a key and need to display it immediately
-            - You need absolute certainty about the current key state
-            - You're debugging cache consistency issues
+  apiId:
+    type: string
+    minLength: 1
+    description: |
+      The API namespace whose keys you want to list.
+      Returns all keys in this API, subject to pagination and filters.
+    example: api_1234abcd
+  limit:
+    type: integer
+    description: |
+      Maximum number of keys to return per request.
+      Balance between response size and number of pagination calls needed.
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: |
+      Pagination cursor from previous response to fetch next page.
+      Use when `hasMore: true` in previous response.
+    example: key_1234abcd
+  externalId:
+    type: string
+    minLength: 1
+    description: |
+      Filter keys by external ID to find keys for a specific user or entity.
+      Must exactly match the externalId set during key creation.
+    example: user_1234abcd
+  decrypt:
+    type: boolean
+    description: |-
+      When true, attempts to include the plaintext key value in the response. SECURITY WARNING:
+      - This requires special permissions on the calling root key
+      - Only works for keys created with 'recoverable: true'
+      - Exposes sensitive key material in the response
+      - Should only be used in secure administrative contexts
+      - Never enable this in user-facing applications
+    default: false
+  revalidateKeysCache:
+    type: boolean
+    default: false
+    description: |-
+      EXPERIMENTAL: Skip the cache and fetch the keys directly from the database. This ensures you see the most recent state, including keys created moments ago. Use this when:
+      - You've just created a key and need to display it immediately
+      - You need absolute certainty about the current key state
+      - You're debugging cache consistency issues
 
-            This parameter comes with a performance cost and should be used sparingly.
+      This parameter comes with a performance cost and should be used sparingly.
 additionalProperties: false
 examples:
-    - apiId: api_1234abcd
-    - apiId: api_1234abcd
-      externalId: user_1234abcd
-      limit: 50
+  - apiId: api_1234abcd
+  - apiId: api_1234abcd
+    externalId: user_1234abcd
+    limit: 50

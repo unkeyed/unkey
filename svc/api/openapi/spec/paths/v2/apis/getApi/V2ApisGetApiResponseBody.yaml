@@ -1,36 +1,36 @@
 type: object
 required:
-    - meta
-    - data
+  - meta
+  - data
 properties:
-    meta:
-        "$ref": "../../../../common/Meta.yaml"
-    data:
-        "$ref": "./V2ApisGetApiResponseData.yaml"
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "./V2ApisGetApiResponseData.yaml"
 additionalProperties: false
 examples:
-    - meta:
-        requestId: req_1234abcd
-      data:
-        id: api_1234abcd
-        name: Payment Service Production
-    - meta:
-        requestId: req_dev_5678
-      data:
-        id: api_dev_5678
-        name: Payment Service Development
-    - meta:
-        requestId: req_staging_9876
-      data:
-        id: api_staging_9876
-        name: Payment Service Staging
-    - meta:
-        requestId: req_simple_abcd
-      data:
-        id: api_simple_abcd
-        name: Analytics API
-    - meta:
-        requestId: req_desc_efgh
-      data:
-        id: api_desc_efgh
-        name: User Management Microservice Production
+  - meta:
+      requestId: req_1234abcd
+    data:
+      id: api_1234abcd
+      name: Payment Service Production
+  - meta:
+      requestId: req_dev_5678
+    data:
+      id: api_dev_5678
+      name: Payment Service Development
+  - meta:
+      requestId: req_staging_9876
+    data:
+      id: api_staging_9876
+      name: Payment Service Staging
+  - meta:
+      requestId: req_simple_abcd
+    data:
+      id: api_simple_abcd
+      name: Analytics API
+  - meta:
+      requestId: req_desc_efgh
+    data:
+      id: api_desc_efgh
+      name: User Management Microservice Production

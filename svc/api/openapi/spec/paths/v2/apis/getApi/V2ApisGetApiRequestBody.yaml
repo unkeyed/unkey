@@ -1,20 +1,20 @@
 type: object
 required:
-    - apiId
+  - apiId
 properties:
-    apiId:
-        type: string
-        minLength: 8
-        maxLength: 255
-        pattern: "^api_[a-zA-Z0-9_]+$"
-        description: |
-            Specifies which API to retrieve by its unique identifier.
-            Must be a valid API ID that begins with 'api_' and exists within your workspace.
-        example: api_1234abcd
+  apiId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^api_[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which API to retrieve by its unique identifier.
+      Must be a valid API ID that begins with 'api_' and exists within your workspace.
+    example: api_1234abcd
 additionalProperties: false
 examples:
-    - apiId: api_1234abcd
-    - apiId: api_prod_5678
-    - apiId: api_dev_9876
-    - apiId: api_staging_abcd
-    - apiId: api_support_case
+  - apiId: api_1234abcd
+  - apiId: api_prod_5678
+  - apiId: api_dev_9876
+  - apiId: api_staging_abcd
+  - apiId: api_support_case

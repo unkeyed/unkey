@@ -1,15 +1,15 @@
 type: object
 required:
-    - meta
-    - data
+  - meta
+  - data
 properties:
-    meta:
-        "$ref": "../../../../common/Meta.yaml"
-    data:
-        "$ref": "./V2PermissionsCreatePermissionResponseData.yaml"
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "./V2PermissionsCreatePermissionResponseData.yaml"
 additionalProperties: false
 examples:
-    - meta:
-        requestId: req_1234abcd
-      data:
-        permissionId: perm_5678efgh9012wxyz
+  - meta:
+      requestId: req_1234abcd
+    data:
+      permissionId: perm_5678efgh9012wxyz

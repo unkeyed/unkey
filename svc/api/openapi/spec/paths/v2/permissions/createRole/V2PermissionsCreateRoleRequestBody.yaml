@@ -1,36 +1,36 @@
 type: object
 required:
-    - name
+  - name
 properties:
-    name:
-        type: string
-        minLength: 1
-        maxLength: 512
-        pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
-        description: |
-            The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+  name:
+    type: string
+    minLength: 1
+    maxLength: 512
+    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+    description: |
+      The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
 
-            Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
-        example: "support.readonly"
-    description:
-        type: string
-        maxLength: 512
-        description: |
-            Provides comprehensive documentation of what this role encompasses and what access it grants.
-            Include information about the intended use case, what permissions should be assigned, and any important considerations.
-            This internal documentation helps team members understand role boundaries and security implications.
-            Not visible to end users - designed for administration teams and access control audits.
+      Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+    example: "support.readonly"
+  description:
+    type: string
+    maxLength: 512
+    description: |
+      Provides comprehensive documentation of what this role encompasses and what access it grants.
+      Include information about the intended use case, what permissions should be assigned, and any important considerations.
+      This internal documentation helps team members understand role boundaries and security implications.
+      Not visible to end users - designed for administration teams and access control audits.
 
-            Consider documenting:
-            - The role's intended purpose and scope
-            - What types of users should receive this role
-            - What permissions are typically associated with it
-            - Any security considerations or limitations
-            - Related roles that might be used together
-        example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
+      Consider documenting:
+      - The role's intended purpose and scope
+      - What types of users should receive this role
+      - What permissions are typically associated with it
+      - Any security considerations or limitations
+      - Related roles that might be used together
+    example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
 additionalProperties: false
 examples:
-    - name: admin
-      description: Full administrative access to all resources
-    - name: editor
-      description: Can create and edit content but not manage users
+  - name: admin
+    description: Full administrative access to all resources
+  - name: editor
+    description: Can create and edit content but not manage users

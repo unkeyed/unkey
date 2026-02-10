@@ -1,37 +1,37 @@
 type: object
 required:
-    - keyId
+  - keyId
 properties:
-    keyId:
-        type: string
-        minLength: 3
-        maxLength: 255 # Reasonable upper bound for database identifiers
-        pattern: "^[a-zA-Z0-9_]+$"
-        description: |
-            Specifies which key to delete using the database identifier returned from `createKey`.
-            Do not confuse this with the actual API key string that users include in requests.
-            Deletion immediately invalidates the key, causing all future verification attempts to fail with `code=NOT_FOUND`.
-            Key deletion triggers cache invalidation across all regions but may take up to 30 seconds to fully propagate.
-        example: key_2cGKbMxRyIzhCxo1Idjz8q
-    permanent:
-        type: boolean
-        default: false
-        description: |
-            Controls deletion behavior between recoverable soft-deletion and irreversible permanent erasure.
-            Soft deletion (default) preserves key data for potential recovery through direct database operations.
-            Permanent deletion completely removes all traces including hash values and metadata with no recovery option.
+  keyId:
+    type: string
+    minLength: 3
+    maxLength: 255 # Reasonable upper bound for database identifiers
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which key to delete using the database identifier returned from `createKey`.
+      Do not confuse this with the actual API key string that users include in requests.
+      Deletion immediately invalidates the key, causing all future verification attempts to fail with `code=NOT_FOUND`.
+      Key deletion triggers cache invalidation across all regions but may take up to 30 seconds to fully propagate.
+    example: key_2cGKbMxRyIzhCxo1Idjz8q
+  permanent:
+    type: boolean
+    default: false
+    description: |
+      Controls deletion behavior between recoverable soft-deletion and irreversible permanent erasure.
+      Soft deletion (default) preserves key data for potential recovery through direct database operations.
+      Permanent deletion completely removes all traces including hash values and metadata with no recovery option.
 
-            Use permanent deletion only for regulatory compliance (GDPR), resolving hash collisions, or when reusing identical key strings.
-            Permanent deletion cannot be undone and may affect analytics data that references the deleted key.
-            Most applications should use soft deletion to maintain audit trails and prevent accidental data loss.
-        example: false
+      Use permanent deletion only for regulatory compliance (GDPR), resolving hash collisions, or when reusing identical key strings.
+      Permanent deletion cannot be undone and may affect analytics data that references the deleted key.
+      Most applications should use soft deletion to maintain audit trails and prevent accidental data loss.
+    example: false
 additionalProperties: false
 examples:
-    - keyId: key_1234abcd
-    - keyId: key_5678efgh
-      permanent: false
-    - keyId: key_9876wxyz
-      permanent: true
-    - keyId: key_test_abcd
-    - keyId: key_old_5678
-      permanent: false
+  - keyId: key_1234abcd
+  - keyId: key_5678efgh
+    permanent: false
+  - keyId: key_9876wxyz
+    permanent: true
+  - keyId: key_test_abcd
+  - keyId: key_old_5678
+    permanent: false

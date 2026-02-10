@@ -1,23 +1,23 @@
 type: object
 required:
-    - meta
-    - data
+  - meta
+  - data
 properties:
-    meta:
-        $ref: "../../../../common/Meta.yaml"
-    data:
-        $ref: "./V2ApisCreateApiResponseData.yaml"
+  meta:
+    $ref: "../../../../common/Meta.yaml"
+  data:
+    $ref: "./V2ApisCreateApiResponseData.yaml"
 additionalProperties: false
 examples:
-    - meta:
-        requestId: req_abc123def456
-      data:
-        apiId: api_1234abcd
-    - meta:
-        requestId: req_def456ghi789
-      data:
-        apiId: api_5678efgh
-    - meta:
-        requestId: req_ghi789jkl012
-      data:
-        apiId: api_9012ijkl
+  - meta:
+      requestId: req_abc123def456
+    data:
+      apiId: api_1234abcd
+  - meta:
+      requestId: req_def456ghi789
+    data:
+      apiId: api_5678efgh
+  - meta:
+      requestId: req_ghi789jkl012
+    data:
+      apiId: api_9012ijkl

@@ -1,23 +1,23 @@
 type: object
 required:
-    - meta
-    - data
+  - meta
+  - data
 properties:
-    meta:
-        "$ref": "../../../../common/Meta.yaml"
-    data:
-        "$ref": "../../../../common/EmptyResponse.yaml"
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/EmptyResponse.yaml"
 additionalProperties: false
 examples:
-    - meta:
-        requestId: req_user_delete_1234
-      data: {}
-    - meta:
-        requestId: req_account_delete_5678
-      data: {}
-    - meta:
-        requestId: req_permanent_9876
-      data: {}
-    - meta:
-        requestId: req_delete_abcd
-      data: {}
+  - meta:
+      requestId: req_user_delete_1234
+    data: {}
+  - meta:
+      requestId: req_account_delete_5678
+    data: {}
+  - meta:
+      requestId: req_permanent_9876
+    data: {}
+  - meta:
+      requestId: req_delete_abcd
+    data: {}

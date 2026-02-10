@@ -1,66 +1,66 @@
 type: object
 additionalProperties: false
 examples:
-    - key: sk_1234abcdef
-    - key: sk_1234abcdef
-      permissions: "documents.read"
+  - key: sk_1234abcdef
+  - key: sk_1234abcdef
+    permissions: "documents.read"
 required:
-    - key
+  - key
 properties:
-    key:
-        type: string
-        x-unkey-redact: true
-        minLength: 1
-        maxLength: 512
-        description: |
-            The API key to verify, exactly as provided by your user.
-            Include any prefix - even small changes will cause verification to fail.
-        example: sk_1234abcdef
-    tags:
-        type: array
-        items:
-            type: string
-            minLength: 1
-            maxLength: 256 # Keep individual tags concise for analytics performance
-            pattern: "^[a-zA-Z0-9_=/.:-]+$"
-        maxItems: 20 # Allow sufficient tags for detailed analytics without performance impact
-        description: |
-            Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
-            Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.
-            Use 'key=value' format for compatibility with most analytics tools and clear categorization.
-            Avoid including sensitive data in tags as they may appear in logs and analytics reports.
-        example:
-            - endpoint=/users/profile
-            - method=GET
-            - region=us-east-1
-            - clientVersion=2.3.0
-            - feature=premium
-    permissions:
-        type: string
-        minLength: 1
-        maxLength: 1000
-        description: |
-            Checks if the key has the specified permission(s) using a query syntax.
-            Supports single permissions, logical operators (AND, OR), and parentheses for grouping.
-            Examples:
-            - Single permission: "documents.read"
-            - Multiple permissions: "documents.read AND documents.write"
-            - Complex queries: "(documents.read OR documents.write) AND users.view"
-            Verification fails if the key lacks the required permissions through direct assignment or role inheritance.
-        example: "documents.read AND users.view"
-    credits:
-        "$ref": "./KeysVerifyKeyCredits.yaml"
-    ratelimits:
-        type: array
-        items:
-            "$ref": "./KeysVerifyKeyRatelimit.yaml"
-        description: |
-            Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
-            Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
-            Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
-            Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
-    migrationId:
-        type: string
-        maxLength: 256
-        description: Migrate keys on demand from your previous system. Reach out for migration support at support@unkey.dev
-        example: "m_1234abcd"
+  key:
+    type: string
+    x-unkey-redact: true
+    minLength: 1
+    maxLength: 512
+    description: |
+      The API key to verify, exactly as provided by your user.
+      Include any prefix - even small changes will cause verification to fail.
+    example: sk_1234abcdef
+  tags:
+    type: array
+    items:
+      type: string
+      minLength: 1
+      maxLength: 256 # Keep individual tags concise for analytics performance
+      pattern: "^[a-zA-Z0-9_=/.:-]+$"
+    maxItems: 20 # Allow sufficient tags for detailed analytics without performance impact
+    description: |
+      Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
+      Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.
+      Use 'key=value' format for compatibility with most analytics tools and clear categorization.
+      Avoid including sensitive data in tags as they may appear in logs and analytics reports.
+    example:
+      - endpoint=/users/profile
+      - method=GET
+      - region=us-east-1
+      - clientVersion=2.3.0
+      - feature=premium
+  permissions:
+    type: string
+    minLength: 1
+    maxLength: 1000
+    description: |
+      Checks if the key has the specified permission(s) using a query syntax.
+      Supports single permissions, logical operators (AND, OR), and parentheses for grouping.
+      Examples:
+      - Single permission: "documents.read"
+      - Multiple permissions: "documents.read AND documents.write"
+      - Complex queries: "(documents.read OR documents.write) AND users.view"
+      Verification fails if the key lacks the required permissions through direct assignment or role inheritance.
+    example: "documents.read AND users.view"
+  credits:
+    "$ref": "./KeysVerifyKeyCredits.yaml"
+  ratelimits:
+    type: array
+    items:
+      "$ref": "./KeysVerifyKeyRatelimit.yaml"
+    description: |
+      Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
+      Omitting this field skips rate limit checks entirely, relying only on configured key rate limits.
+      Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
+      Rate limit checks are optimized for performance but may allow brief bursts during high concurrency.
+  migrationId:
+    type: string
+    maxLength: 256
+    description: Migrate keys on demand from your previous system. Reach out for migration support at support@unkey.dev
+    example: "m_1234abcd"

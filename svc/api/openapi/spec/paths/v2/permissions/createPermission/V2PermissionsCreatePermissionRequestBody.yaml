@@ -1,53 +1,53 @@
 type: object
 required:
-    - name
-    - slug
+  - name
+  - slug
 properties:
-    name:
-        type: string
-        minLength: 1
-        maxLength: 512
-        description: |
-            Creates a permission with this human-readable name that describes its purpose.
-            Names must be unique within your workspace to prevent conflicts during assignment.
-            Use clear, semantic names that developers can easily understand when building authorization logic.
-            Consider using hierarchical naming conventions like 'resource.action' for better organization.
+  name:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      Creates a permission with this human-readable name that describes its purpose.
+      Names must be unique within your workspace to prevent conflicts during assignment.
+      Use clear, semantic names that developers can easily understand when building authorization logic.
+      Consider using hierarchical naming conventions like 'resource.action' for better organization.
 
-            Examples: 'users.read', 'billing.write', 'analytics.view', 'admin.manage'
-        example: "users.read"
-    slug:
-        type: string
-        minLength: 1
-        maxLength: 128
-        pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
-        description: |
-            Creates a URL-safe identifier for this permission that can be used in APIs and integrations.
-            Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
-            Slugs are often used in REST endpoints, configuration files, and external integrations.
-            Should closely match the name but in a format suitable for technical usage.
-            Must be unique within your workspace to ensure reliable permission lookups.
+      Examples: 'users.read', 'billing.write', 'analytics.view', 'admin.manage'
+    example: "users.read"
+  slug:
+    type: string
+    minLength: 1
+    maxLength: 128
+    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+    description: |
+      Creates a URL-safe identifier for this permission that can be used in APIs and integrations.
+      Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
+      Slugs are often used in REST endpoints, configuration files, and external integrations.
+      Should closely match the name but in a format suitable for technical usage.
+      Must be unique within your workspace to ensure reliable permission lookups.
 
-            Keep slugs concise but descriptive for better developer experience.
-        example: "users-read"
-    description:
-        type: string
-        maxLength: 512
-        description: |
-            Provides detailed documentation of what this permission grants access to.
-            Include information about affected resources, allowed actions, and any important limitations.
-            This internal documentation helps team members understand permission scope and security implications.
-            Not visible to end users - designed for development teams and security audits.
+      Keep slugs concise but descriptive for better developer experience.
+    example: "users-read"
+  description:
+    type: string
+    maxLength: 512
+    description: |
+      Provides detailed documentation of what this permission grants access to.
+      Include information about affected resources, allowed actions, and any important limitations.
+      This internal documentation helps team members understand permission scope and security implications.
+      Not visible to end users - designed for development teams and security audits.
 
-            Consider documenting:
-            - What resources can be accessed
-            - What operations are permitted
-            - Any conditions or limitations
-            - Related permissions that might be needed
-        example: "Grants read-only access to user profile information, account settings, and subscription status."
+      Consider documenting:
+      - What resources can be accessed
+      - What operations are permitted
+      - Any conditions or limitations
+      - Related permissions that might be needed
+    example: "Grants read-only access to user profile information, account settings, and subscription status."
 additionalProperties: false
 examples:
-    - name: documents.read
-      slug: documents-read
-      description: Allows reading document resources
-    - name: files.upload
-      slug: files-upload
+  - name: documents.read
+    slug: documents-read
+    description: Allows reading document resources
+  - name: files.upload
+    slug: files-upload
