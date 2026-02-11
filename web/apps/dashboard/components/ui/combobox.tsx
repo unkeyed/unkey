@@ -148,7 +148,7 @@ export function Combobox({
           </Button>
         </PopoverTrigger>
       </div>
-      <PopoverContent className="p-0 w-full min-w-[var(--radix-popover-trigger-width)] rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-50">
+      <PopoverContent align="start" className="p-0 w-[var(--radix-popover-trigger-width)] rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-50">
         <Command>
           <CommandInput
             onInput={onChange}
@@ -171,7 +171,7 @@ export function Combobox({
                     onSelect(option.value);
                     setOpen(false);
                   }}
-                  className="flex items-center py-0.5"
+                  className="flex items-center py-1 mt-0"
                 >
                   {option.label}
                   <Check
