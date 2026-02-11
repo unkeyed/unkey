@@ -8,7 +8,6 @@ import { DeploymentLogsSection } from "./(overview)/components/sections/deployme
 import { DeploymentNetworkSection } from "./(overview)/components/sections/deployment-network-section";
 
 export default function DeploymentOverview() {
-
   return (
     <>
       <ProjectContentWrapper centered>

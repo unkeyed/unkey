@@ -2,14 +2,21 @@
 
 import { useProject } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/layout-provider";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { useLiveQuery } from "@tanstack/react-db";
+import { collection } from "@/lib/collections";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
 
 export const SentinelEnvironmentFilter = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();
-  const { collections } = useProject();
+  const { projectId } = useProject();
 
-  const environments = useLiveQuery((q) => q.from({ environment: collections.environments }));
+  const environments = useLiveQuery(
+    (q) =>
+      q
+        .from({ environment: collection.environments })
+        .where(({ environment }) => eq(environment.projectId, projectId)),
+    [projectId],
+  );
 
   const options = environments.data.map((environment, i) => ({
     id: i,

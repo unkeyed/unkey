@@ -1,5 +1,6 @@
 "use client";
 
+import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Bolt, Cloud, Grid, Harddrive, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
@@ -16,13 +17,14 @@ export function DeploymentInfoSection() {
   const params = useParams();
   const deploymentId = params?.deploymentId as string;
 
-  const { collections, setIsDetailsOpen, isDetailsOpen } = useProject();
+  const { projectId, setIsDetailsOpen, isDetailsOpen } = useProject();
   const { data } = useLiveQuery(
     (q) =>
       q
-        .from({ deployment: collections.deployments })
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) => eq(deployment.projectId, projectId))
         .where(({ deployment }) => eq(deployment.id, deploymentId)),
-    [deploymentId],
+    [projectId, deploymentId],
   );
 
   const deployment = data.at(0);

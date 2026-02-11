@@ -25,7 +25,8 @@ const Switch = React.forwardRef<
         "data-[state=checked]:bg-dark data-[state=unchecked]:bg-grayA-2",
         thumbClassName,
       )}
-    />  </SwitchPrimitives.Root>
+    />{" "}
+  </SwitchPrimitives.Root>
 ));
 Switch.displayName = SwitchPrimitives.Root.displayName;
 

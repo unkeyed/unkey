@@ -1,10 +1,9 @@
 "use client";
 
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
+import { useProjectData } from "../../(overview)/data-provider";
 import { Card } from "../../(overview)/components/card";
-import { useProject } from "../../(overview)/layout-provider";
 import { Avatar } from "../../components/git-avatar";
 import { InfoChip } from "../../components/info-chip";
 import { StatusIndicator } from "../../components/status-indicator";
@@ -24,17 +23,10 @@ export const ActiveDeploymentCard = ({
   trailingContent,
   expandableContent,
 }: Props) => {
-  const { collections } = useProject();
-  const { data, isLoading } = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collections.deployments })
-        .where(({ deployment }) => eq(deployment.id, deploymentId)),
-    [deploymentId],
-  );
-  const deployment = data.at(0);
+  const { getDeploymentById, isDeploymentsLoading } = useProjectData();
+  const deployment = deploymentId ? getDeploymentById(deploymentId) : undefined;
 
-  if (isLoading) {
+  if (isDeploymentsLoading) {
     return <ActiveDeploymentCardSkeleton />;
   }
   if (!deployment) {
@@ -48,7 +40,9 @@ export const ActiveDeploymentCard = ({
           <StatusIndicator withSignal />
           <div className="flex flex-col gap-1">
             <div className="text-accent-12 font-medium text-xs">{deployment.id}</div>
-            <div className="text-gray-9 text-xs">{deployment.gitCommitMessage}</div>
+            {deployment.gitCommitMessage &&
+              <div className="text-gray-9 text-xs">{deployment.gitCommitMessage}</div>
+            }
           </div>
         </div>
         <div className="flex items-center gap-4">

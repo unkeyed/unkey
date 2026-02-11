@@ -3,10 +3,10 @@ import { Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
+import { DomainRowEmpty } from "../domain-row";
 import { AddCustomDomain } from "./add-custom-domain";
 import { CustomDomainRow, CustomDomainRowSkeleton } from "./custom-domain-row";
 import { useCustomDomainsManager } from "./hooks/use-custom-domains-manager";
-import { DomainRowEmpty } from "../domain-row";
 
 type CustomDomainsSectionProps = {
   projectId: string;
@@ -81,14 +81,20 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
 
 function EmptyState({ onAdd, hasEnvironments }: { onAdd: () => void; hasEnvironments: boolean }) {
   return (
-    <DomainRowEmpty title="No custom domains configured" description={hasEnvironments ? "Add a custom domain to serve your application from your own domain." : "Create an environment first to add custom domains"}>
+    <DomainRowEmpty
+      title="No custom domains configured"
+      description={
+        hasEnvironments
+          ? "Add a custom domain to serve your application from your own domain."
+          : "Create an environment first to add custom domains"
+      }
+    >
       {hasEnvironments && (
         <Button size="sm" variant="primary" onClick={onAdd} className="gap-1.5 mt-1">
           <Plus className="!size-3" />
           Add domain
         </Button>
       )}
-    </DomainRowEmpty >
+    </DomainRowEmpty>
   );
 }
-

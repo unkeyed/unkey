@@ -1,5 +1,6 @@
 "use client";
 
+import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Layers3 } from "@unkey/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@unkey/ui";
@@ -15,13 +16,14 @@ export function DeploymentLogsSection() {
   const params = useParams();
   const deploymentId = params?.deploymentId as string;
 
-  const { collections } = useProject();
+  const { projectId } = useProject();
   const { data } = useLiveQuery(
     (q) =>
       q
-        .from({ deployment: collections.deployments })
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) => eq(deployment.projectId, projectId))
         .where(({ deployment }) => eq(deployment.id, deploymentId)),
-    [deploymentId],
+    [projectId, deploymentId],
   );
 
   const deployment = data.at(0);
@@ -42,11 +44,7 @@ export function DeploymentLogsSection() {
         <div className="flex items-center gap-2.5 py-1.5 px-2">
           <Layers3 iconSize="md-regular" className="text-gray-9" />
           <TabsList className="bg-gray-3">
-            <TabsTrigger
-              value="requests"
-              className="text-accent-12 text-[13px]"
-              disabled={isReady}
-            >
+            <TabsTrigger value="requests" className="text-accent-12 text-[13px]" disabled={isReady}>
               Requests
             </TabsTrigger>
             <TabsTrigger value="build-logs" className="text-accent-12 text-[13px]">

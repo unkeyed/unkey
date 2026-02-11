@@ -1,5 +1,5 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
-import { collection, collectionManager } from "@/lib/collections";
+import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -82,7 +82,7 @@ export const ProjectsList = () => {
             debounceDelay={150}
             key={project.id}
             onEnterProximity={() => {
-              collectionManager.preloadProject(project.id);
+              // Preloading is now handled automatically by query-driven sync
             }}
           >
             <ProjectCard

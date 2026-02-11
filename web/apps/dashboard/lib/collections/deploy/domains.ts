@@ -3,6 +3,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
   id: z.string(),
@@ -17,19 +18,34 @@ const schema = z.object({
 
 export type Domain = z.infer<typeof schema>;
 
-export function createDomainsCollection(projectId: string) {
-  if (!projectId) {
-    throw new Error("projectId is required to create domains collection");
-  }
+/**
+ * Global domains collection.
+ *
+ * IMPORTANT: All queries MUST filter by projectId:
+ * .where(({ domain }) => eq(domain.projectId, projectId))
+ */
+export const domains = createCollection<Domain, string>(
+  queryCollectionOptions({
+    queryClient,
+    syncMode: "on-demand",
+    queryKey: (opts) => {
+      const projectId = parseProjectIdFromWhere(opts.where);
+      return projectId ? ["domains", projectId] : ["domains"];
+    },
+    retry: 3,
+    queryFn: async (ctx) => {
+      const options = ctx.meta?.loadSubsetOptions;
 
-  return createCollection<Domain>(
-    queryCollectionOptions({
-      queryClient,
-      queryKey: [projectId, "domains"],
-      retry: 3,
-      queryFn: () => trpcClient.deploy.domain.list.query({ projectId }),
-      getKey: (item) => item.id,
-      id: `${projectId}-domains`,
-    }),
-  );
-}
+      validateProjectIdInQuery(options?.where);
+      const projectId = parseProjectIdFromWhere(options?.where);
+
+      if (!projectId) {
+        throw new Error("Query must include eq(collection.projectId, projectId) constraint");
+      }
+
+      return trpcClient.deploy.domain.list.query({ projectId });
+    },
+    getKey: (item) => item.id,
+    id: "domains",
+  }),
+);

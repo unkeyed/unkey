@@ -1,8 +1,9 @@
 "use client";
 import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
+import { collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { useLiveQuery } from "@tanstack/react-db";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight } from "@unkey/icons";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -27,18 +28,19 @@ const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
 
 export const OpenApiDiff = () => {
   const params = useParams();
-  const { collections, liveDeploymentId } = useProject();
+  const { projectId, liveDeploymentId } = useProject();
 
   const query = useLiveQuery(
     (q) =>
       q
-        .from({ deployment: collections.deployments })
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) => eq(deployment.projectId, projectId))
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(2)
         .select((c) => ({
           id: c.deployment.id,
         })),
-    [liveDeploymentId],
+    [projectId, liveDeploymentId],
   );
 
   const newDeployment = query.data?.find((d) => d.id !== liveDeploymentId);

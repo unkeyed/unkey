@@ -2,6 +2,7 @@
 import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
+import { collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
 import { eq, useLiveQuery } from "@tanstack/react-db";
@@ -18,7 +19,7 @@ type Props = {
 
 export const SentinelLogDetails = ({ distanceToTop }: Props) => {
   const { setSelectedLog, selectedLog: log } = useSentinelLogsContext();
-  const { collections } = useProject();
+  const { projectId } = useProject();
 
   const handleClose = () => {
     setSelectedLog(null);
@@ -27,13 +28,14 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
   const { data } = useLiveQuery(
     (q) => {
       return q
-        .from({ deployment: collections.deployments })
-        .join({ environment: collections.environments }, ({ deployment, environment }) =>
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) => eq(deployment.projectId, projectId))
+        .join({ environment: collection.environments }, ({ deployment, environment }) =>
           eq(deployment.environmentId, environment.id),
         )
         .where(({ deployment }) => eq(deployment.id, log?.deployment_id));
     },
-    [log?.deployment_id],
+    [projectId, log?.deployment_id],
   );
   const deployment = data.at(0)?.deployment;
   const environment = data.at(0)?.environment;

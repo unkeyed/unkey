@@ -147,7 +147,7 @@ export const DeploymentsList = () => {
         render: ({ deployment }) => {
           return (
             <div className="flex items-center min-h-[52px]">
-              <DomainList deploymentId={deployment.id} />
+              <DomainList deploymentId={deployment.id} status={deployment.status} />
             </div>
           );
         },
@@ -162,12 +162,16 @@ export const DeploymentsList = () => {
           return (
             <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
               <Cube className="text-gray-12" iconSize="sm-regular" />
-              <div className="flex gap-0.5">
-                <span className="font-semibold text-grayA-12 tabular-nums">
-                  {deployment.instances.length}
-                </span>
-                <span>VMs</span>
-              </div>
+              {deployment.status === "failed" ? (
+                <span className="text-gray-9">—</span>
+              ) : (
+                <div className="flex gap-0.5">
+                  <span className="font-semibold text-grayA-12 tabular-nums">
+                    {deployment.instances.length}
+                  </span>
+                  <span>VMs</span>
+                </div>
+              )}
             </div>
           );
         },
@@ -180,19 +184,23 @@ export const DeploymentsList = () => {
           return (
             <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
               <Cube className="text-gray-12" iconSize="sm-regular" />
-              <div className="flex gap-1">
-                <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12">
-                    {formatCpu(deployment.cpuMillicores)}
-                  </span>
+              {deployment.status === "failed" ? (
+                <span className="text-gray-9">—</span>
+              ) : (
+                <div className="flex gap-1">
+                  <div className="flex gap-0.5">
+                    <span className="font-semibold text-grayA-12">
+                      {formatCpu(deployment.cpuMillicores)}
+                    </span>
+                  </div>
+                  <span> / </span>
+                  <div className="flex gap-0.5">
+                    <span className="font-semibold text-grayA-12">
+                      {formatMemory(deployment.memoryMib)}
+                    </span>
+                  </div>
                 </div>
-                <span> / </span>
-                <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12">
-                    {formatMemory(deployment.memoryMib)}
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
           );
         },

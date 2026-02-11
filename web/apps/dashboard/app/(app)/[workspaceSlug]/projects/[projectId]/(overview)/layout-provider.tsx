@@ -1,4 +1,3 @@
-import type { collectionManager } from "@/lib/collections";
 import { createContext, useContext } from "react";
 
 type ProjectLayoutContextType = {
@@ -7,8 +6,6 @@ type ProjectLayoutContextType = {
 
   projectId: string;
   liveDeploymentId?: string | null;
-
-  collections: ReturnType<typeof collectionManager.getProjectCollections>;
 };
 
 export const ProjectLayoutContext = createContext<ProjectLayoutContextType | null>(null);

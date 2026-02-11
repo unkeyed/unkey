@@ -2,8 +2,8 @@ import { CircleCheck, Link4, ShareUpRight } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
+import type { PropsWithChildren, ReactNode } from "react";
 import { Card } from "../components/card";
-import { PropsWithChildren, ReactNode } from "react";
 
 type DomainRowProps = {
   domain: string;
@@ -54,7 +54,6 @@ export const DomainRowSkeleton = () => {
   );
 };
 
-
 type DomainRowEmptyProps = PropsWithChildren<{
   title: string;
   description: string;
@@ -72,7 +71,7 @@ export const DomainRowEmpty = ({
   <Card
     className={cn(
       "rounded-[14px] flex justify-center items-center overflow-hidden border-gray-4 border-dashed bg-gray-1/50 min-h-[150px] relative group hover:border-gray-5 transition-colors duration-200",
-      className
+      className,
     )}
   >
     <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
@@ -88,9 +87,7 @@ export const DomainRowEmpty = ({
       {/* Content */}
       <div className="space-y-2">
         <h3 className="text-gray-12 font-medium text-sm">{title}</h3>
-        <p className="text-gray-9 text-xs max-w-[280px] leading-relaxed">
-          {description}
-        </p>
+        <p className="text-gray-9 text-xs max-w-[280px] leading-relaxed">{description}</p>
       </div>
       {children}
     </div>

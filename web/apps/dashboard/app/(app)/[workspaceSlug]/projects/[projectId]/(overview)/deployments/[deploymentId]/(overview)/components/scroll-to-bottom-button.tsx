@@ -1,4 +1,5 @@
 "use client";
+import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -8,13 +9,14 @@ import { useProject } from "../../../../layout-provider";
 export function ScrollToBottomButton() {
   const params = useParams();
   const deploymentId = params?.deploymentId as string;
-  const { collections } = useProject();
+  const { projectId } = useProject();
   const deployment = useLiveQuery(
     (q) =>
       q
-        .from({ deployment: collections.deployments })
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) => eq(deployment.projectId, projectId))
         .where(({ deployment }) => eq(deployment.id, deploymentId)),
-    [deploymentId],
+    [projectId, deploymentId],
   );
   const isVisible = deployment.data.at(0)?.status !== "ready";
 
@@ -41,9 +43,7 @@ export function ScrollToBottomButton() {
         "overflow-hidden",
         "before:absolute before:inset-0 before:bg-gradient-to-r before:from-infoA-5 before:to-transparent before:-z-10",
         "after:absolute after:inset-0 after:bg-gray-1 after:dark:bg-black after:-z-20",
-        isVisible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-4 pointer-events-none",
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none",
       )}
       aria-label="Scroll to bottom of build logs"
     >
@@ -54,9 +54,7 @@ export function ScrollToBottomButton() {
           animation: "shimmer 1.2s ease-in-out infinite",
         }}
       />
-      <span className="text-xs text-infoA-11 font-medium relative z-10">
-        Building...
-      </span>
+      <span className="text-xs text-infoA-11 font-medium relative z-10">Building...</span>
       <ChevronDown iconSize="sm-regular" className="text-info-11 relative z-10" />
       <style jsx>{`
         @keyframes shimmer {

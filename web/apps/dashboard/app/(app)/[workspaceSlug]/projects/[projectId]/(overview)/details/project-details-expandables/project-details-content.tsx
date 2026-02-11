@@ -2,7 +2,7 @@ import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cube } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
-import { useProject } from "../../layout-provider";
+import { useProjectData } from "../../data-provider";
 import { DetailSection } from "./detail-section";
 import { createDetailSections } from "./sections";
 
@@ -11,12 +11,13 @@ type ProjectDetailsContentProps = {
 };
 
 export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps) => {
-  const { collections } = useProject();
+  const { getDomainsForDeployment } = useProjectData();
+
   const query = useLiveQuery((q) =>
     q
       .from({ project: collection.projects })
       .where(({ project }) => eq(project.id, projectId))
-      .join({ deployment: collections.deployments }, ({ deployment, project }) =>
+      .join({ deployment: collection.deployments }, ({ deployment, project }) =>
         eq(deployment.id, project.liveDeploymentId),
       )
       .orderBy(({ project }) => project.id, "asc")
@@ -24,18 +25,16 @@ export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps)
   );
 
   const data = query.data.at(0);
-  const { data: domainsData } = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collections.domains })
-        .where(({ domain }) => eq(domain.deploymentId, data?.project.liveDeploymentId))
-        .select(({ domain }) => ({
-          domain: domain.fullyQualifiedDomainName,
-          environment: domain.sticky,
+
+  // Get domains from provider and transform
+  const domainsData = data?.project.liveDeploymentId
+    ? getDomainsForDeployment(data.project.liveDeploymentId)
+        .map((d) => ({
+          domain: d.fullyQualifiedDomainName,
+          environment: d.sticky,
         }))
-        .orderBy(({ domain }) => domain.id, "asc"),
-    [data?.project.liveDeploymentId],
-  );
+        .sort((a, b) => a.domain.localeCompare(b.domain))
+    : [];
 
   if (!data?.deployment) {
     return null;

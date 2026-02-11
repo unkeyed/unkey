@@ -1,25 +1,17 @@
 "use client";
 
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Earth } from "@unkey/icons";
 import { useParams } from "next/navigation";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "../../../../../details/domain-row";
-import { useProject } from "../../../../../layout-provider";
+import { useProjectData } from "../../../../../data-provider";
 
 export function DeploymentDomainsSection() {
   const params = useParams();
   const deploymentId = params?.deploymentId as string;
 
-  const { collections } = useProject();
-
-  const { data: domains, isLoading } = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collections.domains })
-        .where(({ domain }) => eq(domain.deploymentId, deploymentId)),
-    [deploymentId],
-  );
+  const { getDomainsForDeployment, isDomainsLoading } = useProjectData();
+  const domains = getDomainsForDeployment(deploymentId);
   return (
     <Section>
       <SectionHeader
@@ -27,17 +19,20 @@ export function DeploymentDomainsSection() {
         title="Domains"
       />
       <div>
-        {isLoading ? (
+        {isDomainsLoading ? (
           <>
             <DomainRowSkeleton />
             <DomainRowSkeleton />
           </>
-        ) : (domains?.length ?? 0) > 0 ? (
-          domains?.map((domain) => (
+        ) : domains.length > 0 ? (
+          domains.map((domain) => (
             <DomainRow key={domain.id} domain={domain.fullyQualifiedDomainName} />
           ))
         ) : (
-          <DomainRowEmpty title="No domains found" description="Your configured domains will appear here once they're set up and verified." />
+          <DomainRowEmpty
+            title="No domains found"
+            description="Your configured domains will appear here once they're set up and verified."
+          />
         )}
       </div>
     </Section>

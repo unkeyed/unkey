@@ -2,11 +2,11 @@ import { cn } from "@/lib/utils";
 import { BracketsCurly, ChevronDown, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
+import { DomainRowEmpty } from "../domain-row";
 import { AddEnvVars } from "./add-env-vars";
 import { EnvVarRow } from "./env-var-row";
 import { useEnvVarsManager } from "./hooks/use-env-var-manager";
 import type { Environment } from "./types";
-import { DomainRowEmpty } from "../domain-row";
 
 type EnvironmentVariablesSectionProps = {
   icon: ReactNode;
@@ -21,9 +21,7 @@ const ANIMATION_CONFIG = {
   contentDelay: 150,
 } as const;
 
-const LAYOUT_CONFIG = {
-  maxContentHeight: "max-h-64",
-} as const;
+
 
 export function EnvironmentVariablesSection({
   icon,
@@ -51,20 +49,27 @@ export function EnvironmentVariablesSection({
   const startAdding = () => setIsAddingNew(true);
   const cancelAdding = () => setIsAddingNew(false);
 
-  const showPlusButton = isExpanded && !isAddingNew;
-
-
   return (
     <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] w-full overflow-hidden">
       {/* Header */}
-      <div className={cn("px-4 py-3 flex justify-between items-center", isExpanded && "pb-0.5 pt-[14px]")}>
+      <div
+        className={cn(
+          "px-4 py-3 flex justify-between items-center",
+          isExpanded && "pb-0.5 pt-[14px]",
+        )}
+      >
         <div className="flex items-center">
           {icon}
           <div className="text-gray-12 font-medium text-xs ml-3 mr-2 capitalize">
             {title} {envVars.length > 0 && `(${envVars.length})`}
           </div>
         </div>
-        <Button size="icon" variant="ghost" onClick={toggleExpanded} className="size-7 bg-gray-3 hover:bg-gray-4 mb-0.5">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={toggleExpanded}
+          className="size-7 bg-gray-3 hover:bg-gray-4 mb-0.5"
+        >
           <ChevronDown
             iconSize="sm-regular"
             className={cn(
@@ -79,9 +84,7 @@ export function EnvironmentVariablesSection({
       <div
         className={cn(
           "bg-gray-2 rounded-b-[14px] relative transition-all duration-300 ease-in",
-          isExpanded
-            ? "opacity-100 pb-0"
-            : "h-0 overflow-hidden opacity-0 py-0",
+          isExpanded ? "opacity-100 pb-0" : "h-0 overflow-hidden opacity-0 py-0",
         )}
       >
         {/* Concave separator */}
@@ -122,16 +125,24 @@ export function EnvironmentVariablesSection({
               />
             )}
 
-            {envVars.length === 0 && !isAddingNew && <DomainRowEmpty title="No environment variables configured" description="Add environment variables to configure your application's runtime settings." className="border-none" icon={<BracketsCurly
-              className="text-gray-9 size-6 group-hover:text-gray-11 transition-all duration-200 animate-pulse"
-              style={{ animationDuration: "2s" }}
-            />
-            }>
-              <Button size="sm" variant="primary" onClick={startAdding} className="gap-1.5 mt-1">
-                <Plus className="!size-3" />
-                Add domain
-              </Button>
-            </DomainRowEmpty>}
+            {envVars.length === 0 && !isAddingNew && (
+              <DomainRowEmpty
+                title="No environment variables configured"
+                description="Add environment variables to configure your application's runtime settings."
+                className="border-none"
+                icon={
+                  <BracketsCurly
+                    className="text-gray-9 size-6 group-hover:text-gray-11 transition-all duration-200 animate-pulse"
+                    style={{ animationDuration: "2s" }}
+                  />
+                }
+              >
+                <Button size="sm" variant="primary" onClick={startAdding} className="gap-1.5 mt-1">
+                  <Plus className="!size-3" />
+                  Add variable
+                </Button>
+              </DomainRowEmpty>
+            )}
           </div>
         </div>
       </div>

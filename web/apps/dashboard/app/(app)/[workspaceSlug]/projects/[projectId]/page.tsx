@@ -2,6 +2,7 @@
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
+import { useProjectData } from "./(overview)/data-provider";
 import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
 import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
@@ -15,31 +16,28 @@ import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
 
 export default function ProjectDetails() {
-  const { projectId, collections, liveDeploymentId } = useProject();
+  const { projectId, liveDeploymentId } = useProject();
+  const { getDomainsForDeployment, isDomainsLoading, getDeploymentById } = useProjectData();
 
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
   );
 
   const project = projects.data.at(0);
-  const { data: domains, isLoading: isDomainsLoading } = useLiveQuery(
+
+  // Get domains for live deployment
+  const domains = liveDeploymentId ? getDomainsForDeployment(liveDeploymentId) : [];
+
+  const { data: environments } = useLiveQuery(
     (q) =>
-      q
-        .from({ domain: collections.domains })
-        .where(({ domain }) => eq(domain.deploymentId, liveDeploymentId)),
-    [liveDeploymentId],
+      q.from({ env: collection.environments }).where(({ env }) => eq(env.projectId, projectId)),
+    [projectId],
   );
 
-  const { data: environments } = useLiveQuery((q) => q.from({ env: collections.environments }));
-
-  const deployment = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collections.deployments })
-        .where(({ deployment }) => eq(deployment.id, project?.liveDeploymentId)),
-    [project?.liveDeploymentId],
-  );
-  const deploymentStatus = deployment.data.at(0)?.status;
+  // Get deployment from provider
+  const deploymentStatus = liveDeploymentId
+    ? getDeploymentById(liveDeploymentId)?.status
+    : undefined;
 
   return (
     <ProjectContentWrapper centered>
@@ -75,12 +73,15 @@ export default function ProjectDetails() {
               <DomainRowSkeleton />
               <DomainRowSkeleton />
             </>
-          ) : domains?.length > 0 ? (
+          ) : domains.length > 0 ? (
             domains.map((domain) => (
               <DomainRow key={domain.id} domain={domain.fullyQualifiedDomainName} />
             ))
           ) : (
-            <DomainRowEmpty title="No domains found" description="Your configured domains will appear here once they're set up and verified." />
+            <DomainRowEmpty
+              title="No domains found"
+              description="Your configured domains will appear here once they're set up and verified."
+            />
           )}
         </div>
       </Section>

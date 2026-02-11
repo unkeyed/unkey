@@ -1,9 +1,8 @@
 "use client";
-import { useProject } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/layout-provider";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/data-provider";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
@@ -22,13 +21,10 @@ export const DeploymentListTableActions = ({
   environment,
 }: DeploymentListTableActionsProps) => {
   const workspace = useWorkspaceNavigation();
-  const { collections } = useProject();
-  const { data } = useLiveQuery((q) =>
-    q
-      .from({ domain: collections.domains })
-      .where(({ domain }) => eq(domain.deploymentId, selectedDeployment.id))
-      .select(({ domain }) => ({ host: domain.fullyQualifiedDomainName })),
-  );
+  const { getDomainsForDeployment } = useProjectData();
+  const data = getDomainsForDeployment(selectedDeployment.id).map((domain) => ({
+    host: domain.fullyQualifiedDomainName,
+  }));
 
   const router = useRouter();
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay

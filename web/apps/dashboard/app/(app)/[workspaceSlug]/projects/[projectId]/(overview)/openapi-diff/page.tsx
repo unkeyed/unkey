@@ -1,5 +1,6 @@
 "use client";
 
+import { collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
@@ -14,20 +15,23 @@ import { DiffViewerContent } from "./components/client";
 import { DeploymentSelect } from "./components/deployment-select";
 
 export default function DiffPage() {
-  const { collections, liveDeploymentId } = useProject();
+  const { projectId, liveDeploymentId } = useProject();
   const searchParams = useSearchParams();
 
   const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");
   const [selectedToDeployment, setSelectedToDeployment] = useState<string>("");
 
-  const deployments = useLiveQuery((q) =>
-    q
-      .from({ deployment: collections.deployments })
-      .join({ environment: collections.environments }, ({ environment, deployment }) =>
-        eq(environment.id, deployment.environmentId),
-      )
-      .orderBy(({ deployment }) => deployment.createdAt, "desc")
-      .limit(100),
+  const deployments = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) => eq(deployment.projectId, projectId))
+        .join({ environment: collection.environments }, ({ environment, deployment }) =>
+          eq(environment.id, deployment.environmentId),
+        )
+        .orderBy(({ deployment }) => deployment.createdAt, "desc")
+        .limit(100),
+    [projectId],
   );
 
   const sortedDeployments = deployments.data ?? [];
