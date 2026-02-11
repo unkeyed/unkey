@@ -20,6 +20,7 @@ export function DeploymentDomainsSection() {
         .where(({ domain }) => eq(domain.deploymentId, deploymentId)),
     [deploymentId],
   );
+
   return (
     <Section>
       <SectionHeader

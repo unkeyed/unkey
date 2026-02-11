@@ -221,11 +221,9 @@ k8s_resource(
 
 # Ctrl service
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'build-unkey']
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'build-unkey', 'github-credentials']
 if has_depot_credentials:
     ctrl_api_deps.append('depot-credentials')
-if has_github_credentials:
-    ctrl_api_deps.append('github-credentials')
 k8s_resource(
   'ctrl-api',
   port_forwards='7091:7091',
@@ -237,11 +235,9 @@ k8s_resource(
 
 # Worker service (Restate workflow handlers)
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'build-unkey', 'webhooks-config']
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'build-unkey', 'webhooks-config', 'github-credentials']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
-if has_github_credentials:
-    ctrl_worker_deps.append('github-credentials')
 k8s_resource(
   'ctrl-worker',
   port_forwards=['7092:7092'],
