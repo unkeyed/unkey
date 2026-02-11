@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "930e55cfaf8e",
+  "strategy": "manual-commit",
+  "branch": "spin-down-production",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "pkg/db/deployment_topology_update_desired_status.sql_generated.go",
+    "pkg/db/queries/deployment_topology_update_desired_status.sql",
+    "web/apps/dashboard/components/ui/combobox.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/93/0e55cfaf8e/0/metadata.json",
+      "transcript": "/93/0e55cfaf8e/0/full.jsonl",
+      "context": "/93/0e55cfaf8e/0/context.md",
+      "content_hash": "/93/0e55cfaf8e/0/content_hash.txt",
+      "prompt": "/93/0e55cfaf8e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 22602,
+    "cache_read_tokens": 211216,
+    "output_tokens": 964,
+    "api_call_count": 7
+  }
+}

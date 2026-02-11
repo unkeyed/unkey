@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "930e55cfaf8e",
+  "session_id": "e779517a-d199-445a-aaa1-fa136817cc21",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-11T13:30:45.794103Z",
+  "branch": "spin-down-production",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "pkg/db/deployment_topology_update_desired_status.sql_generated.go",
+    "pkg/db/queries/deployment_topology_update_desired_status.sql",
+    "web/apps/dashboard/components/ui/combobox.tsx"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 22602,
+    "cache_read_tokens": 211216,
+    "output_tokens": 964,
+    "api_call_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-11T13:30:45.778116Z",
+    "agent_lines": 14,
+    "human_added": 2578,
+    "human_modified": 29,
+    "human_removed": 0,
+    "total_committed": 2621,
+    "agent_percentage": 0.534147272033575
+  }
+}
