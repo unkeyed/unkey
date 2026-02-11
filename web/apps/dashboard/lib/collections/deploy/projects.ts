@@ -8,7 +8,6 @@ const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
-  gitRepositoryUrl: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
   liveDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
@@ -96,7 +95,6 @@ export const projects = createCollection<Project>(
       const createInput = createProjectRequestSchema.parse({
         name: changes.name,
         slug: changes.slug,
-        gitRepositoryUrl: changes.gitRepositoryUrl,
       });
       const mutation = trpcClient.deploy.project.create.mutate(createInput);
 

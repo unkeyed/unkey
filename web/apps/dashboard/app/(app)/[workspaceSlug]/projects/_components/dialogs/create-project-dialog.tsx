@@ -37,7 +37,6 @@ export const CreateProjectDialog = () => {
       const tx = collection.projects.insert({
         name: values.name,
         slug: values.slug,
-        gitRepositoryUrl: null,
         liveDeploymentId: null,
         isRolledBack: false,
         id: "will-be-replace-by-server",
@@ -98,7 +97,7 @@ export const CreateProjectDialog = () => {
         isOpen={isModalOpen}
         onOpenChange={handleModalClose}
         title="Create New Project"
-        subTitle="Set up a new project with a unique name and optional Git repository"
+        subTitle="Set up a new project with a unique slug"
         footer={
           <div className="flex flex-col items-center justify-center w-full gap-2">
             <Button

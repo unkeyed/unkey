@@ -17,6 +17,7 @@ type pushInstallation struct {
 type pushRepository struct {
 	ID       int64  `json:"id"`
 	FullName string `json:"full_name"`
+	Fork     bool   `json:"fork"`
 }
 
 type pushCommit struct {
