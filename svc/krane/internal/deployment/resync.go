@@ -55,6 +55,16 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					DeploymentId: deploymentID,
 				}))
 				if err != nil {
+					if connect.CodeOf(err) == connect.CodeNotFound {
+						if err := c.DeleteDeployment(ctx, &ctrlv1.DeleteDeployment{
+							K8SNamespace: replicaSet.GetNamespace(),
+							K8SName:      replicaSet.GetName(),
+						}); err != nil {
+							logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
+							continue
+						}
+					}
+
 					logger.Error("unable to get desired deployment state", "error", err.Error(), "deployment_id", deploymentID)
 					continue
 				}
