@@ -24,7 +24,7 @@ Don't use workflows for:
 
 ### 1. Define the Proto
 
-Create `go/proto/hydra/v1/yourservice.proto`:
+Create `svc/ctrl/proto/hydra/v1/yourservice.proto`:
 
 ```protobuf
 syntax = "proto3";
@@ -60,7 +60,7 @@ make generate
 
 ### 3. Implement the Service
 
-Create `go/apps/ctrl/workflows/yourservice/`:
+Create `svc/ctrl/worker/yourservice/`:
 
 **service.go:**
 
@@ -111,7 +111,7 @@ func (s *Service) YourOperation(
 
 ### 4. Register the Service
 
-Update `go/apps/ctrl/run.go`:
+Update `svc/ctrl/worker/run.go`:
 
 ```go
 import (
@@ -192,9 +192,9 @@ if err != nil {
 
 See existing implementations:
 
-- **DeploymentService**: `go/apps/ctrl/workflows/deploy/`
-- **RoutingService**: `go/apps/ctrl/workflows/routing/`
-- **CertificateService**: `go/apps/ctrl/workflows/certificate/`
+- **DeployService**: `svc/ctrl/worker/deploy/`
+- **RoutingService**: `svc/ctrl/worker/routing/`
+- **CertificateService**: `svc/ctrl/worker/certificate/`
 
 ## References
 

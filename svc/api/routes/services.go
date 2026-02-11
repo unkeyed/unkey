@@ -55,7 +55,7 @@ type Services struct {
 
 	// CtrlDeploymentClient communicates with the control plane for deployment
 	// operations like creating and managing deployments.
-	CtrlDeploymentClient ctrlv1connect.DeploymentServiceClient
+	CtrlDeploymentClient ctrlv1connect.DeployServiceClient
 
 	// PprofEnabled controls whether pprof profiling endpoints are registered.
 	PprofEnabled bool

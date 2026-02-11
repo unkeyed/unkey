@@ -28,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 	"golang.org/x/net/http2"
@@ -179,12 +180,17 @@ func New(t *testing.T) *Harness {
 		AllowUnauthenticatedDeployments: false,
 	})
 
+	deploymentSvc := deployment.New(deployment.Config{
+		DB: database,
+	})
+
 	// Set up Restate server with all services
 	// Use the proto-generated wrappers (same as run.go) to get correct service names
 	restateSrv := restateServer.NewRestate()
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploySvc))
+	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
+	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
 
 	restateHandler, err := restateSrv.Handler()
 	require.NoError(t, err)

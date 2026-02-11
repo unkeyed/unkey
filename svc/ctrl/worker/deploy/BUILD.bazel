@@ -11,7 +11,7 @@ go_library(
         "helpers.go",
         "promote_handler.go",
         "rollback_handler.go",
-        "scale_down_idle_deployments.go",
+        "scale_down_idle_preview_deployments.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/deploy",
@@ -52,7 +52,7 @@ go_library(
 
 go_test(
     name = "deploy_test",
-    srcs = ["scale_down_idle_deployments_test.go"],
+    srcs = ["scale_down_idle_preview_deployments_test.go"],
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
