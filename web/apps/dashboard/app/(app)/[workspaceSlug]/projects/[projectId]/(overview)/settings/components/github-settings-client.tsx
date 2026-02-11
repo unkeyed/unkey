@@ -44,7 +44,7 @@ export const GitHubSettingsClient: React.FC = () => {
     <div>
       {hasInstallations ? (
         <>
-          <GitHubAppCard  hasInstallations={true} />
+          <GitHubAppCard hasInstallations={true} />
           <RepositoryCard
             connectedRepo={repoConnection?.repositoryFullName ?? null}
             onDisconnect={() => disconnectRepoMutation.mutate({ projectId })}

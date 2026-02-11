@@ -1,11 +1,12 @@
 "use client";
 import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
+import { EmptySection } from "./(overview)/components/empty-section";
 import { useProjectData } from "./(overview)/data-provider";
 import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
 import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
 import { CustomDomainsSection } from "./(overview)/details/custom-domains-section";
-import { DomainRow, DomainRowSkeleton, EmptySection } from "./(overview)/details/domain-row";
+import { DomainRow, DomainRowSkeleton } from "./(overview)/details/domain-row";
 import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";

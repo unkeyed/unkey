@@ -1,25 +1,20 @@
 "use client";
-
-import { trpc } from "@/lib/trpc/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect } from "react";
+import { useProjectData } from "../data-provider";
 import { BuildSettings } from "./components/build-settings";
 import { GitHubSettingsClient } from "./components/github-settings-client";
 import { RuntimeApplicationSettings } from "./components/runtime-application-settings";
 import { RuntimeScalingSettings } from "./components/runtime-scaling-settings";
-import { useProjectData } from "../data-provider";
 
 export default function SettingsPage() {
-  const { environments, } = useProjectData()
+  const { environments } = useProjectData();
   const [environmentId, setEnvironmentId] = useQueryState(
     "environmentId",
-    parseAsString
-      .withDefault(environments.length > 0 ? environments[0].id : "")
-      .withOptions({
-        history: "replace",
-        shallow: true,
-      }),
+    parseAsString.withDefault(environments.length > 0 ? environments[0].id : "").withOptions({
+      history: "replace",
+      shallow: true,
+    }),
   );
 
   return (

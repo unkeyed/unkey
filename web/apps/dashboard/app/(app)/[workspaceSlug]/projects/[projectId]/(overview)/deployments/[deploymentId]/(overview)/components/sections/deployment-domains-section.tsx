@@ -2,8 +2,9 @@
 
 import { Earth } from "@unkey/icons";
 import { Section, SectionHeader } from "../../../../../../components/section";
+import { EmptySection } from "../../../../../components/empty-section";
 import { useProjectData } from "../../../../../data-provider";
-import { DomainRow, DomainRowSkeleton, EmptySection } from "../../../../../details/domain-row";
+import { DomainRow, DomainRowSkeleton } from "../../../../../details/domain-row";
 import { useDeployment } from "../../../layout-provider";
 
 export function DeploymentDomainsSection() {
