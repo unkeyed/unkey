@@ -180,7 +180,7 @@ func Run(ctx context.Context, cfg Config) error {
 	))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
 		DB: database,
-	})))
+	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,
