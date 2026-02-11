@@ -110,6 +110,26 @@ export const createProject = workspaceProcedure
             updatedAt: null,
           },
         ]);
+        await tx.insert(schema.environmentBuildSettings).values([
+          {
+            workspaceId: ctx.workspace.id,
+            environmentId: prodEnvId,
+          },
+          {
+            workspaceId: ctx.workspace.id,
+            environmentId: previewEnvId,
+          },
+        ]);
+        await tx.insert(schema.environmentRuntimeSettings).values([
+          {
+            workspaceId: ctx.workspace.id,
+            environmentId: prodEnvId,
+          },
+          {
+            workspaceId: ctx.workspace.id,
+            environmentId: previewEnvId,
+          },
+        ]);
       });
 
       return {
