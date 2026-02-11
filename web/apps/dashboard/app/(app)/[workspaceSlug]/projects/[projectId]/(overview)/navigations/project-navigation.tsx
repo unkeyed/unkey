@@ -16,8 +16,8 @@ import {
 } from "@unkey/icons";
 import { Button, InfoTooltip, Separator } from "@unkey/ui";
 import { useRef } from "react";
-import { DisabledWrapper } from "../../components/disabled-wrapper";
 import { RepoDisplay } from "../../../_components/list/repo-display";
+import { DisabledWrapper } from "../../components/disabled-wrapper";
 import { useBreadcrumbConfig } from "./use-breadcrumb-config";
 
 const BORDER_OFFSET = 1;
