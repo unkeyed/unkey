@@ -9,11 +9,9 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { createContext, useContext, useMemo } from "react";
 
 type ProjectDataContextType = {
-  // Project data
   project: Project | undefined;
   isProjectLoading: boolean;
 
-  // Cached project-level data
   domains: Domain[];
   deployments: Deployment[];
   environments: Environment[];
