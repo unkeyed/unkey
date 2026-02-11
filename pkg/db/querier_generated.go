@@ -1736,7 +1736,8 @@ type Querier interface {
 	//      beta_features,
 	//      features,
 	//      enabled,
-	//      delete_protection
+	//      delete_protection,
+	//      k8s_namespace
 	//  )
 	//  VALUES (
 	//      ?,
@@ -1748,7 +1749,8 @@ type Querier interface {
 	//      '{}',
 	//      '{}',
 	//      true,
-	//      true
+	//      true,
+	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
 	// ListCiliumNetworkPoliciesByRegion returns cilium network policies for a region with version > after_version.

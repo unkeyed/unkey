@@ -1,18 +1,17 @@
 /**
  * This route creates a shortcut for onboarding
  *
- * We need this for compliance of our sentinel.new domain.
- * 1. A user will enter "sentinel.new" in the browser
+ * We need this for compliance of our gateway.new domain.
+ * 1. A user will enter "gateway.new" in the browser
  * 2. Vercel will detect the host and rewrite the request to this page
  * 3. A workspace is upserted
  * 4. The user is redirected to create their API
  */
-
 import { randomInt } from "node:crypto";
 import { getAuth } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
-import { newId } from "@unkey/id";
+import { dns1035, newId } from "@unkey/id";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +32,7 @@ export default async function Page() {
       orgId,
       betaFeatures: {},
       features: {},
+      k8sNamespace: dns1035(12),
     });
 
     await db.insert(schema.quotas).values({

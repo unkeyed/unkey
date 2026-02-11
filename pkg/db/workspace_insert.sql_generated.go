@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const insertWorkspace = `-- name: InsertWorkspace :exec
@@ -20,7 +21,8 @@ INSERT INTO ` + "`" + `workspaces` + "`" + ` (
     beta_features,
     features,
     enabled,
-    delete_protection
+    delete_protection,
+    k8s_namespace
 )
 VALUES (
     ?,
@@ -32,16 +34,18 @@ VALUES (
     '{}',
     '{}',
     true,
-    true
+    true,
+    ?
 )
 `
 
 type InsertWorkspaceParams struct {
-	ID        string `db:"id"`
-	OrgID     string `db:"org_id"`
-	Name      string `db:"name"`
-	Slug      string `db:"slug"`
-	CreatedAt int64  `db:"created_at"`
+	ID           string         `db:"id"`
+	OrgID        string         `db:"org_id"`
+	Name         string         `db:"name"`
+	Slug         string         `db:"slug"`
+	CreatedAt    int64          `db:"created_at"`
+	K8sNamespace sql.NullString `db:"k8s_namespace"`
 }
 
 // InsertWorkspace
@@ -56,7 +60,8 @@ type InsertWorkspaceParams struct {
 //	    beta_features,
 //	    features,
 //	    enabled,
-//	    delete_protection
+//	    delete_protection,
+//	    k8s_namespace
 //	)
 //	VALUES (
 //	    ?,
@@ -68,7 +73,8 @@ type InsertWorkspaceParams struct {
 //	    '{}',
 //	    '{}',
 //	    true,
-//	    true
+//	    true,
+//	    ?
 //	)
 func (q *Queries) InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error {
 	_, err := db.ExecContext(ctx, insertWorkspace,
@@ -77,6 +83,7 @@ func (q *Queries) InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorksp
 		arg.Name,
 		arg.Slug,
 		arg.CreatedAt,
+		arg.K8sNamespace,
 	)
 	return err
 }
