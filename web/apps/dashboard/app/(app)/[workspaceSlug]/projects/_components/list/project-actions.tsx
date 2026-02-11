@@ -8,7 +8,7 @@ import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
-import { DeleteProjectDialog } from "../dialogs/delete-project-dialog";
+import { DeleteProject } from "./delete-project";
 
 type ProjectActionsProps = {
   projectId: string;
@@ -90,14 +90,7 @@ const getProjectActionItems = (
       id: "delete-project",
       label: "Delete project",
       icon: <Trash iconSize="md-medium" />,
-      ActionComponent: ({ isOpen, onClose }) => (
-        <DeleteProjectDialog
-          projectId={projectId}
-          projectName={projectName}
-          isOpen={isOpen}
-          onClose={onClose}
-        />
-      ),
+      ActionComponent: (props) => <DeleteProject {...props} projectId={projectId} />,
     },
   ];
 };
