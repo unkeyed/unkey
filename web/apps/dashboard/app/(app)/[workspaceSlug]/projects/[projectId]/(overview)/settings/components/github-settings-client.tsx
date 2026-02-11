@@ -31,15 +31,8 @@ export const GitHubSettingsClient: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="py-3 w-full flex items-center justify-center">
-        <div className="w-[900px] flex flex-col justify-center items-center gap-5 mx-6">
-          <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
-            Project Settings
-          </div>
-          <div className="w-full flex items-center justify-center py-12">
-            <Loading />
-          </div>
-        </div>
+      <div className="w-full flex items-center justify-center py-12">
+        <Loading />
       </div>
     );
   }
@@ -48,28 +41,19 @@ export const GitHubSettingsClient: React.FC = () => {
   const repoConnection = data?.repoConnection;
 
   return (
-    <div className="py-3 w-full flex items-center justify-center">
-      <div className="w-[900px] flex flex-col justify-center items-center gap-5 mx-6">
-        <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
-          Project Settings
-        </div>
-        <div className="flex flex-col w-full gap-6">
-          <div>
-            {hasInstallations ? (
-              <>
-                <GitHubAppCard hasInstallations={true} />
-                <RepositoryCard
-                  connectedRepo={repoConnection?.repositoryFullName ?? null}
-                  onDisconnect={() => disconnectRepoMutation.mutate({ projectId })}
-                  isDisconnecting={disconnectRepoMutation.isLoading}
-                />
-              </>
-            ) : (
-              <GitHubAppCard hasInstallations={false} />
-            )}
-          </div>
-        </div>
-      </div>
+    <div>
+      {hasInstallations ? (
+        <>
+          <GitHubAppCard  hasInstallations={true} />
+          <RepositoryCard
+            connectedRepo={repoConnection?.repositoryFullName ?? null}
+            onDisconnect={() => disconnectRepoMutation.mutate({ projectId })}
+            isDisconnecting={disconnectRepoMutation.isLoading}
+          />
+        </>
+      ) : (
+        <GitHubAppCard hasInstallations={false} />
+      )}
     </div>
   );
 };
