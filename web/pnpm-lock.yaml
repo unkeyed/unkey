@@ -628,9 +628,6 @@ importers:
 
   internal/id:
     dependencies:
-      base-x:
-        specifier: 4.0.1
-        version: 4.0.1
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
@@ -644,9 +641,6 @@ importers:
       typescript:
         specifier: 5.5.3
         version: 5.5.3
-      vitest:
-        specifier: 1.6.1
-        version: 1.6.1(@types/node@20.14.9)(@vitest/ui@3.2.4)
 
   internal/keys:
     dependencies:
