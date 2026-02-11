@@ -48,7 +48,7 @@ type FindDeploymentTopologyByIDAndRegionParams struct {
 type FindDeploymentTopologyByIDAndRegionRow struct {
 	ID                            string                    `db:"id"`
 	K8sName                       string                    `db:"k8s_name"`
-	K8sNamespace                  sql.NullString            `db:"k8s_namespace"`
+	K8sNamespace                  string                    `db:"k8s_namespace"`
 	WorkspaceID                   string                    `db:"workspace_id"`
 	ProjectID                     string                    `db:"project_id"`
 	EnvironmentID                 string                    `db:"environment_id"`

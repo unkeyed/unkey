@@ -95,9 +95,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			}
 			ws = found
 
-			if !found.K8sNamespace.Valid {
-				ws.K8sNamespace.Valid = true
-				ws.K8sNamespace.String = uid.DNS1035()
+			if found.K8sNamespace == "" {
+				ws.K8sNamespace = uid.DNS1035()
 				return db.Query.SetWorkspaceK8sNamespace(txCtx, tx, db.SetWorkspaceK8sNamespaceParams{
 					ID:           ws.ID,
 					K8sNamespace: ws.K8sNamespace,

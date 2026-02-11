@@ -221,7 +221,7 @@ CREATE TABLE `workspaces` (
 	`org_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(64) NOT NULL,
-	`k8s_namespace` varchar(256),
+	`k8s_namespace` varchar(256) NOT NULL,
 	`partition_id` varchar(256),
 	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',

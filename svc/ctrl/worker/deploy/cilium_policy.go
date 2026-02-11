@@ -167,7 +167,7 @@ func buildPolicySpecs(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ingressName,
-			Namespace: workspace.K8sNamespace.String,
+			Namespace: workspace.K8sNamespace,
 			Labels:    ingressLabels,
 		},
 		Spec: &api.Rule{
@@ -227,7 +227,7 @@ func buildPolicySpecs(
 						ToEndpoints: []api.EndpointSelector{
 							{
 								LabelSelector: &slim_metav1.LabelSelector{
-									MatchLabels: labels.New().Namespace(workspace.K8sNamespace.String).ManagedByKrane().ComponentDeployment().DeploymentID(deployment.ID),
+									MatchLabels: labels.New().Namespace(workspace.K8sNamespace).ManagedByKrane().ComponentDeployment().DeploymentID(deployment.ID),
 								},
 							},
 						},
@@ -248,7 +248,7 @@ func buildPolicySpecs(
 	}
 
 	return []ciliumPolicySpec{
-		{k8sName: ingressName, k8sNamespace: workspace.K8sNamespace.String, policy: ingress},
+		{k8sName: ingressName, k8sNamespace: workspace.K8sNamespace, policy: ingress},
 		{k8sName: egressName, k8sNamespace: sentinelNamespace, policy: egress},
 	}
 }

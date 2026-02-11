@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const insertWorkspace = `-- name: InsertWorkspace :exec
@@ -40,12 +39,12 @@ VALUES (
 `
 
 type InsertWorkspaceParams struct {
-	ID           string         `db:"id"`
-	OrgID        string         `db:"org_id"`
-	Name         string         `db:"name"`
-	Slug         string         `db:"slug"`
-	CreatedAt    int64          `db:"created_at"`
-	K8sNamespace sql.NullString `db:"k8s_namespace"`
+	ID           string `db:"id"`
+	OrgID        string `db:"org_id"`
+	Name         string `db:"name"`
+	Slug         string `db:"slug"`
+	CreatedAt    int64  `db:"created_at"`
+	K8sNamespace string `db:"k8s_namespace"`
 }
 
 // InsertWorkspace
