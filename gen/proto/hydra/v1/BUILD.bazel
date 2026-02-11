@@ -9,6 +9,8 @@ go_library(
         "clickhouse_user_restate.pb.go",
         "custom_domain.pb.go",
         "custom_domain_restate.pb.go",
+        "deploy.pb.go",
+        "deploy_restate.pb.go",
         "deployment.pb.go",
         "deployment_restate.pb.go",
         "quota_check.pb.go",

@@ -74,7 +74,7 @@ db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 7. **Trigger workflow**
 
 ```go
-deployClient := hydrav1.NewDeploymentServiceIngressClient(s.restate, deploymentID)
+deployClient := hydrav1.NewDeployServiceIngressClient(s.restate, deploymentID)
 invocation, err := deployClient.Deploy().Send(ctx, &hydrav1.DeployRequest{
     DeploymentId: deploymentID,
     Source: &hydrav1.DeployRequest_Git{
@@ -100,7 +100,8 @@ The Restate workflow orchestrates the complete deployment lifecycle. It handles 
 
 ### Workflow Steps
 
-<Mermaid chart={`flowchart TD
+<Mermaid
+  chart={`flowchart TD
     Start([Deploy Request]) --> LoadMeta[Load Deployment/Project/Environment]
     LoadMeta --> CheckSource{Source Type?}
     
@@ -122,7 +123,8 @@ The Restate workflow orchestrates the complete deployment lifecycle. It handles 
     
     style BuildGit fill:#e1f5fe
     style StatusReady fill:#c8e6c9
-`} />
+`}
+/>
 
 ### Failure Handling
 
@@ -178,7 +180,7 @@ solverOptions := client.SolveOpt{
     Session: []session.Attachable{
         // Registry auth for pushing images
         authprovider.NewDockerAuthProvider(...),
-        
+
         // GitHub token for fetching private repos
         secretsprovider.FromMap(map[string][]byte{
             "GIT_AUTH_TOKEN.github.com": []byte(githubToken),
@@ -248,11 +250,11 @@ Each Unkey project gets a corresponding Depot project for caching:
 ```go
 func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
     project, _ := db.Query.FindProjectById(ctx, w.db.RO(), unkeyProjectID)
-    
+
     if project.DepotProjectID.Valid {
         return project.DepotProjectID.String, nil
     }
-    
+
     // Create new Depot project
     createResp, _ := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
         Name:     fmt.Sprintf("unkey-%s", unkeyProjectID),
@@ -262,13 +264,13 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
             KeepDays: 14,
         },
     }))
-    
+
     // Store Depot project ID in database
     db.Query.UpdateProjectDepotID(ctx, w.db.RW(), db.UpdateProjectDepotIDParams{
         DepotProjectID: sql.NullString{String: createResp.Msg.GetProject().GetProjectId(), Valid: true},
         ID:             unkeyProjectID,
     })
-    
+
     return createResp.Msg.GetProject().GetProjectId(), nil
 }
 ```
@@ -316,7 +318,7 @@ w.clickhouse.BufferBuildStep(schema.BuildStepV1{
 
 ## Proto Definitions
 
-**Location:** `proto/hydra/v1/deployment.proto`
+**Location:** `svc/ctrl/proto/hydra/v1/deployment.proto`
 
 ```protobuf
 message GitSource {
@@ -341,18 +343,23 @@ message DeployRequest {
 ## Important Constraints
 
 ### Commit SHA
+
 BuildKit requires the **full 40-character commit SHA** for reliable builds. Short SHAs may fail or fetch unexpected objects.
 
 ### Private Submodules
+
 Private submodules using SSH URLs won't work with this approach. The `GIT_AUTH_TOKEN` only provides HTTPS authentication. For SSH submodules, you'd need SSH key forwarding through BuildKit.
 
 ### Context Path
+
 The context path is normalized before use:
+
 - Whitespace trimmed
 - Leading `/` stripped
 - `.` treated as repository root
 
 ### External API
+
 The external API (`ctrlv1.CreateDeploymentRequest`) only supports pre-built Docker images. Git-based builds are only triggered via the GitHub webhook integration.
 
 ## Workflow Orchestration Patterns

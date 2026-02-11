@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
 
-func TestScaleDownIdleDeployments_ScalesDownIdleDeploymentWithZeroRequests(t *testing.T) {
+func TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequests(t *testing.T) {
 	h := harness.New(t)
 	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
@@ -54,7 +54,7 @@ func TestScaleDownIdleDeployments_ScalesDownIdleDeploymentWithZeroRequests(t *te
 	require.Equal(t, db.DeploymentsDesiredStateStandby, updated.DesiredState)
 }
 
-func TestScaleDownIdleDeployments_DoesNotScaleDownDeploymentWithRecentRequests(t *testing.T) {
+func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentRequests(t *testing.T) {
 	h := harness.New(t)
 	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
@@ -97,7 +97,7 @@ func TestScaleDownIdleDeployments_DoesNotScaleDownDeploymentWithRecentRequests(t
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
-func TestScaleDownIdleDeployments_IgnoresNonPreviewEnvironments(t *testing.T) {
+func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testing.T) {
 	h := harness.New(t)
 	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
@@ -138,7 +138,7 @@ func TestScaleDownIdleDeployments_IgnoresNonPreviewEnvironments(t *testing.T) {
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
-func TestScaleDownIdleDeployments_IgnoresDeploymentsNotInReadyStatus(t *testing.T) {
+func TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus(t *testing.T) {
 	h := harness.New(t)
 	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
@@ -179,7 +179,7 @@ func TestScaleDownIdleDeployments_IgnoresDeploymentsNotInReadyStatus(t *testing.
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
-func TestScaleDownIdleDeployments_IgnoresRecentlyCreatedDeployments(t *testing.T) {
+func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments(t *testing.T) {
 	h := harness.New(t)
 
 	ws := h.Seed.CreateWorkspace(h.Ctx)
@@ -219,7 +219,7 @@ func TestScaleDownIdleDeployments_IgnoresRecentlyCreatedDeployments(t *testing.T
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
-func TestScaleDownIdleDeployments_IgnoresRecentlyUpdatedDeployments(t *testing.T) {
+func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments(t *testing.T) {
 	h := harness.New(t)
 	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
 
@@ -260,7 +260,7 @@ func TestScaleDownIdleDeployments_IgnoresRecentlyUpdatedDeployments(t *testing.T
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
-func TestScaleDownIdleDeployments_HandlesMultipleDeploymentsAcrossMultipleEnvironments(t *testing.T) {
+func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipleEnvironments(t *testing.T) {
 	h := harness.New(t)
 	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
@@ -325,7 +325,7 @@ func TestScaleDownIdleDeployments_HandlesMultipleDeploymentsAcrossMultipleEnviro
 		require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState, "active deployment %s should be running", dep.ID)
 	}
 }
-func TestScaleDownIdleDeployments_PaginatesAcrossManyPreviewEnvironmentsAtScale(t *testing.T) {
+func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsAtScale(t *testing.T) {
 	h := harness.New(t)
 	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
@@ -374,7 +374,7 @@ func TestScaleDownIdleDeployments_PaginatesAcrossManyPreviewEnvironmentsAtScale(
 }
 
 func triggerScaleDown(t *testing.T, h *harness.Harness) {
-	client := hydrav1.NewDeploymentServiceIngressClient(h.Restate, uid.New("test"))
-	_, err := client.ScaleDownIdleDeployments().Request(h.Ctx, &hydrav1.ScaleDownIdleDeploymentsRequest{})
+	client := hydrav1.NewDeployServiceIngressClient(h.Restate, uid.New("test"))
+	_, err := client.ScaleDownIdlePreviewDeployments().Request(h.Ctx, &hydrav1.ScaleDownIdlePreviewDeploymentsRequest{})
 	require.NoError(t, err)
 }

@@ -7,20 +7,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
-// Service implements the DeploymentService ConnectRPC API. It coordinates
+// Service implements the DeployService ConnectRPC API. It coordinates
 // deployment operations by persisting state to the database and delegating
 // workflow execution to Restate.
 type Service struct {
-	ctrlv1connect.UnimplementedDeploymentServiceHandler
+	ctrlv1connect.UnimplementedDeployServiceHandler
 	db               db.Database
 	restate          *restateingress.Client
 	availableRegions []string
 }
 
-// deploymentClient creates a typed Restate ingress client for the DeploymentService
+// deploymentClient creates a typed Restate ingress client for the DeployService
 // keyed by the given project ID to ensure only one operation per project runs at a time.
-func (s *Service) deploymentClient(projectID string) hydrav1.DeploymentServiceIngressClient {
-	return hydrav1.NewDeploymentServiceIngressClient(s.restate, projectID)
+func (s *Service) deploymentClient(projectID string) hydrav1.DeployServiceIngressClient {
+	return hydrav1.NewDeployServiceIngressClient(s.restate, projectID)
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -37,9 +37,9 @@ type Config struct {
 // [Config] are required.
 func New(cfg Config) *Service {
 	return &Service{
-		UnimplementedDeploymentServiceHandler: ctrlv1connect.UnimplementedDeploymentServiceHandler{},
-		db:                                    cfg.Database,
-		restate:                               cfg.Restate,
-		availableRegions:                      cfg.AvailableRegions,
+		UnimplementedDeployServiceHandler: ctrlv1connect.UnimplementedDeployServiceHandler{},
+		db:                                cfg.Database,
+		restate:                           cfg.Restate,
+		availableRegions:                  cfg.AvailableRegions,
 	}
 }
