@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "f9519291548d",
+  "strategy": "manual-commit",
+  "branch": "eng-2456-make-repository-selector-scrollable-and-filterable-by-typing",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "web/apps/dashboard/components/ui/combobox.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f9/519291548d/0/metadata.json",
+      "transcript": "/f9/519291548d/0/full.jsonl",
+      "context": "/f9/519291548d/0/context.md",
+      "content_hash": "/f9/519291548d/0/content_hash.txt",
+      "prompt": "/f9/519291548d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 3677,
+    "cache_read_tokens": 254078,
+    "output_tokens": 415,
+    "api_call_count": 6
+  }
+}

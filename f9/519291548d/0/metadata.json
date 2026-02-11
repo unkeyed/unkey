@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "f9519291548d",
+  "session_id": "e779517a-d199-445a-aaa1-fa136817cc21",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-11T13:39:15.590499Z",
+  "branch": "eng-2456-make-repository-selector-scrollable-and-filterable-by-typing",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "web/apps/dashboard/components/ui/combobox.tsx"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "ebe58a7d-89cc-4978-9301-aa0f0a2074a1",
+  "checkpoint_transcript_start": 49,
+  "transcript_lines_at_start": 49,
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 3677,
+    "cache_read_tokens": 254078,
+    "output_tokens": 415,
+    "api_call_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-11T13:39:15.577971Z",
+    "agent_lines": 0,
+    "human_added": 2575,
+    "human_modified": 27,
+    "human_removed": 0,
+    "total_committed": 2576,
+    "agent_percentage": 0
+  }
+}
