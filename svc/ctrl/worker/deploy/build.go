@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -195,7 +196,13 @@ func (w *Workflow) buildDockerImageFromGit(
 
 		_, err = buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
 		if err != nil {
-			return nil, fmt.Errorf("build failed: %w", err)
+			// Context cancellations and timeouts are transient — let Restate retry.
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil, fmt.Errorf("build interrupted: %w", err)
+			}
+			// Build failures (bad Dockerfile, compilation errors, etc.) won't fix
+			// themselves on retry — mark as terminal to stop Restate from retrying.
+			return nil, restate.TerminalError(fmt.Errorf("build failed: %w", err))
 		}
 
 		logger.Info("Build completed successfully")

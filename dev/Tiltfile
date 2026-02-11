@@ -70,6 +70,21 @@ local_resource(
 )
 
 local_resource(
+  'hubble',
+  'kubectl -n kube-system patch configmap cilium-config --type merge -p \'{"data":{"enable-hubble":"true","hubble-listen-address":":4244"}}\' && kubectl -n kube-system rollout restart daemonset cilium && kubectl apply -f k8s/manifests/hubble.yaml && kubectl -n kube-system rollout status daemonset cilium --timeout=120s',
+  resource_deps=['cilium-policies'],
+  labels=['observability'],
+)
+
+local_resource(
+  'hubble-ui',
+  serve_cmd='kubectl port-forward -n kube-system svc/hubble-ui 12000:80',
+  resource_deps=['hubble'],
+  labels=['observability'],
+  links=['http://localhost:12000'],
+)
+
+local_resource(
     'depot-credentials',
     'if [ -f ./.env.depot ]; then kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping depot-credentials (no .env.depot file)"; fi',
     resource_deps=['namespace'],
