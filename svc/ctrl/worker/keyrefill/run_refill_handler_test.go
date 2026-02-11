@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -52,7 +51,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		assert.Equal(t, refillAmount, key.RemainingRequests.Int32)
+		require.Equal(t, refillAmount, key.RemainingRequests.Int32)
 	})
 
 	t.Run("refills keys with matching day of month", func(t *testing.T) {
@@ -83,7 +82,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		assert.Equal(t, refillAmount, key.RemainingRequests.Int32)
+		require.Equal(t, refillAmount, key.RemainingRequests.Int32)
 	})
 
 	t.Run("skips keys with non-matching day of month", func(t *testing.T) {
@@ -116,7 +115,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// Verify the key was NOT refilled (remaining unchanged)
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		assert.Equal(t, remaining, key.RemainingRequests.Int32)
+		require.Equal(t, remaining, key.RemainingRequests.Int32)
 	})
 
 	t.Run("skips keys that are already full", func(t *testing.T) {
@@ -145,7 +144,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// Verify the key was NOT refilled (since it's already at max)
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		assert.Equal(t, remaining, key.RemainingRequests.Int32)
+		require.Equal(t, remaining, key.RemainingRequests.Int32)
 	})
 
 	t.Run("creates audit logs for refilled keys", func(t *testing.T) {
@@ -211,8 +210,41 @@ func TestRunRefill_Integration(t *testing.T) {
 
 		// The second call should not refill any additional keys
 		// (they were marked as processed in state)
-		assert.Equal(t, int32(0), resp2.KeysRefilled, "Second call should not refill any keys")
-		assert.Greater(t, firstRefilled, int32(0), "First call should have refilled keys")
+		require.Equal(t, int32(0), resp2.KeysRefilled, "Second call should not refill any keys")
+		require.Greater(t, firstRefilled, int32(0), "First call should have refilled keys")
+	})
+
+	t.Run("refills keys on last day of month when refill_day exceeds month length", func(t *testing.T) {
+		// Create workspace with an API
+		ws := h.Seed.CreateWorkspace(h.Ctx)
+		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{
+			WorkspaceID: ws.ID,
+		})
+
+		// Create key with refill_day=31 (only exists in some months)
+		refillDay := int16(31)
+		refillAmount := int32(750)
+		remaining := int32(50)
+		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
+			WorkspaceID:  ws.ID,
+			KeySpaceID:   api.KeyAuthID.String,
+			Remaining:    &remaining,
+			RefillAmount: &refillAmount,
+			RefillDay:    &refillDay,
+		})
+
+		// Use Feb 28, 2025 as the date key — it's the last day of a short month.
+		// Keys with refill_day=31 should still be refilled because 31 > 28 and it's the last day.
+		testDateKey := fmt.Sprintf("2025-02-28-test-lastday-%s", uid.New("", 8))
+		resp, err := callRunRefill(h, testDateKey)
+		require.NoError(t, err)
+
+		require.GreaterOrEqual(t, resp.KeysRefilled, int32(1))
+
+		// Verify the key was refilled
+		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
+		require.NoError(t, err)
+		require.Equal(t, refillAmount, key.RemainingRequests.Int32)
 	})
 
 	t.Run("skips deleted keys", func(t *testing.T) {
@@ -242,7 +274,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
 		// Deleted keys should keep their original remaining value
-		assert.Equal(t, remaining, key.RemainingRequests.Int32)
+		require.Equal(t, remaining, key.RemainingRequests.Int32)
 	})
 }
 

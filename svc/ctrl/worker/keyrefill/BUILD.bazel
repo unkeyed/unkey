@@ -15,7 +15,7 @@ go_library(
         "//pkg/auditlog",
         "//pkg/db",
         "//pkg/healthcheck",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/uid",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
