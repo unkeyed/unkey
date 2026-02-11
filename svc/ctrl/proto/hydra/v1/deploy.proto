@@ -43,7 +43,6 @@ service DeployService {
   // deployment to standby that has received zero requests in the last 6 hours.
   // Intended to be called by a cron job.
   rpc ScaleDownIdlePreviewDeployments(ScaleDownIdlePreviewDeploymentsRequest) returns (ScaleDownIdlePreviewDeploymentsResponse) {}
-
 }
 
 message ScaleDownIdlePreviewDeploymentsRequest {}

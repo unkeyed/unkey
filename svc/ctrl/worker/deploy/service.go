@@ -97,17 +97,17 @@ type Config struct {
 // New creates a new deployment workflow instance.
 func New(cfg Config) *Workflow {
 	return &Workflow{
-		UnimplementedDeployServiceServer:     hydrav1.UnimplementedDeployServiceServer{},
-		db:                                   cfg.DB,
-		defaultDomain:                        cfg.DefaultDomain,
-		vault:                                cfg.Vault,
-		sentinelImage:                        cfg.SentinelImage,
-		availableRegions:                     cfg.AvailableRegions,
-		github:                               cfg.GitHub,
-		depotConfig:                          cfg.DepotConfig,
-		registryConfig:                       cfg.RegistryConfig,
-		buildPlatform:                        cfg.BuildPlatform,
-		clickhouse:                           cfg.Clickhouse,
-		allowUnauthenticatedDeployments:      cfg.AllowUnauthenticatedDeployments,
+		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
+		db:                               cfg.DB,
+		defaultDomain:                    cfg.DefaultDomain,
+		vault:                            cfg.Vault,
+		sentinelImage:                    cfg.SentinelImage,
+		availableRegions:                 cfg.AvailableRegions,
+		github:                           cfg.GitHub,
+		depotConfig:                      cfg.DepotConfig,
+		registryConfig:                   cfg.RegistryConfig,
+		buildPlatform:                    cfg.BuildPlatform,
+		clickhouse:                       cfg.Clickhouse,
+		allowUnauthenticatedDeployments:  cfg.AllowUnauthenticatedDeployments,
 	}
 }
