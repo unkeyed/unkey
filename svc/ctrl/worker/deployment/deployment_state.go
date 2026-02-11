@@ -1,6 +1,7 @@
 package deployment
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -62,6 +63,8 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 // the stored transition.
 func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.ChangeDesiredStateRequest) (*hydrav1.ChangeDesiredStateResponse, error) {
 
+	deploymentID := restate.Key(ctx)
+
 	t, err := restate.Get[*transition](ctx, transitionKey)
 	if err != nil {
 		return nil, err
@@ -89,14 +92,36 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		return nil, restate.TerminalErrorf("unhandled state: %s", req.GetState())
 	}
 
-	// actually do state change here
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.UpdateDeploymentDesiredState(runCtx, v.db.RW(), db.UpdateDeploymentDesiredStateParams{
-			ID:           restate.Key(ctx),
-			DesiredState: desiredState,
-			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+
+		return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			deployment, err := db.Query.FindDeploymentById(txCtx, tx, deploymentID)
+			if err != nil {
+				return err
+			}
+			project, err := db.Query.FindProjectById(txCtx, tx, deployment.ProjectID)
+			if err != nil {
+				return err
+			}
+
+			if project.LiveDeploymentID.Valid && project.LiveDeploymentID.String == deploymentID {
+				return restate.TerminalErrorf("not allowed to modify the current live deployment")
+			}
+
+			err = db.Query.UpdateDeploymentDesiredState(txCtx, tx, db.UpdateDeploymentDesiredStateParams{
+				ID:           deploymentID,
+				DesiredState: desiredState,
+				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			})
+			if err != nil {
+				return err
+			}
+			return nil
+
 		})
-	})
+
+	}, restate.WithName("updating desired state"))
+
 	if err != nil {
 		return nil, err
 	}
