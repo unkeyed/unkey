@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "794e9074a54c",
+  "session_id": "879c5f57-6099-45aa-8059-20dd94e080ee",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-11T14:44:44.624811Z",
+  "branch": "move-key-refill-into-restate",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "svc/ctrl/worker/keyrefill/run_refill_handler_test.go",
+    "web/internal/db/src/schema/cilium.ts"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "4f711fcf-6ba4-46d4-8344-14d50a147315",
+  "token_usage": {
+    "input_tokens": 26,
+    "cache_creation_tokens": 23619,
+    "cache_read_tokens": 672606,
+    "output_tokens": 1368,
+    "api_call_count": 20
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-11T14:44:44.608963Z",
+    "agent_lines": 41,
+    "human_added": 5150,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 5191,
+    "agent_percentage": 0.7898285494124446
+  }
+}

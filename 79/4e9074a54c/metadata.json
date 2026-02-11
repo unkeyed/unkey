@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "794e9074a54c",
+  "strategy": "manual-commit",
+  "branch": "move-key-refill-into-restate",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "svc/ctrl/worker/keyrefill/run_refill_handler_test.go",
+    "web/internal/db/src/schema/cilium.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/79/4e9074a54c/0/metadata.json",
+      "transcript": "/79/4e9074a54c/0/full.jsonl",
+      "context": "/79/4e9074a54c/0/context.md",
+      "content_hash": "/79/4e9074a54c/0/content_hash.txt",
+      "prompt": "/79/4e9074a54c/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 26,
+    "cache_creation_tokens": 23619,
+    "cache_read_tokens": 672606,
+    "output_tokens": 1368,
+    "api_call_count": 20
+  }
+}
