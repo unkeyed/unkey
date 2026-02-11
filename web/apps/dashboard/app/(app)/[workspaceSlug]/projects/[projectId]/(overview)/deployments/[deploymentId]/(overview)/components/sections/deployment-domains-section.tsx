@@ -37,7 +37,7 @@ export function DeploymentDomainsSection() {
             <DomainRow key={domain.id} domain={domain.fullyQualifiedDomainName} />
           ))
         ) : (
-          <DomainRowEmpty />
+          <DomainRowEmpty title="No domains found" description="Your configured domains will appear here once they're set up and verified." />
         )}
       </div>
     </Section>

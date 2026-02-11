@@ -41,7 +41,7 @@ export function DeploymentNetworkView({
     {
       deploymentId: deploymentId ?? "",
     },
-    { enabled: Boolean(deploymentId) },
+    { refetchInterval: 2000, enabled: Boolean(deploymentId) },
   );
 
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;

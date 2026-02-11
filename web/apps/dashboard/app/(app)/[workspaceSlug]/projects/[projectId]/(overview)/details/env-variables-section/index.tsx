@@ -6,6 +6,7 @@ import { AddEnvVars } from "./add-env-vars";
 import { EnvVarRow } from "./env-var-row";
 import { useEnvVarsManager } from "./hooks/use-env-var-manager";
 import type { Environment } from "./types";
+import { DomainRowEmpty } from "../domain-row";
 
 type EnvironmentVariablesSectionProps = {
   icon: ReactNode;
@@ -52,53 +53,44 @@ export function EnvironmentVariablesSection({
 
   const showPlusButton = isExpanded && !isAddingNew;
 
+
   return (
     <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] w-full overflow-hidden">
       {/* Header */}
-      <div className={cn("px-4 pt-3 flex justify-between items-center", isExpanded ? "" : "pb-3")}>
+      <div className={cn("px-4 py-3 flex justify-between items-center", isExpanded && "pb-0.5 pt-[14px]")}>
         <div className="flex items-center">
           {icon}
           <div className="text-gray-12 font-medium text-xs ml-3 mr-2 capitalize">
             {title} {envVars.length > 0 && `(${envVars.length})`}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={startAdding}
+        <Button size="icon" variant="ghost" onClick={toggleExpanded} className="size-7 bg-gray-3 hover:bg-gray-4 mb-0.5">
+          <ChevronDown
+            iconSize="sm-regular"
             className={cn(
-              "size-7 text-gray-9 hover:text-gray-11",
-              showPlusButton ? "visible" : "invisible",
+              "text-accent-12 !size-3 transition-transform duration-200",
+              isExpanded && "rotate-180",
             )}
-          >
-            <Plus className="!size-3" />
-          </Button>
-          <Button size="icon" variant="ghost" onClick={toggleExpanded}>
-            <ChevronDown
-              className={cn(
-                "text-grayA-9 !size-3 transition-transform duration-200",
-                isExpanded && "rotate-180",
-              )}
-            />
-          </Button>
-        </div>
+          />
+        </Button>
       </div>
-
-      <ConcaveSeparator isExpanded={isExpanded} />
 
       {/* Expandable Content */}
       <div
         className={cn(
-          "bg-gray-1 relative transition-all duration-300 ease-in",
+          "bg-gray-2 rounded-b-[14px] relative transition-all duration-300 ease-in",
           isExpanded
-            ? `${LAYOUT_CONFIG.maxContentHeight} overflow-y-auto opacity-100`
+            ? "opacity-100 pb-0"
             : "h-0 overflow-hidden opacity-0 py-0",
         )}
       >
+        {/* Concave separator */}
+        <div className="relative h-4 flex items-center justify-center">
+          <div className="absolute top-0 left-0 right-0 h-4 border-b border-gray-4 rounded-b-[14px] bg-white dark:bg-black" />
+        </div>
         <div
           className={cn(
-            "transition-all duration-300 ease-out",
+            "transition-all duration-300 ease-out bg-gray-2",
             isExpanded ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
           )}
           style={{
@@ -130,7 +122,16 @@ export function EnvironmentVariablesSection({
               />
             )}
 
-            {envVars.length === 0 && !isAddingNew && <EmptyState />}
+            {envVars.length === 0 && !isAddingNew && <DomainRowEmpty title="No environment variables configured" description="Add environment variables to configure your application's runtime settings." className="border-none" icon={<BracketsCurly
+              className="text-gray-9 size-6 group-hover:text-gray-11 transition-all duration-200 animate-pulse"
+              style={{ animationDuration: "2s" }}
+            />
+            }>
+              <Button size="sm" variant="primary" onClick={startAdding} className="gap-1.5 mt-1">
+                <Plus className="!size-3" />
+                Add domain
+              </Button>
+            </DomainRowEmpty>}
           </div>
         </div>
       </div>
@@ -153,46 +154,3 @@ const getItemAnimationProps = (index: number, isExpanded: boolean) => {
     style: { transitionDelay: isExpanded ? `${delay}ms` : "0ms" },
   };
 };
-
-// Concave separator component
-function ConcaveSeparator({ isExpanded }: { isExpanded: boolean }) {
-  return (
-    <div
-      className={cn(
-        "bg-gray-1 rounded-b-[14px] transition-all duration-200",
-        isExpanded ? "opacity-100" : "opacity-0 h-0",
-      )}
-    >
-      <div className="relative h-3 flex items-center justify-center">
-        <div className="absolute top-0 left-0 right-0 h-3 border-b border-gray-4 rounded-b-[14px] bg-white dark:bg-black" />
-      </div>
-    </div>
-  );
-}
-
-// Empty state component
-function EmptyState() {
-  return (
-    <div className="px-4 py-8 flex justify-center items-center min-h-[150px] relative group">
-      <div className="flex flex-col items-center gap-3 text-center">
-        {/* Icon with subtle animation */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300 animate-pulse" />
-          <div className="relative bg-gray-3 rounded-full p-3 group-hover:bg-gray-4 transition-all duration-200">
-            <BracketsCurly
-              className="text-gray-9 size-6 group-hover:text-gray-11 transition-all duration-200 animate-pulse"
-              style={{ animationDuration: "2s" }}
-            />
-          </div>
-        </div>
-        {/* Content */}
-        <div className="space-y-2">
-          <h3 className="text-gray-12 font-medium text-sm">No environment variables configured</h3>
-          <p className="text-gray-9 text-xs max-w-[280px] leading-relaxed">
-            Add environment variables to configure your application's runtime settings.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}

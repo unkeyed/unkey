@@ -3,6 +3,7 @@ import { Badge } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
 import { Card } from "../components/card";
+import { PropsWithChildren, ReactNode } from "react";
 
 type DomainRowProps = {
   domain: string;
@@ -53,30 +54,45 @@ export const DomainRowSkeleton = () => {
   );
 };
 
-export const DomainRowEmpty = () => (
+
+type DomainRowEmptyProps = PropsWithChildren<{
+  title: string;
+  description: string;
+  icon?: ReactNode;
+  className?: string;
+}>;
+
+export const DomainRowEmpty = ({
+  title,
+  description,
+  children,
+  icon = <Link4 className="size-6" />,
+  className,
+}: DomainRowEmptyProps) => (
   <Card
-    className={
-      "rounded-[14px] flex justify-center items-center overflow-hidden border-gray-4 border-dashed bg-gray-1/50 min-h-[150px] relative group hover:border-gray-5 transition-colors duration-200"
-    }
+    className={cn(
+      "rounded-[14px] flex justify-center items-center overflow-hidden border-gray-4 border-dashed bg-gray-1/50 min-h-[150px] relative group hover:border-gray-5 transition-colors duration-200",
+      className
+    )}
   >
     <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
       {/* Icon with subtle animation */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300 animate-pulse" />
         <div className="relative bg-gray-3 rounded-full p-3 group-hover:bg-gray-4 transition-all duration-200">
-          <Link4
-            className="text-gray-9 size-6 group-hover:text-gray-11 transition-all duration-200 animate-pulse"
-            style={{ animationDuration: "2s" }}
-          />
+          <div className="text-gray-9 group-hover:text-gray-11 transition-all duration-200 animate-pulse [animation-duration:2s]">
+            {icon}
+          </div>
         </div>
       </div>
       {/* Content */}
       <div className="space-y-2">
-        <h3 className="text-gray-12 font-medium text-sm">No domains found</h3>
+        <h3 className="text-gray-12 font-medium text-sm">{title}</h3>
         <p className="text-gray-9 text-xs max-w-[280px] leading-relaxed">
-          Your configured domains will appear here once they're set up and verified.
+          {description}
         </p>
       </div>
+      {children}
     </div>
   </Card>
 );

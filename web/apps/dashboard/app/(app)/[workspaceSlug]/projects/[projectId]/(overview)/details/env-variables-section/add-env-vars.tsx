@@ -207,9 +207,8 @@ export function AddEnvVars({
 
     toast.promise(mutation, {
       loading: "Adding environment variables...",
-      success: `Added ${validEntries.length} environment variable${
-        validEntries.length > 1 ? "s" : ""
-      }`,
+      success: `Added ${validEntries.length} environment variable${validEntries.length > 1 ? "s" : ""
+        }`,
       error: (err) => ({
         message: "Failed to add environment variables",
         description: err.message || "Please try again",
@@ -219,7 +218,7 @@ export function AddEnvVars({
     try {
       await mutation;
       onSuccess();
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -284,15 +283,14 @@ export function AddEnvVars({
                 disabled={isSubmitting}
               />
               <Button
-                size="icon"
                 variant="ghost"
+                size="icon"
                 onClick={() => removeEntry(entry.id)}
-                disabled={entries.length === 1}
-                className="size-6 text-gray-9 hover:text-gray-11"
+                disabled={entries.length === 1 || isSubmitting}
+                className="h-[32px] w-[32px] text-gray-9 hover:text-gray-11 hover:bg-gray-3 shrink-0"
               >
-                <Trash className="!size-3" />
-              </Button>
-            </div>
+                <Trash className="size-4" iconSize="md-medium" />
+              </Button>            </div>
           );
         })}
       </div>

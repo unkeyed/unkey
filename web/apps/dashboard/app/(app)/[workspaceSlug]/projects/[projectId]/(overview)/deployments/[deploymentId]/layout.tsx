@@ -8,7 +8,7 @@ export default function DeploymentLayout({
   return (
     <div className="flex flex-col h-full">
       <DeploymentNavbar />
-      <div className="flex-1 overflow-auto">{children}</div>
+      <div id="deployment-scroll-container" className="flex-1 overflow-auto">{children}</div>
     </div>
   );
 }

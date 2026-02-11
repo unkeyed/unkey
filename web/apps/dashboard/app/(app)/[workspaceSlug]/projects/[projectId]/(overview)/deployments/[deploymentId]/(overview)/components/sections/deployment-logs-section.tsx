@@ -28,13 +28,13 @@ export function DeploymentLogsSection() {
   const deploymentStatus = deployment?.status;
 
   // During build phase, default to "Build logs" and disable "Logs" tab
-  const isBuildPhase = deploymentStatus === "building";
+  const isReady = deploymentStatus !== "ready";
 
-  const [tab, setTab] = useState(isBuildPhase ? "build-logs" : "sentinel");
+  const [tab, setTab] = useState(isReady ? "build-logs" : "requests");
 
   useEffect(() => {
-    setTab(isBuildPhase ? "build-logs" : "sentinel");
-  }, [isBuildPhase]);
+    setTab(isReady ? "build-logs" : "requests");
+  }, [isReady]);
 
   return (
     <Section>
@@ -43,9 +43,9 @@ export function DeploymentLogsSection() {
           <Layers3 iconSize="md-regular" className="text-gray-9" />
           <TabsList className="bg-gray-3">
             <TabsTrigger
-              value="sentinel"
+              value="requests"
               className="text-accent-12 text-[13px]"
-              disabled={isBuildPhase}
+              disabled={isReady}
             >
               Requests
             </TabsTrigger>
@@ -54,7 +54,7 @@ export function DeploymentLogsSection() {
             </TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="sentinel">
+        <TabsContent value="requests">
           <Card className="rounded-[14px] overflow-hidden border-gray-4 flex flex-col h-full">
             <DeploymentSentinelLogsTable />
           </Card>
