@@ -51,7 +51,7 @@ export const ProjectNavigation = ({
       .select(({ project }) => ({
         id: project.id,
         name: project.name,
-        gitRepositoryUrl: project.gitRepositoryUrl,
+        repositoryFullName: project.repositoryFullName,
       })),
   ).data.at(0);
 
@@ -172,13 +172,13 @@ export const ProjectNavigation = ({
         ))}
       </Navbar.Breadcrumbs>
       <div className="flex gap-4 items-center">
-        {activeProject.gitRepositoryUrl && (
+        {activeProject.repositoryFullName && (
           <>
             <div className="text-gray-11 text-xs flex items-center gap-2.5">
               <Refresh3 className="text-gray-12" iconSize="sm-regular" />
               <span>Auto-deploys from pushes to </span>
               <RepoDisplay
-                url={activeProject.gitRepositoryUrl}
+                url={`https://github.com/${activeProject.repositoryFullName}`}
                 className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
               />
             </div>

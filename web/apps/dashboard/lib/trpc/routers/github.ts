@@ -257,6 +257,8 @@ export const githubRouter = t.router({
         }
       }
 
+      allRepos.sort((a, b) => a.fullName.localeCompare(b.fullName));
+
       return { repositories: allRepos };
     }),
 

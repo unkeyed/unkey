@@ -1,4 +1,4 @@
--- name: FindGithubRepoConnection :one
+-- name: ListGithubRepoConnections :many
 SELECT
     pk,
     project_id,

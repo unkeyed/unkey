@@ -51,7 +51,7 @@
               "nullable": true
             },
             {
-              "column": "projects.command",
+              "column": "deployments.command",
               "go_type": {
                 "type": "StringSlice",
                 "package": "dbtype",
@@ -59,12 +59,38 @@
               }
             },
             {
-              "column": "deployments.command",
+              "column": "environment_runtime_settings.command",
               "go_type": {
                 "type": "StringSlice",
                 "package": "dbtype",
                 "import": "github.com/unkeyed/unkey/pkg/db/types"
               }
+            },
+            {
+              "column": "environment_runtime_settings.region_config",
+              "go_type": {
+                "type": "RegionConfig",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              }
+            },
+            {
+              "column": "environment_runtime_settings.healthcheck",
+              "go_type": {
+                "type": "NullHealthcheck",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              },
+              "nullable": true
+            },
+            {
+              "column": "deployments.healthcheck",
+              "go_type": {
+                "type": "NullHealthcheck",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              },
+              "nullable": true
             }
           ]
         }

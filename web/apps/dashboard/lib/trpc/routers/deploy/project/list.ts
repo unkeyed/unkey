@@ -1,13 +1,18 @@
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
+import {
+  deployments,
+  frontlineRoutes,
+  githubRepoConnections,
+  projects,
+} from "@unkey/db/src/schema";
 
 type ProjectRow = {
   id: string;
   name: string;
   slug: string;
-  git_repository_url: string | null;
+  repository_full_name: string | null;
   live_deployment_id: string | null;
   is_rolled_back: boolean;
   git_commit_message: string | null;
@@ -28,7 +33,7 @@ export const listProjects = workspaceProcedure
         ${projects.name},
         ${projects.slug},
         ${projects.updatedAt},
-        ${projects.gitRepositoryUrl},
+        ${githubRepoConnections.repositoryFullName},
         ${projects.liveDeploymentId},
         ${projects.isRolledBack},
         ${deployments.gitCommitMessage},
@@ -50,7 +55,9 @@ export const listProjects = workspaceProcedure
         ON ${projects.liveDeploymentId} = ${deployments.id}
         AND ${deployments.workspaceId} = ${ctx.workspace.id}
       LEFT JOIN ${frontlineRoutes}
-      ON ${projects.id} = ${frontlineRoutes.projectId}
+        ON ${projects.id} = ${frontlineRoutes.projectId}
+      LEFT JOIN ${githubRepoConnections}
+        ON ${projects.id} = ${githubRepoConnections.projectId}
       WHERE ${projects.workspaceId} = ${ctx.workspace.id}
       ORDER BY ${projects.updatedAt} DESC
     `);
@@ -60,7 +67,7 @@ export const listProjects = workspaceProcedure
         id: row.id,
         name: row.name,
         slug: row.slug,
-        gitRepositoryUrl: row.git_repository_url,
+        repositoryFullName: row.repository_full_name,
         liveDeploymentId: row.live_deployment_id,
         isRolledBack: row.is_rolled_back,
         commitTitle: row.git_commit_message,

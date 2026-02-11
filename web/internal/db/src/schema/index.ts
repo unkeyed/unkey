@@ -11,6 +11,8 @@ export * from "./quota";
 export * from "./audit_logs";
 export * from "./environments";
 export * from "./environment_variables";
+export * from "./environment_build_settings";
+export * from "./environment_runtime_settings";
 export * from "./clickhouse_workspace_settings";
 
 // Deployment platform tables

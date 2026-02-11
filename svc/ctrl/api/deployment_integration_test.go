@@ -38,7 +38,6 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		WorkspaceID:      workspaceID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		GitRepositoryURL: "https://github.com/acme/repo",
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
