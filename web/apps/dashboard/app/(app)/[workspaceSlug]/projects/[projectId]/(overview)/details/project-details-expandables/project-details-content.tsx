@@ -43,7 +43,7 @@ export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps)
 
   const detailSections = createDetailSections({
     ...data.deployment,
-    repository: data.project.gitRepositoryUrl,
+    repository: null,
   });
 
   // This "environment" domain never changes even when you do a rollback this one stays stable.
