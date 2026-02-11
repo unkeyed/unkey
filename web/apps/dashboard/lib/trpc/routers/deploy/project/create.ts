@@ -114,13 +114,11 @@ export const createProject = workspaceProcedure
         // Create default build settings for both environments
         await tx.insert(schema.environmentBuildSettings).values([
           {
-            id: newId("environmentBuildSettings"),
             workspaceId: ctx.workspace.id,
             environmentId: prodEnvId,
             createdAt: Date.now(),
           },
           {
-            id: newId("environmentBuildSettings"),
             workspaceId: ctx.workspace.id,
             environmentId: previewEnvId,
             createdAt: Date.now(),
@@ -130,13 +128,11 @@ export const createProject = workspaceProcedure
         // Create default runtime settings for both environments
         await tx.insert(schema.environmentRuntimeSettings).values([
           {
-            id: newId("environmentRuntimeSettings"),
             workspaceId: ctx.workspace.id,
             environmentId: prodEnvId,
             createdAt: Date.now(),
           },
           {
-            id: newId("environmentRuntimeSettings"),
             workspaceId: ctx.workspace.id,
             environmentId: previewEnvId,
             createdAt: Date.now(),
