@@ -6,7 +6,7 @@ import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-f
 
 export const SentinelEnvironmentFilter = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();
-  const { environments } = useProjectData()
+  const { environments } = useProjectData();
 
   const options = environments.map((environment, i) => ({
     id: i,

@@ -1,7 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Layers3 } from "@unkey/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@unkey/ui";
 import { useEffect, useState } from "react";
@@ -14,17 +12,9 @@ import { DeploymentSentinelLogsTable } from "../table/deployment-sentinel-logs-t
 
 export function DeploymentLogsSection() {
   const { deploymentId } = useDeployment();
-  const { projectId } = useProjectData();
-  const { data } = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId))
-        .where(({ deployment }) => eq(deployment.id, deploymentId)),
-    [projectId, deploymentId],
-  );
+  const { getDeploymentById } = useProjectData();
 
-  const deployment = data.at(0);
+  const deployment = getDeploymentById(deploymentId);
   const deploymentStatus = deployment?.status;
 
   // During build phase, default to "Build logs" and disable "Logs" tab

@@ -7,7 +7,7 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
-import { createContext, PropsWithChildren, useContext, useMemo } from "react";
+import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
 
 type ProjectDataContextType = {
   projectId: string;
@@ -63,17 +63,13 @@ export const ProjectDataProvider = ({ children }: PropsWithChildren) => {
 
   const projectQuery = useLiveQuery(
     (q) =>
-      q
-        .from({ project: collection.projects })
-        .where(({ project }) => eq(project.id, projectId)),
+      q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
     [projectId],
   );
 
   const environmentsQuery = useLiveQuery(
     (q) =>
-      q
-        .from({ env: collection.environments })
-        .where(({ env }) => eq(env.projectId, projectId)),
+      q.from({ env: collection.environments }).where(({ env }) => eq(env.projectId, projectId)),
     [projectId],
   );
 

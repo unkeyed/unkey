@@ -42,9 +42,7 @@ export const PromotionDialog = ({
   const { getEnvironmentOrLiveDomains, refetchAll } = useProjectData();
 
   // Get domains for live deployment and filter for environment/live sticky domains
-  const domains = getEnvironmentOrLiveDomains().filter(
-    (d) => d.deploymentId === liveDeployment.id,
-  );
+  const domains = getEnvironmentOrLiveDomains().filter((d) => d.deploymentId === liveDeployment.id);
 
   const promote = trpc.deploy.deployment.promote.useMutation({
     onSuccess: () => {

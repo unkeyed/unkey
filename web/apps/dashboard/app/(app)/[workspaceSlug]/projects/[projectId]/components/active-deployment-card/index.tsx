@@ -2,8 +2,8 @@
 
 import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
-import { useProjectData } from "../../(overview)/data-provider";
 import { Card } from "../../(overview)/components/card";
+import { useProjectData } from "../../(overview)/data-provider";
 import { Avatar } from "../../components/git-avatar";
 import { InfoChip } from "../../components/info-chip";
 import { StatusIndicator } from "../../components/status-indicator";
@@ -40,9 +40,9 @@ export const ActiveDeploymentCard = ({
           <StatusIndicator withSignal />
           <div className="flex flex-col gap-1">
             <div className="text-accent-12 font-medium text-xs">{deployment.id}</div>
-            {deployment.gitCommitMessage &&
+            {deployment.gitCommitMessage && (
               <div className="text-gray-9 text-xs">{deployment.gitCommitMessage}</div>
-            }
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4">

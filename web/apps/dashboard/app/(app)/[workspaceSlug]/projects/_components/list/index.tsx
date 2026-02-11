@@ -77,14 +77,7 @@ export const ProjectsList = () => {
         }}
       >
         {projects.data.map((project) => (
-          <ProximityPrefetch
-            distance={300}
-            debounceDelay={150}
-            key={project.id}
-            onEnterProximity={() => {
-              // Preloading is now handled automatically by query-driven sync
-            }}
-          >
+          <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
             <ProjectCard
               projectId={project.id}
               name={project.name}

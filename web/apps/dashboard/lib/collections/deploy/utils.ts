@@ -5,12 +5,14 @@
  * - Direct: { name: "eq", type: "func", args: [{ path: ["projectId"], type: "ref" }, { value: "proj_xxx", type: "val" }] }
  * - And: { name: "and", type: "func", args: [eq(...), eq(...)] }
  */
+// biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
 export function parseProjectIdFromWhere(where?: any): string | null {
   if (!where) {
     return null;
   }
 
   // Helper to check if an expression is eq(projectId, value)
+  // biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
   function isProjectIdEq(expr: any): string | null {
     if (expr?.name !== "eq" || expr?.type !== "func" || !Array.isArray(expr?.args)) {
       return null;
@@ -58,6 +60,7 @@ export function parseProjectIdFromWhere(where?: any): string | null {
  * Throws helpful error if projectId filter is missing.
  * Only active in development mode (process.env.NODE_ENV !== 'production').
  */
+// biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
 export function validateProjectIdInQuery(where?: any): void {
   if (process.env.NODE_ENV === "production") {
     return;

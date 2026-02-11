@@ -6,8 +6,8 @@ import { shortenId } from "@/lib/shorten-id";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 import type { ComponentPropsWithoutRef } from "react";
-import { useDeployment } from "../../layout-provider";
 import { useProjectData } from "../../../../data-provider";
+import { useDeployment } from "../../layout-provider";
 
 export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.Link> & {
   /** Unique identifier for the breadcrumb item */

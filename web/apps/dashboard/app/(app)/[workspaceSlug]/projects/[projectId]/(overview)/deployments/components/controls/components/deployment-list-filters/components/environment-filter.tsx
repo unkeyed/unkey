@@ -1,11 +1,10 @@
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { useFilters } from "../../../../../hooks/use-filters";
 import { useProjectData } from "../../../../../../data-provider";
+import { useFilters } from "../../../../../hooks/use-filters";
 
 export const EnvironmentFilter = () => {
   const { filters, updateFilters } = useFilters();
   const { environments } = useProjectData();
-
 
   return (
     <FilterCheckbox

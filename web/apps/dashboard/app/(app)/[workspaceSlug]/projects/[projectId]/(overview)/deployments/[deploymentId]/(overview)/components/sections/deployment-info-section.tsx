@@ -1,7 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Bolt, Cloud, Grid, Harddrive, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { ActiveDeploymentCard } from "../../../../../../components/active-deployment-card";
@@ -16,18 +14,10 @@ import { useDeployment } from "../../../layout-provider";
 
 export function DeploymentInfoSection() {
   const { deploymentId } = useDeployment();
-  const { projectId } = useProjectData();
+  const { getDeploymentById } = useProjectData();
   const { setIsDetailsOpen, isDetailsOpen } = useProjectLayout();
-  const { data } = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId))
-        .where(({ deployment }) => eq(deployment.id, deploymentId)),
-    [projectId, deploymentId],
-  );
 
-  const deployment = data.at(0);
+  const deployment = getDeploymentById(deploymentId);
   const deploymentStatus = deployment?.status;
 
   return (

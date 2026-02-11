@@ -6,11 +6,7 @@ import { ChevronDown, CodeBranch, CodeCommit } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 
-type ProjectDetailsProps = {
-  projectId: string;
-};
-
-export const ProjectDetails = ({ projectId }: ProjectDetailsProps) => {
+export const ProjectDetails = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (

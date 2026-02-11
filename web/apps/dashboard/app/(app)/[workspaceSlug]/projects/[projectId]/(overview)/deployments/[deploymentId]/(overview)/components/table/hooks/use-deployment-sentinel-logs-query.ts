@@ -1,23 +1,13 @@
-import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useProjectData } from "../../../../../../data-provider";
 import { useDeployment } from "../../../../layout-provider";
 
 export function useDeploymentSentinelLogsQuery() {
   const { deploymentId } = useDeployment();
-  const { projectId } = useProjectData();
+  const { getDeploymentById, projectId } = useProjectData();
 
-  const deployment = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId))
-        .where(({ deployment }) => eq(deployment.id, deploymentId)),
-    [projectId, deploymentId],
-  );
-
-  const environmentId = deployment.data.at(0)?.environmentId ?? "";
+  const deployment = getDeploymentById(deploymentId);
+  const environmentId = deployment?.environmentId ?? "";
 
   const { data, isLoading, error } = trpc.deploy.sentinelLogs.query.useInfiniteQuery(
     {

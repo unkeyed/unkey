@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { Avatar } from "../../../../components/git-avatar";
 import { StatusIndicator } from "../../../../components/status-indicator";
+import { useProjectData } from "../../../data-provider";
 import { useDeployments } from "../../hooks/use-deployments";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { DomainList } from "./components/domain_list";
@@ -31,7 +32,6 @@ import {
   StatusColumnSkeleton,
 } from "./components/skeletons";
 import { getRowClassName } from "./utils/get-row-class";
-import { useProjectData } from "../../../data-provider";
 
 const DeploymentListTableActions = dynamic(
   () =>
@@ -52,7 +52,6 @@ export const DeploymentsList = () => {
   const { deployments } = useDeployments();
   const { project, getDeploymentById } = useProjectData();
   const liveDeploymentId = project?.liveDeploymentId;
-
 
   const selectedDeploymentId = selectedDeployment?.deployment.id;
 
@@ -163,20 +162,18 @@ export const DeploymentsList = () => {
         headerClassName: "hidden 2xl:table-cell",
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
-          return (
-            deployment.status === "failed" ? (
-              <span className="text-gray-9">—</span>
-            ) : (
-              <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-                <Cube className="text-gray-12" iconSize="sm-regular" />
-                <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12 tabular-nums">
-                    {deployment.instances.length}
-                  </span>
-                  <span>VMs</span>
-                </div>
+          return deployment.status === "failed" ? (
+            <span className="text-gray-9">—</span>
+          ) : (
+            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+              <Cube className="text-gray-12" iconSize="sm-regular" />
+              <div className="flex gap-0.5">
+                <span className="font-semibold text-grayA-12 tabular-nums">
+                  {deployment.instances.length}
+                </span>
+                <span>VMs</span>
               </div>
-            )
+            </div>
           );
         },
       },
@@ -185,27 +182,25 @@ export const DeploymentsList = () => {
         header: "Size",
         width: "15%",
         render: ({ deployment }: { deployment: Deployment }) => {
-          return (
-            deployment.status === "failed" ? (
-              <span className="text-gray-9">—</span>
-            ) : (
-              <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-                <Cube className="text-gray-12" iconSize="sm-regular" />
-                <div className="flex gap-1">
-                  <div className="flex gap-0.5">
-                    <span className="font-semibold text-grayA-12">
-                      {formatCpu(deployment.cpuMillicores)}
-                    </span>
-                  </div>
-                  <span> / </span>
-                  <div className="flex gap-0.5">
-                    <span className="font-semibold text-grayA-12">
-                      {formatMemory(deployment.memoryMib)}
-                    </span>
-                  </div>
+          return deployment.status === "failed" ? (
+            <span className="text-gray-9">—</span>
+          ) : (
+            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+              <Cube className="text-gray-12" iconSize="sm-regular" />
+              <div className="flex gap-1">
+                <div className="flex gap-0.5">
+                  <span className="font-semibold text-grayA-12">
+                    {formatCpu(deployment.cpuMillicores)}
+                  </span>
+                </div>
+                <span> / </span>
+                <div className="flex gap-0.5">
+                  <span className="font-semibold text-grayA-12">
+                    {formatMemory(deployment.memoryMib)}
+                  </span>
                 </div>
               </div>
-            )
+            </div>
           );
         },
       },
@@ -297,7 +292,7 @@ export const DeploymentsList = () => {
           deployment: Deployment;
           environment?: Environment;
         }) => {
-          const liveDeployment = getDeploymentById(deployment.id)
+          const liveDeployment = getDeploymentById(deployment.id);
           return (
             <div className="pl-5">
               <DeploymentListTableActions

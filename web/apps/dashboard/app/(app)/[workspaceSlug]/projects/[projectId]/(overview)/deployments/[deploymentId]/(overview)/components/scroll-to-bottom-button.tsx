@@ -1,6 +1,4 @@
 "use client";
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useProjectData } from "../../../../data-provider";
@@ -8,16 +6,10 @@ import { useDeployment } from "../../layout-provider";
 
 export function ScrollToBottomButton() {
   const { deploymentId } = useDeployment();
-  const { projectId } = useProjectData();
-  const deployment = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId))
-        .where(({ deployment }) => eq(deployment.id, deploymentId)),
-    [projectId, deploymentId],
-  );
-  const isVisible = deployment.data.at(0)?.status !== "ready";
+  const { getDeploymentById } = useProjectData();
+
+  const deployment = getDeploymentById(deploymentId);
+  const isVisible = deployment?.status !== "ready";
 
   const handleScrollToBottom = () => {
     const container = document.getElementById("deployment-scroll-container");

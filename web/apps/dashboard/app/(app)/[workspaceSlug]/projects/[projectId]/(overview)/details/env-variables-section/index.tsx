@@ -23,8 +23,6 @@ const ANIMATION_CONFIG = {
   contentDelay: 150,
 } as const;
 
-
-
 export function EnvironmentVariablesSection({
   icon,
   environment,

@@ -3,9 +3,9 @@
 import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
 import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
-import { useProjectData } from "../../data-provider";
 import { Button, SettingCard, toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
+import { useProjectData } from "../../data-provider";
 
 type Props = {
   connectedRepo: string | null;

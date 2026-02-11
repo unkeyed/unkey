@@ -1,14 +1,12 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { PropsWithChildren, useState } from "react";
+import { type PropsWithChildren, useState } from "react";
 import { ProjectDataProvider, useProjectData } from "./(overview)/data-provider";
 import { ProjectDetailsExpandable } from "./(overview)/details/project-details-expandables";
 import { ProjectLayoutContext } from "./(overview)/layout-provider";
 import { ProjectNavigation } from "./(overview)/navigations/project-navigation";
 
-export default function ProjectLayoutWrapper({ children }: {
-  children: React.ReactNode;
-}) {
+export default function ProjectLayoutWrapper({ children }: PropsWithChildren) {
   return <ProjectLayout>{children}</ProjectLayout>;
 }
 

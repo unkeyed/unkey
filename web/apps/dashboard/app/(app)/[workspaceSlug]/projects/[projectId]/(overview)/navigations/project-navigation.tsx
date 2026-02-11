@@ -44,8 +44,9 @@ export const ProjectNavigation = ({
   );
 
   const { projectId, project } = useProjectData();
-  const activeProject = project ? { id: project.id, name: project.name,repositoryFullName: project.repositoryFullName} : undefined;
-
+  const activeProject = project
+    ? { id: project.id, name: project.name, repositoryFullName: project.repositoryFullName }
+    : undefined;
 
   const basePath = `/${workspace.slug}/projects`;
   const breadcrumbs = useBreadcrumbConfig({

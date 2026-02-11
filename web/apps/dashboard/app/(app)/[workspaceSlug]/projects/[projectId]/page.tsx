@@ -5,7 +5,7 @@ import { DeploymentLogsContent } from "./(overview)/details/active-deployment-ca
 import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
 import { CustomDomainsSection } from "./(overview)/details/custom-domains-section";
-import { DomainRow, EmptySection, DomainRowSkeleton } from "./(overview)/details/domain-row";
+import { DomainRow, DomainRowSkeleton, EmptySection } from "./(overview)/details/domain-row";
 import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
@@ -13,8 +13,14 @@ import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
 
 export default function ProjectDetails() {
-  const { projectId, getDomainsForDeployment, isDomainsLoading, getDeploymentById, project, environments } =
-    useProjectData();
+  const {
+    projectId,
+    getDomainsForDeployment,
+    isDomainsLoading,
+    getDeploymentById,
+    project,
+    environments,
+  } = useProjectData();
 
   const liveDeploymentId = project?.liveDeploymentId;
 

@@ -11,9 +11,7 @@ export const ProjectDetailsContent = () => {
     ? getDeploymentById(project.liveDeploymentId)
     : undefined;
 
-  const data = project && deployment
-    ? { project, deployment }
-    : undefined;
+  const data = project && deployment ? { project, deployment } : undefined;
 
   // Get domains from provider and transform
   const domainsData = data?.project.liveDeploymentId
