@@ -25,8 +25,5 @@ export const updateEnvironmentBuildSettings = workspaceProcedure
       createdAt: Date.now(),
     };
 
-    await db
-      .insert(environmentBuildSettings)
-      .values(values)
-      .onDuplicateKeyUpdate({ set: values });
+    await db.insert(environmentBuildSettings).values(values).onDuplicateKeyUpdate({ set: values });
   });
