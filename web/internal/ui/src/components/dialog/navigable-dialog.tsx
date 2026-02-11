@@ -68,9 +68,20 @@ const NavigableDialogRoot = <TStepName extends string>({
       <Dialog open={isOpen} onOpenChange={onOpenChange} modal={true}>
         <DialogPortal>
           <DialogContent
-            onKeyDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              // Allow keyboard events to propagate to nested components like Combobox
+              if (
+                e.key === "ArrowDown" ||
+                e.key === "ArrowUp" ||
+                e.key === "Enter" ||
+                e.key === "Escape"
+              ) {
+                return;
+              }
+              e.stopPropagation();
+            }}
             className={cn(
-              "drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
+              "drop-shadow-2xl transform-gpu border-grayA-4 overflow-visible !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
               dialogClassName,
             )}
             onOpenAutoFocus={(e) => {
@@ -225,14 +236,14 @@ const NavigableDialogContent = <TStepName extends string>({
   return (
     <div className="flex-1 min-w-0 overflow-y-auto">
       <DefaultDialogContentArea className={cn("min-h-[70vh] xl:min-h-[50vh] h-full", className)}>
-        <div className="h-full relative">
+        <div className="h-full relative overflow-visible">
           {items.map((item) => {
             const isActive = item.id === activeId;
             return (
               <div
                 key={item.id}
                 className={cn(
-                  "w-full absolute inset-0 overflow-y-auto scrollbar-hide",
+                  "w-full absolute inset-0 overflow-y-auto scrollbar-hide overflow-x-visible",
                   "transition-all duration-300 ease-out",
                   isActive
                     ? "opacity-100 translate-x-0 z-10"
@@ -258,7 +269,11 @@ const NavigableDialogBody = ({
   children: ReactNode;
   className?: string;
 }) => {
-  return <div className={cn("flex flex-grow overflow-hidden", className)}>{children}</div>;
+  return (
+    <div className={cn("flex flex-grow overflow-x-hidden overflow-y-hidden", className)}>
+      {children}
+    </div>
+  );
 };
 
 NavigableDialogBody.displayName = "NavigableDialogBody";

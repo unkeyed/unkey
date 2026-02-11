@@ -111,7 +111,7 @@ export function Combobox({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <div className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
           <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
@@ -148,19 +148,36 @@ export function Combobox({
           </Button>
         </PopoverTrigger>
       </div>
-      <PopoverContent className="p-0 w-full min-w-[var(--radix-popover-trigger-width)] rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-50">
-        <Command>
+      <PopoverContent
+        className="p-0 w-full min-w-[var(--radix-popover-trigger-width)] rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-[200] overflow-visible"
+        onOpenAutoFocus={(e) => {
+          // Prevent auto-focus to allow proper keyboard navigation
+          e.preventDefault();
+        }}
+      >
+        <Command
+          onKeyDown={(e) => {
+            // Allow keyboard navigation within the combobox
+            if (
+              e.key === "ArrowDown" ||
+              e.key === "ArrowUp" ||
+              e.key === "Enter" ||
+              e.key === "Escape"
+            ) {
+              e.stopPropagation();
+            }
+          }}
+        >
           <CommandInput
             onInput={onChange}
             onKeyDown={(e) => {
-              if (e.key !== "Enter" && e.key !== " ") {
-                e.stopPropagation();
-              }
+              // Prevent propagation to Dialog but allow command list navigation
+              e.stopPropagation();
             }}
             placeholder={searchPlaceholder}
             className="text-xs placeholder:text-xs placeholder:text-accent-8"
           />
-          <CommandList className="max-h-[300px] overflow-y-auto overflow-x-hidden">
+          <CommandList className="max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-thin">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup className="max-h-[260px] overflow-y-auto">
               {options.map((option) => (
