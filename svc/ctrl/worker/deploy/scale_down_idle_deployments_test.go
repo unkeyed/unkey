@@ -24,7 +24,6 @@ func TestScaleDownIdleDeployments_ScalesDownIdleDeploymentWithZeroRequests(t *te
 		WorkspaceID:      ws.ID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
@@ -66,7 +65,6 @@ func TestScaleDownIdleDeployments_DoesNotScaleDownDeploymentWithRecentRequests(t
 		WorkspaceID:      ws.ID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
@@ -110,7 +108,6 @@ func TestScaleDownIdleDeployments_IgnoresNonPreviewEnvironments(t *testing.T) {
 		WorkspaceID:      ws.ID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
@@ -152,7 +149,6 @@ func TestScaleDownIdleDeployments_IgnoresDeploymentsNotInReadyStatus(t *testing.
 		WorkspaceID:      ws.ID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
@@ -192,7 +188,6 @@ func TestScaleDownIdleDeployments_IgnoresRecentlyCreatedDeployments(t *testing.T
 		WorkspaceID:      ws.ID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
@@ -234,7 +229,6 @@ func TestScaleDownIdleDeployments_IgnoresRecentlyUpdatedDeployments(t *testing.T
 		WorkspaceID:      ws.ID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
@@ -281,7 +275,6 @@ func TestScaleDownIdleDeployments_HandlesMultipleDeploymentsAcrossMultipleEnviro
 			WorkspaceID:      ws.ID,
 			Name:             "test-project",
 			Slug:             uid.New("slug"),
-			GitRepositoryURL: "",
 			DefaultBranch:    "main",
 			DeleteProtection: false,
 		})
@@ -346,7 +339,6 @@ func TestScaleDownIdleDeployments_PaginatesAcrossManyPreviewEnvironmentsAtScale(
 			WorkspaceID:      ws.ID,
 			Name:             "test-project",
 			Slug:             uid.New("slug"),
-			GitRepositoryURL: "",
 			DefaultBranch:    "main",
 			DeleteProtection: false,
 		})

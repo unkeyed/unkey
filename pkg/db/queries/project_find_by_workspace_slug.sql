@@ -4,7 +4,6 @@ SELECT
     workspace_id,
     name,
     slug,
-    git_repository_url,
     default_branch,
     delete_protection,
     created_at,

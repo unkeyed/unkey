@@ -167,7 +167,16 @@ func Run(ctx context.Context, cfg Config) error {
 		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
 		AllowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
-	})))
+	}),
+		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(1*time.Minute),
+			restate.WithExponentiationFactor(2.0),
+			restate.WithMaxInterval(10*time.Minute),
+			restate.WithMaxAttempts(150),
+			restate.KillOnMaxAttempts(),
+		),
+	))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,

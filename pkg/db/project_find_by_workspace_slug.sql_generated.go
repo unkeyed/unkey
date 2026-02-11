@@ -16,7 +16,6 @@ SELECT
     workspace_id,
     name,
     slug,
-    git_repository_url,
     default_branch,
     delete_protection,
     created_at,
@@ -36,7 +35,6 @@ type FindProjectByWorkspaceSlugRow struct {
 	WorkspaceID      string         `db:"workspace_id"`
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
-	GitRepositoryUrl sql.NullString `db:"git_repository_url"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
@@ -50,7 +48,6 @@ type FindProjectByWorkspaceSlugRow struct {
 //	    workspace_id,
 //	    name,
 //	    slug,
-//	    git_repository_url,
 //	    default_branch,
 //	    delete_protection,
 //	    created_at,
@@ -66,7 +63,6 @@ func (q *Queries) FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg F
 		&i.WorkspaceID,
 		&i.Name,
 		&i.Slug,
-		&i.GitRepositoryUrl,
 		&i.DefaultBranch,
 		&i.DeleteProtection,
 		&i.CreatedAt,

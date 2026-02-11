@@ -1277,7 +1277,15 @@ type ApplyDeployment struct {
 	EncryptedEnvironmentVariables []byte  `protobuf:"bytes,12,opt,name=encrypted_environment_variables,json=encryptedEnvironmentVariables,proto3" json:"encrypted_environment_variables,omitempty"`
 	// command is the container command override (e.g., ["./app", "serve"]).
 	// If empty, the container's default entrypoint/cmd from the Dockerfile is used.
-	Command       []string `protobuf:"bytes,13,rep,name=command,proto3" json:"command,omitempty"`
+	Command []string `protobuf:"bytes,13,rep,name=command,proto3" json:"command,omitempty"`
+	// port is the container port the application listens on.
+	Port int32 `protobuf:"varint,14,opt,name=port,proto3" json:"port,omitempty"`
+	// shutdown_signal is the signal sent to the container for graceful shutdown.
+	// "SIGTERM", "SIGINT", "SIGQUIT", or "SIGKILL".
+	ShutdownSignal string `protobuf:"bytes,15,opt,name=shutdown_signal,json=shutdownSignal,proto3" json:"shutdown_signal,omitempty"`
+	// healthcheck is a JSON-encoded Healthcheck struct for configuring liveness/readiness probes.
+	// If empty, no probes are configured.
+	Healthcheck   []byte `protobuf:"bytes,17,opt,name=healthcheck,proto3,oneof" json:"healthcheck,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1399,6 +1407,27 @@ func (x *ApplyDeployment) GetEncryptedEnvironmentVariables() []byte {
 func (x *ApplyDeployment) GetCommand() []string {
 	if x != nil {
 		return x.Command
+	}
+	return nil
+}
+
+func (x *ApplyDeployment) GetPort() int32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+func (x *ApplyDeployment) GetShutdownSignal() string {
+	if x != nil {
+		return x.ShutdownSignal
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetHealthcheck() []byte {
+	if x != nil {
+		return x.Healthcheck
 	}
 	return nil
 }
@@ -1717,7 +1746,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
 	"memory_mib\x18\t \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xe6\x03\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xda\x04\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1734,8 +1763,12 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	" \x01(\x03R\tmemoryMib\x12\x1e\n" +
 	"\bbuild_id\x18\v \x01(\tH\x00R\abuildId\x88\x01\x01\x12F\n" +
 	"\x1fencrypted_environment_variables\x18\f \x01(\fR\x1dencryptedEnvironmentVariables\x12\x18\n" +
-	"\acommand\x18\r \x03(\tR\acommandB\v\n" +
-	"\t_build_id\"R\n" +
+	"\acommand\x18\r \x03(\tR\acommand\x12\x12\n" +
+	"\x04port\x18\x0e \x01(\x05R\x04port\x12'\n" +
+	"\x0fshutdown_signal\x18\x0f \x01(\tR\x0eshutdownSignal\x12%\n" +
+	"\vhealthcheck\x18\x11 \x01(\fH\x01R\vhealthcheck\x88\x01\x01B\v\n" +
+	"\t_build_idB\x0e\n" +
+	"\f_healthcheck\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName*]\n" +

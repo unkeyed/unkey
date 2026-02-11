@@ -95,7 +95,6 @@ func insertRepoConnection(t *testing.T, harness *webhookHarness, repoFullName st
 		WorkspaceID:      harness.Seed.Resources.UserWorkspace.ID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		GitRepositoryURL: fmt.Sprintf("https://github.com/%s", repoFullName),
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})

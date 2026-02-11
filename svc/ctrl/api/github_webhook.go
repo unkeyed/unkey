@@ -12,7 +12,6 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
@@ -145,7 +144,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			envSlug = "production"
 		}
 
-		env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
+		envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
 			WorkspaceID: project.WorkspaceID,
 			ProjectID:   project.ID,
 			Slug:        envSlug,
@@ -155,6 +154,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			http.Error(w, "failed to find environment", http.StatusInternalServerError)
 			return
 		}
+		env := envSettings.Environment
 
 		// Create deployment record
 		deploymentID := uid.New(uid.DeploymentPrefix)
@@ -169,7 +169,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			EnvironmentID:                 env.ID,
 			SentinelConfig:                env.SentinelConfig,
 			EncryptedEnvironmentVariables: []byte{},
-			Command:                       dbtype.StringSlice{},
+			Command:                       envSettings.Command,
 			Status:                        db.DeploymentsStatusPending,
 			CreatedAt:                     now,
 			UpdatedAt:                     sql.NullInt64{Valid: false},
@@ -180,8 +180,11 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.authorAvatarURL, Valid: gitCommit.authorAvatarURL != ""},
 			GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.timestamp, Valid: gitCommit.timestamp != 0},
 			OpenapiSpec:                   sql.NullString{Valid: false},
-			CpuMillicores:                 256,
-			MemoryMib:                     256,
+			CpuMillicores:                 envSettings.CpuMillicores,
+			MemoryMib:                     envSettings.MemoryMib,
+			Port:                          envSettings.Port,
+			ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.ShutdownSignal),
+			Healthcheck:                   envSettings.Healthcheck,
 		})
 		if err != nil {
 			logger.Error("failed to insert deployment", "error", err)
@@ -207,8 +210,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 					InstallationId: repo.InstallationID,
 					Repository:     payload.Repository.FullName,
 					CommitSha:      payload.After,
-					ContextPath:    ".",          // TODO read from project settings
-					DockerfilePath: "Dockerfile", // TODO read from project settings
+					ContextPath:    envSettings.DockerContext,
+					DockerfilePath: envSettings.Dockerfile,
 				},
 			},
 		})
