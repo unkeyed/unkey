@@ -3,6 +3,8 @@ import { environmentRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
+type RuntimeSettings = typeof environmentRuntimeSettings.$inferInsert;
+
 export const updateEnvironmentRuntimeSettings = workspaceProcedure
   .input(
     z.object({
@@ -26,33 +28,28 @@ export const updateEnvironmentRuntimeSettings = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const set: Record<string, unknown> = { updatedAt: Date.now() };
-    if (input.port !== undefined) set.port = input.port;
-    if (input.command !== undefined) set.command = input.command;
-    if (input.healthcheck !== undefined) set.healthcheck = input.healthcheck;
-    if (input.cpuMillicores !== undefined) set.cpuMillicores = input.cpuMillicores;
-    if (input.memoryMib !== undefined) set.memoryMib = input.memoryMib;
+    const regionConfig: Record<string, number> = {};
     if (input.replicasPerRegion !== undefined) {
       const regionsEnv = process.env.AVAILABLE_REGIONS ?? "";
-      const regions = regionsEnv
-        .split(",")
-        .map((r) => r.trim())
-        .filter(Boolean);
-      set.regionConfig = Object.fromEntries(regions.map((r) => [r, input.replicasPerRegion]));
+      for (const region of regionsEnv.split(",")) {
+        regionConfig[region] = input.replicasPerRegion;
+      }
     }
+
+    const values: RuntimeSettings = {
+      workspaceId: ctx.workspace.id,
+      environmentId: input.environmentId,
+      port: input.port ?? 8080,
+      command: input.command ?? [],
+      healthcheck: input.healthcheck ?? undefined,
+      cpuMillicores: input.cpuMillicores ?? 256,
+      memoryMib: input.memoryMib ?? 256,
+      regionConfig: regionConfig ?? {},
+      createdAt: Date.now(),
+    };
 
     await db
       .insert(environmentRuntimeSettings)
-      .values({
-        workspaceId: ctx.workspace.id,
-        environmentId: input.environmentId,
-        port: input.port ?? 8080,
-        command: input.command ?? [],
-        healthcheck: input.healthcheck ?? undefined,
-        cpuMillicores: input.cpuMillicores ?? 256,
-        memoryMib: input.memoryMib ?? 256,
-        regionConfig: {},
-        createdAt: Date.now(),
-      })
-      .onDuplicateKeyUpdate({ set });
+      .values(values)
+      .onDuplicateKeyUpdate({ set: values });
   });
