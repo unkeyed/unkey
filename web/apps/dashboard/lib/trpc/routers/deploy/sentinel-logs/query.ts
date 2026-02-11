@@ -12,7 +12,14 @@ import { transformSentinelLogsFilters } from "./utils";
 export const querySentinelLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(sentinelLogsRequestSchema.omit({ workspaceId: true }))
-  .output(z.array(sentinelLogsResponseSchema))
+  .output(
+    z.object({
+      logs: z.array(sentinelLogsResponseSchema),
+      total: z.number().int(),
+      hasMore: z.boolean(),
+      nextCursor: z.number().int().nullable(),
+    }),
+  )
   .query(async ({ ctx, input }) => {
     try {
       const project = await db.query.projects.findFirst({
@@ -30,19 +37,36 @@ export const querySentinelLogs = workspaceProcedure
 
       const transformedInputs = transformSentinelLogsFilters(input);
 
-      const result = await clickhouse.sentinel.logs({
+      const { logsQuery, totalQuery } = await clickhouse.sentinel.logs({
         workspaceId: ctx.workspace.id,
         ...transformedInputs,
       });
 
-      if (result.err) {
+      const [logsResult, totalResult] = await Promise.all([logsQuery, totalQuery]);
+
+      if (logsResult.err) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch sentinel logs from ClickHouse.",
+          message: "Failed to fetch requests from ClickHouse.",
         });
       }
 
-      return result.val;
+      if (totalResult.err) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch total count from ClickHouse.",
+        });
+      }
+
+      const logs = logsResult.val;
+      const total = totalResult.val[0]?.total_count ?? 0;
+
+      return {
+        logs,
+        total,
+        hasMore: logs.length === input.limit,
+        nextCursor: logs.length > 0 ? logs[logs.length - 1].time : null,
+      };
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;
@@ -57,7 +81,7 @@ export const querySentinelLogs = workspaceProcedure
 
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to retrieve sentinel logs. If this persists, contact support@unkey.dev.",
+        message: "Failed to retrieve requests. If this persists, contact support@unkey.com.",
       });
     }
   });

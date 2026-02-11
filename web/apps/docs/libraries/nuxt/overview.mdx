@@ -1,6 +1,6 @@
 ---
-title: "Overview"
-description: "Nuxt module for unkey"
+title: "Nuxt Module"
+description: "Nuxt module for Unkey"
 ---
 
 If you are using Nuxt, you can benefit from an almost zero-config experience with the `@unkey/nuxt` module.
@@ -91,25 +91,27 @@ For example:
 ```ts
 const unkey = useUnkey();
 
-const created = await unkey.keys.create({
-  apiId: "api_7oKUUscTZy22jmVf9THxDA",
-  prefix: "xyz",
-  byteLength: 16,
-  ownerId: "chronark",
-  meta: {
-    hello: "world",
-  },
-  expires: 1686941966471,
-  ratelimit: {
-    async: true,
-    duration: 1000,
-    limit: 10,
-    refillRate: 1,
-    refillInterval: 1000,
-  },
-});
+try {
+  const { meta, data } = await unkey.keys.create({
+    apiId: "api_7oKUUscTZy22jmVf9THxDA",
+    prefix: "xyz",
+    byteLength: 16,
+    externalId: "user_123",  // Link to your user
+    meta: {
+      hello: "world",
+    },
+    expires: Date.now() + 30 * 24 * 60 * 60 * 1000,  // 30 days from now
+    ratelimit: {
+      limit: 10,
+      duration: 1000,  // 10 requests per second
+    },
+  });
 
-console.log(created.key);
+  console.log(data.key);
+} catch (err) {
+  console.error(err);
+  throw err;
+}
 ```
 
 

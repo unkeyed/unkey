@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,13 +20,11 @@ func TestNew_CreatesControllerWithCorrectFields(t *testing.T) {
 	}
 	client := fake.NewSimpleClientset(namespace)
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(runtime.NewScheme())
-	logger := logging.NewNoop()
 	mockCluster := &testutil.MockClusterClient{}
 
 	cfg := Config{
 		ClientSet:     client,
 		DynamicClient: dynamicClient,
-		Logger:        logger,
 		Cluster:       mockCluster,
 		Region:        "us-east-1",
 	}
@@ -47,7 +44,6 @@ func TestNew_CreatesOwnCircuitBreaker(t *testing.T) {
 	cfg := Config{
 		ClientSet:     client,
 		DynamicClient: dynamicClient,
-		Logger:        logging.NewNoop(),
 		Cluster:       &testutil.MockClusterClient{},
 		Region:        "us-east-1",
 	}
@@ -63,7 +59,6 @@ func TestNew_InitializesVersionCursorToZero(t *testing.T) {
 	cfg := Config{
 		ClientSet:     client,
 		DynamicClient: dynamicClient,
-		Logger:        logging.NewNoop(),
 		Cluster:       &testutil.MockClusterClient{},
 		Region:        "us-east-1",
 	}
@@ -79,7 +74,6 @@ func TestNew_CreatesDoneChannel(t *testing.T) {
 	cfg := Config{
 		ClientSet:     client,
 		DynamicClient: dynamicClient,
-		Logger:        logging.NewNoop(),
 		Cluster:       &testutil.MockClusterClient{},
 		Region:        "us-east-1",
 	}
@@ -101,7 +95,6 @@ func TestStop_ClosesDoneChannel(t *testing.T) {
 	cfg := Config{
 		ClientSet:     client,
 		DynamicClient: dynamicClient,
-		Logger:        logging.NewNoop(),
 		Cluster:       &testutil.MockClusterClient{},
 		Region:        "us-east-1",
 	}

@@ -20,17 +20,8 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
-
-// Config configures the Prometheus metrics server.
-// It specifies dependencies needed for the server to function correctly.
-type Config struct {
-	// Logger is used for recording operational events from the metrics server.
-	// This logger should be configured appropriately for your environment.
-	Logger logging.Logger
-}
 
 // New creates a zen server that exposes Prometheus metrics at the /metrics endpoint.
 // The server is configured to handle GET requests to the /metrics path using the
@@ -51,9 +42,8 @@ type Config struct {
 // Example usage:
 //
 //	// Create a dedicated metrics server
-//	logger := logging.New()
 //	server, err := prometheus.New(prometheus.Config{
-//	    Logger: logger,
+//	   ,
 //	})
 //	if err != nil {
 //	    log.Fatalf("Failed to create metrics server: %v", err)
@@ -72,10 +62,9 @@ type Config struct {
 //
 // See [zen.New] for details on the underlying server creation.
 // See [promhttp.Handler] for details on the Prometheus metrics handler.
-func New(config Config) (*zen.Server, error) {
+func New() (*zen.Server, error) {
 	z, err := zen.New(zen.Config{
 		MaxRequestBodySize: 0,
-		Logger:             config.Logger,
 		Flags:              nil,
 		TLS:                nil,
 		EnableH2C:          false,

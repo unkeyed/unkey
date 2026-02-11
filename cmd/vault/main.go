@@ -2,6 +2,7 @@ package vault
 
 import (
 	"context"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -45,6 +46,22 @@ var Cmd = &cli.Command{
 		cli.String("s3-access-key-secret", "S3 secret access key for general vault",
 			cli.Required(),
 			cli.EnvVar("UNKEY_S3_ACCESS_KEY_SECRET")),
+
+		// Observability
+		cli.Bool("otel-enabled", "Enable OpenTelemetry tracing and logging",
+			cli.Default(false),
+			cli.EnvVar("UNKEY_OTEL_ENABLED")),
+		cli.Float("otel-trace-sampling-rate", "Sampling rate for traces (0.0 to 1.0)",
+			cli.Default(0.01),
+			cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
+		cli.String("region", "Cloud region identifier",
+			cli.EnvVar("UNKEY_REGION")),
+
+		// Logging Sampler Configuration
+		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
+			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SAMPLE_RATE")),
+		cli.Duration("log-slow-threshold", "Duration threshold for slow event sampling. Default: 1s",
+			cli.Default(time.Second), cli.EnvVar("UNKEY_LOG_SLOW_THRESHOLD")),
 	},
 	Action: action,
 }
@@ -61,6 +78,15 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		S3AccessKeySecret: cmd.RequireString("s3-access-key-secret"),
 		MasterKeys:        cmd.RequireStringSlice("master-keys"),
 		BearerToken:       cmd.RequireString("bearer-token"),
+
+		// Observability
+		OtelEnabled:           cmd.Bool("otel-enabled"),
+		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
+		Region:                cmd.String("region"),
+
+		// Logging sampler configuration
+		LogSampleRate:    cmd.Float("log-sample-rate"),
+		LogSlowThreshold: cmd.Duration("log-slow-threshold"),
 	}
 
 	err := config.Validate()

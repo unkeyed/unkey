@@ -9,7 +9,8 @@ INSERT INTO `workspaces` (
     beta_features,
     features,
     enabled,
-    delete_protection
+    delete_protection,
+    k8s_namespace
 )
 VALUES (
     sqlc.arg(id),
@@ -21,5 +22,6 @@ VALUES (
     '{}',
     '{}',
     true,
-    true
+    true,
+    sqlc.arg(k8s_namespace)
 );

@@ -24,10 +24,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
@@ -127,7 +127,6 @@ func New(t *testing.T) *Harness {
 
 	// Connect to MySQL
 	database, err := db.New(db.Config{
-		Logger:      logging.NewNoop(),
 		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
 	})
@@ -137,8 +136,7 @@ func New(t *testing.T) *Harness {
 	// Connect to ClickHouse
 	chDSN := chCfg.DSN
 	chClient, err := clickhouse.New(clickhouse.Config{
-		URL:    chDSN,
-		Logger: logging.NewNoop(),
+		URL: chDSN,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, chClient.Close()) })
@@ -157,7 +155,6 @@ func New(t *testing.T) *Harness {
 	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
 		DB:              database,
 		Clickhouse:      chClient,
-		Logger:          logging.NewNoop(),
 		Heartbeat:       healthcheck.NewNoop(),
 		SlackWebhookURL: "",
 	})
@@ -167,22 +164,35 @@ func New(t *testing.T) *Harness {
 		DB:         database,
 		Vault:      testVault.Client,
 		Clickhouse: chClient,
-		Logger:     logging.NewNoop(),
+	})
+
+	deploySvc := deploy.New(deploy.Config{
+		DB:                              database,
+		Clickhouse:                      chClient,
+		DefaultDomain:                   "test.example.com",
+		Vault:                           testVault.Client,
+		SentinelImage:                   "test-sentinel:latest",
+		AvailableRegions:                []string{"us-east-1"},
+		GitHub:                          nil,
+		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: ""},
+		RegistryConfig:                  deploy.RegistryConfig{URL: "", Username: "", Password: ""},
+		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+		AllowUnauthenticatedDeployments: false,
 	})
 
 	keyRefillSvc, err := keyrefill.New(keyrefill.Config{
 		DB:        database,
-		Logger:    logging.NewNoop(),
 		Heartbeat: healthcheck.NewNoop(),
 	})
 	require.NoError(t, err)
 
 	// Set up Restate server with all services
 	// Use the proto-generated wrappers (same as run.go) to get correct service names
-	restateSrv := restateServer.NewRestate().WithLogger(logging.Handler(), false)
+	restateSrv := restateServer.NewRestate()
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
 	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
+	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploySvc))
 
 	restateHandler, err := restateSrv.Handler()
 	require.NoError(t, err)

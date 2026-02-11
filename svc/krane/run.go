@@ -2,6 +2,7 @@ package krane
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -11,10 +12,11 @@ import (
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
-	"github.com/unkeyed/unkey/pkg/shutdown"
+	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
@@ -54,18 +56,40 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	shutdowns := shutdown.New()
+	logger.SetSampler(logger.TailSampler{
+		SlowThreshold: cfg.LogSlowThreshold,
+		SampleRate:    cfg.LogSampleRate,
+	})
 
-	logger := logging.New()
-	if cfg.InstanceID != "" {
-		logger = logger.With(slog.String("instanceID", cfg.InstanceID))
+	var shutdownGrafana func(context.Context) error
+	if cfg.OtelEnabled {
+		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
+			Application:     "krane",
+			Version:         pkgversion.Version,
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.OtelTraceSamplingRate,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to init grafana: %w", err)
+		}
 	}
-	if cfg.Region != "" {
-		logger = logger.With(slog.String("region", cfg.Region))
-	}
-	if pkgversion.Version != "" {
-		logger = logger.With(slog.String("version", pkgversion.Version))
-	}
+
+	// Add base attributes to global logger
+	logger.AddBaseAttrs(slog.GroupAttrs("instance",
+		slog.String("id", cfg.InstanceID),
+		slog.String("region", cfg.Region),
+		slog.String("version", pkgversion.Version),
+	))
+
+	r := runner.New()
+	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
+
+	defer r.Recover()
+
+	r.DeferCtx(shutdownGrafana)
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.ControlPlaneURL,
@@ -92,39 +116,36 @@ func Run(ctx context.Context, cfg Config) error {
 	ciliumCtrl := cilium.New(cilium.Config{
 		ClientSet:     clientset,
 		DynamicClient: dynamicClient,
-		Logger:        logger,
 		Cluster:       cluster,
 		Region:        cfg.Region,
 	})
 	if err := ciliumCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start cilium controller: %w", err)
 	}
-	shutdowns.Register(ciliumCtrl.Stop)
+	r.Defer(ciliumCtrl.Stop)
 
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
 		ClientSet:     clientset,
 		DynamicClient: dynamicClient,
-		Logger:        logger,
 		Cluster:       cluster,
 		Region:        cfg.Region,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
 	}
-	shutdowns.Register(deploymentCtrl.Stop)
+	r.Defer(deploymentCtrl.Stop)
 
 	// Start the sentinel controller (independent control loop)
 	sentinelCtrl := sentinel.New(sentinel.Config{
 		ClientSet: clientset,
-		Logger:    logger,
 		Cluster:   cluster,
 		Region:    cfg.Region,
 	})
 	if err := sentinelCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)
 	}
-	shutdowns.Register(sentinelCtrl.Stop)
+	r.Defer(sentinelCtrl.Stop)
 
 	// Create vault client for secrets decryption
 	var vaultClient vaultv1connect.VaultServiceClient
@@ -141,11 +162,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create the connect handler
 	mux := http.NewServeMux()
-
-	// Health check endpoint for load balancers and orchestrators
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r.RegisterHealth(mux)
 
 	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
 		Clientset: clientset,
@@ -154,7 +171,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register secrets service if vault is configured
 	if vaultClient != nil {
 		secretsSvc := secrets.New(secrets.Config{
-			Logger:         logger,
 			Vault:          vaultClient,
 			TokenValidator: tokenValidator,
 		})
@@ -173,44 +189,46 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Register server shutdown
-	shutdowns.RegisterCtx(server.Shutdown)
+	r.DeferCtx(server.Shutdown)
 
 	// Start server
-	go func() {
+	r.Go(func(ctx context.Context) error {
 		logger.Info("Starting ctrl server", "addr", addr, "tls")
 
 		err := server.ListenAndServe()
 
 		if err != nil && err != http.ErrServerClosed {
-			logger.Error("Server failed", "error", err)
+			return fmt.Errorf("server failed: %w", err)
 		}
-	}()
+		return nil
+	})
 
 	if cfg.PrometheusPort > 0 {
 
-		prom, err := prometheus.New(prometheus.Config{
-			Logger: logger,
-		})
+		prom, err := prometheus.New()
 		if err != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", err)
 		}
 
-		shutdowns.RegisterCtx(prom.Shutdown)
 		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 		if err != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, err)
 		}
-		go func() {
+
+		r.DeferCtx(prom.Shutdown)
+		r.Go(func(ctx context.Context) error {
 			logger.Info("prometheus started", "port", cfg.PrometheusPort)
-			if err := prom.Serve(ctx, ln); err != nil {
-				logger.Error("failed to start prometheus server", "error", err)
+			if serveErr := prom.Serve(ctx, ln); serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("failed to start prometheus server: %w", serveErr)
 			}
-		}()
+			return nil
+		})
 
 	}
+
 	// Wait for signal and handle shutdown
 	logger.Info("Krane server started successfully")
-	if err := shutdowns.WaitForSignal(ctx); err != nil {
+	if err := r.Wait(ctx); err != nil {
 		logger.Error("Shutdown failed", "error", err)
 		return err
 	}

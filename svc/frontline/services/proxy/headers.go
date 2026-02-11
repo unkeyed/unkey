@@ -4,10 +4,9 @@ package proxy
 const (
 	// Headers set on BOTH response (to client) AND request (to downstream service)
 	// These identify which frontline processed the request
-	HeaderFrontlineID   = "X-Unkey-Frontline-Id"      // ID of the frontline instance
-	HeaderRegion        = "X-Unkey-Region"            // Region of the frontline instance
-	HeaderRequestID     = "X-Unkey-Request-Id"        // Request ID for tracing
-	HeaderFrontlineTime = "X-Unkey-Frontline-Time-Ms" // Time spent in this frontline (ms)
+	HeaderFrontlineID = "X-Unkey-Frontline-Id" // ID of the frontline instance
+	HeaderRegion      = "X-Unkey-Region"       // Region of the frontline instance
+	HeaderRequestID   = "X-Unkey-Request-Id"   // Request ID for tracing
 
 	// Headers set ONLY on requests to downstream services (sentinel/remote frontline)
 	// These provide additional context about the forwarding chain

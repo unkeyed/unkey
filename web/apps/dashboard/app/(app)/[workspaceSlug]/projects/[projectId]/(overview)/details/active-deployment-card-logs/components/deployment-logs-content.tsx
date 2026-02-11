@@ -22,7 +22,6 @@ type Props = {
 
 export function DeploymentLogsContent({ projectId, deploymentId }: Props) {
   const { isExpanded, logType } = useDeploymentLogsContext();
-
   const {
     logFilter,
     searchTerm,
@@ -35,6 +34,7 @@ export function DeploymentLogsContent({ projectId, deploymentId }: Props) {
     scrollRef,
   } = useDeploymentLogs({
     deploymentId,
+    projectId,
   });
 
   if (logType === "runtime") {

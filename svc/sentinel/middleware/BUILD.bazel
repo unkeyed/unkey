@@ -15,7 +15,7 @@ go_library(
         "//pkg/clock",
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/zen",
         "//svc/sentinel/routes/proxy",

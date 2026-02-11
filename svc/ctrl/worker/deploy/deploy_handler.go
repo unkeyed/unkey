@@ -12,6 +12,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -62,7 +63,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, restate.TerminalError(err)
 	}
 
-	w.logger.Info("deployment workflow started", "req", fmt.Sprintf("%+v", req))
+	logger.Info("deployment workflow started", "req", fmt.Sprintf("%+v", req))
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(runCtx, w.db.RW(), req.GetDeploymentId())
@@ -77,7 +78,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 
 		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); err != nil {
-			w.logger.Error("deployment failed but we can not set the status", "error", err.Error())
+			logger.Error("deployment failed but we can not set the status", "error", err.Error())
 		}
 	}()
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
@@ -176,23 +177,53 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-	topologies := make([]db.InsertDeploymentTopologyParams, len(w.availableRegions))
+	// Read region config from runtime settings to determine per-region replica counts.
+	// If regionConfig is empty, deploy to all available regions with 1 replica each (default).
+	// If regionConfig has entries, only deploy to those regions with the specified counts.
+	regionConfig := map[string]int{}
+	runtimeSettings, runtimeSettingsErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.EnvironmentRuntimeSetting, error) {
+		return db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(runCtx, w.db.RO(), deployment.EnvironmentID)
+	}, restate.WithName("find runtime settings for region config"))
+	if runtimeSettingsErr != nil {
+		return nil, fmt.Errorf("failed to find runtime settings for environment %s: %w", deployment.EnvironmentID, runtimeSettingsErr)
+	}
+	if len(runtimeSettings.RegionConfig) > 0 {
+		for region, count := range runtimeSettings.RegionConfig {
+			regionConfig[region] = count
+		}
+	}
 
-	for i, region := range w.availableRegions {
+	var regions []string
+	if len(regionConfig) == 0 {
+		regions = w.availableRegions
+	} else {
+		for r := range regionConfig {
+			regions = append(regions, r)
+		}
+	}
+
+	topologies := make([]db.InsertDeploymentTopologyParams, 0, len(regions))
+
+	for _, region := range regions {
 		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, region).NextVersion().Request(&hydrav1.NextVersionRequest{})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get next version: %w", err)
 		}
 
-		topologies[i] = db.InsertDeploymentTopologyParams{
+		replicas := int32(1)
+		if count, ok := regionConfig[region]; ok {
+			replicas = int32(count)
+		}
+
+		topologies = append(topologies, db.InsertDeploymentTopologyParams{
 			WorkspaceID:     workspace.ID,
 			DeploymentID:    deployment.ID,
 			Region:          region,
-			DesiredReplicas: 1,
+			DesiredReplicas: replicas,
 			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarting,
 			Version:         versionResp.GetVersion(),
 			CreatedAt:       time.Now().UnixMilli(),
-		}
+		})
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -269,10 +300,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 	}
 
-	if err := w.ensureCiliumNetworkPolicy(ctx, workspace, project, environment, topologies); err != nil {
+	if err := w.ensureCiliumNetworkPolicy(ctx, workspace, project, environment, topologies, deployment); err != nil {
 		return nil, err
 	}
-	w.logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
+	logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
 
 	readygates := make([]restate.Future, len(topologies))
 	for i, region := range topologies {
@@ -314,7 +345,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
-	w.logger.Info("deployments ready", "deployment_id", deployment.ID)
+	logger.Info("deployments ready", "deployment_id", deployment.ID)
 
 	allDomains := buildDomains(
 		workspace.Slug,
@@ -409,7 +440,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
-	w.logger.Info("deployment workflow completed",
+	logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
 		"domains", len(allDomains),

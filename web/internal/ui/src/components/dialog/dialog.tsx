@@ -38,10 +38,19 @@ const DialogContent = React.forwardRef<
     showCloseWarning?: boolean;
     onAttemptClose?: () => void;
     xButtonRef?: React.RefObject<HTMLButtonElement>;
+    preventOutsideClose?: boolean;
   }
 >(
   (
-    { className, children, showCloseWarning = false, onAttemptClose, xButtonRef, ...props },
+    {
+      className,
+      children,
+      showCloseWarning = false,
+      onAttemptClose,
+      xButtonRef,
+      preventOutsideClose = false,
+      ...props
+    },
     ref,
   ) => {
     const handleCloseAttempt = React.useCallback(() => {
@@ -77,6 +86,11 @@ const DialogContent = React.forwardRef<
             }
           }}
           onPointerDownOutside={(e) => {
+            // Prevent closing when preventOutsideClose is true (e.g., when a sheet is open)
+            if (preventOutsideClose) {
+              e.preventDefault();
+              return;
+            }
             // Prevent closing only if warning is active and click is outside content
             if (showCloseWarning) {
               // Basic check: If the target is the overlay, it's handled there.
@@ -86,6 +100,12 @@ const DialogContent = React.forwardRef<
                 e.preventDefault();
                 handleCloseAttempt();
               }
+            }
+          }}
+          onInteractOutside={(e) => {
+            // Also prevent interact outside events when preventOutsideClose is true
+            if (preventOutsideClose) {
+              e.preventDefault();
             }
           }}
           {...props}

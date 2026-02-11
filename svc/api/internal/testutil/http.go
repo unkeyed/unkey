@@ -23,7 +23,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -58,7 +57,6 @@ type Harness struct {
 	// test data that the seeder methods don't cover.
 	DB                         db.Database
 	Caches                     caches.Caches
-	Logger                     logging.Logger
 	Keys                       keys.KeyService
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
@@ -75,7 +73,6 @@ type Harness struct {
 // and containers are cleaned up when the test completes.
 func NewHarness(t *testing.T) *Harness {
 	clk := clock.NewTestClock()
-	logger := logging.New()
 
 	// Start all services in parallel first
 	containers.StartAllServices(t)
@@ -86,7 +83,6 @@ func NewHarness(t *testing.T) *Harness {
 	redisUrl := dockertest.Redis(t)
 
 	db, err := db.New(db.Config{
-		Logger:      logger,
 		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
 	})
@@ -95,14 +91,12 @@ func NewHarness(t *testing.T) *Harness {
 	caches, err := caches.New(caches.Config{
 		CacheInvalidationTopic: nil,
 		NodeID:                 "",
-		Logger:                 logger,
 		Clock:                  clk,
 	})
 	require.NoError(t, err)
 
 	srv, err := zen.New(zen.Config{
 		MaxRequestBodySize: 0,
-		Logger:             logger,
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
@@ -118,8 +112,7 @@ func NewHarness(t *testing.T) *Harness {
 
 	// Create real ClickHouse client
 	ch, err := clickhouse.New(clickhouse.Config{
-		URL:    chDSN,
-		Logger: logger,
+		URL: chDSN,
 	})
 	require.NoError(t, err)
 
@@ -128,19 +121,16 @@ func NewHarness(t *testing.T) *Harness {
 
 	ctr, err := counter.NewRedis(counter.RedisConfig{
 		RedisURL: redisUrl,
-		Logger:   logger,
 	})
 	require.NoError(t, err)
 
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
-		Logger:  logger,
 		Clock:   clk,
 		Counter: ctr,
 	})
 	require.NoError(t, err)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		Logger:  logger,
 		DB:      db,
 		Counter: ctr,
 		TTL:     60 * time.Second,
@@ -148,7 +138,6 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		Logger:       logger,
 		DB:           db,
 		KeyCache:     caches.VerificationKeyByHash,
 		RateLimiter:  ratelimitService,
@@ -166,14 +155,12 @@ func NewHarness(t *testing.T) *Harness {
 		S3Bucket:          "test",
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.AccessKeySecret,
-		Logger:            logger,
 	})
 	require.NoError(t, err)
 
 	_, masterKey, err := masterKeys.GenerateMasterKey()
 	require.NoError(t, err)
 	v, err := vault.New(vault.Config{
-		Logger:     logger,
 		Storage:    vaultStorage,
 		MasterKeys: []string{masterKey},
 	})
@@ -183,7 +170,6 @@ func NewHarness(t *testing.T) *Harness {
 	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 		SettingsCache: caches.ClickhouseSetting,
 		Database:      db,
-		Logger:        logger,
 		Clock:         clk,
 		BaseURL:       chDSN,
 		Vault:         v,
@@ -196,14 +182,12 @@ func NewHarness(t *testing.T) *Harness {
 	seeder.Seed(context.Background())
 
 	audit, err := auditlogs.New(auditlogs.Config{
-		DB:     db,
-		Logger: logger,
+		DB: db,
 	})
 	require.NoError(t, err)
 
 	h := Harness{
 		t:                          t,
-		Logger:                     logger,
 		srv:                        srv,
 		validator:                  validator,
 		Keys:                       keyService,
@@ -219,8 +203,8 @@ func NewHarness(t *testing.T) *Harness {
 		Caches:                     caches,
 		middleware: []zen.Middleware{
 			zen.WithObservability(),
-			zen.WithLogging(logger),
-			middleware.WithErrorHandling(logger),
+			zen.WithLogging(),
+			middleware.WithErrorHandling(),
 			zen.WithValidation(validator),
 		},
 	}
@@ -367,7 +351,6 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Name:             config.ProjectName,
 		ID:               uid.New(uid.ProjectPrefix),
 		Slug:             config.ProjectSlug,
-		GitRepositoryURL: "",
 		DefaultBranch:    "",
 		DeleteProtection: false,
 	})

@@ -9,12 +9,16 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet.
@@ -33,7 +37,7 @@ import (
 // isolation (RuntimeClass "gvisor") since they execute untrusted user code, and are
 // scheduled on Karpenter-managed untrusted nodes with zone-spread constraints.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
-	c.logger.Info("applying deployment",
+	logger.Info("applying deployment",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
 		"deployment_id", req.GetDeploymentId(),
@@ -69,6 +73,54 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		ComponentDeployment().
 		Inject()
 
+	container := corev1.Container{
+		Image:           req.GetImage(),
+		Name:            "deployment",
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Command:         req.GetCommand(),
+		Env:             buildDeploymentEnv(req),
+		Ports: []corev1.ContainerPort{{
+			ContainerPort: req.GetPort(),
+			Name:          "deployment",
+		}},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", max(req.GetCpuMillicores()/resourceRequestFraction, 1))),
+				corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", max(req.GetMemoryMib()/resourceRequestFraction, 1))),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", req.GetCpuMillicores())),
+				corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", req.GetMemoryMib())),
+			},
+		},
+	}
+
+	// Configure healthcheck probes if provided
+	if hc := unmarshalHealthcheck(req.GetHealthcheck()); hc != nil {
+		handler := buildProbeHandler(hc, req.GetPort())
+		probe := &corev1.Probe{
+			ProbeHandler:        handler,
+			InitialDelaySeconds: int32(hc.InitialDelaySeconds),
+			PeriodSeconds:       int32(hc.IntervalSeconds),
+			TimeoutSeconds:      int32(hc.TimeoutSeconds),
+			FailureThreshold:    int32(hc.FailureThreshold),
+		}
+		container.LivenessProbe = probe
+		container.ReadinessProbe = probe
+	}
+
+	// For non-SIGTERM shutdown signals, use a preStop lifecycle hook
+	// since K8s always sends SIGTERM natively
+	if req.GetShutdownSignal() != "" && req.GetShutdownSignal() != "SIGTERM" {
+		container.Lifecycle = &corev1.Lifecycle{
+			PreStop: &corev1.LifecycleHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"kill", fmt.Sprintf("-%s", req.GetShutdownSignal()), "1"},
+				},
+			},
+		}
+	}
+
 	desired := &appsv1.ReplicaSet{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -96,18 +148,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 					Tolerations:               []corev1.Toleration{untrustedToleration},
 					TopologySpreadConstraints: deploymentTopologySpread(req.GetDeploymentId()),
 					Affinity:                  deploymentAffinity(req.GetEnvironmentId()),
-					Containers: []corev1.Container{{
-						Image:           req.GetImage(),
-						Name:            "deployment",
-						ImagePullPolicy: corev1.PullIfNotPresent,
-						Command:         req.GetCommand(),
-						Env:             buildDeploymentEnv(req),
-						Ports: []corev1.ContainerPort{{
-							ContainerPort: DeploymentPort,
-							Name:          "deployment",
-						}},
-						Resources: corev1.ResourceRequirements{},
-					}},
+					Containers:                []corev1.Container{container},
 				},
 			},
 		},
@@ -134,7 +175,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	err = c.reportDeploymentStatus(ctx, status)
 	if err != nil {
-		c.logger.Error("failed to report deployment status", "deployment_id", req.GetDeploymentId(), "error", err)
+		logger.Error("failed to report deployment status", "deployment_id", req.GetDeploymentId(), "error", err)
 		return err
 	}
 
@@ -146,7 +187,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 // and optionally the base64-encoded encrypted environment variables if present.
 func buildDeploymentEnv(req *ctrlv1.ApplyDeployment) []corev1.EnvVar {
 	env := []corev1.EnvVar{
-		{Name: "PORT", Value: strconv.Itoa(DeploymentPort)},
+		{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
 		{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
 		{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
 		{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
@@ -161,4 +202,40 @@ func buildDeploymentEnv(req *ctrlv1.ApplyDeployment) []corev1.EnvVar {
 	}
 
 	return env
+}
+
+// buildProbeHandler creates the K8s probe handler based on the healthcheck method.
+// GET uses a native HTTPGetAction. POST uses an exec probe with wget since K8s
+// doesn't support HTTP POST probes natively.
+func buildProbeHandler(hc *dbtype.Healthcheck, port int32) corev1.ProbeHandler {
+	if hc.Method == "POST" {
+		return corev1.ProbeHandler{
+			Exec: &corev1.ExecAction{
+				Command: []string{
+					"wget", "--spider", "--post-data=", "-q",
+					fmt.Sprintf("http://localhost:%d%s", port, hc.Path),
+				},
+			},
+		}
+	}
+	return corev1.ProbeHandler{
+		HTTPGet: &corev1.HTTPGetAction{
+			Path: hc.Path,
+			Port: intstr.FromInt32(port),
+		},
+	}
+}
+
+// unmarshalHealthcheck deserializes the JSON-encoded healthcheck bytes from the proto.
+// Returns nil if the input is nil or empty.
+func unmarshalHealthcheck(data []byte) *dbtype.Healthcheck {
+	if len(data) == 0 {
+		return nil
+	}
+	var hc dbtype.Healthcheck
+	if err := json.Unmarshal(data, &hc); err != nil {
+		logger.Error("failed to unmarshal healthcheck", "error", err)
+		return nil
+	}
+	return &hc
 }

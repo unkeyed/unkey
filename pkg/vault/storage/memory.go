@@ -5,30 +5,18 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // memory is an in-memory storage implementation for testing purposes.
 type memory struct {
-	config MemoryConfig
-	mu     sync.RWMutex
-	data   map[string][]byte
-	logger logging.Logger
+	mu   sync.RWMutex
+	data map[string][]byte
 }
 
-type MemoryConfig struct {
-	Logger logging.Logger
-}
-
-func NewMemory(config MemoryConfig) (Storage, error) {
-	logger := config.Logger.With("service", "storage")
-
+func NewMemory() (Storage, error) {
 	return &memory{
-		config: config,
-		logger: logger,
-		data:   make(map[string][]byte),
-		mu:     sync.RWMutex{},
+		data: make(map[string][]byte),
+		mu:   sync.RWMutex{},
 	}, nil
 }
 

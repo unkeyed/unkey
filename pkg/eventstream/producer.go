@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -14,7 +14,6 @@ type producer[T proto.Message] struct {
 	writer     *kafka.Writer
 	instanceID string
 	topic      string
-	logger     logging.Logger
 }
 
 // NewProducer creates a new producer for publishing events to this topic.
@@ -61,7 +60,6 @@ func (t *Topic[T]) NewProducer() Producer[T] {
 		},
 		instanceID: t.instanceID,
 		topic:      t.topic,
-		logger:     t.logger,
 	}
 
 	// Track producer for cleanup
@@ -134,7 +132,7 @@ func (p *producer[T]) Produce(ctx context.Context, events ...T) error {
 		// Serialize event to protobuf
 		data, err := proto.Marshal(event)
 		if err != nil {
-			p.logger.Error("Failed to serialize event", "error", err.Error(), "topic", p.topic, "event_index", i)
+			logger.Error("Failed to serialize event", "error", err.Error(), "topic", p.topic, "event_index", i)
 			return err
 		}
 
@@ -153,7 +151,7 @@ func (p *producer[T]) Produce(ctx context.Context, events ...T) error {
 	// Publish all messages in a single batch
 	err := p.writer.WriteMessages(ctx, messages...)
 	if err != nil {
-		p.logger.Error("Failed to publish events to Kafka", "error", err.Error(), "topic", p.topic, "event_count", len(events))
+		logger.Error("Failed to publish events to Kafka", "error", err.Error(), "topic", p.topic, "event_count", len(events))
 		return err
 	}
 

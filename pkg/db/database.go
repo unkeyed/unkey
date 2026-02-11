@@ -10,7 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
@@ -24,20 +24,16 @@ type Config struct {
 	// The readonly replica will be used for most read queries.
 	// If omitted, the primary is used.
 	ReadOnlyDSN string
-
-	// Logger for database-related operations
-	Logger logging.Logger
 }
 
 // database implements the Database interface, providing access to database replicas
 // and handling connection lifecycle.
 type database struct {
-	writeReplica *Replica       // Primary database connection used for write operations
-	readReplica  *Replica       // Connection used for read operations (may be same as primary)
-	logger       logging.Logger // Logger for database operations
+	writeReplica *Replica // Primary database connection used for write operations
+	readReplica  *Replica // Connection used for read operations (may be same as primary)
 }
 
-func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
+func open(dsn string) (db *sql.DB, err error) {
 	if !strings.Contains(dsn, "parseTime=true") {
 		return nil, fault.New("DSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
 	}
@@ -86,14 +82,13 @@ func open(dsn string, logger logging.Logger) (db *sql.DB, err error) {
 // Returns an error if connections cannot be established or if DSNs are misconfigured.
 func New(config Config) (*database, error) {
 	err := assert.All(
-		assert.NotNil(config.Logger),
 		assert.NotEmpty(config.PrimaryDSN),
 	)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("invalid configuration"))
 	}
 
-	write, err := open(config.PrimaryDSN, config.Logger)
+	write, err := open(config.PrimaryDSN)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot open primary replica"))
 	}
@@ -102,7 +97,6 @@ func New(config Config) (*database, error) {
 	writeReplica := &Replica{
 		db:        write,
 		mode:      "rw",
-		logger:    config.Logger,
 		debugLogs: false,
 	}
 
@@ -110,13 +104,12 @@ func New(config Config) (*database, error) {
 	readReplica := &Replica{
 		db:        write,
 		mode:      "rw",
-		logger:    config.Logger,
 		debugLogs: false,
 	}
 
 	// If a separate read-only DSN is provided, establish that connection
 	if config.ReadOnlyDSN != "" {
-		read, err := open(config.ReadOnlyDSN, config.Logger)
+		read, err := open(config.ReadOnlyDSN)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("cannot open read replica"))
 		}
@@ -124,18 +117,16 @@ func New(config Config) (*database, error) {
 		readReplica = &Replica{
 			db:        read,
 			mode:      "ro",
-			logger:    config.Logger,
 			debugLogs: false,
 		}
-		config.Logger.Info("database configured with separate read replica")
+		logger.Info("database configured with separate read replica")
 	} else {
-		config.Logger.Info("database configured without separate read replica, using primary for reads")
+		logger.Info("database configured without separate read replica, using primary for reads")
 	}
 
 	return &database{
 		writeReplica: writeReplica,
 		readReplica:  readReplica,
-		logger:       config.Logger,
 	}, nil
 }
 

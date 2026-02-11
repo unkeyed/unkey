@@ -22,7 +22,7 @@ func TestError_CleanupErrorReturned(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := r.Run(ctx, WithTimeout(100*time.Millisecond))
+	err := r.Wait(ctx, WithTimeout(100*time.Millisecond))
 	require.ErrorIs(t, err, cleanupErr)
 }
 
@@ -42,7 +42,7 @@ func TestError_TaskAndCleanupErrorsJoined(t *testing.T) {
 		return cleanupErr
 	})
 
-	err := r.Run(context.Background(), WithTimeout(time.Second))
+	err := r.Wait(context.Background(), WithTimeout(time.Second))
 	require.ErrorIs(t, err, taskErr)
 	require.ErrorIs(t, err, cleanupErr)
 }
@@ -52,7 +52,6 @@ func TestError_TaskAndCleanupErrorsJoined(t *testing.T) {
 // is triggered by context cancellation or signals.
 func TestError_ContextCanceledIgnored(t *testing.T) {
 	r := New()
-
 	r.Go(func(ctx context.Context) error {
 		<-ctx.Done()
 		return ctx.Err()
@@ -62,7 +61,7 @@ func TestError_ContextCanceledIgnored(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- r.Run(ctx, WithTimeout(100*time.Millisecond))
+		done <- r.Wait(ctx, WithTimeout(100*time.Millisecond))
 	}()
 
 	time.Sleep(20 * time.Millisecond)
@@ -96,7 +95,7 @@ func TestError_FirstTaskErrorWins(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- r.Run(context.Background(), WithTimeout(time.Second))
+		done <- r.Wait(context.Background(), WithTimeout(time.Second))
 	}()
 
 	time.Sleep(20 * time.Millisecond)

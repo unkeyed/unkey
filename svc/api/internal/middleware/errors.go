@@ -6,14 +6,14 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // WithErrorHandling returns middleware that translates errors into appropriate
 // HTTP responses based on error URNs.
-func WithErrorHandling(logger logging.Logger) zen.Middleware {
+func WithErrorHandling() zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			err := next(ctx, s)

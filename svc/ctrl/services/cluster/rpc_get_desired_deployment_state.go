@@ -2,12 +2,14 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // GetDesiredDeploymentState returns the target state for a single deployment in the caller's
@@ -61,26 +63,39 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			buildID = &deployment.BuildID.String
 		}
 
+		apply := &ctrlv1.ApplyDeployment{
+			DeploymentId:                  deployment.ID,
+			K8SNamespace:                  deployment.K8sNamespace.String,
+			K8SName:                       deployment.K8sName,
+			WorkspaceId:                   deployment.WorkspaceID,
+			ProjectId:                     deployment.ProjectID,
+			EnvironmentId:                 deployment.EnvironmentID,
+			Replicas:                      deployment.DesiredReplicas,
+			Image:                         deployment.Image.String,
+			CpuMillicores:                 int64(deployment.CpuMillicores),
+			MemoryMib:                     int64(deployment.MemoryMib),
+			EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
+			BuildId:                       buildID,
+			Command:                       deployment.Command,
+			Port:                          deployment.Port,
+			ShutdownSignal:                string(deployment.ShutdownSignal),
+		}
+
+		if deployment.Healthcheck.Valid {
+			hcBytes, err := json.Marshal(deployment.Healthcheck.Healthcheck)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to marshal healthcheck: %w", err))
+			}
+			apply.Healthcheck = hcBytes
+		}
+
 		return connect.NewResponse(&ctrlv1.DeploymentState{
 			State: &ctrlv1.DeploymentState_Apply{
-				Apply: &ctrlv1.ApplyDeployment{
-					DeploymentId:                  deployment.ID,
-					K8SNamespace:                  deployment.K8sNamespace.String,
-					K8SName:                       deployment.K8sName,
-					WorkspaceId:                   deployment.WorkspaceID,
-					ProjectId:                     deployment.ProjectID,
-					EnvironmentId:                 deployment.EnvironmentID,
-					Replicas:                      deployment.DesiredReplicas,
-					Image:                         deployment.Image.String,
-					CpuMillicores:                 int64(deployment.CpuMillicores),
-					MemoryMib:                     int64(deployment.MemoryMib),
-					EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
-					BuildId:                       buildID,
-				},
+				Apply: apply,
 			},
 		}), nil
 	default:
-		s.logger.Error("unhandled Deployment desired state", "desiredState", deployment.DesiredState)
+		logger.Error("unhandled Deployment desired state", "desiredState", deployment.DesiredState)
 	}
 
 	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unhandled Deployment desired state: %s", deployment.DesiredState))

@@ -2,13 +2,11 @@ package circuitbreaker
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
-	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
@@ -21,8 +19,6 @@ type CB[Res any] struct {
 	// This is a pointer to the configuration of the circuit breaker because we
 	// need to modify the clock for testing
 	config *config
-
-	logger logging.Logger
 
 	// State of the circuit
 	state State
@@ -65,8 +61,6 @@ type config struct {
 
 	// Clock to use for timing, defaults to the system clock but can be overridden for testing
 	clock clock.Clock
-
-	logger logging.Logger
 }
 
 // WithMaxRequests sets the maximum number of requests allowed through during
@@ -120,13 +114,6 @@ func WithClock(clock clock.Clock) applyConfig {
 	}
 }
 
-// WithLogger sets the logger for circuit breaker debug output.
-func WithLogger(logger logging.Logger) applyConfig {
-	return func(c *config) {
-		c.logger = logger
-	}
-}
-
 // applyConfig is a functional option for configuring a circuit breaker.
 // Use the With* functions to create options.
 type applyConfig func(*config)
@@ -145,7 +132,6 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 		},
 		tripThreshold: 5,
 		clock:         clock.New(),
-		logger:        logging.NewNoop(),
 	}
 
 	for _, apply := range applyConfigs {
@@ -155,7 +141,6 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 	cb := &CB[Res]{
 		Mutex:                sync.Mutex{},
 		config:               cfg,
-		logger:               cfg.logger,
 		state:                Closed,
 		resetCountersAt:      cfg.clock.Now().Add(cfg.cyclicPeriod),
 		resetStateAt:         cfg.clock.Now().Add(cfg.timeout),
@@ -172,7 +157,6 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 var _ CircuitBreaker[any] = &CB[any]{
 	Mutex:                sync.Mutex{},
 	config:               nil,
-	logger:               nil,
 	state:                Closed,
 	resetCountersAt:      time.Time{},
 	resetStateAt:         time.Time{},
@@ -189,28 +173,20 @@ var _ CircuitBreaker[any] = &CB[any]{
 // recorded to update the circuit state. The zero value of Res is returned
 // when the circuit rejects the request.
 func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)) (res Res, err error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.Do", cb.config.name))
-	defer span.End()
-
 	err = cb.preflight(ctx)
 	if err != nil {
 		return res, err
 	}
 
-	ctx, fnSpan := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.fn", cb.config.name))
 	res, err = fn(ctx)
-	fnSpan.End()
 
 	cb.postflight(ctx, err)
 
 	return res, err
-
 }
 
 // preflight checks if the circuit is ready to accept a request
-func (cb *CB[Res]) preflight(ctx context.Context) error {
-	_, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.preflight", cb.config.name)) // nolint:ineffassign // Context is used by tracing
-	defer span.End()
+func (cb *CB[Res]) preflight(_ context.Context) error {
 	cb.Lock()
 	defer cb.Unlock()
 
@@ -235,7 +211,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 		return ErrTripped
 	}
 
-	cb.logger.Debug("circuit breaker state", "state", string(cb.state), "requests", cb.requests, "maxRequests", cb.config.maxRequests)
+	logger.Debug("circuit breaker state", "state", string(cb.state), "requests", cb.requests, "maxRequests", cb.config.maxRequests)
 	if cb.state == HalfOpen && cb.requests >= cb.config.maxRequests {
 		return ErrTooManyRequests
 	}
@@ -243,9 +219,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 }
 
 // postflight updates the circuit breaker state based on the result of the request
-func (cb *CB[Res]) postflight(ctx context.Context, err error) {
-	_, span := tracing.Start(ctx, fmt.Sprintf("circuitbreaker.%s.postflight", cb.config.name)) // nolint:ineffassign // Context is used by tracing
-	defer span.End()
+func (cb *CB[Res]) postflight(_ context.Context, err error) {
 	cb.Lock()
 	defer cb.Unlock()
 	cb.requests++

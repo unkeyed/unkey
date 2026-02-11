@@ -96,7 +96,7 @@ export const Navigation = ({
                 </Link>
               </Button>
               <Button asChild variant="primary">
-                <Link href="mailto:support@unkey.dev">Contact us</Link>
+                <Link href="mailto:support@unkey.com">Contact us</Link>
               </Button>
             </>
           )}

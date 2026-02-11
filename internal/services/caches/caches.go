@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/eventstream"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -60,9 +59,6 @@ func (c *Caches) Close() error {
 
 // Config defines the configuration options for initializing caches.
 type Config struct {
-	// Logger is used for logging cache operations and errors.
-	Logger logging.Logger
-
 	// Clock provides time functionality, allowing easier testing.
 	Clock clock.Clock
 
@@ -119,7 +115,6 @@ func createCache[K comparable, V any](
 		LocalCache:  localCache,
 		Topic:       config.CacheInvalidationTopic,
 		Dispatcher:  dispatcher,
-		Logger:      config.Logger,
 		NodeID:      config.NodeID,
 		KeyToString: keyToString,
 		StringToKey: stringToKey,
@@ -149,11 +144,9 @@ func createCache[K comparable, V any](
 //
 // Example:
 //
-//	logger := logging.NewLogger()
 //	clock := clock.RealClock{}
 //
 //	caches, err := caches.New(caches.Config{
-//	    Logger: logger,
 //	    Clock: clock,
 //	    CacheInvalidationTopic: topic, // optional for distributed invalidation
 //	})
@@ -182,7 +175,7 @@ func New(config Config) (Caches, error) {
 	var dispatcher *clustering.InvalidationDispatcher
 	if config.CacheInvalidationTopic != nil {
 		var err error
-		dispatcher, err = clustering.NewInvalidationDispatcher(config.CacheInvalidationTopic, config.Logger)
+		dispatcher, err = clustering.NewInvalidationDispatcher(config.CacheInvalidationTopic)
 		if err != nil {
 			return Caches{}, err
 		}
@@ -195,7 +188,6 @@ func New(config Config) (Caches, error) {
 		cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
 			Fresh:    time.Minute,
 			Stale:    24 * time.Hour,
-			Logger:   config.Logger,
 			MaxSize:  1_000_000,
 			Resource: "ratelimit_namespace",
 			Clock:    config.Clock,
@@ -214,7 +206,6 @@ func New(config Config) (Caches, error) {
 		cache.Config[string, db.CachedKeyData]{
 			Fresh:    10 * time.Second,
 			Stale:    10 * time.Minute,
-			Logger:   config.Logger,
 			MaxSize:  1_000_000,
 			Resource: "verification_key_by_hash",
 			Clock:    config.Clock,
@@ -233,7 +224,6 @@ func New(config Config) (Caches, error) {
 		cache.Config[cache.ScopedKey, db.FindLiveApiByIDRow]{
 			Fresh:    10 * time.Second,
 			Stale:    24 * time.Hour,
-			Logger:   config.Logger,
 			MaxSize:  1_000_000,
 			Resource: "live_api_by_id",
 			Clock:    config.Clock,
@@ -251,7 +241,6 @@ func New(config Config) (Caches, error) {
 		cache.Config[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]{
 			Fresh:    time.Minute,
 			Stale:    24 * time.Hour,
-			Logger:   config.Logger,
 			MaxSize:  1_000_000,
 			Resource: "clickhouse_setting",
 			Clock:    config.Clock,
@@ -270,7 +259,6 @@ func New(config Config) (Caches, error) {
 		cache.Config[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]{
 			Fresh:    10 * time.Minute,
 			Stale:    24 * time.Hour,
-			Logger:   config.Logger,
 			MaxSize:  1_000_000,
 			Resource: "key_auth_to_api_row",
 			Clock:    config.Clock,
@@ -289,7 +277,6 @@ func New(config Config) (Caches, error) {
 		cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
 			Fresh:    10 * time.Minute,
 			Stale:    24 * time.Hour,
-			Logger:   config.Logger,
 			MaxSize:  1_000_000,
 			Resource: "api_to_key_auth_row",
 			Clock:    config.Clock,

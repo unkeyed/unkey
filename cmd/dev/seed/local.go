@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -33,19 +33,15 @@ var localCmd = &cli.Command{
 }
 
 func seedLocal(ctx context.Context, cmd *cli.Command) error {
-	logger := logging.New()
-
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
-		Logger:      logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
 
 	keyService, err := keys.New(keys.Config{
-		Logger:       logger,
 		DB:           database,
 		RateLimiter:  nil,
 		RBAC:         nil,
@@ -69,7 +65,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	projectID := uid.New(uid.ProjectPrefix)
 	projectSlug := fmt.Sprintf("%s-api", slug)
 	projectName := fmt.Sprintf("%s API", titleCase)
-	envID := fmt.Sprintf("env_%s", slug)
 	rootWorkspaceID := "ws_unkey"
 	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
 	rootApiID := "api_unkey"
@@ -91,6 +86,9 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		"name", projectName,
 		"slug", projectSlug,
 	)
+
+	previewEnvID := uid.New(uid.EnvironmentPrefix)
+	productionEnvID := uid.New(uid.EnvironmentPrefix)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -122,7 +120,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			WorkspaceID:      workspaceID,
 			Name:             projectName,
 			Slug:             projectSlug,
-			GitRepositoryUrl: sql.NullString{Valid: false, String: ""},
 			DefaultBranch:    sql.NullString{Valid: false, String: ""},
 			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
 			CreatedAt:        time.Now().UnixMilli(),
@@ -134,7 +131,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
 			{
-				ID:             uid.New(uid.EnvironmentPrefix),
+				ID:             previewEnvID,
 				WorkspaceID:    workspaceID,
 				ProjectID:      projectID,
 				Slug:           "preview",
@@ -143,7 +140,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				UpdatedAt:      sql.NullInt64{Valid: false, Int64: 0},
 				SentinelConfig: []byte{},
 			}, {
-				ID:             uid.New(uid.EnvironmentPrefix),
+				ID:             productionEnvID,
 				WorkspaceID:    workspaceID,
 				ProjectID:      projectID,
 				Slug:           "production",
@@ -153,6 +150,67 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				SentinelConfig: []byte{},
 			},
 		})
+		if err != nil {
+			return fmt.Errorf("failed to create environments: %w", err)
+		}
+
+		// Create default runtime settings for each environment
+		err = db.BulkQuery.UpsertEnvironmentRuntimeSettings(ctx, tx, []db.UpsertEnvironmentRuntimeSettingsParams{
+			{
+				WorkspaceID:   workspaceID,
+				EnvironmentID: previewEnvID,
+				Port:          8080,
+				CpuMillicores: 256,
+				MemoryMib:     256,
+				Command:       dbtype.StringSlice{},
+				Healthcheck:   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+				RegionConfig:  dbtype.RegionConfig{},
+
+				ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
+				CreatedAt:      now,
+				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
+			},
+			{
+				WorkspaceID:   workspaceID,
+				EnvironmentID: productionEnvID,
+				Port:          8080,
+				CpuMillicores: 256,
+				MemoryMib:     256,
+				Command:       dbtype.StringSlice{},
+				Healthcheck:   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+				RegionConfig:  dbtype.RegionConfig{},
+
+				ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
+				CreatedAt:      now,
+				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create runtime settings: %w", err)
+		}
+
+		// Create default build settings for each environment
+		err = db.BulkQuery.UpsertEnvironmentBuildSettings(ctx, tx, []db.UpsertEnvironmentBuildSettingsParams{
+			{
+				WorkspaceID:   workspaceID,
+				EnvironmentID: previewEnvID,
+				Dockerfile:    "Dockerfile",
+				DockerContext: ".",
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+			},
+			{
+				WorkspaceID:   workspaceID,
+				EnvironmentID: productionEnvID,
+				Dockerfile:    "Dockerfile",
+				DockerContext: ".",
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create build settings: %w", err)
+		}
 
 		err = db.BulkQuery.UpsertQuota(ctx, tx, []db.UpsertQuotaParams{
 			{
@@ -320,7 +378,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	logger.Info("project created successfully via control plane", "id", projectID)
+	logger.Info("project created successfully", "id", projectID)
 
 	// Write environment file with generated values
 	if outputFile := cmd.String("output"); outputFile != "" {
@@ -357,7 +415,8 @@ UNKEY_ROOT_KEY=%s
 	logger.Info("seed completed",
 		"workspace", workspaceID,
 		"project", projectID,
-		"environment", envID,
+		"preview_environment", previewEnvID,
+		"production_environment", productionEnvID,
 		"api", userApiID,
 		"keySpace", userKeySpaceID,
 		"rootKey", keyResult.Key,

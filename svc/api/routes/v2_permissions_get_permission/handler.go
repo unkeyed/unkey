@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -19,10 +18,8 @@ type Response = openapi.V2PermissionsGetPermissionResponseBody
 
 // Handler implements zen.Route interface for the v2 permissions get permission endpoint
 type Handler struct {
-	// Services as public fields
-	Logger logging.Logger
-	DB     db.Database
-	Keys   keys.KeyService
+	DB   db.Database
+	Keys keys.KeyService
 }
 
 // Method returns the HTTP method this route responds to
@@ -37,7 +34,6 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.getPermission")
 
 	// 1. Authentication
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)

@@ -9,7 +9,7 @@ go_library(
         "//internal/services/keys",
         "//pkg/db",
         "//pkg/fault",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/zen",

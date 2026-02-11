@@ -5,14 +5,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // Service implements the KeyRefillService Restate virtual object.
 type Service struct {
 	hydrav1.UnimplementedKeyRefillServiceServer
 	db        db.Database
-	logger    logging.Logger
 	heartbeat healthcheck.Heartbeat
 }
 
@@ -20,8 +18,7 @@ var _ hydrav1.KeyRefillServiceServer = (*Service)(nil)
 
 // Config holds the configuration for the key refill service.
 type Config struct {
-	DB     db.Database
-	Logger logging.Logger
+	DB db.Database
 	// Heartbeat sends health signals after successful refill runs.
 	// Must not be nil - use healthcheck.NewNoop() if monitoring is not needed.
 	Heartbeat healthcheck.Heartbeat
@@ -36,7 +33,6 @@ func New(cfg Config) (*Service, error) {
 	return &Service{
 		UnimplementedKeyRefillServiceServer: hydrav1.UnimplementedKeyRefillServiceServer{},
 		db:                                  cfg.DB,
-		logger:                              cfg.Logger,
 		heartbeat:                           cfg.Heartbeat,
 	}, nil
 }

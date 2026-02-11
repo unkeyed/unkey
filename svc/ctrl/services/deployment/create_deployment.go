@@ -11,7 +11,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -62,7 +62,7 @@ func (s *Service) CreateDeployment(
 	}
 	workspaceID := project.WorkspaceID
 
-	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
+	envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
 		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
 		Slug:        req.Msg.GetEnvironmentSlug(),
@@ -76,6 +76,7 @@ func (s *Service) CreateDeployment(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup environment: %w", err))
 	}
+	env := envSettings.Environment
 
 	// Fetch environment variables and build secrets blob
 	envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
@@ -145,21 +146,11 @@ func (s *Service) CreateDeployment(
 		gitCommitTimestamp = gitCommit.GetTimestamp()
 	}
 
-	s.logger.Info("deployment will use prebuilt image",
+	logger.Info("deployment will use prebuilt image",
 		"deployment_id", deploymentID,
 		"image", dockerImage)
 
-	// Determine command: CLI override > project default > empty array
-	var command dbtype.StringSlice
-	if len(req.Msg.GetCommand()) > 0 {
-		// CLI provided command override
-		command = req.Msg.GetCommand()
-	} else if len(project.Command) > 0 {
-		// Use project's default command
-		command = project.Command
-	}
-
-	// Insert deployment into database
+	// Insert deployment into database, snapshotting settings from environment
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:                            deploymentID,
 		K8sName:                       uid.DNS1035(12),
@@ -169,7 +160,7 @@ func (s *Service) CreateDeployment(
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                env.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
-		Command:                       command,
+		Command:                       envSettings.Command,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
@@ -179,15 +170,18 @@ func (s *Service) CreateDeployment(
 		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-		CpuMillicores:                 256,
-		MemoryMib:                     256,
+		CpuMillicores:                 envSettings.CpuMillicores,
+		MemoryMib:                     envSettings.MemoryMib,
+		Port:                          envSettings.Port,
+		ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.ShutdownSignal),
+		Healthcheck:                   envSettings.Healthcheck,
 	})
 	if err != nil {
-		s.logger.Error("failed to insert deployment", "error", err.Error())
+		logger.Error("failed to insert deployment", "error", err.Error())
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	s.logger.Info("starting deployment workflow",
+	logger.Info("starting deployment workflow",
 		"deployment_id", deploymentID,
 		"workspace_id", workspaceID,
 		"project_id", req.Msg.GetProjectId(),
@@ -218,11 +212,11 @@ func (s *Service) CreateDeployment(
 		Deploy().
 		Send(ctx, deployReq)
 	if err != nil {
-		s.logger.Error("failed to start deployment workflow", "error", err)
+		logger.Error("failed to start deployment workflow", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))
 	}
 
-	s.logger.Info("deployment workflow started",
+	logger.Info("deployment workflow started",
 		"deployment_id", deploymentID,
 		"invocation_id", invocation.Id,
 	)

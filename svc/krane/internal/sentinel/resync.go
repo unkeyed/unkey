@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +23,7 @@ import (
 // for each existing sentinel and applying any needed changes.
 func (c *Controller) runResyncLoop(ctx context.Context) {
 	repeat.Every(1*time.Minute, func() {
-		c.logger.Info("running periodic resync")
+		logger.Info("running periodic resync")
 
 		cursor := ""
 		for {
@@ -34,14 +35,14 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				Continue: cursor,
 			})
 			if err != nil {
-				c.logger.Error("unable to list deployments", "error", err.Error())
+				logger.Error("unable to list deployments", "error", err.Error())
 				return
 			}
 
 			for _, deployment := range deployments.Items {
 				sentinelID, ok := labels.GetSentinelID(deployment.Labels)
 				if !ok {
-					c.logger.Error("unable to get sentinel ID", "deployment", deployment.Name)
+					logger.Error("unable to get sentinel ID", "deployment", deployment.Name)
 					continue
 				}
 
@@ -49,18 +50,27 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					SentinelId: sentinelID,
 				}))
 				if err != nil {
-					c.logger.Error("unable to get desired sentinel state", "error", err.Error(), "sentinel_id", sentinelID)
+					if connect.CodeOf(err) == connect.CodeNotFound {
+						if err := c.DeleteSentinel(ctx, &ctrlv1.DeleteSentinel{
+							K8SName: deployment.GetName(),
+						}); err != nil {
+							logger.Error("unable to delete sentinel", "error", err.Error(), "sentinel_id", sentinelID)
+							continue
+						}
+					}
+
+					logger.Error("unable to get desired sentinel state", "error", err.Error(), "sentinel_id", sentinelID)
 					continue
 				}
 
 				switch res.Msg.GetState().(type) {
 				case *ctrlv1.SentinelState_Apply:
 					if err := c.ApplySentinel(ctx, res.Msg.GetApply()); err != nil {
-						c.logger.Error("unable to apply sentinel", "error", err.Error(), "sentinel_id", sentinelID)
+						logger.Error("unable to apply sentinel", "error", err.Error(), "sentinel_id", sentinelID)
 					}
 				case *ctrlv1.SentinelState_Delete:
 					if err := c.DeleteSentinel(ctx, res.Msg.GetDelete()); err != nil {
-						c.logger.Error("unable to delete sentinel", "error", err.Error(), "sentinel_id", sentinelID)
+						logger.Error("unable to delete sentinel", "error", err.Error(), "sentinel_id", sentinelID)
 					}
 				}
 			}

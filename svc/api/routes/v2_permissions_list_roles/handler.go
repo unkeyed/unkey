@@ -8,7 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -22,10 +22,8 @@ type (
 
 // Handler implements zen.Route interface for the v2 permissions list roles endpoint
 type Handler struct {
-	// Services as public fields
-	Logger logging.Logger
-	DB     db.Database
-	Keys   keys.KeyService
+	DB   db.Database
+	Keys keys.KeyService
 }
 
 // Method returns the HTTP method this route responds to
@@ -40,7 +38,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listRoles")
+	logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listRoles")
 
 	// 1. Authentication
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
@@ -103,7 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		perms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
 		if err != nil {
-			h.Logger.Error("Failed to unmarshal permissions", "error", err)
+			logger.Error("Failed to unmarshal permissions", "error", err)
 		}
 
 		for _, perm := range perms {

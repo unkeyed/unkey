@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/vault"
@@ -26,7 +26,6 @@ type (
 
 // Handler implements zen.Route interface for the v2 keys.getKey endpoint
 type Handler struct {
-	Logger    logging.Logger
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
@@ -42,8 +41,6 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	h.Logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/keys.getKey")
-
 	// Authentication
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
@@ -173,7 +170,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			identityMeta, getMetaError := db.UnmarshalNullableJSONTo[map[string]any](keyData.Identity.Meta)
 			response.Identity.Meta = identityMeta
 			if getMetaError != nil {
-				h.Logger.Error("failed to unmarshal identity meta", "error", err)
+				logger.Error("failed to unmarshal identity meta", "error", err)
 			}
 		}
 	}
@@ -230,7 +227,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Set meta
 	meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
 	if err != nil {
-		h.Logger.Error("failed to unmarshal key meta",
+		logger.Error("failed to unmarshal key meta",
 			"keyId", keyData.Key.ID,
 			"error", err,
 		)
@@ -289,7 +286,7 @@ func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyDat
 		Encrypted: keyData.EncryptedKey.String,
 	})
 	if err != nil {
-		h.Logger.Error("failed to decrypt key",
+		logger.Error("failed to decrypt key",
 			"keyId", keyData.Key.ID,
 			"error", err,
 		)

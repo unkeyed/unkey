@@ -8,7 +8,7 @@ import (
 	unkey "github.com/unkeyed/sdks/api/go/v2"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/pkg/git"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // DeploymentStatusEvent represents a status change event
@@ -117,7 +117,6 @@ func (c *ControlPlaneClient) GetDeployment(ctx context.Context, deploymentID str
 // PollDeploymentStatus polls for deployment changes and calls event handlers
 func (c *ControlPlaneClient) PollDeploymentStatus(
 	ctx context.Context,
-	logger logging.Logger,
 	deploymentID string,
 	onStatusChange func(DeploymentStatusEvent) error,
 ) error {

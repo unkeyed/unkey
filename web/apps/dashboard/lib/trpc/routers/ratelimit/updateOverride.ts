@@ -35,14 +35,14 @@ export const updateOverride = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the override for this namespace. Please try again or contact support@unkey.dev",
+            "We are unable to update the override for this namespace. Please try again or contact support@unkey.com",
         });
       });
 
     if (!override) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct override. Please try again or contact support@unkey.dev.",
+          "We are unable to find the correct override. Please try again or contact support@unkey.com.",
         code: "NOT_FOUND",
       });
     }
@@ -61,7 +61,7 @@ export const updateOverride = workspaceProcedure
           .catch((_err) => {
             throw new TRPCError({
               message:
-                "We are unable to update the override for this namespace. Please try again or contact support@unkey.dev.",
+                "We are unable to update the override for this namespace. Please try again or contact support@unkey.com.",
               code: "INTERNAL_SERVER_ERROR",
             });
           });
@@ -93,7 +93,7 @@ export const updateOverride = workspaceProcedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to update the override. Please try again or contact support@unkey.dev",
+              "We are unable to update the override. Please try again or contact support@unkey.com",
           });
         });
       })
@@ -101,7 +101,7 @@ export const updateOverride = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the override for this namespace. Please try again or contact support@unkey.dev",
+            "We are unable to update the override for this namespace. Please try again or contact support@unkey.com",
         });
       });
   });

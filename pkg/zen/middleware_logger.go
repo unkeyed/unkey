@@ -2,9 +2,10 @@ package zen
 
 import (
 	"context"
-	"time"
+	"fmt"
+	"log/slog"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // WithLogging returns middleware that logs information about each request.
@@ -13,29 +14,36 @@ import (
 // Example:
 //
 //	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithLogging(logger)},
+//	    []zen.Middleware{zen.WithLogging()},
 //	    route,
 //	)
-func WithLogging(logger logging.Logger) Middleware {
+func WithLogging() Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
-			start := time.Now()
-			nextErr := next(ctx, s)
-			serviceLatency := time.Since(start)
 
-			logger.Debug("request",
-				"method", s.r.Method,
-				"path", s.r.URL.Path,
-				"status", s.responseStatus,
-				"latency", serviceLatency.Milliseconds(),
+			ctx, event := logger.StartWideEvent(ctx,
+				fmt.Sprintf("%s %s", s.r.Method, s.r.URL.Path),
 			)
 
-			if nextErr != nil {
-				logger.Error(nextErr.Error(),
-					"method", s.r.Method,
-					"path", s.r.URL.Path,
-					"status", s.responseStatus)
-			}
+			defer event.End()
+
+			nextErr := next(ctx, s)
+
+			event.SetError(nextErr)
+
+			event.Set(
+				slog.Group("http",
+					slog.String("method", s.r.Method),
+					slog.String("path", s.r.URL.Path),
+					slog.String("request_id", s.RequestID()),
+					slog.String("host", s.r.URL.Host),
+					slog.String("user_agent", s.r.UserAgent()),
+					slog.String("ip_address", s.Location()),
+					slog.Int("status_code", s.StatusCode()),
+					slog.String("request_body", string(redact(s.requestBody))),
+					slog.String("response_body", string(redact(s.responseBody))),
+				),
+			)
 			return nextErr
 		}
 	}

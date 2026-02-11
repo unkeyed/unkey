@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
@@ -18,7 +18,6 @@ import (
 type Replica struct {
 	mode      string
 	db        *sql.DB // Underlying database connection
-	logger    logging.Logger
 	debugLogs bool
 }
 
@@ -36,7 +35,7 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (s
 	)
 
 	if r.debugLogs {
-		r.logger.Debug("ExecContext", "query", query)
+		logger.Debug("ExecContext", "query", query)
 	}
 
 	// Track metrics
@@ -53,6 +52,7 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (s
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "exec", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "exec", status).Inc()
 
+	tracing.RecordErrorUnless(span, err, sql.ErrNoRows)
 	return result, err
 }
 
@@ -66,7 +66,7 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 	)
 
 	if r.debugLogs {
-		r.logger.Debug("PrepareContext", "query", query)
+		logger.Debug("PrepareContext", "query", query)
 	}
 
 	// Track metrics
@@ -84,6 +84,7 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "prepare", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "prepare", status).Inc()
 
+	tracing.RecordErrorUnless(span, err, sql.ErrNoRows)
 	return stmt, err
 }
 
@@ -97,7 +98,7 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...any) (
 	)
 
 	if r.debugLogs {
-		r.logger.Debug("QueryContext", "query", query)
+		logger.Debug("QueryContext", "query", query)
 	}
 
 	// Track metrics
@@ -115,6 +116,7 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...any) (
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "query", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "query", status).Inc()
 
+	tracing.RecordErrorUnless(span, err, sql.ErrNoRows)
 	return rows, err
 }
 
@@ -128,7 +130,7 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...any
 	)
 
 	if r.debugLogs {
-		r.logger.Debug("QueryRowContext", "query", query)
+		logger.Debug("QueryRowContext", "query", query)
 	}
 	// Track metrics
 	start := time.Now()
@@ -166,6 +168,7 @@ func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
 	metrics.DatabaseOperationsLatency.WithLabelValues(r.mode, "begin", status).Observe(duration)
 	metrics.DatabaseOperationsTotal.WithLabelValues(r.mode, "begin", status).Inc()
 
+	tracing.RecordErrorUnless(span, err, sql.ErrNoRows)
 	if err != nil {
 		return nil, err
 	}

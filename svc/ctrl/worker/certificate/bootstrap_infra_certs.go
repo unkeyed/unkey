@@ -9,6 +9,7 @@ import (
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -53,7 +54,7 @@ type BootstrapConfig struct {
 // certs require DNS-01 challenges for wildcards. Logs a warning in this case.
 func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) error {
 	if s.dnsProvider == nil {
-		s.logger.Warn("DNS provider not configured, skipping infrastructure cert bootstrap")
+		logger.Warn("DNS provider not configured, skipping infrastructure cert bootstrap")
 		return nil
 	}
 
@@ -73,7 +74,7 @@ func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) 
 	}
 
 	if len(domains) == 0 {
-		s.logger.Info("no infrastructure domains configured, skipping cert bootstrap")
+		logger.Info("no infrastructure domains configured, skipping cert bootstrap")
 		return nil
 	}
 
@@ -97,7 +98,7 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate 
 
 	// If cert already exists, we're done
 	if existingDomain.CertificateID.Valid && existingDomain.CertificateID.String != "" {
-		s.logger.Info("infrastructure cert already exists", "domain", domain, "cert_id", existingDomain.CertificateID.String)
+		logger.Info("infrastructure cert already exists", "domain", domain, "cert_id", existingDomain.CertificateID.String)
 		return nil
 	}
 
@@ -138,12 +139,12 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate 
 			return fmt.Errorf("failed to create ACME challenge record: %w", err)
 		}
 
-		s.logger.Info("created infrastructure domain records", "domain", domain, "domain_id", domainID)
+		logger.Info("created infrastructure domain records", "domain", domain, "domain_id", domainID)
 	}
 
 	// Trigger the ProcessChallenge workflow via Restate
 	// Use domain as key so multiple domains can be processed in parallel
-	s.logger.Info("triggering certificate challenge workflow", "domain", domain)
+	logger.Info("triggering certificate challenge workflow", "domain", domain)
 
 	certClient := hydrav1.NewCertificateServiceIngressClient(restate, domain)
 	_, err = certClient.ProcessChallenge().Send(ctx, &hydrav1.ProcessChallengeRequest{
@@ -151,7 +152,7 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate 
 		Domain:      domain,
 	})
 	if err != nil {
-		s.logger.Warn("failed to trigger certificate workflow, renewal cron will retry",
+		logger.Warn("failed to trigger certificate workflow, renewal cron will retry",
 			"domain", domain,
 			"error", err,
 		)

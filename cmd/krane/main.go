@@ -2,6 +2,7 @@ package krane
 
 import (
 	"context"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -80,6 +81,20 @@ unkey run krane                                   # Run with default configurati
 		cli.String("cluster-id", "ID of the cluster",
 			cli.Default("local"),
 			cli.EnvVar("UNKEY_CLUSTER_ID")),
+
+		// Observability
+		cli.Bool("otel-enabled", "Enable OpenTelemetry tracing and logging",
+			cli.Default(false),
+			cli.EnvVar("UNKEY_OTEL_ENABLED")),
+		cli.Float("otel-trace-sampling-rate", "Sampling rate for traces (0.0 to 1.0)",
+			cli.Default(0.01),
+			cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
+
+		// Logging Sampler Configuration
+		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
+			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SAMPLE_RATE")),
+		cli.Duration("log-slow-threshold", "Duration threshold for slow event sampling. Default: 1s",
+			cli.Default(time.Second), cli.EnvVar("UNKEY_LOG_SLOW_THRESHOLD")),
 	},
 	Action: action,
 }
@@ -87,18 +102,24 @@ unkey run krane                                   # Run with default configurati
 func action(ctx context.Context, cmd *cli.Command) error {
 
 	config := krane.Config{
-		Clock:              nil,
-		Region:             cmd.RequireString("region"),
-		InstanceID:         cmd.RequireString("instance-id"),
-		RegistryURL:        cmd.RequireString("registry-url"),
-		RegistryUsername:   cmd.RequireString("registry-username"),
-		RegistryPassword:   cmd.RequireString("registry-password"),
-		RPCPort:            cmd.RequireInt("rpc-port"),
-		VaultURL:           cmd.String("vault-url"),
-		VaultToken:         cmd.String("vault-token"),
-		PrometheusPort:     cmd.RequireInt("prometheus-port"),
-		ControlPlaneURL:    cmd.RequireString("control-plane-url"),
-		ControlPlaneBearer: cmd.RequireString("control-plane-bearer"),
+		Clock:                 nil,
+		Region:                cmd.RequireString("region"),
+		InstanceID:            cmd.RequireString("instance-id"),
+		RegistryURL:           cmd.RequireString("registry-url"),
+		RegistryUsername:      cmd.RequireString("registry-username"),
+		RegistryPassword:      cmd.RequireString("registry-password"),
+		RPCPort:               cmd.RequireInt("rpc-port"),
+		VaultURL:              cmd.String("vault-url"),
+		VaultToken:            cmd.String("vault-token"),
+		PrometheusPort:        cmd.RequireInt("prometheus-port"),
+		ControlPlaneURL:       cmd.RequireString("control-plane-url"),
+		ControlPlaneBearer:    cmd.RequireString("control-plane-bearer"),
+		OtelEnabled:           cmd.Bool("otel-enabled"),
+		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
+
+		// Logging sampler configuration
+		LogSampleRate:    cmd.Float("log-sample-rate"),
+		LogSlowThreshold: cmd.Duration("log-slow-threshold"),
 	}
 
 	// Validate configuration

@@ -23,14 +23,14 @@ export const queryRuntimeLogs = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to retrieve runtime logs due to an error. If this issue persists, please contact support@unkey.dev.",
+            "Failed to retrieve logs due to an error. If this issue persists, please contact support@unkey.com.",
         });
       });
 
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.com.",
       });
     }
 

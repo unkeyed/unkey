@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/vault"
 )
 
@@ -23,7 +22,6 @@ type connectionManager struct {
 	settingsCache   cache.Cache[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]
 	connectionCache cache.Cache[string, clickhouse.ClickHouse]
 	database        db.Database
-	logger          logging.Logger
 	baseURL         string
 	vault           *vault.Service
 }
@@ -32,7 +30,6 @@ type connectionManager struct {
 type ConnectionManagerConfig struct {
 	SettingsCache cache.Cache[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]
 	Database      db.Database
-	Logger        logging.Logger
 	Clock         clock.Clock
 	BaseURL       string // e.g., "http://clickhouse:8123/default" or "clickhouse://clickhouse:9000/default"
 	Vault         *vault.Service
@@ -44,7 +41,6 @@ func NewConnectionManager(config ConnectionManagerConfig) (ConnectionManager, er
 		assert.NotNilAndNotZero(config.Vault, "vault is required"),
 		assert.NotNilAndNotZero(config.SettingsCache, "settings cache is required"),
 		assert.NotNilAndNotZero(config.Database, "database is required"),
-		assert.NotNilAndNotZero(config.Logger, "logger is required"),
 		assert.NotNilAndNotZero(config.Clock, "clock is required"),
 		assert.NotNilAndNotZero(config.BaseURL, "base URL is required"),
 	)
@@ -60,7 +56,6 @@ func NewConnectionManager(config ConnectionManagerConfig) (ConnectionManager, er
 		// It's fine to keep a long cache time for this.
 		Fresh:    24 * time.Hour,
 		Stale:    24 * time.Hour,
-		Logger:   config.Logger,
 		MaxSize:  1_000,
 		Resource: "clickhouse_analytics_connection",
 		Clock:    config.Clock,
@@ -73,7 +68,6 @@ func NewConnectionManager(config ConnectionManagerConfig) (ConnectionManager, er
 		settingsCache:   config.SettingsCache,
 		connectionCache: connectionCache,
 		database:        config.Database,
-		logger:          config.Logger,
 		baseURL:         config.BaseURL,
 		vault:           config.Vault,
 	}, nil
@@ -159,8 +153,7 @@ func (m *connectionManager) createConnection(ctx context.Context, workspaceID st
 	// Inject workspace credentials
 	parsedURL.User = url.UserPassword(settings.ClickhouseWorkspaceSetting.Username, decrypted.GetPlaintext())
 	conn, err := clickhouse.New(clickhouse.Config{
-		URL:    parsedURL.String(),
-		Logger: m.logger,
+		URL: parsedURL.String(),
 	})
 	if err != nil {
 		return nil, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, fault.Wrap(err,

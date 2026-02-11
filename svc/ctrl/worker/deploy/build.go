@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -25,7 +26,9 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -72,7 +75,7 @@ func (w *Workflow) buildDockerImageFromGit(
 	platform := w.buildPlatform.Platform
 	architecture := w.buildPlatform.Architecture
 
-	w.logger.Info("Starting git build process",
+	logger.Info("Starting git build process",
 		"repository", params.Repository,
 		"commit_sha", params.CommitSHA,
 		"project_id", params.ProjectID,
@@ -86,15 +89,23 @@ func (w *Workflow) buildDockerImageFromGit(
 		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
 	}
 
-	w.logger.Info("Creating depot build",
+	logger.Info("Creating depot build",
 		"depot_project_id", depotProjectID,
 		"project_id", params.ProjectID)
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
 		// Get GitHub installation token for BuildKit to fetch the repo
-		ghToken, err := w.github.GetInstallationToken(params.InstallationID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+		var ghToken githubclient.InstallationToken
+		if w.allowUnauthenticatedDeployments {
+			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
+			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
+				"repository", params.Repository)
+		} else {
+			token, err := w.github.GetInstallationToken(params.InstallationID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+			}
+			ghToken = token
 		}
 
 		depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
@@ -106,12 +117,12 @@ func (w *Workflow) buildDockerImageFromGit(
 		}
 		defer func() { depotBuild.Finish(err) }()
 
-		w.logger.Info("Depot build created",
+		logger.Info("Depot build created",
 			"build_id", depotBuild.ID,
 			"depot_project_id", depotProjectID,
 			"project_id", params.ProjectID)
 
-		w.logger.Info("Acquiring build machine",
+		logger.Info("Acquiring build machine",
 			"build_id", depotBuild.ID,
 			"architecture", architecture,
 			"project_id", params.ProjectID)
@@ -122,11 +133,11 @@ func (w *Workflow) buildDockerImageFromGit(
 		}
 		defer func() {
 			if releaseErr := buildkit.Release(); releaseErr != nil {
-				w.logger.Error("unable to release buildkit", "error", releaseErr)
+				logger.Error("unable to release buildkit", "error", releaseErr)
 			}
 		}()
 
-		w.logger.Info("Build machine acquired, connecting to buildkit",
+		logger.Info("Build machine acquired, connecting to buildkit",
 			"build_id", depotBuild.ID,
 			"project_id", params.ProjectID)
 
@@ -136,7 +147,7 @@ func (w *Workflow) buildDockerImageFromGit(
 		}
 		defer func() {
 			if closeErr := buildClient.Close(); closeErr != nil {
-				w.logger.Error("unable to close client", "error", closeErr)
+				logger.Error("unable to close client", "error", closeErr)
 			}
 		}()
 
@@ -162,7 +173,7 @@ func (w *Workflow) buildDockerImageFromGit(
 			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", params.Repository, params.CommitSHA, contextPath)
 		}
 
-		w.logger.Info("Starting build execution",
+		logger.Info("Starting build execution",
 			"image_name", imageName,
 			"dockerfile", dockerfilePath,
 			"platform", platform,
@@ -175,14 +186,26 @@ func (w *Workflow) buildDockerImageFromGit(
 		buildStatusCh := make(chan *client.SolveStatus, 100)
 		go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
 
-		solverOptions := w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token)
+		// Choose solver options based on authentication mode
+		var solverOptions client.SolveOpt
+		if w.allowUnauthenticatedDeployments {
+			solverOptions = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName)
+		} else {
+			solverOptions = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token)
+		}
 
 		_, err = buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
 		if err != nil {
-			return nil, fmt.Errorf("build failed: %w", err)
+			// Context cancellations and timeouts are transient — let Restate retry.
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil, fmt.Errorf("build interrupted: %w", err)
+			}
+			// Build failures (bad Dockerfile, compilation errors, etc.) won't fix
+			// themselves on retry — mark as terminal to stop Restate from retrying.
+			return nil, restate.TerminalError(fmt.Errorf("build failed: %w", err))
 		}
 
-		w.logger.Info("Build completed successfully")
+		logger.Info("Build completed successfully")
 
 		return &buildResult{
 			ImageName:      imageName,
@@ -287,7 +310,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 
 	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
 	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
-		w.logger.Info(
+		logger.Info(
 			"Returning existing depot project",
 			"depot_project_id", project.DepotProjectID,
 			"project_id", unkeyProjectID,
@@ -333,7 +356,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		return "", fmt.Errorf("failed to update depot_project_id: %w", err)
 	}
 
-	w.logger.Info("Created new Depot project",
+	logger.Info("Created new Depot project",
 		"depot_project_id", depotProjectID,
 		"project_id", unkeyProjectID,
 		"project_name", projectName)
@@ -357,7 +380,7 @@ func (w *Workflow) processBuildStatus(
 
 		for _, vertex := range status.Vertexes {
 			if vertex == nil {
-				w.logger.Warn("vertex is nil")
+				logger.Warn("vertex is nil")
 				continue
 			}
 			if vertex.Completed != nil && !completed[vertex.Digest] {

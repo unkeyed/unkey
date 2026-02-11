@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -188,12 +187,10 @@ func TestWithTimeout(t *testing.T) {
 }
 
 func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
-	// Create a logger for the error middleware
-	logger := logging.New()
 
 	t.Run("server timeout returns proper HTTP 408 response", func(t *testing.T) {
 		// Create a test server with both middlewares
-		server, err := New(Config{Logger: logger})
+		server, err := New(Config{})
 		if err != nil {
 			t.Fatalf("failed to create server: %v", err)
 		}
@@ -201,7 +198,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		// Register a route that times out with both middlewares
 		server.RegisterRoute(
 			[]Middleware{
-				withErrorHandling(logger),
+				withErrorHandling(),
 				WithTimeout(50 * time.Millisecond),
 			},
 			NewRoute(http.MethodGet, "/timeout", func(ctx context.Context, s *Session) error {
@@ -237,7 +234,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 
 	t.Run("client cancellation returns proper HTTP 499 response", func(t *testing.T) {
 		// Create a test server with both middlewares
-		server, err := New(Config{Logger: logger})
+		server, err := New(Config{})
 		if err != nil {
 			t.Fatalf("failed to create server: %v", err)
 		}
@@ -245,7 +242,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		// Register a route that gets canceled by client
 		server.RegisterRoute(
 			[]Middleware{
-				withErrorHandling(logger),
+				withErrorHandling(),
 				WithTimeout(200 * time.Millisecond),
 			},
 			NewRoute(http.MethodGet, "/cancel", func(ctx context.Context, s *Session) error {
@@ -290,7 +287,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 
 	t.Run("successful request works normally with both middlewares", func(t *testing.T) {
 		// Create a test server with both middlewares
-		server, err := New(Config{Logger: logger})
+		server, err := New(Config{})
 		if err != nil {
 			t.Fatalf("failed to create server: %v", err)
 		}
@@ -298,7 +295,7 @@ func TestTimeoutWithErrorHandlingMiddleware(t *testing.T) {
 		// Register a route that completes successfully
 		server.RegisterRoute(
 			[]Middleware{
-				withErrorHandling(logger),
+				withErrorHandling(),
 				WithTimeout(100 * time.Millisecond),
 			},
 			NewRoute(http.MethodGet, "/success", func(ctx context.Context, s *Session) error {

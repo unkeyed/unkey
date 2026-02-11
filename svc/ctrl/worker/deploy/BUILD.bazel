@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "deploy",
@@ -11,6 +11,7 @@ go_library(
         "helpers.go",
         "promote_handler.go",
         "rollback_handler.go",
+        "scale_down_idle_deployments.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/deploy",
@@ -23,7 +24,7 @@ go_library(
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
         "//pkg/db",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/ptr",
         "//pkg/uid",
         "//svc/ctrl/worker/github",
@@ -46,5 +47,18 @@ go_library(
         "@com_github_opencontainers_go_digest//:go-digest",
         "@com_github_restatedev_sdk_go//:sdk-go",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+    ],
+)
+
+go_test(
+    name = "deploy_test",
+    srcs = ["scale_down_idle_deployments_test.go"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/uid",
+        "//svc/ctrl/integration/harness",
+        "//svc/ctrl/integration/seed",
+        "@com_github_stretchr_testify//require",
     ],
 )

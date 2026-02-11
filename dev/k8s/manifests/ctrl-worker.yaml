@@ -31,13 +31,13 @@ spec:
             - containerPort: 9080
           livenessProbe:
             httpGet:
-              path: /health
+              path: /health/live
               port: 9080
             initialDelaySeconds: 10
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /health
+              path: /health/ready
               port: 9080
             initialDelaySeconds: 5
             periodSeconds: 5
@@ -113,6 +113,12 @@ spec:
                 secretKeyRef:
                   name: github-credentials
                   key: UNKEY_GITHUB_PRIVATE_KEY_PEM
+                  optional: true
+            - name: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
                   optional: true
 
             - name: UNKEY_SENTINEL_IMAGE

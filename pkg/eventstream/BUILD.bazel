@@ -14,7 +14,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/assert",
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "@com_github_segmentio_kafka_go//:kafka-go",
         "@org_golang_google_protobuf//proto",
     ],
@@ -27,7 +27,6 @@ go_test(
     deps = [
         ":eventstream",
         "//gen/proto/cache/v1:cache",
-        "//pkg/otel/logging",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "@com_github_stretchr_testify//require",

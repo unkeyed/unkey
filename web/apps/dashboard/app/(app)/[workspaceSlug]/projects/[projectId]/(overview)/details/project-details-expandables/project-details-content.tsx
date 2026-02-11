@@ -43,7 +43,9 @@ export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps)
 
   const detailSections = createDetailSections({
     ...data.deployment,
-    repository: data.project.gitRepositoryUrl,
+    repository: data.project.repositoryFullName
+      ? `https://github.com/${data.project.repositoryFullName}`
+      : null,
   });
 
   // This "environment" domain never changes even when you do a rollback this one stays stable.

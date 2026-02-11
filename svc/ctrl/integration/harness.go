@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -34,7 +34,6 @@ func New(t *testing.T) *Harness {
 	mysqlHostDSN := mysqlCfg.DSN
 
 	database, err := db.New(db.Config{
-		Logger:      logging.NewNoop(),
 		PrimaryDSN:  mysqlHostDSN,
 		ReadOnlyDSN: "",
 	})
@@ -89,11 +88,11 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	workspaceID := h.Seed.Resources.UserWorkspace.ID
 
 	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
-		ID:               uid.New("prj"),
-		WorkspaceID:      workspaceID,
-		Name:             "test-project",
-		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
+		ID:          uid.New("prj"),
+		WorkspaceID: workspaceID,
+		Name:        "test-project",
+		Slug:        uid.New("slug"),
+
 		DefaultBranch:    "",
 		DeleteProtection: false,
 	})
@@ -129,6 +128,9 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Status:                        db.DeploymentsStatusReady,
 		CpuMillicores:                 100,
 		MemoryMib:                     128,
+		Port:                          8080,
+		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
+		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		CreatedAt:                     h.Now(),
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 		Command:                       nil,
@@ -187,11 +189,11 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 	workspaceID := h.Seed.Resources.UserWorkspace.ID
 
 	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
-		ID:               uid.New("prj"),
-		WorkspaceID:      workspaceID,
-		Name:             "test-project-sentinel",
-		Slug:             uid.New("slug"),
-		GitRepositoryURL: "",
+		ID:          uid.New("prj"),
+		WorkspaceID: workspaceID,
+		Name:        "test-project-sentinel",
+		Slug:        uid.New("slug"),
+
 		DefaultBranch:    "",
 		DeleteProtection: false,
 	})

@@ -7,6 +7,7 @@ import (
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // flush writes a batch of rows to the specified ClickHouse table.
@@ -35,7 +36,7 @@ func flush[T any](c *clickhouse, ctx context.Context, table string, rows []T) er
 		}
 		defer func() {
 			if err = batch.Close(); err != nil {
-				c.logger.Error("failed to close batch", "error", err.Error())
+				logger.Error("failed to close batch", "error", err.Error())
 			}
 		}()
 

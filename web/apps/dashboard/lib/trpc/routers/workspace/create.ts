@@ -5,7 +5,7 @@ import { env } from "@/lib/env";
 import { freeTierQuotas } from "@/lib/quotas";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
-import { newId } from "@unkey/id";
+import { dns1035, newId } from "@unkey/id";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 
@@ -80,7 +80,7 @@ export const createWorkspace = protectedProcedure
           updatedAtM: null,
           deletedAtM: null,
           partitionId: null,
-          k8sNamespace: null,
+          k8sNamespace: dns1035(),
         };
 
         await tx.insert(schema.workspaces).values(workspace);
@@ -124,7 +124,7 @@ export const createWorkspace = protectedProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create the workspace. Please try again or contact support@unkey.dev",
+            "We are unable to create the workspace. Please try again or contact support@unkey.com",
         });
       });
 

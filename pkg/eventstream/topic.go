@@ -8,7 +8,7 @@ import (
 
 	"github.com/segmentio/kafka-go"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -22,9 +22,6 @@ type TopicConfig struct {
 
 	// InstanceID is a unique identifier for this instance in the cluster.
 	InstanceID string
-
-	// Logger is used for logging events and errors.
-	Logger logging.Logger
 }
 
 // Topic provides access to producers and consumers for a specific topic
@@ -32,7 +29,6 @@ type Topic[T proto.Message] struct {
 	brokers    []string
 	topic      string
 	instanceID string
-	logger     logging.Logger
 
 	// Track consumers and producers for cleanup
 	mu        sync.Mutex
@@ -52,13 +48,11 @@ type Topic[T proto.Message] struct {
 //		Brokers:    []string{"kafka:9092"},
 //		Topic:      "events",
 //		InstanceID: "instance-1",
-//		Logger:     logger,
 //	}
 //	topic := eventstream.NewTopic[*MyEvent](cfg)
 func NewTopic[T proto.Message](config TopicConfig) (*Topic[T], error) {
 	// Validate required fields
 	err := assert.All(
-		assert.NotNilAndNotZero(config.Logger, "logger is required when creating a topic"),
 		assert.True(len(config.Brokers) > 0, "brokers list cannot be empty"),
 		assert.NotEmpty(config.Topic, "topic name cannot be empty"),
 		assert.NotEmpty(config.InstanceID, "instance ID cannot be empty"),
@@ -74,7 +68,6 @@ func NewTopic[T proto.Message](config TopicConfig) (*Topic[T], error) {
 		brokers:    config.Brokers,
 		topic:      config.Topic,
 		instanceID: config.InstanceID,
-		logger:     config.Logger,
 	}
 
 	return topic, nil
@@ -240,9 +233,7 @@ func (t *Topic[T]) Close() error {
 	// Close all consumers
 	for _, consumer := range t.consumers {
 		if err := consumer.Close(); err != nil {
-			if t.logger != nil {
-				t.logger.Error("Failed to close consumer", "error", err, "topic", t.topic)
-			}
+			logger.Error("Failed to close consumer", "error", err, "topic", t.topic)
 			lastErr = err
 		}
 	}
@@ -250,9 +241,7 @@ func (t *Topic[T]) Close() error {
 	// Close all producers
 	for _, producer := range t.producers {
 		if err := producer.Close(); err != nil {
-			if t.logger != nil {
-				t.logger.Error("Failed to close producer", "error", err, "topic", t.topic)
-			}
+			logger.Error("Failed to close producer", "error", err, "topic", t.topic)
 			lastErr = err
 		}
 	}

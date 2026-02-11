@@ -60,6 +60,11 @@ func (n *noop) GetBillableUsageAboveThreshold(ctx context.Context, year, month i
 	return make(map[string]int64), nil
 }
 
+// GetDeploymentRequestCount implements the Querier interface but always returns 0.
+func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error) {
+	return 0, nil
+}
+
 func (n *noop) Conn() ch.Conn {
 	return nil
 }
@@ -102,7 +107,6 @@ func (n *noop) Close() error {
 //	if config.ClickhouseURL != "" {
 //	    ch, err := clickhouse.New(clickhouse.Config{
 //	        URL:    config.ClickhouseURL,
-//	        Logger: logger,
 //	    })
 //	    if err != nil {
 //	        logger.Warn("Failed to initialize ClickHouse, analytics will be disabled")

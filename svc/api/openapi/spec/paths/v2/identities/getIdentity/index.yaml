@@ -7,7 +7,7 @@ post:
 
     Use this to check if an identity exists, view configurations, or build management dashboards.
 
-    > **Important**  
+    > **Important**
     > Requires `identity.*.read_identity` permission
   operationId: identities.getIdentity
   x-speakeasy-name-override: getIdentity

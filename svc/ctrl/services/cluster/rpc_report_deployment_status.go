@@ -7,6 +7,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -26,7 +27,7 @@ import (
 // Returns CodeUnauthenticated if bearer token is invalid. Database errors during the
 // transaction are returned as-is (not wrapped in Connect error codes).
 func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportDeploymentStatusRequest]) (*connect.Response[ctrlv1.ReportDeploymentStatusResponse], error) {
-	s.logger.Info("reporting deployment status", "req", req.Msg)
+	logger.Info("reporting deployment status", "req", req.Msg)
 
 	if err := s.authenticate(req); err != nil {
 		return nil, err

@@ -1,6 +1,8 @@
 package krane
 
 import (
+	"time"
+
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
@@ -60,6 +62,22 @@ type Config struct {
 
 	ControlPlaneURL    string
 	ControlPlaneBearer string
+
+	// OtelEnabled enables OpenTelemetry instrumentation for tracing and metrics.
+	// When true, InitGrafana will be called to set up OTEL exporters.
+	OtelEnabled bool
+
+	// OtelTraceSamplingRate controls the sampling rate for traces (0.0 to 1.0).
+	// Only used when OtelEnabled is true.
+	OtelTraceSamplingRate float64
+
+	// --- Logging sampler configuration ---
+
+	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
+	LogSampleRate float64
+
+	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
+	LogSlowThreshold time.Duration
 }
 
 // Validate checks the configuration for required fields and logical consistency.

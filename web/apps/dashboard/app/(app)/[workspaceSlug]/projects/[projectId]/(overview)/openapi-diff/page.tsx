@@ -74,7 +74,7 @@ export default function DiffPage() {
       newDeploymentId: selectedToDeployment,
     },
     {
-      enabled: Boolean(selectedFromDeployment) && Boolean(selectedToDeployment),
+      enabled: false,
     },
   );
 

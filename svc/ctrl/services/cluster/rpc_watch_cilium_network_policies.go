@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // WatchCiliumNetworkPolicies streams Cilium network policy state changes from the control plane to agents.
@@ -49,7 +50,7 @@ func (s *Service) WatchCiliumNetworkPolicies(
 
 		states, err := s.fetchCiliumNetworkPolicyStates(ctx, region, versionCursor)
 		if err != nil {
-			s.logger.Error("failed to fetch cilium network policy states", "error", err)
+			logger.Error("failed to fetch cilium network policy states", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
 		}
 
@@ -83,13 +84,13 @@ func (s *Service) fetchCiliumNetworkPolicyStates(ctx context.Context, region str
 	states := make([]*ctrlv1.CiliumNetworkPolicyState, len(rows))
 	for i, row := range rows {
 		states[i] = &ctrlv1.CiliumNetworkPolicyState{
-			Version: row.CiliumNetworkPolicy.Version,
+			Version: row.Version,
 			State: &ctrlv1.CiliumNetworkPolicyState_Apply{
 				Apply: &ctrlv1.ApplyCiliumNetworkPolicy{
-					CiliumNetworkPolicyId: row.CiliumNetworkPolicy.ID,
-					K8SNamespace:          row.K8sNamespace.String,
-					K8SName:               row.CiliumNetworkPolicy.K8sName,
-					Policy:                row.CiliumNetworkPolicy.Policy,
+					CiliumNetworkPolicyId: row.ID,
+					K8SNamespace:          row.K8sNamespace,
+					K8SName:               row.K8sName,
+					Policy:                row.Policy,
 				},
 			},
 		}

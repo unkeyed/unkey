@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/dockertest"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
@@ -45,7 +44,6 @@ func StartTestVault(t *testing.T) *TestVault {
 		S3Bucket:          "vault-test",
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
-		Logger:            logging.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -58,7 +56,6 @@ func StartTestVault(t *testing.T) *TestVault {
 	// Create vault service
 	v, err := vault.New(vault.Config{
 		Storage:     st,
-		Logger:      logging.NewNoop(),
 		MasterKeys:  []string{masterKey},
 		BearerToken: token,
 	})
@@ -90,9 +87,7 @@ func StartTestVaultWithMemory(t *testing.T) *TestVault {
 	t.Helper()
 
 	// Create in-memory storage
-	st, err := storage.NewMemory(storage.MemoryConfig{
-		Logger: logging.NewNoop(),
-	})
+	st, err := storage.NewMemory()
 	require.NoError(t, err)
 
 	// Generate master key
@@ -104,7 +99,6 @@ func StartTestVaultWithMemory(t *testing.T) *TestVault {
 	// Create vault service
 	v, err := vault.New(vault.Config{
 		Storage:     st,
-		Logger:      logging.NewNoop(),
 		MasterKeys:  []string{masterKey},
 		BearerToken: token,
 	})

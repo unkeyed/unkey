@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/tls"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -24,7 +24,6 @@ import (
 type Server struct {
 	mu sync.Mutex
 
-	logger      logging.Logger
 	isListening bool
 	mux         *http.ServeMux
 	srv         *http.Server
@@ -42,8 +41,6 @@ type Flags struct {
 
 // Config configures the behavior of a Server instance.
 type Config struct {
-	// Logger provides structured logging for the server. If nil, logging is disabled.
-	Logger logging.Logger
 
 	// TLS configuration for HTTPS connections.
 	// If this is provided, the server will use HTTPS.
@@ -81,7 +78,7 @@ type Config struct {
 //
 //	server, err := zen.New(zen.Config{
 //	    InstanceID: "api-server-1",
-//	    Logger: logger,
+//	   ,
 //	})
 //	if err != nil {
 //	    log.Fatalf("failed to initialize server: %v", err)
@@ -135,7 +132,6 @@ func New(config Config) (*Server, error) {
 	}
 	s := &Server{
 		mu:          sync.Mutex{},
-		logger:      config.Logger,
 		isListening: false,
 		mux:         mux,
 		srv:         srv,
@@ -206,7 +202,7 @@ func (s *Server) Flags() Flags {
 func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	s.mu.Lock()
 	if s.isListening {
-		s.logger.Warn("already listening")
+		logger.Warn("already listening")
 		s.mu.Unlock()
 		return nil
 	}
@@ -221,13 +217,13 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	go func() {
 		select {
 		case <-ctx.Done():
-			s.logger.Info("shutting down server due to context cancellation")
+			logger.Info("shutting down server due to context cancellation")
 			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer shutdownCancel()
 
 			err := s.Shutdown(shutdownCtx)
 			if err != nil {
-				s.logger.Error("error during server shutdown", "error", err.Error())
+				logger.Error("error during server shutdown", "error", err.Error())
 			}
 		case <-serverCtx.Done():
 			// Server stopped on its own
@@ -237,14 +233,14 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 
 	// Check if TLS should be used
 	if s.config.TLS != nil {
-		s.logger.Info("listening", "srv", "https", "addr", ln.Addr().String())
+		logger.Info("listening", "srv", "https", "addr", ln.Addr().String())
 
 		s.srv.TLSConfig = s.config.TLS
 
 		// ListenAndServeTLS with empty strings will use the certificates from TLSConfig
 		err = s.srv.ServeTLS(ln, "", "")
 	} else {
-		s.logger.Info("listening", "srv", "http", "addr", ln.Addr().String())
+		logger.Info("listening", "srv", "http", "addr", ln.Addr().String())
 		err = s.srv.Serve(ln)
 	}
 
@@ -266,19 +262,19 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 // Example:
 //
 //	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithLogging(logger), zen.WithErrorHandling()},
+//	    []zen.Middleware{zen.WithLogging(), zen.WithErrorHandling()},
 //	    zen.NewRoute("GET", "/health", healthCheckHandler),
 //	)
 //
 //	// Catch-all route that handles all methods
 //	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithLogging(logger)},
+//	    []zen.Middleware{zen.WithLogging()},
 //	    zen.NewRoute(zen.CATCHALL, "/{path...}", proxyHandler),
 //	)
 func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 	path := route.Path()
 	method := route.Method()
-	s.logger.Info("registering", "method", method, "path", path)
+	logger.Info("registering", "method", method, "path", path)
 
 	// Determine the pattern based on whether this is a catch-all route
 	// Empty method means match all HTTP methods
@@ -304,7 +300,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 
 			err := sess.Init(w, r, s.config.MaxRequestBodySize)
 			if err != nil {
-				s.logger.Error("failed to init session", "error", err)
+				logger.Error("failed to init session", "error", err)
 				handleFn = func(_ context.Context, _ *Session) error {
 					return err // Return the session init error
 				}

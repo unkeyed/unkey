@@ -7,8 +7,8 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/db",
+        "//pkg/db/types",
         "//pkg/dockertest",
-        "//pkg/otel/logging",
         "//pkg/uid",
         "//svc/ctrl/integration/seed",
         "@com_github_stretchr_testify//require",

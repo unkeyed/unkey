@@ -11,7 +11,6 @@ go_test(
     ],
     deps = [
         "//gen/proto/vault/v1:vault",
-        "//pkg/otel/logging",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "//pkg/vault",

@@ -6,7 +6,6 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
 )
 
 // Service orchestrates ACME certificate issuance and renewal.
@@ -28,7 +27,6 @@ type Service struct {
 	hydrav1.UnimplementedCertificateServiceServer
 	db            db.Database
 	vault         vaultv1connect.VaultServiceClient
-	logger        logging.Logger
 	emailDomain   string
 	defaultDomain string
 	dnsProvider   challenge.Provider
@@ -46,9 +44,6 @@ type Config struct {
 	// Vault encrypts private keys before database storage. Keys are encrypted using
 	// the workspace ID as the keyring identifier.
 	Vault vaultv1connect.VaultServiceClient
-
-	// Logger receives structured log output from certificate operations.
-	Logger logging.Logger
 
 	// EmailDomain forms the email address for ACME account registration. The service
 	// constructs emails as "acme@{EmailDomain}" for the global ACME account.
@@ -81,7 +76,6 @@ func New(cfg Config) *Service {
 		UnimplementedCertificateServiceServer: hydrav1.UnimplementedCertificateServiceServer{},
 		db:                                    cfg.DB,
 		vault:                                 cfg.Vault,
-		logger:                                cfg.Logger,
 		emailDomain:                           cfg.EmailDomain,
 		defaultDomain:                         cfg.DefaultDomain,
 		dnsProvider:                           cfg.DNSProvider,

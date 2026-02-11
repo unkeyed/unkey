@@ -14,7 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/preflight/internal/services/registry/credentials"
 )
 
@@ -26,7 +26,6 @@ type ImageConfig struct {
 }
 
 type Config struct {
-	Logger             logging.Logger
 	Clientset          kubernetes.Interface
 	Credentials        *credentials.Manager
 	InsecureRegistries []string
@@ -34,7 +33,6 @@ type Config struct {
 }
 
 type Registry struct {
-	logger             logging.Logger
 	clientset          kubernetes.Interface
 	credentials        *credentials.Manager
 	insecureRegistries map[string]bool
@@ -45,7 +43,7 @@ func New(cfg Config) *Registry {
 	insecureRegistries := make(map[string]bool)
 	for _, reg := range cfg.InsecureRegistries {
 		insecureRegistries[reg] = true
-		cfg.Logger.Info("configured insecure registry", "registry", reg)
+		logger.Info("configured insecure registry", "registry", reg)
 	}
 
 	registryAliases := make(map[string]string)
@@ -54,12 +52,11 @@ func New(cfg Config) *Registry {
 		if len(parts) == 2 {
 			from, to := parts[0], parts[1]
 			registryAliases[from] = to
-			cfg.Logger.Info("configured registry alias", "from", from, "to", to)
+			logger.Info("configured registry alias", "from", from, "to", to)
 		}
 	}
 
 	return &Registry{
-		logger:             cfg.Logger,
 		clientset:          cfg.Clientset,
 		credentials:        cfg.Credentials,
 		insecureRegistries: insecureRegistries,
@@ -96,7 +93,7 @@ func (r *Registry) GetImageConfig(
 		if dockerConfig != nil {
 			// Use credentials from our manager
 			for registry, auth := range dockerConfig.Auths {
-				r.logger.Debug("using credentials from manager",
+				logger.Debug("using credentials from manager",
 					"image", container.Image,
 					"registry", registry,
 				)
@@ -152,7 +149,7 @@ func (r *Registry) GetImageConfig(
 
 		digest, found := r.findPlatformManifest(manifest.Manifests)
 		if !found {
-			r.logger.Warn("no matching platform found in image index, using first manifest",
+			logger.Warn("no matching platform found in image index, using first manifest",
 				"image", container.Image,
 				"wanted_os", targetOS(),
 				"wanted_arch", targetArch(),
@@ -176,7 +173,7 @@ func (r *Registry) GetImageConfig(
 		return nil, fmt.Errorf("failed to get image config: %w", err)
 	}
 
-	r.logger.Debug("fetched image config",
+	logger.Debug("fetched image config",
 		"image", container.Image,
 		"entrypoint", configFile.Config.Entrypoint,
 		"cmd", configFile.Config.Cmd,
@@ -226,14 +223,14 @@ func (r *Registry) translateReference(ref name.Reference) (name.Reference, error
 	// Check if we have an alias for this registry
 	if newRegistry, hasAlias := r.registryAliases[currentRegistry]; hasAlias {
 		targetRegistry = newRegistry
-		r.logger.Debug("translating registry alias", "from", currentRegistry, "to", targetRegistry)
+		logger.Debug("translating registry alias", "from", currentRegistry, "to", targetRegistry)
 	}
 
 	// Determine if target registry should use HTTP (insecure)
 	var repoOpts []name.Option
 	if r.insecureRegistries[targetRegistry] {
 		repoOpts = append(repoOpts, name.Insecure)
-		r.logger.Debug("using insecure (HTTP) connection for registry", "registry", targetRegistry)
+		logger.Debug("using insecure (HTTP) connection for registry", "registry", targetRegistry)
 	}
 
 	// If no alias and no insecure flag needed, return original

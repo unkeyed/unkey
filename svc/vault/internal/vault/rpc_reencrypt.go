@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
@@ -15,7 +16,7 @@ func (s *Service) ReEncrypt(ctx context.Context, req *connect.Request[vaultv1.Re
 	}
 	ctx, span := tracing.Start(ctx, "vault.ReEncrypt")
 	defer span.End()
-	s.logger.Info("reencrypting",
+	logger.Info("reencrypting",
 		"keyring", req.Msg.GetKeyring(),
 	)
 

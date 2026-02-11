@@ -10,7 +10,6 @@ go_library(
         "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/otel/logging",
         "//pkg/prometheus/metrics",
         "//pkg/zen",
     ],

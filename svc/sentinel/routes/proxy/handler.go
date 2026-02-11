@@ -3,7 +3,6 @@ package handler
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -13,14 +12,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/otel/logging"
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
 
 type Handler struct {
-	Logger             logging.Logger
 	RouterService      router.Service
 	Clock              clock.Clock
 	Transport          *http.Transport
@@ -42,7 +41,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	tracking, ok := SentinelTrackingFromContext(ctx)
 	if !ok {
-		h.Logger.Warn("no sentinel tracking context found")
+		logger.Warn("no sentinel tracking context found")
 	}
 
 	requestID := uid.New("req")
@@ -97,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	targetURL, err := url.Parse("http://" + instance.Address)
 	if err != nil {
-		h.Logger.Error("invalid instance address", "address", instance.Address, "error", err)
+		logger.Error("invalid instance address", "address", instance.Address, "error", err)
 		return fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
 			fault.Internal("invalid service address"),
@@ -152,11 +151,23 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 			if tracking != nil {
 				sentinelDuration := h.Clock.Now().Sub(tracking.StartTime)
-				resp.Header.Set("X-Unkey-Sentinel-Time", fmt.Sprintf("%dms", sentinelDuration.Milliseconds()))
+				timing.Write(sess.ResponseWriter(), timing.Entry{
+					Name:     "sentinel",
+					Duration: sentinelDuration,
+					Attributes: map[string]string{
+						"scope": "sentinel",
+					},
+				})
 
 				if !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero() {
 					instanceDuration := tracking.InstanceEnd.Sub(tracking.InstanceStart)
-					resp.Header.Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
+					timing.Write(sess.ResponseWriter(), timing.Entry{
+						Name:     "instance",
+						Duration: instanceDuration,
+						Attributes: map[string]string{
+							"scope": "sentinel",
+						},
+					})
 				}
 			}
 
@@ -167,11 +178,23 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 				tracking.InstanceEnd = h.Clock.Now()
 
 				sentinelDuration := h.Clock.Now().Sub(tracking.StartTime)
-				sess.ResponseWriter().Header().Set("X-Unkey-Sentinel-Time", fmt.Sprintf("%dms", sentinelDuration.Milliseconds()))
+				timing.Write(sess.ResponseWriter(), timing.Entry{
+					Name:     "sentinel",
+					Duration: sentinelDuration,
+					Attributes: map[string]string{
+						"scope": "sentinel",
+					},
+				})
 
 				if !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero() {
 					instanceDuration := tracking.InstanceEnd.Sub(tracking.InstanceStart)
-					sess.ResponseWriter().Header().Set("X-Unkey-Instance-Time", fmt.Sprintf("%dms", instanceDuration.Milliseconds()))
+					timing.Write(sess.ResponseWriter(), timing.Entry{
+						Name:     "instance",
+						Duration: instanceDuration,
+						Attributes: map[string]string{
+							"scope": "sentinel",
+						},
+					})
 				}
 			}
 

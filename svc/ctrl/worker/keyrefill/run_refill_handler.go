@@ -12,6 +12,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -28,7 +29,7 @@ func (s *Service) RunRefill(
 	_ *hydrav1.RunRefillRequest,
 ) (*hydrav1.RunRefillResponse, error) {
 	dateKey := restate.Key(ctx)
-	s.logger.Info("running key refill", "date", dateKey)
+	logger.Info("running key refill", "date", dateKey)
 
 	// Parse date key to get day of month and check if last day
 	todayDay, isLastDay, err := parseDateKey(dateKey)
@@ -135,11 +136,11 @@ func (s *Service) RunRefill(
 
 		// Log progress periodically
 		if offset%1000 == 0 {
-			s.logger.Info("refill progress", "offset", offset, "refilled", totalKeysRefilled)
+			logger.Info("refill progress", "offset", offset, "refilled", totalKeysRefilled)
 		}
 	}
 
-	s.logger.Info("key refill complete",
+	logger.Info("key refill complete",
 		"date", dateKey,
 		"keys_refilled", totalKeysRefilled,
 	)

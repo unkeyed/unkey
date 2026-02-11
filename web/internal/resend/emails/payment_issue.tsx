@@ -38,7 +38,7 @@ export function PaymentIssue({ username, date }: Props) {
       <Hr />
       <Text>
         Need help? Please reach out to{" "}
-        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this email.
+        <Link href="mailto:support@unkey.com">support@unkey.com</Link> or just reply to this email.
       </Text>
 
       <Signature signedBy="James" />

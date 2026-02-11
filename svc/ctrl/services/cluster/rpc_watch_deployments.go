@@ -2,12 +2,15 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // WatchDeployments streams deployment state changes from the control plane to agents.
@@ -50,7 +53,7 @@ func (s *Service) WatchDeployments(
 
 		states, err := s.fetchDeploymentStates(ctx, region, versionCursor)
 		if err != nil {
-			s.logger.Error("failed to fetch deployment states", "error", err)
+			logger.Error("failed to fetch deployment states", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
 		}
 
@@ -86,7 +89,7 @@ func (s *Service) fetchDeploymentStates(ctx context.Context, region string, afte
 	for _, row := range rows {
 		state, err := s.deploymentRowToState(row)
 		if err != nil {
-			s.logger.Error("failed to convert deployment row to state", "error", err, "deploymentId", row.Deployment.ID)
+			logger.Error("failed to convert deployment row to state", "error", err, "deploymentId", row.Deployment.ID)
 			continue
 		}
 		states = append(states, state)
@@ -116,27 +119,40 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 			buildID = &row.Deployment.BuildID.String
 		}
 
+		apply := &ctrlv1.ApplyDeployment{
+			DeploymentId:                  row.Deployment.ID,
+			K8SNamespace:                  row.K8sNamespace.String,
+			K8SName:                       row.Deployment.K8sName,
+			WorkspaceId:                   row.Deployment.WorkspaceID,
+			ProjectId:                     row.Deployment.ProjectID,
+			EnvironmentId:                 row.Deployment.EnvironmentID,
+			Replicas:                      row.DeploymentTopology.DesiredReplicas,
+			Image:                         row.Deployment.Image.String,
+			CpuMillicores:                 int64(row.Deployment.CpuMillicores),
+			MemoryMib:                     int64(row.Deployment.MemoryMib),
+			EncryptedEnvironmentVariables: row.Deployment.EncryptedEnvironmentVariables,
+			BuildId:                       buildID,
+			Command:                       row.Deployment.Command,
+			Port:                          row.Deployment.Port,
+			ShutdownSignal:                string(row.Deployment.ShutdownSignal),
+		}
+
+		if row.Deployment.Healthcheck.Valid {
+			hcBytes, err := json.Marshal(row.Deployment.Healthcheck.Healthcheck)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal healthcheck: %w", err)
+			}
+			apply.Healthcheck = hcBytes
+		}
+
 		return &ctrlv1.DeploymentState{
 			Version: row.DeploymentTopology.Version,
 			State: &ctrlv1.DeploymentState_Apply{
-				Apply: &ctrlv1.ApplyDeployment{
-					DeploymentId:                  row.Deployment.ID,
-					K8SNamespace:                  row.K8sNamespace.String,
-					K8SName:                       row.Deployment.K8sName,
-					WorkspaceId:                   row.Deployment.WorkspaceID,
-					ProjectId:                     row.Deployment.ProjectID,
-					EnvironmentId:                 row.Deployment.EnvironmentID,
-					Replicas:                      row.DeploymentTopology.DesiredReplicas,
-					Image:                         row.Deployment.Image.String,
-					CpuMillicores:                 int64(row.Deployment.CpuMillicores),
-					MemoryMib:                     int64(row.Deployment.MemoryMib),
-					EncryptedEnvironmentVariables: row.Deployment.EncryptedEnvironmentVariables,
-					BuildId:                       buildID,
-				},
+				Apply: apply,
 			},
 		}, nil
 	default:
-		s.logger.Error("unhandled deployment topology desired status", "status", row.DeploymentTopology.DesiredStatus)
+		logger.Error("unhandled deployment topology desired status", "status", row.DeploymentTopology.DesiredStatus)
 		return nil, nil
 	}
 }

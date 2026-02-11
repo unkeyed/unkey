@@ -10,9 +10,8 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/otel",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/otel/logging",
+        "//pkg/logger",
         "//pkg/otel/tracing",
-        "//pkg/shutdown",
         "//pkg/version",
         "@com_github_shirou_gopsutil_v4//cpu",
         "@com_github_shirou_gopsutil_v4//mem",
