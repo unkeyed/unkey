@@ -39,24 +39,9 @@ export function ScrollToBottomButton() {
       aria-label="Scroll to bottom of build logs"
     >
       {/* Shimmer animation overlay */}
-      <div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-[150%]"
-        style={{
-          animation: "shimmer 1.2s ease-in-out infinite",
-        }}
-      />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
       <span className="text-xs text-infoA-11 font-medium relative z-10">Building...</span>
       <ChevronDown iconSize="sm-regular" className="text-info-11 relative z-10" />
-      <style jsx>{`
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-      `}</style>
     </button>
   );
 }
