@@ -1,7 +1,13 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@unkey/ui";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect } from "react";
 import { useProject } from "../layout-provider";
@@ -12,7 +18,9 @@ import { RuntimeScalingSettings } from "./components/runtime-scaling-settings";
 
 export default function SettingsPage() {
   const { projectId } = useProject();
-  const { data: environments } = trpc.deploy.environment.list.useQuery({ projectId });
+  const { data: environments } = trpc.deploy.environment.list.useQuery({
+    projectId,
+  });
   const [environmentId, setEnvironmentId] = useQueryState(
     "environmentId",
     parseAsString.withOptions({
@@ -35,13 +43,20 @@ export default function SettingsPage() {
         </div>
         <div className="flex flex-col w-full gap-6">
           <section>
-            <h2 className="text-accent-12 font-medium text-base mb-3">Source</h2>
+            <h2 className="text-accent-12 font-medium text-base mb-3">
+              Source
+            </h2>
             <GitHubSettingsClient projectId={projectId} />
           </section>
           <div className="w-full border-b border-gray-4" />
           <div className="w-full">
-            <label className="text-accent-12 font-medium text-base mb-3 block">Environment</label>
-            <Select value={environmentId ?? undefined} onValueChange={setEnvironmentId}>
+            <h2 className="text-accent-12 font-medium text-base mb-3 block">
+              Environment
+            </h2>
+            <Select
+              value={environmentId ?? undefined}
+              onValueChange={setEnvironmentId}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select environment" />
               </SelectTrigger>
@@ -57,15 +72,21 @@ export default function SettingsPage() {
           {environmentId !== null && (
             <div key={environmentId} className="flex flex-col w-full gap-6">
               <section>
-                <h2 className="text-accent-12 font-medium text-base mb-3">Build</h2>
+                <h3 className="text-accent-12 font-medium text-base mb-3">
+                  Build
+                </h3>
                 <BuildSettings environmentId={environmentId} />
               </section>
               <section>
-                <h2 className="text-accent-12 font-medium text-base mb-3">Runtime</h2>
+                <h3 className="text-accent-12 font-medium text-base mb-3">
+                  Runtime
+                </h3>
                 <RuntimeApplicationSettings environmentId={environmentId} />
               </section>
               <section>
-                <h2 className="text-accent-12 font-medium text-base mb-3">Scaling</h2>
+                <h3 className="text-accent-12 font-medium text-base mb-3">
+                  Scaling
+                </h3>
                 <RuntimeScalingSettings environmentId={environmentId} />
               </section>
             </div>
