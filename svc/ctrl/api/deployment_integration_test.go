@@ -25,6 +25,13 @@ func (m *mockDeployService) Deploy(ctx restate.WorkflowSharedContext, req *hydra
 	return &hydrav1.DeployResponse{}, nil
 }
 
+// mockDeploymentService stubs the DeploymentService (state-change RPCs) for tests
+// that need the service registered in Restate but don't exercise its methods.
+type mockDeploymentService struct {
+	hydrav1.UnimplementedDeploymentServiceServer
+	requests chan *hydrav1.DeployRequest
+}
+
 func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 	requests := make(chan *hydrav1.DeployRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
