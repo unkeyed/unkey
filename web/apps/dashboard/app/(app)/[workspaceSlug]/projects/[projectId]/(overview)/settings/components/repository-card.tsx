@@ -1,17 +1,10 @@
 "use client";
 
 import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
+import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
-import {
-  Button,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SettingCard,
-  toast,
-} from "@unkey/ui";
+import { Button, SettingCard, toast } from "@unkey/ui";
+import { useMemo, useState } from "react";
 
 type Props = {
   projectId: string;
@@ -27,6 +20,7 @@ export const RepositoryCard: React.FC<Props> = ({
   isDisconnecting,
 }) => {
   const utils = trpc.useUtils();
+  const [selectedRepo, setSelectedRepo] = useState("");
 
   const { data: reposData, isLoading: isLoadingRepos } = trpc.github.listRepositories.useQuery(
     { projectId },
@@ -45,7 +39,18 @@ export const RepositoryCard: React.FC<Props> = ({
     },
   });
 
+  const repoOptions = useMemo(
+    () =>
+      (reposData?.repositories ?? []).map((repo) => ({
+        value: `${repo.installationId}:${repo.id}`,
+        label: repo.fullName,
+        searchValue: repo.fullName,
+      })),
+    [reposData?.repositories],
+  );
+
   const handleSelectRepository = (value: string) => {
+    setSelectedRepo(value);
     const repo = reposData?.repositories.find((r) => `${r.installationId}:${r.id}` === value);
     if (!repo) {
       return;
@@ -102,22 +107,15 @@ export const RepositoryCard: React.FC<Props> = ({
       <div className="flex justify-end w-full max-w-[280px]">
         {isLoadingRepos ? (
           <div className="h-9 w-full bg-grayA-3 animate-pulse rounded-lg" />
-        ) : reposData?.repositories.length ? (
-          <Select onValueChange={handleSelectRepository} disabled={selectRepoMutation.isLoading}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a repository..." />
-            </SelectTrigger>
-            <SelectContent>
-              {reposData.repositories.map((repo) => (
-                <SelectItem
-                  key={`${repo.installationId}:${repo.id}`}
-                  value={`${repo.installationId}:${repo.id}`}
-                >
-                  {repo.fullName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        ) : repoOptions.length ? (
+          <Combobox
+            options={repoOptions}
+            value={selectedRepo}
+            onSelect={handleSelectRepository}
+            placeholder="Select a repository..."
+            searchPlaceholder="Filter repositories..."
+            disabled={selectRepoMutation.isLoading}
+          />
         ) : (
           <span className="text-gray-9 text-sm">No repositories found.</span>
         )}
