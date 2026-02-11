@@ -65,7 +65,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	projectID := uid.New(uid.ProjectPrefix)
 	projectSlug := fmt.Sprintf("%s-api", slug)
 	projectName := fmt.Sprintf("%s API", titleCase)
-	envID := fmt.Sprintf("env_%s", slug)
 	rootWorkspaceID := "ws_unkey"
 	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
 	rootApiID := "api_unkey"
@@ -87,6 +86,9 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		"name", projectName,
 		"slug", projectSlug,
 	)
+
+	previewEnvID := uid.New(uid.EnvironmentPrefix)
+	productionEnvID := uid.New(uid.EnvironmentPrefix)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -126,9 +128,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		if err != nil {
 			return fmt.Errorf("failed to create project: %w", err)
 		}
-
-		previewEnvID := uid.New(uid.EnvironmentPrefix)
-		productionEnvID := uid.New(uid.EnvironmentPrefix)
 
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
 			{
@@ -416,7 +415,8 @@ UNKEY_ROOT_KEY=%s
 	logger.Info("seed completed",
 		"workspace", workspaceID,
 		"project", projectID,
-		"environment", envID,
+		"preview_environment", previewEnvID,
+		"production_environment", productionEnvID,
 		"api", userApiID,
 		"keySpace", userKeySpaceID,
 		"rootKey", keyResult.Key,
