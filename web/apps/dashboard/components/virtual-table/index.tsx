@@ -1,10 +1,5 @@
 import { cn } from "@/lib/utils";
-import {
-  CaretDown,
-  CaretExpandY,
-  CaretUp,
-  CircleCaretRight,
-} from "@unkey/icons";
+import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
 import {
   Fragment,
@@ -21,12 +16,7 @@ import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
-import type {
-  Column,
-  SeparatorItem,
-  SortDirection,
-  VirtualTableProps,
-} from "./types";
+import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
 const MOBILE_TABLE_HEIGHT = 400;
 
@@ -88,19 +78,13 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     // Merge configs, allowing specific overrides
     const config = { ...DEFAULT_CONFIG, ...userConfig };
     const isGridLayout = config.layoutMode === "grid";
-    const parentRef = useRef<HTMLDivElement>(
-      null,
-    ) as React.RefObject<HTMLDivElement>;
-    const containerRef = useRef<HTMLDivElement>(
-      null,
-    ) as React.RefObject<HTMLDivElement>;
+    const parentRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+    const containerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     // Default to false (desktop) to prevent hydration mismatches
     const isMobile = useIsMobile({ defaultValue: false });
 
     // Track expansion state internally if not controlled
-    const [internalExpandedIds, setInternalExpandedIds] = useState<
-      Set<string | number>
-    >(new Set());
+    const [internalExpandedIds, setInternalExpandedIds] = useState<Set<string | number>>(new Set());
     const expandedIds = controlledExpandedIds ?? internalExpandedIds;
 
     // Toggle expansion
@@ -138,9 +122,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         const typedItem = item as TTableData;
         const id = String(keyExtractor(typedItem));
         const isExpanded = expandedIds.has(id);
-        return isExpanded
-          ? config.rowHeight + expandedRowHeight
-          : config.rowHeight;
+        return isExpanded ? config.rowHeight + expandedRowHeight : config.rowHeight;
       };
     }, [
       renderExpanded,
@@ -210,9 +192,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                       column.cellClassName,
                     )}
                   >
-                    <div className="truncate text-accent-12">
-                      {column.header}
-                    </div>
+                    <div className="truncate text-accent-12">{column.header}</div>
                   </th>
                 ))}
               </tr>
@@ -224,9 +204,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
             </thead>
           </table>
           {emptyState ? (
-            <div className="flex-1 flex items-center justify-center">
-              {emptyState}
-            </div>
+            <div className="flex-1 flex items-center justify-center">{emptyState}</div>
           ) : (
             <EmptyState />
           )}
@@ -239,11 +217,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
         <div
           ref={parentRef}
           className={containerClassName}
-          style={
-            isMobile
-              ? { height: MOBILE_TABLE_HEIGHT }
-              : { height: `${fixedHeight}px` }
-          }
+          style={isMobile ? { height: MOBILE_TABLE_HEIGHT } : { height: `${fixedHeight}px` }}
         >
           <table className={tableClassName}>
             <colgroup>
@@ -293,9 +267,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     return (
                       <tr
                         key={`skeleton-${virtualRow.key}`}
-                        className={cn(
-                          config.rowBorders && "border-b border-gray-4",
-                        )}
+                        className={cn(config.rowBorders && "border-b border-gray-4")}
                         style={{ height: `${config.rowHeight}px` }}
                       >
                         {renderSkeletonRow({
@@ -308,16 +280,11 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   return (
                     <tr
                       key={`skeleton-${virtualRow.key}`}
-                      className={cn(
-                        config.rowBorders && "border-b border-gray-4",
-                      )}
+                      className={cn(config.rowBorders && "border-b border-gray-4")}
                       style={{ height: `${config.rowHeight}px` }}
                     >
                       {columns.map((column) => (
-                        <td
-                          key={column.key}
-                          className={cn("pr-4", column.cellClassName)}
-                        >
+                        <td key={column.key} className={cn("pr-4", column.cellClassName)}>
                           <div className="h-4 bg-accent-3 rounded animate-pulse" />
                         </td>
                       ))}
@@ -334,10 +301,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 if (separator.isSeparator) {
                   return (
                     <Fragment key={`row-group-${virtualRow.key}`}>
-                      <tr
-                        key={`spacer-${virtualRow.key}`}
-                        style={{ height: "4px" }}
-                      />
+                      <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
                       <tr key={`content-${virtualRow.key}`}>
                         <td colSpan={columns.length} className="p-0">
                           <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
@@ -380,8 +344,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           if (event.key === "Escape") {
                             event.preventDefault();
                             onRowClick?.(null);
-                            const activeElement =
-                              document.activeElement as HTMLElement;
+                            const activeElement = document.activeElement as HTMLElement;
                             activeElement?.blur();
                           }
                           if (event.key === "ArrowDown" || event.key === "j") {
@@ -458,8 +421,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         if (event.key === "Escape") {
                           event.preventDefault();
                           onRowClick?.(null);
-                          const activeElement =
-                            document.activeElement as HTMLElement;
+                          const activeElement = document.activeElement as HTMLElement;
                           activeElement?.blur();
                         }
                         if (event.key === "ArrowDown" || event.key === "j") {
@@ -519,9 +481,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 style={{
                   height: `${
                     virtualizer.getTotalSize() -
-                    (virtualizer.getVirtualItems()[
-                      virtualizer.getVirtualItems().length - 1
-                    ]?.end || 0)
+                    (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end ||
+                      0)
                   }px`,
                 }}
               />
@@ -560,11 +521,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
       return;
     }
 
-    const nextDirection = direction
-      ? direction === "asc"
-        ? "desc"
-        : null
-      : "asc";
+    const nextDirection = direction ? (direction === "asc" ? "desc" : null) : "asc";
 
     onSort(nextDirection);
   };

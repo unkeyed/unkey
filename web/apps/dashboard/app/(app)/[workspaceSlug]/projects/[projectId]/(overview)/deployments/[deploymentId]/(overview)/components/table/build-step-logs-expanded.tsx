@@ -1,14 +1,9 @@
-import { CopyButton, TimestampInfo } from "@unkey/ui";
-import { format } from "date-fns";
+import { TimestampInfo } from "@unkey/ui";
 import type { BuildStepRow } from "./columns/build-steps";
 
 export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
   if (!step.logs || step.logs.length === 0) {
-    return (
-      <div className="px-8 py-4 text-sm text-gray-9">
-        No logs available for this step
-      </div>
-    );
+    return <div className="px-8 py-4 text-sm text-gray-9">No logs available for this step</div>;
   }
 
   return (

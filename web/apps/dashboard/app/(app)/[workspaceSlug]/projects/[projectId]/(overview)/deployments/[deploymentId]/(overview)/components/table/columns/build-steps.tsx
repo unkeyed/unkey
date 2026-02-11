@@ -1,12 +1,9 @@
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
-import type {
-  BuildStep,
-  BuildStepLog,
-} from "@unkey/clickhouse/src/build-steps";
-import { Bolt, TriangleWarning, CaretRight } from "@unkey/icons";
-import { TimestampInfo, InfoTooltip } from "@unkey/ui";
+import type { BuildStep, BuildStepLog } from "@unkey/clickhouse/src/build-steps";
+import { Bolt, CaretRight, TriangleWarning } from "@unkey/icons";
+import { InfoTooltip, TimestampInfo } from "@unkey/ui";
 
 export type BuildStepRow = BuildStep & {
   logs?: Omit<BuildStepLog, "step_id">[];

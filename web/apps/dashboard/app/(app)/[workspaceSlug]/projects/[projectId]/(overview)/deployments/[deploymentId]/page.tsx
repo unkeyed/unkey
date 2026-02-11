@@ -1,17 +1,17 @@
 "use client";
 
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { Cube } from "@unkey/icons";
+import { Card } from "@unkey/ui";
+import { useParams } from "next/navigation";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
+import { Section, SectionHeader } from "../../../components/section";
 import { useProject } from "../../layout-provider";
 import { DeploymentDomainsSection } from "./(overview)/components/sections/deployment-domains-section";
 import { DeploymentInfoSection } from "./(overview)/components/sections/deployment-info-section";
 import { DeploymentLogsSection } from "./(overview)/components/sections/deployment-logs-section";
 import { DeploymentNetworkSection } from "./(overview)/components/sections/deployment-network-section";
-import { useParams } from "next/navigation";
-import { Card } from "@unkey/ui";
 import { DeploymentBuildStepsTable } from "./(overview)/components/table/deployment-build-steps-table";
-import { Section, SectionHeader } from "../../../components/section";
-import { Cube } from "@unkey/icons";
 
 export default function DeploymentOverview() {
   const { collections } = useProject();
