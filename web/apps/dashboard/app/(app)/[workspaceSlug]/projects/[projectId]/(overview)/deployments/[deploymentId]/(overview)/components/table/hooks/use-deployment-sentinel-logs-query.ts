@@ -1,13 +1,12 @@
 import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { useParams } from "next/navigation";
-import { useProject } from "../../../../../../layout-provider";
+import { useProjectData } from "../../../../../../data-provider";
+import { useDeployment } from "../../../../layout-provider";
 
 export function useDeploymentSentinelLogsQuery() {
-  const params = useParams();
-  const deploymentId = (params?.deploymentId as string) ?? "";
-  const { projectId } = useProject();
+  const { deploymentId } = useDeployment();
+  const { projectId } = useProjectData();
 
   const deployment = useLiveQuery(
     (q) =>

@@ -4,20 +4,20 @@ import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Bolt, Cloud, Grid, Harddrive, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
-import { useParams } from "next/navigation";
 import { ActiveDeploymentCard } from "../../../../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../../../../components/deployment-status-badge";
 import { DisabledWrapper } from "../../../../../../components/disabled-wrapper";
 import { InfoChip } from "../../../../../../components/info-chip";
 import { RegionFlags } from "../../../../../../components/region-flags";
 import { Section, SectionHeader } from "../../../../../../components/section";
-import { useProject } from "../../../../../layout-provider";
+import { useProjectData } from "../../../../../data-provider";
+import { useProjectLayout } from "../../../../../layout-provider";
+import { useDeployment } from "../../../layout-provider";
 
 export function DeploymentInfoSection() {
-  const params = useParams();
-  const deploymentId = params?.deploymentId as string;
-
-  const { projectId, setIsDetailsOpen, isDetailsOpen } = useProject();
+  const { deploymentId } = useDeployment();
+  const { projectId } = useProjectData();
+  const { setIsDetailsOpen, isDetailsOpen } = useProjectLayout();
   const { data } = useLiveQuery(
     (q) =>
       q

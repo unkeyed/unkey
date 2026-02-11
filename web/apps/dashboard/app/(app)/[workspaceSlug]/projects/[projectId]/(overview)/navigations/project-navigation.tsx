@@ -21,7 +21,6 @@ import { useBreadcrumbConfig } from "./use-breadcrumb-config";
 
 const BORDER_OFFSET = 1;
 type ProjectNavigationProps = {
-  projectId: string;
   onMount: (distanceToTop: number) => void;
   onClick: () => void;
   isDetailsOpen: boolean;
@@ -29,7 +28,6 @@ type ProjectNavigationProps = {
 };
 
 export const ProjectNavigation = ({
-  projectId,
   onMount,
   isDetailsOpen,
   liveDeploymentId,
@@ -43,7 +41,7 @@ export const ProjectNavigation = ({
     })),
   );
 
-  const { project } = useProjectData();
+  const { projectId, project } = useProjectData();
   const activeProject = project ? { id: project.id, name: project.name } : undefined;
 
   const basePath = `/${workspace.slug}/projects`;

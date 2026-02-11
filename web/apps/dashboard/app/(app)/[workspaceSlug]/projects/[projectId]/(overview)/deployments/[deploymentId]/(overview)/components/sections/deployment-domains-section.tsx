@@ -1,15 +1,13 @@
 "use client";
 
 import { Earth } from "@unkey/icons";
-import { useParams } from "next/navigation";
 import { Section, SectionHeader } from "../../../../../../components/section";
-import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "../../../../../details/domain-row";
+import { DomainRow, EmptySection, DomainRowSkeleton } from "../../../../../details/domain-row";
 import { useProjectData } from "../../../../../data-provider";
+import { useDeployment } from "../../../layout-provider";
 
 export function DeploymentDomainsSection() {
-  const params = useParams();
-  const deploymentId = params?.deploymentId as string;
-
+  const { deploymentId } = useDeployment();
   const { getDomainsForDeployment, isDomainsLoading } = useProjectData();
   const domains = getDomainsForDeployment(deploymentId);
   return (
@@ -29,7 +27,7 @@ export function DeploymentDomainsSection() {
             <DomainRow key={domain.id} domain={domain.fullyQualifiedDomainName} />
           ))
         ) : (
-          <DomainRowEmpty
+          <EmptySection
             title="No domains found"
             description="Your configured domains will appear here once they're set up and verified."
           />

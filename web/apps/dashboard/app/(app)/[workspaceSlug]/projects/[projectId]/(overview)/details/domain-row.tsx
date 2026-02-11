@@ -61,7 +61,7 @@ type DomainRowEmptyProps = PropsWithChildren<{
   className?: string;
 }>;
 
-export const DomainRowEmpty = ({
+export const EmptySection = ({
   title,
   description,
   children,

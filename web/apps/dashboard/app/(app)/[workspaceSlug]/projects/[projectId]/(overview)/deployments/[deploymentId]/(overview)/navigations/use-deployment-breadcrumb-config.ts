@@ -6,6 +6,8 @@ import { shortenId } from "@/lib/shorten-id";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 import type { ComponentPropsWithoutRef } from "react";
+import { useDeployment } from "../../layout-provider";
+import { useProjectData } from "../../../../data-provider";
 
 export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.Link> & {
   /** Unique identifier for the breadcrumb item */
@@ -25,8 +27,8 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
   const segments = useSelectedLayoutSegments();
 
   const workspaceSlug = params.workspaceSlug as string;
-  const projectId = params.projectId as string;
-  const deploymentId = params.deploymentId as string;
+  const { projectId } = useProjectData();
+  const { deploymentId } = useDeployment();
 
   // Detect current tab from segments
   const currentTab = segments.includes("network")

@@ -10,12 +10,13 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ProjectContentWrapper } from "../../components/project-content-wrapper";
 import { Card } from "../components/card";
-import { useProject } from "../layout-provider";
+import { useProjectData } from "../data-provider";
 import { DiffViewerContent } from "./components/client";
 import { DeploymentSelect } from "./components/deployment-select";
 
 export default function DiffPage() {
-  const { projectId, liveDeploymentId } = useProject();
+  const { projectId, project } = useProjectData();
+  const liveDeploymentId = project?.liveDeploymentId;
   const searchParams = useSearchParams();
 
   const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");

@@ -4,11 +4,7 @@ import { useProjectData } from "../../data-provider";
 import { DetailSection } from "./detail-section";
 import { createDetailSections } from "./sections";
 
-type ProjectDetailsContentProps = {
-  projectId: string;
-};
-
-export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps) => {
+export const ProjectDetailsContent = () => {
   const { getDomainsForDeployment, project, getDeploymentById } = useProjectData();
 
   const deployment = project?.liveDeploymentId

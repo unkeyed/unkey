@@ -1,8 +1,11 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { BracketsCurly, ChevronDown, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
-import { DomainRowEmpty } from "../domain-row";
+import { useProjectData } from "../../data-provider";
+import { EmptySection } from "../domain-row";
 import { AddEnvVars } from "./add-env-vars";
 import { EnvVarRow } from "./env-var-row";
 import { useEnvVarsManager } from "./hooks/use-env-var-manager";
@@ -11,7 +14,6 @@ import type { Environment } from "./types";
 type EnvironmentVariablesSectionProps = {
   icon: ReactNode;
   title: string;
-  projectId: string;
   environment: Environment;
 };
 
@@ -25,10 +27,10 @@ const ANIMATION_CONFIG = {
 
 export function EnvironmentVariablesSection({
   icon,
-  projectId,
   environment,
   title,
 }: EnvironmentVariablesSectionProps) {
+  const { projectId } = useProjectData();
   const { environmentId, envVars, getExistingEnvVar, invalidate } = useEnvVarsManager({
     projectId,
     environment,
@@ -126,7 +128,7 @@ export function EnvironmentVariablesSection({
             )}
 
             {envVars.length === 0 && !isAddingNew && (
-              <DomainRowEmpty
+              <EmptySection
                 title="No environment variables configured"
                 description="Add environment variables to configure your application's runtime settings."
                 className="border-none"
@@ -141,7 +143,7 @@ export function EnvironmentVariablesSection({
                   <Plus className="!size-3" />
                   Add variable
                 </Button>
-              </DomainRowEmpty>
+              </EmptySection>
             )}
           </div>
         </div>

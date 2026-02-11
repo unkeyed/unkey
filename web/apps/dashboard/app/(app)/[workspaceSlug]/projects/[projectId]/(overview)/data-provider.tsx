@@ -6,9 +6,12 @@ import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { createContext, useContext, useMemo } from "react";
+import { useParams } from "next/navigation";
+import { createContext, PropsWithChildren, useContext, useMemo } from "react";
 
 type ProjectDataContextType = {
+  projectId: string;
+
   project: Project | undefined;
   isProjectLoading: boolean;
 
@@ -32,13 +35,14 @@ type ProjectDataContextType = {
 
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
 
-export const ProjectDataProvider = ({
-  children,
-  projectId,
-}: {
-  children: React.ReactNode;
-  projectId: string;
-}) => {
+export const ProjectDataProvider = ({ children }: PropsWithChildren) => {
+  const params = useParams();
+  const projectId = params?.projectId;
+
+  if (!projectId || typeof projectId !== "string") {
+    throw new Error("ProjectDataProvider must be used within a project route");
+  }
+
   const domainsQuery = useLiveQuery(
     (q) =>
       q
@@ -80,6 +84,8 @@ export const ProjectDataProvider = ({
     const project = projectQuery.data?.at(0);
 
     return {
+      projectId,
+
       project,
       isProjectLoading: projectQuery.isLoading,
 
@@ -111,7 +117,7 @@ export const ProjectDataProvider = ({
         collection.environments.utils.refetch();
       },
     };
-  }, [domainsQuery, deploymentsQuery, projectQuery, environmentsQuery]);
+  }, [projectId, domainsQuery, deploymentsQuery, projectQuery, environmentsQuery]);
 
   return <ProjectDataContext.Provider value={value}>{children}</ProjectDataContext.Provider>;
 };

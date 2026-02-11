@@ -4,7 +4,7 @@ import { type Deployment, collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { Button, DialogContainer, toast } from "@unkey/ui";
-import { useProject } from "../../../../../layout-provider";
+import { useProjectData } from "../../../../../data-provider";
 import { DeploymentSection } from "./components/deployment-section";
 import { DomainsSection } from "./components/domains-section";
 
@@ -23,7 +23,7 @@ export const RollbackDialog = ({
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
 
-  const { projectId } = useProject();
+  const { projectId } = useProjectData();
   const domains = useLiveQuery(
     (q) =>
       q

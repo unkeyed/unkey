@@ -12,20 +12,20 @@ import {
   SettingCard,
   toast,
 } from "@unkey/ui";
+import { useProjectData } from "../../data-provider";
 
 type Props = {
-  projectId: string;
   connectedRepo: string | null;
   onDisconnect: () => void;
   isDisconnecting: boolean;
 };
 
 export const RepositoryCard: React.FC<Props> = ({
-  projectId,
   connectedRepo,
   onDisconnect,
   isDisconnecting,
 }) => {
+  const { projectId } = useProjectData();
   const utils = trpc.useUtils();
 
   const { data: reposData, isLoading: isLoadingRepos } = trpc.github.listRepositories.useQuery(

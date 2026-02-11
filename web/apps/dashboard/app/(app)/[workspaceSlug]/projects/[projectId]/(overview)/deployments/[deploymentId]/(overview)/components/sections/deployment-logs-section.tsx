@@ -4,19 +4,17 @@ import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Layers3 } from "@unkey/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@unkey/ui";
-import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Section } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";
-import { useProject } from "../../../../../layout-provider";
+import { useProjectData } from "../../../../../data-provider";
+import { useDeployment } from "../../../layout-provider";
 import { DeploymentBuildStepsTable } from "../table/deployment-build-steps-table";
 import { DeploymentSentinelLogsTable } from "../table/deployment-sentinel-logs-table";
 
 export function DeploymentLogsSection() {
-  const params = useParams();
-  const deploymentId = params?.deploymentId as string;
-
-  const { projectId } = useProject();
+  const { deploymentId } = useDeployment();
+  const { projectId } = useProjectData();
   const { data } = useLiveQuery(
     (q) =>
       q

@@ -1,9 +1,10 @@
 "use client";
-import { useProject } from "../../../layout-provider";
+import { useProjectData } from "../../../data-provider";
 import { DeploymentNetworkView } from "./deployment-network-view";
 
 export default function DeploymentDetailsPage() {
-  const { projectId, liveDeploymentId } = useProject();
+  const { projectId, project } = useProjectData();
+  const liveDeploymentId = project?.liveDeploymentId;
 
   return <DeploymentNetworkView projectId={projectId} deploymentId={liveDeploymentId} />;
 }

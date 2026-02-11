@@ -10,7 +10,7 @@ import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { CodeBranch, CodeCommit, User } from "@unkey/icons";
 import { Badge, CopyButton } from "@unkey/ui";
 import type React from "react";
-import { useProject } from "../../../../layout-provider";
+import { useProjectData } from "../../../../data-provider";
 import { useSentinelLogsContext } from "../../../context/sentinel-logs-provider";
 
 type Props = {
@@ -19,7 +19,7 @@ type Props = {
 
 export const SentinelLogDetails = ({ distanceToTop }: Props) => {
   const { setSelectedLog, selectedLog: log } = useSentinelLogsContext();
-  const { projectId } = useProject();
+  const { projectId } = useProjectData();
 
   const handleClose = () => {
     setSelectedLog(null);

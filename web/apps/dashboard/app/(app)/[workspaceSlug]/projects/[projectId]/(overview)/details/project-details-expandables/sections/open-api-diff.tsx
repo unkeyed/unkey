@@ -8,7 +8,7 @@ import { ArrowRight } from "@unkey/icons";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { type DiffStatus, StatusIndicator } from "../../../../components/status-indicator";
-import { useProject } from "../../../layout-provider";
+import { useProjectData } from "../../../data-provider";
 
 const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
   if (!data) {
@@ -28,7 +28,8 @@ const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
 
 export const OpenApiDiff = () => {
   const params = useParams();
-  const { projectId, liveDeploymentId } = useProject();
+  const { projectId, project } = useProjectData();
+  const liveDeploymentId = project?.liveDeploymentId;
 
   const query = useLiveQuery(
     (q) =>

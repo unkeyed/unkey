@@ -3,17 +3,18 @@ import { Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
-import { DomainRowEmpty } from "../domain-row";
+import { useProjectData } from "../../data-provider";
+import { EmptySection } from "../domain-row";
 import { AddCustomDomain } from "./add-custom-domain";
 import { CustomDomainRow, CustomDomainRowSkeleton } from "./custom-domain-row";
 import { useCustomDomainsManager } from "./hooks/use-custom-domains-manager";
 
 type CustomDomainsSectionProps = {
-  projectId: string;
   environments: Array<{ id: string; slug: string }>;
 };
 
-export function CustomDomainsSection({ projectId, environments }: CustomDomainsSectionProps) {
+export function CustomDomainsSection({ environments }: CustomDomainsSectionProps) {
+  const { projectId } = useProjectData();
   const { customDomains, isLoading, getExistingDomain, invalidate } = useCustomDomainsManager({
     projectId,
   });
@@ -41,7 +42,6 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
             <CustomDomainRow
               key={domain.id}
               domain={domain}
-              projectId={projectId}
               onDelete={invalidate}
               onRetry={invalidate}
             />
@@ -50,7 +50,6 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
 
         {isAddingNew && (
           <AddCustomDomain
-            projectId={projectId}
             environments={environments}
             getExistingDomain={getExistingDomain}
             onCancel={cancelAdding}
@@ -81,7 +80,7 @@ export function CustomDomainsSection({ projectId, environments }: CustomDomainsS
 
 function EmptyState({ onAdd, hasEnvironments }: { onAdd: () => void; hasEnvironments: boolean }) {
   return (
-    <DomainRowEmpty
+    <EmptySection
       title="No custom domains configured"
       description={
         hasEnvironments
@@ -95,6 +94,6 @@ function EmptyState({ onAdd, hasEnvironments }: { onAdd: () => void; hasEnvironm
           Add domain
         </Button>
       )}
-    </DomainRowEmpty>
+    </EmptySection>
   );
 }

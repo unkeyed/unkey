@@ -5,18 +5,18 @@ import { DeploymentLogsContent } from "./(overview)/details/active-deployment-ca
 import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
 import { CustomDomainsSection } from "./(overview)/details/custom-domains-section";
-import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./(overview)/details/domain-row";
+import { DomainRow, EmptySection, DomainRowSkeleton } from "./(overview)/details/domain-row";
 import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
-import { useProject } from "./(overview)/layout-provider";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
 
 export default function ProjectDetails() {
-  const { projectId, liveDeploymentId } = useProject();
-  const { getDomainsForDeployment, isDomainsLoading, getDeploymentById, project, environments } =
+  const { projectId, getDomainsForDeployment, isDomainsLoading, getDeploymentById, project, environments } =
     useProjectData();
+
+  const liveDeploymentId = project?.liveDeploymentId;
 
   // Get domains for live deployment
   const domains = liveDeploymentId ? getDomainsForDeployment(liveDeploymentId) : [];
@@ -65,7 +65,7 @@ export default function ProjectDetails() {
               <DomainRow key={domain.id} domain={domain.fullyQualifiedDomainName} />
             ))
           ) : (
-            <DomainRowEmpty
+            <EmptySection
               title="No domains found"
               description="Your configured domains will appear here once they're set up and verified."
             />
@@ -78,7 +78,6 @@ export default function ProjectDetails() {
           title="Custom Domains"
         />
         <CustomDomainsSection
-          projectId={projectId}
           environments={environments.map((env) => ({ id: env.id, slug: env.slug }))}
         />
       </Section>
@@ -93,7 +92,6 @@ export default function ProjectDetails() {
               key={env.id}
               icon={<Page2 iconSize="sm-medium" className="text-gray-9" />}
               title={env.slug}
-              projectId={projectId}
               environment={env.slug}
             />
           ))}

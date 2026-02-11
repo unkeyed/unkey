@@ -3,13 +3,12 @@ import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useParams } from "next/navigation";
-import { useProject } from "../../../../layout-provider";
+import { useProjectData } from "../../../../data-provider";
+import { useDeployment } from "../../layout-provider";
 
 export function ScrollToBottomButton() {
-  const params = useParams();
-  const deploymentId = params?.deploymentId as string;
-  const { projectId } = useProject();
+  const { deploymentId } = useDeployment();
+  const { projectId } = useProjectData();
   const deployment = useLiveQuery(
     (q) =>
       q
