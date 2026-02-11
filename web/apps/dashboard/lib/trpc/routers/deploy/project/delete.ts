@@ -1,5 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
@@ -53,6 +53,26 @@ export const deleteProject = workspaceProcedure
           .delete(schema.githubRepoConnections)
           .where(eq(schema.githubRepoConnections.projectId, project.id));
         await tx.delete(schema.deployments).where(eq(schema.deployments.projectId, project.id));
+
+        // Environment-scoped dependents: env vars + build/runtime settings
+        const envRows = await tx.query.environments.findMany({
+          where: (table, { eq }) => eq(table.projectId, project.id),
+          columns: { id: true },
+        });
+        const environmentIds = envRows.map((e) => e.id);
+
+        if (environmentIds.length > 0) {
+          await tx
+            .delete(schema.environmentVariables)
+            .where(inArray(schema.environmentVariables.environmentId, environmentIds));
+          await tx
+            .delete(schema.environmentBuildSettings)
+            .where(inArray(schema.environmentBuildSettings.environmentId, environmentIds));
+          await tx
+            .delete(schema.environmentRuntimeSettings)
+            .where(inArray(schema.environmentRuntimeSettings.environmentId, environmentIds));
+        }
+
         await tx.delete(schema.environments).where(eq(schema.environments.projectId, project.id));
 
         await tx.delete(schema.projects).where(eq(schema.projects.id, project.id));
