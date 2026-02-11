@@ -5,7 +5,6 @@ import { ChartActivity, Layers2, TimeClock } from "@unkey/icons";
 import { useState } from "react";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";
-import { useProjectData } from "../../../../../data-provider";
 import { useDeployment } from "../../../layout-provider";
 import { DeploymentNetworkView } from "../../../network/deployment-network-view";
 import { useDeploymentLatency } from "../../hooks/use-deployment-latency";
@@ -16,7 +15,6 @@ export function DeploymentNetworkSection() {
   const [latencyPercentile, setLatencyPercentile] = useState<keyof typeof PERCENTILE_VALUES>("p50");
 
   const { deploymentId } = useDeployment();
-  const { projectId } = useProjectData();
 
   const { currentRps, timeseries: rpsTimeseries } = useDeploymentRps(deploymentId);
   const { currentLatency, timeseries: latencyTimeseries } = useDeploymentLatency(
@@ -32,7 +30,7 @@ export function DeploymentNetworkSection() {
       />
       <div className="flex gap-2 flex-col">
         <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 h-[600px] gap-2">
-          <DeploymentNetworkView projectId={projectId} deploymentId={deploymentId} />
+          <DeploymentNetworkView />
         </Card>
         <div className="flex gap-2">
           <MetricCard

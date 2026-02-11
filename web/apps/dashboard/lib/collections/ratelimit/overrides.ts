@@ -14,7 +14,7 @@ const schema = z.object({
 });
 export type RatelimitOverride = z.infer<typeof schema>;
 
-export const ratelimitOverrides = createCollection<RatelimitOverride>(
+export const ratelimitOverrides = createCollection<RatelimitOverride, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["ratelimitOverrides"],
