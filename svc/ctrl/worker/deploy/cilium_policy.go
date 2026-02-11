@@ -89,12 +89,12 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 				continue
 			}
 
-			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			policyVersion, err := hydrav1.NewVersioningServiceClient(ctx, topo.Region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+			if err != nil {
+				return fmt.Errorf("failed to get next version for cilium policy %s: %w", spec.k8sName, err)
+			}
 
-				policyVersion, err := hydrav1.NewVersioningServiceClient(ctx, topo.Region).NextVersion().Request(&hydrav1.NextVersionRequest{})
-				if err != nil {
-					return fmt.Errorf("failed to get next version for cilium policy %s: %w", spec.k8sName, err)
-				}
+			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 
 				if hasExisting {
 					return db.Query.UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(runCtx, w.db.RW(), db.UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams{
