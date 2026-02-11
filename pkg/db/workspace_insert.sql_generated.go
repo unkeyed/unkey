@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const insertWorkspace = `-- name: InsertWorkspace :exec
