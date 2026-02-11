@@ -95,7 +95,6 @@ export const ProjectsList = () => {
               author={project.author}
               authorAvatar={project.authorAvatar}
               regions={project.regions}
-              repository={project.gitRepositoryUrl || undefined}
               actions={
                 <ProjectActions projectId={project.id} projectName={project.name}>
                   <Button

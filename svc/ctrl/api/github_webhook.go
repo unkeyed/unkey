@@ -98,6 +98,12 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		return
 	}
 
+	if payload.Repository.Fork {
+		logger.Info("Ignoring push from forked repository", "repository", payload.Repository.FullName)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	branch := extractBranchFromRef(payload.Ref)
 	if branch == "" {
 		logger.Info("Ignoring non-branch push", "ref", payload.Ref)
