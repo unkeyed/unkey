@@ -38,18 +38,15 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 
 	delay := time.Duration(req.GetDelayMillis()) * time.Millisecond
 
-	if delay <= 0 {
-		_, err := hydrav1.NewDeploymentServiceClient(ctx, restate.Key(ctx)).ChangeDesiredState().Request(&hydrav1.ChangeDesiredStateRequest{
-			Nonce: nonce,
-			State: req.GetState(),
-		})
-		return &hydrav1.ScheduleDesiredStateChangeResponse{}, err
+	options := []restate.SendOption{}
+	if delay > 0 {
+		options = append(options, restate.WithDelay(delay))
 	}
 
 	hydrav1.NewDeploymentServiceClient(ctx, restate.Key(ctx)).ChangeDesiredState().Send(&hydrav1.ChangeDesiredStateRequest{
 		Nonce: nonce,
 		State: req.GetState(),
-	}, restate.WithDelay(delay))
+	}, options...)
 
 	return &hydrav1.ScheduleDesiredStateChangeResponse{}, nil
 }
