@@ -5,7 +5,7 @@ import { Link4 } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import type { PropsWithChildren, ReactNode } from "react";
 
-type DomainRowEmptyProps = PropsWithChildren<{
+type EmptySectionProps = PropsWithChildren<{
   title: string;
   description: string;
   icon?: ReactNode;
@@ -18,7 +18,7 @@ export const EmptySection = ({
   children,
   icon = <Link4 className="size-6" />,
   className,
-}: DomainRowEmptyProps) => (
+}: EmptySectionProps) => (
   <Empty
     className={cn(
       "min-h-[150px] rounded-[14px] border border-dashed border-gray-4 bg-gray-1/50",
