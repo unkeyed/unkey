@@ -11,28 +11,34 @@ import (
 )
 
 const listKeysForRefill = `-- name: ListKeysForRefill :many
-SELECT id, workspace_id, refill_amount, remaining_requests, name
-FROM ` + "`" + `keys` + "`" + `
-WHERE refill_amount IS NOT NULL
-  AND deleted_at_m IS NULL
-  AND (remaining_requests IS NULL OR refill_amount > remaining_requests)
-  AND (
-      refill_day IS NULL
-      OR refill_day = ?
-      OR (? = 1 AND refill_day > ?)
-  )
-ORDER BY id
-LIMIT ? OFFSET ?
+SELECT k.pk, k.id, k.workspace_id, k.refill_amount, k.remaining_requests, k.name
+FROM ` + "`" + `keys` + "`" + ` k
+INNER JOIN (
+    SELECT ki.pk
+    FROM ` + "`" + `keys` + "`" + ` ki
+    WHERE ki.refill_amount IS NOT NULL
+      AND ki.deleted_at_m IS NULL
+      AND (ki.remaining_requests IS NULL OR ki.refill_amount > ki.remaining_requests)
+      AND (
+          ki.refill_day IS NULL
+          OR ki.refill_day = ?
+          OR (? = 1 AND ki.refill_day > ?)
+      )
+      AND ki.pk > ?
+    ORDER BY pk
+    LIMIT ?
+) AS batch ON batch.pk = k.pk
 `
 
 type ListKeysForRefillParams struct {
 	TodayDay         sql.NullInt16 `db:"today_day"`
 	IsLastDayOfMonth interface{}   `db:"is_last_day_of_month"`
+	AfterPk          uint64        `db:"after_pk"`
 	Limit            int32         `db:"limit"`
-	Offset           int32         `db:"offset"`
 }
 
 type ListKeysForRefillRow struct {
+	Pk                uint64         `db:"pk"`
 	ID                string         `db:"id"`
 	WorkspaceID       string         `db:"workspace_id"`
 	RefillAmount      sql.NullInt32  `db:"refill_amount"`
@@ -41,7 +47,8 @@ type ListKeysForRefillRow struct {
 }
 
 // ListKeysForRefill returns keys that need their remaining_requests refilled.
-// Uses idx_keys_refill index for efficient lookup.
+// Uses a deferred join on pk for stable cursor-based pagination that avoids
+// OFFSET drift when rows are mutated between batches.
 // Keys are selected if:
 //   - refill_day is NULL (daily refill)
 //   - refill_day matches today's day of month
@@ -49,25 +56,30 @@ type ListKeysForRefillRow struct {
 //
 // Keys are skipped if remaining_requests >= refill_amount (already full).
 //
-//	SELECT id, workspace_id, refill_amount, remaining_requests, name
-//	FROM `keys`
-//	WHERE refill_amount IS NOT NULL
-//	  AND deleted_at_m IS NULL
-//	  AND (remaining_requests IS NULL OR refill_amount > remaining_requests)
-//	  AND (
-//	      refill_day IS NULL
-//	      OR refill_day = ?
-//	      OR (? = 1 AND refill_day > ?)
-//	  )
-//	ORDER BY id
-//	LIMIT ? OFFSET ?
+//	SELECT k.pk, k.id, k.workspace_id, k.refill_amount, k.remaining_requests, k.name
+//	FROM `keys` k
+//	INNER JOIN (
+//	    SELECT ki.pk
+//	    FROM `keys` ki
+//	    WHERE ki.refill_amount IS NOT NULL
+//	      AND ki.deleted_at_m IS NULL
+//	      AND (ki.remaining_requests IS NULL OR ki.refill_amount > ki.remaining_requests)
+//	      AND (
+//	          ki.refill_day IS NULL
+//	          OR ki.refill_day = ?
+//	          OR (? = 1 AND ki.refill_day > ?)
+//	      )
+//	      AND ki.pk > ?
+//	    ORDER BY pk
+//	    LIMIT ?
+//	) AS batch ON batch.pk = k.pk
 func (q *Queries) ListKeysForRefill(ctx context.Context, db DBTX, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error) {
 	rows, err := db.QueryContext(ctx, listKeysForRefill,
 		arg.TodayDay,
 		arg.IsLastDayOfMonth,
 		arg.TodayDay,
+		arg.AfterPk,
 		arg.Limit,
-		arg.Offset,
 	)
 	if err != nil {
 		return nil, err
@@ -77,6 +89,7 @@ func (q *Queries) ListKeysForRefill(ctx context.Context, db DBTX, arg ListKeysFo
 	for rows.Next() {
 		var i ListKeysForRefillRow
 		if err := rows.Scan(
+			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
 			&i.RefillAmount,

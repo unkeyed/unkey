@@ -26,7 +26,10 @@ type Config struct {
 
 // New creates a new key refill service.
 func New(cfg Config) (*Service, error) {
-	if err := assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop() if not needed"); err != nil {
+	if err := assert.All(
+		assert.NotNil(cfg.DB, "DB must not be nil"),
+		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop() if not needed"),
+	); err != nil {
 		return nil, err
 	}
 

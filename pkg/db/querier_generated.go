@@ -1924,25 +1924,31 @@ type Querier interface {
 	//  LIMIT ?
 	ListKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListKeysByKeySpaceIDParams) ([]ListKeysByKeySpaceIDRow, error)
 	// ListKeysForRefill returns keys that need their remaining_requests refilled.
-	// Uses idx_keys_refill index for efficient lookup.
+	// Uses a deferred join on pk for stable cursor-based pagination that avoids
+	// OFFSET drift when rows are mutated between batches.
 	// Keys are selected if:
 	//   - refill_day is NULL (daily refill)
 	//   - refill_day matches today's day of month
 	//   - refill_day > today's day AND today is the last day of month (catch-up for short months)
 	// Keys are skipped if remaining_requests >= refill_amount (already full).
 	//
-	//  SELECT id, workspace_id, refill_amount, remaining_requests, name
-	//  FROM `keys`
-	//  WHERE refill_amount IS NOT NULL
-	//    AND deleted_at_m IS NULL
-	//    AND (remaining_requests IS NULL OR refill_amount > remaining_requests)
-	//    AND (
-	//        refill_day IS NULL
-	//        OR refill_day = ?
-	//        OR (? = 1 AND refill_day > ?)
-	//    )
-	//  ORDER BY id
-	//  LIMIT ? OFFSET ?
+	//  SELECT k.pk, k.id, k.workspace_id, k.refill_amount, k.remaining_requests, k.name
+	//  FROM `keys` k
+	//  INNER JOIN (
+	//      SELECT ki.pk
+	//      FROM `keys` ki
+	//      WHERE ki.refill_amount IS NOT NULL
+	//        AND ki.deleted_at_m IS NULL
+	//        AND (ki.remaining_requests IS NULL OR ki.refill_amount > ki.remaining_requests)
+	//        AND (
+	//            ki.refill_day IS NULL
+	//            OR ki.refill_day = ?
+	//            OR (? = 1 AND ki.refill_day > ?)
+	//        )
+	//        AND ki.pk > ?
+	//      ORDER BY pk
+	//      LIMIT ?
+	//  ) AS batch ON batch.pk = k.pk
 	ListKeysForRefill(ctx context.Context, db DBTX, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error)
 	//ListLiveKeysByKeySpaceID
 	//

@@ -47,24 +47,25 @@ func (s *Service) RunRefill(
 	}
 
 	var totalKeysRefilled int
-	offset := 0
+	var cursor uint64
+	var batchNum int
 
 	isLastDayInt := 0
 	if isLastDay {
 		isLastDayInt = 1
 	}
 
-	// Process keys in batches
+	// Process keys in batches using cursor-based pagination on pk
 	for {
-		// Fetch batch of keys needing refill
+		// Fetch batch of keys needing refill via deferred join on pk
 		keys, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListKeysForRefillRow, error) {
 			return db.Query.ListKeysForRefill(rc, s.db.RO(), db.ListKeysForRefillParams{
 				TodayDay:         sql.NullInt16{Int16: int16(todayDay), Valid: true},
 				IsLastDayOfMonth: isLastDayInt,
+				AfterPk:          cursor,
 				Limit:            batchSize,
-				Offset:           int32(offset),
 			})
-		}, restate.WithName(fmt.Sprintf("fetch keys batch %d", offset/batchSize)))
+		}, restate.WithName(fmt.Sprintf("fetch keys batch %d", batchNum)))
 		if fetchErr != nil {
 			return nil, fmt.Errorf("fetch keys: %w", fetchErr)
 		}
@@ -72,6 +73,9 @@ func (s *Service) RunRefill(
 		if len(keys) == 0 {
 			break
 		}
+
+		// Advance cursor to the last pk in this batch
+		cursor = keys[len(keys)-1].Pk
 
 		// Filter out already processed keys
 		var keysToProcess []db.ListKeysForRefillRow
@@ -82,7 +86,8 @@ func (s *Service) RunRefill(
 		}
 
 		if len(keysToProcess) == 0 {
-			break
+			batchNum++
+			continue
 		}
 
 		// Get current timestamp for updates
@@ -105,7 +110,7 @@ func (s *Service) RunRefill(
 				Now: sql.NullInt64{Int64: now, Valid: true},
 				Ids: keyIDs,
 			})
-		}, restate.WithName(fmt.Sprintf("update keys batch %d", offset/batchSize)))
+		}, restate.WithName(fmt.Sprintf("update keys batch %d", batchNum)))
 		if updateErr != nil {
 			return nil, fmt.Errorf("update keys: %w", updateErr)
 		}
@@ -122,7 +127,7 @@ func (s *Service) RunRefill(
 			}
 
 			return restate.Void{}, nil
-		}, restate.WithName(fmt.Sprintf("insert audit logs batch %d", offset/batchSize)))
+		}, restate.WithName(fmt.Sprintf("insert audit logs batch %d", batchNum)))
 		if auditErr != nil {
 			return nil, fmt.Errorf("insert audit logs: %w", auditErr)
 		}
@@ -134,11 +139,11 @@ func (s *Service) RunRefill(
 
 		restate.Set(ctx, stateKeyProcessedKeys, processedKeys)
 		totalKeysRefilled += len(keysToProcess)
-		offset += len(keys)
+		batchNum++
 
 		// Log progress periodically
-		if offset%1000 == 0 {
-			logger.Info("refill progress", "offset", offset, "refilled", totalKeysRefilled)
+		if totalKeysRefilled%1000 == 0 {
+			logger.Info("refill progress", "cursor", cursor, "refilled", totalKeysRefilled)
 		}
 	}
 
@@ -160,12 +165,13 @@ func (s *Service) RunRefill(
 	}, nil
 }
 
-// parseDateKey parses a date key in "YYYY-MM-DD" format and returns the day of month
-// and whether it's the last day of the month.
+// parseDateKey parses a date key with a "YYYY-MM-DD" prefix and returns the day of month
+// and whether it's the last day of the month. Extra suffix segments (e.g. "YYYY-MM-DD-test-abc")
+// are ignored.
 func parseDateKey(dateKey string) (day int, isLastDay bool, err error) {
 	parts := strings.Split(dateKey, "-")
-	if len(parts) != 3 {
-		return 0, false, fmt.Errorf("expected YYYY-MM-DD format")
+	if len(parts) < 3 {
+		return 0, false, fmt.Errorf("expected at least YYYY-MM-DD format")
 	}
 
 	year, err := strconv.Atoi(parts[0])

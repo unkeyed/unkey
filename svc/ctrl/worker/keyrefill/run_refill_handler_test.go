@@ -45,7 +45,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should have refilled at least 1 key
-		require.GreaterOrEqual(t, resp.KeysRefilled, int32(1))
+		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 		// Audit logs are created internally but not exposed in response
 
 		// Verify the key was refilled
@@ -77,7 +77,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		resp, err := callRunRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		require.GreaterOrEqual(t, resp.KeysRefilled, int32(1))
+		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 
 		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
@@ -170,7 +170,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should have refilled the key (audit logs created internally)
-		require.GreaterOrEqual(t, resp.KeysRefilled, int32(1))
+		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 	})
 
 	t.Run("is idempotent with same date key", func(t *testing.T) {
@@ -202,7 +202,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// First call should refill keys
 		resp1, err := callRunRefill(h, testDateKey)
 		require.NoError(t, err)
-		firstRefilled := resp1.KeysRefilled
+		firstRefilled := resp1.GetKeysRefilled()
 
 		// Second call with same date key should process 0 keys (already processed)
 		resp2, err := callRunRefill(h, testDateKey)
@@ -210,7 +210,7 @@ func TestRunRefill_Integration(t *testing.T) {
 
 		// The second call should not refill any additional keys
 		// (they were marked as processed in state)
-		require.Equal(t, int32(0), resp2.KeysRefilled, "Second call should not refill any keys")
+		require.Equal(t, int32(0), resp2.GetKeysRefilled(), "Second call should not refill any keys")
 		require.Greater(t, firstRefilled, int32(0), "First call should have refilled keys")
 	})
 
@@ -239,7 +239,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		resp, err := callRunRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		require.GreaterOrEqual(t, resp.KeysRefilled, int32(1))
+		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 
 		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)

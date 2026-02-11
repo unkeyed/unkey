@@ -30,7 +30,6 @@ go_test(
         "//pkg/uid",
         "//svc/ctrl/integration/harness",
         "//svc/ctrl/integration/seed",
-        "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],
 )
