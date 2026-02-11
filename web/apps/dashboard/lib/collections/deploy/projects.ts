@@ -8,6 +8,7 @@ const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
+  repositoryFullName: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
   liveDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),

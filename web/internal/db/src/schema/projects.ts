@@ -1,5 +1,5 @@
-import { relations, sql } from "drizzle-orm";
-import { bigint, boolean, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { relations } from "drizzle-orm";
+import { bigint, boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -17,18 +17,12 @@ export const projects = mysqlTable(
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
 
-    // Git configuration
-    gitRepositoryUrl: varchar("git_repository_url", { length: 500 }),
     // this is likely temporary but we need a way to point to the current prod deployment.
     // in the future I think we want to have a special deployment per environment, but for now this is fine
     liveDeploymentId: varchar("live_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
     defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
     depotProjectId: varchar("depot_project_id", { length: 255 }),
-
-    // Default container command override for deployments (e.g., ["./app", "serve"])
-    // If empty, the container's default entrypoint/cmd is used
-    command: json("command").$type<string[]>().notNull().default(sql`('[]')`),
 
     ...deleteProtection,
     ...lifecycleDates,

@@ -529,7 +529,7 @@ var File_hydra_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x19hydra/v1/deployment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\x1a\x1ahydra/v1/certificate.proto\"!\n" +
+	"\x19hydra/v1/deployment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"!\n" +
 	"\x1fScaleDownIdleDeploymentsRequest\"\"\n" +
 	" ScaleDownIdleDeploymentsResponse\"#\n" +
 	"\vDockerImage\x12\x14\n" +
@@ -614,7 +614,6 @@ func file_hydra_v1_deployment_proto_init() {
 	if File_hydra_v1_deployment_proto != nil {
 		return
 	}
-	file_hydra_v1_certificate_proto_init()
 	file_hydra_v1_deployment_proto_msgTypes[4].OneofWrappers = []any{
 		(*DeployRequest_Git)(nil),
 		(*DeployRequest_DockerImage)(nil),

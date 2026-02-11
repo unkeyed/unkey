@@ -10,12 +10,13 @@ import (
 	"time"
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const maxWebhookBodySize = 2 * 1024 * 1024 // 2 MB
@@ -145,7 +146,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			envSlug = "production"
 		}
 
-		env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
+		envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
 			WorkspaceID: project.WorkspaceID,
 			ProjectID:   project.ID,
 			Slug:        envSlug,
@@ -154,6 +155,32 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			logger.Error("failed to find environment", "error", err, "projectId", project.ID, "envSlug", envSlug)
 			http.Error(w, "failed to find environment", http.StatusInternalServerError)
 			return
+		}
+		env := envSettings.Environment
+
+		// Fetch environment variables and build secrets blob
+		envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
+		if err != nil {
+			logger.Error("failed to fetch environment variables", "error", err)
+			http.Error(w, "failed to fetch environment variables", http.StatusInternalServerError)
+			return
+		}
+
+		secretsBlob := []byte{}
+		if len(envVars) > 0 {
+			secretsConfig := &ctrlv1.SecretsConfig{
+				Secrets: make(map[string]string, len(envVars)),
+			}
+			for _, ev := range envVars {
+				secretsConfig.Secrets[ev.Key] = ev.Value
+			}
+
+			secretsBlob, err = protojson.Marshal(secretsConfig)
+			if err != nil {
+				logger.Error("failed to marshal secrets config", "error", err)
+				http.Error(w, "failed to marshal secrets", http.StatusInternalServerError)
+				return
+			}
 		}
 
 		// Create deployment record
@@ -168,8 +195,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			ProjectID:                     project.ID,
 			EnvironmentID:                 env.ID,
 			SentinelConfig:                env.SentinelConfig,
-			EncryptedEnvironmentVariables: []byte{},
-			Command:                       dbtype.StringSlice{},
+			EncryptedEnvironmentVariables: secretsBlob,
+			Command:                       envSettings.Command,
 			Status:                        db.DeploymentsStatusPending,
 			CreatedAt:                     now,
 			UpdatedAt:                     sql.NullInt64{Valid: false},
@@ -180,8 +207,11 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.authorAvatarURL, Valid: gitCommit.authorAvatarURL != ""},
 			GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.timestamp, Valid: gitCommit.timestamp != 0},
 			OpenapiSpec:                   sql.NullString{Valid: false},
-			CpuMillicores:                 256,
-			MemoryMib:                     256,
+			CpuMillicores:                 envSettings.CpuMillicores,
+			MemoryMib:                     envSettings.MemoryMib,
+			Port:                          envSettings.Port,
+			ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.ShutdownSignal),
+			Healthcheck:                   envSettings.Healthcheck,
 		})
 		if err != nil {
 			logger.Error("failed to insert deployment", "error", err)
@@ -207,8 +237,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 					InstallationId: repo.InstallationID,
 					Repository:     payload.Repository.FullName,
 					CommitSha:      payload.After,
-					ContextPath:    ".",          // TODO read from project settings
-					DockerfilePath: "Dockerfile", // TODO read from project settings
+					ContextPath:    envSettings.DockerContext,
+					DockerfilePath: envSettings.Dockerfile,
 				},
 			},
 		})
