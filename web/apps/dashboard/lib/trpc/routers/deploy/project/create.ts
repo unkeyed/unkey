@@ -74,7 +74,7 @@ export const createProject = workspaceProcedure
           workspaceId: ctx.workspace.id,
           name: input.name,
           slug: input.slug,
-          gitRepositoryUrl: input.gitRepositoryUrl ?? null,
+          gitRepositoryUrl: null,
           liveDeploymentId: null,
           isRolledBack: false,
           defaultBranch: "main",
