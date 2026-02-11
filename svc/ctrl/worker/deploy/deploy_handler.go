@@ -123,9 +123,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-	// storing for later to spin this one down
-	previousLiveDeploymentID := project.LiveDeploymentID
-
 	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
 		return db.Query.FindEnvironmentById(runCtx, w.db.RW(), deployment.EnvironmentID)
 	}, restate.WithName("finding environment"))
@@ -435,30 +432,45 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	if !project.IsRolledBack && environment.Slug == "production" {
-		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateProjectDeployments(runCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
-				IsRolledBack:     false,
-				ID:               deployment.ProjectID,
-				LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
-				UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		// Atomically read the current live deployment and swap it to the new one.
+		// This prevents a race where two concurrent deploys both capture the same
+		// previousLiveDeploymentID and one of them never gets scheduled for standby.
+		previousLiveDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
+			return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
+				currentProject, findErr := db.Query.FindProjectById(txCtx, tx, deployment.ProjectID)
+				if findErr != nil {
+					return sql.NullString{}, findErr
+				}
+
+				updateErr := db.Query.UpdateProjectDeployments(txCtx, tx, db.UpdateProjectDeploymentsParams{
+					IsRolledBack:     false,
+					ID:               deployment.ProjectID,
+					LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
+					UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				})
+				if updateErr != nil {
+					return sql.NullString{}, updateErr
+				}
+
+				return currentProject.LiveDeploymentID, nil
 			})
-		}, restate.WithName("updating project live deployment"))
+		}, restate.WithName("swapping project live deployment"))
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	if !project.IsRolledBack && environment.Slug == "production" && previousLiveDeploymentID.Valid {
-		_, err = hydrav1.NewDeploymentServiceClient(ctx, previousLiveDeploymentID.String).
-			ScheduleDesiredStateChange().Request(
-			&hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis: (30 * time.Minute).Milliseconds(),
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
-			},
-			restate.WithIdempotencyKey(deployment.ID),
-		)
-		if err != nil {
-			return nil, err
+		if previousLiveDeploymentID.Valid {
+			_, err = hydrav1.NewDeploymentServiceClient(ctx, previousLiveDeploymentID.String).
+				ScheduleDesiredStateChange().Request(
+				&hydrav1.ScheduleDesiredStateChangeRequest{
+					DelayMillis: (30 * time.Minute).Milliseconds(),
+					State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+				},
+				restate.WithIdempotencyKey(deployment.ID),
+			)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

@@ -3,6 +3,7 @@ package deployment
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -56,8 +57,8 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 // if no transition exists (already applied and cleared) or the nonce mismatches
 // (a newer schedule has superseded this one), the call returns successfully
 // without making any changes. On match, it maps the protobuf state enum to the
-// database representation, updates the deployment's desired state, and clears
-// the stored transition.
+// database representation, updates the deployment's desired state and all
+// topology entries, and clears the stored transition.
 func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.ChangeDesiredStateRequest) (*hydrav1.ChangeDesiredStateResponse, error) {
 
 	deploymentID := restate.Key(ctx)
@@ -76,13 +77,17 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 
 	var desiredState db.DeploymentsDesiredState
+	var topologyDesiredStatus db.DeploymentTopologyDesiredStatus
 	switch req.GetState() {
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING:
 		desiredState = db.DeploymentsDesiredStateRunning
+		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStarted
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY:
 		desiredState = db.DeploymentsDesiredStateStandby
+		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_ARCHIVED:
 		desiredState = db.DeploymentsDesiredStateArchived
+		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED:
 		return nil, restate.TerminalErrorf("invalid state: %s", req.GetState())
 	default:
@@ -121,6 +126,35 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Update all topology entries so WatchDeployments picks up the change.
+	// Each region needs a new version from VersioningService.
+	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
+		return db.Query.FindDeploymentRegions(runCtx, v.db.RO(), deploymentID)
+	}, restate.WithName("find deployment regions"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to find deployment regions: %w", err)
+	}
+
+	for _, region := range regions {
+		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get next version for region %s: %w", region, err)
+		}
+
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return db.Query.UpdateDeploymentTopologyDesiredStatus(runCtx, v.db.RW(), db.UpdateDeploymentTopologyDesiredStatusParams{
+				DesiredStatus: topologyDesiredStatus,
+				Version:       versionResp.GetVersion(),
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				DeploymentID:  deploymentID,
+				Region:        region,
+			})
+		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region)))
+		if err != nil {
+			return nil, fmt.Errorf("failed to update topology desired status in %s: %w", region, err)
+		}
 	}
 
 	restate.Clear(ctx, transitionKey)
