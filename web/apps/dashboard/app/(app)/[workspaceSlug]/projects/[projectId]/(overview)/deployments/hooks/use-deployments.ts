@@ -9,24 +9,6 @@ export const useDeployments = () => {
   const { projectId } = useProject();
   const { filters } = useFilters();
 
-  const project = useLiveQuery((q) => {
-    return q
-      .from({ project: collection.projects })
-      .where(({ project }) => eq(project.id, projectId))
-      .orderBy(({ project }) => project.id, "asc")
-      .limit(1);
-  }).data.at(0);
-  const liveDeploymentId = project?.liveDeploymentId;
-  const liveDeployment = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId))
-        .where(({ deployment }) => eq(deployment.id, liveDeploymentId))
-        .orderBy(({ deployment }) => deployment.createdAt, "desc")
-        .limit(1),
-    [projectId, liveDeploymentId],
-  ).data.at(0);
   const deployments = useLiveQuery(
     (q) => {
       // Query filtered environments
@@ -116,8 +98,6 @@ export const useDeployments = () => {
   );
 
   return {
-    project,
     deployments,
-    liveDeployment,
   };
 };

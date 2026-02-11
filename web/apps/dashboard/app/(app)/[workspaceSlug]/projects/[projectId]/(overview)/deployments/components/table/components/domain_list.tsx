@@ -13,7 +13,7 @@ export const DomainList = ({ deploymentId, status }: Props) => {
 
   // Show placeholder for failed deployments
   if (status === "failed") {
-    return <span className="text-xs text-gray-9 font-mono">—</span>;
+    return <span className="text-xs text-gray-9">—</span>;
   }
 
   // Only show skeleton when actually loading

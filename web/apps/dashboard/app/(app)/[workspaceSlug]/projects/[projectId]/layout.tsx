@@ -1,9 +1,7 @@
 "use client";
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { usePathname } from "next/navigation";
 import { use, useState } from "react";
-import { ProjectDataProvider } from "./(overview)/data-provider";
+import { ProjectDataProvider, useProjectData } from "./(overview)/data-provider";
 import { ProjectDetailsExpandable } from "./(overview)/details/project-details-expandables";
 import { ProjectLayoutContext } from "./(overview)/layout-provider";
 import { ProjectNavigation } from "./(overview)/navigations/project-navigation";
@@ -27,6 +25,14 @@ type ProjectLayoutProps = {
 };
 
 const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
+  return (
+    <ProjectDataProvider projectId={projectId}>
+      <ProjectLayoutInner projectId={projectId}>{children}</ProjectLayoutInner>
+    </ProjectDataProvider>
+  );
+};
+
+const ProjectLayoutInner = ({ projectId, children }: ProjectLayoutProps) => {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -34,43 +40,38 @@ const ProjectLayout = ({ projectId, children }: ProjectLayoutProps) => {
   const isOnDeploymentDetail =
     pathname?.includes("/deployments/") && pathname.split("/").filter(Boolean).length >= 5; // /workspace/projects/projectId/deployments/deploymentId/*
 
-  const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
-  );
-
-  const liveDeploymentId = projects.data.at(0)?.liveDeploymentId;
+  const { project } = useProjectData();
+  const liveDeploymentId = project?.liveDeploymentId;
 
   return (
-    <ProjectDataProvider projectId={projectId}>
-      <ProjectLayoutContext.Provider
-        value={{
-          isDetailsOpen,
-          setIsDetailsOpen,
-          projectId,
-          liveDeploymentId,
-        }}
-      >
-        <div className="h-screen flex flex-col overflow-hidden">
-          {!isOnDeploymentDetail && (
-            <ProjectNavigation
-              projectId={projectId}
-              onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-              isDetailsOpen={isDetailsOpen}
-              liveDeploymentId={liveDeploymentId}
-              onMount={setTableDistanceToTop}
-            />
-          )}
-          <div className="flex flex-1 min-h-0">
-            <div className="flex-1 overflow-auto">{children}</div>
-            <ProjectDetailsExpandable
-              projectId={projectId}
-              tableDistanceToTop={tableDistanceToTop}
-              isOpen={isDetailsOpen && Boolean(liveDeploymentId)}
-              onClose={() => setIsDetailsOpen(false)}
-            />
-          </div>
+    <ProjectLayoutContext.Provider
+      value={{
+        isDetailsOpen,
+        setIsDetailsOpen,
+        projectId,
+        liveDeploymentId,
+      }}
+    >
+      <div className="h-screen flex flex-col overflow-hidden">
+        {!isOnDeploymentDetail && (
+          <ProjectNavigation
+            projectId={projectId}
+            onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+            isDetailsOpen={isDetailsOpen}
+            liveDeploymentId={liveDeploymentId}
+            onMount={setTableDistanceToTop}
+          />
+        )}
+        <div className="flex flex-1 min-h-0">
+          <div className="flex-1 overflow-auto">{children}</div>
+          <ProjectDetailsExpandable
+            projectId={projectId}
+            tableDistanceToTop={tableDistanceToTop}
+            isOpen={isDetailsOpen && Boolean(liveDeploymentId)}
+            onClose={() => setIsDetailsOpen(false)}
+          />
         </div>
-      </ProjectLayoutContext.Provider>
-    </ProjectDataProvider>
+      </div>
+    </ProjectLayoutContext.Provider>
   );
 };

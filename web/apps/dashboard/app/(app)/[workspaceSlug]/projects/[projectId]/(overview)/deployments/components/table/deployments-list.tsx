@@ -31,6 +31,7 @@ import {
   StatusColumnSkeleton,
 } from "./components/skeletons";
 import { getRowClassName } from "./utils/get-row-class";
+import { useProjectData } from "../../../data-provider";
 
 const DeploymentListTableActions = dynamic(
   () =>
@@ -48,7 +49,10 @@ export const DeploymentsList = () => {
     deployment: Deployment;
     environment?: Environment;
   } | null>(null);
-  const { liveDeployment, deployments, project } = useDeployments();
+  const { deployments } = useDeployments();
+  const { project, getDeploymentById } = useProjectData();
+  const liveDeploymentId = project?.liveDeploymentId;
+
 
   const selectedDeploymentId = selectedDeployment?.deployment.id;
 
@@ -77,7 +81,7 @@ export const DeploymentsList = () => {
         width: "15%",
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
-          const isLive = liveDeployment?.id === deployment.id;
+          const isLive = liveDeploymentId === deployment.id;
           const iconContainer = <StatusIndicator withSignal={isLive} />;
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
@@ -160,19 +164,19 @@ export const DeploymentsList = () => {
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-              <Cube className="text-gray-12" iconSize="sm-regular" />
-              {deployment.status === "failed" ? (
-                <span className="text-gray-9">—</span>
-              ) : (
+            deployment.status === "failed" ? (
+              <span className="text-gray-9">—</span>
+            ) : (
+              <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+                <Cube className="text-gray-12" iconSize="sm-regular" />
                 <div className="flex gap-0.5">
                   <span className="font-semibold text-grayA-12 tabular-nums">
                     {deployment.instances.length}
                   </span>
                   <span>VMs</span>
                 </div>
-              )}
-            </div>
+              </div>
+            )
           );
         },
       },
@@ -182,11 +186,11 @@ export const DeploymentsList = () => {
         width: "15%",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-              <Cube className="text-gray-12" iconSize="sm-regular" />
-              {deployment.status === "failed" ? (
-                <span className="text-gray-9">—</span>
-              ) : (
+            deployment.status === "failed" ? (
+              <span className="text-gray-9">—</span>
+            ) : (
+              <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
+                <Cube className="text-gray-12" iconSize="sm-regular" />
                 <div className="flex gap-1">
                   <div className="flex gap-0.5">
                     <span className="font-semibold text-grayA-12">
@@ -200,8 +204,8 @@ export const DeploymentsList = () => {
                     </span>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )
           );
         },
       },
@@ -293,6 +297,7 @@ export const DeploymentsList = () => {
           deployment: Deployment;
           environment?: Environment;
         }) => {
+          const liveDeployment = getDeploymentById(deployment.id)
           return (
             <div className="pl-5">
               <DeploymentListTableActions
@@ -305,7 +310,7 @@ export const DeploymentsList = () => {
         },
       },
     ];
-  }, [selectedDeploymentId, liveDeployment, project]);
+  }, [selectedDeploymentId, project]);
 
   return (
     <VirtualTable
@@ -319,7 +324,7 @@ export const DeploymentsList = () => {
         getRowClassName(
           deployment,
           selectedDeployment?.deployment.id ?? null,
-          liveDeployment?.id ?? null,
+          liveDeploymentId ?? null,
           project?.isRolledBack ?? false,
         )
       }

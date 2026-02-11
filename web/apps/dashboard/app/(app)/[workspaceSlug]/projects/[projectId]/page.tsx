@@ -1,6 +1,4 @@
 "use client";
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
 import { useProjectData } from "./(overview)/data-provider";
 import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
@@ -17,22 +15,11 @@ import { Section, SectionHeader } from "./components/section";
 
 export default function ProjectDetails() {
   const { projectId, liveDeploymentId } = useProject();
-  const { getDomainsForDeployment, isDomainsLoading, getDeploymentById } = useProjectData();
-
-  const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
-  );
-
-  const project = projects.data.at(0);
+  const { getDomainsForDeployment, isDomainsLoading, getDeploymentById, project, environments } =
+    useProjectData();
 
   // Get domains for live deployment
   const domains = liveDeploymentId ? getDomainsForDeployment(liveDeploymentId) : [];
-
-  const { data: environments } = useLiveQuery(
-    (q) =>
-      q.from({ env: collection.environments }).where(({ env }) => eq(env.projectId, projectId)),
-    [projectId],
-  );
 
   // Get deployment from provider
   const deploymentStatus = liveDeploymentId
@@ -92,7 +79,7 @@ export default function ProjectDetails() {
         />
         <CustomDomainsSection
           projectId={projectId}
-          environments={environments?.map((env) => ({ id: env.id, slug: env.slug })) ?? []}
+          environments={environments.map((env) => ({ id: env.id, slug: env.slug }))}
         />
       </Section>
       <Section>
@@ -101,7 +88,7 @@ export default function ProjectDetails() {
           title="Environment Variables"
         />
         <div>
-          {environments?.map((env) => (
+          {environments.map((env) => (
             <EnvironmentVariablesSection
               key={env.id}
               icon={<Page2 iconSize="sm-medium" className="text-gray-9" />}
@@ -110,7 +97,7 @@ export default function ProjectDetails() {
               environment={env.slug}
             />
           ))}
-          {environments?.length === 0 && (
+          {environments.length === 0 && (
             <div className="px-4 py-8 text-center text-gray-9 text-sm">
               No environments configured
             </div>

@@ -3,16 +3,24 @@
 import { collection } from "@/lib/collections";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { Domain } from "@/lib/collections/deploy/domains";
+import type { Environment } from "@/lib/collections/deploy/environments";
+import type { Project } from "@/lib/collections/deploy/projects";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { createContext, useContext, useMemo } from "react";
 
 type ProjectDataContextType = {
+  // Project data
+  project: Project | undefined;
+  isProjectLoading: boolean;
+
   // Cached project-level data
   domains: Domain[];
   deployments: Deployment[];
+  environments: Environment[];
 
   isDomainsLoading: boolean;
   isDeploymentsLoading: boolean;
+  isEnvironmentsLoading: boolean;
 
   getDomainsForDeployment: (deploymentId: string) => Domain[];
   getLiveDomains: () => Domain[];
@@ -51,15 +59,40 @@ export const ProjectDataProvider = ({
     [projectId],
   );
 
+  const projectQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ project: collection.projects })
+        .where(({ project }) => eq(project.id, projectId)),
+    [projectId],
+  );
+
+  const environmentsQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ env: collection.environments })
+        .where(({ env }) => eq(env.projectId, projectId)),
+    [projectId],
+  );
+
   const value = useMemo(() => {
     const domains = domainsQuery.data ?? [];
     const deployments = deploymentsQuery.data ?? [];
+    const environments = environmentsQuery.data ?? [];
+    const project = projectQuery.data?.at(0);
 
     return {
+      project,
+      isProjectLoading: projectQuery.isLoading,
+
       domains,
-      deployments,
       isDomainsLoading: domainsQuery.isLoading,
+
+      deployments,
       isDeploymentsLoading: deploymentsQuery.isLoading,
+
+      environments,
+      isEnvironmentsLoading: environmentsQuery.isLoading,
 
       getDomainsForDeployment: (deploymentId: string) =>
         domains.filter((d) => d.deploymentId === deploymentId),
@@ -77,9 +110,10 @@ export const ProjectDataProvider = ({
         collection.projects.utils.refetch();
         collection.deployments.utils.refetch();
         collection.domains.utils.refetch();
+        collection.environments.utils.refetch();
       },
     };
-  }, [domainsQuery, deploymentsQuery]);
+  }, [domainsQuery, deploymentsQuery, projectQuery, environmentsQuery]);
 
   return <ProjectDataContext.Provider value={value}>{children}</ProjectDataContext.Provider>;
 };

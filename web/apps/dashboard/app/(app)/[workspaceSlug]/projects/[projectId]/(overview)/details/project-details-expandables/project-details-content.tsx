@@ -1,5 +1,3 @@
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cube } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { useProjectData } from "../../data-provider";
@@ -11,20 +9,15 @@ type ProjectDetailsContentProps = {
 };
 
 export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps) => {
-  const { getDomainsForDeployment } = useProjectData();
+  const { getDomainsForDeployment, project, getDeploymentById } = useProjectData();
 
-  const query = useLiveQuery((q) =>
-    q
-      .from({ project: collection.projects })
-      .where(({ project }) => eq(project.id, projectId))
-      .join({ deployment: collection.deployments }, ({ deployment, project }) =>
-        eq(deployment.id, project.liveDeploymentId),
-      )
-      .orderBy(({ project }) => project.id, "asc")
-      .limit(1),
-  );
+  const deployment = project?.liveDeploymentId
+    ? getDeploymentById(project.liveDeploymentId)
+    : undefined;
 
-  const data = query.data.at(0);
+  const data = project && deployment
+    ? { project, deployment }
+    : undefined;
 
   // Get domains from provider and transform
   const domainsData = data?.project.liveDeploymentId

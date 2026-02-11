@@ -4,7 +4,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useLiveQuery } from "@tanstack/react-db";
 import {
   ArrowDottedRotateAnticlockwise,
   ChevronExpandY,
@@ -16,6 +16,7 @@ import {
 import { Button, InfoTooltip } from "@unkey/ui";
 import { useRef } from "react";
 import { DisabledWrapper } from "../../components/disabled-wrapper";
+import { useProjectData } from "../data-provider";
 import { useBreadcrumbConfig } from "./use-breadcrumb-config";
 
 const BORDER_OFFSET = 1;
@@ -42,15 +43,8 @@ export const ProjectNavigation = ({
     })),
   );
 
-  const activeProject = useLiveQuery((q) =>
-    q
-      .from({ project: collection.projects })
-      .where(({ project }) => eq(project.id, projectId))
-      .select(({ project }) => ({
-        id: project.id,
-        name: project.name,
-      })),
-  ).data.at(0);
+  const { project } = useProjectData();
+  const activeProject = project ? { id: project.id, name: project.name } : undefined;
 
   const basePath = `/${workspace.slug}/projects`;
   const breadcrumbs = useBreadcrumbConfig({

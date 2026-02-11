@@ -1,24 +1,15 @@
-import { useProject } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/layout-provider";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useFilters } from "../../../../../hooks/use-filters";
+import { useProjectData } from "../../../../../../data-provider";
 
 export const EnvironmentFilter = () => {
   const { filters, updateFilters } = useFilters();
-  const { projectId } = useProject();
+  const { environments } = useProjectData();
 
-  const environments = useLiveQuery(
-    (q) =>
-      q
-        .from({ environment: collection.environments })
-        .where(({ environment }) => eq(environment.projectId, projectId)),
-    [projectId],
-  );
 
   return (
     <FilterCheckbox
-      options={environments.data.map((environment, i) => ({
+      options={environments.map((environment, i) => ({
         id: i,
         slug: environment.slug,
       }))}
