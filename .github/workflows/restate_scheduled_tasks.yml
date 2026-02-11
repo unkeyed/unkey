@@ -69,7 +69,10 @@ jobs:
 
   key-refill:
     if: github.event.schedule == '0 0 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'key-refill'
-    environment: operations
+    strategy:
+      matrix:
+        environment: [restate_production, restate_staging]
+    environment: ${{ matrix.environment }}
     runs-on: ubuntu-latest
     steps:
       - name: Calculate date

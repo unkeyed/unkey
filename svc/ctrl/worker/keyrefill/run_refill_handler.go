@@ -49,14 +49,14 @@ func (s *Service) RunRefill(
 	var totalKeysRefilled int
 	offset := 0
 
+	isLastDayInt := 0
+	if isLastDay {
+		isLastDayInt = 1
+	}
+
 	// Process keys in batches
 	for {
 		// Fetch batch of keys needing refill
-		isLastDayInt := 0
-		if isLastDay {
-			isLastDayInt = 1
-		}
-
 		keys, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListKeysForRefillRow, error) {
 			return db.Query.ListKeysForRefill(rc, s.db.RO(), db.ListKeysForRefillParams{
 				TodayDay:         sql.NullInt16{Int16: int16(todayDay), Valid: true},
@@ -81,57 +81,59 @@ func (s *Service) RunRefill(
 			}
 		}
 
-		if len(keysToProcess) > 0 {
-			// Get current timestamp for updates
-			now, nowErr := restate.Run(ctx, func(restate.RunContext) (int64, error) {
-				return time.Now().UnixMilli(), nil
-			}, restate.WithName("get now timestamp"))
-			if nowErr != nil {
-				return nil, fmt.Errorf("get now: %w", nowErr)
-			}
-
-			// Collect key IDs for batch update
-			keyIDs := make([]string, len(keysToProcess))
-			for i, key := range keysToProcess {
-				keyIDs[i] = key.ID
-			}
-
-			// Batch update keys
-			_, updateErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-				return restate.Void{}, db.Query.RefillKeysByIDs(rc, s.db.RW(), db.RefillKeysByIDsParams{
-					Now: sql.NullInt64{Int64: now, Valid: true},
-					Ids: keyIDs,
-				})
-			}, restate.WithName(fmt.Sprintf("update keys batch %d", offset/batchSize)))
-			if updateErr != nil {
-				return nil, fmt.Errorf("update keys: %w", updateErr)
-			}
-
-			// Create audit logs in bulk
-			auditLogs, auditTargets := buildAuditLogs(keysToProcess, now)
-
-			_, auditErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-				if err := db.BulkQuery.InsertAuditLogs(rc, s.db.RW(), auditLogs); err != nil {
-					return restate.Void{}, fmt.Errorf("insert audit logs: %w", err)
-				}
-				if err := db.BulkQuery.InsertAuditLogTargets(rc, s.db.RW(), auditTargets); err != nil {
-					return restate.Void{}, fmt.Errorf("insert audit log targets: %w", err)
-				}
-				return restate.Void{}, nil
-			}, restate.WithName(fmt.Sprintf("insert audit logs batch %d", offset/batchSize)))
-			if auditErr != nil {
-				return nil, fmt.Errorf("insert audit logs: %w", auditErr)
-			}
-
-			// Mark keys as processed
-			for _, key := range keysToProcess {
-				processedKeys[key.ID] = true
-			}
-			restate.Set(ctx, stateKeyProcessedKeys, processedKeys)
-
-			totalKeysRefilled += len(keysToProcess)
+		if len(keysToProcess) == 0 {
+			break
 		}
 
+		// Get current timestamp for updates
+		now, nowErr := restate.Run(ctx, func(restate.RunContext) (int64, error) {
+			return time.Now().UnixMilli(), nil
+		}, restate.WithName("get now timestamp"))
+		if nowErr != nil {
+			return nil, fmt.Errorf("get now: %w", nowErr)
+		}
+
+		// Collect key IDs for batch update
+		keyIDs := make([]string, len(keysToProcess))
+		for i, key := range keysToProcess {
+			keyIDs[i] = key.ID
+		}
+
+		// Batch update keys
+		_, updateErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+			return restate.Void{}, db.Query.RefillKeysByIDs(rc, s.db.RW(), db.RefillKeysByIDsParams{
+				Now: sql.NullInt64{Int64: now, Valid: true},
+				Ids: keyIDs,
+			})
+		}, restate.WithName(fmt.Sprintf("update keys batch %d", offset/batchSize)))
+		if updateErr != nil {
+			return nil, fmt.Errorf("update keys: %w", updateErr)
+		}
+
+		// Create audit logs in bulk
+		auditLogs, auditTargets := buildAuditLogs(keysToProcess, now)
+		_, auditErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+			if err := db.BulkQuery.InsertAuditLogs(rc, s.db.RW(), auditLogs); err != nil {
+				return restate.Void{}, fmt.Errorf("insert audit logs: %w", err)
+			}
+
+			if err := db.BulkQuery.InsertAuditLogTargets(rc, s.db.RW(), auditTargets); err != nil {
+				return restate.Void{}, fmt.Errorf("insert audit log targets: %w", err)
+			}
+
+			return restate.Void{}, nil
+		}, restate.WithName(fmt.Sprintf("insert audit logs batch %d", offset/batchSize)))
+		if auditErr != nil {
+			return nil, fmt.Errorf("insert audit logs: %w", auditErr)
+		}
+
+		// Mark keys as processed
+		for _, key := range keysToProcess {
+			processedKeys[key.ID] = true
+		}
+
+		restate.Set(ctx, stateKeyProcessedKeys, processedKeys)
+		totalKeysRefilled += len(keysToProcess)
 		offset += len(keys)
 
 		// Log progress periodically
