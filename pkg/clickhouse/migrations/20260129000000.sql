@@ -21,7 +21,7 @@ SELECT
   workspace_id,
   key_space_id,
   key_id,
-  identity_id,
+  anyLast(identity_id) as identity_id,
   max(time) as time,
   anyLast(request_id) as request_id,
   anyLast(outcome) as outcome,
