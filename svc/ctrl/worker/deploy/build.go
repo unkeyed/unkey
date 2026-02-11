@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -27,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -93,9 +95,17 @@ func (w *Workflow) buildDockerImageFromGit(
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
 		// Get GitHub installation token for BuildKit to fetch the repo
-		ghToken, err := w.github.GetInstallationToken(params.InstallationID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+		var ghToken githubclient.InstallationToken
+		if w.allowUnauthenticatedDeployments {
+			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
+			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
+				"repository", params.Repository)
+		} else {
+			token, err := w.github.GetInstallationToken(params.InstallationID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+			}
+			ghToken = token
 		}
 
 		depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
@@ -176,11 +186,23 @@ func (w *Workflow) buildDockerImageFromGit(
 		buildStatusCh := make(chan *client.SolveStatus, 100)
 		go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
 
-		solverOptions := w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token)
+		// Choose solver options based on authentication mode
+		var solverOptions client.SolveOpt
+		if w.allowUnauthenticatedDeployments {
+			solverOptions = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName)
+		} else {
+			solverOptions = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token)
+		}
 
 		_, err = buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
 		if err != nil {
-			return nil, fmt.Errorf("build failed: %w", err)
+			// Context cancellations and timeouts are transient — let Restate retry.
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil, fmt.Errorf("build interrupted: %w", err)
+			}
+			// Build failures (bad Dockerfile, compilation errors, etc.) won't fix
+			// themselves on retry — mark as terminal to stop Restate from retrying.
+			return nil, restate.TerminalError(fmt.Errorf("build failed: %w", err))
 		}
 
 		logger.Info("Build completed successfully")

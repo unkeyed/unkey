@@ -7,7 +7,6 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+*"
 permissions:
   contents: write
-  id-token: write
 concurrency: release
 jobs:
   goreleaser:
@@ -43,3 +42,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

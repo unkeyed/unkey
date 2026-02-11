@@ -8,8 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const findProjectById = `-- name: FindProjectById :one
@@ -18,33 +16,29 @@ SELECT
     workspace_id,
     name,
     slug,
-    git_repository_url,
     default_branch,
     delete_protection,
     live_deployment_id,
     is_rolled_back,
     created_at,
     updated_at,
-    depot_project_id,
-    command
+    depot_project_id
 FROM projects
 WHERE id = ?
 `
 
 type FindProjectByIdRow struct {
-	ID               string             `db:"id"`
-	WorkspaceID      string             `db:"workspace_id"`
-	Name             string             `db:"name"`
-	Slug             string             `db:"slug"`
-	GitRepositoryUrl sql.NullString     `db:"git_repository_url"`
-	DefaultBranch    sql.NullString     `db:"default_branch"`
-	DeleteProtection sql.NullBool       `db:"delete_protection"`
-	LiveDeploymentID sql.NullString     `db:"live_deployment_id"`
-	IsRolledBack     bool               `db:"is_rolled_back"`
-	CreatedAt        int64              `db:"created_at"`
-	UpdatedAt        sql.NullInt64      `db:"updated_at"`
-	DepotProjectID   sql.NullString     `db:"depot_project_id"`
-	Command          dbtype.StringSlice `db:"command"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	DefaultBranch    sql.NullString `db:"default_branch"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
+	IsRolledBack     bool           `db:"is_rolled_back"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	DepotProjectID   sql.NullString `db:"depot_project_id"`
 }
 
 // FindProjectById
@@ -54,15 +48,13 @@ type FindProjectByIdRow struct {
 //	    workspace_id,
 //	    name,
 //	    slug,
-//	    git_repository_url,
 //	    default_branch,
 //	    delete_protection,
 //	    live_deployment_id,
 //	    is_rolled_back,
 //	    created_at,
 //	    updated_at,
-//	    depot_project_id,
-//	    command
+//	    depot_project_id
 //	FROM projects
 //	WHERE id = ?
 func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error) {
@@ -73,7 +65,6 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Find
 		&i.WorkspaceID,
 		&i.Name,
 		&i.Slug,
-		&i.GitRepositoryUrl,
 		&i.DefaultBranch,
 		&i.DeleteProtection,
 		&i.LiveDeploymentID,
@@ -81,7 +72,6 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Find
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DepotProjectID,
-		&i.Command,
 	)
 	return i, err
 }

@@ -7,6 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/db",
+        "//pkg/db/types",
         "//pkg/dockertest",
         "//pkg/uid",
         "//svc/ctrl/integration/seed",

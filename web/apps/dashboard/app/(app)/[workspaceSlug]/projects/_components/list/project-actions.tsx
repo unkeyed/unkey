@@ -2,28 +2,35 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Clone, Gear, Layers3, Trash } from "@unkey/icons";
+import { Clone, Cloud, Gear, Heart, Layers3, Trash } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
+import { DeleteProjectDialog } from "../dialogs/delete-project-dialog";
 
 type ProjectActionsProps = {
   projectId: string;
+  projectName: string;
 };
 
-export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
+export const ProjectActions = ({
+  projectId,
+  projectName,
+  children,
+}: PropsWithChildren<ProjectActionsProps>) => {
   const router = useRouter();
   const { workspace } = useWorkspace();
   // biome-ignore lint/style/noNonNullAssertion: This cannot be null
-  const menuItems = getProjectActionItems(projectId, workspace?.slug!, router);
+  const menuItems = getProjectActionItems(projectId, projectName, workspace?.slug!, router);
 
   return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };
 
 const getProjectActionItems = (
   projectId: string,
+  projectName: string,
   workspaceSlug: string,
   router: AppRouterInstance,
 ): MenuItem[] => {
@@ -31,9 +38,10 @@ const getProjectActionItems = (
     {
       id: "favorite-project",
       label: "Add favorite",
-      icon: <Gear iconSize="md-medium" />,
+      icon: <Heart iconSize="md-medium" />,
       onClick: () => {},
       divider: true,
+      disabled: true,
     },
     {
       id: "copy-project-id",
@@ -55,10 +63,18 @@ const getProjectActionItems = (
     },
     {
       id: "view-log",
-      label: "View sentinel logs",
+      label: "View requests",
       icon: <Layers3 iconSize="md-regular" />,
       onClick: () => {
-        router.push(`/${workspaceSlug}/projects/${projectId}/sentinel-logs`);
+        router.push(`/${workspaceSlug}/projects/${projectId}/requests`);
+      },
+    },
+    {
+      id: "view-deployment",
+      label: "View deployments",
+      icon: <Cloud iconSize="md-regular" />,
+      onClick: () => {
+        router.push(`/${workspaceSlug}/projects/${projectId}/deployments`);
       },
     },
     {
@@ -74,7 +90,14 @@ const getProjectActionItems = (
       id: "delete-project",
       label: "Delete project",
       icon: <Trash iconSize="md-medium" />,
-      ActionComponent: () => null,
+      ActionComponent: ({ isOpen, onClose }) => (
+        <DeleteProjectDialog
+          projectId={projectId}
+          projectName={projectName}
+          isOpen={isOpen}
+          onClose={onClose}
+        />
+      ),
     },
   ];
 };
