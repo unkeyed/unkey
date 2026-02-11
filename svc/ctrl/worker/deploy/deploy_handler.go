@@ -418,7 +418,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
-	if previousLiveDeploymentID.Valid {
+	if !project.IsRolledBack && environment.Slug == "production" && previousLiveDeploymentID.Valid {
 		_, err = hydrav1.NewDeploymentServiceClient(ctx, previousLiveDeploymentID.String).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
