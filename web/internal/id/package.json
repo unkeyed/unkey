@@ -7,16 +7,13 @@
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
-  "scripts": {
-    "test": "vitest run -c ./vitest.config.ts"
-  },
+  "scripts": {},
   "devDependencies": {
     "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:*",
-    "typescript": "5.5.3",
-    "vitest": "1.6.1"
+    "typescript": "5.5.3"
   },
   "dependencies": {
-    "base-x": "4.0.1"
+    "nanoid": "^5.1.6"
   }
 }
