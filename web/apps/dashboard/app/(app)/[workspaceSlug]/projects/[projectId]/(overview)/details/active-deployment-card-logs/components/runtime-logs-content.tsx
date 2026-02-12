@@ -133,24 +133,29 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
                       {format(new Date(log.time), "HH:mm:ss.SSS")}
                     </span>
                     <span>{log.region}</span>
+                    <span className="uppercase text-[10px] font-semibold px-1 py-px rounded" >
+                      {severity}
+                    </span>
                     <span>{log.message}</span>
-                    <InfoTooltip
-                      content={
-                        <pre className="text-left">
-                          <code>{JSON.stringify(log.attributes, null, 2)}</code>
-                        </pre>
-                      }
-                      asChild
-                      className="cursor-pointer"
-                      position={{
-                        align: "center",
-                        side: "top",
-                      }}
-                    >
-                      <span className="text-grayA-8 text-[11px] max-w-[200px] truncate">
-                        {JSON.stringify(log.attributes)}
-                      </span>
-                    </InfoTooltip>
+                    {log.attributes && Object.keys(log.attributes).length > 0 && (
+                      <InfoTooltip
+                        content={
+                          <pre className="text-left">
+                            <code>{JSON.stringify(log.attributes, null, 2)}</code>
+                          </pre>
+                        }
+                        asChild
+                        className="cursor-pointer"
+                        position={{
+                          align: "center",
+                          side: "top",
+                        }}
+                      >
+                        <span className="text-grayA-8 text-[11px] max-w-[200px] truncate">
+                          {JSON.stringify(log.attributes)}
+                        </span>
+                      </InfoTooltip>
+                    )}
                   </div>
                 );
               })}
