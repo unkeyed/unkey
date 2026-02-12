@@ -10,13 +10,16 @@ go_library(
         "doc.go",
         "gateway.go",
         "message.go",
+        "mux.go",
         "noop.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/cluster",
     visibility = ["//visibility:public"],
     deps = [
+        "//gen/proto/cluster/v1:cluster",
         "//pkg/logger",
         "@com_github_hashicorp_memberlist//:memberlist",
+        "@org_golang_google_protobuf//proto",
     ],
 )
 
@@ -26,9 +29,12 @@ go_test(
         "cluster_test.go",
         "gateway_test.go",
         "message_test.go",
+        "mux_test.go",
     ],
     embed = [":cluster"],
     deps = [
+        "//gen/proto/cluster/v1:cluster",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//proto",
     ],
 )

@@ -10,6 +10,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// CacheInvalidationType is the message type used for cache invalidation
+// messages in the cluster message mux.
+const CacheInvalidationType = "cache.invalidation"
+
 // GossipBroadcaster implements Broadcaster using the gossip cluster for
 // cache invalidation. It serializes protobuf events to raw bytes for the
 // cluster layer and deserializes incoming bytes back to events.
@@ -77,7 +81,12 @@ func (b *GossipBroadcaster) Broadcast(_ context.Context, events ...*cachev1.Cach
 			logger.Error("Failed to marshal cache invalidation event", "error", err)
 			continue
 		}
-		if err := c.Broadcast(data); err != nil {
+		envelope, err := cluster.Wrap(CacheInvalidationType, data)
+		if err != nil {
+			logger.Error("Failed to wrap cache invalidation envelope", "error", err)
+			continue
+		}
+		if err := c.Broadcast(envelope); err != nil {
 			logger.Error("Failed to broadcast cache invalidation", "error", err)
 		}
 	}

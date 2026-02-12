@@ -206,6 +206,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 		gossipBroadcaster := clustering.NewGossipBroadcaster()
 
+		mux := cluster.NewMessageMux()
+		mux.Handle(clustering.CacheInvalidationType, gossipBroadcaster.OnMessage)
+
 		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
 		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
 
@@ -217,7 +220,7 @@ func Run(ctx context.Context, cfg Config) error {
 			WANBindPort: cfg.GossipWANPort,
 			LANSeeds:    lanSeeds,
 			WANSeeds:    wanSeeds,
-			OnMessage:   gossipBroadcaster.OnMessage,
+			OnMessage:   mux.OnMessage,
 		})
 		if clusterErr != nil {
 			return fmt.Errorf("unable to create gossip cluster: %w", clusterErr)
