@@ -1,11 +1,11 @@
 "use client";
 
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { useProjectData } from "../../../../../../data-provider";
-import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
+import { useProjectData } from "../../../../../data-provider";
+import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
-export const SentinelDeploymentFilter = () => {
-  const { filters, updateFilters } = useSentinelLogsFilters();
+export const RuntimeLogsDeploymentFilter = () => {
+  const { filters, updateFilters } = useRuntimeLogsFilters();
   const { deployments } = useProjectData();
 
   const options = deployments.map((deployment, i) => ({

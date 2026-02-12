@@ -59,7 +59,8 @@ export const queryRuntimeLogs = workspaceProcedure
       ...transformedInputs,
       workspaceId: workspace.id,
       projectId: project.id,
-      environmentId: project.activeDeployment?.environmentId,
+      deploymentId: input.deploymentId ?? null,
+      environmentId: input.environmentId ?? project.activeDeployment?.environmentId,
     });
 
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);

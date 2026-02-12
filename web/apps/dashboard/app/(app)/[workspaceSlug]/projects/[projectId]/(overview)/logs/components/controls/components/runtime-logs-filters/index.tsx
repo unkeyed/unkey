@@ -5,6 +5,8 @@ import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
+import { RuntimeLogsDeploymentFilter } from "./runtime-logs-deployment-filter";
+import { RuntimeLogsEnvironmentFilter } from "./runtime-logs-environment-filter";
 import { RuntimeLogsMessageFilter } from "./runtime-logs-message-filter";
 import { RuntimeLogsSeverityFilter } from "./runtime-logs-severity-filter";
 
@@ -23,12 +25,32 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     shortcutLabel: "M",
     component: <RuntimeLogsMessageFilter />,
   },
+  {
+    id: "deploymentId",
+    label: "Deployment",
+    shortcut: "D",
+    shortcutLabel: "D",
+    component: <RuntimeLogsDeploymentFilter />,
+  },
+  {
+    id: "environmentId",
+    label: "Environment",
+    shortcut: "N",
+    shortcutLabel: "N",
+    component: <RuntimeLogsEnvironmentFilter />,
+  },
 ];
 
 export function RuntimeLogsFilters() {
   const { filters } = useRuntimeLogsFilters();
 
-  const filterCount = filters.filter((f) => f.field === "severity" || f.field === "message").length;
+  const filterCount = filters.filter(
+    (f) =>
+      f.field === "severity" ||
+      f.field === "message" ||
+      f.field === "deploymentId" ||
+      f.field === "environmentId",
+  ).length;
 
   return (
     <FiltersPopover items={FILTER_ITEMS} activeFilters={filters}>

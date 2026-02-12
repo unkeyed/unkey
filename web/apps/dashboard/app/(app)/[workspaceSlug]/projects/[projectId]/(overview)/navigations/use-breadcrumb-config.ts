@@ -77,7 +77,7 @@ export const useBreadcrumbConfig = ({
       id: "logs",
       label: "Logs",
       href: `${basePath}/${projectId}/logs`,
-      segment: "runtime-logs",
+      segment: "logs",
     },
     {
       id: "settings",

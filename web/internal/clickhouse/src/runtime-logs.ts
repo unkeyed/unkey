@@ -6,7 +6,7 @@ const TABLE = "default.runtime_logs_raw_v1";
 export const runtimeLogsRequestSchema = z.object({
   workspaceId: z.string(),
   projectId: z.string(),
-  deploymentId: z.string(),
+  deploymentId: z.string().nullable(),
   environmentId: z.string(),
   limit: z.int(),
   startTime: z.int(),
@@ -34,7 +34,10 @@ export function getRuntimeLogs(ch: Querier) {
     const filterConditions = `
       workspace_id = {workspaceId: String}
       AND project_id = {projectId: String}
-      AND deployment_id = {deploymentId: String}
+      AND (
+        {deploymentId: Nullable(String)} IS NULL
+        OR deployment_id = assumeNotNull({deploymentId: Nullable(String)})
+      )
       AND environment_id = {environmentId: String}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
 
