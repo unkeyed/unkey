@@ -35,6 +35,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
@@ -306,8 +307,23 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("create quota check service: %w", err)
 	}
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
-
 	logger.Info("QuotaCheckService enabled")
+
+	// Key refill service for scheduled key usage limit refills
+	var keyRefillHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.KeyRefillHeartbeatURL != "" {
+		keyRefillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.KeyRefillHeartbeatURL)
+	}
+
+	keyRefillSvc, err := keyrefill.New(keyrefill.Config{
+		DB:        database,
+		Heartbeat: keyRefillHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create key refill service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
+	logger.Info("KeyRefillService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
@@ -360,7 +376,7 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 		r.Go(func(ctx context.Context) error {
 			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
-			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs); err != nil {
+			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs, true); err != nil {
 				logger.Error("failed to register with Restate", "error", err)
 				return err
 			}
