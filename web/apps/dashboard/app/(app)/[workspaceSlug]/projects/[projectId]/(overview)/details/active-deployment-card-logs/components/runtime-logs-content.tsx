@@ -15,6 +15,7 @@ const ANIMATION_STYLES = {
 } as const;
 
 const SEVERITY_STYLES = {
+  FATAL: "bg-gradient-to-r from-errorA-3 to-errorA-1 text-errorA-12",
   ERROR: "bg-gradient-to-r from-errorA-3 to-errorA-1 text-errorA-12",
   WARN: "bg-gradient-to-r from-warningA-3 to-warningA-1 text-warningA-12",
   INFO: "text-grayA-12",
