@@ -1,12 +1,12 @@
 "use client";
 
-import { type Deployment, collection, collectionManager } from "@/lib/collections";
+import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../../components/status-indicator";
+import { useProjectData } from "../../data-provider";
 
 type DeploymentSectionProps = {
   title: string;
@@ -39,15 +39,11 @@ export const PromotionDialog = ({
   liveDeployment,
 }: PromotionDialogProps) => {
   const utils = trpc.useUtils();
-  const domainCollection = collectionManager.getProjectCollections(
-    liveDeployment.projectId,
-  ).domains;
-  const domains = useLiveQuery((q) =>
-    q
-      .from({ domain: domainCollection })
-      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
-      .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
-  );
+  const { getEnvironmentOrLiveDomains, refetchAll } = useProjectData();
+
+  // Get domains for live deployment and filter for environment/live sticky domains
+  const domains = getEnvironmentOrLiveDomains().filter((d) => d.deploymentId === liveDeployment.id);
+
   const promote = trpc.deploy.deployment.promote.useMutation({
     onSuccess: () => {
       utils.invalidate();
@@ -56,12 +52,7 @@ export const PromotionDialog = ({
       });
       // hack to revalidate
       try {
-        // @ts-expect-error Their docs say it's here
-        collection.projects.utils.refetch();
-        // @ts-expect-error Their docs say it's here
-        collection.deployments.utils.refetch();
-        // @ts-expect-error Their docs say it's here
-        collection.domains.utils.refetch();
+        refetchAll();
       } catch (error) {
         console.error("Refetch error:", error);
       }
@@ -115,7 +106,7 @@ export const PromotionDialog = ({
           showSignal={true}
         />
         <div>
-          {domains.data.map((domain) => (
+          {domains.map((domain) => (
             <div className="space-y-2" key={domain.id}>
               <div className="flex items-center gap-2">
                 <h3 className="text-[13px] text-grayA-11">Domain</h3>

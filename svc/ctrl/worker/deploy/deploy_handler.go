@@ -29,30 +29,32 @@ const (
 // Deploy executes a full deployment workflow for a new application version.
 //
 // This durable workflow orchestrates the complete deployment lifecycle: building
-// Docker images (if source is provided), provisioning containers across regions,
-// waiting for instances to become healthy, and configuring domain routing. The
-// workflow is idempotent and can safely resume from any step after a crash.
+// Docker images (if a GitSource is provided via Depot), provisioning containers
+// across regions, waiting for instances to become healthy, and configuring domain
+// routing. The workflow is idempotent and can safely resume from any step after
+// a crash.
 //
-// The deployment request must specify either a build context path (to build from
-// source) or a pre-built Docker image. If BuildContextPath is set, the workflow
-// triggers a Docker build through the build service before deployment. Otherwise,
-// the provided DockerImage is deployed directly.
+// The deployment request specifies a source as a oneof: either a GitSource (which
+// triggers a Docker build through Depot) or a DockerImage (which is deployed
+// directly).
 //
 // The workflow creates deployment topologies for all configured regions, each with
-// its own version number for independent scaling and rollback. Sentinel containers
-// are automatically provisioned for environments that don't already have them,
-// with production environments getting 3 replicas and others getting 1.
+// a version obtained from VersioningService and 1 desired replica. Sentinel
+// containers are automatically provisioned for environments that don't already
+// have them, with production sentinels getting 3 replicas and others getting 1.
 //
-// Domain routing is configured through frontline routes, with sticky domains
-// (branch and environment) automatically updating to point to the new deployment.
-// For production deployments, the project's live deployment pointer is updated
-// unless the project is in a rolled-back state.
+// Domain routing is configured through frontline routes. Sticky routes
+// (environment, and live for non-rolled-back production) are reassigned to the
+// new deployment. For production deployments, the project's live deployment
+// pointer is updated unless the project is in a rolled-back state. After a
+// successful deploy, the previous live deployment is scheduled for standby after
+// 30 minutes via DeploymentService.ScheduleDesiredStateChange.
 //
 // If any step fails, the deployment status is automatically set to failed via a
 // deferred cleanup handler, ensuring the database reflects the true deployment state.
 //
-// Returns terminal errors for validation failures (missing image/context) and
-// retryable errors for transient system failures.
+// Returns terminal errors for validation failures and retryable errors for
+// transient system failures.
 func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	finishedSuccessfully := false
 
@@ -81,6 +83,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			logger.Error("deployment failed but we can not set the status", "error", err.Error())
 		}
 	}()
+
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 
 		var ws db.Workspace
@@ -119,6 +122,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err != nil {
 		return nil, err
 	}
+
 	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
 		return db.Query.FindEnvironmentById(runCtx, w.db.RW(), deployment.EnvironmentID)
 	}, restate.WithName("finding environment"))
@@ -354,6 +358,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		deployment.GitCommitSha.String,
 		deployment.GitBranch.String,
 		w.defaultDomain,
+		// TODO: source type is hardcoded to CLI_UPLOAD regardless of actual source type
 		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
 	)
 
@@ -427,16 +432,45 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	if !project.IsRolledBack && environment.Slug == "production" {
-		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateProjectDeployments(runCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
-				IsRolledBack:     false,
-				ID:               deployment.ProjectID,
-				LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
-				UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		// Atomically read the current live deployment and swap it to the new one.
+		// This prevents a race where two concurrent deploys both capture the same
+		// previousLiveDeploymentID and one of them never gets scheduled for standby.
+		previousLiveDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
+			return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
+				currentProject, findErr := db.Query.FindProjectById(txCtx, tx, deployment.ProjectID)
+				if findErr != nil {
+					return sql.NullString{}, findErr
+				}
+
+				updateErr := db.Query.UpdateProjectDeployments(txCtx, tx, db.UpdateProjectDeploymentsParams{
+					IsRolledBack:     false,
+					ID:               deployment.ProjectID,
+					LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
+					UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				})
+				if updateErr != nil {
+					return sql.NullString{}, updateErr
+				}
+
+				return currentProject.LiveDeploymentID, nil
 			})
-		}, restate.WithName("updating project live deployment"))
+		}, restate.WithName("swapping project live deployment"))
 		if err != nil {
 			return nil, err
+		}
+
+		if previousLiveDeploymentID.Valid {
+			_, err = hydrav1.NewDeploymentServiceClient(ctx, previousLiveDeploymentID.String).
+				ScheduleDesiredStateChange().Request(
+				&hydrav1.ScheduleDesiredStateChangeRequest{
+					DelayMillis: (30 * time.Minute).Milliseconds(),
+					State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+				},
+				restate.WithIdempotencyKey(deployment.ID),
+			)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

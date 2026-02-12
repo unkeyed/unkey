@@ -1,6 +1,7 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { useState } from "react";
+import { useDeployment } from "../layout-provider";
 import {
   type DeploymentNode,
   InfiniteCanvas,
@@ -22,18 +23,15 @@ import {
 } from "./unkey-flow";
 
 interface DeploymentNetworkViewProps {
-  projectId: string;
-  deploymentId?: string | null;
   showProjectDetails?: boolean;
   showNodeDetails?: boolean;
 }
 
 export function DeploymentNetworkView({
-  projectId,
-  deploymentId,
   showProjectDetails = false,
   showNodeDetails = false,
 }: DeploymentNetworkViewProps) {
+  const { deploymentId } = useDeployment();
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
 
@@ -41,7 +39,7 @@ export function DeploymentNetworkView({
     {
       deploymentId: deploymentId ?? "",
     },
-    { enabled: Boolean(deploymentId) },
+    { refetchInterval: 2000, enabled: Boolean(deploymentId) },
   );
 
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;
@@ -56,7 +54,7 @@ export function DeploymentNetworkView({
             <NodeDetailsPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
           )}
 
-          {showProjectDetails && <ProjectDetails projectId={projectId} />}
+          {showProjectDetails && <ProjectDetails />}
           <LiveIndicator />
           {process.env.NODE_ENV === "development" && (
             <InternalDevTreeGenerator

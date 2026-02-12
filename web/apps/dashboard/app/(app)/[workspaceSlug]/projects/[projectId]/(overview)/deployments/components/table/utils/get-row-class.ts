@@ -1,4 +1,4 @@
-import type { Deployment } from "@/lib/collections";
+import type { Deployment, Environment } from "@/lib/collections";
 
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ export const STATUS_STYLES = {
 };
 
 export const FAILED_STATUS_STYLES = {
-  base: "text-grayA-9 bg-error-1",
+  base: "text-grayA-9 bg-error-2",
   hover: "hover:text-grayA-11 hover:bg-error-2",
   selected: "text-grayA-12 bg-error-3 hover:bg-error-3",
   badge: {
@@ -47,7 +47,7 @@ export const ROLLED_BACK_STYLES = {
 };
 
 export const getRowClassName = (
-  deployment: Deployment,
+  { deployment }: { deployment: Deployment; environment: Environment },
   selectedDeploymentId: string | null,
   liveDeploymentId: string | null,
   isRolledBack: boolean,

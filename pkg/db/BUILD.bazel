@@ -108,6 +108,7 @@ go_library(
         "deployment_topology_insert.sql_generated.go",
         "deployment_topology_list_by_versions.sql_generated.go",
         "deployment_topology_list_desired.sql_generated.go",
+        "deployment_topology_update_desired_status.sql_generated.go",
         "deployment_update_build_id.sql_generated.go",
         "deployment_update_desired_state.sql_generated.go",
         "deployment_update_image.sql_generated.go",

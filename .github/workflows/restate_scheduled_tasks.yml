@@ -108,5 +108,5 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
             -H "idempotency-key: scale-down-idle-$(date -u +'%Y-%m-%dT%H:%M')" \
-            "${RESTATE_INGRESS_URL}/hydra.v1.DeploymentService/global/ScaleDownIdleDeployments/send" \
+            "${RESTATE_INGRESS_URL}/hydra.v1.DeployService/global/ScaleDownIdlePreviewDeployments/send" \
             -d '{}'

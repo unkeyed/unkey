@@ -2412,6 +2412,13 @@ type Querier interface {
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
+	//UpdateDeploymentTopologyDesiredStatus updates the desired_status and version of a topology entry.
+	// A new version is required so that WatchDeployments picks up the change.
+	//
+	//  UPDATE `deployment_topology`
+	//  SET desired_status = ?, version = ?, updated_at = ?
+	//  WHERE deployment_id = ? AND region = ?
+	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments

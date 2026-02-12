@@ -17,6 +17,7 @@ go_library(
         "//svc/ctrl/worker/clickhouseuser",
         "//svc/ctrl/worker/deploy",
         "//svc/ctrl/worker/keyrefill",
+        "//svc/ctrl/worker/deployment",
         "//svc/ctrl/worker/quotacheck",
         "//svc/vault/testutil",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
