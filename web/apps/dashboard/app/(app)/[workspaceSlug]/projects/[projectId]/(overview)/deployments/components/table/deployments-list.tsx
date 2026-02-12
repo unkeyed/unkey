@@ -182,15 +182,8 @@ export const DeploymentsList = () => {
         headerClassName: "hidden 2xl:table-cell",
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }) => {
-          const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
-            <div
-              className={cn(
-                "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
-                "bg-grayA-3",
-                isSelected && "bg-grayA-5",
-              )}
-            >
+            <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
               <CodeBranch iconSize="sm-regular" className="text-gray-12" />
             </div>
           );
@@ -276,7 +269,7 @@ export const DeploymentsList = () => {
         },
       },
     ];
-  }, [selectedDeploymentId, project]);
+  }, [project]);
 
   return (
     <VirtualTable
@@ -291,15 +284,9 @@ export const DeploymentsList = () => {
       onRowMouseEnter={(item) => {
         router.prefetch(getDeploymentHref(item.deployment.id));
       }}
-      selectedItem={selectedDeployment}
       keyExtractor={(deployment) => deployment.id}
       rowClassName={(deployment) =>
-        getRowClassName(
-          deployment,
-          selectedDeployment?.deployment.id ?? null,
-          liveDeploymentId ?? null,
-          project?.isRolledBack ?? false,
-        )
+        getRowClassName(deployment, liveDeploymentId ?? null, project?.isRolledBack ?? false)
       }
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
