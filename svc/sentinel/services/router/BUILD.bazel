@@ -12,10 +12,12 @@ go_library(
         "//internal/services/caches",
         "//pkg/array",
         "//pkg/cache",
+        "//pkg/cache/clustering",
         "//pkg/clock",
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/uid",
     ],
 )

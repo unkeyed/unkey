@@ -3,9 +3,7 @@ load("@rules_go//go:def.bzl", "go_test")
 go_test(
     name = "cache_test",
     size = "medium",
-    srcs = [
-        "e2e_test.go",
-    ],
+    srcs = ["e2e_test.go"],
     deps = [
         "//pkg/timing",
         "//svc/api/integration",

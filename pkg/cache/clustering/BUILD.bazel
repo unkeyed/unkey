@@ -26,12 +26,9 @@ go_library(
 go_test(
     name = "clustering_test",
     size = "small",
-    srcs = [
-        "gossip_e2e_test.go",
-    ],
+    srcs = ["gossip_e2e_test.go"],
     deps = [
         ":clustering",
-        "//gen/proto/cache/v1:cache",
         "//pkg/cache",
         "//pkg/clock",
         "//pkg/cluster",
