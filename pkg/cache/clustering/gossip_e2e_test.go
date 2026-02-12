@@ -25,11 +25,13 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 
 	// --- Node 1 ---
 	b1 := clustering.NewGossipBroadcaster()
+	mux1 := cluster.NewMessageMux()
+	mux1.Handle(clustering.CacheInvalidationType, b1.OnMessage)
 	c1, err := cluster.New(cluster.Config{
 		Region:    "us-east-1",
 		NodeID:    "node-1",
 		BindAddr:  "127.0.0.1",
-		OnMessage: b1.OnMessage,
+		OnMessage: mux1.OnMessage,
 	})
 	require.NoError(t, err)
 	b1.SetCluster(c1)
@@ -50,6 +52,8 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 
 	// --- Node 2 ---
 	b2 := clustering.NewGossipBroadcaster()
+	mux2 := cluster.NewMessageMux()
+	mux2.Handle(clustering.CacheInvalidationType, b2.OnMessage)
 	c1Addr := c1.Members()[0].FullAddress().Addr
 	time.Sleep(50 * time.Millisecond)
 
@@ -58,7 +62,7 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 		NodeID:    "node-2",
 		BindAddr:  "127.0.0.1",
 		LANSeeds:  []string{c1Addr},
-		OnMessage: b2.OnMessage,
+		OnMessage: mux2.OnMessage,
 	})
 	require.NoError(t, err)
 	b2.SetCluster(c2)
