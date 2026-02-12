@@ -18,9 +18,9 @@ export function getLatestVerifications(ch: Querier) {
      region,
      tags
     FROM default.key_verifications_raw_v2
-    WHERE workspace_id = {workspaceId: String}
+    PREWHERE workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
-    AND key_id = {keyId: String}
+    WHERE key_id = {keyId: String}
     ORDER BY time DESC
     LIMIT {limit: Int}`,
       params,
