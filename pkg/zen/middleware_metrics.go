@@ -2,10 +2,12 @@ package zen
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
 
 type EventBuffer interface {
@@ -19,13 +21,28 @@ var skipHeaders = map[string]bool{
 	"x-amzn-trace-id":   true,
 }
 
-func formatHeader(key, value string) string {
-	var b strings.Builder
-	b.Grow(len(key) + 2 + len(value))
-	b.WriteString(key)
-	b.WriteString(": ")
-	b.WriteString(value)
-	return b.String()
+// buildRawRequestHeaders formats request headers with basic infra filtering.
+// Used as fallback when WithValidation hasn't run (e.g. chproxy routes).
+func buildRawRequestHeaders(r *http.Request) []string {
+	headers := make([]string, 0, len(r.Header))
+	for k, vv := range r.Header {
+		lk := strings.ToLower(k)
+		if skipHeaders[lk] {
+			continue
+		}
+		headers = append(headers, validation.FormatHeader(k, strings.Join(vv, ",")))
+	}
+	return headers
+}
+
+// buildRawResponseHeaders formats response headers. Used as fallback when
+// WithValidation hasn't run.
+func buildRawResponseHeaders(w http.ResponseWriter) []string {
+	headers := make([]string, 0, len(w.Header()))
+	for k, vv := range w.Header() {
+		headers = append(headers, validation.FormatHeader(k, strings.Join(vv, ",")))
+	}
+	return headers
 }
 
 // WithMetrics returns middleware that collects metrics about each request,
@@ -33,10 +50,13 @@ func formatHeader(key, value string) string {
 //
 // The metrics are buffered and periodically sent to an event buffer.
 //
+// When WithValidation runs in the middleware chain, sanitized data is read
+// from the Session. Otherwise, raw data is used with basic fallback formatting.
+//
 // Example:
 //
 //	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
+//	    []zen.Middleware{zen.WithMetrics(eventBuffer, info)},
 //	    route,
 //	)
 func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
@@ -48,25 +68,6 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 
 			// Only log if we should log request to ClickHouse
 			if s.ShouldLogRequestToClickHouse() {
-				requestHeaders := []string{}
-				for k, vv := range s.r.Header {
-					lk := strings.ToLower(k)
-					if skipHeaders[lk] {
-						continue
-					}
-
-					if lk == "authorization" {
-						requestHeaders = append(requestHeaders, formatHeader(k, "[REDACTED]"))
-					} else {
-						requestHeaders = append(requestHeaders, formatHeader(k, strings.Join(vv, ",")))
-					}
-				}
-
-				responseHeaders := []string{}
-				for k, vv := range s.w.Header() {
-					responseHeaders = append(responseHeaders, formatHeader(k, strings.Join(vv, ",")))
-				}
-
 				eventBuffer.BufferApiRequest(schema.ApiRequest{
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
@@ -76,11 +77,11 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 					Path:            s.r.URL.Path,
 					QueryString:     s.r.URL.RawQuery,
 					QueryParams:     s.r.URL.Query(),
-					RequestHeaders:  requestHeaders,
-					RequestBody:     string(redact(s.requestBody)),
+					RequestHeaders:  s.LoggableRequestHeaders(),
+					RequestBody:     s.LoggableRequestBody(),
 					ResponseStatus:  int32(s.responseStatus),
-					ResponseHeaders: responseHeaders,
-					ResponseBody:    string(redact(s.responseBody)),
+					ResponseHeaders: s.LoggableResponseHeaders(),
+					ResponseBody:    s.LoggableResponseBody(),
 					Error:           s.InternalError(),
 					ServiceLatency:  serviceLatency.Milliseconds(),
 					UserAgent:       s.r.Header.Get("User-Agent"),

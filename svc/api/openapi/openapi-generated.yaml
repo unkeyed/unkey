@@ -323,6 +323,7 @@ components:
                     type: string
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+                    x-unkey-redact: true
                 ratelimits:
                     items:
                         $ref: '#/components/schemas/RatelimitResponse'
@@ -1913,6 +1914,7 @@ components:
                         SECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`).
                     example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
                     type: string
+                    x-unkey-redact: true
                 keyId:
                     description: The unique identifier for this key in Unkey's system. This is NOT the actual API key, but a reference ID used for management operations like updating or deleting the key. Store this ID in your database to reference the key later. This ID is not sensitive and can be logged or displayed in dashboards.
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
@@ -2540,6 +2542,7 @@ components:
                         This is NOT the keyId - it's the actual secret token used for authentication.
                     example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
                     type: string
+                    x-unkey-redact: true
                 keyId:
                     description: |
                         The unique identifier for the newly created key.
@@ -3011,6 +3014,7 @@ components:
                     maxLength: 512
                     minLength: 1
                     type: string
+                    x-unkey-redact: true
                 migrationId:
                     description: Migrate keys on demand from your previous system. Reach out for migration support at support@unkey.dev
                     example: m_1234abcd
