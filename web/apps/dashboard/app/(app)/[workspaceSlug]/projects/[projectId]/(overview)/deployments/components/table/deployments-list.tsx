@@ -292,7 +292,9 @@ export const DeploymentsList = () => {
           deployment: Deployment;
           environment?: Environment;
         }) => {
-          const liveDeployment = getDeploymentById(deployment.id);
+          const liveDeployment = project?.liveDeploymentId
+            ? getDeploymentById(project?.liveDeploymentId)
+            : undefined;
           return (
             <div className="pl-5">
               <DeploymentListTableActions
