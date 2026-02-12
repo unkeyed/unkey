@@ -28,8 +28,8 @@ jobs:
           DATABASE_NAME: unkey
           UNKEY_WORKSPACE_ID: "not-empty"
           UNKEY_API_ID: "not-empty"
-          AGENT_URL: "http://localhost:8080"
-          AGENT_TOKEN: "not-empty"
+          VAULT_URL: "http://localhost:8060"
+          VAULT_TOKEN: "not-empty"
           AUTH_PROVIDER: "workos"
           WORKOS_CLIENT_ID: "client_"
           WORKOS_API_KEY: "sk_test_"
