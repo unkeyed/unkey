@@ -56,30 +56,30 @@ post:
     "400":
       description: Bad Request
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
       description: Unauthorized
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
       description: Forbidden
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "409":
       description: Conflict - permission with that name already exists
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/ConflictErrorResponse.yaml"
     "500":
       description: Internal Server Error
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -52,7 +52,7 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
 				codes.UnkeyDataErrorsAuditLogNotFound:
-				return s.JSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
+				return s.ProblemJSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -70,7 +70,7 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
 				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
 				codes.UserErrorsBadRequestRequestBodyUnreadable:
-				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
+				return s.ProblemJSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -80,6 +80,7 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusBadRequest,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 
@@ -89,7 +90,7 @@ func WithErrorHandling() zen.Middleware {
 				codes.UserErrorsBadRequestInvalidAnalyticsFunction,
 				codes.UserErrorsBadRequestInvalidAnalyticsQueryType,
 				codes.UserErrorsBadRequestQueryRangeExceedsRetention:
-				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
+				return s.ProblemJSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -99,6 +100,7 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusBadRequest,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 
@@ -106,7 +108,7 @@ func WithErrorHandling() zen.Middleware {
 			case codes.UserErrorsUnprocessableEntityQueryExecutionTimeout,
 				codes.UserErrorsUnprocessableEntityQueryMemoryLimitExceeded,
 				codes.UserErrorsUnprocessableEntityQueryRowsLimitExceeded:
-				return s.JSON(http.StatusUnprocessableEntity, openapi.UnprocessableEntityErrorResponse{
+				return s.ProblemJSON(http.StatusUnprocessableEntity, openapi.UnprocessableEntityErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -120,7 +122,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Too Many Requests - Query rate limiting
 			case codes.UserErrorsTooManyRequestsQueryQuotaExceeded:
-				return s.JSON(http.StatusTooManyRequests, openapi.TooManyRequestsErrorResponse{
+				return s.ProblemJSON(http.StatusTooManyRequests, openapi.TooManyRequestsErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -134,7 +136,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Request Timeout errors
 			case codes.UserErrorsBadRequestRequestTimeout:
-				return s.JSON(http.StatusRequestTimeout, openapi.BadRequestErrorResponse{
+				return s.ProblemJSON(http.StatusRequestTimeout, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -144,12 +146,13 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusRequestTimeout,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 
 			// Client Closed Request errors (499 - non-standard but widely used)
 			case codes.UserErrorsBadRequestClientClosedRequest:
-				return s.JSON(499, openapi.BadRequestErrorResponse{
+				return s.ProblemJSON(499, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -159,12 +162,13 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: 499,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 
 			// Request Entity Too Large errors
 			case codes.UserErrorsBadRequestRequestBodyTooLarge:
-				return s.JSON(http.StatusRequestEntityTooLarge, openapi.BadRequestErrorResponse{
+				return s.ProblemJSON(http.StatusRequestEntityTooLarge, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -174,12 +178,13 @@ func WithErrorHandling() zen.Middleware {
 						Detail: fault.UserFacingMessage(err),
 						Status: http.StatusRequestEntityTooLarge,
 						Errors: []openapi.ValidationError{},
+						Schema: nil,
 					},
 				})
 
 			// Gone errors
 			case codes.UnkeyDataErrorsRatelimitNamespaceGone:
-				return s.JSON(http.StatusGone, openapi.GoneErrorResponse{
+				return s.ProblemJSON(http.StatusGone, openapi.GoneErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -193,7 +198,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Unauthorized errors
 			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
-				return s.JSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
+				return s.ProblemJSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -207,7 +212,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Forbidden errors
 			case codes.UnkeyAuthErrorsAuthorizationForbidden:
-				return s.JSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
+				return s.ProblemJSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -221,7 +226,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Insufficient Permissions
 			case codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions:
-				return s.JSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
+				return s.ProblemJSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -237,7 +242,7 @@ func WithErrorHandling() zen.Middleware {
 			case codes.UnkeyDataErrorsIdentityDuplicate,
 				codes.UnkeyDataErrorsRoleDuplicate,
 				codes.UnkeyDataErrorsPermissionDuplicate:
-				return s.JSON(http.StatusConflict, openapi.ConflictErrorResponse{
+				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -251,7 +256,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Protected Resource
 			case codes.UnkeyAppErrorsProtectionProtectedResource:
-				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
+				return s.ProblemJSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -266,7 +271,7 @@ func WithErrorHandling() zen.Middleware {
 			// Precondition Failed
 			case codes.UnkeyDataErrorsAnalyticsNotConfigured,
 				codes.UnkeyAppErrorsPreconditionPreconditionFailed:
-				return s.JSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
+				return s.ProblemJSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -280,7 +285,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Key disabled
 			case codes.UnkeyAuthErrorsAuthorizationKeyDisabled:
-				return s.JSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
+				return s.ProblemJSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -294,7 +299,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Workspace disabled
 			case codes.UnkeyAuthErrorsAuthorizationWorkspaceDisabled:
-				return s.JSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
+				return s.ProblemJSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -315,7 +320,7 @@ func WithErrorHandling() zen.Middleware {
 					"publicMessage", fault.UserFacingMessage(err),
 				)
 
-				return s.JSON(http.StatusServiceUnavailable, openapi.ServiceUnavailableErrorResponse{
+				return s.ProblemJSON(http.StatusServiceUnavailable, openapi.ServiceUnavailableErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -340,7 +345,7 @@ func WithErrorHandling() zen.Middleware {
 				"publicMessage", fault.UserFacingMessage(err),
 			)
 
-			return s.JSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
+			return s.ProblemJSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: s.RequestID(),
 				},

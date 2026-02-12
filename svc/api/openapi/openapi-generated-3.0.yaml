@@ -12,6 +12,10 @@ components:
               items:
                 $ref: "#/components/schemas/ValidationError"
               type: array
+            schema:
+              description: URL reference to the OpenAPI schema definition for this request. This provides a direct link to the expected request body schema, enabling automated tools and agents to fetch the schema and understand the exact structure required. The URL uses a JSON Pointer fragment to reference the specific schema within the OpenAPI specification.
+              example: https://api.unkey.com/openapi.yaml#/components/schemas/V2KeysCreateKeyRequestBody
+              type: string
           required:
             - errors
           type: object
@@ -28,7 +32,6 @@ components:
         - error
       type: object
     BaseError:
-      additionalProperties: false
       description: Base error structure following Problem Details for HTTP APIs (RFC 7807). This provides a standardized way to carry machine-readable details of errors in HTTP response content.
       properties:
         detail:
@@ -4421,13 +4424,13 @@ paths:
           description: Events successfully queued for processing
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Invalid request body or malformed events
         "529":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Service overloaded, unable to process events
@@ -4459,13 +4462,13 @@ paths:
           description: Events successfully queued for processing
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Invalid request body or malformed events
         "529":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Service overloaded, unable to process events
@@ -4497,13 +4500,13 @@ paths:
           description: Events successfully queued for processing
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Invalid request body or malformed events
         "529":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Service overloaded, unable to process events
@@ -4534,49 +4537,49 @@ paths:
           description: Query executed successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Invalid SQL query or blocked operation
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Missing or invalid authentication
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Insufficient permissions
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Referenced API or identity not found
         "422":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnprocessableEntityErrorResponse"
           description: Query exceeds resource limits (timeout, memory, rows scanned, or result size)
         "429":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/TooManyRequestsErrorResponse"
           description: Query quota exceeded
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Query execution failed
         "503":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ServiceUnavailableErrorResponse"
           description: Connection to the database failed
@@ -4652,25 +4655,25 @@ paths:
             API namespace created successfully. The response contains the unique API ID for referencing this namespace in key operations.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -4726,37 +4729,37 @@ paths:
           description: API namespace deleted successfully. All associated keys are immediately invalidated and will fail verification with `code=NOT_FOUND`.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found
         "412":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/PreconditionFailedErrorResponse"
           description: Delete protection is enabled. Disable protection through the dashboard or API configuration, then retry the deletion.
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -4866,31 +4869,31 @@ paths:
           description: API information retrieved successfully. Contains the unique API ID and human-readable name.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -5059,31 +5062,31 @@ paths:
             Successfully retrieved paginated keys. Use the pagination cursor for additional results when `hasMore: true`.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -5118,31 +5121,31 @@ paths:
           description: Deployment created successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -5178,31 +5181,31 @@ paths:
           description: Deployment retrieved successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -5265,19 +5268,19 @@ paths:
           description: Identity successfully created.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 missingPermission:
                   summary: Missing required permission
@@ -5294,7 +5297,7 @@ paths:
           description: Forbidden - Insufficient permissions (requires `identity.*.create_identity`)
         "409":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 identityExists:
                   summary: Identity already exists
@@ -5311,7 +5314,7 @@ paths:
           description: Conflict - Identity with this externalId already exists
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -5462,19 +5465,19 @@ paths:
           description: Successfully retrieved the identity information
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 missingPermission:
                   summary: Missing required permission
@@ -5491,7 +5494,7 @@ paths:
           description: Forbidden - Insufficient permissions (requires `identity.*.read_identity`)
         "404":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 identityNotFound:
                   summary: Identity not found
@@ -5508,7 +5511,7 @@ paths:
           description: Not Found - Identity with the specified externalId doesn't exist
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -5581,19 +5584,19 @@ paths:
           description: Successfully retrieved the list of identities
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad Request - Invalid parameters
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized - Missing or invalid authentication
         "403":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 missingPermission:
                   summary: Missing required permission
@@ -5610,7 +5613,7 @@ paths:
           description: Forbidden - Insufficient permissions (requires `identity.*.read_identity`)
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -5669,19 +5672,19 @@ paths:
           description: Identity successfully updated
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 missingPermission:
                   summary: Missing required permission
@@ -5698,7 +5701,7 @@ paths:
           description: Forbidden - Insufficient permissions (requires `identity.*.update_identity`)
         "404":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 identityNotFound:
                   summary: Identity not found
@@ -5715,7 +5718,7 @@ paths:
           description: Not Found - Identity with the specified ID or externalId doesn't exist
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -5759,31 +5762,31 @@ paths:
           description: Permissions added successfully. Returns all permissions currently assigned to the key.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -5827,31 +5830,31 @@ paths:
           description: Roles added successfully. Returns all roles currently assigned to the key.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -5951,31 +5954,31 @@ paths:
           description: "Successfully created a new API key. The response includes both the keyId (for reference in your system) and the full key string. IMPORTANT: This is the only time the complete key is available - it cannot be retrieved later. You must securely provide this key to your end user immediately."
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -6074,31 +6077,31 @@ paths:
             Key deleted successfully. Verification fails immediately with up to 30-second edge propagation.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -6285,31 +6288,31 @@ paths:
             Successfully retrieved key information. When `decrypt: true`, includes plaintext key value for recoverable keys.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -6355,31 +6358,31 @@ paths:
           description: Successfully migrated keys.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -6423,31 +6426,31 @@ paths:
           description: Permissions removed successfully. Returns all permissions currently assigned to the key.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -6491,31 +6494,31 @@ paths:
           description: Roles removed successfully. Returns all roles currently assigned to the key.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -6586,31 +6589,31 @@ paths:
           description: Key rerolled successfully.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -6654,31 +6657,31 @@ paths:
           description: Permissions set successfully. Returns all permissions currently assigned to the key.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -6722,31 +6725,31 @@ paths:
           description: Roles set successfully. Returns all roles currently assigned to the key.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -6880,31 +6883,31 @@ paths:
             Credits updated successfully. Response includes updated remaining credits and refill settings.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -7044,31 +7047,31 @@ paths:
             Key updated successfully. Changes take effect immediately with up to 30-second edge propagation.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -7199,7 +7202,7 @@ paths:
             The response also includes identity information when the key is associated with an identity, providing additional context about the key holder and any identity-specific rate limits or metadata that may apply to the verification.
         "400":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 permissionsQuerySyntaxError:
                   summary: Invalid permissions query syntax
@@ -7220,26 +7223,26 @@ paths:
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: |
             Forbidden. Returned when the root key has no verify permissions at all (neither `api.*.verify_key` nor `api.<api_id>.verify_key` for any API).
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -7396,31 +7399,31 @@ paths:
             Successfully retrieved key information.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -7463,7 +7466,7 @@ paths:
             Service is healthy and ready to process requests. Returns 'OK' message for normal operation.
         "412":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 degraded:
                   summary: Service in degraded state
@@ -7481,7 +7484,7 @@ paths:
             Service is in a degraded state. Some functionality may be limited or unavailable.
         "500":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 unhealthy:
                   summary: Service unhealthy
@@ -7555,31 +7558,31 @@ paths:
           description: Permission created successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad Request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "409":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ConflictErrorResponse"
           description: Conflict - permission with that name already exists
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -7635,31 +7638,31 @@ paths:
           description: Role created successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad Request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "409":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ConflictErrorResponse"
           description: Conflict - A role with this name already exists
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -7701,31 +7704,31 @@ paths:
           description: Permission deleted successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad Request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found - The specified permission does not exist
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -7762,25 +7765,25 @@ paths:
           description: Role deleted successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad Request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -7834,31 +7837,31 @@ paths:
           description: Permission retrieved successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad Request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -7893,31 +7896,31 @@ paths:
           description: Role retrieved successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad Request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -7953,25 +7956,25 @@ paths:
           description: Permissions retrieved successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad Request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -8007,31 +8010,31 @@ paths:
           description: Roles retrieved successfully
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad Request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -8085,19 +8088,19 @@ paths:
           description: Override successfully deleted. Affected identifiers now use default limits.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 missingPermission:
                   summary: Missing required permission
@@ -8114,7 +8117,7 @@ paths:
           description: Forbidden - Insufficient permissions (requires `ratelimit.*.delete_override`)
         "404":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 overrideNotFound:
                   summary: Override not found
@@ -8131,7 +8134,7 @@ paths:
           description: Not Found - Override or namespace not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -8190,19 +8193,19 @@ paths:
           description: Override found and returned successfully.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 missingPermission:
                   summary: Missing required permission
@@ -8219,7 +8222,7 @@ paths:
           description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
         "404":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 overrideNotFound:
                   summary: Override not found
@@ -8236,7 +8239,7 @@ paths:
           description: Not Found - Override or namespace not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error
@@ -8332,37 +8335,37 @@ paths:
             Rate limit check completed successfully. Check the `success` field to determine if the request is allowed.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found
         "410":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/GoneErrorResponse"
           description: Gone - Namespace has been deleted
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -8434,19 +8437,19 @@ paths:
           description: Overrides retrieved successfully. Includes pagination metadata if more results are available.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 missingPermission:
                   summary: Missing required permission
@@ -8463,13 +8466,13 @@ paths:
           description: Forbidden - Insufficient permissions (requires `ratelimit.*.read_override`)
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Error
@@ -8608,37 +8611,37 @@ paths:
             All rate limit checks completed successfully. Check the `success` field in each result to determine if the corresponding request is allowed.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/ForbiddenErrorResponse"
           description: Forbidden
         "404":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/NotFoundErrorResponse"
           description: Not Found
         "410":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/GoneErrorResponse"
           description: Gone - Namespace has been deleted
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal server error
@@ -8697,19 +8700,19 @@ paths:
           description: Override successfully created or updated and is now active.
         "400":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/BadRequestErrorResponse"
           description: Bad request
         "401":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/UnauthorizedErrorResponse"
           description: Unauthorized
         "403":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 missingPermission:
                   summary: Missing required permission
@@ -8726,7 +8729,7 @@ paths:
           description: Forbidden - Insufficient permissions (requires `ratelimit.*.set_override`)
         "404":
           content:
-            application/json:
+            application/problem+json:
               examples:
                 namespaceNotFound:
                   summary: Namespace not found
@@ -8743,7 +8746,7 @@ paths:
           description: Not Found - Namespace not found
         "500":
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: "#/components/schemas/InternalServerErrorResponse"
           description: Internal Server Error

@@ -48,6 +48,7 @@ func (v *Validator) validateContentType(r *http.Request, compiledOp *CompiledOpe
 							Fix:      ptr.P("Provide a valid Content-Type header (e.g., application/json)"),
 						},
 					},
+					Schema: BuildSchemaURL(compiledOp.BodySchemaName),
 				},
 			},
 		}
@@ -91,6 +92,7 @@ func (v *Validator) validateContentType(r *http.Request, compiledOp *CompiledOpe
 						Fix:      ptr.P("Use one of the supported content types: " + strings.Join(compiledOp.ContentTypes, ", ")),
 					},
 				},
+				Schema: BuildSchemaURL(compiledOp.BodySchemaName),
 			},
 		},
 	}
@@ -106,6 +108,10 @@ func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledO
 		var err error
 		body, err = io.ReadAll(r.Body)
 		if err != nil {
+			var schemaURL *string
+			if compiledOp != nil {
+				schemaURL = BuildSchemaURL(compiledOp.BodySchemaName)
+			}
 			return &BadRequestError{
 				BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
@@ -117,6 +123,7 @@ func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledO
 						Status: http.StatusBadRequest,
 						Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
 						Errors: []openapi.ValidationError{},
+						Schema: schemaURL,
 					},
 				},
 			}, false
@@ -144,6 +151,7 @@ func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledO
 							Fix:      ptr.P("Provide a request body in the expected format"),
 						},
 					},
+					Schema: BuildSchemaURL(compiledOp.BodySchemaName),
 				},
 			},
 		}, false
@@ -162,6 +170,7 @@ func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledO
 	// Unmarshal the body
 	var data any
 	if err := json.Unmarshal(body, &data); err != nil {
+		schemaURL := BuildSchemaURL(compiledOp.BodySchemaName)
 		return &BadRequestError{
 			BadRequestErrorResponse: openapi.BadRequestErrorResponse{
 				Meta: openapi.Meta{
@@ -179,6 +188,7 @@ func (v *Validator) validateBody(ctx context.Context, r *http.Request, compiledO
 							Fix:      ptr.P("Ensure the request body is valid JSON"),
 						},
 					},
+					Schema: schemaURL,
 				},
 			},
 		}, false

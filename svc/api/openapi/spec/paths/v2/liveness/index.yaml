@@ -38,7 +38,7 @@ get:
       description: |
         Service is in a degraded state. Some functionality may be limited or unavailable.
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../error/InternalServerErrorResponse.yaml"
           examples:
@@ -55,7 +55,7 @@ get:
                   type: https://unkey.dev/errors/precondition-failed
     "500":
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../error/InternalServerErrorResponse.yaml"
           examples:

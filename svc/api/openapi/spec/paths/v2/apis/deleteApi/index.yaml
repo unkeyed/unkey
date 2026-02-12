@@ -50,36 +50,36 @@ post:
     "400":
       description: Bad request
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/BadRequestErrorResponse.yaml"
     "401":
       description: Unauthorized
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
       description: Forbidden
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: Not Found
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/NotFoundErrorResponse.yaml"
     "412":
       description: Delete protection is enabled. Disable protection through the dashboard or API configuration, then retry the deletion.
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/PreconditionFailedErrorResponse.yaml"
     "500":
       description: Internal server error
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/InternalServerErrorResponse.yaml"

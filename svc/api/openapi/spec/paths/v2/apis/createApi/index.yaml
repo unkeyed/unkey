@@ -70,24 +70,24 @@ post:
     "400":
       description: Bad request
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
       description: Unauthorized
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
       description: Forbidden
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "500":
       description: Internal server error
       content:
-        application/json:
+        application/problem+json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
