@@ -1,4 +1,5 @@
 "use client";
+import { customDomains } from "./deploy/custom-domains";
 import { deployments } from "./deploy/deployments";
 import { domains } from "./deploy/domains";
 import { environments } from "./deploy/environments";
@@ -7,6 +8,7 @@ import { ratelimitNamespaces } from "./ratelimit/namespaces";
 import { ratelimitOverrides } from "./ratelimit/overrides";
 
 // Export types
+export type { CustomDomain } from "./deploy/custom-domains";
 export type { Deployment } from "./deploy/deployments";
 export type { Domain } from "./deploy/domains";
 export type { Project } from "./deploy/projects";
@@ -22,6 +24,7 @@ export const collection = {
   environments,
   domains,
   deployments,
+  customDomains,
 } as const;
 
 export async function reset() {

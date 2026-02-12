@@ -1,6 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
@@ -18,10 +19,12 @@ type ProjectDataContextType = {
   domains: Domain[];
   deployments: Deployment[];
   environments: Environment[];
+  customDomains: CustomDomain[];
 
   isDomainsLoading: boolean;
   isDeploymentsLoading: boolean;
   isEnvironmentsLoading: boolean;
+  isCustomDomainsLoading: boolean;
 
   getDomainsForDeployment: (deploymentId: string) => Domain[];
   getLiveDomains: () => Domain[];
@@ -30,6 +33,7 @@ type ProjectDataContextType = {
 
   refetchDomains: () => void;
   refetchDeployments: () => void;
+  refetchCustomDomains: () => void;
   refetchAll: () => void;
 };
 
@@ -80,10 +84,20 @@ export const ProjectDataProvider = ({ children }: PropsWithChildren) => {
     [projectId],
   );
 
+  const customDomainsQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ customDomain: collection.customDomains })
+        .where(({ customDomain }) => eq(customDomain.projectId, projectId))
+        .orderBy(({ customDomain }) => customDomain.createdAt, "desc"),
+    [projectId],
+  );
+
   const value = useMemo(() => {
     const domains = domainsQuery.data ?? [];
     const deployments = deploymentsQuery.data ?? [];
     const environments = environmentsQuery.data ?? [];
+    const customDomains = customDomainsQuery.data ?? [];
     const project = projectQuery.data?.at(0);
 
     return {
@@ -101,6 +115,9 @@ export const ProjectDataProvider = ({ children }: PropsWithChildren) => {
       environments,
       isEnvironmentsLoading: environmentsQuery.isLoading,
 
+      customDomains,
+      isCustomDomainsLoading: customDomainsQuery.isLoading,
+
       getDomainsForDeployment: (deploymentId: string) =>
         domains.filter((d) => d.deploymentId === deploymentId),
 
@@ -113,14 +130,23 @@ export const ProjectDataProvider = ({ children }: PropsWithChildren) => {
 
       refetchDomains: () => collection.domains.utils.refetch(),
       refetchDeployments: () => collection.deployments.utils.refetch(),
+      refetchCustomDomains: () => collection.customDomains.utils.refetch(),
       refetchAll: () => {
         collection.projects.utils.refetch();
         collection.deployments.utils.refetch();
         collection.domains.utils.refetch();
         collection.environments.utils.refetch();
+        collection.customDomains.utils.refetch();
       },
     };
-  }, [projectId, domainsQuery, deploymentsQuery, projectQuery, environmentsQuery]);
+  }, [
+    projectId,
+    domainsQuery,
+    deploymentsQuery,
+    projectQuery,
+    environmentsQuery,
+    customDomainsQuery,
+  ]);
 
   return <ProjectDataContext.Provider value={value}>{children}</ProjectDataContext.Provider>;
 };

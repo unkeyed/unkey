@@ -12,8 +12,8 @@ import { newKey } from "@unkey/keys";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const vault = new Vault({
-  baseUrl: env().AGENT_URL,
-  token: env().AGENT_TOKEN,
+  baseUrl: env().VAULT_URL,
+  token: env().VAULT_TOKEN,
 });
 
 export const createKey = workspaceProcedure
