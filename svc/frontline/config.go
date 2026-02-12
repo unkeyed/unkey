@@ -73,6 +73,26 @@ type Config struct {
 	// VaultToken is the authentication token for the vault service
 	VaultToken string
 
+	// --- Gossip cluster configuration ---
+
+	// GossipEnabled controls whether gossip-based cache invalidation is active
+	GossipEnabled bool
+
+	// GossipBindAddr is the address to bind gossip listeners on (default "0.0.0.0")
+	GossipBindAddr string
+
+	// GossipLANPort is the LAN memberlist port (default 7946)
+	GossipLANPort int
+
+	// GossipWANPort is the WAN memberlist port for gateways (default 7947)
+	GossipWANPort int
+
+	// GossipLANSeeds are addresses of existing LAN cluster members (e.g. k8s headless service DNS)
+	GossipLANSeeds []string
+
+	// GossipWANSeeds are addresses of cross-region gateways
+	GossipWANSeeds []string
+
 	// --- Logging sampler configuration ---
 
 	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
