@@ -119,14 +119,13 @@ func (c *gossipCluster) promoteToGateway() {
 	seeds := c.config.WANSeeds
 	c.mu.Unlock()
 
-	// Join WAN seeds outside the lock to avoid blocking
+	// Join WAN seeds outside the lock with retries
 	if len(seeds) > 0 {
-		go func() {
-			_, joinErr := wanList.Join(seeds)
-			if joinErr != nil {
-				logger.Warn("Failed to join WAN seeds", "error", joinErr, "seeds", seeds)
-			}
-		}()
+		go c.joinSeeds("WAN", func() *memberlist.Memberlist {
+			c.mu.RLock()
+			defer c.mu.RUnlock()
+			return c.wan
+		}, seeds, nil)
 	}
 }
 

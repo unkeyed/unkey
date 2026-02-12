@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
+const maxJoinAttempts = 10
+
 // Cluster is the public interface for gossip-based cluster membership.
 type Cluster interface {
 	Broadcast(msg []byte) error
@@ -89,21 +91,68 @@ func New(cfg Config) (Cluster, error) {
 	}
 	c.mu.Unlock()
 
-	// Join LAN seeds
+	// Join LAN seeds with retries — the headless service DNS may not be
+	// resolvable immediately at pod startup.
 	if len(cfg.LANSeeds) > 0 {
-		_, err = lan.Join(cfg.LANSeeds)
-		if err != nil {
-			logger.Warn("Failed to join LAN seeds",
-				"error", err,
-				"seeds", cfg.LANSeeds,
-			)
-		}
+		go c.joinSeeds("LAN", func() *memberlist.Memberlist {
+			c.mu.RLock()
+			defer c.mu.RUnlock()
+			return c.lan
+		}, cfg.LANSeeds, c.triggerEvalGateway)
 	}
 
 	// Trigger initial gateway evaluation
 	c.triggerEvalGateway()
 
 	return c, nil
+}
+
+// joinSeeds attempts to join seeds on the given memberlist with exponential backoff.
+// pool is used for logging ("LAN" or "WAN"). onSuccess is called after a successful join.
+func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlist, seeds []string, onSuccess func()) {
+	backoff := 500 * time.Millisecond
+
+	for attempt := 1; attempt <= maxJoinAttempts; attempt++ {
+		select {
+		case <-c.done:
+			return
+		default:
+		}
+
+		ml := list()
+		if ml == nil {
+			return
+		}
+
+		_, err := ml.Join(seeds)
+		if err == nil {
+			logger.Info("Joined "+pool+" seeds", "seeds", seeds, "attempt", attempt)
+			if onSuccess != nil {
+				onSuccess()
+			}
+			return
+		}
+
+		logger.Warn("Failed to join "+pool+" seeds, retrying",
+			"error", err,
+			"seeds", seeds,
+			"attempt", attempt,
+			"next_backoff", backoff,
+		)
+
+		select {
+		case <-c.done:
+			return
+		case <-time.After(backoff):
+		}
+
+		backoff = min(backoff*2, 10*time.Second)
+	}
+
+	logger.Error("Exhausted retries joining "+pool+" seeds",
+		"seeds", seeds,
+		"attempts", maxJoinAttempts,
+	)
 }
 
 // triggerEvalGateway sends a non-blocking signal to the gateway evaluator goroutine.
