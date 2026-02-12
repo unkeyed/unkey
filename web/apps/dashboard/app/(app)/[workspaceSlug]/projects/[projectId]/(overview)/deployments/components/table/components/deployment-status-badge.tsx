@@ -93,31 +93,13 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
       )}
     >
       {animated && (
-        <div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-[150%]"
-          style={{
-            animation: "shimmer 1.2s ease-in-out infinite",
-          }}
-        />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
       )}
       <Icon
         iconSize={config.icon === Nut ? "md-bold" : "md-regular"}
         className={cn(iconColor, animated && "relative z-5")}
       />
       <span className={cn(textColor, "text-xs", animated && "relative z-5")}>{label}</span>
-
-      {animated && (
-        <style jsx>{`
-          @keyframes shimmer {
-            0% {
-              transform: translateX(-100%);
-            }
-            100% {
-              transform: translateX(100%);
-            }
-          }
-        `}</style>
-      )}
     </div>
   );
 };

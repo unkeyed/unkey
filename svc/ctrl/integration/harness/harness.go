@@ -27,6 +27,8 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 	"golang.org/x/net/http2"
@@ -164,11 +166,31 @@ func New(t *testing.T) *Harness {
 		Clickhouse: chClient,
 	})
 
+	deploySvc := deploy.New(deploy.Config{
+		DB:                              database,
+		Clickhouse:                      chClient,
+		DefaultDomain:                   "test.example.com",
+		Vault:                           testVault.Client,
+		SentinelImage:                   "test-sentinel:latest",
+		AvailableRegions:                []string{"us-east-1"},
+		GitHub:                          nil,
+		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: ""},
+		RegistryConfig:                  deploy.RegistryConfig{URL: "", Username: "", Password: ""},
+		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+		AllowUnauthenticatedDeployments: false,
+	})
+
+	deploymentSvc := deployment.New(deployment.Config{
+		DB: database,
+	})
+
 	// Set up Restate server with all services
 	// Use the proto-generated wrappers (same as run.go) to get correct service names
 	restateSrv := restateServer.NewRestate()
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
+	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
+	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
 
 	restateHandler, err := restateSrv.Handler()
 	require.NoError(t, err)

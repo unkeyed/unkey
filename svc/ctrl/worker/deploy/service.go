@@ -38,7 +38,7 @@ type RegistryConfig struct {
 // deployment operation runs per project at any time, preventing race conditions during
 // concurrent deploy/rollback/promote operations.
 type Workflow struct {
-	hydrav1.UnimplementedDeploymentServiceServer
+	hydrav1.UnimplementedDeployServiceServer
 	db db.Database
 
 	defaultDomain    string
@@ -48,13 +48,14 @@ type Workflow struct {
 	github           githubclient.GitHubClient
 
 	// Build dependencies
-	depotConfig    DepotConfig
-	registryConfig RegistryConfig
-	buildPlatform  BuildPlatform
-	clickhouse     clickhouse.ClickHouse
+	depotConfig                     DepotConfig
+	registryConfig                  RegistryConfig
+	buildPlatform                   BuildPlatform
+	clickhouse                      clickhouse.ClickHouse
+	allowUnauthenticatedDeployments bool
 }
 
-var _ hydrav1.DeploymentServiceServer = (*Workflow)(nil)
+var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
 
 // Config holds the configuration for creating a deployment workflow.
 type Config struct {
@@ -87,21 +88,26 @@ type Config struct {
 
 	// Clickhouse receives build step telemetry for observability.
 	Clickhouse clickhouse.ClickHouse
+
+	// AllowUnauthenticatedDeployments controls whether builds can skip GitHub authentication.
+	// Set to true only for local development with public repositories.
+	AllowUnauthenticatedDeployments bool
 }
 
 // New creates a new deployment workflow instance.
 func New(cfg Config) *Workflow {
 	return &Workflow{
-		UnimplementedDeploymentServiceServer: hydrav1.UnimplementedDeploymentServiceServer{},
-		db:                                   cfg.DB,
-		defaultDomain:                        cfg.DefaultDomain,
-		vault:                                cfg.Vault,
-		sentinelImage:                        cfg.SentinelImage,
-		availableRegions:                     cfg.AvailableRegions,
-		github:                               cfg.GitHub,
-		depotConfig:                          cfg.DepotConfig,
-		registryConfig:                       cfg.RegistryConfig,
-		buildPlatform:                        cfg.BuildPlatform,
-		clickhouse:                           cfg.Clickhouse,
+		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
+		db:                               cfg.DB,
+		defaultDomain:                    cfg.DefaultDomain,
+		vault:                            cfg.Vault,
+		sentinelImage:                    cfg.SentinelImage,
+		availableRegions:                 cfg.AvailableRegions,
+		github:                           cfg.GitHub,
+		depotConfig:                      cfg.DepotConfig,
+		registryConfig:                   cfg.RegistryConfig,
+		buildPlatform:                    cfg.BuildPlatform,
+		clickhouse:                       cfg.Clickhouse,
+		allowUnauthenticatedDeployments:  cfg.AllowUnauthenticatedDeployments,
 	}
 }

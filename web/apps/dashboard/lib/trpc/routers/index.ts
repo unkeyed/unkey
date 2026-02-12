@@ -55,6 +55,9 @@ import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
+import { getEnvironmentSettings } from "./deploy/environment-settings/get";
+import { updateEnvironmentBuildSettings } from "./deploy/environment-settings/update-build";
+import { updateEnvironmentRuntimeSettings } from "./deploy/environment-settings/update-runtime";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
@@ -64,9 +67,12 @@ import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
 import { createProject } from "./deploy/project/create";
+import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
+
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
 import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
+import { llmSearch as sentinelLogsLlmSearch } from "./deploy/sentinel-logs/llm-search";
 import { querySentinelLogs } from "./deploy/sentinel-logs/query";
 import { listEnvironments } from "./environment/list";
 import { githubRouter } from "./github";
@@ -385,6 +391,12 @@ export const router = t.router({
     project: t.router({
       list: listProjects,
       create: createProject,
+      delete: deleteProject,
+    }),
+    environmentSettings: t.router({
+      get: getEnvironmentSettings,
+      updateBuild: updateEnvironmentBuildSettings,
+      updateRuntime: updateEnvironmentRuntimeSettings,
     }),
     environment: t.router({
       list: listEnvironments,
@@ -416,6 +428,7 @@ export const router = t.router({
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,
+      llmSearch: sentinelLogsLlmSearch,
     }),
     runtimeLogs: t.router({
       query: queryRuntimeLogs,

@@ -6,6 +6,8 @@ import { shortenId } from "@/lib/shorten-id";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 import type { ComponentPropsWithoutRef } from "react";
+import { useProjectData } from "../../../../data-provider";
+import { useDeployment } from "../../layout-provider";
 
 export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.Link> & {
   /** Unique identifier for the breadcrumb item */
@@ -25,14 +27,14 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
   const segments = useSelectedLayoutSegments();
 
   const workspaceSlug = params.workspaceSlug as string;
-  const projectId = params.projectId as string;
-  const deploymentId = params.deploymentId as string;
+  const { projectId } = useProjectData();
+  const { deploymentId } = useDeployment();
 
   // Detect current tab from segments
   const currentTab = segments.includes("network")
     ? "network"
-    : segments.includes("runtime-logs")
-      ? "runtime-logs"
+    : segments.includes("logs")
+      ? "logs"
       : "overview";
 
   return useMemo(() => {
@@ -46,9 +48,9 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
         href: `${basePath}/deployments/${deploymentId}`,
       },
       {
-        id: "runtime-logs",
-        label: "Runtime Logs",
-        href: `${basePath}/deployments/${deploymentId}/runtime-logs`,
+        id: "logs",
+        label: "Logs",
+        href: `${basePath}/deployments/${deploymentId}/logs`,
       },
       {
         id: "network",
@@ -97,11 +99,7 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
         noop: true,
         active: true,
         children:
-          currentTab === "overview"
-            ? "Overview"
-            : currentTab === "runtime-logs"
-              ? "Runtime Logs"
-              : "Network",
+          currentTab === "overview" ? "Overview" : currentTab === "logs" ? "Logs" : "Network",
         shouldRender: true,
         isLast: true,
         quickNavConfig: {

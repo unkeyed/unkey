@@ -4431,7 +4431,15 @@ paths:
             x-speakeasy-name-override: createIdentity
     /v2/identities.deleteIdentity:
         post:
-            description: "Permanently delete an identity. This operation cannot be undone.\n\nUse this for data cleanup, compliance requirements, or when removing entities from your system.\n\n> **Important**  \n> Requires `identity.*.delete_identity` permission  \n> Associated API keys remain functional but lose shared resources  \n> External ID becomes available for reuse immediately\n"
+            description: |
+                Permanently delete an identity. This operation cannot be undone.
+
+                Use this for data cleanup, compliance requirements, or when removing entities from your system.
+
+                > **Important**
+                > Requires `identity.*.delete_identity` permission
+                > Associated API keys remain functional but lose shared resources
+                > External ID becomes available for reuse immediately
             operationId: identities.deleteIdentity
             requestBody:
                 content:
@@ -4517,7 +4525,13 @@ paths:
             x-speakeasy-name-override: deleteIdentity
     /v2/identities.getIdentity:
         post:
-            description: "Retrieve an identity by external ID. Returns metadata, rate limits, and other associated data.\n\nUse this to check if an identity exists, view configurations, or build management dashboards.\n\n> **Important**  \n> Requires `identity.*.read_identity` permission\n"
+            description: |
+                Retrieve an identity by external ID. Returns metadata, rate limits, and other associated data.
+
+                Use this to check if an identity exists, view configurations, or build management dashboards.
+
+                > **Important**
+                > Requires `identity.*.read_identity` permission
             operationId: identities.getIdentity
             requestBody:
                 content:
@@ -4614,7 +4628,13 @@ paths:
             x-speakeasy-name-override: getIdentity
     /v2/identities.listIdentities:
         post:
-            description: "Get a paginated list of all identities in your workspace. Returns metadata and rate limit configurations.\n\nPerfect for building management dashboards, auditing configurations, or browsing your identities.\n\n> **Important**  \n> Requires `identity.*.read_identity` permission\n"
+            description: |
+                Get a paginated list of all identities in your workspace. Returns metadata and rate limit configurations.
+
+                Perfect for building management dashboards, auditing configurations, or browsing your identities.
+
+                > **Important**
+                > Requires `identity.*.read_identity` permission
             operationId: identities.listIdentities
             requestBody:
                 content:
@@ -6310,7 +6330,14 @@ paths:
             x-speakeasy-name-override: GetRole
     /v2/permissions.listPermissions:
         post:
-            description: "Retrieve all permissions in your workspace. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_permission`\n"
+            description: |
+                Retrieve all permissions in your workspace.
+                Results are paginated and sorted by their id.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `rbac.*.read_permission`
             operationId: permissions.listPermissions
             requestBody:
                 content:
@@ -6357,7 +6384,14 @@ paths:
             x-speakeasy-name-override: ListPermissions
     /v2/permissions.listRoles:
         post:
-            description: "Retrieve all roles in your workspace including their assigned permissions. \nResults are paginated and sorted by their id.\n\n**Required Permissions**\n\nYour root key must have the following permission:\n- `rbac.*.read_role`\n"
+            description: |
+                Retrieve all roles in your workspace including their assigned permissions.
+                Results are paginated and sorted by their id.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `rbac.*.read_role`
             operationId: permissions.listRoles
             requestBody:
                 content:

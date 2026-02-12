@@ -12,6 +12,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
+import { useProjectData } from "../../data-provider";
 import type { CustomDomain } from "./types";
 
 // Basic domain validation regex
@@ -29,7 +30,6 @@ function extractDomain(input: string): string {
 }
 
 type AddCustomDomainProps = {
-  projectId: string;
   environments: Array<{ id: string; slug: string }>;
   getExistingDomain: (domain: string) => CustomDomain | undefined;
   onCancel: () => void;
@@ -37,12 +37,12 @@ type AddCustomDomainProps = {
 };
 
 export function AddCustomDomain({
-  projectId,
   environments,
   getExistingDomain,
   onCancel,
   onSuccess,
 }: AddCustomDomainProps) {
+  const { projectId } = useProjectData();
   const addMutation = trpc.deploy.customDomain.add.useMutation();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

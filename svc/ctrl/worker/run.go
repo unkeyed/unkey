@@ -33,6 +33,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
@@ -155,18 +156,31 @@ func Run(ctx context.Context, cfg Config) error {
 	// Restate Server - uses logging.GetHandler() for slog integration
 	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
-		DB:               database,
-		DefaultDomain:    cfg.DefaultDomain,
-		Vault:            vaultClient,
-		SentinelImage:    cfg.SentinelImage,
-		AvailableRegions: cfg.AvailableRegions,
-		GitHub:           ghClient,
-		RegistryConfig:   deploy.RegistryConfig(cfg.GetRegistryConfig()),
-		BuildPlatform:    deploy.BuildPlatform(cfg.GetBuildPlatform()),
-		DepotConfig:      deploy.DepotConfig(cfg.GetDepotConfig()),
-		Clickhouse:       ch,
-	})))
+	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploy.New(deploy.Config{
+		DB:                              database,
+		DefaultDomain:                   cfg.DefaultDomain,
+		Vault:                           vaultClient,
+		SentinelImage:                   cfg.SentinelImage,
+		AvailableRegions:                cfg.AvailableRegions,
+		GitHub:                          ghClient,
+		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
+		BuildPlatform:                   deploy.BuildPlatform(cfg.GetBuildPlatform()),
+		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
+		Clickhouse:                      ch,
+		AllowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
+	}),
+		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(1*time.Minute),
+			restate.WithExponentiationFactor(2.0),
+			restate.WithMaxInterval(10*time.Minute),
+			restate.WithMaxAttempts(150),
+			restate.KillOnMaxAttempts(),
+		),
+	))
+	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
+		DB: database,
+	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,

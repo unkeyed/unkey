@@ -143,7 +143,7 @@ func Run(ctx context.Context, cfg Config) error {
 	r.RegisterHealth(mux)
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deployment.New(deployment.Config{
+	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deployment.New(deployment.Config{
 		Database:         database,
 		Restate:          restateClient,
 		AvailableRegions: cfg.AvailableRegions,

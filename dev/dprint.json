@@ -1,0 +1,18 @@
+{
+  "yaml": {
+    "indentWidth": 2
+  },
+  "includes": ["**/*.yaml", "**/*.yml"],
+  "excludes": [
+    "node_modules",
+    "dist",
+    "web/node_modules",
+    "web/pnpm-lock.yaml",
+    "web/apps/agent/gen",
+    "svc/api/openapi/openapi-generated.yaml",
+    ".git"
+  ],
+  "plugins": [
+    "https://plugins.dprint.dev/g-plane/pretty_yaml-v0.6.0.wasm"
+  ]
+}

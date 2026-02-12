@@ -48,11 +48,12 @@ func New(t *testing.T, database db.Database, vault vaultv1connect.VaultServiceCl
 
 func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	params := db.InsertWorkspaceParams{
-		ID:        uid.New("test_ws"),
-		OrgID:     uid.New("test_org"),
-		Name:      uid.New("test_name"),
-		Slug:      uid.New("slug"),
-		CreatedAt: time.Now().UnixMilli(),
+		ID:           uid.New("test_ws"),
+		OrgID:        uid.New("test_org"),
+		Name:         uid.New("test_name"),
+		Slug:         uid.New("slug"),
+		CreatedAt:    time.Now().UnixMilli(),
+		K8sNamespace: sql.NullString{Valid: true, String: uid.DNS1035()},
 	}
 
 	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), params)
@@ -127,7 +128,6 @@ type CreateProjectRequest struct {
 	WorkspaceID      string
 	Name             string
 	Slug             string
-	GitRepositoryURL string
 	DefaultBranch    string
 	DeleteProtection bool
 }
@@ -138,7 +138,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		WorkspaceID:      req.WorkspaceID,
 		Name:             req.Name,
 		Slug:             req.Slug,
-		GitRepositoryUrl: sql.NullString{Valid: true, String: req.GitRepositoryURL},
 		DefaultBranch:    sql.NullString{Valid: true, String: req.DefaultBranch},
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        time.Now().UnixMilli(),
@@ -154,7 +153,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		WorkspaceID:      project.WorkspaceID,
 		Name:             project.Name,
 		Slug:             project.Slug,
-		GitRepositoryUrl: project.GitRepositoryUrl,
 		DefaultBranch:    project.DefaultBranch,
 		DeleteProtection: project.DeleteProtection,
 		CreatedAt:        project.CreatedAt,
@@ -163,7 +161,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		LiveDeploymentID: sql.NullString{String: "", Valid: false},
 		IsRolledBack:     false,
 		DepotProjectID:   sql.NullString{String: "", Valid: false},
-		Command:          nil,
 	}
 }
 
@@ -183,6 +180,8 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		sentinelConfig = req.SentinelConfig
 	}
 
+	now := time.Now().UnixMilli()
+
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
 		ID:             req.ID,
 		WorkspaceID:    req.WorkspaceID,
@@ -190,8 +189,33 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Slug:           req.Slug,
 		Description:    req.Description,
 		SentinelConfig: sentinelConfig,
-		CreatedAt:      time.Now().UnixMilli(),
+		CreatedAt:      now,
 		UpdatedAt:      sql.NullInt64{Int64: 0, Valid: false},
+	})
+	require.NoError(s.t, err)
+
+	err = db.Query.UpsertEnvironmentRuntimeSettings(ctx, s.DB.RW(), db.UpsertEnvironmentRuntimeSettingsParams{
+		WorkspaceID:    req.WorkspaceID,
+		EnvironmentID:  req.ID,
+		Port:           8080,
+		CpuMillicores:  256,
+		MemoryMib:      256,
+		Command:        dbtype.StringSlice{},
+		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		RegionConfig:   dbtype.RegionConfig{},
+		ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
+		CreatedAt:      now,
+		UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
+	})
+	require.NoError(s.t, err)
+
+	err = db.Query.UpsertEnvironmentBuildSettings(ctx, s.DB.RW(), db.UpsertEnvironmentBuildSettingsParams{
+		WorkspaceID:   req.WorkspaceID,
+		EnvironmentID: req.ID,
+		Dockerfile:    "Dockerfile",
+		DockerContext: ".",
+		CreatedAt:     now,
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 	})
 	require.NoError(s.t, err)
 
@@ -207,9 +231,63 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Description:      req.Description,
 		SentinelConfig:   sentinelConfig,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
-		CreatedAt:        time.Now().UnixMilli(),
+		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
 	}
+}
+
+type CreateDeploymentRequest struct {
+	ID            string
+	WorkspaceID   string
+	ProjectID     string
+	EnvironmentID string
+	Status        db.DeploymentsStatus
+	CreatedAt     int64
+	UpdatedAt     sql.NullInt64
+}
+
+func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
+	id := req.ID
+	if id == "" {
+		id = uid.New(uid.DeploymentPrefix)
+	}
+
+	createdAt := req.CreatedAt
+	if createdAt == 0 {
+		createdAt = time.Now().UnixMilli()
+	}
+
+	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
+		ID:                            id,
+		K8sName:                       uid.New("k8s"),
+		WorkspaceID:                   req.WorkspaceID,
+		ProjectID:                     req.ProjectID,
+		EnvironmentID:                 req.EnvironmentID,
+		GitCommitSha:                  sql.NullString{String: "", Valid: false},
+		GitBranch:                     sql.NullString{String: "", Valid: false},
+		SentinelConfig:                []byte("{}"),
+		GitCommitMessage:              sql.NullString{String: "", Valid: false},
+		GitCommitAuthorHandle:         sql.NullString{String: "", Valid: false},
+		GitCommitAuthorAvatarUrl:      sql.NullString{String: "", Valid: false},
+		GitCommitTimestamp:            sql.NullInt64{Int64: 0, Valid: false},
+		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
+		EncryptedEnvironmentVariables: []byte("{}"),
+		Command:                       nil,
+		Status:                        req.Status,
+		CpuMillicores:                 256,
+		MemoryMib:                     256,
+		CreatedAt:                     createdAt,
+		UpdatedAt:                     req.UpdatedAt,
+		Port:                          8080,
+		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
+		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+	})
+	require.NoError(s.t, err)
+
+	deployment, err := db.Query.FindDeploymentById(ctx, s.DB.RO(), id)
+	require.NoError(s.t, err)
+
+	return deployment
 }
 
 // CreateRootKey creates a root key with optional permissions

@@ -7,17 +7,13 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const listNetworkPolicyByRegion = `-- name: ListNetworkPolicyByRegion :many
-SELECT
-    n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
-    w.k8s_namespace
-FROM ` + "`" + `cilium_network_policies` + "`" + ` n
-INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON n.workspace_id = w.id
-WHERE n.region = ? AND n.version > ?
-ORDER BY n.version ASC
+SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+FROM ` + "`" + `cilium_network_policies` + "`" + `
+WHERE region = ? AND version > ?
+ORDER BY version ASC
 LIMIT ?
 `
 
@@ -27,43 +23,36 @@ type ListNetworkPolicyByRegionParams struct {
 	Limit        int32  `db:"limit"`
 }
 
-type ListNetworkPolicyByRegionRow struct {
-	CiliumNetworkPolicy CiliumNetworkPolicy `db:"cilium_network_policy"`
-	K8sNamespace        sql.NullString      `db:"k8s_namespace"`
-}
-
 // ListNetworkPolicyByRegion
 //
-//	SELECT
-//	    n.pk, n.id, n.workspace_id, n.project_id, n.environment_id, n.k8s_name, n.region, n.policy, n.version, n.created_at, n.updated_at,
-//	    w.k8s_namespace
-//	FROM `cilium_network_policies` n
-//	INNER JOIN `workspaces` w ON n.workspace_id = w.id
-//	WHERE n.region = ? AND n.version > ?
-//	ORDER BY n.version ASC
+//	SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+//	FROM `cilium_network_policies`
+//	WHERE region = ? AND version > ?
+//	ORDER BY version ASC
 //	LIMIT ?
-func (q *Queries) ListNetworkPolicyByRegion(ctx context.Context, db DBTX, arg ListNetworkPolicyByRegionParams) ([]ListNetworkPolicyByRegionRow, error) {
+func (q *Queries) ListNetworkPolicyByRegion(ctx context.Context, db DBTX, arg ListNetworkPolicyByRegionParams) ([]CiliumNetworkPolicy, error) {
 	rows, err := db.QueryContext(ctx, listNetworkPolicyByRegion, arg.Region, arg.Afterversion, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListNetworkPolicyByRegionRow
+	var items []CiliumNetworkPolicy
 	for rows.Next() {
-		var i ListNetworkPolicyByRegionRow
+		var i CiliumNetworkPolicy
 		if err := rows.Scan(
-			&i.CiliumNetworkPolicy.Pk,
-			&i.CiliumNetworkPolicy.ID,
-			&i.CiliumNetworkPolicy.WorkspaceID,
-			&i.CiliumNetworkPolicy.ProjectID,
-			&i.CiliumNetworkPolicy.EnvironmentID,
-			&i.CiliumNetworkPolicy.K8sName,
-			&i.CiliumNetworkPolicy.Region,
-			&i.CiliumNetworkPolicy.Policy,
-			&i.CiliumNetworkPolicy.Version,
-			&i.CiliumNetworkPolicy.CreatedAt,
-			&i.CiliumNetworkPolicy.UpdatedAt,
+			&i.Pk,
+			&i.ID,
+			&i.WorkspaceID,
+			&i.ProjectID,
+			&i.EnvironmentID,
+			&i.DeploymentID,
+			&i.K8sName,
 			&i.K8sNamespace,
+			&i.Region,
+			&i.Policy,
+			&i.Version,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

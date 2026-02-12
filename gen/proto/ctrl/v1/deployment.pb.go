@@ -1136,8 +1136,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSOURCE_TYPE_GIT\x10\x01\x12\x1a\n" +
-	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xc3\x02\n" +
-	"\x11DeploymentService\x12Y\n" +
+	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xbf\x02\n" +
+	"\rDeployService\x12Y\n" +
 	"\x10CreateDeployment\x12 .ctrl.v1.CreateDeploymentRequest\x1a!.ctrl.v1.CreateDeploymentResponse\"\x00\x12P\n" +
 	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00\x12A\n" +
 	"\bRollback\x12\x18.ctrl.v1.RollbackRequest\x1a\x19.ctrl.v1.RollbackResponse\"\x00\x12>\n" +
@@ -1185,14 +1185,14 @@ var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	9,  // 5: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
 	8,  // 6: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
 	10, // 7: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
-	2,  // 8: ctrl.v1.DeploymentService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
-	5,  // 9: ctrl.v1.DeploymentService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
-	11, // 10: ctrl.v1.DeploymentService.Rollback:input_type -> ctrl.v1.RollbackRequest
-	13, // 11: ctrl.v1.DeploymentService.Promote:input_type -> ctrl.v1.PromoteRequest
-	4,  // 12: ctrl.v1.DeploymentService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
-	6,  // 13: ctrl.v1.DeploymentService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
-	12, // 14: ctrl.v1.DeploymentService.Rollback:output_type -> ctrl.v1.RollbackResponse
-	14, // 15: ctrl.v1.DeploymentService.Promote:output_type -> ctrl.v1.PromoteResponse
+	2,  // 8: ctrl.v1.DeployService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
+	5,  // 9: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
+	11, // 10: ctrl.v1.DeployService.Rollback:input_type -> ctrl.v1.RollbackRequest
+	13, // 11: ctrl.v1.DeployService.Promote:input_type -> ctrl.v1.PromoteRequest
+	4,  // 12: ctrl.v1.DeployService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
+	6,  // 13: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
+	12, // 14: ctrl.v1.DeployService.Rollback:output_type -> ctrl.v1.RollbackResponse
+	14, // 15: ctrl.v1.DeployService.Promote:output_type -> ctrl.v1.PromoteResponse
 	12, // [12:16] is the sub-list for method output_type
 	8,  // [8:12] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name

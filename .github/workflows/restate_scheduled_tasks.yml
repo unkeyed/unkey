@@ -6,6 +6,7 @@ on:
   schedule:
     - cron: "0 15 * * *" # Quota check: Daily at 15:00 UTC
     - cron: "0 3 * * *" # Cert renewal: Daily at 03:00 UTC
+    - cron: "*/15 * * * *" # Deployment Sleeping: Every 15 min
   workflow_dispatch:
     inputs:
       task:
@@ -17,11 +18,15 @@ on:
           - all
           - quota-check
           - cert-renewal
+          - scale-down-idle-deployments
 
 jobs:
   quota-check:
     if: github.event.schedule == '0 15 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'quota-check'
-    environment: operations
+    strategy:
+      matrix:
+        environment: [restate_production, restate_staging]
+    environment: ${{ matrix.environment }}
     runs-on: ubuntu-latest
     steps:
       - name: Calculate billing period
@@ -30,29 +35,52 @@ jobs:
 
       - name: Invoke Restate Quota Check
         env:
-          RESTATE_URL: ${{ secrets.RESTATE_URL }}
+          RESTATE_INGRESS_URL: ${{ secrets.RESTATE_INGRESS_URL }}
           RESTATE_API_KEY: ${{ secrets.RESTATE_API_KEY }}
         run: |
           curl -sf -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
             -H "idempotency-key: quota-check-$(date -u +'%Y-%m-%d')" \
-            "${RESTATE_URL}/hydra.v1.QuotaCheckService/${{ steps.billing.outputs.period }}/RunCheck/send" \
+            "${RESTATE_INGRESS_URL}/hydra.v1.QuotaCheckService/${{ steps.billing.outputs.period }}/RunCheck/send" \
             -d '{}'
 
   certificate-renewal:
     if: github.event.schedule == '0 3 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'cert-renewal'
-    environment: operations
+    strategy:
+      matrix:
+        environment: [restate_production, restate_staging]
+    environment: ${{ matrix.environment }}
     runs-on: ubuntu-latest
     steps:
       - name: Invoke Restate Certificate Renewal
         env:
-          RESTATE_URL: ${{ secrets.RESTATE_URL }}
+          RESTATE_INGRESS_URL: ${{ secrets.RESTATE_INGRESS_URL }}
           RESTATE_API_KEY: ${{ secrets.RESTATE_API_KEY }}
         run: |
           curl -sf -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${RESTATE_API_KEY}" \
             -H "idempotency-key: cert-renewal-$(date -u +'%Y-%m-%d')" \
-            "${RESTATE_URL}/hydra.v1.CertificateService/global/RenewExpiringCertificates/send" \
+            "${RESTATE_INGRESS_URL}/hydra.v1.CertificateService/global/RenewExpiringCertificates/send" \
             -d '{"daysBeforeExpiry": 30}'
+
+  scale-down-idle-deployments:
+    if: github.event.schedule == '*/15 * * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'scale-down-idle-deployments'
+    strategy:
+      matrix:
+        environment: [restate_production, restate_staging]
+    environment: ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke Restate
+        env:
+          RESTATE_INGRESS_URL: ${{ secrets.RESTATE_INGRESS_URL }}
+          RESTATE_API_KEY: ${{ secrets.RESTATE_API_KEY }}
+        run: |
+          curl -sf -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${RESTATE_API_KEY}" \
+            -H "idempotency-key: scale-down-idle-$(date -u +'%Y-%m-%dT%H:%M')" \
+            "${RESTATE_INGRESS_URL}/hydra.v1.DeployService/global/ScaleDownIdlePreviewDeployments/send" \
+            -d '{}'

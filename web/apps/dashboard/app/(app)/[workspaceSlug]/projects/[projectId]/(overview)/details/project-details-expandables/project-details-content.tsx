@@ -1,41 +1,27 @@
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cube } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
-import { useProject } from "../../layout-provider";
+import { useProjectData } from "../../data-provider";
 import { DetailSection } from "./detail-section";
 import { createDetailSections } from "./sections";
 
-type ProjectDetailsContentProps = {
-  projectId: string;
-};
+export const ProjectDetailsContent = () => {
+  const { getDomainsForDeployment, project, getDeploymentById } = useProjectData();
 
-export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps) => {
-  const { collections } = useProject();
-  const query = useLiveQuery((q) =>
-    q
-      .from({ project: collection.projects })
-      .where(({ project }) => eq(project.id, projectId))
-      .join({ deployment: collections.deployments }, ({ deployment, project }) =>
-        eq(deployment.id, project.liveDeploymentId),
-      )
-      .orderBy(({ project }) => project.id, "asc")
-      .limit(1),
-  );
+  const deployment = project?.liveDeploymentId
+    ? getDeploymentById(project.liveDeploymentId)
+    : undefined;
 
-  const data = query.data.at(0);
-  const { data: domainsData } = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collections.domains })
-        .where(({ domain }) => eq(domain.deploymentId, data?.project.liveDeploymentId))
-        .select(({ domain }) => ({
-          domain: domain.fullyQualifiedDomainName,
-          environment: domain.sticky,
+  const data = project && deployment ? { project, deployment } : undefined;
+
+  // Get domains from provider and transform
+  const domainsData = data?.project.liveDeploymentId
+    ? getDomainsForDeployment(data.project.liveDeploymentId)
+        .map((d) => ({
+          domain: d.fullyQualifiedDomainName,
+          environment: d.sticky,
         }))
-        .orderBy(({ domain }) => domain.id, "asc"),
-    [data?.project.liveDeploymentId],
-  );
+        .sort((a, b) => a.domain.localeCompare(b.domain))
+    : [];
 
   if (!data?.deployment) {
     return null;
@@ -43,7 +29,9 @@ export const ProjectDetailsContent = ({ projectId }: ProjectDetailsContentProps)
 
   const detailSections = createDetailSections({
     ...data.deployment,
-    repository: data.project.gitRepositoryUrl,
+    repository: data.project.repositoryFullName
+      ? `https://github.com/${data.project.repositoryFullName}`
+      : null,
   });
 
   // This "environment" domain never changes even when you do a rollback this one stays stable.

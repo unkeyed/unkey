@@ -3,7 +3,7 @@ import type { NavItem } from "@/components/navigation/sidebar/workspace-navigati
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Cloud, Connections, GridCircle, Layers3 } from "@unkey/icons";
+import { Cloud, Connections, Gear, GridCircle, Layers3 } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -52,9 +52,9 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
             },
             {
               icon: Layers3,
-              href: `${basePath}/${project.id}/deployments/${deploymentId}/runtime-logs`,
-              label: "Runtime Logs",
-              active: currentDeploymentTab === "runtime-logs",
+              href: `${basePath}/${project.id}/deployments/${deploymentId}/logs`,
+              label: "Logs",
+              active: currentDeploymentTab === "logs",
             },
             {
               icon: Connections,
@@ -82,9 +82,15 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
         },
         {
           icon: Layers3,
-          href: `${basePath}/${project.id}/sentinel-logs`,
-          label: "Sentinel Logs",
-          active: currentProjectActive && currentSubRoute === "sentinel-logs",
+          href: `${basePath}/${project.id}/requests`,
+          label: "Requests",
+          active: currentProjectActive && currentSubRoute === "requests",
+        },
+        {
+          icon: Gear,
+          href: `${basePath}/${project.id}/settings`,
+          label: "Settings",
+          active: currentProjectActive && currentSubRoute === "settings",
         },
       ];
 

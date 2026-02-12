@@ -2,7 +2,7 @@
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Cube } from "@unkey/icons";
-import { CreateProjectDialog } from "./_components/create-project/create-project-dialog";
+import { CreateProjectDialog } from "./_components/dialogs/create-project-dialog";
 
 export function ProjectsListNavigation() {
   const workspace = useWorkspaceNavigation();
