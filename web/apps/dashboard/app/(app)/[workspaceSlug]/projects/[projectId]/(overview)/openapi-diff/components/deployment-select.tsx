@@ -11,7 +11,7 @@ import {
 } from "@unkey/ui";
 import { format } from "date-fns";
 import { PulseIndicator } from "../../../components/status-indicator";
-import { useProject } from "../../layout-provider";
+import { useProjectData } from "../../data-provider";
 
 type DeploymentSelectProps = {
   value: string;
@@ -36,7 +36,8 @@ export function DeploymentSelect({
   id,
   disabledDeploymentId,
 }: DeploymentSelectProps) {
-  const { liveDeploymentId } = useProject();
+  const { project } = useProjectData();
+  const liveDeploymentId = project?.liveDeploymentId;
   const latestDeploymentId = deployments.find(
     ({ deployment }) => deployment.id !== liveDeploymentId,
   )?.deployment.id;

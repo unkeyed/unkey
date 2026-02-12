@@ -2,9 +2,9 @@
 
 import { type Deployment, collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
-import { inArray, useLiveQuery } from "@tanstack/react-db";
+import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { Button, DialogContainer, toast } from "@unkey/ui";
-import { useProject } from "../../../../../layout-provider";
+import { useProjectData } from "../../../../../data-provider";
 import { DeploymentSection } from "./components/deployment-section";
 import { DomainsSection } from "./components/domains-section";
 
@@ -23,13 +23,14 @@ export const RollbackDialog = ({
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
 
-  const {
-    collections: { domains: domainCollection },
-  } = useProject();
-  const domains = useLiveQuery((q) =>
-    q
-      .from({ domain: domainCollection })
-      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
+  const { projectId } = useProjectData();
+  const domains = useLiveQuery(
+    (q) =>
+      q
+        .from({ domain: collection.domains })
+        .where(({ domain }) => eq(domain.projectId, projectId))
+        .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
+    [projectId],
   );
 
   const rollback = trpc.deploy.deployment.rollback.useMutation({
@@ -40,11 +41,8 @@ export const RollbackDialog = ({
       });
       // hack to revalidate
       try {
-        // @ts-expect-error Their docs say it's here
         collection.projects.utils.refetch();
-        // @ts-expect-error Their docs say it's here
         collection.deployments.utils.refetch();
-        // @ts-expect-error Their docs say it's here
         collection.domains.utils.refetch();
       } catch (error) {
         console.error("Refetch error:", error);

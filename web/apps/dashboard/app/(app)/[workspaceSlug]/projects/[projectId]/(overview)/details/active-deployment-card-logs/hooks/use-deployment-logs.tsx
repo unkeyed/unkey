@@ -1,7 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useRef, useState } from "react";
-import { useProject } from "../../../layout-provider";
+import { useProjectData } from "../../../data-provider";
 
 const GATEWAY_LOGS_REFETCH_INTERVAL = 5000;
 const GATEWAY_LOGS_LIMIT = 50;
@@ -50,16 +49,11 @@ export function useDeploymentLogs({
   const [searchTerm, setSearchTerm] = useState("");
   const [showFade, setShowFade] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null) as React.MutableRefObject<HTMLDivElement>;
-  const { collections } = useProject();
 
-  const deployment = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collections.deployments })
-        .where(({ deployment }) => eq(deployment.id, deploymentId)),
-    [deploymentId],
-  );
-  const environmentId = deployment.data.at(0)?.environmentId ?? "";
+  const { getDeploymentById } = useProjectData();
+  const deployment = getDeploymentById(deploymentId ?? "");
+  const environmentId = deployment?.environmentId ?? "";
+
   const { data: sentinelData, isLoading: sentinelLoading } =
     trpc.deploy.sentinelLogs.query.useQuery(
       {

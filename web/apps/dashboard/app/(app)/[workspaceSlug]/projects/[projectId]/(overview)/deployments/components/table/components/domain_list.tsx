@@ -1,33 +1,44 @@
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { InfoTooltip } from "@unkey/ui";
-import { useProject } from "../../../../layout-provider";
+import { useProjectData } from "../../../../data-provider";
+import type { DeploymentStatus } from "../../../filters.schema";
 import { DomainListSkeleton } from "./skeletons";
 
 type Props = {
   deploymentId: string;
+  status: DeploymentStatus;
 };
 
-export const DomainList = ({ deploymentId }: Props) => {
-  const { collections } = useProject();
+export const DomainList = ({ deploymentId, status }: Props) => {
+  const { getDomainsForDeployment, isDomainsLoading } = useProjectData();
 
-  const domains = useLiveQuery((q) =>
-    q
-      .from({ domain: collections.domains })
-      .where(({ domain }) => eq(domain.deploymentId, deploymentId))
-      .orderBy(({ domain }) => domain.fullyQualifiedDomainName, "asc"),
-  );
+  // Show placeholder for failed deployments
+  if (status === "failed") {
+    return <span className="text-xs text-gray-9">—</span>;
+  }
 
-  if (domains.isLoading || !domains.data.length) {
+  // Only show skeleton when actually loading
+  if (isDomainsLoading) {
     return <DomainListSkeleton />;
   }
 
+  // Get domains for this deployment and sort client-side
+  const domainsForDeployment = getDomainsForDeployment(deploymentId);
+  const sortedDomains = [...domainsForDeployment].sort((a, b) =>
+    a.fullyQualifiedDomainName.localeCompare(b.fullyQualifiedDomainName),
+  );
+
+  // Handle empty domains (valid for non-failed deployments)
+  if (!sortedDomains.length) {
+    return <span className="text-xs text-gray-9 font-mono">—</span>;
+  }
+
   // Always show environment domain first, fallback to first domain if none
-  const environmentDomain = domains.data.find((d) => d.sticky === "environment");
-  const primaryDomain = environmentDomain ?? domains.data[0];
-  const additionalDomains = domains.data.filter((d) => d.id !== primaryDomain.id);
+  const environmentDomain = sortedDomains.find((d) => d.sticky === "environment");
+  const primaryDomain = environmentDomain ?? sortedDomains[0];
+  const additionalDomains = sortedDomains.filter((d) => d.id !== primaryDomain.id);
 
   // Single domain case - no tooltip needed
-  if (domains.data.length === 1) {
+  if (sortedDomains.length === 1) {
     return (
       <a
         href={`https://${primaryDomain.fullyQualifiedDomainName}`}
