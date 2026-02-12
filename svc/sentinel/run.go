@@ -119,7 +119,7 @@ func Run(ctx context.Context, cfg Config) error {
 		gossipBroadcaster := clustering.NewGossipBroadcaster()
 
 		mux := cluster.NewMessageMux()
-		mux.Handle(clustering.CacheInvalidationType, gossipBroadcaster.OnMessage)
+		mux.HandleCacheInvalidation(gossipBroadcaster.OnMessage)
 
 		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
 		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)

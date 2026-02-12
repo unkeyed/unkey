@@ -7,6 +7,7 @@
 package clusterv1
 
 import (
+	v1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -22,13 +23,13 @@ const (
 )
 
 // ClusterMessage is the envelope for all gossip broadcast messages.
-// The type field routes the payload to the correct handler via MessageMux.
+// The oneof field routes the payload to the correct handler via MessageMux.
 type ClusterMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Routing key (e.g. "cache.invalidation")
-	Type string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	// Serialized inner message
-	Payload       []byte `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	// Types that are valid to be assigned to Message:
+	//
+	//	*ClusterMessage_CacheInvalidation
+	Message       isClusterMessage_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -63,29 +64,41 @@ func (*ClusterMessage) Descriptor() ([]byte, []int) {
 	return file_cluster_v1_envelope_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ClusterMessage) GetType() string {
+func (x *ClusterMessage) GetMessage() isClusterMessage_Message {
 	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *ClusterMessage) GetPayload() []byte {
-	if x != nil {
-		return x.Payload
+		return x.Message
 	}
 	return nil
 }
+
+func (x *ClusterMessage) GetCacheInvalidation() *v1.CacheInvalidationEvent {
+	if x != nil {
+		if x, ok := x.Message.(*ClusterMessage_CacheInvalidation); ok {
+			return x.CacheInvalidation
+		}
+	}
+	return nil
+}
+
+type isClusterMessage_Message interface {
+	isClusterMessage_Message()
+}
+
+type ClusterMessage_CacheInvalidation struct {
+	CacheInvalidation *v1.CacheInvalidationEvent `protobuf:"bytes,1,opt,name=cache_invalidation,json=cacheInvalidation,proto3,oneof"`
+}
+
+func (*ClusterMessage_CacheInvalidation) isClusterMessage_Message() {}
 
 var File_cluster_v1_envelope_proto protoreflect.FileDescriptor
 
 const file_cluster_v1_envelope_proto_rawDesc = "" +
 	"\n" +
 	"\x19cluster/v1/envelope.proto\x12\n" +
-	"cluster.v1\">\n" +
-	"\x0eClusterMessage\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12\x18\n" +
-	"\apayload\x18\x02 \x01(\fR\apayloadB\xa1\x01\n" +
+	"cluster.v1\x1a\x1bcache/v1/invalidation.proto\"n\n" +
+	"\x0eClusterMessage\x12Q\n" +
+	"\x12cache_invalidation\x18\x01 \x01(\v2 .cache.v1.CacheInvalidationEventH\x00R\x11cacheInvalidationB\t\n" +
+	"\amessageB\xa1\x01\n" +
 	"\x0ecom.cluster.v1B\rEnvelopeProtoP\x01Z7github.com/unkeyed/unkey/gen/proto/cluster/v1;clusterv1\xa2\x02\x03CXX\xaa\x02\n" +
 	"Cluster.V1\xca\x02\n" +
 	"Cluster\\V1\xe2\x02\x16Cluster\\V1\\GPBMetadata\xea\x02\vCluster::V1b\x06proto3"
@@ -104,20 +117,25 @@ func file_cluster_v1_envelope_proto_rawDescGZIP() []byte {
 
 var file_cluster_v1_envelope_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_cluster_v1_envelope_proto_goTypes = []any{
-	(*ClusterMessage)(nil), // 0: cluster.v1.ClusterMessage
+	(*ClusterMessage)(nil),            // 0: cluster.v1.ClusterMessage
+	(*v1.CacheInvalidationEvent)(nil), // 1: cache.v1.CacheInvalidationEvent
 }
 var file_cluster_v1_envelope_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	1, // 0: cluster.v1.ClusterMessage.cache_invalidation:type_name -> cache.v1.CacheInvalidationEvent
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_cluster_v1_envelope_proto_init() }
 func file_cluster_v1_envelope_proto_init() {
 	if File_cluster_v1_envelope_proto != nil {
 		return
+	}
+	file_cluster_v1_envelope_proto_msgTypes[0].OneofWrappers = []any{
+		(*ClusterMessage_CacheInvalidation)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

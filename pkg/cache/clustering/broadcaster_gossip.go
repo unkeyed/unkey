@@ -5,18 +5,14 @@ import (
 	"sync"
 
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
+	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"google.golang.org/protobuf/proto"
 )
 
-// CacheInvalidationType is the message type used for cache invalidation
-// messages in the cluster message mux.
-const CacheInvalidationType = "cache.invalidation"
-
 // GossipBroadcaster implements Broadcaster using the gossip cluster for
-// cache invalidation. It serializes protobuf events to raw bytes for the
-// cluster layer and deserializes incoming bytes back to events.
+// cache invalidation. It builds ClusterMessage envelopes with the oneof
+// variant directly, avoiding double serialization.
 type GossipBroadcaster struct {
 	mu      sync.RWMutex
 	cluster cluster.Cluster
@@ -36,22 +32,15 @@ func NewGossipBroadcaster() *GossipBroadcaster {
 	}
 }
 
-// OnMessage is the callback wired into cluster.Config.OnMessage.
-// It deserializes the raw bytes into a CacheInvalidationEvent and
-// dispatches to the registered handler.
-func (b *GossipBroadcaster) OnMessage(msg []byte) {
-	var event cachev1.CacheInvalidationEvent
-	if err := proto.Unmarshal(msg, &event); err != nil {
-		logger.Error("Failed to unmarshal gossip cache event", "error", err)
-		return
-	}
-
+// OnMessage is the callback wired into MessageMux.HandleCacheInvalidation.
+// It dispatches the already-deserialized event to the registered handler.
+func (b *GossipBroadcaster) OnMessage(event *cachev1.CacheInvalidationEvent) {
 	b.mu.RLock()
 	h := b.handler
 	b.mu.RUnlock()
 
 	if h != nil {
-		if err := h(context.Background(), &event); err != nil {
+		if err := h(context.Background(), event); err != nil {
 			logger.Error("Failed to handle gossip cache event", "error", err)
 		}
 	}
@@ -76,14 +65,13 @@ func (b *GossipBroadcaster) Broadcast(_ context.Context, events ...*cachev1.Cach
 	}
 
 	for _, event := range events {
-		data, err := proto.Marshal(event)
+		envelope, err := cluster.Wrap(&clusterv1.ClusterMessage{
+			Message: &clusterv1.ClusterMessage_CacheInvalidation{
+				CacheInvalidation: event,
+			},
+		})
 		if err != nil {
-			logger.Error("Failed to marshal cache invalidation event", "error", err)
-			continue
-		}
-		envelope, err := cluster.Wrap(CacheInvalidationType, data)
-		if err != nil {
-			logger.Error("Failed to wrap cache invalidation envelope", "error", err)
+			logger.Error("Failed to marshal cache invalidation envelope", "error", err)
 			continue
 		}
 		if err := c.Broadcast(envelope); err != nil {
