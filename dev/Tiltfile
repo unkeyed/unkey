@@ -180,23 +180,6 @@ docker_build_with_restart(
     live_update=[sync('./bin/unkey', '/unkey')]
 )
 
-# Agent service
-docker_build(
-        'unkey/agent:latest',
-        '../web/apps/agent',
-        dockerfile='../web/apps/agent/Dockerfile',
-    )
-k8s_yaml('k8s/manifests/agent.yaml')
-k8s_resource(
-  'agent',
-  port_forwards='8082:8080',
-  resource_deps=['s3', 'clickhouse'],
-  labels=['unkey'],
-  auto_init=True,
-  trigger_mode=TRIGGER_MODE_AUTO
-)
-
-
 # Vault service
 k8s_yaml('k8s/manifests/vault.yaml')
 k8s_resource(
@@ -322,7 +305,7 @@ local_resource(
       cd ../web && pnpm --filter=@unkey/dashboard dev
     ''',
     deps=[],
-    resource_deps=['planetscale', 'clickhouse', 'agent', 'ctrl-api'],
+    resource_deps=['planetscale', 'clickhouse', 'ctrl-api'],
     labels=['unkey'],
     auto_init=True,
     readiness_probe=probe(http_get=http_get_action(port=3000, path='/'), period_secs=5, failure_threshold=30),

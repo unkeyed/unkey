@@ -150,30 +150,6 @@ services:
       start_period: 30s
       interval: 10s
 
-  agent:
-    networks:
-      - default
-    container_name: agent
-    command: ["/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
-    build:
-      context: ../web/apps/agent
-      dockerfile: ./Dockerfile
-    ports:
-      - 8080:8080
-    depends_on:
-      - s3
-      - clickhouse
-    environment:
-      PORT: 8080
-      RPC_PORT: 9095
-      AUTH_TOKEN: "agent-auth-secret"
-      VAULT_S3_URL: "http://s3:3902"
-      VAULT_S3_BUCKET: "vault"
-      VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
-      VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
-      VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-      CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
-
   clickhouse:
     networks:
       - default
@@ -445,9 +421,6 @@ services:
       planetscale:
         condition: service_started
         required: true
-      agent:
-        condition: service_started
-        required: true
     env_file:
       - ../web/apps/dashboard/.env
     environment:
@@ -455,9 +428,6 @@ services:
       DATABASE_HOST: "planetscale:3900"
       # Auth configuration
       # Reading from env file, no override necessary
-      # Agent configuration
-      AGENT_URL: "http://agent:8080"
-      AGENT_TOKEN: "agent-auth-secret"
       # Clickhouse configuration
       CLICKHOUSE_URL: "http://default:password@clickhouse:8123"
       # Environment
