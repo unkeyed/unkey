@@ -5,13 +5,16 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -24,11 +27,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
-	masterKeys "github.com/unkeyed/unkey/pkg/vault/keys"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
@@ -148,23 +150,15 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	s3 := containers.S3(t)
-
-	vaultStorage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
-		S3Bucket:          "test",
-		S3AccessKeyID:     s3.AccessKeyID,
-		S3AccessKeySecret: s3.AccessKeySecret,
-	})
-	require.NoError(t, err)
-
-	_, masterKey, err := masterKeys.GenerateMasterKey()
-	require.NoError(t, err)
-	v, err := vault.New(vault.Config{
-		Storage:    vaultStorage,
-		MasterKeys: []string{masterKey},
-	})
-	require.NoError(t, err)
+	vaultURL, vaultToken := containers.Vault(t)
+	connectClient := vaultv1connect.NewVaultServiceClient(
+		&http.Client{},
+		vaultURL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", vaultToken),
+		})),
+	)
+	v := vault.NewConnectClient(connectClient)
 
 	// Create analytics connection manager
 	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
