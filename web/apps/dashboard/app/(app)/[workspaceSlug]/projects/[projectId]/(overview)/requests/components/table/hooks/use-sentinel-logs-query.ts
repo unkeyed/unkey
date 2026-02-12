@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useProject } from "../../../../layout-provider";
+import { useProjectData } from "../../../../data-provider";
 import { useSentinelLogsFilters } from "../../../hooks/use-sentinel-logs-filters";
 
 type UseSentinelLogsQueryParams = {
@@ -20,7 +20,7 @@ export function useSentinelLogsQuery({
   startPolling = false,
   pollIntervalMs = 2000,
 }: UseSentinelLogsQueryParams = {}) {
-  const { projectId } = useProject();
+  const { projectId } = useProjectData();
   const { filters } = useSentinelLogsFilters();
   const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();

@@ -1,33 +1,21 @@
 "use client";
-
-import { trpc } from "@/lib/trpc/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect } from "react";
-import { useProject } from "../layout-provider";
+import { useProjectData } from "../data-provider";
 import { BuildSettings } from "./components/build-settings";
 import { GitHubSettingsClient } from "./components/github-settings-client";
 import { RuntimeApplicationSettings } from "./components/runtime-application-settings";
 import { RuntimeScalingSettings } from "./components/runtime-scaling-settings";
 
 export default function SettingsPage() {
-  const { projectId } = useProject();
-  const { data: environments } = trpc.deploy.environment.list.useQuery({
-    projectId,
-  });
+  const { environments } = useProjectData();
   const [environmentId, setEnvironmentId] = useQueryState(
     "environmentId",
-    parseAsString.withOptions({
+    parseAsString.withDefault(environments.length > 0 ? environments[0].id : "").withOptions({
       history: "replace",
       shallow: true,
     }),
   );
-
-  useEffect(() => {
-    if (environments && environments.length > 0 && environmentId === null) {
-      setEnvironmentId(environments[0].id);
-    }
-  }, [environments, environmentId, setEnvironmentId]);
 
   return (
     <div className="py-3 w-full flex items-center justify-center">
@@ -38,7 +26,7 @@ export default function SettingsPage() {
         <div className="flex flex-col w-full gap-6">
           <section>
             <h2 className="text-accent-12 font-medium text-base mb-3">Source</h2>
-            <GitHubSettingsClient projectId={projectId} />
+            <GitHubSettingsClient />
           </section>
           <div className="w-full border-b border-gray-4" />
           <div className="w-full">

@@ -1,13 +1,12 @@
 "use client";
 
-import { type Deployment, collection } from "@/lib/collections";
+import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CodeBranch, CodeCommit, Link4 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, toast } from "@unkey/ui";
 import { StatusIndicator } from "../../../components/status-indicator";
-import { useProject } from "../../layout-provider";
+import { useProjectData } from "../../data-provider";
 
 type DeploymentSectionProps = {
   title: string;
@@ -40,15 +39,10 @@ export const RollbackDialog = ({
   liveDeployment,
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
+  const { getEnvironmentOrLiveDomains, refetchAll } = useProjectData();
 
-  const {
-    collections: { domains: domainCollection },
-  } = useProject();
-  const domains = useLiveQuery((q) =>
-    q
-      .from({ domain: domainCollection })
-      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
-  );
+  // Filter for environment and live domains
+  const domains = getEnvironmentOrLiveDomains();
 
   const rollback = trpc.deploy.deployment.rollback.useMutation({
     onSuccess: () => {
@@ -58,12 +52,7 @@ export const RollbackDialog = ({
       });
       // hack to revalidate
       try {
-        // @ts-expect-error Their docs say it's here
-        collection.projects.utils.refetch();
-        // @ts-expect-error Their docs say it's here
-        collection.deployments.utils.refetch();
-        // @ts-expect-error Their docs say it's here
-        collection.domains.utils.refetch();
+        refetchAll();
       } catch (error) {
         console.error("Refetch error:", error);
       }
@@ -114,7 +103,7 @@ export const RollbackDialog = ({
           showSignal={true}
         />
         <div>
-          {domains.data.map((domain) => (
+          {domains.map((domain) => (
             <div className="space-y-2" key={domain.id}>
               <div className="flex items-center gap-2">
                 <h3 className="text-[13px] text-grayA-11">Domain</h3>

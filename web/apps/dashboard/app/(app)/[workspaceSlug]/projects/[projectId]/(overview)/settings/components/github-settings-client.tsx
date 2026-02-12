@@ -2,14 +2,12 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { Loading, toast } from "@unkey/ui";
+import { useProjectData } from "../../data-provider";
 import { GitHubAppCard } from "./github-app-card";
 import { RepositoryCard } from "./repository-card";
 
-type Props = {
-  projectId: string;
-};
-
-export const GitHubSettingsClient: React.FC<Props> = ({ projectId }) => {
+export const GitHubSettingsClient: React.FC = () => {
+  const { projectId } = useProjectData();
   const utils = trpc.useUtils();
 
   const { data, isLoading, refetch } = trpc.github.getInstallations.useQuery(
@@ -46,16 +44,15 @@ export const GitHubSettingsClient: React.FC<Props> = ({ projectId }) => {
     <div>
       {hasInstallations ? (
         <>
-          <GitHubAppCard projectId={projectId} hasInstallations={true} />
+          <GitHubAppCard hasInstallations={true} />
           <RepositoryCard
-            projectId={projectId}
             connectedRepo={repoConnection?.repositoryFullName ?? null}
             onDisconnect={() => disconnectRepoMutation.mutate({ projectId })}
             isDisconnecting={disconnectRepoMutation.isLoading}
           />
         </>
       ) : (
-        <GitHubAppCard projectId={projectId} hasInstallations={false} />
+        <GitHubAppCard hasInstallations={false} />
       )}
     </div>
   );
