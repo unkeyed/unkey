@@ -6,13 +6,11 @@ import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
-import { Loading } from "@unkey/ui";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { Avatar } from "../../../../components/git-avatar";
 import { StatusIndicator } from "../../../../components/status-indicator";
 import { useProjectData } from "../../../data-provider";
@@ -45,27 +43,17 @@ const DeploymentListTableActions = dynamic(
 );
 
 export const DeploymentsList = () => {
-  const [selectedDeployment, setSelectedDeployment] = useState<{
-    deployment: Deployment;
-    environment?: Environment;
-  } | null>(null);
   const { deployments } = useDeployments();
   const { project, getDeploymentById } = useProjectData();
   const liveDeploymentId = project?.liveDeploymentId;
 
-  const selectedDeploymentId = selectedDeployment?.deployment.id;
-
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
-  const [navigatingId, setNavigatingId] = useState<string | null>(null);
 
-  const handleLinkClick = useCallback(
-    (e: React.MouseEvent, deploymentId: string) => {
-      e.preventDefault();
-      setNavigatingId(deploymentId);
-      router.push(`/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`);
-    },
-    [router, workspace.slug, project?.id],
+  const getDeploymentHref = useCallback(
+    (deploymentId: string) =>
+      `/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`,
+    [workspace.slug, project?.id],
   );
 
   const columns: Column<{
@@ -85,44 +73,27 @@ export const DeploymentsList = () => {
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
-                {navigatingId === deployment.id ? (
-                  <div className="relative flex-shrink-0">
-                    <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
-                      <div className="size-[12px] items-center justify-center flex">
-                        <Loading size={18} />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-shrink-0">{iconContainer}</div>
-                )}
+                <div className="flex-shrink-0">{iconContainer}</div>
                 <div className="min-w-0 flex-1">
-                  <Link
-                    title={`View details for ${deployment.id}`}
-                    className="font-mono group-hover:underline decoration-dotted"
-                    href={`/${workspace.slug}/projects/${project?.id}/deployments/${deployment.id}`}
-                    onClick={(e) => handleLinkClick(e, deployment.id)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={cn(
-                          "font-normal font-mono truncate leading-5 text-[13px]",
-                          "text-accent-12",
-                        )}
-                      >
-                        {shortenId(deployment.id)}
-                      </div>
-                      {isLive ? (
-                        <div className="flex-shrink-0">
-                          {project?.isRolledBack ? (
-                            <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
-                          ) : (
-                            <EnvStatusBadge variant="live" text="Live" />
-                          )}
-                        </div>
-                      ) : null}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "font-normal font-mono truncate leading-5 text-[13px]",
+                        "text-accent-12",
+                      )}
+                    >
+                      {shortenId(deployment.id)}
                     </div>
-                  </Link>
+                    {isLive ? (
+                      <div className="flex-shrink-0">
+                        {project?.isRolledBack ? (
+                          <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
+                        ) : (
+                          <EnvStatusBadge variant="live" text="Live" />
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                   <div
                     className={cn(
                       "font-normal font-mono truncate text-xs mt-1 capitalize",
@@ -211,15 +182,8 @@ export const DeploymentsList = () => {
         headerClassName: "hidden 2xl:table-cell",
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }) => {
-          const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
-            <div
-              className={cn(
-                "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
-                "bg-grayA-3",
-                isSelected && "bg-grayA-5",
-              )}
-            >
+            <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
               <CodeBranch iconSize="sm-regular" className="text-gray-12" />
             </div>
           );
@@ -305,23 +269,24 @@ export const DeploymentsList = () => {
         },
       },
     ];
-  }, [selectedDeploymentId, project]);
+  }, [project]);
 
   return (
     <VirtualTable
       data={deployments.data}
       isLoading={deployments.isLoading}
       columns={columns}
-      onRowClick={setSelectedDeployment}
-      selectedItem={selectedDeployment}
+      onRowClick={(item) => {
+        if (item) {
+          router.push(getDeploymentHref(item.deployment.id));
+        }
+      }}
+      onRowMouseEnter={(item) => {
+        router.prefetch(getDeploymentHref(item.deployment.id));
+      }}
       keyExtractor={(deployment) => deployment.id}
       rowClassName={(deployment) =>
-        getRowClassName(
-          deployment,
-          selectedDeployment?.deployment.id ?? null,
-          liveDeploymentId ?? null,
-          project?.isRolledBack ?? false,
-        )
+        getRowClassName(deployment, liveDeploymentId ?? null, project?.isRolledBack ?? false)
       }
       emptyState={
         <div className="w-full flex justify-center items-center h-full">

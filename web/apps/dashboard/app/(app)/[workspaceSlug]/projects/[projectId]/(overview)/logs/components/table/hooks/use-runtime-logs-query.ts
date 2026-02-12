@@ -11,7 +11,7 @@ type UseRuntimeLogsQueryParams = {
 };
 
 export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQueryParams) {
-  const params = useParams<{ projectId: string; deploymentId: string }>();
+  const params = useParams<{ projectId: string }>();
 
   // Transform filters to tRPC input format
   const queryInput = useMemo(() => {
@@ -23,16 +23,19 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
     const startTimeFilter = filters.find((f) => f.field === "startTime");
     const endTimeFilter = filters.find((f) => f.field === "endTime");
     const sinceFilter = filters.find((f) => f.field === "since");
+    const environmentIdFilter = filters.find((f) => f.field === "environmentId");
+    const deploymentIdFilter = filters.find((f) => f.field === "deploymentId");
 
     return {
       projectId: params.projectId,
-      deploymentId: params.deploymentId,
+      deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
       limit,
       startTime: startTimeFilter ? Number(startTimeFilter.value) : Date.now() - 6 * 60 * 60 * 1000,
       endTime: endTimeFilter ? Number(endTimeFilter.value) : Date.now(),
       since: sinceFilter ? String(sinceFilter.value) : "6h",
       severity: severityFilters.length > 0 ? { filters: severityFilters } : null,
       message: messageFilter ? String(messageFilter.value) : null,
+      environmentId: environmentIdFilter ? String(environmentIdFilter.value) : null,
     };
   }, [filters, limit, params]);
 

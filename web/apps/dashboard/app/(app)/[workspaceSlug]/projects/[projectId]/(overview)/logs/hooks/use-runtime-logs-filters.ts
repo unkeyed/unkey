@@ -23,6 +23,8 @@ const parseAsFilterValArray = parseAsFilterValueArray<RuntimeLogsFilterOperator>
 export const queryParamsPayload = {
   severity: parseAsFilterValArray,
   message: parseAsFilterValArray,
+  environmentId: parseAsFilterValArray,
+  deploymentId: parseAsFilterValArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
@@ -70,6 +72,24 @@ export function useRuntimeLogsFilters() {
       });
     });
 
+    searchParams.environmentId?.forEach((env) => {
+      activeFilters.push({
+        id: crypto.randomUUID(),
+        field: "environmentId",
+        operator: env.operator,
+        value: env.value,
+      });
+    });
+
+    searchParams.deploymentId?.forEach((dep) => {
+      activeFilters.push({
+        id: crypto.randomUUID(),
+        field: "deploymentId",
+        operator: dep.operator,
+        value: dep.value,
+      });
+    });
+
     ["startTime", "endTime", "since"].forEach((field) => {
       const value = searchParams[field as keyof RuntimeLogsQuerySearchParams];
       if (value !== null && value !== undefined) {
@@ -90,6 +110,8 @@ export function useRuntimeLogsFilters() {
       const newParams: Partial<RuntimeLogsQuerySearchParams> = {
         severity: null,
         message: null,
+        environmentId: null,
+        deploymentId: null,
         startTime: null,
         endTime: null,
         since: null,
@@ -98,6 +120,8 @@ export function useRuntimeLogsFilters() {
       // Group filters by field
       const severityFilters: RuntimeLogsFilterUrlValue[] = [];
       const messageFilters: RuntimeLogsFilterUrlValue[] = [];
+      const environmentIdFilters: RuntimeLogsFilterUrlValue[] = [];
+      const deploymentIdFilters: RuntimeLogsFilterUrlValue[] = [];
 
       newFilters.forEach((filter) => {
         switch (filter.field) {
@@ -109,6 +133,18 @@ export function useRuntimeLogsFilters() {
             break;
           case "message":
             messageFilters.push({
+              value: filter.value,
+              operator: filter.operator,
+            });
+            break;
+          case "environmentId":
+            environmentIdFilters.push({
+              value: filter.value,
+              operator: filter.operator,
+            });
+            break;
+          case "deploymentId":
+            deploymentIdFilters.push({
               value: filter.value,
               operator: filter.operator,
             });
@@ -126,6 +162,8 @@ export function useRuntimeLogsFilters() {
       // Set arrays to null when empty, otherwise use the filtered values
       newParams.severity = severityFilters.length > 0 ? severityFilters : null;
       newParams.message = messageFilters.length > 0 ? messageFilters : null;
+      newParams.environmentId = environmentIdFilters.length > 0 ? environmentIdFilters : null;
+      newParams.deploymentId = deploymentIdFilters.length > 0 ? deploymentIdFilters : null;
 
       setSearchParams(newParams);
     },
