@@ -46,7 +46,6 @@ export function AddCustomDomain({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [domain, setDomain] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   // Default to production environment, fall back to first environment
   const defaultEnvId =
     environments.find((e) => e.slug === "production")?.id ?? environments[0]?.id ?? "";
@@ -80,7 +79,7 @@ export function AddCustomDomain({
   const isValid = domain && !error && environmentId;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && isValid && !isSubmitting) {
+    if (e.key === "Enter" && isValid) {
       e.preventDefault();
       handleSave();
     } else if (e.key === "Escape") {
@@ -89,11 +88,10 @@ export function AddCustomDomain({
   };
 
   const handleSave = async () => {
-    if (!isValid || isSubmitting) {
+    if (!isValid) {
       return;
     }
 
-    setIsSubmitting(true);
     try {
       const tx = collection.customDomains.insert({
         id: crypto.randomUUID(),
@@ -116,8 +114,6 @@ export function AddCustomDomain({
       onSuccess();
     } catch {
       // Toast handled by collection onInsert handler
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -155,17 +151,11 @@ export function AddCustomDomain({
             variant="primary"
             onClick={handleSave}
             className="h-8 text-xs px-3"
-            disabled={!isValid || isSubmitting}
-            loading={isSubmitting}
+            disabled={!isValid}
           >
             Add
           </Button>
-          <Button
-            variant="ghost"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="h-8 text-xs px-3"
-          >
+          <Button variant="ghost" onClick={onCancel} className="h-8 text-xs px-3">
             Cancel
           </Button>
         </div>

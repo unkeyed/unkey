@@ -132,7 +132,14 @@ export const ProjectDataProvider = ({ children }: PropsWithChildren) => {
         collection.customDomains.utils.refetch();
       },
     };
-  }, [projectId, domainsQuery, deploymentsQuery, projectQuery, environmentsQuery, customDomainsQuery]);
+  }, [
+    projectId,
+    domainsQuery,
+    deploymentsQuery,
+    projectQuery,
+    environmentsQuery,
+    customDomainsQuery,
+  ]);
 
   return <ProjectDataContext.Provider value={value}>{children}</ProjectDataContext.Provider>;
 };
