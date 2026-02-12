@@ -31,15 +31,13 @@ function extractDomain(input: string): string {
 type AddCustomDomainProps = {
   environments: Array<{ id: string; slug: string }>;
   getExistingDomain: (domain: string) => CustomDomain | undefined;
-  onCancel: () => void;
-  onSuccess: () => void;
+  onDismiss: () => void;
 };
 
 export function AddCustomDomain({
   environments,
   getExistingDomain,
-  onCancel,
-  onSuccess,
+  onDismiss,
 }: AddCustomDomainProps) {
   const { projectId } = useProjectData();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,38 +81,33 @@ export function AddCustomDomain({
       e.preventDefault();
       handleSave();
     } else if (e.key === "Escape") {
-      onCancel();
+      onDismiss();
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!isValid) {
       return;
     }
 
-    try {
-      const tx = collection.customDomains.insert({
-        id: crypto.randomUUID(),
-        domain,
-        workspaceId: "",
-        projectId,
-        environmentId,
-        verificationStatus: "pending",
-        verificationToken: "",
-        ownershipVerified: false,
-        cnameVerified: false,
-        targetCname: "",
-        checkAttempts: 0,
-        lastCheckedAt: null,
-        verificationError: null,
-        createdAt: Date.now(),
-        updatedAt: null,
-      });
-      await tx.isPersisted.promise;
-      onSuccess();
-    } catch {
-      // Toast handled by collection onInsert handler
-    }
+    collection.customDomains.insert({
+      id: crypto.randomUUID(),
+      domain,
+      workspaceId: "",
+      projectId,
+      environmentId,
+      verificationStatus: "pending",
+      verificationToken: "",
+      ownershipVerified: false,
+      cnameVerified: false,
+      targetCname: "",
+      checkAttempts: 0,
+      lastCheckedAt: null,
+      verificationError: null,
+      createdAt: Date.now(),
+      updatedAt: null,
+    });
+    onDismiss();
   };
 
   return (
@@ -155,7 +148,7 @@ export function AddCustomDomain({
           >
             Add
           </Button>
-          <Button variant="ghost" onClick={onCancel} className="h-8 text-xs px-3">
+          <Button variant="ghost" onClick={onDismiss} className="h-8 text-xs px-3">
             Cancel
           </Button>
         </div>

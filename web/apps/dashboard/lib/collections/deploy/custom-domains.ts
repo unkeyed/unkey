@@ -111,3 +111,22 @@ export const customDomains = createCollection<CustomDomain, string>(
     },
   }),
 );
+
+export async function retryDomainVerification({
+  domain,
+  projectId,
+}: { domain: string; projectId: string }): Promise<void> {
+  const mutation = trpcClient.deploy.customDomain.retry.mutate({ domain, projectId });
+
+  toast.promise(mutation, {
+    loading: "Retrying verification...",
+    success: "Verification restarted",
+    error: (err) => ({
+      message: "Failed to retry verification",
+      description: err.message,
+    }),
+  });
+
+  await mutation;
+  await customDomains.utils.refetch();
+}

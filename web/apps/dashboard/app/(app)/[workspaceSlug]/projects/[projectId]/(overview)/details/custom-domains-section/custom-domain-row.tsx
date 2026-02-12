@@ -1,6 +1,6 @@
 "use client";
 import { collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
+import { retryDomainVerification } from "@/lib/collections/deploy/custom-domains";
 import { cn } from "@/lib/utils";
 import {
   CircleCheck,
@@ -20,16 +20,13 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  toast,
 } from "@unkey/ui";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useProjectData } from "../../data-provider";
 import type { CustomDomain, VerificationStatus } from "./types";
 
 type CustomDomainRowProps = {
   domain: CustomDomain;
-  onDelete: () => void;
-  onRetry: () => void;
 };
 
 const statusConfig: Record<
@@ -58,47 +55,26 @@ const statusConfig: Record<
   },
 };
 
-export function CustomDomainRow({ domain, onDelete, onRetry }: CustomDomainRowProps) {
+export function CustomDomainRow({ domain }: CustomDomainRowProps) {
   const { projectId } = useProjectData();
-  const retryMutation = trpc.deploy.customDomain.retry.useMutation();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
   const status = statusConfig[domain.verificationStatus];
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      collection.customDomains.delete(domain.id);
-      onDelete();
-    } finally {
-      setIsDeleting(false);
-    }
+  const handleDelete = () => {
+    collection.customDomains.delete(domain.id);
   };
 
   const handleRetry = async () => {
-    const mutation = retryMutation.mutateAsync({
-      domain: domain.domain,
-      projectId,
-    });
-
-    toast.promise(mutation, {
-      loading: "Retrying verification...",
-      success: "Verification restarted",
-      error: (err) => ({
-        message: "Failed to retry verification",
-        description: err.message,
-      }),
-    });
-
+    setIsRetrying(true);
     try {
-      await mutation;
-      onRetry();
-    } catch {}
+      await retryDomainVerification({ domain: domain.domain, projectId });
+    } finally {
+      setIsRetrying(false);
+    }
   };
-
-  const isLoading = isDeleting || retryMutation.isLoading;
 
   return (
     <div className="border-b border-gray-4 last:border-b-0 group hover:bg-gray-2 transition-colors">
@@ -128,12 +104,10 @@ export function CustomDomainRow({ domain, onDelete, onRetry }: CustomDomainRowPr
                   size="icon"
                   variant="outline"
                   onClick={handleRetry}
-                  disabled={isLoading}
+                  disabled={isRetrying}
                   className="size-7 text-gray-9 hover:text-gray-11"
                 >
-                  <Refresh3
-                    className={cn("!size-[14px]", retryMutation.isLoading && "animate-spin")}
-                  />
+                  <Refresh3 className={cn("!size-[14px]", isRetrying && "animate-spin")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Retry verification</TooltipContent>
@@ -153,9 +127,8 @@ export function CustomDomainRow({ domain, onDelete, onRetry }: CustomDomainRowPr
             ref={deleteButtonRef}
             size="icon"
             variant="outline"
-            disabled={isLoading}
             onClick={() => setIsConfirmOpen(true)}
-            className="size-7 text-gray-9 hover:text-error-9 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="size-7 text-gray-9 hover:text-error-9"
           >
             <Trash className="!size-[14px]" />
           </Button>
@@ -182,7 +155,6 @@ export function CustomDomainRow({ domain, onDelete, onRetry }: CustomDomainRowPr
           verificationToken={domain.verificationToken}
           ownershipVerified={domain.ownershipVerified}
           cnameVerified={domain.cnameVerified}
-          projectId={projectId}
         />
       )}
     </div>
@@ -195,59 +167,15 @@ type DnsRecordTableProps = {
   verificationToken: string;
   ownershipVerified: boolean;
   cnameVerified: boolean;
-  projectId: string;
 };
-
-// Backend checks every 60 seconds via Restate
-const CHECK_INTERVAL_MS = 60 * 1000;
 
 function DnsRecordTable({
   domain,
   targetCname,
-  verificationToken: initialVerificationToken,
-  ownershipVerified: initialOwnershipVerified,
-  cnameVerified: initialCnameVerified,
-  projectId,
+  verificationToken,
+  ownershipVerified,
+  cnameVerified,
 }: DnsRecordTableProps) {
-  const [secondsUntilCheck, setSecondsUntilCheck] = useState<number>(CHECK_INTERVAL_MS / 1000);
-
-  // Poll for DNS status updates - only fetches this specific domain
-  const {
-    data: dnsStatus,
-    dataUpdatedAt,
-    isFetching,
-  } = trpc.deploy.customDomain.checkDns.useQuery(
-    { domain, projectId },
-    {
-      refetchInterval: CHECK_INTERVAL_MS,
-      refetchIntervalInBackground: false,
-    },
-  );
-
-  // Use live data if available, otherwise fall back to initial props
-  const verificationToken = dnsStatus?.verificationToken ?? initialVerificationToken;
-  const ownershipVerified = dnsStatus?.ownershipVerified ?? initialOwnershipVerified;
-  const cnameVerified = dnsStatus?.cnameVerified ?? initialCnameVerified;
-
-  useEffect(() => {
-    const calculateSecondsRemaining = () => {
-      if (!dataUpdatedAt) {
-        return CHECK_INTERVAL_MS / 1000;
-      }
-      const nextCheckAt = dataUpdatedAt + CHECK_INTERVAL_MS;
-      const remaining = Math.max(0, Math.ceil((nextCheckAt - Date.now()) / 1000));
-      return remaining;
-    };
-
-    setSecondsUntilCheck(calculateSecondsRemaining());
-
-    const interval = setInterval(() => {
-      setSecondsUntilCheck(calculateSecondsRemaining());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [dataUpdatedAt]);
-
   const txtRecordName = `_unkey.${domain}`;
   const txtRecordValue = `unkey-domain-verify=${verificationToken}`;
 
@@ -327,14 +255,6 @@ function DnsRecordTable({
             </span>
           </div>
         </div>
-      </div>
-
-      {/* Next check countdown */}
-      <div className="flex justify-end">
-        <span className="text-xs text-gray-9 flex items-center gap-1.5">
-          <Refresh3 className="!size-3.5" />
-          {isFetching ? "Refreshing..." : `Next check in ${secondsUntilCheck}s`}
-        </span>
       </div>
     </div>
   );

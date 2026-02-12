@@ -13,7 +13,7 @@ type CustomDomainsSectionProps = {
 };
 
 export function CustomDomainsSection({ environments }: CustomDomainsSectionProps) {
-  const { customDomains, isCustomDomainsLoading, refetchCustomDomains } = useProjectData();
+  const { customDomains, isCustomDomainsLoading } = useProjectData();
   const [isAddingNew, setIsAddingNew] = useState(false);
 
   const getExistingDomain = (domain: string) =>
@@ -37,25 +37,14 @@ export function CustomDomainsSection({ environments }: CustomDomainsSectionProps
             <CustomDomainRowSkeleton />
           </>
         ) : (
-          customDomains.map((domain) => (
-            <CustomDomainRow
-              key={domain.id}
-              domain={domain}
-              onDelete={refetchCustomDomains}
-              onRetry={refetchCustomDomains}
-            />
-          ))
+          customDomains.map((domain) => <CustomDomainRow key={domain.id} domain={domain} />)
         )}
 
         {isAddingNew && (
           <AddCustomDomain
             environments={environments}
             getExistingDomain={getExistingDomain}
-            onCancel={cancelAdding}
-            onSuccess={() => {
-              refetchCustomDomains();
-              cancelAdding();
-            }}
+            onDismiss={cancelAdding}
           />
         )}
 
