@@ -37,14 +37,14 @@ post:
         application/json:
           schema:
             "$ref": "./V2RatelimitDeleteOverrideResponseBody.yaml"
+          examples:
+            standard:
+              summary: Override deleted successfully
+              value:
+                meta:
+                  requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+                data: {}
       description: Override successfully deleted. Affected identifiers now use default limits.
-      examples:
-        standard:
-          summary: Override deleted successfully
-          value:
-            meta:
-              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-            data: {}
     "400":
       description: Bad request
       content:

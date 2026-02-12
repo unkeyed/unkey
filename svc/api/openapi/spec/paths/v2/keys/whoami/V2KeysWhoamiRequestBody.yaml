@@ -13,8 +13,4 @@ additionalProperties: false
 required:
   - key
 examples:
-  playground:
-    summary: Lookup by actual key string
-    description: Look up key details when provided the actual key string
-    value:
-      key: sk_1234abcdef5678
+  - key: sk_1234abcdef5678

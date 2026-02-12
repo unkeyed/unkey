@@ -52,6 +52,16 @@ post:
         application/json:
           schema:
             "$ref": "./V2KeysRerollKeyResponseBody.yaml"
+          examples:
+            rerollKey:
+              summary: Key rerolled successfully
+              description: Successfully rerolled a key
+              value:
+                meta:
+                  requestId: req_abc123def456
+                data:
+                  keyId: key_2cGKbMxRyIzhCxo1Idjz8q
+                  key: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
     "400":
       description: Bad request
       content:

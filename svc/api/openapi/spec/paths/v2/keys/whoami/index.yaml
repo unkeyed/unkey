@@ -12,7 +12,6 @@ post:
     - `api.<api_id>.read_key` (to read keys from a specific API)
 
     If your rootkey lacks permissions but the key exists, we may return a 404 status here to prevent leaking the existance of a key to unauthorized clients. If you believe that a key should exist, but receive a 404, please double check your root key has the correct permissions.
-
   operationId: keys.whoami
   x-speakeasy-name-override: whoami
   security:
@@ -22,6 +21,12 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysWhoamiRequestBody.yaml"
+        examples:
+          playground:
+            summary: Lookup by actual key string
+            description: Look up key details when provided the actual key string
+            value:
+              key: sk_1234abcdef5678
     required: true
   responses:
     "200":
@@ -29,6 +34,118 @@ post:
         application/json:
           schema:
             "$ref": "./V2KeysWhoamiResponseBody.yaml"
+          examples:
+            dashboardKeyDetails:
+              summary: Dashboard key information for display
+              description: Typical response for displaying key details in a dashboard without decryption
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  keyId: key_1234abcd
+                  start: sk_prod
+                  enabled: true
+                  name: Production API Key
+                  createdAt: 1704067200000
+                  expires: 1735689600000
+                  meta:
+                    plan: premium
+                    userId: user_5678
+                    environment: production
+                  permissions:
+                    - documents.read
+                    - documents.write
+                  roles:
+                    - editor
+                  credits:
+                    remaining: 8500
+                    refill:
+                      amount: 10000
+                      interval: monthly
+                      refillDay: 1
+                  ratelimits:
+                    - id: rl_1234
+                      name: api_requests
+                      limit: 1000
+                      duration: 60000
+                      autoApply: true
+            apiPlaygroundWithDecryption:
+              summary: Decrypted key for API playground
+              description: Response including plaintext key for testing API calls in the dashboard
+              value:
+                meta:
+                  requestId: req_5678efgh
+                data:
+                  keyId: key_5678efgh
+                  start: sk_test
+                  enabled: true
+                  name: Development Testing Key
+                  plaintext: sk_test_1234abcdef5678
+                  createdAt: 1704067200000
+                  meta:
+                    environment: development
+                    team: backend
+                  permissions:
+                    - documents.read
+                  credits:
+                    remaining: 500
+                  ratelimits:
+                    - id: rl_5678
+                      name: dev_requests
+                      limit: 100
+                      duration: 60000
+                      autoApply: true
+            keyWithIdentity:
+              summary: Key with associated identity information
+              description: Response showing key linked to an identity with shared rate limits
+              value:
+                meta:
+                  requestId: req_9876zyxw
+                data:
+                  keyId: key_9876zyxw
+                  start: sk_user
+                  enabled: true
+                  name: User Mobile App Key
+                  createdAt: 1704067200000
+                  meta:
+                    device: mobile
+                    platform: ios
+                  identity:
+                    externalId: user_9876
+                    meta:
+                      plan: pro
+                      signupDate: "2024-01-15"
+                    ratelimits:
+                      - id: rl_identity_1
+                        name: user_requests
+                        limit: 5000
+                        duration: 3600000
+                        autoApply: true
+                  permissions:
+                    - profile.read
+                    - profile.update
+                  credits:
+                    remaining: 2500
+            expiredKey:
+              summary: Expired key information
+              description: Response for a key that has passed its expiration date
+              value:
+                meta:
+                  requestId: req_expired
+                data:
+                  keyId: key_expired_123
+                  start: sk_old
+                  enabled: false
+                  name: Legacy API Key
+                  createdAt: 1672531200000
+                  expires: 1703980800000
+                  meta:
+                    plan: legacy
+                    migrationRequired: true
+                  permissions:
+                    - legacy.read
+                  credits:
+                    remaining: 0
       description: |
         Successfully retrieved key information.
     "400":

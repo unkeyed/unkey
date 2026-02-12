@@ -15,8 +15,4 @@ properties:
     example: api_1234abcd
 additionalProperties: false
 examples:
-  delete:
-    summary: Delete an API
-    description: Remove API an API by providing its id
-    value:
-      apiId: api_abcd1234
+  - apiId: api_abcd1234

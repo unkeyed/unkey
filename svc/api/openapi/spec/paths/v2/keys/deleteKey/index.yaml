@@ -23,6 +23,35 @@ post:
       application/json:
         schema:
           "$ref": "./V2KeysDeleteKeyRequestBody.yaml"
+        examples:
+          userRequestedDeletion:
+            summary: User requests key deletion
+            description: Delete key when user clicks "Delete" in your dashboard
+            value:
+              keyId: key_1234abcd
+          accountDeletion:
+            summary: User deletes their account
+            description: Remove keys during complete account deletion workflow
+            value:
+              keyId: key_5678efgh
+              permanent: false
+          permanentCleanup:
+            summary: Permanent deletion for compliance
+            description: Permanently remove key for GDPR compliance or security requirements
+            value:
+              keyId: key_9876wxyz
+              permanent: true
+          testKeyCleanup:
+            summary: Clean up development keys
+            description: Remove test or development keys that are no longer needed
+            value:
+              keyId: key_test_abcd
+          keyRotation:
+            summary: Delete old key during rotation
+            description: Remove previous key after successful key rotation
+            value:
+              keyId: key_old_5678
+              permanent: false
     required: true
   responses:
     "200":
@@ -30,6 +59,35 @@ post:
         application/json:
           schema:
             "$ref": "./V2KeysDeleteKeyResponseBody.yaml"
+          examples:
+            userDeletionSuccess:
+              summary: User-requested deletion completed
+              description: Key successfully deleted after user requested removal
+              value:
+                meta:
+                  requestId: req_user_delete_1234
+                data: {}
+            accountDeletionSuccess:
+              summary: Account deletion completed
+              description: Key removed during account deletion workflow
+              value:
+                meta:
+                  requestId: req_account_delete_5678
+                data: {}
+            permanentDeletionSuccess:
+              summary: Permanent deletion completed
+              description: Key permanently removed from system
+              value:
+                meta:
+                  requestId: req_permanent_9876
+                data: {}
+            basicDeletionSuccess:
+              summary: Standard deletion completed
+              description: Basic successful key deletion response
+              value:
+                meta:
+                  requestId: req_delete_abcd
+                data: {}
       description: |
         Key deleted successfully. Verification fails immediately with up to 30-second edge propagation.
     "400":

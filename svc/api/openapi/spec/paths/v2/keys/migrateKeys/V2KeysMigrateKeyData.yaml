@@ -125,25 +125,21 @@ additionalProperties: false
 required:
   - hash
 examples:
-  basicKey:
-    summary: Basic key
-    description: Migrate this basic key
-    value:
-      hash: c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64
-      name: Production API Key
-      externalId: user_abc123
-      enabled: true
-      meta:
-        plan: enterprise
-        tier: production
-      permissions:
-        - api.read
-        - api.write
-      roles:
-        - admin
-      expires: 1735689600000
-      ratelimits:
-        - name: requests
-          limit: 100
-          duration: 60000
-          autoApply: true
+  - hash: c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64
+    name: Production API Key
+    externalId: user_abc123
+    enabled: true
+    meta:
+      plan: enterprise
+      tier: production
+    permissions:
+      - api.read
+      - api.write
+    roles:
+      - admin
+    expires: 1735689600000
+    ratelimits:
+      - name: requests
+        limit: 100
+        duration: 60000
+        autoApply: true

@@ -9,11 +9,7 @@ properties:
     "$ref": "./V2PermissionsCreatePermissionResponseData.yaml"
 additionalProperties: false
 examples:
-  success:
-    summary: Permission created successfully
-    description: Standard successful permission creation response
-    value:
-      meta:
-        requestId: req_1234abcd
-      data:
-        permissionId: perm_5678efgh9012wxyz
+  - meta:
+      requestId: req_1234abcd
+    data:
+      permissionId: perm_5678efgh9012wxyz

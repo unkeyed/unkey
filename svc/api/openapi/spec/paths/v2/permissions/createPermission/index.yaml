@@ -22,6 +22,20 @@ post:
       application/json:
         schema:
           "$ref": "./V2PermissionsCreatePermissionRequestBody.yaml"
+        examples:
+          withDescription:
+            summary: Create permission with description
+            description: Standard permission creation with documentation
+            value:
+              name: documents.read
+              slug: documents-read
+              description: Allows reading document resources
+          withoutDescription:
+            summary: Create permission without description
+            description: Minimal permission creation when description is optional
+            value:
+              name: files.upload
+              slug: files-upload
     required: true
   responses:
     "200":
@@ -30,6 +44,15 @@ post:
         application/json:
           schema:
             "$ref": "./V2PermissionsCreatePermissionResponseBody.yaml"
+          examples:
+            success:
+              summary: Permission created successfully
+              description: Standard successful permission creation response
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  permissionId: perm_5678efgh9012wxyz
     "400":
       description: Bad Request
       content:

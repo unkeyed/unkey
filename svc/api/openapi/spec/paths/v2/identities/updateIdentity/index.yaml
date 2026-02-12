@@ -35,13 +35,13 @@ post:
         application/json:
           schema:
             "$ref": "./V2IdentitiesUpdateIdentityResponseBody.yaml"
+          examples:
+            success:
+              summary: Update successful
+              value:
+                meta:
+                  requestId: req_2cGKbMxRyIzhCxo1Idjz8q
       description: Identity successfully updated
-      examples:
-        success:
-          summary: Update successful
-          value:
-            meta:
-              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
     "400":
       description: Bad request
       content:

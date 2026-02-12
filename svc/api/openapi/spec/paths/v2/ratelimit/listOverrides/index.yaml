@@ -37,32 +37,32 @@ post:
         application/json:
           schema:
             "$ref": "./V2RatelimitListOverridesResponseBody.yaml"
+          examples:
+            withOverrides:
+              summary: List of overrides returned
+              value:
+                meta:
+                  requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+                data:
+                  overrides:
+                    - overrideId: ovr_1234567890abcdef
+                      identifier: premium_user_123
+                      limit: 1000
+                      duration: 60000
+                    - overrideId: ovr_2345678901bcdefg
+                      identifier: premium_*
+                      limit: 500
+                      duration: 60000
+                  cursor: cursor_eyJsYXN0SWQiOiJvdnJfMmhGTGNOeVN6SnppRHlwMkpla2E5ciJ9
+            empty:
+              summary: No overrides found
+              value:
+                meta:
+                  requestId: req_7zF4mNyP9BsRj2aQwDxVkT
+                data:
+                  overrides: []
+                  cursor: null
       description: Overrides retrieved successfully. Includes pagination metadata if more results are available.
-      examples:
-        withOverrides:
-          summary: List of overrides returned
-          value:
-            meta:
-              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-            data:
-              overrides:
-                - overrideId: ovr_1234567890abcdef
-                  identifier: premium_user_123
-                  limit: 1000
-                  duration: 60000
-                - overrideId: ovr_2345678901bcdefg
-                  identifier: premium_*
-                  limit: 500
-                  duration: 60000
-              cursor: cursor_eyJsYXN0SWQiOiJvdnJfMmhGTGNOeVN6SnppRHlwMkpla2E5ciJ9
-        empty:
-          summary: No overrides found
-          value:
-            meta:
-              requestId: req_7zF4mNyP9BsRj2aQwDxVkT
-            data:
-              overrides: []
-              cursor: null
     "400":
       description: Bad request
       content:

@@ -163,29 +163,21 @@ properties:
     example: false
 additionalProperties: false
 examples:
-  basic:
-    summary: Basic key creation
-    description: Create a simple key for user authentication
-    value:
-      apiId: api_1234abcd
-      name: "User API key"
-      externalId: "user_123"
-  withPermissions:
-    summary: Key with permissions and limits
-    description: Create a key with specific permissions, rate limits, and credits
-    value:
-      apiId: api_1234abcd
-      name: "Service API key"
-      externalId: "service_456"
-      permissions:
-        - "documents.read"
-        - "documents.write"
-      credits:
-        remaining: 1000
-      ratelimits:
-        - name: "api_requests"
-          limit: 100
-          duration: 60000
-      meta:
-        service: "document_processor"
-        version: "1.0"
+  - apiId: api_1234abcd
+    name: "User API key"
+    externalId: "user_123"
+  - apiId: api_1234abcd
+    name: "Service API key"
+    externalId: "service_456"
+    permissions:
+      - "documents.read"
+      - "documents.write"
+    credits:
+      remaining: 1000
+    ratelimits:
+      - name: "api_requests"
+        limit: 100
+        duration: 60000
+    meta:
+      service: "document_processor"
+      version: "1.0"

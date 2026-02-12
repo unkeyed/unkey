@@ -13,13 +13,5 @@ properties:
     example: payment-service-production
 additionalProperties: false
 examples:
-  basic:
-    summary: Basic API creation
-    description: Create an API for a payment service
-    value:
-      name: payment-service-prod
-  withEnvironment:
-    summary: Environment-specific API
-    description: Create separate APIs for different environments
-    value:
-      name: user-api-dev
+  - name: payment-service-prod
+  - name: user-api-dev

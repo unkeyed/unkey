@@ -37,19 +37,19 @@ post:
         application/json:
           schema:
             "$ref": "./V2RatelimitGetOverrideResponseBody.yaml"
+          examples:
+            standard:
+              summary: Override details retrieved
+              value:
+                meta:
+                  requestId: req_2cGKbMxRyIzhCxo1Idjz8q
+                data:
+                  overrideId: ovr_1234567890abcdef
+                  namespaceId: ns_1234567890abcdef
+                  identifier: premium_user_123
+                  limit: 1000
+                  duration: 60000
       description: Override found and returned successfully.
-      examples:
-        standard:
-          summary: Override details retrieved
-          value:
-            meta:
-              requestId: req_2cGKbMxRyIzhCxo1Idjz8q
-            data:
-              overrideId: ovr_1234567890abcdef
-              namespaceId: ns_1234567890abcdef
-              identifier: premium_user_123
-              limit: 1000
-              duration: 60000
     "400":
       description: Bad request
       content:

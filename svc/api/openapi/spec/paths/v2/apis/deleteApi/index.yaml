@@ -25,6 +25,12 @@ post:
       application/json:
         schema:
           "$ref": "./V2ApisDeleteApiRequestBody.yaml"
+        examples:
+          delete:
+            summary: Delete an API
+            description: Remove API an API by providing its id
+            value:
+              apiId: api_abcd1234
     required: true
   responses:
     "200":
@@ -33,6 +39,14 @@ post:
         application/json:
           schema:
             "$ref": "./V2ApisDeleteApiResponseBody.yaml"
+          examples:
+            successfulDeletion:
+              summary: Successful API deletion
+              description: Standard response after successfully deleting an API namespace
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
     "400":
       description: Bad request
       content:

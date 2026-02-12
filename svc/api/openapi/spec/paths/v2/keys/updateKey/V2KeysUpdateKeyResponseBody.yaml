@@ -9,10 +9,6 @@ properties:
     "$ref": "../../../../common/EmptyResponse.yaml"
 additionalProperties: false
 examples:
-  basicUpdateSuccess:
-    summary: Successful basic update
-    description: Standard successful update response
-    value:
-      meta:
-        requestId: req_abcd1234
-      data: {}
+  - meta:
+      requestId: req_abcd1234
+    data: {}

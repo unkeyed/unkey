@@ -23,13 +23,9 @@ required:
   - apiId
   - keys
 examples:
-  basic:
-    summary: Basic migration example
-    description: A simple migration example with a single key
-    value:
-      migrationId: your_company
-      apiId: api_123456789
-      keys:
-        - hash: c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64
-          name: Production API Key
-          enabled: true
+  - migrationId: your_company
+    apiId: api_123456789
+    keys:
+      - hash: c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64
+        name: Production API Key
+        enabled: true

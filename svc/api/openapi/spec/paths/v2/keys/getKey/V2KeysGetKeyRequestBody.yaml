@@ -26,33 +26,13 @@ additionalProperties: false
 required:
   - keyId
 examples:
-  dashboardKeyDetails:
-    summary: Dashboard key information display
-    description: Retrieve key metadata for dashboard display without decrypting the actual key value
-    value:
-      keyId: key_1234abcd
-      decrypt: false
-  apiPlaygroundDecrypt:
-    summary: API playground with key decryption
-    description: Decrypt a recoverable key for testing API calls directly in the dashboard
-    value:
-      keyId: key_5678efgh
-      decrypt: true
-  supportKeyLookup:
-    summary: Support lookup by actual key string
-    description: Look up key details when provided the actual key string (useful for support scenarios)
-    value:
-      key: sk_1234abcdef5678
-      decrypt: false
-  keyManagementOverview:
-    summary: Key management interface data
-    description: Retrieve all key information including permissions and roles for management interfaces
-    value:
-      keyId: key_9876zyxw
-      decrypt: false
-  developmentKeyRecovery:
-    summary: Development key recovery
-    description: Recover a development key for testing purposes with full decryption
-    value:
-      keyId: key_dev_test
-      decrypt: true
+  - keyId: key_1234abcd
+    decrypt: false
+  - keyId: key_5678efgh
+    decrypt: true
+  - key: sk_1234abcdef5678
+    decrypt: false
+  - keyId: key_9876zyxw
+    decrypt: false
+  - keyId: key_dev_test
+    decrypt: true
