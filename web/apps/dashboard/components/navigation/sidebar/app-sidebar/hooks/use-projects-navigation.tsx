@@ -3,7 +3,7 @@ import type { NavItem } from "@/components/navigation/sidebar/workspace-navigati
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Cloud, Connections, Gear, GridCircle, Layers3 } from "@unkey/icons";
+import { Cloud, Gear, GridCircle } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -32,39 +32,6 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
 
       const currentSubRoute = segments.at(subRouteIndex);
 
-      // Detect if viewing deployment detail page
-      const deploymentIdIndex = subRouteIndex + 1;
-      const deploymentTabIndex = subRouteIndex + 2;
-      const isOnDeploymentDetail = Boolean(
-        currentProjectActive && currentSubRoute === "deployments" && segments.at(deploymentIdIndex),
-      );
-      const deploymentId = segments.at(deploymentIdIndex) as string | undefined;
-      const currentDeploymentTab = segments.at(deploymentTabIndex);
-
-      // deployment tab sub-items if viewing deployment detail
-      const deploymentTabItems: NavItem[] | undefined = isOnDeploymentDetail
-        ? [
-            {
-              icon: GridCircle,
-              href: `${basePath}/${project.id}/deployments/${deploymentId}`,
-              label: "Overview",
-              active: !currentDeploymentTab || currentDeploymentTab === "overview",
-            },
-            {
-              icon: Layers3,
-              href: `${basePath}/${project.id}/deployments/${deploymentId}/logs`,
-              label: "Logs",
-              active: currentDeploymentTab === "logs",
-            },
-            {
-              icon: Connections,
-              href: `${basePath}/${project.id}/deployments/${deploymentId}/network`,
-              label: "Network",
-              active: currentDeploymentTab === "network",
-            },
-          ]
-        : undefined;
-
       // Create sub-items
       const subItems: NavItem[] = [
         {
@@ -78,13 +45,6 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
           href: `${basePath}/${project.id}/deployments`,
           label: "Deployments",
           active: currentProjectActive && currentSubRoute === "deployments",
-          ...(deploymentTabItems && { items: deploymentTabItems }),
-        },
-        {
-          icon: Layers3,
-          href: `${basePath}/${project.id}/requests`,
-          label: "Requests",
-          active: currentProjectActive && currentSubRoute === "requests",
         },
         {
           icon: Gear,
