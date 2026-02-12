@@ -2,7 +2,7 @@
 
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { PropsWithChildren } from "react";
-import { useProject } from "../(overview)/layout-provider";
+import { useProjectLayout } from "../(overview)/layout-provider";
 
 type ProjectContentWrapperProps = PropsWithChildren<{
   className?: React.ComponentProps<"div">["className"];
@@ -24,7 +24,7 @@ export function ProjectContentWrapper({
   centered = false,
   maxWidth = "960px",
 }: ProjectContentWrapperProps) {
-  const { isDetailsOpen } = useProject();
+  const { isDetailsOpen } = useProjectLayout();
 
   return (
     <div

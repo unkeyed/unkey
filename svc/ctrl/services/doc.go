@@ -50,7 +50,7 @@
 //	})
 //
 //	// Register with Connect server
-//	mux.Handle(ctrlv1connect.NewDeploymentServiceHandler(deploymentSvc))
+//	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 //
 // # Error Handling
 //

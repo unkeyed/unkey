@@ -4,7 +4,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useLiveQuery } from "@tanstack/react-db";
 import {
   ArrowDottedRotateAnticlockwise,
   ChevronExpandY,
@@ -18,11 +18,11 @@ import { Button, InfoTooltip, Separator } from "@unkey/ui";
 import { useRef } from "react";
 import { RepoDisplay } from "../../../_components/list/repo-display";
 import { DisabledWrapper } from "../../components/disabled-wrapper";
+import { useProjectData } from "../data-provider";
 import { useBreadcrumbConfig } from "./use-breadcrumb-config";
 
 const BORDER_OFFSET = 1;
 type ProjectNavigationProps = {
-  projectId: string;
   onMount: (distanceToTop: number) => void;
   onClick: () => void;
   isDetailsOpen: boolean;
@@ -30,7 +30,6 @@ type ProjectNavigationProps = {
 };
 
 export const ProjectNavigation = ({
-  projectId,
   onMount,
   isDetailsOpen,
   liveDeploymentId,
@@ -44,16 +43,10 @@ export const ProjectNavigation = ({
     })),
   );
 
-  const activeProject = useLiveQuery((q) =>
-    q
-      .from({ project: collection.projects })
-      .where(({ project }) => eq(project.id, projectId))
-      .select(({ project }) => ({
-        id: project.id,
-        name: project.name,
-        gitRepositoryUrl: project.gitRepositoryUrl,
-      })),
-  ).data.at(0);
+  const { projectId, project } = useProjectData();
+  const activeProject = project
+    ? { id: project.id, name: project.name, repositoryFullName: project.repositoryFullName }
+    : undefined;
 
   const basePath = `/${workspace.slug}/projects`;
   const breadcrumbs = useBreadcrumbConfig({
@@ -172,13 +165,13 @@ export const ProjectNavigation = ({
         ))}
       </Navbar.Breadcrumbs>
       <div className="flex gap-4 items-center">
-        {activeProject.gitRepositoryUrl && (
+        {activeProject.repositoryFullName && (
           <>
             <div className="text-gray-11 text-xs flex items-center gap-2.5">
               <Refresh3 className="text-gray-12" iconSize="sm-regular" />
               <span>Auto-deploys from pushes to </span>
               <RepoDisplay
-                url={activeProject.gitRepositoryUrl}
+                url={`https://github.com/${activeProject.repositoryFullName}`}
                 className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
               />
             </div>

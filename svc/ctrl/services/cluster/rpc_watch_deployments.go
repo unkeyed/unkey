@@ -2,6 +2,8 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
@@ -117,23 +119,36 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 			buildID = &row.Deployment.BuildID.String
 		}
 
+		apply := &ctrlv1.ApplyDeployment{
+			DeploymentId:                  row.Deployment.ID,
+			K8SNamespace:                  row.K8sNamespace.String,
+			K8SName:                       row.Deployment.K8sName,
+			WorkspaceId:                   row.Deployment.WorkspaceID,
+			ProjectId:                     row.Deployment.ProjectID,
+			EnvironmentId:                 row.Deployment.EnvironmentID,
+			Replicas:                      row.DeploymentTopology.DesiredReplicas,
+			Image:                         row.Deployment.Image.String,
+			CpuMillicores:                 int64(row.Deployment.CpuMillicores),
+			MemoryMib:                     int64(row.Deployment.MemoryMib),
+			EncryptedEnvironmentVariables: row.Deployment.EncryptedEnvironmentVariables,
+			BuildId:                       buildID,
+			Command:                       row.Deployment.Command,
+			Port:                          row.Deployment.Port,
+			ShutdownSignal:                string(row.Deployment.ShutdownSignal),
+		}
+
+		if row.Deployment.Healthcheck.Valid {
+			hcBytes, err := json.Marshal(row.Deployment.Healthcheck.Healthcheck)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal healthcheck: %w", err)
+			}
+			apply.Healthcheck = hcBytes
+		}
+
 		return &ctrlv1.DeploymentState{
 			Version: row.DeploymentTopology.Version,
 			State: &ctrlv1.DeploymentState_Apply{
-				Apply: &ctrlv1.ApplyDeployment{
-					DeploymentId:                  row.Deployment.ID,
-					K8SNamespace:                  row.K8sNamespace.String,
-					K8SName:                       row.Deployment.K8sName,
-					WorkspaceId:                   row.Deployment.WorkspaceID,
-					ProjectId:                     row.Deployment.ProjectID,
-					EnvironmentId:                 row.Deployment.EnvironmentID,
-					Replicas:                      row.DeploymentTopology.DesiredReplicas,
-					Image:                         row.Deployment.Image.String,
-					CpuMillicores:                 int64(row.Deployment.CpuMillicores),
-					MemoryMib:                     int64(row.Deployment.MemoryMib),
-					EncryptedEnvironmentVariables: row.Deployment.EncryptedEnvironmentVariables,
-					BuildId:                       buildID,
-				},
+				Apply: apply,
 			},
 		}, nil
 	default:

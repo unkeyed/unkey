@@ -380,6 +380,35 @@ CREATE TABLE `environment_variables` (
 	CONSTRAINT `environment_id_key` UNIQUE(`environment_id`,`key`)
 );
 
+CREATE TABLE `environment_build_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
+	`docker_context` varchar(500) NOT NULL DEFAULT '.',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_build_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `env_build_settings_environment_id_idx` UNIQUE(`environment_id`)
+);
+
+CREATE TABLE `environment_runtime_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`port` int NOT NULL DEFAULT 8080,
+	`cpu_millicores` int NOT NULL DEFAULT 256,
+	`memory_mib` int NOT NULL DEFAULT 256,
+	`command` json NOT NULL DEFAULT ('[]'),
+	`healthcheck` json,
+	`region_config` json NOT NULL DEFAULT ('{}'),
+	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_runtime_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `env_runtime_settings_environment_id_idx` UNIQUE(`environment_id`)
+);
+
 CREATE TABLE `clickhouse_workspace_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -404,12 +433,10 @@ CREATE TABLE `projects` (
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
-	`git_repository_url` varchar(500),
 	`live_deployment_id` varchar(256),
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
 	`depot_project_id` varchar(255),
-	`command` json NOT NULL DEFAULT ('[]'),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -440,6 +467,9 @@ CREATE TABLE `deployments` (
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
 	`encrypted_environment_variables` longblob NOT NULL,
 	`command` json NOT NULL DEFAULT ('[]'),
+	`port` int NOT NULL DEFAULT 8080,
+	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
+	`healthcheck` json,
 	`status` enum('pending','building','deploying','network','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -618,7 +648,9 @@ CREATE TABLE `cilium_network_policies` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
+	`deployment_id` varchar(128) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
+	`k8s_namespace` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
 	`policy` json NOT NULL,
 	`version` bigint unsigned NOT NULL,
@@ -626,8 +658,7 @@ CREATE TABLE `cilium_network_policies` (
 	`updated_at` bigint,
 	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
-	CONSTRAINT `cilium_network_policies_k8s_name_unique` UNIQUE(`k8s_name`),
-	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`),
+	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region`,`k8s_name`),
 	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
 );
 
@@ -639,6 +670,7 @@ CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
+CREATE INDEX `idx_keys_refill` ON `keys` (`refill_amount`,`deleted_at_m`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
 CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
@@ -664,5 +696,4 @@ CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
 CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_id`);
-CREATE INDEX `idx_environment_id` ON `cilium_network_policies` (`environment_id`);
 

@@ -222,6 +222,11 @@ type Config struct {
 	// GitHub configures GitHub App integration for webhook-triggered deployments.
 	GitHub GitHubConfig
 
+	// AllowUnauthenticatedDeployments controls whether deployments can skip
+	// GitHub authentication. Set to true only for local development.
+	// Production should keep this false to require GitHub App authentication.
+	AllowUnauthenticatedDeployments bool
+
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.RealClock{} for production deployments.
 	Clock clock.Clock
@@ -240,6 +245,11 @@ type Config struct {
 	// When set, Slack notifications are sent when workspaces exceed their quota.
 	// Optional - if empty, no Slack notifications are sent.
 	QuotaCheckSlackWebhookURL string
+
+	// KeyRefillHeartbeatURL is the Checkly heartbeat URL for key refill runs.
+	// When set, a heartbeat is sent after successful key refill runs.
+	// Optional - if empty, no heartbeat is sent.
+	KeyRefillHeartbeatURL string
 }
 
 // GitHubConfig holds configuration for GitHub App integration.

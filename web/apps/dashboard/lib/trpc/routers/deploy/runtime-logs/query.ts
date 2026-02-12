@@ -23,7 +23,7 @@ export const queryRuntimeLogs = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Failed to retrieve runtime logs due to an error. If this issue persists, please contact support@unkey.com.",
+            "Failed to retrieve logs due to an error. If this issue persists, please contact support@unkey.com.",
         });
       });
 
@@ -59,7 +59,8 @@ export const queryRuntimeLogs = workspaceProcedure
       ...transformedInputs,
       workspaceId: workspace.id,
       projectId: project.id,
-      environmentId: project.activeDeployment?.environmentId,
+      deploymentId: input.deploymentId ?? null,
+      environmentId: input.environmentId ?? project.activeDeployment?.environmentId,
     });
 
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);

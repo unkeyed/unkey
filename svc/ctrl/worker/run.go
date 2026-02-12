@@ -33,7 +33,9 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
@@ -155,18 +157,31 @@ func Run(ctx context.Context, cfg Config) error {
 	// Restate Server - uses logging.GetHandler() for slog integration
 	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploy.New(deploy.Config{
-		DB:               database,
-		DefaultDomain:    cfg.DefaultDomain,
-		Vault:            vaultClient,
-		SentinelImage:    cfg.SentinelImage,
-		AvailableRegions: cfg.AvailableRegions,
-		GitHub:           ghClient,
-		RegistryConfig:   deploy.RegistryConfig(cfg.GetRegistryConfig()),
-		BuildPlatform:    deploy.BuildPlatform(cfg.GetBuildPlatform()),
-		DepotConfig:      deploy.DepotConfig(cfg.GetDepotConfig()),
-		Clickhouse:       ch,
-	})))
+	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploy.New(deploy.Config{
+		DB:                              database,
+		DefaultDomain:                   cfg.DefaultDomain,
+		Vault:                           vaultClient,
+		SentinelImage:                   cfg.SentinelImage,
+		AvailableRegions:                cfg.AvailableRegions,
+		GitHub:                          ghClient,
+		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
+		BuildPlatform:                   deploy.BuildPlatform(cfg.GetBuildPlatform()),
+		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
+		Clickhouse:                      ch,
+		AllowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
+	}),
+		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(1*time.Minute),
+			restate.WithExponentiationFactor(2.0),
+			restate.WithMaxInterval(10*time.Minute),
+			restate.WithMaxAttempts(150),
+			restate.KillOnMaxAttempts(),
+		),
+	))
+	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
+		DB: database,
+	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,
@@ -292,8 +307,23 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("create quota check service: %w", err)
 	}
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
-
 	logger.Info("QuotaCheckService enabled")
+
+	// Key refill service for scheduled key usage limit refills
+	var keyRefillHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.KeyRefillHeartbeatURL != "" {
+		keyRefillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.KeyRefillHeartbeatURL)
+	}
+
+	keyRefillSvc, err := keyrefill.New(keyrefill.Config{
+		DB:        database,
+		Heartbeat: keyRefillHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create key refill service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
+	logger.Info("KeyRefillService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
@@ -346,7 +376,7 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 		r.Go(func(ctx context.Context) error {
 			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
-			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs); err != nil {
+			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs, true); err != nil {
 				logger.Error("failed to register with Restate", "error", err)
 				return err
 			}

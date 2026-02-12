@@ -9,6 +9,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/cmd/dev",
     visibility = ["//visibility:public"],
     deps = [
+        "//cmd/dev/github",
         "//cmd/dev/seed",
         "//pkg/cli",
         "//pkg/vault/keys",

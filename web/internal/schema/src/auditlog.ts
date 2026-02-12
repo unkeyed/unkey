@@ -54,6 +54,7 @@ export const unkeyAuditLogEvents = z.enum([
   "ratelimit.delete_override",
   "auditLogBucket.create",
   "project.create",
+  "project.delete",
   "environment.create",
   "deployment.rollback",
   "deployment.promote",

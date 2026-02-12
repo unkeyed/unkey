@@ -2,6 +2,10 @@
 
 import defaultTheme from "@unkey/ui/tailwind.config";
 import "tailwindcss/plugin";
+import tailwindcssAnimate from "tailwindcss-animate";
+import tailwindType from "@tailwindcss/typography";
+import tailwindAspectRatio from "@tailwindcss/aspect-ratio";
+import tailwindContainerQueries from "@tailwindcss/container-queries";
 
 module.exports = {
   darkMode: ["class"],
@@ -158,28 +162,34 @@ module.exports = {
             opacity: 1,
             transform: "translateY(0)",
           },
+          shimmer: {
+            "0%": { transform: "translateX(-100%)" },
+            "100%": { transform: "translateX(100%)" },
+          },
         },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "shiny-text": "shiny-text 10s infinite",
-        "slide-up-from-bottom": "slide-up-from-bottom 0.3s ease-out",
-        "slide-in-from-bottom": "slide-in-from-bottom 0.3s ease-out",
-        "fade-in-down": "fade-in-down 0.3s ease-out both",
-        "fade-in-up": "fade-in-up 0.3s ease-out both",
-      },
-      fontFamily: {
-        sans: ["var(--font-geist-sans)"],
-        mono: ["var(--font-geist-mono)"],
+        animation: {
+          "accordion-down": "accordion-down 0.2s ease-out",
+          "accordion-up": "accordion-up 0.2s ease-out",
+          "shiny-text": "shiny-text 10s infinite",
+          "slide-up-from-bottom": "slide-up-from-bottom 0.3s ease-out",
+          "slide-in-from-bottom": "slide-in-from-bottom 0.3s ease-out",
+          "fade-in-down": "fade-in-down 0.3s ease-out both",
+          "fade-in-up": "fade-in-up 0.3s ease-out both",
+          shimmer: "shimmer 1.2s ease-in-out infinite",
+        },
+        fontFamily: {
+          sans: ["var(--font-geist-sans)"],
+          mono: ["var(--font-geist-mono)"],
+        },
       },
     },
   }),
   plugins: [
-    require("tailwindcss-animate"),
-    require("@tailwindcss/typography"),
-    require("@tailwindcss/aspect-ratio"),
-    require("@tailwindcss/container-queries"),
+    tailwindcssAnimate,
+    tailwindType,
+    tailwindAspectRatio,
+    tailwindContainerQueries,
+   
   ],
 };
 

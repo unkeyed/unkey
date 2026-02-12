@@ -7,7 +7,7 @@ post:
 
     Perfect for building management dashboards, auditing configurations, or browsing your identities.
 
-    > **Important**  
+    > **Important**
     > Requires `identity.*.read_identity` permission
   operationId: identities.listIdentities
   x-speakeasy-name-override: listIdentities

@@ -4,6 +4,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
   id: z.string(),
@@ -33,20 +34,35 @@ const schema = z.object({
 
 export type Deployment = z.infer<typeof schema>;
 
-export function createDeploymentsCollection(projectId: string) {
-  if (!projectId) {
-    throw new Error("projectId is required to create deployments collection");
-  }
+/**
+ * Global deployments collection.
+ *
+ * IMPORTANT: All queries MUST filter by projectId:
+ * .where(({ deployment }) => eq(deployment.projectId, projectId))
+ */
+export const deployments = createCollection<Deployment, string>(
+  queryCollectionOptions({
+    queryClient,
+    queryKey: (opts) => {
+      const projectId = parseProjectIdFromWhere(opts.where);
+      return projectId ? ["deployments", projectId] : ["deployments"];
+    },
+    retry: 3,
+    syncMode: "on-demand",
+    refetchInterval: 5000,
+    queryFn: async (ctx) => {
+      const options = ctx.meta?.loadSubsetOptions;
 
-  return createCollection<Deployment>(
-    queryCollectionOptions({
-      queryClient,
-      queryKey: [projectId, "deployments"],
-      retry: 3,
-      refetchInterval: 5000,
-      queryFn: () => trpcClient.deploy.deployment.list.query({ projectId }),
-      getKey: (item) => item.id,
-      id: `${projectId}-deployments`,
-    }),
-  );
-}
+      validateProjectIdInQuery(options?.where);
+      const projectId = parseProjectIdFromWhere(options?.where);
+
+      if (!projectId) {
+        throw new Error("Query must include eq(collection.projectId, projectId) constraint");
+      }
+
+      return trpcClient.deploy.deployment.list.query({ projectId });
+    },
+    getKey: (item) => item.id,
+    id: "deployments",
+  }),
+);

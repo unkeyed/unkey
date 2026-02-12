@@ -1,45 +1,37 @@
 "use client";
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
+import { EmptySection } from "./(overview)/components/empty-section";
+import { useProjectData } from "./(overview)/data-provider";
 import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
 import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
 import { CustomDomainsSection } from "./(overview)/details/custom-domains-section";
-import { DomainRow, DomainRowEmpty, DomainRowSkeleton } from "./(overview)/details/domain-row";
+import { DomainRow, DomainRowSkeleton } from "./(overview)/details/domain-row";
 import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
-import { useProject } from "./(overview)/layout-provider";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
 
 export default function ProjectDetails() {
-  const { projectId, collections, liveDeploymentId } = useProject();
+  const {
+    projectId,
+    getDomainsForDeployment,
+    isDomainsLoading,
+    getDeploymentById,
+    project,
+    environments,
+  } = useProjectData();
 
-  const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
-  );
+  const liveDeploymentId = project?.liveDeploymentId;
 
-  const project = projects.data.at(0);
-  const { data: domains, isLoading: isDomainsLoading } = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collections.domains })
-        .where(({ domain }) => eq(domain.deploymentId, liveDeploymentId)),
-    [liveDeploymentId],
-  );
+  // Get domains for live deployment
+  const domains = liveDeploymentId ? getDomainsForDeployment(liveDeploymentId) : [];
 
-  const { data: environments } = useLiveQuery((q) => q.from({ env: collections.environments }));
-
-  const deployment = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collections.deployments })
-        .where(({ deployment }) => eq(deployment.id, project?.liveDeploymentId)),
-    [project?.liveDeploymentId],
-  );
-  const deploymentStatus = deployment.data.at(0)?.status;
+  // Get deployment from provider
+  const deploymentStatus = liveDeploymentId
+    ? getDeploymentById(liveDeploymentId)?.status
+    : undefined;
 
   return (
     <ProjectContentWrapper centered>
@@ -75,12 +67,15 @@ export default function ProjectDetails() {
               <DomainRowSkeleton />
               <DomainRowSkeleton />
             </>
-          ) : domains?.length > 0 ? (
+          ) : domains.length > 0 ? (
             domains.map((domain) => (
               <DomainRow key={domain.id} domain={domain.fullyQualifiedDomainName} />
             ))
           ) : (
-            <DomainRowEmpty />
+            <EmptySection
+              title="No domains found"
+              description="Your configured domains will appear here once they're set up and verified."
+            />
           )}
         </div>
       </Section>
@@ -90,8 +85,7 @@ export default function ProjectDetails() {
           title="Custom Domains"
         />
         <CustomDomainsSection
-          projectId={projectId}
-          environments={environments?.map((env) => ({ id: env.id, slug: env.slug })) ?? []}
+          environments={environments.map((env) => ({ id: env.id, slug: env.slug }))}
         />
       </Section>
       <Section>
@@ -100,16 +94,15 @@ export default function ProjectDetails() {
           title="Environment Variables"
         />
         <div>
-          {environments?.map((env) => (
+          {environments.map((env) => (
             <EnvironmentVariablesSection
               key={env.id}
               icon={<Page2 iconSize="sm-medium" className="text-gray-9" />}
               title={env.slug}
-              projectId={projectId}
               environment={env.slug}
             />
           ))}
-          {environments?.length === 0 && (
+          {environments.length === 0 && (
             <div className="px-4 py-8 text-center text-gray-9 text-sm">
               No environments configured
             </div>

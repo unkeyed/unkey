@@ -3,7 +3,6 @@ import type { NavItem } from "@/components/navigation/sidebar/workspace-navigati
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Cloud, Connections, GridCircle, Layers3 } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -25,76 +24,16 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
       const projectsSegmentIndex = segments.findIndex((s) => s === "projects");
 
       const projectIdIndex = projectsSegmentIndex + 1;
-      const subRouteIndex = projectsSegmentIndex + 3;
 
       const currentProjectActive =
         projectsSegmentIndex !== -1 && segments.at(projectIdIndex) === project.id;
-
-      const currentSubRoute = segments.at(subRouteIndex);
-
-      // Detect if viewing deployment detail page
-      const deploymentIdIndex = subRouteIndex + 1;
-      const deploymentTabIndex = subRouteIndex + 2;
-      const isOnDeploymentDetail = Boolean(
-        currentProjectActive && currentSubRoute === "deployments" && segments.at(deploymentIdIndex),
-      );
-      const deploymentId = segments.at(deploymentIdIndex) as string | undefined;
-      const currentDeploymentTab = segments.at(deploymentTabIndex);
-
-      // deployment tab sub-items if viewing deployment detail
-      const deploymentTabItems: NavItem[] | undefined = isOnDeploymentDetail
-        ? [
-            {
-              icon: GridCircle,
-              href: `${basePath}/${project.id}/deployments/${deploymentId}`,
-              label: "Overview",
-              active: !currentDeploymentTab || currentDeploymentTab === "overview",
-            },
-            {
-              icon: Layers3,
-              href: `${basePath}/${project.id}/deployments/${deploymentId}/runtime-logs`,
-              label: "Runtime Logs",
-              active: currentDeploymentTab === "runtime-logs",
-            },
-            {
-              icon: Connections,
-              href: `${basePath}/${project.id}/deployments/${deploymentId}/network`,
-              label: "Network",
-              active: currentDeploymentTab === "network",
-            },
-          ]
-        : undefined;
-
-      // Create sub-items
-      const subItems: NavItem[] = [
-        {
-          icon: GridCircle,
-          href: `${basePath}/${project.id}`,
-          label: "Overview",
-          active: currentProjectActive && !currentSubRoute,
-        },
-        {
-          icon: Cloud,
-          href: `${basePath}/${project.id}/deployments`,
-          label: "Deployments",
-          active: currentProjectActive && currentSubRoute === "deployments",
-          ...(deploymentTabItems && { items: deploymentTabItems }),
-        },
-        {
-          icon: Layers3,
-          href: `${basePath}/${project.id}/sentinel-logs`,
-          label: "Sentinel Logs",
-          active: currentProjectActive && currentSubRoute === "sentinel-logs",
-        },
-      ];
 
       const projectNavItem: NavItem = {
         href: `${basePath}/${project.id}`,
         icon: null,
         label: project.name,
         active: currentProjectActive,
-        showSubItems: true,
-        items: subItems,
+        showSubItems: false,
       };
 
       return projectNavItem;

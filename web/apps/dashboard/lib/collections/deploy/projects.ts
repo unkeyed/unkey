@@ -8,7 +8,7 @@ const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
-  gitRepositoryUrl: z.string().nullable(),
+  repositoryFullName: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
   liveDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
@@ -34,13 +34,12 @@ export const createProjectRequestSchema = z.object({
       /^[a-z0-9-]+$/,
       "Project slug must contain only lowercase letters, numbers, and hyphens",
     ),
-  gitRepositoryUrl: z.string().url("Must be a valid URL").trim().nullable().or(z.literal("")),
 });
 
 export type Project = z.infer<typeof schema>;
 export type CreateProjectRequestSchema = z.infer<typeof createProjectRequestSchema>;
 
-export const projects = createCollection<Project>(
+export const projects = createCollection<Project, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["projects"],
@@ -50,13 +49,53 @@ export const projects = createCollection<Project>(
       return await trpcClient.deploy.project.list.query();
     },
     getKey: (item) => item.id,
+    onDelete: async ({ transaction }) => {
+      const mutation = transaction.mutations[0];
+      const projectId = mutation.original.id;
+
+      const deleteMutation = trpcClient.deploy.project.delete.mutate({ projectId });
+
+      toast.promise(deleteMutation, {
+        loading: "Deleting project...",
+        success: "Project deleted successfully",
+        error: (err) => {
+          console.error("Failed to delete project", err);
+
+          switch (err.data?.code) {
+            case "NOT_FOUND":
+              return {
+                message: "Project Deletion Failed",
+                description: "Unable to find the project. Please refresh and try again.",
+              };
+            case "FORBIDDEN":
+              return {
+                message: "Permission Denied",
+                description: "You don't have permission to delete this project.",
+              };
+            case "INTERNAL_SERVER_ERROR":
+              return {
+                message: "Server Error",
+                description:
+                  "We encountered an issue while deleting your project. Please try again later or contact support at support@unkey.com",
+              };
+            default:
+              return {
+                message: "Failed to Delete Project",
+                description: err.message || "An unexpected error occurred. Please try again later.",
+              };
+          }
+        },
+      });
+
+      await deleteMutation;
+      // Automatically refetches query after delete
+    },
     onInsert: async ({ transaction }) => {
       const { changes } = transaction.mutations[0];
 
       const createInput = createProjectRequestSchema.parse({
         name: changes.name,
         slug: changes.slug,
-        gitRepositoryUrl: changes.gitRepositoryUrl,
       });
       const mutation = trpcClient.deploy.project.create.mutate(createInput);
 

@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { FC, ReactNode } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
-import { Dialog, DialogContent } from "./dialog";
+import { Dialog, DialogContent, DialogPortal } from "./dialog";
 import {
   DefaultDialogContentArea,
   DefaultDialogFooter,
@@ -65,24 +65,23 @@ const NavigableDialogRoot = <TStepName extends string>({
 
   return (
     <NavigableDialogContext.Provider value={contextValue}>
-      <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
-        <DialogContent
-          // Without this modal={false} and above modal={false}, radix dialog traps the focus and children popovers or any dialog based element
-          // cannot work properly. This is a dirty workaround.
-
-          onKeyDown={(e) => e.stopPropagation()}
-          className={cn(
-            "drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
-            dialogClassName,
-          )}
-          onOpenAutoFocus={(e) => {
-            if (preventAutoFocus) {
-              e.preventDefault();
-            }
-          }}
-        >
-          {children}
-        </DialogContent>
+      <Dialog open={isOpen} onOpenChange={onOpenChange} modal={true}>
+        <DialogPortal>
+          <DialogContent
+            onKeyDown={(e) => e.stopPropagation()}
+            className={cn(
+              "drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
+              dialogClassName,
+            )}
+            onOpenAutoFocus={(e) => {
+              if (preventAutoFocus) {
+                e.preventDefault();
+              }
+            }}
+          >
+            {children}
+          </DialogContent>
+        </DialogPortal>
       </Dialog>
     </NavigableDialogContext.Provider>
   );

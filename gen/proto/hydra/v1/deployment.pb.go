@@ -22,27 +22,85 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type DockerImage struct {
+// DeploymentDesiredState represents the target lifecycle state for a deployment.
+// UNSPECIFIED is treated as an error and causes a terminal failure in
+// ChangeDesiredState.
+type DeploymentDesiredState int32
+
+const (
+	DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED DeploymentDesiredState = 0
+	// RUNNING means the deployment should have active containers serving traffic.
+	DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING DeploymentDesiredState = 1
+	// STANDBY means the deployment's containers are scaled down but the
+	// deployment can be resumed without a full rebuild.
+	DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY DeploymentDesiredState = 2
+	// ARCHIVED means the deployment is permanently decommissioned.
+	DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_ARCHIVED DeploymentDesiredState = 3
+)
+
+// Enum value maps for DeploymentDesiredState.
+var (
+	DeploymentDesiredState_name = map[int32]string{
+		0: "DEPLOYMENT_DESIRED_STATE_UNSPECIFIED",
+		1: "DEPLOYMENT_DESIRED_STATE_RUNNING",
+		2: "DEPLOYMENT_DESIRED_STATE_STANDBY",
+		3: "DEPLOYMENT_DESIRED_STATE_ARCHIVED",
+	}
+	DeploymentDesiredState_value = map[string]int32{
+		"DEPLOYMENT_DESIRED_STATE_UNSPECIFIED": 0,
+		"DEPLOYMENT_DESIRED_STATE_RUNNING":     1,
+		"DEPLOYMENT_DESIRED_STATE_STANDBY":     2,
+		"DEPLOYMENT_DESIRED_STATE_ARCHIVED":    3,
+	}
+)
+
+func (x DeploymentDesiredState) Enum() *DeploymentDesiredState {
+	p := new(DeploymentDesiredState)
+	*p = x
+	return p
+}
+
+func (x DeploymentDesiredState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DeploymentDesiredState) Descriptor() protoreflect.EnumDescriptor {
+	return file_hydra_v1_deployment_proto_enumTypes[0].Descriptor()
+}
+
+func (DeploymentDesiredState) Type() protoreflect.EnumType {
+	return &file_hydra_v1_deployment_proto_enumTypes[0]
+}
+
+func (x DeploymentDesiredState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DeploymentDesiredState.Descriptor instead.
+func (DeploymentDesiredState) EnumDescriptor() ([]byte, []int) {
+	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{0}
+}
+
+type ClearScheduledStateChangesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Image         string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DockerImage) Reset() {
-	*x = DockerImage{}
+func (x *ClearScheduledStateChangesRequest) Reset() {
+	*x = ClearScheduledStateChangesRequest{}
 	mi := &file_hydra_v1_deployment_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DockerImage) String() string {
+func (x *ClearScheduledStateChangesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DockerImage) ProtoMessage() {}
+func (*ClearScheduledStateChangesRequest) ProtoMessage() {}
 
-func (x *DockerImage) ProtoReflect() protoreflect.Message {
+func (x *ClearScheduledStateChangesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_deployment_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -54,43 +112,31 @@ func (x *DockerImage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DockerImage.ProtoReflect.Descriptor instead.
-func (*DockerImage) Descriptor() ([]byte, []int) {
+// Deprecated: Use ClearScheduledStateChangesRequest.ProtoReflect.Descriptor instead.
+func (*ClearScheduledStateChangesRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *DockerImage) GetImage() string {
-	if x != nil {
-		return x.Image
-	}
-	return ""
+type ClearScheduledStateChangesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-type GitSource struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	InstallationId int64                  `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	Repository     string                 `protobuf:"bytes,2,opt,name=repository,proto3" json:"repository,omitempty"`
-	CommitSha      string                 `protobuf:"bytes,3,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
-	ContextPath    string                 `protobuf:"bytes,4,opt,name=context_path,json=contextPath,proto3" json:"context_path,omitempty"`
-	DockerfilePath string                 `protobuf:"bytes,5,opt,name=dockerfile_path,json=dockerfilePath,proto3" json:"dockerfile_path,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *GitSource) Reset() {
-	*x = GitSource{}
+func (x *ClearScheduledStateChangesResponse) Reset() {
+	*x = ClearScheduledStateChangesResponse{}
 	mi := &file_hydra_v1_deployment_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GitSource) String() string {
+func (x *ClearScheduledStateChangesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GitSource) ProtoMessage() {}
+func (*ClearScheduledStateChangesResponse) ProtoMessage() {}
 
-func (x *GitSource) ProtoReflect() protoreflect.Message {
+func (x *ClearScheduledStateChangesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_deployment_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -102,173 +148,85 @@ func (x *GitSource) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GitSource.ProtoReflect.Descriptor instead.
-func (*GitSource) Descriptor() ([]byte, []int) {
+// Deprecated: Use ClearScheduledStateChangesResponse.ProtoReflect.Descriptor instead.
+func (*ClearScheduledStateChangesResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GitSource) GetInstallationId() int64 {
+type ScheduleDesiredStateChangeRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Relative delay in milliseconds before the state change should take effect.
+	// Set to 0 to execute immediately.
+	DelayMillis   int64                  `protobuf:"varint,1,opt,name=delay_millis,json=delayMillis,proto3" json:"delay_millis,omitempty"`
+	State         DeploymentDesiredState `protobuf:"varint,2,opt,name=state,proto3,enum=hydra.v1.DeploymentDesiredState" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScheduleDesiredStateChangeRequest) Reset() {
+	*x = ScheduleDesiredStateChangeRequest{}
+	mi := &file_hydra_v1_deployment_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScheduleDesiredStateChangeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScheduleDesiredStateChangeRequest) ProtoMessage() {}
+
+func (x *ScheduleDesiredStateChangeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deployment_proto_msgTypes[2]
 	if x != nil {
-		return x.InstallationId
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScheduleDesiredStateChangeRequest.ProtoReflect.Descriptor instead.
+func (*ScheduleDesiredStateChangeRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ScheduleDesiredStateChangeRequest) GetDelayMillis() int64 {
+	if x != nil {
+		return x.DelayMillis
 	}
 	return 0
 }
 
-func (x *GitSource) GetRepository() string {
+func (x *ScheduleDesiredStateChangeRequest) GetState() DeploymentDesiredState {
 	if x != nil {
-		return x.Repository
+		return x.State
 	}
-	return ""
+	return DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED
 }
 
-func (x *GitSource) GetCommitSha() string {
-	if x != nil {
-		return x.CommitSha
-	}
-	return ""
-}
-
-func (x *GitSource) GetContextPath() string {
-	if x != nil {
-		return x.ContextPath
-	}
-	return ""
-}
-
-func (x *GitSource) GetDockerfilePath() string {
-	if x != nil {
-		return x.DockerfilePath
-	}
-	return ""
-}
-
-type DeployRequest struct {
-	state        protoimpl.MessageState `protogen:"open.v1"`
-	DeploymentId string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	KeyAuthId    *string                `protobuf:"bytes,2,opt,name=key_auth_id,json=keyAuthId,proto3,oneof" json:"key_auth_id,omitempty"`
-	// Types that are valid to be assigned to Source:
-	//
-	//	*DeployRequest_Git
-	//	*DeployRequest_DockerImage
-	Source isDeployRequest_Source `protobuf_oneof:"source"`
-	// Container command override (e.g., ["./app", "serve"])
-	Command       []string `protobuf:"bytes,5,rep,name=command,proto3" json:"command,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeployRequest) Reset() {
-	*x = DeployRequest{}
-	mi := &file_hydra_v1_deployment_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeployRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeployRequest) ProtoMessage() {}
-
-func (x *DeployRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deployment_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeployRequest.ProtoReflect.Descriptor instead.
-func (*DeployRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *DeployRequest) GetDeploymentId() string {
-	if x != nil {
-		return x.DeploymentId
-	}
-	return ""
-}
-
-func (x *DeployRequest) GetKeyAuthId() string {
-	if x != nil && x.KeyAuthId != nil {
-		return *x.KeyAuthId
-	}
-	return ""
-}
-
-func (x *DeployRequest) GetSource() isDeployRequest_Source {
-	if x != nil {
-		return x.Source
-	}
-	return nil
-}
-
-func (x *DeployRequest) GetGit() *GitSource {
-	if x != nil {
-		if x, ok := x.Source.(*DeployRequest_Git); ok {
-			return x.Git
-		}
-	}
-	return nil
-}
-
-func (x *DeployRequest) GetDockerImage() *DockerImage {
-	if x != nil {
-		if x, ok := x.Source.(*DeployRequest_DockerImage); ok {
-			return x.DockerImage
-		}
-	}
-	return nil
-}
-
-func (x *DeployRequest) GetCommand() []string {
-	if x != nil {
-		return x.Command
-	}
-	return nil
-}
-
-type isDeployRequest_Source interface {
-	isDeployRequest_Source()
-}
-
-type DeployRequest_Git struct {
-	Git *GitSource `protobuf:"bytes,3,opt,name=git,proto3,oneof"`
-}
-
-type DeployRequest_DockerImage struct {
-	DockerImage *DockerImage `protobuf:"bytes,4,opt,name=docker_image,json=dockerImage,proto3,oneof"`
-}
-
-func (*DeployRequest_Git) isDeployRequest_Source() {}
-
-func (*DeployRequest_DockerImage) isDeployRequest_Source() {}
-
-type DeployResponse struct {
+type ScheduleDesiredStateChangeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeployResponse) Reset() {
-	*x = DeployResponse{}
+func (x *ScheduleDesiredStateChangeResponse) Reset() {
+	*x = ScheduleDesiredStateChangeResponse{}
 	mi := &file_hydra_v1_deployment_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeployResponse) String() string {
+func (x *ScheduleDesiredStateChangeResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeployResponse) ProtoMessage() {}
+func (*ScheduleDesiredStateChangeResponse) ProtoMessage() {}
 
-func (x *DeployResponse) ProtoReflect() protoreflect.Message {
+func (x *ScheduleDesiredStateChangeResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_deployment_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -280,33 +238,38 @@ func (x *DeployResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeployResponse.ProtoReflect.Descriptor instead.
-func (*DeployResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ScheduleDesiredStateChangeResponse.ProtoReflect.Descriptor instead.
+func (*ScheduleDesiredStateChangeResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{3}
 }
 
-type RollbackRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	SourceDeploymentId string                 `protobuf:"bytes,1,opt,name=source_deployment_id,json=sourceDeploymentId,proto3" json:"source_deployment_id,omitempty"`
-	TargetDeploymentId string                 `protobuf:"bytes,2,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+// ChangeDesiredStateRequest is sent internally by ScheduleDesiredStateChange
+// via a delayed Restate call. Callers should not invoke this directly.
+type ChangeDesiredStateRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Nonce generated by the originating ScheduleDesiredStateChange call. Used
+	// to implement last-writer-wins: if this nonce doesn't match the stored
+	// transition record, the call is a stale superseded transition and no-ops.
+	Nonce         string                 `protobuf:"bytes,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	State         DeploymentDesiredState `protobuf:"varint,2,opt,name=state,proto3,enum=hydra.v1.DeploymentDesiredState" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RollbackRequest) Reset() {
-	*x = RollbackRequest{}
+func (x *ChangeDesiredStateRequest) Reset() {
+	*x = ChangeDesiredStateRequest{}
 	mi := &file_hydra_v1_deployment_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RollbackRequest) String() string {
+func (x *ChangeDesiredStateRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RollbackRequest) ProtoMessage() {}
+func (*ChangeDesiredStateRequest) ProtoMessage() {}
 
-func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
+func (x *ChangeDesiredStateRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_deployment_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -318,45 +281,45 @@ func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RollbackRequest.ProtoReflect.Descriptor instead.
-func (*RollbackRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ChangeDesiredStateRequest.ProtoReflect.Descriptor instead.
+func (*ChangeDesiredStateRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *RollbackRequest) GetSourceDeploymentId() string {
+func (x *ChangeDesiredStateRequest) GetNonce() string {
 	if x != nil {
-		return x.SourceDeploymentId
+		return x.Nonce
 	}
 	return ""
 }
 
-func (x *RollbackRequest) GetTargetDeploymentId() string {
+func (x *ChangeDesiredStateRequest) GetState() DeploymentDesiredState {
 	if x != nil {
-		return x.TargetDeploymentId
+		return x.State
 	}
-	return ""
+	return DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED
 }
 
-type RollbackResponse struct {
+type ChangeDesiredStateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RollbackResponse) Reset() {
-	*x = RollbackResponse{}
+func (x *ChangeDesiredStateResponse) Reset() {
+	*x = ChangeDesiredStateResponse{}
 	mi := &file_hydra_v1_deployment_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RollbackResponse) String() string {
+func (x *ChangeDesiredStateResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RollbackResponse) ProtoMessage() {}
+func (*ChangeDesiredStateResponse) ProtoMessage() {}
 
-func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
+func (x *ChangeDesiredStateResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_deployment_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -368,89 +331,9 @@ func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RollbackResponse.ProtoReflect.Descriptor instead.
-func (*RollbackResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ChangeDesiredStateResponse.ProtoReflect.Descriptor instead.
+func (*ChangeDesiredStateResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{5}
-}
-
-type PromoteRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	TargetDeploymentId string                 `protobuf:"bytes,1,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *PromoteRequest) Reset() {
-	*x = PromoteRequest{}
-	mi := &file_hydra_v1_deployment_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PromoteRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PromoteRequest) ProtoMessage() {}
-
-func (x *PromoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deployment_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PromoteRequest.ProtoReflect.Descriptor instead.
-func (*PromoteRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *PromoteRequest) GetTargetDeploymentId() string {
-	if x != nil {
-		return x.TargetDeploymentId
-	}
-	return ""
-}
-
-type PromoteResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PromoteResponse) Reset() {
-	*x = PromoteResponse{}
-	mi := &file_hydra_v1_deployment_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PromoteResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PromoteResponse) ProtoMessage() {}
-
-func (x *PromoteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deployment_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PromoteResponse.ProtoReflect.Descriptor instead.
-func (*PromoteResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deployment_proto_rawDescGZIP(), []int{7}
 }
 
 var File_hydra_v1_deployment_proto protoreflect.FileDescriptor
@@ -458,37 +341,25 @@ var File_hydra_v1_deployment_proto protoreflect.FileDescriptor
 const file_hydra_v1_deployment_proto_rawDesc = "" +
 	"\n" +
 	"\x19hydra/v1/deployment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"#\n" +
-	"\vDockerImage\x12\x14\n" +
-	"\x05image\x18\x01 \x01(\tR\x05image\"\xbf\x01\n" +
-	"\tGitSource\x12'\n" +
-	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12\x1e\n" +
-	"\n" +
-	"repository\x18\x02 \x01(\tR\n" +
-	"repository\x12\x1d\n" +
-	"\n" +
-	"commit_sha\x18\x03 \x01(\tR\tcommitSha\x12!\n" +
-	"\fcontext_path\x18\x04 \x01(\tR\vcontextPath\x12'\n" +
-	"\x0fdockerfile_path\x18\x05 \x01(\tR\x0edockerfilePath\"\xf2\x01\n" +
-	"\rDeployRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12#\n" +
-	"\vkey_auth_id\x18\x02 \x01(\tH\x01R\tkeyAuthId\x88\x01\x01\x12'\n" +
-	"\x03git\x18\x03 \x01(\v2\x13.hydra.v1.GitSourceH\x00R\x03git\x12:\n" +
-	"\fdocker_image\x18\x04 \x01(\v2\x15.hydra.v1.DockerImageH\x00R\vdockerImage\x12\x18\n" +
-	"\acommand\x18\x05 \x03(\tR\acommandB\b\n" +
-	"\x06sourceB\x0e\n" +
-	"\f_key_auth_id\"\x10\n" +
-	"\x0eDeployResponse\"u\n" +
-	"\x0fRollbackRequest\x120\n" +
-	"\x14source_deployment_id\x18\x01 \x01(\tR\x12sourceDeploymentId\x120\n" +
-	"\x14target_deployment_id\x18\x02 \x01(\tR\x12targetDeploymentId\"\x12\n" +
-	"\x10RollbackResponse\"B\n" +
-	"\x0ePromoteRequest\x120\n" +
-	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
-	"\x0fPromoteResponse2\xdf\x01\n" +
-	"\x11DeploymentService\x12=\n" +
-	"\x06Deploy\x12\x17.hydra.v1.DeployRequest\x1a\x18.hydra.v1.DeployResponse\"\x00\x12C\n" +
-	"\bRollback\x12\x19.hydra.v1.RollbackRequest\x1a\x1a.hydra.v1.RollbackResponse\"\x00\x12@\n" +
-	"\aPromote\x12\x18.hydra.v1.PromoteRequest\x1a\x19.hydra.v1.PromoteResponse\"\x00\x1a\x04\x98\x80\x01\x02B\x95\x01\n" +
+	"!ClearScheduledStateChangesRequest\"$\n" +
+	"\"ClearScheduledStateChangesResponse\"~\n" +
+	"!ScheduleDesiredStateChangeRequest\x12!\n" +
+	"\fdelay_millis\x18\x01 \x01(\x03R\vdelayMillis\x126\n" +
+	"\x05state\x18\x02 \x01(\x0e2 .hydra.v1.DeploymentDesiredStateR\x05state\"$\n" +
+	"\"ScheduleDesiredStateChangeResponse\"i\n" +
+	"\x19ChangeDesiredStateRequest\x12\x14\n" +
+	"\x05nonce\x18\x01 \x01(\tR\x05nonce\x126\n" +
+	"\x05state\x18\x02 \x01(\x0e2 .hydra.v1.DeploymentDesiredStateR\x05state\"\x1c\n" +
+	"\x1aChangeDesiredStateResponse*\xb5\x01\n" +
+	"\x16DeploymentDesiredState\x12(\n" +
+	"$DEPLOYMENT_DESIRED_STATE_UNSPECIFIED\x10\x00\x12$\n" +
+	" DEPLOYMENT_DESIRED_STATE_RUNNING\x10\x01\x12$\n" +
+	" DEPLOYMENT_DESIRED_STATE_STANDBY\x10\x02\x12%\n" +
+	"!DEPLOYMENT_DESIRED_STATE_ARCHIVED\x10\x032\xf2\x02\n" +
+	"\x11DeploymentService\x12y\n" +
+	"\x1aScheduleDesiredStateChange\x12+.hydra.v1.ScheduleDesiredStateChangeRequest\x1a,.hydra.v1.ScheduleDesiredStateChangeResponse\"\x00\x12a\n" +
+	"\x12ChangeDesiredState\x12#.hydra.v1.ChangeDesiredStateRequest\x1a$.hydra.v1.ChangeDesiredStateResponse\"\x00\x12y\n" +
+	"\x1aClearScheduledStateChanges\x12+.hydra.v1.ClearScheduledStateChangesRequest\x1a,.hydra.v1.ClearScheduledStateChangesResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
 	"\fcom.hydra.v1B\x0fDeploymentProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -503,26 +374,26 @@ func file_hydra_v1_deployment_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_deployment_proto_rawDescData
 }
 
-var file_hydra_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_hydra_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_hydra_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_deployment_proto_goTypes = []any{
-	(*DockerImage)(nil),      // 0: hydra.v1.DockerImage
-	(*GitSource)(nil),        // 1: hydra.v1.GitSource
-	(*DeployRequest)(nil),    // 2: hydra.v1.DeployRequest
-	(*DeployResponse)(nil),   // 3: hydra.v1.DeployResponse
-	(*RollbackRequest)(nil),  // 4: hydra.v1.RollbackRequest
-	(*RollbackResponse)(nil), // 5: hydra.v1.RollbackResponse
-	(*PromoteRequest)(nil),   // 6: hydra.v1.PromoteRequest
-	(*PromoteResponse)(nil),  // 7: hydra.v1.PromoteResponse
+	(DeploymentDesiredState)(0),                // 0: hydra.v1.DeploymentDesiredState
+	(*ClearScheduledStateChangesRequest)(nil),  // 1: hydra.v1.ClearScheduledStateChangesRequest
+	(*ClearScheduledStateChangesResponse)(nil), // 2: hydra.v1.ClearScheduledStateChangesResponse
+	(*ScheduleDesiredStateChangeRequest)(nil),  // 3: hydra.v1.ScheduleDesiredStateChangeRequest
+	(*ScheduleDesiredStateChangeResponse)(nil), // 4: hydra.v1.ScheduleDesiredStateChangeResponse
+	(*ChangeDesiredStateRequest)(nil),          // 5: hydra.v1.ChangeDesiredStateRequest
+	(*ChangeDesiredStateResponse)(nil),         // 6: hydra.v1.ChangeDesiredStateResponse
 }
 var file_hydra_v1_deployment_proto_depIdxs = []int32{
-	1, // 0: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
-	0, // 1: hydra.v1.DeployRequest.docker_image:type_name -> hydra.v1.DockerImage
-	2, // 2: hydra.v1.DeploymentService.Deploy:input_type -> hydra.v1.DeployRequest
-	4, // 3: hydra.v1.DeploymentService.Rollback:input_type -> hydra.v1.RollbackRequest
-	6, // 4: hydra.v1.DeploymentService.Promote:input_type -> hydra.v1.PromoteRequest
-	3, // 5: hydra.v1.DeploymentService.Deploy:output_type -> hydra.v1.DeployResponse
-	5, // 6: hydra.v1.DeploymentService.Rollback:output_type -> hydra.v1.RollbackResponse
-	7, // 7: hydra.v1.DeploymentService.Promote:output_type -> hydra.v1.PromoteResponse
+	0, // 0: hydra.v1.ScheduleDesiredStateChangeRequest.state:type_name -> hydra.v1.DeploymentDesiredState
+	0, // 1: hydra.v1.ChangeDesiredStateRequest.state:type_name -> hydra.v1.DeploymentDesiredState
+	3, // 2: hydra.v1.DeploymentService.ScheduleDesiredStateChange:input_type -> hydra.v1.ScheduleDesiredStateChangeRequest
+	5, // 3: hydra.v1.DeploymentService.ChangeDesiredState:input_type -> hydra.v1.ChangeDesiredStateRequest
+	1, // 4: hydra.v1.DeploymentService.ClearScheduledStateChanges:input_type -> hydra.v1.ClearScheduledStateChangesRequest
+	4, // 5: hydra.v1.DeploymentService.ScheduleDesiredStateChange:output_type -> hydra.v1.ScheduleDesiredStateChangeResponse
+	6, // 6: hydra.v1.DeploymentService.ChangeDesiredState:output_type -> hydra.v1.ChangeDesiredStateResponse
+	2, // 7: hydra.v1.DeploymentService.ClearScheduledStateChanges:output_type -> hydra.v1.ClearScheduledStateChangesResponse
 	5, // [5:8] is the sub-list for method output_type
 	2, // [2:5] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -535,22 +406,19 @@ func file_hydra_v1_deployment_proto_init() {
 	if File_hydra_v1_deployment_proto != nil {
 		return
 	}
-	file_hydra_v1_deployment_proto_msgTypes[2].OneofWrappers = []any{
-		(*DeployRequest_Git)(nil),
-		(*DeployRequest_DockerImage)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_deployment_proto_rawDesc), len(file_hydra_v1_deployment_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   8,
+			NumEnums:      1,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_hydra_v1_deployment_proto_goTypes,
 		DependencyIndexes: file_hydra_v1_deployment_proto_depIdxs,
+		EnumInfos:         file_hydra_v1_deployment_proto_enumTypes,
 		MessageInfos:      file_hydra_v1_deployment_proto_msgTypes,
 	}.Build()
 	File_hydra_v1_deployment_proto = out.File

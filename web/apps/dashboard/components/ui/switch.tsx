@@ -22,10 +22,10 @@ const Switch = React.forwardRef<
     <SwitchPrimitives.Thumb
       className={cn(
         "pointer-events-none block h-4 w-4 rounded-full shadow-lg transition-transform data-[state=checked]:translate-x-[17px] data-[state=unchecked]:translate-x-0",
-        "data-[state=checked]:bg-dark data-[state=unchecked]:bg-grayA-2 dark:data-[state=checked]:bg-white dark:data-[state=unchecked]:bg-grayA-2",
+        "data-[state=checked]:bg-dark data-[state=unchecked]:bg-grayA-2",
         thumbClassName,
       )}
-    />
+    />{" "}
   </SwitchPrimitives.Root>
 ));
 Switch.displayName = SwitchPrimitives.Root.displayName;

@@ -7,6 +7,7 @@ go_library(
         "billable_usage.go",
         "billable_verifications.go",
         "client.go",
+        "deployment_request_count.go",
         "doc.go",
         "errors.go",
         "flush.go",

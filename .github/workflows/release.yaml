@@ -7,11 +7,10 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+*"
 permissions:
   contents: write
-  id-token: write
 concurrency: release
 jobs:
   goreleaser:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
@@ -43,3 +42,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
