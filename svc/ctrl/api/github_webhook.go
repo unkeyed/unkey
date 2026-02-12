@@ -10,11 +10,13 @@ import (
 	"time"
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const maxWebhookBodySize = 2 * 1024 * 1024 // 2 MB
@@ -156,6 +158,31 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		}
 		env := envSettings.Environment
 
+		// Fetch environment variables and build secrets blob
+		envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
+		if err != nil {
+			logger.Error("failed to fetch environment variables", "error", err)
+			http.Error(w, "failed to fetch environment variables", http.StatusInternalServerError)
+			return
+		}
+
+		secretsBlob := []byte{}
+		if len(envVars) > 0 {
+			secretsConfig := &ctrlv1.SecretsConfig{
+				Secrets: make(map[string]string, len(envVars)),
+			}
+			for _, ev := range envVars {
+				secretsConfig.Secrets[ev.Key] = ev.Value
+			}
+
+			secretsBlob, err = protojson.Marshal(secretsConfig)
+			if err != nil {
+				logger.Error("failed to marshal secrets config", "error", err)
+				http.Error(w, "failed to marshal secrets", http.StatusInternalServerError)
+				return
+			}
+		}
+
 		// Create deployment record
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		now := time.Now().UnixMilli()
@@ -168,7 +195,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			ProjectID:                     project.ID,
 			EnvironmentID:                 env.ID,
 			SentinelConfig:                env.SentinelConfig,
-			EncryptedEnvironmentVariables: []byte{},
+			EncryptedEnvironmentVariables: secretsBlob,
 			Command:                       envSettings.Command,
 			Status:                        db.DeploymentsStatusPending,
 			CreatedAt:                     now,
@@ -202,7 +229,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		)
 
 		// Start deploy workflow with GitSource
-		deployClient := hydrav1.NewDeploymentServiceIngressClient(s.restate, deploymentID)
+		deployClient := hydrav1.NewDeployServiceIngressClient(s.restate, deploymentID)
 		invocation, err := deployClient.Deploy().Send(ctx, &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Source: &hydrav1.DeployRequest_Git{

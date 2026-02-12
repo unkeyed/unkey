@@ -1,6 +1,6 @@
 "use client";
 
-import { type Deployment, collection, collectionManager } from "@/lib/collections";
+import { type Deployment, collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
@@ -22,14 +22,14 @@ export const PromotionDialog = ({
   liveDeployment,
 }: PromotionDialogProps) => {
   const utils = trpc.useUtils();
-  const domainCollection = collectionManager.getProjectCollections(
-    liveDeployment.projectId,
-  ).domains;
-  const domains = useLiveQuery((q) =>
-    q
-      .from({ domain: domainCollection })
-      .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
-      .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
+  const domains = useLiveQuery(
+    (q) =>
+      q
+        .from({ domain: collection.domains })
+        .where(({ domain }) => eq(domain.projectId, liveDeployment.projectId))
+        .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
+        .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
+    [liveDeployment.projectId, liveDeployment.id],
   );
   const promote = trpc.deploy.deployment.promote.useMutation({
     onSuccess: () => {
@@ -39,11 +39,8 @@ export const PromotionDialog = ({
       });
       // hack to revalidate
       try {
-        // @ts-expect-error Their docs say it's here
         collection.projects.utils.refetch();
-        // @ts-expect-error Their docs say it's here
         collection.deployments.utils.refetch();
-        // @ts-expect-error Their docs say it's here
         collection.domains.utils.refetch();
       } catch (error) {
         console.error("Refetch error:", error);

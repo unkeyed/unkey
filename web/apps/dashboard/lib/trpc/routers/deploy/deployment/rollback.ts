@@ -3,7 +3,7 @@ import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 
 // Import service definition that you want to connect to.
-import { DeploymentService } from "@/gen/proto/ctrl/v1/deployment_pb";
+import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -30,7 +30,7 @@ export const rollback = workspaceProcedure
     // Here we make the client itself, combining the service
     // definition with the transport.
     const ctrl = createClient(
-      DeploymentService,
+      DeployService,
       createConnectTransport({
         baseUrl: CTRL_URL,
         interceptors: [

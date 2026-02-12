@@ -130,11 +130,11 @@ importers:
         specifier: 5.87.1
         version: 5.87.1
       '@tanstack/query-db-collection':
-        specifier: 0.2.11
-        version: 0.2.11(@tanstack/query-core@5.87.1)(typescript@5.7.3)
+        specifier: 1.0.22
+        version: 1.0.22(@tanstack/query-core@5.87.1)(typescript@5.7.3)
       '@tanstack/react-db':
-        specifier: 0.1.12
-        version: 0.1.12(react@19.2.4)(typescript@5.7.3)
+        specifier: 0.1.69
+        version: 0.1.69(react@19.2.4)(typescript@5.7.3)
       '@tanstack/react-query':
         specifier: 4.36.1
         version: 4.36.1(react-dom@19.2.4)(react@19.2.4)
@@ -10906,25 +10906,30 @@ packages:
       tailwindcss: 3.4.3
     dev: false
 
-  /@tanstack/db-ivm@0.1.2(typescript@5.7.3):
-    resolution: {integrity: sha512-byXz+tsaVT2Wi/9F6dbZIiTG/L/Kq6tAN+lpQsp5g6URk2Tw/tZ9zB3503UkZpTyHLdKDk23+qiPKiHZCb5efw==}
+  /@tanstack/db-ivm@0.1.17(typescript@5.7.3):
+    resolution: {integrity: sha512-DK7vm56CDxNuRAdsbiPs+gITJ+16tUtYgZg3BRTLYKGIDsy8sdIO7sQFq5zl7Y+aIKAPmMAbVp9UjJ75FTtwgQ==}
     peerDependencies:
       typescript: '>=4.7'
     dependencies:
       fractional-indexing: 3.2.0
-      murmurhash-js: 1.0.0
       sorted-btree: 1.8.1
       typescript: 5.7.3
     dev: false
 
-  /@tanstack/db@0.1.12(typescript@5.7.3):
-    resolution: {integrity: sha512-yYg+fLjEZaGh7wXoVA/Mh0JfrjIoaO+hEqqIjj0e7TGH3m0Og89Mv9AGgRWERXwaQ2qeRiAi0YUgGZcMr8UOyw==}
+  /@tanstack/db@0.5.25(typescript@5.7.3):
+    resolution: {integrity: sha512-VqVchs6Mm4rw2GyiOkaoD+PJw6lCJT8EI/TzPu8KWZy3QxyOlilpMvEuDTCl0LZdp1iLYlQT1NdgDg0gimV3kQ==}
     peerDependencies:
       typescript: '>=4.7'
     dependencies:
       '@standard-schema/spec': 1.1.0
-      '@tanstack/db-ivm': 0.1.2(typescript@5.7.3)
+      '@tanstack/db-ivm': 0.1.17(typescript@5.7.3)
+      '@tanstack/pacer-lite': 0.2.1
       typescript: 5.7.3
+    dev: false
+
+  /@tanstack/pacer-lite@0.2.1:
+    resolution: {integrity: sha512-3PouiFjR4B6x1c969/Pl4ZIJleof1M0n6fNX8NRiC9Sqv1g06CVDlEaXUR4212ycGFyfq4q+t8Gi37Xy+z34iQ==}
+    engines: {node: '>=18'}
     dev: false
 
   /@tanstack/query-core@4.36.1:
@@ -10935,24 +10940,24 @@ packages:
     resolution: {integrity: sha512-HOFHVvhOCprrWvtccSzc7+RNqpnLlZ5R6lTmngb8aq7b4rc2/jDT0w+vLdQ4lD9bNtQ+/A4GsFXy030Gk4ollA==}
     dev: false
 
-  /@tanstack/query-db-collection@0.2.11(@tanstack/query-core@5.87.1)(typescript@5.7.3):
-    resolution: {integrity: sha512-p8b7Wa/eRcOUnfsmTQIp3l4L4ryeRAgGIT7e42WRldTSinbjwN9Llku7mzVadGp0CKeGxfRQOusd3UZu5+IxOg==}
+  /@tanstack/query-db-collection@1.0.22(@tanstack/query-core@5.87.1)(typescript@5.7.3):
+    resolution: {integrity: sha512-feYfOIA/xgf3S/aWIhq7Oov/RE66M0wMOZUk1+oAHZ3W7x0br7JzRKFYwdTtIMtopFt8tDq3Pt2gtZVZu+S7rA==}
     peerDependencies:
       '@tanstack/query-core': ^5.0.0
       typescript: '>=4.7'
     dependencies:
       '@standard-schema/spec': 1.1.0
-      '@tanstack/db': 0.1.12(typescript@5.7.3)
+      '@tanstack/db': 0.5.25(typescript@5.7.3)
       '@tanstack/query-core': 5.87.1
       typescript: 5.7.3
     dev: false
 
-  /@tanstack/react-db@0.1.12(react@19.2.4)(typescript@5.7.3):
-    resolution: {integrity: sha512-yo/F3hcrt+S6rxhuiaKKZ9+C5TUABJsWrrIpCjO4zvELBHuBeBH6C4xr24QbwUpQXEscneQcxQauhQkJVuzggw==}
+  /@tanstack/react-db@0.1.69(react@19.2.4)(typescript@5.7.3):
+    resolution: {integrity: sha512-rqhajRK5InIEKT9RABE9zNbYZL5NGkySjGNVANyilu/ADFHV8rhtkMEnhHcbrzv0grIKpcSlx1AvTgJNbbzjkw==}
     peerDependencies:
       react: '>=16.8.0'
     dependencies:
-      '@tanstack/db': 0.1.12(typescript@5.7.3)
+      '@tanstack/db': 0.5.25(typescript@5.7.3)
       react: 19.2.4
       use-sync-external-store: 1.6.0(react@19.2.4)
     transitivePeerDependencies:
@@ -19898,10 +19903,6 @@ packages:
 
   /ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
-
-  /murmurhash-js@1.0.0:
-    resolution: {integrity: sha512-TvmkNhkv8yct0SVBSy+o8wYzXjE4Zz3PCesbfs8HiCXXdcTuocApFv11UWlNFWKYsP2okqrhb7JNlSm9InBhIw==}
-    dev: false
 
   /mute-stream@0.0.8:
     resolution: {integrity: sha512-nnbWWOkoWyUsTjKrhgD0dcz22mdkSnpYqbEjIm2nhwhuxlSkpywJmBo8h0ZqJdkp73mb90SssHkN4rsRaBAfAA==}

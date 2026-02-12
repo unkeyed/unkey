@@ -188,7 +188,7 @@ export function Combobox({
                     onSelect(option.value);
                     setOpen(false);
                   }}
-                  className="flex items-center py-0.5"
+                  className="flex items-center py-1 mt-0"
                 >
                   {option.label}
                   <Check

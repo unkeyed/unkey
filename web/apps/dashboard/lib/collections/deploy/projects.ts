@@ -39,7 +39,7 @@ export const createProjectRequestSchema = z.object({
 export type Project = z.infer<typeof schema>;
 export type CreateProjectRequestSchema = z.infer<typeof createProjectRequestSchema>;
 
-export const projects = createCollection<Project>(
+export const projects = createCollection<Project, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["projects"],
