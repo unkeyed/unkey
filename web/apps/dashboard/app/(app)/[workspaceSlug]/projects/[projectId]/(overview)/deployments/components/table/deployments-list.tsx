@@ -10,7 +10,7 @@ import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { Avatar } from "../../../../components/git-avatar";
 import { StatusIndicator } from "../../../../components/status-indicator";
 import { useProjectData } from "../../../data-provider";
@@ -43,15 +43,9 @@ const DeploymentListTableActions = dynamic(
 );
 
 export const DeploymentsList = () => {
-  const [selectedDeployment, setSelectedDeployment] = useState<{
-    deployment: Deployment;
-    environment?: Environment;
-  } | null>(null);
   const { deployments } = useDeployments();
   const { project, getDeploymentById } = useProjectData();
   const liveDeploymentId = project?.liveDeploymentId;
-
-  const selectedDeploymentId = selectedDeployment?.deployment.id;
 
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
@@ -93,10 +87,7 @@ export const DeploymentsList = () => {
                     {isLive ? (
                       <div className="flex-shrink-0">
                         {project?.isRolledBack ? (
-                          <EnvStatusBadge
-                            variant="rolledBack"
-                            text="Rolled Back"
-                          />
+                          <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
                         ) : (
                           <EnvStatusBadge variant="live" text="Live" />
                         )}
@@ -121,9 +112,7 @@ export const DeploymentsList = () => {
         key: "status",
         header: "Status",
         width: "15%",
-        render: ({ deployment }) => (
-          <DeploymentStatusBadge status={deployment.status} />
-        ),
+        render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
       },
       {
         key: "domains",
@@ -132,10 +121,7 @@ export const DeploymentsList = () => {
         render: ({ deployment }) => {
           return (
             <div className="flex items-center min-h-[52px]">
-              <DomainList
-                deploymentId={deployment.id}
-                status={deployment.status}
-              />
+              <DomainList deploymentId={deployment.id} status={deployment.status} />
             </div>
           );
         },
@@ -196,8 +182,7 @@ export const DeploymentsList = () => {
         headerClassName: "hidden 2xl:table-cell",
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }) => {
-          const isSelected =
-            deployment.id === selectedDeployment?.deployment.id;
+          const isSelected = deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
             <div
               className={cn(
@@ -224,12 +209,7 @@ export const DeploymentsList = () => {
                       {deployment.gitBranch}
                     </div>
                   </div>
-                  <div
-                    className={cn(
-                      "font-normal font-mono truncate text-xs mt-1",
-                      "text-gray-9",
-                    )}
-                  >
+                  <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
                     {deployment.gitCommitSha?.slice(0, 7)}
                   </div>
                 </div>
@@ -327,8 +307,8 @@ export const DeploymentsList = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Deployments Found</Empty.Title>
             <Empty.Description className="text-left">
-              There are no deployments yet. Push to your connected repository or
-              trigger a manual deployment to get started.
+              There are no deployments yet. Push to your connected repository or trigger a manual
+              deployment to get started.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
@@ -356,10 +336,7 @@ export const DeploymentsList = () => {
         columns.map((column) => (
           <td
             key={column.key}
-            className={cn(
-              "text-xs align-middle whitespace-nowrap",
-              column.cellClassName,
-            )}
+            className={cn("text-xs align-middle whitespace-nowrap", column.cellClassName)}
             style={{ height: `${rowHeight}px` }}
           >
             {column.key === "deployment_id" && <DeploymentIdColumnSkeleton />}
