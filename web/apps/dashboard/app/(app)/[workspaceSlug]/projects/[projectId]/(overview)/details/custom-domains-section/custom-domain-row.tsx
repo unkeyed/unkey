@@ -165,7 +165,7 @@ export function CustomDomainRow({ domain, onDelete, onRetry }: CustomDomainRowPr
             variant="outline"
             disabled={isLoading}
             onClick={() => setIsConfirmOpen(true)}
-            className="size-7 text-gray-9 hover:text-error-9 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="size-7 text-gray-9 hover:text-error-9"
           >
             <Trash className="!size-[14px]" />
           </Button>

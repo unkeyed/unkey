@@ -64,20 +64,37 @@ export function EnvironmentVariablesSection({
             {title} {envVars.length > 0 && `(${envVars.length})`}
           </div>
         </div>
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={toggleExpanded}
-          className="size-7 bg-gray-3 hover:bg-gray-4 mb-0.5"
-        >
-          <ChevronDown
-            iconSize="sm-regular"
-            className={cn(
-              "text-accent-12 !size-3 transition-transform duration-200",
-              isExpanded && "rotate-180",
-            )}
-          />
-        </Button>
+        <div className="flex items-center gap-1.5">
+          {!isAddingNew && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                if (!isExpanded) {
+                  setIsExpanded(true);
+                }
+                startAdding();
+              }}
+              className="size-7 bg-gray-3 hover:bg-gray-4 mb-0.5"
+            >
+              <Plus iconSize="sm-regular" className="text-accent-12 !size-3" />
+            </Button>
+          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={toggleExpanded}
+            className="size-7 bg-gray-3 hover:bg-gray-4 mb-0.5"
+          >
+            <ChevronDown
+              iconSize="sm-regular"
+              className={cn(
+                "text-accent-12 !size-3 transition-transform duration-200",
+                isExpanded && "rotate-180",
+              )}
+            />
+          </Button>
+        </div>
       </div>
 
       {/* Expandable Content */}

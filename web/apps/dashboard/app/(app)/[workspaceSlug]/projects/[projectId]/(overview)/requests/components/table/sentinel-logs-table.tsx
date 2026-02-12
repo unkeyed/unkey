@@ -108,9 +108,19 @@ const columns: Column<SentinelLogsResponse>[] = [
     ),
   },
   {
+    key: "region",
+    header: "Region",
+    width: "10%",
+    render: (log) => (
+      <div className="font-mono pr-4 truncate" title={log.region}>
+        {log.region}
+      </div>
+    ),
+  },
+  {
     key: "response_status",
     header: "Status",
-    width: "10%",
+    width: "5%",
     render: (log) => {
       const style = getStatusStyle(log.response_status);
       return (
@@ -126,19 +136,9 @@ const columns: Column<SentinelLogsResponse>[] = [
     },
   },
   {
-    key: "region",
-    header: "Region",
-    width: "10%",
-    render: (log) => (
-      <div className="font-mono pr-4 truncate" title={log.region}>
-        {log.region}
-      </div>
-    ),
-  },
-  {
     key: "method",
     header: "Method",
-    width: "10%",
+    width: "5%",
     render: (log) => (
       <Badge
         className={cn(
@@ -153,10 +153,20 @@ const columns: Column<SentinelLogsResponse>[] = [
   {
     key: "host",
     header: "Host",
-    width: "10%",
+    width: "25%",
     render: (log) => (
-      <div className="font-mono pr-4 truncate max-w-[250px]" title={log.host}>
+      <div className="font-mono pr-4 truncate" title={log.host}>
         {log.host}
+      </div>
+    ),
+  },
+  {
+    key: "path",
+    header: "Path",
+    width: "25%",
+    render: (log) => (
+      <div className="font-mono pr-4 truncate max-w-[250px]" title={log.path}>
+        {log.path}
       </div>
     ),
   },

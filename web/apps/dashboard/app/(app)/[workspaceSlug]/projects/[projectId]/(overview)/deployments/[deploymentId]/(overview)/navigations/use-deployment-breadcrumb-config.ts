@@ -3,7 +3,7 @@
 import type { QuickNavItem } from "@/components/navbar-popover";
 import type { Navbar } from "@/components/navigation/navbar";
 import { shortenId } from "@/lib/shorten-id";
-import { useParams, useSelectedLayoutSegments } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import type { ComponentPropsWithoutRef } from "react";
 import { useProjectData } from "../../../../data-provider";
@@ -24,41 +24,13 @@ export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.
 
 export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
   const params = useParams();
-  const segments = useSelectedLayoutSegments();
 
   const workspaceSlug = params.workspaceSlug as string;
   const { projectId } = useProjectData();
   const { deploymentId } = useDeployment();
 
-  // Detect current tab from segments
-  const currentTab = segments.includes("network")
-    ? "network"
-    : segments.includes("logs")
-      ? "logs"
-      : "overview";
-
   return useMemo(() => {
     const basePath = `/${workspaceSlug}/projects/${projectId}`;
-
-    // Deployment tabs for QuickNav
-    const deploymentTabs: QuickNavItem[] = [
-      {
-        id: "overview",
-        label: "Overview",
-        href: `${basePath}/deployments/${deploymentId}`,
-      },
-      {
-        id: "logs",
-        label: "Logs",
-        href: `${basePath}/deployments/${deploymentId}/logs`,
-      },
-      {
-        id: "network",
-        label: "Network",
-        href: `${basePath}/deployments/${deploymentId}/network`,
-      },
-    ];
-
     return [
       {
         id: "projects",
@@ -93,21 +65,6 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
         active: false,
         isLast: false,
       },
-      {
-        id: "deployment-tab",
-        href: "#",
-        noop: true,
-        active: true,
-        children:
-          currentTab === "overview" ? "Overview" : currentTab === "logs" ? "Logs" : "Network",
-        shouldRender: true,
-        isLast: true,
-        quickNavConfig: {
-          items: deploymentTabs,
-          activeItemId: currentTab,
-          shortcutKey: "T",
-        },
-      },
     ];
-  }, [workspaceSlug, projectId, deploymentId, currentTab]);
+  }, [workspaceSlug, projectId, deploymentId]);
 }

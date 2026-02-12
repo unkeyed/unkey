@@ -13,6 +13,8 @@ go_library(
         "deploy_restate.pb.go",
         "deployment.pb.go",
         "deployment_restate.pb.go",
+        "key_refill.pb.go",
+        "key_refill_restate.pb.go",
         "quota_check.pb.go",
         "quota_check_restate.pb.go",
         "routing.pb.go",

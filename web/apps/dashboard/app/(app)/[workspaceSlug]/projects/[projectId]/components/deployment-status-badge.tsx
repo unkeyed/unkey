@@ -5,25 +5,25 @@ import { cn } from "@unkey/ui/src/lib/utils";
 type DeploymentStatus = "pending" | "building" | "deploying" | "network" | "ready" | "failed";
 
 type StatusConfig = {
-  variant: "warning" | "success" | "error";
+  variant: "warning" | "success" | "error" | "secondary";
   text: string;
 };
 
 const STATUS_CONFIG: Record<DeploymentStatus, StatusConfig> = {
   pending: {
-    variant: "warning",
+    variant: "secondary",
     text: "Queued",
   },
   building: {
-    variant: "warning",
+    variant: "secondary",
     text: "Building",
   },
   deploying: {
-    variant: "warning",
+    variant: "secondary",
     text: "Deploying",
   },
   network: {
-    variant: "warning",
+    variant: "secondary",
     text: "Assigning Domains",
   },
   ready: {

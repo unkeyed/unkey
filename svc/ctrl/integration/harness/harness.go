@@ -29,6 +29,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 	"golang.org/x/net/http2"
@@ -180,6 +181,12 @@ func New(t *testing.T) *Harness {
 		AllowUnauthenticatedDeployments: false,
 	})
 
+	keyRefillSvc, err := keyrefill.New(keyrefill.Config{
+		DB:        database,
+		Heartbeat: healthcheck.NewNoop(),
+	})
+	require.NoError(t, err)
+
 	deploymentSvc := deployment.New(deployment.Config{
 		DB: database,
 	})
@@ -189,6 +196,7 @@ func New(t *testing.T) *Harness {
 	restateSrv := restateServer.NewRestate()
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
+	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
 

@@ -23,6 +23,7 @@ type KeysOverviewLogsResponse = z.infer<typeof KeysOverviewLogsResponse>;
  */
 export const queryKeysOverviewLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
+  .meta({ skipBatch: true })
   .input(keysQueryOverviewLogsPayload)
   .output(KeysOverviewLogsResponse)
   .query(async ({ ctx, input }) => {
@@ -42,13 +43,18 @@ export const queryKeysOverviewLogs = workspaceProcedure
       cursorTime: input.cursor ?? null,
       workspaceId: ctx.workspace.id,
       keyspaceId: keyspaceId,
+      // Flag to indicate if user explicitly filtered by time frame
+      // If true, use new logic to find keys with ANY usage in the time frame
+      // If false or undefined, use the MV directly for speed
+      useTimeFrameFilter: input.useTimeFrameFilter ?? false,
       // Only include keyIds filters if explicitly provided in the input
       keyIds: input.keyIds ? transformedInputs.keyIds : null,
       // Pass tags to ClickHouse for filtering
       tags: transformedInputs.tags,
       // Nullify these as we'll filter in the database
-      names: null,
-      identities: null,
+      // Use nullish coalescing to properly handle empty arrays vs null
+      names: input.names ?? null,
+      identities: input.identities ?? null,
     });
 
     if (!clickhouseResult || clickhouseResult.err) {

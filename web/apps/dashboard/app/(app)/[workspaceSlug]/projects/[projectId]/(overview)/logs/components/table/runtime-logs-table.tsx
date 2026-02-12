@@ -146,10 +146,13 @@ export function RuntimeLogsTable() {
         header: "Attributes",
         width: "auto",
         render: (log) => {
-          const attrStr = log.attributes ? JSON.stringify(log.attributes) : "";
+          let attrStr = log.attributes ? JSON.stringify(log.attributes) : "";
+          if (attrStr === "" || attrStr === "{}") {
+            attrStr = "—";
+          }
           return (
             <div className="font-mono truncate text-xs max-w-[500px]" title={attrStr}>
-              {attrStr || "—"}
+              {attrStr}
             </div>
           );
         },

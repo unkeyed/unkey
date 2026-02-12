@@ -1,0 +1,35 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "keyrefill",
+    srcs = [
+        "doc.go",
+        "run_refill_handler.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
+        "//pkg/auditlog",
+        "//pkg/db",
+        "//pkg/healthcheck",
+        "//pkg/logger",
+        "//pkg/uid",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "keyrefill_test",
+    srcs = ["run_refill_handler_test.go"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/uid",
+        "//svc/ctrl/integration/harness",
+        "//svc/ctrl/integration/seed",
+        "@com_github_stretchr_testify//require",
+    ],
+)

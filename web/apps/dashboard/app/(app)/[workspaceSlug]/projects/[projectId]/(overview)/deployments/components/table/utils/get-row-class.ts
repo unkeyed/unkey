@@ -5,10 +5,8 @@ import { cn } from "@/lib/utils";
 export type StatusStyle = {
   base: string;
   hover: string;
-  selected: string;
   badge: {
     default: string;
-    selected: string;
   };
   focusRing: string;
 };
@@ -16,10 +14,8 @@ export type StatusStyle = {
 export const STATUS_STYLES = {
   base: "text-grayA-9",
   hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-2",
-  selected: "text-accent-12 bg-grayA-2 hover:text-accent-12",
   badge: {
     default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
-    selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5 border-grayA-3",
   },
   focusRing: "focus:ring-accent-7",
 };
@@ -27,7 +23,6 @@ export const STATUS_STYLES = {
 export const FAILED_STATUS_STYLES = {
   base: "text-grayA-9 bg-error-2",
   hover: "hover:text-grayA-11 hover:bg-error-2",
-  selected: "text-grayA-12 bg-error-3 hover:bg-error-3",
   badge: {
     default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
     selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5 border-grayA-3",
@@ -38,7 +33,6 @@ export const FAILED_STATUS_STYLES = {
 export const ROLLED_BACK_STYLES = {
   base: "text-grayA-9 bg-warning-2",
   hover: "hover:text-grayA-11 hover:bg-warning-4",
-  selected: "text-grayA-12 bg-warning-5 hover:bg-warning-6",
   badge: {
     default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
     selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5 border-grayA-3",
@@ -48,7 +42,6 @@ export const ROLLED_BACK_STYLES = {
 
 export const getRowClassName = (
   { deployment }: { deployment: Deployment; environment: Environment },
-  selectedDeploymentId: string | null,
   liveDeploymentId: string | null,
   isRolledBack: boolean,
 ) => {
@@ -59,8 +52,6 @@ export const getRowClassName = (
     : isRolledBack && liveDeploymentId === deployment.id
       ? ROLLED_BACK_STYLES
       : STATUS_STYLES;
-  const isSelected =
-    typeof selectedDeploymentId !== "undefined" && deployment.id === selectedDeploymentId;
 
   return cn(
     style.base,
@@ -68,6 +59,5 @@ export const getRowClassName = (
     "group rounded",
     "focus:outline-none focus:ring-1 focus:ring-opacity-40",
     style.focusRing,
-    isSelected && style.selected,
   );
 };
