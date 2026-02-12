@@ -62,6 +62,7 @@ func (c *Cluster) evaluateGateway() {
 		if jt.IsZero() {
 			continue
 		}
+
 		if oldest == nil || jt.Before(oldestTime) {
 			oldest = m
 			oldestTime = jt
@@ -90,10 +91,7 @@ func (c *Cluster) promoteToGateway() {
 		return
 	}
 
-	logger.Info("Promoting to gateway",
-		"node", c.config.NodeID,
-		"region", c.config.Region,
-	)
+	logger.Info("Promoting to gateway", "node", c.config.NodeID, "region", c.config.Region)
 
 	wanCfg := memberlist.DefaultWANConfig()
 	wanCfg.Name = nodeNameWithTimestamp(c.config.NodeID+"-wan", c.joinTime)

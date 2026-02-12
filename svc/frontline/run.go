@@ -14,7 +14,9 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -129,13 +131,48 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(db.Close)
 
+	// Initialize gossip-based cache invalidation
+	var broadcaster clustering.Broadcaster
+	if cfg.GossipEnabled {
+		logger.Info("Initializing gossip cluster for cache invalidation",
+			"region", cfg.Region,
+			"instanceID", cfg.FrontlineID,
+		)
+
+		gossipBroadcaster := clustering.NewGossipBroadcaster()
+
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
+
+		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Region:      cfg.Region,
+			NodeID:      cfg.FrontlineID,
+			BindAddr:    cfg.GossipBindAddr,
+			BindPort:    cfg.GossipLANPort,
+			WANBindPort: cfg.GossipWANPort,
+			LANSeeds:    lanSeeds,
+			WANSeeds:    wanSeeds,
+			OnMessage:   gossipBroadcaster.OnMessage,
+		})
+		if clusterErr != nil {
+			return fmt.Errorf("unable to create gossip cluster: %w", clusterErr)
+		}
+
+		gossipBroadcaster.SetCluster(gossipCluster)
+		broadcaster = gossipBroadcaster
+		r.Defer(gossipCluster.Close)
+	}
+
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
-		Clock: clk,
+		Clock:       clk,
+		Broadcaster: broadcaster,
+		NodeID:      cfg.FrontlineID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
+	r.Defer(cache.Close)
 
 	// Initialize certificate manager for dynamic TLS
 	var certManager certmanager.Service
