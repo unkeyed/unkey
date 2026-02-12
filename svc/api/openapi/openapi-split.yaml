@@ -231,7 +231,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: root key
-      x-unkey-redact: true
       description: |-
         Unkey uses API keys (root keys) for authentication. These keys authorize access to management operations in the API.
         To authenticate, include your root key in the Authorization header of each request:

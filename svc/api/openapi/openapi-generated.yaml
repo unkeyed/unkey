@@ -4325,7 +4325,6 @@ components:
                 - Monitor key usage with audit logs.
             scheme: bearer
             type: http
-            x-unkey-redact: true
 info:
     description: |-
         Unkey's API provides programmatic access for all resources within our platform.
