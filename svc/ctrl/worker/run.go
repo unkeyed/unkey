@@ -372,7 +372,7 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 		r.Go(func(ctx context.Context) error {
 			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
-			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs); err != nil {
+			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs, true); err != nil {
 				logger.Error("failed to register with Restate", "error", err)
 				return err
 			}
