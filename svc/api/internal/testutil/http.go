@@ -62,7 +62,7 @@ type Harness struct {
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
 	Ratelimit                  ratelimit.Service
-	Vault                      *vault.Service
+	Vault                      vault.Client
 	AnalyticsConnectionManager analytics.ConnectionManager
 	seeder                     *seed.Seeder
 }

@@ -158,8 +158,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			OtelTraceSamplingRate:   0.0,
 			PrometheusPort:          0,
 			TLSConfig:               nil,
-			VaultMasterKeys:         []string{"Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="}, // Test key from docker-compose
-			VaultS3:                 nil,
 			KafkaBrokers:            kafkaBrokers, // Use host brokers for test runner connections
 			PprofEnabled:            true,
 			PprofUsername:           "unkey",
