@@ -81,7 +81,7 @@ const NavigableDialogRoot = <TStepName extends string>({
               e.stopPropagation();
             }}
             className={cn(
-              "drop-shadow-2xl transform-gpu border-grayA-4 overflow-visible !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
+              "drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
               dialogClassName,
             )}
             onOpenAutoFocus={(e) => {
@@ -243,7 +243,7 @@ const NavigableDialogContent = <TStepName extends string>({
               <div
                 key={item.id}
                 className={cn(
-                  "w-full absolute inset-0 overflow-y-auto scrollbar-hide overflow-x-visible",
+                  "w-full absolute inset-0 overflow-y-auto scrollbar-hide",
                   "transition-all duration-300 ease-out",
                   isActive
                     ? "opacity-100 translate-x-0 z-10"
