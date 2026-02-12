@@ -2,14 +2,14 @@ syntax = "proto3";
 
 package cluster.v1;
 
+import "cache/v1/invalidation.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/cluster/v1;clusterv1";
 
 // ClusterMessage is the envelope for all gossip broadcast messages.
-// The type field routes the payload to the correct handler via MessageMux.
+// The oneof field routes the payload to the correct handler via MessageMux.
 message ClusterMessage {
-  // Routing key (e.g. "cache.invalidation")
-  string type = 1;
-
-  // Serialized inner message
-  bytes payload = 2;
+  oneof message {
+    cache.v1.CacheInvalidationEvent cache_invalidation = 1;
+  }
 }

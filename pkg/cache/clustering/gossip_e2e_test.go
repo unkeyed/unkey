@@ -26,7 +26,7 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	// --- Node 1 ---
 	b1 := clustering.NewGossipBroadcaster()
 	mux1 := cluster.NewMessageMux()
-	mux1.Handle(clustering.CacheInvalidationType, b1.OnMessage)
+	mux1.HandleCacheInvalidation(b1.OnMessage)
 	c1, err := cluster.New(cluster.Config{
 		Region:    "us-east-1",
 		NodeID:    "node-1",
@@ -53,7 +53,7 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	// --- Node 2 ---
 	b2 := clustering.NewGossipBroadcaster()
 	mux2 := cluster.NewMessageMux()
-	mux2.Handle(clustering.CacheInvalidationType, b2.OnMessage)
+	mux2.HandleCacheInvalidation(b2.OnMessage)
 	c1Addr := c1.Members()[0].FullAddress().Addr
 	time.Sleep(50 * time.Millisecond)
 

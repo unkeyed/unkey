@@ -3,40 +3,36 @@ package cluster
 import (
 	"sync"
 
+	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
 
 // MessageMux routes incoming cluster messages to registered handlers based on
-// the envelope's type field. It sits between the cluster transport and
+// the envelope's oneof variant. It sits between the cluster transport and
 // application-level handlers, allowing multiple subsystems to share the same
 // gossip cluster.
 type MessageMux struct {
-	mu       sync.RWMutex
-	handlers map[string]func([]byte)
+	mu                       sync.RWMutex
+	cacheInvalidationHandler func(*cachev1.CacheInvalidationEvent)
 }
 
 // NewMessageMux creates a new message multiplexer.
 func NewMessageMux() *MessageMux {
-	return &MessageMux{
-		mu:       sync.RWMutex{},
-		handlers: make(map[string]func([]byte)),
-	}
+	return &MessageMux{}
 }
 
-// Handle registers a handler for the given message type.
-// Only one handler per type is supported; a second call with the same type
-// replaces the previous handler.
-func (m *MessageMux) Handle(msgType string, handler func([]byte)) {
+// HandleCacheInvalidation registers a handler for cache invalidation messages.
+func (m *MessageMux) HandleCacheInvalidation(handler func(*cachev1.CacheInvalidationEvent)) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.handlers[msgType] = handler
+	m.cacheInvalidationHandler = handler
 }
 
-// OnMessage deserializes the ClusterMessage envelope and dispatches the inner
-// payload to the handler registered for the envelope's type.
-// Unknown types and malformed messages are logged and dropped.
+// OnMessage deserializes the ClusterMessage envelope and dispatches to the
+// handler registered for the envelope's oneof variant.
+// Unknown variants and malformed messages are logged and dropped.
 func (m *MessageMux) OnMessage(msg []byte) {
 	var envelope clusterv1.ClusterMessage
 	if err := proto.Unmarshal(msg, &envelope); err != nil {
@@ -45,22 +41,21 @@ func (m *MessageMux) OnMessage(msg []byte) {
 	}
 
 	m.mu.RLock()
-	handler, ok := m.handlers[envelope.Type]
-	m.mu.RUnlock()
+	defer m.mu.RUnlock()
 
-	if !ok {
-		logger.Warn("No handler registered for cluster message type", "type", envelope.Type)
-		return
+	switch v := envelope.Message.(type) {
+	case *clusterv1.ClusterMessage_CacheInvalidation:
+		if m.cacheInvalidationHandler != nil {
+			m.cacheInvalidationHandler(v.CacheInvalidation)
+		} else {
+			logger.Warn("No handler registered for cache invalidation message")
+		}
+	default:
+		logger.Warn("Unknown cluster message variant")
 	}
-
-	handler(envelope.Payload)
 }
 
-// Wrap serializes an application payload into a ClusterMessage envelope.
-func Wrap(msgType string, payload []byte) ([]byte, error) {
-	envelope := &clusterv1.ClusterMessage{
-		Type:    msgType,
-		Payload: payload,
-	}
+// Wrap serializes a ClusterMessage envelope to bytes for broadcasting.
+func Wrap(envelope *clusterv1.ClusterMessage) ([]byte, error) {
 	return proto.Marshal(envelope)
 }
