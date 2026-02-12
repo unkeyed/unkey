@@ -5,20 +5,20 @@ import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { Button, SettingCard, toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
+import { useProjectData } from "../../data-provider";
 
 type Props = {
-  projectId: string;
   connectedRepo: string | null;
   onDisconnect: () => void;
   isDisconnecting: boolean;
 };
 
 export const RepositoryCard: React.FC<Props> = ({
-  projectId,
   connectedRepo,
   onDisconnect,
   isDisconnecting,
 }) => {
+  const { projectId } = useProjectData();
   const utils = trpc.useUtils();
   const [selectedRepo, setSelectedRepo] = useState("");
 

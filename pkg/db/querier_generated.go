@@ -1923,6 +1923,33 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListKeysByKeySpaceIDParams) ([]ListKeysByKeySpaceIDRow, error)
+	// ListKeysForRefill returns keys that need their remaining_requests refilled.
+	// Uses a deferred join on pk for stable cursor-based pagination that avoids
+	// OFFSET drift when rows are mutated between batches.
+	// Keys are selected if:
+	//   - refill_day is NULL (daily refill)
+	//   - refill_day matches today's day of month
+	//   - refill_day > today's day AND today is the last day of month (catch-up for short months)
+	// Keys are skipped if remaining_requests >= refill_amount (already full).
+	//
+	//  SELECT k.pk, k.id, k.workspace_id, k.refill_amount, k.remaining_requests, k.name
+	//  FROM `keys` k
+	//  INNER JOIN (
+	//      SELECT ki.pk
+	//      FROM `keys` ki
+	//      WHERE ki.refill_amount IS NOT NULL
+	//        AND ki.deleted_at_m IS NULL
+	//        AND (ki.remaining_requests IS NULL OR ki.refill_amount > ki.remaining_requests)
+	//        AND (
+	//            ki.refill_day IS NULL
+	//            OR ki.refill_day = ?
+	//            OR (? = 1 AND ki.refill_day > ?)
+	//        )
+	//        AND ki.pk > ?
+	//      ORDER BY pk
+	//      LIMIT ?
+	//  ) AS batch ON batch.pk = k.pk
+	ListKeysForRefill(ctx context.Context, db DBTX, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error)
 	//ListLiveKeysByKeySpaceID
 	//
 	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.pending_migration_id,
@@ -2208,6 +2235,16 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	ReassignFrontlineRoute(ctx context.Context, db DBTX, arg ReassignFrontlineRouteParams) error
+	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
+	// This is a bulk operation to minimize database round trips.
+	//
+	//  UPDATE `keys`
+	//  SET remaining_requests = refill_amount,
+	//      last_refill_at = NOW(3),
+	//      updated_at_m = ?
+	//  WHERE id IN (/*SLICE:ids*/?)
+	//    AND deleted_at_m IS NULL
+	RefillKeysByIDs(ctx context.Context, db DBTX, arg RefillKeysByIDsParams) error
 	//ResetCustomDomainVerification
 	//
 	//  UPDATE custom_domains
@@ -2375,6 +2412,13 @@ type Querier interface {
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
+	//UpdateDeploymentTopologyDesiredStatus updates the desired_status and version of a topology entry.
+	// A new version is required so that WatchDeployments picks up the change.
+	//
+	//  UPDATE `deployment_topology`
+	//  SET desired_status = ?, version = ?, updated_at = ?
+	//  WHERE deployment_id = ? AND region = ?
+	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments

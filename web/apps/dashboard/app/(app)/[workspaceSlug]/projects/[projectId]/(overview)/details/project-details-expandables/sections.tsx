@@ -134,7 +134,7 @@ export const createDetailSections = (
           alignment: "start",
           content: (
             <div className="w-fit">
-              <RegionFlags instances={details.instances} />
+              <RegionFlags instances={details.instances ?? []} />
             </div>
           ),
         },

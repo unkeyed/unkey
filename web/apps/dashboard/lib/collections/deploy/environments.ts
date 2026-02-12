@@ -3,6 +3,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
   id: z.string(),
@@ -12,19 +13,34 @@ const schema = z.object({
 
 export type Environment = z.infer<typeof schema>;
 
-export function createEnvironmentsCollection(projectId: string) {
-  if (!projectId) {
-    throw new Error("projectId is required to create environments collection");
-  }
+/**
+ * Global environments collection.
+ *
+ * IMPORTANT: All queries MUST filter by projectId:
+ * .where(({ environment }) => eq(environment.projectId, projectId))
+ */
+export const environments = createCollection<Environment, string>(
+  queryCollectionOptions({
+    queryClient,
+    queryKey: (opts) => {
+      const projectId = parseProjectIdFromWhere(opts.where);
+      return projectId ? ["environments", projectId] : ["environments"];
+    },
+    syncMode: "on-demand",
+    retry: 3,
+    queryFn: async (ctx) => {
+      const options = ctx.meta?.loadSubsetOptions;
 
-  return createCollection<Environment>(
-    queryCollectionOptions({
-      queryClient,
-      queryKey: [projectId, "environments"],
-      retry: 3,
-      queryFn: () => trpcClient.deploy.environment.list.query({ projectId }),
-      getKey: (item) => item.id,
-      id: `${projectId}-environments`,
-    }),
-  );
-}
+      validateProjectIdInQuery(options?.where);
+      const projectId = parseProjectIdFromWhere(options?.where);
+
+      if (!projectId) {
+        throw new Error("Query must include eq(collection.projectId, projectId) constraint");
+      }
+
+      return trpcClient.deploy.environment.list.query({ projectId });
+    },
+    getKey: (item) => item.id,
+    id: "environments",
+  }),
+);

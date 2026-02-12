@@ -268,7 +268,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize CTRL deployment client using bufconnect
-	ctrlDeploymentClient := ctrlv1connect.NewDeploymentServiceClient(
+	ctrlDeploymentClient := ctrlv1connect.NewDeployServiceClient(
 		&http.Client{},
 		cfg.CtrlURL,
 		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{

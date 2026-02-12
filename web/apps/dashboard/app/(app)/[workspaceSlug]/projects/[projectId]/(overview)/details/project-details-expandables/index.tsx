@@ -7,14 +7,12 @@ type ProjectDetailsExpandableProps = {
   tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
-  projectId: string;
 };
 
 export const ProjectDetailsExpandable = ({
   tableDistanceToTop,
   isOpen,
   onClose,
-  projectId,
 }: ProjectDetailsExpandableProps) => {
   return (
     <div className="flex">
@@ -66,7 +64,7 @@ export const ProjectDetailsExpandable = ({
               transitionDelay: isOpen ? "150ms" : "0ms",
             }}
           >
-            <ProjectDetailsContent projectId={projectId} />
+            <ProjectDetailsContent />
           </div>
         </div>
       </div>

@@ -22,11 +22,11 @@ import {
   toast,
 } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
+import { useProjectData } from "../../data-provider";
 import type { CustomDomain, VerificationStatus } from "./types";
 
 type CustomDomainRowProps = {
   domain: CustomDomain;
-  projectId: string;
   onDelete: () => void;
   onRetry: () => void;
 };
@@ -57,7 +57,8 @@ const statusConfig: Record<
   },
 };
 
-export function CustomDomainRow({ domain, projectId, onDelete, onRetry }: CustomDomainRowProps) {
+export function CustomDomainRow({ domain, onDelete, onRetry }: CustomDomainRowProps) {
+  const { projectId } = useProjectData();
   const deleteMutation = trpc.deploy.customDomain.delete.useMutation();
   const retryMutation = trpc.deploy.customDomain.retry.useMutation();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);

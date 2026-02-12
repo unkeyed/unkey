@@ -284,14 +284,14 @@ export function AddEnvVars({
                 disabled={isSubmitting}
               />
               <Button
-                size="icon"
                 variant="ghost"
+                size="icon"
                 onClick={() => removeEntry(entry.id)}
-                disabled={entries.length === 1}
-                className="size-6 text-gray-9 hover:text-gray-11"
+                disabled={entries.length === 1 || isSubmitting}
+                className="h-[32px] w-[32px] text-gray-9 hover:text-gray-11 hover:bg-gray-3 shrink-0"
               >
-                <Trash className="!size-3" />
-              </Button>
+                <Trash className="size-4" iconSize="md-medium" />
+              </Button>{" "}
             </div>
           );
         })}

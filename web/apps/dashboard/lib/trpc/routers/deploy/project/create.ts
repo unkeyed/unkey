@@ -110,32 +110,24 @@ export const createProject = workspaceProcedure
             updatedAt: null,
           },
         ]);
-
-        // Create default build settings for both environments
         await tx.insert(schema.environmentBuildSettings).values([
           {
             workspaceId: ctx.workspace.id,
             environmentId: prodEnvId,
-            createdAt: Date.now(),
           },
           {
             workspaceId: ctx.workspace.id,
             environmentId: previewEnvId,
-            createdAt: Date.now(),
           },
         ]);
-
-        // Create default runtime settings for both environments
         await tx.insert(schema.environmentRuntimeSettings).values([
           {
             workspaceId: ctx.workspace.id,
             environmentId: prodEnvId,
-            createdAt: Date.now(),
           },
           {
             workspaceId: ctx.workspace.id,
             environmentId: previewEnvId,
-            createdAt: Date.now(),
           },
         ]);
       });

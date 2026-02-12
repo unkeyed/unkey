@@ -25,7 +25,7 @@ type (
 type Handler struct {
 	DB         db.Database
 	Keys       keys.KeyService
-	CtrlClient ctrlv1connect.DeploymentServiceClient
+	CtrlClient ctrlv1connect.DeployServiceClient
 }
 
 func (h *Handler) Path() string {

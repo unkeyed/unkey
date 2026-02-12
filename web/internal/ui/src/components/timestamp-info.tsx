@@ -21,6 +21,11 @@ const timestampLocalFormatter = (value: string | number) => {
   return format(date, "MMM dd HH:mm:ss");
 };
 
+const timestampLocalHoursWithMillisFormatter = (value: string | number) => {
+  const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
+  return format(date, "HH:mm:ss.SSS");
+};
+
 const timestampUtcFormatter = (value: string | number) => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
   const isoDate = date.toISOString();
@@ -36,7 +41,7 @@ const timestampRelativeFormatter = (value: string | number): string => {
   });
 };
 
-type DisplayType = "local" | "utc" | "relative";
+type DisplayType = "local" | "local_hours_with_millis" | "utc" | "relative";
 
 const TimestampInfo: React.FC<{
   value: string | number;
@@ -98,6 +103,8 @@ const TimestampInfo: React.FC<{
         return utc;
       case "relative":
         return relative;
+      case "local_hours_with_millis":
+        return timestampLocalHoursWithMillisFormatter(value);
       default:
         return timestampLocalFormatter(value);
     }
