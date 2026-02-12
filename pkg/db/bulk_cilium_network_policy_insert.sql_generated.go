@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertCiliumNetworkPolicy is the base query for bulk insert
-const bulkInsertCiliumNetworkPolicy = `INSERT INTO cilium_network_policies ( id, workspace_id, project_id, environment_id, k8s_name, region, policy, version, created_at ) VALUES %s`
+const bulkInsertCiliumNetworkPolicy = `INSERT INTO cilium_network_policies ( id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at ) VALUES %s`
 
 // InsertCiliumNetworkPolicies performs bulk insert in a single query
 func (q *BulkQueries) InsertCiliumNetworkPolicies(ctx context.Context, db DBTX, args []InsertCiliumNetworkPolicyParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertCiliumNetworkPolicies(ctx context.Context, db DBTX, 
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertCiliumNetworkPolicy, strings.Join(valueClauses, ", "))
@@ -33,7 +33,9 @@ func (q *BulkQueries) InsertCiliumNetworkPolicies(ctx context.Context, db DBTX, 
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.EnvironmentID)
+		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.K8sName)
+		allArgs = append(allArgs, arg.K8sNamespace)
 		allArgs = append(allArgs, arg.Region)
 		allArgs = append(allArgs, arg.Policy)
 		allArgs = append(allArgs, arg.Version)

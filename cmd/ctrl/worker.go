@@ -105,6 +105,7 @@ var workerCmd = &cli.Command{
 		// Healthcheck heartbeat URLs
 		cli.String("cert-renewal-heartbeat-url", "Checkly heartbeat URL for certificate renewal", cli.EnvVar("UNKEY_CERT_RENEWAL_HEARTBEAT_URL")),
 		cli.String("quota-check-heartbeat-url", "Checkly heartbeat URL for quota checks", cli.EnvVar("UNKEY_QUOTA_CHECK_HEARTBEAT_URL")),
+		cli.String("key-refill-heartbeat-url", "Checkly heartbeat URL for key refills", cli.EnvVar("UNKEY_KEY_REFILL_HEARTBEAT_URL")),
 
 		// Slack notifications
 		cli.String("quota-check-slack-webhook-url", "Slack webhook URL for quota exceeded notifications", cli.EnvVar("UNKEY_QUOTA_CHECK_SLACK_WEBHOOK_URL")),
@@ -198,6 +199,7 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		// Healthcheck heartbeat URLs
 		CertRenewalHeartbeatURL: cmd.String("cert-renewal-heartbeat-url"),
 		QuotaCheckHeartbeatURL:  cmd.String("quota-check-heartbeat-url"),
+		KeyRefillHeartbeatURL:   cmd.String("key-refill-heartbeat-url"),
 
 		// Slack notifications
 		QuotaCheckSlackWebhookURL: cmd.String("quota-check-slack-webhook-url"),

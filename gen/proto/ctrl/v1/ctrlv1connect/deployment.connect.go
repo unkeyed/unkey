@@ -21,8 +21,8 @@ import (
 const _ = connect.IsAtLeastVersion1_13_0
 
 const (
-	// DeploymentServiceName is the fully-qualified name of the DeploymentService service.
-	DeploymentServiceName = "ctrl.v1.DeploymentService"
+	// DeployServiceName is the fully-qualified name of the DeployService service.
+	DeployServiceName = "ctrl.v1.DeployService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -33,22 +33,20 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// DeploymentServiceCreateDeploymentProcedure is the fully-qualified name of the DeploymentService's
+	// DeployServiceCreateDeploymentProcedure is the fully-qualified name of the DeployService's
 	// CreateDeployment RPC.
-	DeploymentServiceCreateDeploymentProcedure = "/ctrl.v1.DeploymentService/CreateDeployment"
-	// DeploymentServiceGetDeploymentProcedure is the fully-qualified name of the DeploymentService's
+	DeployServiceCreateDeploymentProcedure = "/ctrl.v1.DeployService/CreateDeployment"
+	// DeployServiceGetDeploymentProcedure is the fully-qualified name of the DeployService's
 	// GetDeployment RPC.
-	DeploymentServiceGetDeploymentProcedure = "/ctrl.v1.DeploymentService/GetDeployment"
-	// DeploymentServiceRollbackProcedure is the fully-qualified name of the DeploymentService's
-	// Rollback RPC.
-	DeploymentServiceRollbackProcedure = "/ctrl.v1.DeploymentService/Rollback"
-	// DeploymentServicePromoteProcedure is the fully-qualified name of the DeploymentService's Promote
-	// RPC.
-	DeploymentServicePromoteProcedure = "/ctrl.v1.DeploymentService/Promote"
+	DeployServiceGetDeploymentProcedure = "/ctrl.v1.DeployService/GetDeployment"
+	// DeployServiceRollbackProcedure is the fully-qualified name of the DeployService's Rollback RPC.
+	DeployServiceRollbackProcedure = "/ctrl.v1.DeployService/Rollback"
+	// DeployServicePromoteProcedure is the fully-qualified name of the DeployService's Promote RPC.
+	DeployServicePromoteProcedure = "/ctrl.v1.DeployService/Promote"
 )
 
-// DeploymentServiceClient is a client for the ctrl.v1.DeploymentService service.
-type DeploymentServiceClient interface {
+// DeployServiceClient is a client for the ctrl.v1.DeployService service.
+type DeployServiceClient interface {
 	// Create a new deployment with a prebuilt docker image
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
@@ -59,74 +57,74 @@ type DeploymentServiceClient interface {
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
 }
 
-// NewDeploymentServiceClient constructs a client for the ctrl.v1.DeploymentService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
+// NewDeployServiceClient constructs a client for the ctrl.v1.DeployService service. By default, it
+// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
+// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
+// connect.WithGRPCWeb() options.
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewDeploymentServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DeploymentServiceClient {
+func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DeployServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	deploymentServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeploymentService").Methods()
-	return &deploymentServiceClient{
+	deployServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeployService").Methods()
+	return &deployServiceClient{
 		createDeployment: connect.NewClient[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse](
 			httpClient,
-			baseURL+DeploymentServiceCreateDeploymentProcedure,
-			connect.WithSchema(deploymentServiceMethods.ByName("CreateDeployment")),
+			baseURL+DeployServiceCreateDeploymentProcedure,
+			connect.WithSchema(deployServiceMethods.ByName("CreateDeployment")),
 			connect.WithClientOptions(opts...),
 		),
 		getDeployment: connect.NewClient[v1.GetDeploymentRequest, v1.GetDeploymentResponse](
 			httpClient,
-			baseURL+DeploymentServiceGetDeploymentProcedure,
-			connect.WithSchema(deploymentServiceMethods.ByName("GetDeployment")),
+			baseURL+DeployServiceGetDeploymentProcedure,
+			connect.WithSchema(deployServiceMethods.ByName("GetDeployment")),
 			connect.WithClientOptions(opts...),
 		),
 		rollback: connect.NewClient[v1.RollbackRequest, v1.RollbackResponse](
 			httpClient,
-			baseURL+DeploymentServiceRollbackProcedure,
-			connect.WithSchema(deploymentServiceMethods.ByName("Rollback")),
+			baseURL+DeployServiceRollbackProcedure,
+			connect.WithSchema(deployServiceMethods.ByName("Rollback")),
 			connect.WithClientOptions(opts...),
 		),
 		promote: connect.NewClient[v1.PromoteRequest, v1.PromoteResponse](
 			httpClient,
-			baseURL+DeploymentServicePromoteProcedure,
-			connect.WithSchema(deploymentServiceMethods.ByName("Promote")),
+			baseURL+DeployServicePromoteProcedure,
+			connect.WithSchema(deployServiceMethods.ByName("Promote")),
 			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
-// deploymentServiceClient implements DeploymentServiceClient.
-type deploymentServiceClient struct {
+// deployServiceClient implements DeployServiceClient.
+type deployServiceClient struct {
 	createDeployment *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
 	getDeployment    *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 	rollback         *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
 	promote          *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
 }
 
-// CreateDeployment calls ctrl.v1.DeploymentService.CreateDeployment.
-func (c *deploymentServiceClient) CreateDeployment(ctx context.Context, req *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
+// CreateDeployment calls ctrl.v1.DeployService.CreateDeployment.
+func (c *deployServiceClient) CreateDeployment(ctx context.Context, req *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
 	return c.createDeployment.CallUnary(ctx, req)
 }
 
-// GetDeployment calls ctrl.v1.DeploymentService.GetDeployment.
-func (c *deploymentServiceClient) GetDeployment(ctx context.Context, req *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
+// GetDeployment calls ctrl.v1.DeployService.GetDeployment.
+func (c *deployServiceClient) GetDeployment(ctx context.Context, req *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
 	return c.getDeployment.CallUnary(ctx, req)
 }
 
-// Rollback calls ctrl.v1.DeploymentService.Rollback.
-func (c *deploymentServiceClient) Rollback(ctx context.Context, req *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error) {
+// Rollback calls ctrl.v1.DeployService.Rollback.
+func (c *deployServiceClient) Rollback(ctx context.Context, req *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error) {
 	return c.rollback.CallUnary(ctx, req)
 }
 
-// Promote calls ctrl.v1.DeploymentService.Promote.
-func (c *deploymentServiceClient) Promote(ctx context.Context, req *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
+// Promote calls ctrl.v1.DeployService.Promote.
+func (c *deployServiceClient) Promote(ctx context.Context, req *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
 	return c.promote.CallUnary(ctx, req)
 }
 
-// DeploymentServiceHandler is an implementation of the ctrl.v1.DeploymentService service.
-type DeploymentServiceHandler interface {
+// DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
+type DeployServiceHandler interface {
 	// Create a new deployment with a prebuilt docker image
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
@@ -137,68 +135,68 @@ type DeploymentServiceHandler interface {
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
 }
 
-// NewDeploymentServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
+// NewDeployServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewDeploymentServiceHandler(svc DeploymentServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	deploymentServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeploymentService").Methods()
-	deploymentServiceCreateDeploymentHandler := connect.NewUnaryHandler(
-		DeploymentServiceCreateDeploymentProcedure,
+func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	deployServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeployService").Methods()
+	deployServiceCreateDeploymentHandler := connect.NewUnaryHandler(
+		DeployServiceCreateDeploymentProcedure,
 		svc.CreateDeployment,
-		connect.WithSchema(deploymentServiceMethods.ByName("CreateDeployment")),
+		connect.WithSchema(deployServiceMethods.ByName("CreateDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deploymentServiceGetDeploymentHandler := connect.NewUnaryHandler(
-		DeploymentServiceGetDeploymentProcedure,
+	deployServiceGetDeploymentHandler := connect.NewUnaryHandler(
+		DeployServiceGetDeploymentProcedure,
 		svc.GetDeployment,
-		connect.WithSchema(deploymentServiceMethods.ByName("GetDeployment")),
+		connect.WithSchema(deployServiceMethods.ByName("GetDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deploymentServiceRollbackHandler := connect.NewUnaryHandler(
-		DeploymentServiceRollbackProcedure,
+	deployServiceRollbackHandler := connect.NewUnaryHandler(
+		DeployServiceRollbackProcedure,
 		svc.Rollback,
-		connect.WithSchema(deploymentServiceMethods.ByName("Rollback")),
+		connect.WithSchema(deployServiceMethods.ByName("Rollback")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deploymentServicePromoteHandler := connect.NewUnaryHandler(
-		DeploymentServicePromoteProcedure,
+	deployServicePromoteHandler := connect.NewUnaryHandler(
+		DeployServicePromoteProcedure,
 		svc.Promote,
-		connect.WithSchema(deploymentServiceMethods.ByName("Promote")),
+		connect.WithSchema(deployServiceMethods.ByName("Promote")),
 		connect.WithHandlerOptions(opts...),
 	)
-	return "/ctrl.v1.DeploymentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return "/ctrl.v1.DeployService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case DeploymentServiceCreateDeploymentProcedure:
-			deploymentServiceCreateDeploymentHandler.ServeHTTP(w, r)
-		case DeploymentServiceGetDeploymentProcedure:
-			deploymentServiceGetDeploymentHandler.ServeHTTP(w, r)
-		case DeploymentServiceRollbackProcedure:
-			deploymentServiceRollbackHandler.ServeHTTP(w, r)
-		case DeploymentServicePromoteProcedure:
-			deploymentServicePromoteHandler.ServeHTTP(w, r)
+		case DeployServiceCreateDeploymentProcedure:
+			deployServiceCreateDeploymentHandler.ServeHTTP(w, r)
+		case DeployServiceGetDeploymentProcedure:
+			deployServiceGetDeploymentHandler.ServeHTTP(w, r)
+		case DeployServiceRollbackProcedure:
+			deployServiceRollbackHandler.ServeHTTP(w, r)
+		case DeployServicePromoteProcedure:
+			deployServicePromoteHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
 	})
 }
 
-// UnimplementedDeploymentServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedDeploymentServiceHandler struct{}
+// UnimplementedDeployServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedDeployServiceHandler struct{}
 
-func (UnimplementedDeploymentServiceHandler) CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.CreateDeployment is not implemented"))
+func (UnimplementedDeployServiceHandler) CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.CreateDeployment is not implemented"))
 }
 
-func (UnimplementedDeploymentServiceHandler) GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.GetDeployment is not implemented"))
+func (UnimplementedDeployServiceHandler) GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.GetDeployment is not implemented"))
 }
 
-func (UnimplementedDeploymentServiceHandler) Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.Rollback is not implemented"))
+func (UnimplementedDeployServiceHandler) Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.Rollback is not implemented"))
 }
 
-func (UnimplementedDeploymentServiceHandler) Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeploymentService.Promote is not implemented"))
+func (UnimplementedDeployServiceHandler) Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.Promote is not implemented"))
 }

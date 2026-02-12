@@ -49,10 +49,10 @@ func (s *Service) GetDesiredCiliumNetworkPolicyState(
 	return connect.NewResponse(&ctrlv1.CiliumNetworkPolicyState{
 		State: &ctrlv1.CiliumNetworkPolicyState_Apply{
 			Apply: &ctrlv1.ApplyCiliumNetworkPolicy{
-				CiliumNetworkPolicyId: policy.CiliumNetworkPolicy.ID,
-				K8SNamespace:          policy.K8sNamespace.String,
-				K8SName:               policy.CiliumNetworkPolicy.K8sName,
-				Policy:                policy.CiliumNetworkPolicy.Policy,
+				CiliumNetworkPolicyId: policy.ID,
+				K8SNamespace:          policy.K8sNamespace,
+				K8SName:               policy.K8sName,
+				Policy:                policy.Policy,
 			},
 		},
 	}), nil

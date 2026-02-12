@@ -3,10 +3,6 @@ package deployment
 import corev1 "k8s.io/api/core/v1"
 
 const (
-	// DeploymentPort is the port all user deployment containers expose. The routing
-	// layer and sentinel proxies use this port to forward traffic to user code.
-	DeploymentPort = 8080
-
 	// runtimeClassGvisor specifies the gVisor sandbox RuntimeClass for running
 	// untrusted user workloads with kernel-level isolation.
 	runtimeClassGvisor = "gvisor"
@@ -18,6 +14,10 @@ const (
 	// CustomerNodeClass is the Karpenter nodepool name for untrusted customer
 	// workloads. Nodes in this pool have additional isolation and monitoring.
 	CustomerNodeClass = "untrusted"
+
+	// resourceRequestFraction is the fraction of limits used for resource requests.
+	// Requests determine scheduling; limits cap actual usage.
+	resourceRequestFraction = 4 // requests = limits / 4
 )
 
 // untrustedToleration allows deployment pods to be scheduled on nodes tainted

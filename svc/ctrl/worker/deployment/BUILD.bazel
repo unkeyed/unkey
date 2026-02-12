@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "deployment",
+    srcs = [
+        "clear_scheduled.go",
+        "deployment_state.go",
+        "doc.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/deployment",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

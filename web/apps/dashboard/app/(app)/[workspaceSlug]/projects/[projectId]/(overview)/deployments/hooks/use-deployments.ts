@@ -1,36 +1,21 @@
 import { collection } from "@/lib/collections";
 import { eq, gt, gte, lte, or, useLiveQuery } from "@tanstack/react-db";
 import ms from "ms";
-import { useProject } from "../../layout-provider";
+import { useProjectData } from "../../data-provider";
 import type { DeploymentListFilterField } from "../filters.schema";
 import { useFilters } from "./use-filters";
 
 export const useDeployments = () => {
-  const { projectId, collections } = useProject();
+  const { projectId } = useProjectData();
   const { filters } = useFilters();
 
-  const project = useLiveQuery((q) => {
-    return q
-      .from({ project: collection.projects })
-      .where(({ project }) => eq(project.id, projectId))
-      .orderBy(({ project }) => project.id, "asc")
-      .limit(1);
-  }).data.at(0);
-  const liveDeploymentId = project?.liveDeploymentId;
-  const liveDeployment = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collections.deployments })
-        .where(({ deployment }) => eq(deployment.id, liveDeploymentId))
-        .orderBy(({ deployment }) => deployment.createdAt, "desc")
-        .limit(1),
-    [liveDeploymentId],
-  ).data.at(0);
   const deployments = useLiveQuery(
     (q) => {
       // Query filtered environments
       // further down below we use this to rightJoin with deployments to filter deployments by environment
-      let environments = q.from({ environment: collections.environments });
+      let environments = q
+        .from({ environment: collection.environments })
+        .where(({ environment }) => eq(environment.projectId, projectId));
       for (const filter of filters) {
         if (filter.field === "environment") {
           environments = environments.where(({ environment }) =>
@@ -40,7 +25,7 @@ export const useDeployments = () => {
       }
 
       let query = q
-        .from({ deployment: collections.deployments })
+        .from({ deployment: collection.deployments })
 
         .where(({ deployment }) => eq(deployment.projectId, projectId));
 
@@ -103,18 +88,16 @@ export const useDeployments = () => {
 
       return query
         .rightJoin({ environment: environments }, ({ environment, deployment }) =>
-          eq(environment.id, deployment.environmentId),
+          eq(environment.id, deployment?.environmentId ?? ""),
         )
 
-        .orderBy(({ deployment }) => deployment.createdAt, "desc")
+        .orderBy(({ deployment }) => deployment?.createdAt ?? 0, "desc")
         .limit(100);
     },
     [projectId, filters],
   );
 
   return {
-    project,
     deployments,
-    liveDeployment,
   };
 };

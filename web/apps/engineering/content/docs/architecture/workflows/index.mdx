@@ -1,78 +1,158 @@
 ---
 title: Durable Workflows with Restate
-description: How we use Restate for durable execution of deployment operations
+description: How we use Restate for durable execution in the control plane
 ---
 
 # Durable Workflows with Restate
 
-Unkey uses [Restate](https://restate.dev) for durable workflow execution in critical deployment operations. Restate provides:
+Unkey uses [Restate](https://restate.dev) for durable workflow execution in the control plane. All workflow services live in `svc/ctrl/worker/` with protobuf definitions in `svc/ctrl/proto/hydra/v1/`.
 
-- **Durable Execution**: Operations resume from the last successful step after failures
-- **Automatic Retries**: Transient failures are retried automatically
-- **State Management**: Workflow state is managed by Restate, not in our database
-- **Observability**: Built-in UI to inspect running workflows
+Restate gives us:
+
+- **Durable Execution**: Operations resume from the last successful step after crashes
+- **Automatic Retries**: Transient failures are retried without manual intervention
+- **Concurrency Control**: Virtual objects serialize access per key, eliminating distributed locking
+- **Observability**: Built-in UI to inspect running workflows, step history, and failures
 
 ## Core Concepts
 
-### Virtual Objects
+### Workflows vs Virtual Objects
 
-Virtual Objects provide key-based concurrency control - only one handler can execute at a time per object key. Example: `DeploymentService` is keyed by `project_id`, ensuring only one deployment per project runs at a time.
+Restate offers two service types, both used in the worker:
+
+- **Workflow** (`WORKFLOW`): Runs once per workflow ID with exactly-once semantics. Used for multi-step pipelines like deployments where each step is durable and the entire operation should not re-execute on retry.
+- **Virtual Object** (`VIRTUAL_OBJECT`): Keyed by an arbitrary string. All calls to the same key are serialized, preventing concurrent mutations. Used for services like routing, certificates, and deployment state management.
 
 ### Durable Steps
 
-Each `restate.Run()` step executes once and stores its result. After failures, workflows resume from stored results without re-executing completed steps.
+Each `restate.Run()` call executes once and stores its result. After failures, workflows resume from stored results without re-executing completed steps. Use `restate.WithName("step name")` on every step for observability in the Restate UI.
 
 ### Service Communication
 
-Workflows call each other using blocking (`Object.Request`) or fire-and-forget (`WorkflowSend.Send`) patterns. See the Go implementation files for examples.
+Services call each other using:
+
+- **Blocking**: `Object.Request()` — waits for the result
+- **Fire-and-forget**: `Object.Send()` — enqueues the call and returns immediately
+- **Delayed**: `Object.Send()` with a delay — enqueues a call to fire after a duration
 
 ## Workflow Services
 
-### DeploymentService
+### DeployService
 
-**Location:** `go/apps/ctrl/workflows/deploy/`
-**Proto:** `go/proto/hydra/v1/deployment.proto`
-**Key:** `project_id`
-**Operations:** Deploy, Rollback, Promote
+**Location**: `svc/ctrl/worker/deploy/`
+**Proto**: `svc/ctrl/proto/hydra/v1/deploy.proto`
+**Type**: Workflow
+**Key**: caller-supplied workflow ID
+**Operations**: `Deploy`, `Rollback`, `Promote`, `ScaleDownIdlePreviewDeployments`
 
-Handles deployment lifecycle: building containers via Krane, polling status, scraping OpenAPI specs, and assigning domains.
+Orchestrates the full deployment lifecycle. `Deploy` validates the deployment record, builds a container image (from Git via Depot or a pre-built Docker image), provisions containers across regions with per-region versioning, polls for instance health in parallel, generates frontline routes (per-commit, per-branch, per-environment), reassigns sticky routes through RoutingService, and updates the project's live deployment pointer. The previous live deployment is scheduled for standby after 30 minutes via DeploymentService.
+
+`Rollback` switches sticky frontline routes from the current live deployment to a previous one and sets the project's `isRolledBack` flag to prevent future deploys from automatically claiming live routes. `Promote` reverses a rollback by reassigning routes and clearing the flag.
+
+`ScaleDownIdlePreviewDeployments` is called by a cron to archive preview deployments with zero traffic in the last 6 hours.
 
 See: [Deployment Service](./deployment-service)
 
+### DeploymentService
+
+**Location**: `svc/ctrl/worker/deployment/`
+**Proto**: `svc/ctrl/proto/hydra/v1/deployment.proto`
+**Type**: Virtual Object
+**Key**: `deployment_id`
+**Operations**: `ScheduleDesiredStateChange`, `ChangeDesiredState`, `ClearScheduledStateChanges`
+
+Serializes all desired-state mutations for a single deployment. Multiple actors (deploy workflow, idle scaler, operators) may need to change a deployment's state concurrently — the virtual object key guarantees sequential processing per deployment.
+
+Uses a nonce-based last-writer-wins mechanism for scheduled transitions: `ScheduleDesiredStateChange` generates a unique nonce, stores it, and sends a delayed `ChangeDesiredState` call. If a newer schedule arrives before the delay elapses, it overwrites the nonce, causing the stale delayed call to no-op. Target states are `RUNNING`, `STANDBY`, and `ARCHIVED`.
+
 ### RoutingService
 
-**Location:** `go/apps/ctrl/workflows/routing/`
-**Proto:** `go/proto/hydra/v1/routing.proto`
-**Key:** `project_id`
-**Operations:** AssignFrontlineRoutes
+**Location**: `svc/ctrl/worker/routing/`
+**Proto**: `svc/ctrl/proto/hydra/v1/routing.proto`
+**Type**: Virtual Object (ingress private)
+**Key**: `project_id`
+**Operations**: `AssignFrontlineRoutes`
 
-Manages atomic frontline route assignments and updates for deployments with per-tenant sentinel isolation.
+Reassigns frontline routes to point at a target deployment by updating the `deployment_id` column in the `frontline_routes` table. Called by DeployService during deploy, rollback, and promote operations. Marked as ingress-private so it cannot be invoked directly from outside Restate.
 
 See: [Routing Service](./routing-service)
 
+### VersioningService
+
+**Location**: `svc/ctrl/worker/versioning/`
+**Proto**: `svc/ctrl/proto/hydra/v1/versioning.proto`
+**Type**: Virtual Object (ingress private)
+**Key**: region name
+**Operations**: `NextVersion`, `GetVersion`
+
+Generates monotonically increasing version numbers per region for state synchronization between the control plane and edge agents (krane). The per-region key design allows parallel version generation across regions while maintaining strict ordering within each.
+
+Before mutating a deployment or sentinel, callers request a new version and stamp it on the resource row. Edge agents track their last-seen version and query for changes: `WHERE region = ? AND version > ?`.
+
 ### CertificateService
 
-**Location:** `go/apps/ctrl/workflows/certificate/`
-**Proto:** `go/proto/hydra/v1/certificate.proto`
-**Key:** `domain`
-**Operations:** ProcessChallenge
+**Location**: `svc/ctrl/worker/certificate/`
+**Proto**: `svc/ctrl/proto/hydra/v1/certificate.proto`
+**Type**: Virtual Object
+**Key**: domain name
+**Operations**: `ProcessChallenge`, `RenewExpiringCertificates`
 
-Handles ACME certificate challenges and issuance for custom domains.
+Handles ACME certificate issuance and renewal. `ProcessChallenge` runs the full ACME flow — automatically selecting HTTP-01 for regular domains or DNS-01 (via Route53) for wildcards. Rate limit responses from Let's Encrypt trigger durable sleeps rather than consuming retry budget. Private keys are encrypted via Vault before database storage.
+
+`RenewExpiringCertificates` is called periodically to find and renew certificates approaching expiry. Configured with a 15-minute inactivity timeout to accommodate DNS propagation delays.
+
+### CustomDomainService
+
+**Location**: `svc/ctrl/worker/customdomain/`
+**Proto**: `svc/ctrl/proto/hydra/v1/custom_domain.proto`
+**Type**: Virtual Object
+**Key**: domain name
+**Operations**: `VerifyDomain`, `RetryVerification`
+
+Verifies custom domain ownership through a two-step DNS validation: first a TXT record at `_unkey.<domain>` to prove ownership, then a CNAME pointing to a unique subdomain under the platform's DNS apex (e.g., `<random>.unkey-dns.com`). Both checks must pass before the domain is marked verified.
+
+Configured with a fixed 1-minute retry interval for up to 24 hours (1440 attempts) to accommodate DNS propagation. After verification, triggers certificate issuance via CertificateService and creates frontline routes for traffic routing.
+
+### ClickhouseUserService
+
+**Location**: `svc/ctrl/worker/clickhouseuser/`
+**Proto**: `svc/ctrl/proto/hydra/v1/clickhouse_user.proto`
+**Type**: Virtual Object
+**Key**: `workspace_id`
+**Operations**: `ConfigureUser`
+
+Provisions ClickHouse users for workspace analytics access. Creates users with SHA256 authentication, SELECT permissions on analytics tables, row-level security policies restricting data to the owning workspace, time-based retention filters, and per-query quotas (execution time, memory, result rows).
+
+Passwords are generated with `crypto/rand`, encrypted via Vault, and stored in MySQL. The handler is idempotent — repeated calls preserve existing passwords while updating quotas and reapplying permissions.
+
+Optional — only enabled when `CLICKHOUSE_ADMIN_URL` and Vault are both configured.
+
+### QuotaCheckService
+
+**Location**: `svc/ctrl/worker/quotacheck/`
+**Proto**: `svc/ctrl/proto/hydra/v1/quota_check.proto`
+**Type**: Virtual Object
+**Key**: billing period (`YYYY-MM`)
+**Operations**: `RunCheck`
+
+Monitors workspace quota usage and sends Slack notifications for newly exceeded quotas. Uses Restate state to deduplicate — each workspace is notified at most once per billing period. Self-schedules the next run 24 hours later with idempotency keys to prevent duplicate runs. When the month rolls over, a new virtual object with fresh state is used automatically.
 
 ## Configuration
 
-Services auto-register with Restate on startup via `go/apps/ctrl/run.go`. Config fields (see `go/apps/ctrl/config.go`):
+Services are bound and registered in `svc/ctrl/worker/run.go`. When `Restate.RegisterAs` is configured, the worker self-registers with the Restate admin API on startup. In Kubernetes environments, registration is handled externally.
 
-- `Restate.URL`: Restate ingress endpoint for invoking workflows
+Config fields (see `svc/ctrl/worker/config.go`):
+
 - `Restate.AdminURL`: Restate admin endpoint for service registration
-- `Restate.HttpPort`: Port where ctrl listens for Restate HTTP requests
-- `Restate.RegisterAs`: Public URL of this service for self-registration
-- `Restate.APIKey`: API key for authenticating with Restate ingress
+- `Restate.APIKey`: API key for authenticating with Restate admin API
+- `Restate.HttpPort`: Port where the worker listens for Restate HTTP requests
+- `Restate.RegisterAs`: Public URL of this service for self-registration (optional in k8s)
 
 ## Error Handling
 
-- **Terminal Errors**: Use `restate.TerminalError(err, statusCode)` for business logic failures that shouldn't retry
-- **Transient Errors**: Return regular errors for automatic retry
+- **Terminal Errors**: Use `restate.TerminalError(err, statusCode)` for business logic failures that should not retry (invalid input, not found, unauthorized)
+- **Transient Errors**: Return regular errors for automatic retry (network timeouts, temporary failures)
+- **Rate Limits**: Use `restate.Sleep()` for durable waits when rate-limited (e.g., ACME)
 
 ## Best Practices
 
@@ -80,10 +160,7 @@ Services auto-register with Restate on startup via `go/apps/ctrl/run.go`. Config
 2. **Named Steps**: Always use `restate.WithName("step name")` for observability
 3. **Small Steps**: Break operations into focused, single-purpose steps
 4. **Virtual Objects**: Use for automatic serialization instead of manual locking
-
-## Observability
-
-Restate UI (port 9070) shows running/completed invocations, step execution history, failures, and retries.
+5. **Ingress Privacy**: Mark internal-only services with `restate.WithIngressPrivate(true)`
 
 ## References
 

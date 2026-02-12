@@ -74,7 +74,6 @@ export const createProject = workspaceProcedure
           workspaceId: ctx.workspace.id,
           name: input.name,
           slug: input.slug,
-          gitRepositoryUrl: null,
           liveDeploymentId: null,
           isRolledBack: false,
           defaultBranch: "main",
@@ -84,9 +83,12 @@ export const createProject = workspaceProcedure
           updatedAt: null,
         });
 
+        const prodEnvId = newId("environment");
+        const previewEnvId = newId("environment");
+
         await tx.insert(schema.environments).values([
           {
-            id: newId("environment"),
+            id: prodEnvId,
             workspaceId: ctx.workspace.id,
             projectId,
             slug: "production",
@@ -96,9 +98,8 @@ export const createProject = workspaceProcedure
             createdAt: Date.now(),
             updatedAt: null,
           },
-
           {
-            id: newId("environment"),
+            id: previewEnvId,
             workspaceId: ctx.workspace.id,
             projectId,
             slug: "preview",
@@ -107,6 +108,26 @@ export const createProject = workspaceProcedure
             deleteProtection: false,
             createdAt: Date.now(),
             updatedAt: null,
+          },
+        ]);
+        await tx.insert(schema.environmentBuildSettings).values([
+          {
+            workspaceId: ctx.workspace.id,
+            environmentId: prodEnvId,
+          },
+          {
+            workspaceId: ctx.workspace.id,
+            environmentId: previewEnvId,
+          },
+        ]);
+        await tx.insert(schema.environmentRuntimeSettings).values([
+          {
+            workspaceId: ctx.workspace.id,
+            environmentId: prodEnvId,
+          },
+          {
+            workspaceId: ctx.workspace.id,
+            environmentId: previewEnvId,
           },
         ]);
       });

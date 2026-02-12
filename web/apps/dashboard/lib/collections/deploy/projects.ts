@@ -8,6 +8,7 @@ const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
+  repositoryFullName: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
   liveDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
@@ -38,7 +39,7 @@ export const createProjectRequestSchema = z.object({
 export type Project = z.infer<typeof schema>;
 export type CreateProjectRequestSchema = z.infer<typeof createProjectRequestSchema>;
 
-export const projects = createCollection<Project>(
+export const projects = createCollection<Project, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["projects"],

@@ -13,19 +13,19 @@ import (
 
 // Promote reassigns all sticky domains to a deployment and clears the rolled back state.
 //
-// This durable workflow moves sticky domains (environment and live domains) from the
-// current live deployment to a new target deployment. It reverses a previous rollback
-// and allows normal deployment flow to resume.
+// This durable workflow moves sticky domains (environment and live) from the
+// current live deployment to a new target deployment. It reverses a previous
+// rollback and allows normal deployment flow to resume.
 //
-// The workflow validates that:
-// - Target deployment is ready (not building, deploying, or failed)
-// - Target deployment has running VMs
-// - Target deployment is not already the live deployment
-// - Project has sticky domains to promote
+// The workflow validates that the target deployment is ready, the project has a
+// live deployment, the target is not already the live deployment, and there are
+// sticky domains to promote.
 //
 // After switching domains atomically through the routing service, the project's live
 // deployment pointer is updated and the rolled back flag is cleared, allowing future
-// deployments to automatically take over sticky domains.
+// deployments to automatically take over sticky domains. Any pending scheduled
+// state changes on the promoted deployment are cleared (so it won't be spun down),
+// and the previous live deployment is scheduled for standby after 30 minutes.
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
@@ -118,6 +118,18 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	if err != nil {
 		return nil, err
 	}
+
+	// ensure the new promoted deployment does not get spun down from existing scheduled actions
+	_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	// schedule old deployment to be spun down
+	hydrav1.NewDeploymentServiceClient(ctx, project.LiveDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
+		State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+		DelayMillis: (30 * time.Minute).Milliseconds(),
+	})
 
 	logger.Info("promotion completed successfully",
 		"target", req.GetTargetDeploymentId(),

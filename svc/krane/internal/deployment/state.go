@@ -35,6 +35,14 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 
+	// Read the port from the ReplicaSet's container spec
+	containerPort := int32(8080)
+	if containers := replicaset.Spec.Template.Spec.Containers; len(containers) > 0 {
+		if ports := containers[0].Ports; len(ports) > 0 {
+			containerPort = ports[0].ContainerPort
+		}
+	}
+
 	update := &ctrlv1.ReportDeploymentStatusRequest_Update{
 		K8SName:   replicaset.Name,
 		Instances: make([]*ctrlv1.ReportDeploymentStatusRequest_Update_Instance, 0, len(pods.Items)),
@@ -47,7 +55,7 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 
 		instance := &ctrlv1.ReportDeploymentStatusRequest_Update_Instance{
 			K8SName:       pod.GetName(),
-			Address:       fmt.Sprintf("%s.%s.pod.cluster.local:%d", strings.ReplaceAll(pod.Status.PodIP, ".", "-"), pod.Namespace, DeploymentPort),
+			Address:       fmt.Sprintf("%s.%s.pod.cluster.local:%d", strings.ReplaceAll(pod.Status.PodIP, ".", "-"), pod.Namespace, containerPort),
 			CpuMillicores: 0,
 			MemoryMib:     0,
 			Status:        ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED,

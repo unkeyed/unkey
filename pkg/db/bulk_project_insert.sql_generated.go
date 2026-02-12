@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertProject is the base query for bulk insert
-const bulkInsertProject = `INSERT INTO projects ( id, workspace_id, name, slug, git_repository_url, default_branch, delete_protection, created_at, updated_at ) VALUES %s`
+const bulkInsertProject = `INSERT INTO projects ( id, workspace_id, name, slug, default_branch, delete_protection, created_at, updated_at ) VALUES %s`
 
 // InsertProjects performs bulk insert in a single query
 func (q *BulkQueries) InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertProjects(ctx context.Context, db DBTX, args []Insert
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertProject, strings.Join(valueClauses, ", "))
@@ -33,7 +33,6 @@ func (q *BulkQueries) InsertProjects(ctx context.Context, db DBTX, args []Insert
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.Name)
 		allArgs = append(allArgs, arg.Slug)
-		allArgs = append(allArgs, arg.GitRepositoryUrl)
 		allArgs = append(allArgs, arg.DefaultBranch)
 		allArgs = append(allArgs, arg.DeleteProtection)
 		allArgs = append(allArgs, arg.CreatedAt)
