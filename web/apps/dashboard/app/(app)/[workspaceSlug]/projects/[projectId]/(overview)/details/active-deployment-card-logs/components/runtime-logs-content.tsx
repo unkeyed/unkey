@@ -133,7 +133,7 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
                       {format(new Date(log.time), "HH:mm:ss.SSS")}
                     </span>
                     <span>{log.region}</span>
-                    <span className="uppercase text-[10px] font-semibold px-1 py-px rounded" >
+                    <span className="uppercase text-[10px] font-semibold px-1 py-px rounded">
                       {severity}
                     </span>
                     <span>{log.message}</span>
