@@ -25,9 +25,9 @@ export async function bootstrapDashboard(resources: {
     Auth: {
       AUTH_PROVIDER: "local",
     },
-    Agent: {
-      AGENT_URL: "http://localhost:8080",
-      AGENT_TOKEN: "agent-auth-secret",
+    Vault: {
+      VAULT_URL: "http://localhost:8060",
+      VAULT_TOKEN: "vault-test-token-123",
     },
     Clickhouse: {
       CLICKHOUSE_URL: "http://default:password@localhost:8123",

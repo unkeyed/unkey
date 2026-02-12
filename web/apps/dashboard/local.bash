@@ -3,7 +3,7 @@
 
 pnpm install --frozen-lockfile
 
-docker compose -f ../../../dev/docker-compose.yaml up -d planetscale agent clickhouse apiv2_lb
+docker compose -f ../../../dev/docker-compose.yaml up -d planetscale vault clickhouse apiv2_lb
 
 # Write environment variables to .env if it doesn't exist
 if [ ! -f .env ]; then
@@ -18,8 +18,8 @@ UNKEY_API_ID="api_local_root_keys"
 
 AUTH_PROVIDER="local"
 
-AGENT_URL="http://localhost:8080"
-AGENT_TOKEN="agent-auth-secret"
+VAULT_URL="http://localhost:8060"
+VAULT_TOKEN="vault-test-token-123"
 
 CLICKHOUSE_URL="http://default:password@localhost:8123"
 
