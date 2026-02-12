@@ -9,6 +9,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -20,6 +21,7 @@ import (
 // the DeploymentController with its own version cursor and circuit breaker.
 type Controller struct {
 	clientSet       kubernetes.Interface
+	dynamicClient   dynamic.Interface
 	cluster         ctrlv1connect.ClusterServiceClient
 	cb              circuitbreaker.CircuitBreaker[any]
 	done            chan struct{}
@@ -30,15 +32,17 @@ type Controller struct {
 
 // Config holds the configuration required to create a new [Controller].
 type Config struct {
-	ClientSet kubernetes.Interface
-	Cluster   ctrlv1connect.ClusterServiceClient
-	Region    string
+	ClientSet     kubernetes.Interface
+	DynamicClient dynamic.Interface
+	Cluster       ctrlv1connect.ClusterServiceClient
+	Region        string
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
 func New(cfg Config) *Controller {
 	return &Controller{
 		clientSet:       cfg.ClientSet,
+		dynamicClient:   cfg.DynamicClient,
 		cluster:         cfg.Cluster,
 		cb:              circuitbreaker.New[any]("sentinel_state_update"),
 		done:            make(chan struct{}),
