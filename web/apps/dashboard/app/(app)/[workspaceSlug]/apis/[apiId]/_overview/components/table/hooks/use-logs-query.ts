@@ -25,6 +25,11 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
 
   const { queryTime: timestamp } = useQueryTime();
 
+  // Check if user explicitly set a time frame filter
+  const hasTimeFrameFilter = useMemo(() => {
+    return filters.some((filter) => filter.field === "startTime" || filter.field === "endTime");
+  }, [filters]);
+
   const queryParams = useMemo(() => {
     const params: KeysQueryOverviewLogsPayload = {
       limit,
@@ -38,6 +43,10 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
       apiId,
       since: "",
       sorts: sorts.length > 0 ? sorts : null,
+      // Flag to indicate if user explicitly filtered by time frame
+      // If true, use new logic to find keys with ANY usage in the time frame
+      // If false or undefined, use the MV directly for speed
+      useTimeFrameFilter: hasTimeFrameFilter,
     };
 
     filters.forEach((filter) => {
@@ -119,7 +128,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     });
 
     return params;
-  }, [filters, limit, timestamp, apiId, sorts]);
+  }, [filters, limit, timestamp, apiId, sorts, hasTimeFrameFilter]);
 
   // Main query for historical data
   const {
