@@ -40,7 +40,7 @@ func TestCluster_SingleNode_BroadcastAndReceive(t *testing.T) {
 
 func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 	const nodeCount = 3
-	var clusters []*Cluster
+	var clusters []Cluster
 	var received [nodeCount]atomic.Int32
 
 	// Create first node
@@ -213,14 +213,16 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 	}, 5*time.Second, 50*time.Millisecond, "node B should become gateway")
 
 	// Wait for WAN pools to see each other (each gateway sees 2 WAN members)
+	implA := nodeA.(*gossipCluster)
+	implB := nodeB.(*gossipCluster)
 	require.Eventually(t, func() bool {
-		nodeA.mu.RLock()
-		wanA := nodeA.wan
-		nodeA.mu.RUnlock()
+		implA.mu.RLock()
+		wanA := implA.wan
+		implA.mu.RUnlock()
 
-		nodeB.mu.RLock()
-		wanB := nodeB.wan
-		nodeB.mu.RUnlock()
+		implB.mu.RLock()
+		wanB := implB.wan
+		implB.mu.RUnlock()
 
 		if wanA == nil || wanB == nil {
 			return false
@@ -289,14 +291,16 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 	}, 5*time.Second, 50*time.Millisecond)
 
 	// Wait for WAN connectivity
+	implA := nodeA.(*gossipCluster)
+	implB := nodeB.(*gossipCluster)
 	require.Eventually(t, func() bool {
-		nodeA.mu.RLock()
-		wanA := nodeA.wan
-		nodeA.mu.RUnlock()
+		implA.mu.RLock()
+		wanA := implA.wan
+		implA.mu.RUnlock()
 
-		nodeB.mu.RLock()
-		wanB := nodeB.wan
-		nodeB.mu.RUnlock()
+		implB.mu.RLock()
+		wanB := implB.wan
+		implB.mu.RUnlock()
 
 		if wanA == nil || wanB == nil {
 			return false

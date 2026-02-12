@@ -34,7 +34,7 @@ func parseJoinTime(nodeName string) time.Time {
 
 // evaluateGateway checks whether this node should be the gateway.
 // The oldest node in the LAN pool (by join time encoded in node name) wins.
-func (c *Cluster) evaluateGateway() {
+func (c *gossipCluster) evaluateGateway() {
 	// Don't evaluate during shutdown to avoid deadlocks
 	if c.closing.Load() {
 		return
@@ -84,7 +84,7 @@ func (c *Cluster) evaluateGateway() {
 }
 
 // promoteToGateway creates a WAN memberlist and joins WAN seeds.
-func (c *Cluster) promoteToGateway() {
+func (c *gossipCluster) promoteToGateway() {
 	c.mu.Lock()
 	if c.isGateway {
 		c.mu.Unlock()
@@ -100,8 +100,7 @@ func (c *Cluster) promoteToGateway() {
 	wanCfg.AdvertisePort = c.config.WANBindPort
 	wanCfg.LogOutput = logger.NewMemberlistWriter()
 
-	wanDel := &wanDelegate{cluster: c}
-	wanCfg.Delegate = wanDel
+	wanCfg.Delegate = newWANDelegate(c)
 
 	wanList, err := memberlist.Create(wanCfg)
 	if err != nil {
@@ -115,6 +114,7 @@ func (c *Cluster) promoteToGateway() {
 		NumNodes:       func() int { return wanList.NumMembers() },
 		RetransmitMult: 4,
 	}
+
 	c.isGateway = true
 	seeds := c.config.WANSeeds
 	c.mu.Unlock()
@@ -131,7 +131,7 @@ func (c *Cluster) promoteToGateway() {
 }
 
 // demoteFromGateway shuts down the WAN memberlist.
-func (c *Cluster) demoteFromGateway() {
+func (c *gossipCluster) demoteFromGateway() {
 	c.mu.Lock()
 	if !c.isGateway {
 		c.mu.Unlock()
@@ -154,6 +154,7 @@ func (c *Cluster) demoteFromGateway() {
 		if err := wan.Leave(5 * time.Second); err != nil {
 			logger.Warn("Error leaving WAN pool", "error", err)
 		}
+
 		if err := wan.Shutdown(); err != nil {
 			logger.Warn("Error shutting down WAN memberlist", "error", err)
 		}
