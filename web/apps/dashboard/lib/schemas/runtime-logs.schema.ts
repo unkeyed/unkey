@@ -5,7 +5,8 @@ export type RuntimeLog = z.infer<typeof runtimeLog>;
 
 export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
-  deploymentId: z.string(),
+  deploymentId: z.string().nullable().optional(),
+  environmentId: z.string().nullable().optional(),
   limit: z.int(),
   startTime: z.int(),
   endTime: z.int(),
