@@ -1,5 +1,5 @@
 "use client";
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { cn } from "@/lib/utils";
 import {
   Button,
@@ -9,7 +9,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  toast,
 } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { useProjectData } from "../../data-provider";
@@ -32,18 +31,15 @@ function extractDomain(input: string): string {
 type AddCustomDomainProps = {
   environments: Array<{ id: string; slug: string }>;
   getExistingDomain: (domain: string) => CustomDomain | undefined;
-  onCancel: () => void;
-  onSuccess: () => void;
+  onDismiss: () => void;
 };
 
 export function AddCustomDomain({
   environments,
   getExistingDomain,
-  onCancel,
-  onSuccess,
+  onDismiss,
 }: AddCustomDomainProps) {
   const { projectId } = useProjectData();
-  const addMutation = trpc.deploy.customDomain.add.useMutation();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -60,8 +56,6 @@ export function AddCustomDomain({
     });
     inputRef.current?.focus();
   }, []);
-
-  const isSubmitting = addMutation.isLoading;
 
   const getError = (): string | undefined => {
     if (!domain) {
@@ -83,41 +77,37 @@ export function AddCustomDomain({
   const isValid = domain && !error && environmentId;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && isValid && !isSubmitting) {
+    if (e.key === "Enter" && isValid) {
       e.preventDefault();
       handleSave();
     } else if (e.key === "Escape") {
-      onCancel();
+      onDismiss();
     }
   };
 
-  const handleSave = async () => {
-    if (!isValid || isSubmitting) {
+  const handleSave = () => {
+    if (!isValid) {
       return;
     }
 
-    const mutation = addMutation.mutateAsync({
+    collection.customDomains.insert({
+      id: crypto.randomUUID(),
+      domain,
+      workspaceId: "",
       projectId,
       environmentId,
-      domain,
+      verificationStatus: "pending",
+      verificationToken: "",
+      ownershipVerified: false,
+      cnameVerified: false,
+      targetCname: "",
+      checkAttempts: 0,
+      lastCheckedAt: null,
+      verificationError: null,
+      createdAt: Date.now(),
+      updatedAt: null,
     });
-
-    toast.promise(mutation, {
-      loading: "Adding domain...",
-      success: (data) => ({
-        message: "Domain added",
-        description: `Add a CNAME record pointing to ${data.targetCname}`,
-      }),
-      error: (err) => ({
-        message: "Failed to add domain",
-        description: err.message,
-      }),
-    });
-
-    try {
-      await mutation;
-      onSuccess();
-    } catch {}
+    onDismiss();
   };
 
   return (
@@ -154,17 +144,11 @@ export function AddCustomDomain({
             variant="primary"
             onClick={handleSave}
             className="h-8 text-xs px-3"
-            disabled={!isValid || isSubmitting}
-            loading={isSubmitting}
+            disabled={!isValid}
           >
             Add
           </Button>
-          <Button
-            variant="ghost"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="h-8 text-xs px-3"
-          >
+          <Button variant="ghost" onClick={onDismiss} className="h-8 text-xs px-3">
             Cancel
           </Button>
         </div>
