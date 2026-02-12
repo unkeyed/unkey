@@ -25,8 +25,8 @@ export const env = () =>
 
       RATELIMIT_DEMO_ROOT_KEY: z.string().optional(),
 
-      AGENT_URL: z.url(),
-      AGENT_TOKEN: z.string(),
+      VAULT_URL: z.url(),
+      VAULT_TOKEN: z.string(),
 
       CTRL_URL: z.url().optional(),
       CTRL_API_KEY: z.string().optional(),

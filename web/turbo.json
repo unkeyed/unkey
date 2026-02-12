@@ -9,8 +9,8 @@
       "env": [
         "NEXT_PUBLIC_\\*",
         "\\!NEXT_PUBLIC_VERCEL_\\*",
-        "AGENT_URL",
-        "AGENT_TOKEN",
+        "VAULT_URL",
+        "VAULT_TOKEN",
         "DATABASE_PASSWORD",
         "DATABASE_USERNAME",
         "DATABASE_HOST",
