@@ -48,7 +48,6 @@ export const useBreadcrumbConfig = ({
 }): BreadcrumbItem[] => {
   const segments = useSelectedLayoutSegments() ?? [];
   const params = useParams();
-
   // Find base indices using the segment-based pattern
   const projectsIndex = segments.findIndex((s) => s === "projects");
   const currentSegment = segments.at(projectsIndex + 2); // After [projectId]
@@ -73,6 +72,12 @@ export const useBreadcrumbConfig = ({
       label: "Requests",
       href: `${basePath}/${projectId}/requests`,
       segment: "requests",
+    },
+    {
+      id: "logs",
+      label: "Logs",
+      href: `${basePath}/${projectId}/logs`,
+      segment: "runtime-logs",
     },
     {
       id: "settings",
