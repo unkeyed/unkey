@@ -44,8 +44,6 @@ spec:
               value: "unkey:local"
             - name: UNKEY_REGION
               value: "local"
-            - name: UNKEY_INSTANCE_ID
-              value: "api-dev"
             # Database Configuration
             - name: UNKEY_DATABASE_PRIMARY
               value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
