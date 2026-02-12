@@ -1,4 +1,5 @@
 "use client";
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import {
@@ -59,32 +60,21 @@ const statusConfig: Record<
 
 export function CustomDomainRow({ domain, onDelete, onRetry }: CustomDomainRowProps) {
   const { projectId } = useProjectData();
-  const deleteMutation = trpc.deploy.customDomain.delete.useMutation();
   const retryMutation = trpc.deploy.customDomain.retry.useMutation();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
   const status = statusConfig[domain.verificationStatus];
 
   const handleDelete = async () => {
-    const mutation = deleteMutation.mutateAsync({
-      domain: domain.domain,
-      projectId,
-    });
-
-    toast.promise(mutation, {
-      loading: "Deleting domain...",
-      success: "Domain deleted",
-      error: (err) => ({
-        message: "Failed to delete domain",
-        description: err.message,
-      }),
-    });
-
+    setIsDeleting(true);
     try {
-      await mutation;
+      collection.customDomains.delete(domain.id);
       onDelete();
-    } catch {}
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleRetry = async () => {
@@ -108,7 +98,7 @@ export function CustomDomainRow({ domain, onDelete, onRetry }: CustomDomainRowPr
     } catch {}
   };
 
-  const isLoading = deleteMutation.isLoading || retryMutation.isLoading;
+  const isLoading = isDeleting || retryMutation.isLoading;
 
   return (
     <div className="border-b border-gray-4 last:border-b-0 group hover:bg-gray-2 transition-colors">

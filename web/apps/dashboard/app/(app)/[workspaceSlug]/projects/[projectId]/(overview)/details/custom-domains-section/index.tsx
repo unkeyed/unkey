@@ -7,18 +7,17 @@ import { EmptySection } from "../../components/empty-section";
 import { useProjectData } from "../../data-provider";
 import { AddCustomDomain } from "./add-custom-domain";
 import { CustomDomainRow, CustomDomainRowSkeleton } from "./custom-domain-row";
-import { useCustomDomainsManager } from "./hooks/use-custom-domains-manager";
 
 type CustomDomainsSectionProps = {
   environments: Array<{ id: string; slug: string }>;
 };
 
 export function CustomDomainsSection({ environments }: CustomDomainsSectionProps) {
-  const { projectId } = useProjectData();
-  const { customDomains, isLoading, getExistingDomain, invalidate } = useCustomDomainsManager({
-    projectId,
-  });
+  const { customDomains, isCustomDomainsLoading, refetchCustomDomains } = useProjectData();
   const [isAddingNew, setIsAddingNew] = useState(false);
+
+  const getExistingDomain = (domain: string) =>
+    customDomains.find((d) => d.domain.toLowerCase() === domain.toLowerCase());
 
   const startAdding = () => setIsAddingNew(true);
   const cancelAdding = () => setIsAddingNew(false);
@@ -27,12 +26,12 @@ export function CustomDomainsSection({ environments }: CustomDomainsSectionProps
     <div
       className={cn(
         "border border-gray-4 rounded-[14px] overflow-hidden",
-        customDomains.length === 0 && !isAddingNew && !isLoading && "border-dashed",
+        customDomains.length === 0 && !isAddingNew && !isCustomDomainsLoading && "border-dashed",
       )}
     >
       {/* Domain list */}
       <div className="divide-y divide-gray-4">
-        {isLoading ? (
+        {isCustomDomainsLoading ? (
           <>
             <CustomDomainRowSkeleton />
             <CustomDomainRowSkeleton />
@@ -42,8 +41,8 @@ export function CustomDomainsSection({ environments }: CustomDomainsSectionProps
             <CustomDomainRow
               key={domain.id}
               domain={domain}
-              onDelete={invalidate}
-              onRetry={invalidate}
+              onDelete={refetchCustomDomains}
+              onRetry={refetchCustomDomains}
             />
           ))
         )}
@@ -54,13 +53,13 @@ export function CustomDomainsSection({ environments }: CustomDomainsSectionProps
             getExistingDomain={getExistingDomain}
             onCancel={cancelAdding}
             onSuccess={() => {
-              invalidate();
+              refetchCustomDomains();
               cancelAdding();
             }}
           />
         )}
 
-        {customDomains.length === 0 && !isAddingNew && !isLoading && (
+        {customDomains.length === 0 && !isAddingNew && !isCustomDomainsLoading && (
           <EmptyState onAdd={startAdding} hasEnvironments={environments.length > 0} />
         )}
       </div>

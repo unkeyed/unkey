@@ -1,5 +1,5 @@
 "use client";
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { cn } from "@/lib/utils";
 import {
   Button,
@@ -9,7 +9,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  toast,
 } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { useProjectData } from "../../data-provider";
@@ -43,11 +42,11 @@ export function AddCustomDomain({
   onSuccess,
 }: AddCustomDomainProps) {
   const { projectId } = useProjectData();
-  const addMutation = trpc.deploy.customDomain.add.useMutation();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [domain, setDomain] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // Default to production environment, fall back to first environment
   const defaultEnvId =
     environments.find((e) => e.slug === "production")?.id ?? environments[0]?.id ?? "";
@@ -60,8 +59,6 @@ export function AddCustomDomain({
     });
     inputRef.current?.focus();
   }, []);
-
-  const isSubmitting = addMutation.isLoading;
 
   const getError = (): string | undefined => {
     if (!domain) {
@@ -96,28 +93,32 @@ export function AddCustomDomain({
       return;
     }
 
-    const mutation = addMutation.mutateAsync({
-      projectId,
-      environmentId,
-      domain,
-    });
-
-    toast.promise(mutation, {
-      loading: "Adding domain...",
-      success: (data) => ({
-        message: "Domain added",
-        description: `Add a CNAME record pointing to ${data.targetCname}`,
-      }),
-      error: (err) => ({
-        message: "Failed to add domain",
-        description: err.message,
-      }),
-    });
-
+    setIsSubmitting(true);
     try {
-      await mutation;
+      const tx = collection.customDomains.insert({
+        id: crypto.randomUUID(),
+        domain,
+        workspaceId: "",
+        projectId,
+        environmentId,
+        verificationStatus: "pending",
+        verificationToken: "",
+        ownershipVerified: false,
+        cnameVerified: false,
+        targetCname: "",
+        checkAttempts: 0,
+        lastCheckedAt: null,
+        verificationError: null,
+        createdAt: Date.now(),
+        updatedAt: null,
+      });
+      await tx.isPersisted.promise;
       onSuccess();
-    } catch {}
+    } catch {
+      // Toast handled by collection onInsert handler
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
