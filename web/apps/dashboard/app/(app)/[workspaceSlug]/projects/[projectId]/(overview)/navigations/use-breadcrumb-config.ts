@@ -2,6 +2,7 @@
 
 import type { Navbar } from "@/components/navigation/navbar";
 import { shortenId } from "@/lib/shorten-id";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import type { ComponentPropsWithoutRef } from "react";
 
@@ -13,7 +14,9 @@ export type QuickNavItem = {
   disabledTooltip?: string;
 };
 
-export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.Link> & {
+export type BreadcrumbItem = ComponentPropsWithoutRef<
+  typeof Navbar.Breadcrumbs.Link
+> & {
   /** Unique identifier for the breadcrumb item */
   id: string;
   /** Internal: determines if this breadcrumb should be rendered */
@@ -48,7 +51,7 @@ export const useBreadcrumbConfig = ({
 }): BreadcrumbItem[] => {
   const segments = useSelectedLayoutSegments() ?? [];
   const params = useParams();
-
+  const { workspace } = useWorkspace();
   // Find base indices using the segment-based pattern
   const projectsIndex = segments.findIndex((s) => s === "projects");
   const currentSegment = segments.at(projectsIndex + 2); // After [projectId]
@@ -71,8 +74,14 @@ export const useBreadcrumbConfig = ({
     {
       id: "requests",
       label: "Requests",
-      href: `${basePath}/${projectId}/requests`,
+      href: `/${workspace?.slug}/requests?projectId=is:${projectId}`,
       segment: "requests",
+    },
+    {
+      id: "logs",
+      label: "Logs",
+      href: `/${workspace?.slug}/runtime-logs?projectId=is:${projectId}`,
+      segment: "runtime-logs",
     },
     {
       id: "settings",
@@ -83,7 +92,8 @@ export const useBreadcrumbConfig = ({
   ];
 
   // Determine active subpage based on segment
-  const activeSubPage = subPages.find((p) => p.segment === currentSegment) || subPages[0];
+  const activeSubPage =
+    subPages.find((p) => p.segment === currentSegment) || subPages[0];
   const isOnDeploymentDetail = Boolean(deploymentId);
 
   // Build breadcrumbs declaratively
@@ -123,7 +133,9 @@ export const useBreadcrumbConfig = ({
     {
       id: "subpage",
       children: isOnDeploymentDetail ? "Deployments" : activeSubPage.label,
-      href: isOnDeploymentDetail ? `${basePath}/${projectId}/deployments` : activeSubPage.href,
+      href: isOnDeploymentDetail
+        ? `${basePath}/${projectId}/deployments`
+        : activeSubPage.href,
       shouldRender: true,
       active: !isOnDeploymentDetail, // Active if not on detail page
       isLast: !isOnDeploymentDetail, // Last if not on detail page

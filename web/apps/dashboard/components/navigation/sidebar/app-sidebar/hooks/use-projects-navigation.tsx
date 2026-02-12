@@ -3,7 +3,6 @@ import type { NavItem } from "@/components/navigation/sidebar/workspace-navigati
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Cloud, Gear, GridCircle } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 
@@ -25,42 +24,16 @@ export const useProjectNavigation = (baseNavItems: NavItem[]) => {
       const projectsSegmentIndex = segments.findIndex((s) => s === "projects");
 
       const projectIdIndex = projectsSegmentIndex + 1;
-      const subRouteIndex = projectsSegmentIndex + 3;
 
       const currentProjectActive =
         projectsSegmentIndex !== -1 && segments.at(projectIdIndex) === project.id;
-
-      const currentSubRoute = segments.at(subRouteIndex);
-
-      // Create sub-items
-      const subItems: NavItem[] = [
-        {
-          icon: GridCircle,
-          href: `${basePath}/${project.id}`,
-          label: "Overview",
-          active: currentProjectActive && !currentSubRoute,
-        },
-        {
-          icon: Cloud,
-          href: `${basePath}/${project.id}/deployments`,
-          label: "Deployments",
-          active: currentProjectActive && currentSubRoute === "deployments",
-        },
-        {
-          icon: Gear,
-          href: `${basePath}/${project.id}/settings`,
-          label: "Settings",
-          active: currentProjectActive && currentSubRoute === "settings",
-        },
-      ];
 
       const projectNavItem: NavItem = {
         href: `${basePath}/${project.id}`,
         icon: null,
         label: project.name,
         active: currentProjectActive,
-        showSubItems: true,
-        items: subItems,
+        showSubItems: false,
       };
 
       return projectNavItem;

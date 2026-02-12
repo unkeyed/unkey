@@ -1,9 +1,16 @@
 "use client";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/data-provider";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import {
+  type MenuItem,
+  TableActionPopover,
+} from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
-import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
+import {
+  ArrowDottedRotateAnticlockwise,
+  ChevronUp,
+  Layers3,
+} from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { PromotionDialog } from "./promotion-dialog";
