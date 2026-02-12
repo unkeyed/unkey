@@ -5,7 +5,8 @@ go_library(
     srcs = [
         "cluster.go",
         "config.go",
-        "delegate.go",
+        "delegate_lan.go",
+        "delegate_wan.go",
         "discovery.go",
         "doc.go",
         "gateway.go",
