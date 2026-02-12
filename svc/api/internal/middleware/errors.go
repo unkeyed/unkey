@@ -118,8 +118,9 @@ func WithErrorHandling() zen.Middleware {
 					},
 				})
 
-			// Too Many Requests - Query rate limiting
-			case codes.UserErrorsTooManyRequestsQueryQuotaExceeded:
+			// Too Many Requests - Rate limiting
+			case codes.UserErrorsTooManyRequestsQueryQuotaExceeded,
+				codes.UserErrorsTooManyRequestsWorkspaceRateLimited:
 				return s.JSON(http.StatusTooManyRequests, openapi.TooManyRequestsErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

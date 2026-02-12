@@ -139,6 +139,7 @@ func NewHarness(t *testing.T) *Harness {
 	keyService, err := keys.New(keys.Config{
 		DB:           db,
 		KeyCache:     caches.VerificationKeyByHash,
+		QuotaCache:   caches.WorkspaceQuota,
 		RateLimiter:  ratelimitService,
 		RBAC:         rbac.New(),
 		Clickhouse:   ch,

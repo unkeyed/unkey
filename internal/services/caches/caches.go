@@ -40,6 +40,10 @@ type Caches struct {
 	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
 	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
 
+	// WorkspaceQuota caches workspace quota lookups by workspace ID.
+	// Keys are string (workspace ID) and values are db.Quotum.
+	WorkspaceQuota cache.Cache[string, db.Quotum]
+
 	// dispatcher handles routing of invalidation events to all caches in this process.
 	// This is not exported as it's an internal implementation detail.
 	dispatcher *clustering.InvalidationDispatcher
@@ -259,6 +263,20 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	workspaceQuota, err := createCache(
+		cache.Config[string, db.Quotum]{
+			Fresh:    time.Minute,
+			Stale:    24 * time.Hour,
+			MaxSize:  100_000,
+			Resource: "workspace_quota",
+			Clock:    config.Clock,
+		},
+		stringKeyOpts,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
 	initialized = true
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
@@ -267,6 +285,7 @@ func New(config Config) (Caches, error) {
 		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
 		KeyAuthToApiRow:       middleware.WithTracing(keyAuthToApiRow),
 		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
+		WorkspaceQuota:        middleware.WithTracing(workspaceQuota),
 		dispatcher:            dispatcher,
 	}, nil
 }
