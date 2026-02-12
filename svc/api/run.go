@@ -255,6 +255,7 @@ func Run(ctx context.Context, cfg Config) error {
 	keySvc, err := keys.New(keys.Config{
 		DB:           db,
 		KeyCache:     caches.VerificationKeyByHash,
+		QuotaCache:   caches.WorkspaceQuota,
 		RateLimiter:  rlSvc,
 		RBAC:         rbac.New(),
 		Clickhouse:   ch,

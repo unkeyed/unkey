@@ -43,6 +43,6 @@ func (q *BulkQueries) InsertClickhouseWorkspaceSettingses(ctx context.Context, d
 	}
 
 	// Execute the bulk insert
-	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-	return err
+    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+    return err
 }
