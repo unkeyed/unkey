@@ -6,11 +6,9 @@ import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
-import { Loading } from "@unkey/ui";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { Avatar } from "../../../../components/git-avatar";
@@ -57,15 +55,11 @@ export const DeploymentsList = () => {
 
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
-  const [navigatingId, setNavigatingId] = useState<string | null>(null);
 
-  const handleLinkClick = useCallback(
-    (e: React.MouseEvent, deploymentId: string) => {
-      e.preventDefault();
-      setNavigatingId(deploymentId);
-      router.push(`/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`);
-    },
-    [router, workspace.slug, project?.id],
+  const getDeploymentHref = useCallback(
+    (deploymentId: string) =>
+      `/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`,
+    [workspace.slug, project?.id],
   );
 
   const columns: Column<{
@@ -85,44 +79,30 @@ export const DeploymentsList = () => {
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
-                {navigatingId === deployment.id ? (
-                  <div className="relative flex-shrink-0">
-                    <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
-                      <div className="size-[12px] items-center justify-center flex">
-                        <Loading size={18} />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-shrink-0">{iconContainer}</div>
-                )}
+                <div className="flex-shrink-0">{iconContainer}</div>
                 <div className="min-w-0 flex-1">
-                  <Link
-                    title={`View details for ${deployment.id}`}
-                    className="font-mono group-hover:underline decoration-dotted"
-                    href={`/${workspace.slug}/projects/${project?.id}/deployments/${deployment.id}`}
-                    onClick={(e) => handleLinkClick(e, deployment.id)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={cn(
-                          "font-normal font-mono truncate leading-5 text-[13px]",
-                          "text-accent-12",
-                        )}
-                      >
-                        {shortenId(deployment.id)}
-                      </div>
-                      {isLive ? (
-                        <div className="flex-shrink-0">
-                          {project?.isRolledBack ? (
-                            <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
-                          ) : (
-                            <EnvStatusBadge variant="live" text="Live" />
-                          )}
-                        </div>
-                      ) : null}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "font-normal font-mono truncate leading-5 text-[13px]",
+                        "text-accent-12",
+                      )}
+                    >
+                      {shortenId(deployment.id)}
                     </div>
-                  </Link>
+                    {isLive ? (
+                      <div className="flex-shrink-0">
+                        {project?.isRolledBack ? (
+                          <EnvStatusBadge
+                            variant="rolledBack"
+                            text="Rolled Back"
+                          />
+                        ) : (
+                          <EnvStatusBadge variant="live" text="Live" />
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                   <div
                     className={cn(
                       "font-normal font-mono truncate text-xs mt-1 capitalize",
@@ -141,7 +121,9 @@ export const DeploymentsList = () => {
         key: "status",
         header: "Status",
         width: "15%",
-        render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
+        render: ({ deployment }) => (
+          <DeploymentStatusBadge status={deployment.status} />
+        ),
       },
       {
         key: "domains",
@@ -150,7 +132,10 @@ export const DeploymentsList = () => {
         render: ({ deployment }) => {
           return (
             <div className="flex items-center min-h-[52px]">
-              <DomainList deploymentId={deployment.id} status={deployment.status} />
+              <DomainList
+                deploymentId={deployment.id}
+                status={deployment.status}
+              />
             </div>
           );
         },
@@ -211,7 +196,8 @@ export const DeploymentsList = () => {
         headerClassName: "hidden 2xl:table-cell",
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }) => {
-          const isSelected = deployment.id === selectedDeployment?.deployment.id;
+          const isSelected =
+            deployment.id === selectedDeployment?.deployment.id;
           const iconContainer = (
             <div
               className={cn(
@@ -238,7 +224,12 @@ export const DeploymentsList = () => {
                       {deployment.gitBranch}
                     </div>
                   </div>
-                  <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
+                  <div
+                    className={cn(
+                      "font-normal font-mono truncate text-xs mt-1",
+                      "text-gray-9",
+                    )}
+                  >
                     {deployment.gitCommitSha?.slice(0, 7)}
                   </div>
                 </div>
@@ -312,7 +303,14 @@ export const DeploymentsList = () => {
       data={deployments.data}
       isLoading={deployments.isLoading}
       columns={columns}
-      onRowClick={setSelectedDeployment}
+      onRowClick={(item) => {
+        if (item) {
+          router.push(getDeploymentHref(item.deployment.id));
+        }
+      }}
+      onRowMouseEnter={(item) => {
+        router.prefetch(getDeploymentHref(item.deployment.id));
+      }}
       selectedItem={selectedDeployment}
       keyExtractor={(deployment) => deployment.id}
       rowClassName={(deployment) =>
@@ -329,8 +327,8 @@ export const DeploymentsList = () => {
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Deployments Found</Empty.Title>
             <Empty.Description className="text-left">
-              There are no deployments yet. Push to your connected repository or trigger a manual
-              deployment to get started.
+              There are no deployments yet. Push to your connected repository or
+              trigger a manual deployment to get started.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
@@ -358,7 +356,10 @@ export const DeploymentsList = () => {
         columns.map((column) => (
           <td
             key={column.key}
-            className={cn("text-xs align-middle whitespace-nowrap", column.cellClassName)}
+            className={cn(
+              "text-xs align-middle whitespace-nowrap",
+              column.cellClassName,
+            )}
             style={{ height: `${rowHeight}px` }}
           >
             {column.key === "deployment_id" && <DeploymentIdColumnSkeleton />}
