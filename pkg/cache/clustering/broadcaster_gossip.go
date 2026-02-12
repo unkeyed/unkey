@@ -19,7 +19,7 @@ const CacheInvalidationType = "cache.invalidation"
 // cluster layer and deserializes incoming bytes back to events.
 type GossipBroadcaster struct {
 	mu      sync.RWMutex
-	cluster *cluster.Cluster
+	cluster cluster.Cluster
 	handler func(context.Context, *cachev1.CacheInvalidationEvent) error
 }
 
@@ -59,7 +59,7 @@ func (b *GossipBroadcaster) OnMessage(msg []byte) {
 
 // SetCluster wires the broadcaster to a live cluster instance.
 // Must be called after cluster.New() returns.
-func (b *GossipBroadcaster) SetCluster(c *cluster.Cluster) {
+func (b *GossipBroadcaster) SetCluster(c cluster.Cluster) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.cluster = c

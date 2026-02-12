@@ -1,35 +1,20 @@
 package cluster
 
-import (
-	"sync"
-	"sync/atomic"
-	"time"
-)
+import "github.com/hashicorp/memberlist"
+
+// noopCluster is a no-op implementation of Cluster that does not participate in gossip.
+// All operations are safe to call but do nothing.
+type noopCluster struct{}
+
+var _ Cluster = noopCluster{}
+
+func (noopCluster) Broadcast([]byte) error            { return nil }
+func (noopCluster) Members() []*memberlist.Node        { return nil }
+func (noopCluster) IsGateway() bool                    { return false }
+func (noopCluster) WANAddr() string                    { return "" }
+func (noopCluster) Close() error                       { return nil }
 
 // NewNoop returns a no-op cluster that does not participate in gossip.
-// All operations are safe to call but do nothing.
-func NewNoop() *Cluster {
-	return &Cluster{
-		config: Config{
-			Region:      "",
-			NodeID:      "",
-			BindAddr:    "",
-			BindPort:    0,
-			WANBindPort: 0,
-			LANSeeds:    nil,
-			WANSeeds:    nil,
-			OnMessage:   nil,
-		},
-		mu:        sync.RWMutex{},
-		lan:       nil,
-		lanQueue:  nil,
-		wan:       nil,
-		wanQueue:  nil,
-		isGateway: false,
-		joinTime:  time.Time{},
-		noop:      true,
-		closing:   atomic.Bool{},
-		evalCh:    nil,
-		done:      nil,
-	}
+func NewNoop() Cluster {
+	return noopCluster{}
 }

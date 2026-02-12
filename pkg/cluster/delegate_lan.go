@@ -2,9 +2,6 @@ package cluster
 
 import (
 	"github.com/hashicorp/memberlist"
-	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
-	"github.com/unkeyed/unkey/pkg/logger"
-	"google.golang.org/protobuf/proto"
 )
 
 // lanDelegate handles memberlist callbacks for the LAN pool.
@@ -38,38 +35,31 @@ func (d *lanDelegate) NotifyMsg(data []byte) {
 		return
 	}
 
-	var msg clusterv1.ClusterMessage
-	if err := proto.Unmarshal(data, &msg); err != nil {
-		logger.Warn("Failed to unmarshal LAN cluster message", "error", err)
+	dir, sourceRegion, payload, err := decodeMessage(data)
+	if err != nil {
 		return
 	}
 
 	// Deliver to the application callback
 	if d.cluster.config.OnMessage != nil {
-		d.cluster.config.OnMessage(&msg)
+		d.cluster.config.OnMessage(payload)
 	}
 
-	// If this node is the bridge and the message originated locally (LAN direction),
+	// If this node is the gateway and the message originated locally (LAN direction),
 	// relay it to the WAN pool for cross-region delivery.
-	if d.cluster.IsBridge() && msg.Direction == clusterv1.Direction_DIRECTION_LAN {
+	if d.cluster.IsGateway() && dir == dirLAN {
 		d.cluster.mu.RLock()
 		wanQ := d.cluster.wanQueue
 		d.cluster.mu.RUnlock()
 
 		if wanQ != nil {
-			relay := proto.Clone(&msg).(*clusterv1.ClusterMessage)
-			relay.Direction = clusterv1.Direction_DIRECTION_WAN
-			wanBytes, err := proto.Marshal(relay)
-			if err != nil {
-				logger.Warn("Failed to marshal WAN relay message", "error", err)
-				return
-			}
-			wanQ.QueueBroadcast(newBroadcast(wanBytes))
+			wanMsg := encodeMessage(dirWAN, sourceRegion, payload)
+			wanQ.QueueBroadcast(newBroadcast(wanMsg))
 		}
 	}
 }
 
-// lanEventDelegate handles join/leave events for bridge election.
+// lanEventDelegate handles join/leave events for gateway election.
 type lanEventDelegate struct {
 	cluster *gossipCluster
 }
@@ -81,11 +71,11 @@ func newLANEventDelegate(c *gossipCluster) *lanEventDelegate {
 }
 
 func (d *lanEventDelegate) NotifyJoin(node *memberlist.Node) {
-	d.cluster.triggerEvalBridge()
+	d.cluster.triggerEvalGateway()
 }
 
 func (d *lanEventDelegate) NotifyLeave(node *memberlist.Node) {
-	d.cluster.triggerEvalBridge()
+	d.cluster.triggerEvalGateway()
 }
 
 func (d *lanEventDelegate) NotifyUpdate(node *memberlist.Node) {}

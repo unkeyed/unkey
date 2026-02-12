@@ -2,9 +2,6 @@ package cluster
 
 import (
 	"github.com/hashicorp/memberlist"
-	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
-	"github.com/unkeyed/unkey/pkg/logger"
-	"google.golang.org/protobuf/proto"
 )
 
 // wanDelegate handles memberlist callbacks for the WAN pool.
@@ -38,36 +35,22 @@ func (d *wanDelegate) NotifyMsg(data []byte) {
 		return
 	}
 
-	var msg clusterv1.ClusterMessage
-	if err := proto.Unmarshal(data, &msg); err != nil {
-		logger.Warn("Failed to unmarshal WAN cluster message", "error", err)
+	_, sourceRegion, payload, err := decodeMessage(data)
+	if err != nil {
 		return
 	}
 
 	// Skip messages that originated in our own region to avoid loops.
-	if msg.SourceRegion == d.cluster.config.Region {
+	if sourceRegion == d.cluster.config.Region {
 		return
 	}
 
-	// Deliver to the application callback on this bridge node
+	// Deliver to the application callback on this gateway node
 	if d.cluster.config.OnMessage != nil {
-		d.cluster.config.OnMessage(&msg)
+		d.cluster.config.OnMessage(payload)
 	}
 
 	// Re-broadcast to the local LAN pool so all nodes in this region receive it.
-	d.cluster.mu.RLock()
-	lanQ := d.cluster.lanQueue
-	d.cluster.mu.RUnlock()
-
-	if lanQ == nil {
-		return
-	}
-
-	msg.Direction = clusterv1.Direction_DIRECTION_WAN
-	lanBytes, err := proto.Marshal(&msg)
-	if err != nil {
-		logger.Warn("Failed to marshal LAN relay message", "error", err)
-		return
-	}
-	lanQ.QueueBroadcast(newBroadcast(lanBytes))
+	lanMsg := encodeMessage(dirWAN, sourceRegion, payload)
+	d.cluster.lanQueue.QueueBroadcast(newBroadcast(lanMsg))
 }

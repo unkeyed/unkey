@@ -10,10 +10,19 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// Cluster manages a two-tier gossip membership: a LAN pool for intra-region
+// Cluster is the public interface for gossip-based cluster membership.
+type Cluster interface {
+	Broadcast(msg []byte) error
+	Members() []*memberlist.Node
+	IsGateway() bool
+	WANAddr() string
+	Close() error
+}
+
+// gossipCluster manages a two-tier gossip membership: a LAN pool for intra-region
 // communication and, on the elected gateway node, a WAN pool for cross-region
 // communication.
-type Cluster struct {
+type gossipCluster struct {
 	config Config
 
 	mu        sync.RWMutex
@@ -23,7 +32,6 @@ type Cluster struct {
 	wanQueue  *memberlist.TransmitLimitedQueue
 	isGateway bool
 	joinTime  time.Time
-	noop      bool
 	closing   atomic.Bool
 
 	// evalCh is used to trigger async gateway evaluation from memberlist
@@ -35,12 +43,12 @@ type Cluster struct {
 
 // New creates a new cluster node, starts the LAN memberlist, joins LAN seeds,
 // and begins gateway evaluation.
-func New(cfg Config) (*Cluster, error) {
+func New(cfg Config) (Cluster, error) {
 	cfg.setDefaults()
 
 	now := time.Now()
 
-	c := &Cluster{
+	c := &gossipCluster{
 		config:    cfg,
 		mu:        sync.RWMutex{},
 		lan:       nil,
@@ -49,7 +57,6 @@ func New(cfg Config) (*Cluster, error) {
 		wanQueue:  nil,
 		isGateway: false,
 		joinTime:  now,
-		noop:      false,
 		closing:   atomic.Bool{},
 		evalCh:    make(chan struct{}, 1),
 		done:      make(chan struct{}),
@@ -65,10 +72,8 @@ func New(cfg Config) (*Cluster, error) {
 	lanCfg.BindPort = cfg.BindPort
 	lanCfg.AdvertisePort = cfg.BindPort
 	lanCfg.LogOutput = logger.NewMemberlistWriter()
-
-	lanDel := &lanDelegate{cluster: c}
-	lanCfg.Delegate = lanDel
-	lanCfg.Events = &lanEventDelegate{cluster: c}
+	lanCfg.Delegate = newLANDelegate(c)
+	lanCfg.Events = newLANEventDelegate(c)
 
 	lan, err := memberlist.Create(lanCfg)
 	if err != nil {
@@ -102,7 +107,7 @@ func New(cfg Config) (*Cluster, error) {
 }
 
 // triggerEvalGateway sends a non-blocking signal to the gateway evaluator goroutine.
-func (c *Cluster) triggerEvalGateway() {
+func (c *gossipCluster) triggerEvalGateway() {
 	select {
 	case c.evalCh <- struct{}{}:
 	default:
@@ -111,7 +116,7 @@ func (c *Cluster) triggerEvalGateway() {
 }
 
 // gatewayEvalLoop runs in a goroutine and processes gateway evaluation requests.
-func (c *Cluster) gatewayEvalLoop() {
+func (c *gossipCluster) gatewayEvalLoop() {
 	for {
 		select {
 		case <-c.done:
@@ -125,11 +130,7 @@ func (c *Cluster) gatewayEvalLoop() {
 // Broadcast queues a message for delivery to all cluster members.
 // The message is broadcast on the LAN pool. If this node is the gateway,
 // it is also broadcast on the WAN pool.
-func (c *Cluster) Broadcast(msg []byte) error {
-	if c.noop {
-		return nil
-	}
-
+func (c *gossipCluster) Broadcast(msg []byte) error {
 	c.mu.RLock()
 	lanQ := c.lanQueue
 	isGW := c.isGateway
@@ -138,19 +139,19 @@ func (c *Cluster) Broadcast(msg []byte) error {
 
 	if lanQ != nil {
 		lanMsg := encodeMessage(dirLAN, c.config.Region, msg)
-		lanQ.QueueBroadcast(&clusterBroadcast{msg: lanMsg})
+		lanQ.QueueBroadcast(newBroadcast(lanMsg))
 	}
 
 	if isGW && wanQ != nil {
 		wanMsg := encodeMessage(dirWAN, c.config.Region, msg)
-		wanQ.QueueBroadcast(&clusterBroadcast{msg: wanMsg})
+		wanQ.QueueBroadcast(newBroadcast(wanMsg))
 	}
 
 	return nil
 }
 
 // IsGateway returns whether this node is currently the WAN gateway.
-func (c *Cluster) IsGateway() bool {
+func (c *gossipCluster) IsGateway() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.isGateway
@@ -158,7 +159,7 @@ func (c *Cluster) IsGateway() bool {
 
 // WANAddr returns the WAN pool's advertise address (e.g. "127.0.0.1:54321")
 // if this node is the gateway, or an empty string otherwise.
-func (c *Cluster) WANAddr() string {
+func (c *gossipCluster) WANAddr() string {
 	c.mu.RLock()
 	wan := c.wan
 	c.mu.RUnlock()
@@ -166,14 +167,12 @@ func (c *Cluster) WANAddr() string {
 	if wan == nil {
 		return ""
 	}
+
 	return wan.LocalNode().FullAddress().Addr
 }
 
 // Members returns the current LAN memberlist nodes.
-func (c *Cluster) Members() []*memberlist.Node {
-	if c.noop {
-		return nil
-	}
+func (c *gossipCluster) Members() []*memberlist.Node {
 	c.mu.RLock()
 	lan := c.lan
 	c.mu.RUnlock()
@@ -181,16 +180,13 @@ func (c *Cluster) Members() []*memberlist.Node {
 	if lan == nil {
 		return nil
 	}
+
 	return lan.Members()
 }
 
 // Close gracefully leaves both LAN and WAN pools and shuts down.
 // The closing flag prevents evaluateGateway from running during Leave.
-func (c *Cluster) Close() error {
-	if c.noop {
-		return nil
-	}
-
+func (c *gossipCluster) Close() error {
 	c.closing.Store(true)
 	close(c.done)
 
@@ -210,6 +206,7 @@ func (c *Cluster) Close() error {
 		if err := lan.Leave(5 * time.Second); err != nil {
 			logger.Warn("Error leaving LAN pool", "error", err)
 		}
+
 		if err := lan.Shutdown(); err != nil {
 			return fmt.Errorf("failed to shutdown LAN memberlist: %w", err)
 		}
