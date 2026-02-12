@@ -26,6 +26,12 @@ spec:
               name: http
             - containerPort: 7443
               name: https
+            - containerPort: 7946
+              name: gossip-lan
+              protocol: TCP
+            - containerPort: 7946
+              name: gossip-lan-udp
+              protocol: UDP
           env:
             - name: UNKEY_HTTP_PORT
               value: "7070"
@@ -51,6 +57,13 @@ spec:
               value: "vault-test-token-123"
             - name: UNKEY_OTEL
               value: "false"
+            # Gossip Configuration
+            - name: UNKEY_GOSSIP_ENABLED
+              value: "true"
+            - name: UNKEY_GOSSIP_LAN_PORT
+              value: "7946"
+            - name: UNKEY_GOSSIP_LAN_SEEDS
+              value: "frontline-gossip-lan"
           volumeMounts:
             - name: tls-certs
               mountPath: /certs
@@ -97,3 +110,23 @@ spec:
       port: 443
       targetPort: 7443
   type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontline-gossip-lan
+  namespace: unkey
+spec:
+  clusterIP: None
+  selector:
+    app: frontline
+  ports:
+    - name: gossip-lan
+      port: 7946
+      targetPort: 7946
+      protocol: TCP
+    - name: gossip-lan-udp
+      port: 7946
+      targetPort: 7946
+      protocol: UDP
