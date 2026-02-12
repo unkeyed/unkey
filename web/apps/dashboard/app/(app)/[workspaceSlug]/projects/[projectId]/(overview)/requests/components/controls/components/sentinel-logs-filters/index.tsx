@@ -33,7 +33,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
   },
   {
     id: "deploymentId",
-    label: "Deployment ID",
+    label: "Deployment",
     shortcut: "D",
     shortcutLabel: "D",
     component: <SentinelDeploymentFilter />,

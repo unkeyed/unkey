@@ -1,39 +1,38 @@
 "use client";
 
-import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
+import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import { useProjectData } from "../../../../../../data-provider";
 import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
-
-const OPTIONS = [{ id: "contains" as const, label: "contains" }];
 
 export const SentinelDeploymentFilter = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();
+  const { deployments } = useProjectData();
 
-  const deploymentFilter = filters.find((f) => f.field === "deploymentId");
-  const defaultText = deploymentFilter ? String(deploymentFilter.value) : "";
-
-  const handleApply = (_operator: string, text: string) => {
-    const otherFilters = filters.filter((f) => f.field !== "deploymentId");
-    const newFilters = text
-      ? [
-          ...otherFilters,
-          {
-            id: crypto.randomUUID(),
-            field: "deploymentId" as const,
-            operator: "contains" as const,
-            value: text,
-          },
-        ]
-      : otherFilters;
-    updateFilters(newFilters);
-  };
+  const options = deployments.map((deployment, i) => ({
+    id: i,
+    slug: deployment.id,
+    deploymentId: deployment.id,
+    gitBranch: deployment.gitBranch,
+    checked: false,
+  }));
 
   return (
-    <FilterOperatorInput
-      label="Deployment ID"
-      options={OPTIONS}
-      defaultOption="contains"
-      defaultText={defaultText}
-      onApply={handleApply}
+    <FilterCheckbox
+      options={options}
+      filterField="deploymentId"
+      checkPath="slug"
+      selectionMode="multiple"
+      renderOptionContent={(checkbox) => (
+        <div className="text-accent-12 text-xs">
+          <span className="font-medium">{checkbox.gitBranch}</span>
+          <span className="text-accent-9 ml-1 font-mono">{checkbox.slug.slice(0, 8)}</span>
+        </div>
+      )}
+      createFilterValue={(option) => ({
+        value: option.deploymentId,
+      })}
+      filters={filters}
+      updateFilters={updateFilters}
     />
   );
 };

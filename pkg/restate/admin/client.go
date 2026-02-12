@@ -29,6 +29,11 @@ type Config struct {
 	APIKey string
 }
 
+type registrationPayload struct {
+	URI   string `json:"uri"`
+	Force bool   `json:"force,omitempty"`
+}
+
 // New creates a new admin [Client] with the given configuration.
 func New(cfg Config) *Client {
 	return &Client{
@@ -42,8 +47,10 @@ func New(cfg Config) *Client {
 
 // RegisterDeployment registers a service deployment with Restate.
 // The uri should be the endpoint where Restate can reach the service.
+// If force is true, Restate will accept the deployment even if it detects
+// incompatible changes (e.g. removed handlers).
 // Retries up to 10 times with 5 second backoff on failure.
-func (c *Client) RegisterDeployment(ctx context.Context, uri string) error {
+func (c *Client) RegisterDeployment(ctx context.Context, uri string, force ...bool) error {
 	retrier := retry.New(
 		retry.Attempts(10),
 		retry.Backoff(func(n int) time.Duration {
@@ -52,13 +59,14 @@ func (c *Client) RegisterDeployment(ctx context.Context, uri string) error {
 	)
 
 	return retrier.Do(func() error {
-		return c.registerDeployment(ctx, uri)
+		return c.registerDeployment(ctx, uri, len(force) > 0 && force[0])
 	})
 }
 
-func (c *Client) registerDeployment(ctx context.Context, uri string) error {
+func (c *Client) registerDeployment(ctx context.Context, uri string, force bool) error {
 	url := fmt.Sprintf("%s/deployments", c.baseURL)
-	payload, err := json.Marshal(map[string]string{"uri": uri})
+
+	payload, err := json.Marshal(registrationPayload{URI: uri, Force: force})
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}

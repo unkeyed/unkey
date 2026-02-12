@@ -7,7 +7,7 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
-import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
+import { type PropsWithChildren, createContext, useContext, useEffect, useMemo } from "react";
 
 type ProjectDataContextType = {
   projectId: string;
@@ -43,15 +43,6 @@ export const ProjectDataProvider = ({ children }: PropsWithChildren) => {
     throw new Error("ProjectDataProvider must be used within a project route");
   }
 
-  const domainsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collection.domains })
-        .where(({ domain }) => eq(domain.projectId, projectId))
-        .orderBy(({ domain }) => domain.createdAt, "desc"),
-    [projectId],
-  );
-
   const deploymentsQuery = useLiveQuery(
     (q) =>
       q
@@ -66,6 +57,22 @@ export const ProjectDataProvider = ({ children }: PropsWithChildren) => {
       q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
     [projectId],
   );
+
+  const project = projectQuery.data?.at(0);
+  const domainsQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ domain: collection.domains })
+        .where(({ domain }) => eq(domain.projectId, projectId))
+        .orderBy(({ domain }) => domain.createdAt, "desc"),
+    [projectId],
+  );
+  // refetch domains when live deployment changes
+  useEffect(() => {
+    if (project?.liveDeploymentId) {
+      collection.domains.utils.refetch();
+    }
+  }, [project?.liveDeploymentId]);
 
   const environmentsQuery = useLiveQuery(
     (q) =>
