@@ -38,7 +38,7 @@ func TestKeyDeleteBadRequest(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "POST request body for '/v2/keys.deleteKey' failed to validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("empty keyId string", func(t *testing.T) {

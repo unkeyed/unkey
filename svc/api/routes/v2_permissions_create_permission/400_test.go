@@ -52,7 +52,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for missing required slug
@@ -72,7 +72,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for empty name
@@ -92,7 +92,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for empty slug
@@ -112,7 +112,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for malformed JSON body
@@ -152,7 +152,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for invalid slug pattern - special characters
@@ -172,7 +172,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for slug too long
@@ -198,7 +198,7 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// Test case for valid slug patterns

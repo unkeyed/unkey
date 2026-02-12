@@ -49,7 +49,7 @@ type Harness struct {
 	Clock *clock.TestClock
 
 	srv       *zen.Server
-	validator *validation.Validator
+	validator validation.OpenAPIValidator
 
 	middleware []zen.Middleware
 

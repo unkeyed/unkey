@@ -45,7 +45,7 @@ func TestGetApiInvalidRequest(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.NotEmpty(t, res.Body.Error)
-		require.Equal(t, res.Body.Error.Detail, "POST request body for '/v2/apis.getApi' failed to validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	// We're unable to test malformed JSON using CallRoute as it would fail at Go's JSON unmarshalling

@@ -49,7 +49,7 @@ func TestBadRequest(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("missing permissions field", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestBadRequest(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("invalid keyId format - too short", func(t *testing.T) {
@@ -158,7 +158,7 @@ func TestBadRequest(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "validate schema")
+		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
 
 	t.Run("malformed JSON", func(t *testing.T) {

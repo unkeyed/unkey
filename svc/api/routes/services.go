@@ -33,8 +33,8 @@ type Services struct {
 	// rate limit events, and request metrics.
 	ClickHouse clickhouse.ClickHouse
 
-	// Validator performs request payload validation using struct tags.
-	Validator *validation.Validator
+	// Validator performs request payload validation against the OpenAPI spec.
+	Validator validation.OpenAPIValidator
 
 	// Ratelimit provides distributed rate limiting across API requests.
 	Ratelimit ratelimit.Service
