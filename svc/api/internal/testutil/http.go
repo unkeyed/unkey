@@ -5,16 +5,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -27,7 +24,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
@@ -35,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
 
 // Harness provides a complete integration test environment with real dependencies.
@@ -150,15 +147,8 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	vaultURL, vaultToken := containers.Vault(t)
-	connectClient := vaultv1connect.NewVaultServiceClient(
-		&http.Client{},
-		vaultURL,
-		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", vaultToken),
-		})),
-	)
-	v := vault.NewConnectClient(connectClient)
+	testVault := vaulttestutil.StartTestVaultWithMemory(t)
+	v := vault.NewConnectClient(testVault.Client)
 
 	// Create analytics connection manager
 	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
