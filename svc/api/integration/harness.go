@@ -137,6 +137,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		mysqlHostCfg.DBName = "unkey" // Set the database name
 		clickhouseHostDSN := containers.ClickHouse(h.t)
 		kafkaBrokers := containers.Kafka(h.t)
+		vaultURL, vaultToken := containers.Vault(h.t)
 		apiConfig := api.Config{
 			CacheInvalidationTopic:  "",
 			MaxRequestBodySize:      0,
@@ -158,6 +159,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			OtelTraceSamplingRate:   0.0,
 			PrometheusPort:          0,
 			TLSConfig:               nil,
+			VaultURL:                vaultURL,
+			VaultToken:              vaultToken,
 			KafkaBrokers:            kafkaBrokers, // Use host brokers for test runner connections
 			PprofEnabled:            true,
 			PprofUsername:           "unkey",
