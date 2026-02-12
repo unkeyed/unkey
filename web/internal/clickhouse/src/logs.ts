@@ -73,12 +73,17 @@ export function getLogs(ch: Querier) {
 
     const extendedParamsSchema = getLogsClickhousePayload.extend(paramSchemaExtension);
 
-    const filterConditions = `
+    // PREWHERE clause for indexed columns (workspace_id, time)
+    // This filters rows before reading other columns, dramatically reducing I/O
+    const prewhereConditions = `
       workspace_id = {workspaceId: String}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    `;
 
+    // WHERE clause for non-indexed filters
+    const whereConditions = `
       ---------- Apply request ID filter if present (highest priority)
-      AND (
+      (
         CASE
           WHEN length({requestIds: Array(String)}) > 0 THEN
             request_id IN {requestIds: Array(String)}
@@ -142,7 +147,8 @@ export function getLogs(ch: Querier) {
         SELECT
           count(request_id) as total_count
         FROM default.api_requests_raw_v2
-        WHERE ${filterConditions}`,
+        PREWHERE ${prewhereConditions}
+        WHERE ${whereConditions}`,
       params: extendedParamsSchema,
       schema: z.object({
         total_count: z.int(),
@@ -166,7 +172,8 @@ export function getLogs(ch: Querier) {
         error,
         service_latency
       FROM default.api_requests_raw_v2
-      WHERE ${filterConditions} AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})
+      PREWHERE ${prewhereConditions}
+      WHERE ${whereConditions} AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})
       ORDER BY time DESC
       LIMIT {limit: Int}`,
       params: extendedParamsSchema,
