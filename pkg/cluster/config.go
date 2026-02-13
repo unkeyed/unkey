@@ -1,5 +1,7 @@
 package cluster
 
+import clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
+
 // Config configures a gossip cluster node.
 type Config struct {
 	// Region identifies the geographic region (e.g. "us-east-1").
@@ -24,8 +26,7 @@ type Config struct {
 	WANSeeds []string
 
 	// OnMessage is called when a broadcast message is received from the cluster.
-	// The payload is the raw application bytes (no framing).
-	OnMessage func(msg []byte)
+	OnMessage func(msg *clusterv1.ClusterMessage)
 }
 
 func (c *Config) setDefaults() {

@@ -20,7 +20,6 @@ go_library(
         "//pkg/cache",
         "//pkg/cluster",
         "//pkg/logger",
-        "@org_golang_google_protobuf//proto",
     ],
 )
 
