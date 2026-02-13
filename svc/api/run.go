@@ -224,7 +224,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
-		mux.Subscribe(gossipBroadcaster.HandleClusterMessage)
+		cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
 		broadcaster = gossipBroadcaster
 		r.Defer(gossipCluster.Close)
 	}

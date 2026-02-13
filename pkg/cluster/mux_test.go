@@ -10,7 +10,7 @@ import (
 
 func cacheInvalidationMessage(cacheName, cacheKey string) *clusterv1.ClusterMessage {
 	return &clusterv1.ClusterMessage{
-		Message: &clusterv1.ClusterMessage_CacheInvalidation{
+		Payload: &clusterv1.ClusterMessage_CacheInvalidation{
 			CacheInvalidation: &cachev1.CacheInvalidationEvent{
 				CacheName: cacheName,
 				Action:    &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: cacheKey},
@@ -23,7 +23,7 @@ func TestMessageMux_RoutesToSubscriber(t *testing.T) {
 	mux := NewMessageMux()
 
 	var received *clusterv1.ClusterMessage
-	mux.Subscribe(func(msg *clusterv1.ClusterMessage) {
+	mux.subscribe(func(msg *clusterv1.ClusterMessage) {
 		received = msg
 	})
 
@@ -39,8 +39,8 @@ func TestMessageMux_MultipleSubscribers(t *testing.T) {
 	mux := NewMessageMux()
 
 	var count1, count2 int
-	mux.Subscribe(func(msg *clusterv1.ClusterMessage) { count1++ })
-	mux.Subscribe(func(msg *clusterv1.ClusterMessage) { count2++ })
+	mux.subscribe(func(msg *clusterv1.ClusterMessage) { count1++ })
+	mux.subscribe(func(msg *clusterv1.ClusterMessage) { count2++ })
 
 	mux.OnMessage(cacheInvalidationMessage("c", "k"))
 

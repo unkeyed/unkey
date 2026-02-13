@@ -28,15 +28,9 @@ func NewGossipBroadcaster(c cluster.Cluster) *GossipBroadcaster {
 	}
 }
 
-// HandleClusterMessage is the callback registered with MessageMux.Subscribe.
-// It extracts cache invalidation events from the cluster envelope and
-// dispatches them to the registered handler.
-func (b *GossipBroadcaster) HandleClusterMessage(msg *clusterv1.ClusterMessage) {
-	ci, ok := msg.Message.(*clusterv1.ClusterMessage_CacheInvalidation)
-	if !ok {
-		return
-	}
-
+// HandleCacheInvalidation is the typed handler for cache invalidation messages.
+// Register it with cluster.Subscribe(mux, broadcaster.HandleCacheInvalidation).
+func (b *GossipBroadcaster) HandleCacheInvalidation(ci *clusterv1.ClusterMessage_CacheInvalidation) {
 	if b.handler != nil {
 		if err := b.handler(context.Background(), ci.CacheInvalidation); err != nil {
 			logger.Error("Failed to handle gossip cache event", "error", err)
@@ -57,7 +51,8 @@ func (b *GossipBroadcaster) Broadcast(_ context.Context, events ...*cachev1.Cach
 	return nil
 }
 
-// Subscribe registers the handler for incoming invalidation events.
+// Subscribe sets the single handler for incoming invalidation events.
+// Calling Subscribe again replaces the previous handler.
 func (b *GossipBroadcaster) Subscribe(_ context.Context, handler func(context.Context, *cachev1.CacheInvalidationEvent) error) {
 	b.handler = handler
 }
