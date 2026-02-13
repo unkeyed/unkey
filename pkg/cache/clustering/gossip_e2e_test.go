@@ -24,9 +24,7 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	clk := clock.New()
 
 	// --- Node 1 ---
-	b1 := clustering.NewGossipBroadcaster()
 	mux1 := cluster.NewMessageMux()
-	mux1.HandleCacheInvalidation(b1.OnMessage)
 	c1, err := cluster.New(cluster.Config{
 		Region:    "us-east-1",
 		NodeID:    "node-1",
@@ -34,7 +32,8 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 		OnMessage: mux1.OnMessage,
 	})
 	require.NoError(t, err)
-	b1.SetCluster(c1)
+	b1 := clustering.NewGossipBroadcaster(c1)
+	mux1.Subscribe(b1.HandleClusterMessage)
 
 	d1, err := clustering.NewInvalidationDispatcher(b1)
 	require.NoError(t, err)
@@ -51,9 +50,7 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	require.NoError(t, err)
 
 	// --- Node 2 ---
-	b2 := clustering.NewGossipBroadcaster()
 	mux2 := cluster.NewMessageMux()
-	mux2.HandleCacheInvalidation(b2.OnMessage)
 	c1Addr := c1.Members()[0].FullAddress().Addr
 	time.Sleep(50 * time.Millisecond)
 
@@ -65,7 +62,8 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 		OnMessage: mux2.OnMessage,
 	})
 	require.NoError(t, err)
-	b2.SetCluster(c2)
+	b2 := clustering.NewGossipBroadcaster(c2)
+	mux2.Subscribe(b2.HandleClusterMessage)
 
 	d2, err := clustering.NewInvalidationDispatcher(b2)
 	require.NoError(t, err)

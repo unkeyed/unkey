@@ -2,19 +2,22 @@ package cluster
 
 import (
 	"fmt"
+	"io"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/memberlist"
+	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"google.golang.org/protobuf/proto"
 )
 
 const maxJoinAttempts = 10
 
 // Cluster is the public interface for gossip-based cluster membership.
 type Cluster interface {
-	Broadcast(msg []byte) error
+	Broadcast(msg *clusterv1.ClusterMessage) error
 	Members() []*memberlist.Node
 	IsGateway() bool
 	WANAddr() string
@@ -73,7 +76,7 @@ func New(cfg Config) (Cluster, error) {
 	lanCfg.BindAddr = cfg.BindAddr
 	lanCfg.BindPort = cfg.BindPort
 	lanCfg.AdvertisePort = cfg.BindPort
-	lanCfg.LogOutput = logger.NewMemberlistWriter()
+	lanCfg.LogOutput = io.Discard
 	lanCfg.Delegate = newLANDelegate(c)
 	lanCfg.Events = newLANEventDelegate(c)
 
@@ -179,7 +182,10 @@ func (c *gossipCluster) gatewayEvalLoop() {
 // Broadcast queues a message for delivery to all cluster members.
 // The message is broadcast on the LAN pool. If this node is the gateway,
 // it is also broadcast on the WAN pool.
-func (c *gossipCluster) Broadcast(msg []byte) error {
+func (c *gossipCluster) Broadcast(msg *clusterv1.ClusterMessage) error {
+	msg.SourceRegion = c.config.Region
+	msg.SenderNode = c.config.NodeID
+
 	c.mu.RLock()
 	lanQ := c.lanQueue
 	isGW := c.isGateway
@@ -187,13 +193,21 @@ func (c *gossipCluster) Broadcast(msg []byte) error {
 	c.mu.RUnlock()
 
 	if lanQ != nil {
-		lanMsg := encodeMessage(dirLAN, c.config.Region, msg)
-		lanQ.QueueBroadcast(newBroadcast(lanMsg))
+		msg.Direction = clusterv1.Direction_DIRECTION_LAN
+		lanBytes, err := proto.Marshal(msg)
+		if err != nil {
+			return fmt.Errorf("failed to marshal LAN message: %w", err)
+		}
+		lanQ.QueueBroadcast(newBroadcast(lanBytes))
 	}
 
 	if isGW && wanQ != nil {
-		wanMsg := encodeMessage(dirWAN, c.config.Region, msg)
-		wanQ.QueueBroadcast(newBroadcast(wanMsg))
+		msg.Direction = clusterv1.Direction_DIRECTION_WAN
+		wanBytes, err := proto.Marshal(msg)
+		if err != nil {
+			return fmt.Errorf("failed to marshal WAN message: %w", err)
+		}
+		wanQ.QueueBroadcast(newBroadcast(wanBytes))
 	}
 
 	return nil

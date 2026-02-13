@@ -8,21 +8,33 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
+	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 )
+
+func testMessage(key string) *clusterv1.ClusterMessage {
+	return &clusterv1.ClusterMessage{
+		Message: &clusterv1.ClusterMessage_CacheInvalidation{
+			CacheInvalidation: &cachev1.CacheInvalidationEvent{
+				CacheName: "test",
+				Action:    &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: key},
+			},
+		},
+	}
+}
 
 func TestCluster_SingleNode_BroadcastAndReceive(t *testing.T) {
 	var received atomic.Int32
 	var mu sync.Mutex
-	var receivedMsg []byte
+	var receivedMsg *clusterv1.ClusterMessage
 
 	c, err := New(Config{
 		Region:   "us-east-1",
 		NodeID:   "test-node-1",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg []byte) {
+		OnMessage: func(msg *clusterv1.ClusterMessage) {
 			mu.Lock()
-			receivedMsg = make([]byte, len(msg))
-			copy(receivedMsg, msg)
+			receivedMsg = msg
 			mu.Unlock()
 			received.Add(1)
 		},
@@ -36,6 +48,8 @@ func TestCluster_SingleNode_BroadcastAndReceive(t *testing.T) {
 	}, 2*time.Second, 50*time.Millisecond, "single node should become gateway")
 
 	require.Len(t, c.Members(), 1, "should have 1 member")
+
+	_ = receivedMsg // used in multi-region tests
 }
 
 func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
@@ -48,7 +62,7 @@ func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 		Region:   "us-east-1",
 		NodeID:   "node-0",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg []byte) {
+		OnMessage: func(msg *clusterv1.ClusterMessage) {
 			received[0].Add(1)
 		},
 	})
@@ -69,7 +83,7 @@ func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 			NodeID:   fmt.Sprintf("node-%d", idx),
 			BindAddr: "127.0.0.1",
 			LANSeeds: []string{c1Addr},
-			OnMessage: func(msg []byte) {
+			OnMessage: func(msg *clusterv1.ClusterMessage) {
 				received[idx].Add(1)
 			},
 		})
@@ -116,7 +130,7 @@ func TestCluster_GatewayFailover(t *testing.T) {
 		Region:   "us-east-1",
 		NodeID:   "node-1",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg []byte) {
+		OnMessage: func(msg *clusterv1.ClusterMessage) {
 			recv1.Add(1)
 		},
 	})
@@ -132,7 +146,7 @@ func TestCluster_GatewayFailover(t *testing.T) {
 		NodeID:   "node-2",
 		BindAddr: "127.0.0.1",
 		LANSeeds: []string{c1Addr},
-		OnMessage: func(msg []byte) {
+		OnMessage: func(msg *clusterv1.ClusterMessage) {
 			recv2.Add(1)
 		},
 	})
@@ -161,14 +175,14 @@ func TestCluster_GatewayFailover(t *testing.T) {
 func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 	var recvA, recvB atomic.Int32
 	var muB sync.Mutex
-	var lastMsgB []byte
+	var lastKeyB string
 
 	// --- Region A: single node (auto-promotes to gateway) ---
 	nodeA, err := New(Config{
 		Region:   "us-east-1",
 		NodeID:   "node-a",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg []byte) {
+		OnMessage: func(msg *clusterv1.ClusterMessage) {
 			recvA.Add(1)
 		},
 	})
@@ -192,10 +206,9 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 		NodeID:   "node-b",
 		BindAddr: "127.0.0.1",
 		WANSeeds: []string{wanAddrA},
-		OnMessage: func(msg []byte) {
+		OnMessage: func(msg *clusterv1.ClusterMessage) {
 			muB.Lock()
-			lastMsgB = make([]byte, len(msg))
-			copy(lastMsgB, msg)
+			lastKeyB = msg.GetCacheInvalidation().GetCacheKey()
 			muB.Unlock()
 			recvB.Add(1)
 		},
@@ -231,8 +244,7 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "WAN pools should see each other")
 
 	// Broadcast from region A
-	testPayload := []byte("cross-region-hello")
-	require.NoError(t, nodeA.Broadcast(testPayload))
+	require.NoError(t, nodeA.Broadcast(testMessage("cross-region-hello")))
 
 	// Verify region B receives it via the WAN relay
 	require.Eventually(t, func() bool {
@@ -240,7 +252,7 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "node B should receive cross-region broadcast")
 
 	muB.Lock()
-	require.Equal(t, testPayload, lastMsgB)
+	require.Equal(t, "cross-region-hello", lastKeyB)
 	muB.Unlock()
 }
 
@@ -253,9 +265,9 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 		Region:   "us-east-1",
 		NodeID:   "node-a",
 		BindAddr: "127.0.0.1",
-		OnMessage: func(msg []byte) {
+		OnMessage: func(msg *clusterv1.ClusterMessage) {
 			muA.Lock()
-			msgsA = append(msgsA, string(msg))
+			msgsA = append(msgsA, msg.GetCacheInvalidation().GetCacheKey())
 			muA.Unlock()
 		},
 	})
@@ -273,9 +285,9 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 		NodeID:   "node-b",
 		BindAddr: "127.0.0.1",
 		WANSeeds: []string{wanAddrA},
-		OnMessage: func(msg []byte) {
+		OnMessage: func(msg *clusterv1.ClusterMessage) {
 			muB.Lock()
-			msgsB = append(msgsB, string(msg))
+			msgsB = append(msgsB, msg.GetCacheInvalidation().GetCacheKey())
 			muB.Unlock()
 		},
 	})
@@ -309,7 +321,7 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "WAN pools should connect")
 
 	// Broadcast from A → B
-	require.NoError(t, nodeA.Broadcast([]byte("from-east")))
+	require.NoError(t, nodeA.Broadcast(testMessage("from-east")))
 
 	require.Eventually(t, func() bool {
 		muB.Lock()
@@ -323,7 +335,7 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "B should receive message from A")
 
 	// Broadcast from B → A
-	require.NoError(t, nodeB.Broadcast([]byte("from-west")))
+	require.NoError(t, nodeB.Broadcast(testMessage("from-west")))
 
 	require.Eventually(t, func() bool {
 		muA.Lock()
@@ -342,6 +354,6 @@ func TestCluster_Noop(t *testing.T) {
 
 	require.False(t, c.IsGateway())
 	require.Nil(t, c.Members())
-	require.NoError(t, c.Broadcast([]byte("test")))
+	require.NoError(t, c.Broadcast(testMessage("test")))
 	require.NoError(t, c.Close())
 }

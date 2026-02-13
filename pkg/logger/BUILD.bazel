@@ -6,7 +6,6 @@ go_library(
         "doc.go",
         "event.go",
         "global.go",
-        "memberlist.go",
         "multihandler.go",
         "sampler.go",
         "slog.go",

@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -98,7 +99,7 @@ func (c *gossipCluster) promoteToGateway() {
 	wanCfg.BindAddr = c.config.BindAddr
 	wanCfg.BindPort = c.config.WANBindPort
 	wanCfg.AdvertisePort = c.config.WANBindPort
-	wanCfg.LogOutput = logger.NewMemberlistWriter()
+	wanCfg.LogOutput = io.Discard
 
 	wanCfg.Delegate = newWANDelegate(c)
 

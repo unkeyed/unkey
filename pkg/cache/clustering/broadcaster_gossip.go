@@ -2,7 +2,6 @@ package clustering
 
 import (
 	"context"
-	"sync"
 
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
@@ -14,67 +13,45 @@ import (
 // cache invalidation. It builds ClusterMessage envelopes with the oneof
 // variant directly, avoiding double serialization.
 type GossipBroadcaster struct {
-	mu      sync.RWMutex
 	cluster cluster.Cluster
 	handler func(context.Context, *cachev1.CacheInvalidationEvent) error
 }
 
 var _ Broadcaster = (*GossipBroadcaster)(nil)
 
-// NewGossipBroadcaster creates a new gossip-based broadcaster.
-// Call SetCluster after the cluster is created, and Subscribe to register
-// the event handler.
-func NewGossipBroadcaster() *GossipBroadcaster {
+// NewGossipBroadcaster creates a new gossip-based broadcaster wired to the
+// given cluster instance.
+func NewGossipBroadcaster(c cluster.Cluster) *GossipBroadcaster {
 	return &GossipBroadcaster{
-		mu:      sync.RWMutex{},
-		cluster: nil,
+		cluster: c,
 		handler: nil,
 	}
 }
 
-// OnMessage is the callback wired into MessageMux.HandleCacheInvalidation.
-// It dispatches the already-deserialized event to the registered handler.
-func (b *GossipBroadcaster) OnMessage(event *cachev1.CacheInvalidationEvent) {
-	b.mu.RLock()
-	h := b.handler
-	b.mu.RUnlock()
+// HandleClusterMessage is the callback registered with MessageMux.Subscribe.
+// It extracts cache invalidation events from the cluster envelope and
+// dispatches them to the registered handler.
+func (b *GossipBroadcaster) HandleClusterMessage(msg *clusterv1.ClusterMessage) {
+	ci, ok := msg.Message.(*clusterv1.ClusterMessage_CacheInvalidation)
+	if !ok {
+		return
+	}
 
-	if h != nil {
-		if err := h(context.Background(), event); err != nil {
+	if b.handler != nil {
+		if err := b.handler(context.Background(), ci.CacheInvalidation); err != nil {
 			logger.Error("Failed to handle gossip cache event", "error", err)
 		}
 	}
 }
 
-// SetCluster wires the broadcaster to a live cluster instance.
-// Must be called after cluster.New() returns.
-func (b *GossipBroadcaster) SetCluster(c cluster.Cluster) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.cluster = c
-}
-
 // Broadcast serializes the events and sends them via the gossip cluster.
 func (b *GossipBroadcaster) Broadcast(_ context.Context, events ...*cachev1.CacheInvalidationEvent) error {
-	b.mu.RLock()
-	c := b.cluster
-	b.mu.RUnlock()
-
-	if c == nil {
-		return nil
-	}
-
 	for _, event := range events {
-		envelope, err := cluster.Wrap(&clusterv1.ClusterMessage{
+		if err := b.cluster.Broadcast(&clusterv1.ClusterMessage{
 			Message: &clusterv1.ClusterMessage_CacheInvalidation{
 				CacheInvalidation: event,
 			},
-		})
-		if err != nil {
-			logger.Error("Failed to marshal cache invalidation envelope", "error", err)
-			continue
-		}
-		if err := c.Broadcast(envelope); err != nil {
+		}); err != nil {
 			logger.Error("Failed to broadcast cache invalidation", "error", err)
 		}
 	}
@@ -84,19 +61,10 @@ func (b *GossipBroadcaster) Broadcast(_ context.Context, events ...*cachev1.Cach
 
 // Subscribe registers the handler for incoming invalidation events.
 func (b *GossipBroadcaster) Subscribe(_ context.Context, handler func(context.Context, *cachev1.CacheInvalidationEvent) error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
 	b.handler = handler
 }
 
 // Close shuts down the underlying cluster.
 func (b *GossipBroadcaster) Close() error {
-	b.mu.RLock()
-	c := b.cluster
-	b.mu.RUnlock()
-
-	if c != nil {
-		return c.Close()
-	}
-	return nil
+	return b.cluster.Close()
 }
