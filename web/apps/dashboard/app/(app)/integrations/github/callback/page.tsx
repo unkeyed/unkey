@@ -1,8 +1,5 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { trpc } from "@/lib/trpc/client";
 import { Empty, toast } from "@unkey/ui";
