@@ -13,10 +13,13 @@ import (
 // ClusterServiceClient wraps ctrlv1connect.ClusterServiceClient with simplified signatures.
 // Request and response types are plain protobuf messages without connect wrappers.
 type ClusterServiceClient interface {
+	WatchDeployments(ctx context.Context, req *v1.WatchDeploymentsRequest) (*connect.ServerStreamForClient[v1.DeploymentState], error)
+	WatchSentinels(ctx context.Context, req *v1.WatchSentinelsRequest) (*connect.ServerStreamForClient[v1.SentinelState], error)
 	GetDesiredSentinelState(ctx context.Context, req *v1.GetDesiredSentinelStateRequest) (*v1.SentinelState, error)
 	ReportSentinelStatus(ctx context.Context, req *v1.ReportSentinelStatusRequest) (*v1.ReportSentinelStatusResponse, error)
 	GetDesiredDeploymentState(ctx context.Context, req *v1.GetDesiredDeploymentStateRequest) (*v1.DeploymentState, error)
 	ReportDeploymentStatus(ctx context.Context, req *v1.ReportDeploymentStatusRequest) (*v1.ReportDeploymentStatusResponse, error)
+	WatchCiliumNetworkPolicies(ctx context.Context, req *v1.WatchCiliumNetworkPoliciesRequest) (*connect.ServerStreamForClient[v1.CiliumNetworkPolicyState], error)
 	GetDesiredCiliumNetworkPolicyState(ctx context.Context, req *v1.GetDesiredCiliumNetworkPolicyStateRequest) (*v1.CiliumNetworkPolicyState, error)
 }
 
@@ -30,6 +33,14 @@ type ConnectClusterServiceClient struct {
 // NewConnectClusterServiceClient creates a new ConnectClusterServiceClient.
 func NewConnectClusterServiceClient(inner ctrlv1connect.ClusterServiceClient) *ConnectClusterServiceClient {
 	return &ConnectClusterServiceClient{inner: inner}
+}
+
+func (c *ConnectClusterServiceClient) WatchDeployments(ctx context.Context, req *v1.WatchDeploymentsRequest) (*connect.ServerStreamForClient[v1.DeploymentState], error) {
+	return c.inner.WatchDeployments(ctx, connect.NewRequest(req))
+}
+
+func (c *ConnectClusterServiceClient) WatchSentinels(ctx context.Context, req *v1.WatchSentinelsRequest) (*connect.ServerStreamForClient[v1.SentinelState], error) {
+	return c.inner.WatchSentinels(ctx, connect.NewRequest(req))
 }
 
 func (c *ConnectClusterServiceClient) GetDesiredSentinelState(ctx context.Context, req *v1.GetDesiredSentinelStateRequest) (*v1.SentinelState, error) {
@@ -62,6 +73,10 @@ func (c *ConnectClusterServiceClient) ReportDeploymentStatus(ctx context.Context
 		return nil, err
 	}
 	return resp.Msg, nil
+}
+
+func (c *ConnectClusterServiceClient) WatchCiliumNetworkPolicies(ctx context.Context, req *v1.WatchCiliumNetworkPoliciesRequest) (*connect.ServerStreamForClient[v1.CiliumNetworkPolicyState], error) {
+	return c.inner.WatchCiliumNetworkPolicies(ctx, connect.NewRequest(req))
 }
 
 func (c *ConnectClusterServiceClient) GetDesiredCiliumNetworkPolicyState(ctx context.Context, req *v1.GetDesiredCiliumNetworkPolicyStateRequest) (*v1.CiliumNetworkPolicyState, error) {

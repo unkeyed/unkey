@@ -19,12 +19,12 @@ import (
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
+	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
@@ -61,7 +61,7 @@ type Harness struct {
 	ClickHouseDSN string
 
 	// VaultClient is a real vault client for encryption/decryption.
-	VaultClient vaultv1connect.VaultServiceClient
+	VaultClient vault.VaultServiceClient
 
 	// VaultToken is the bearer token for the vault service.
 	VaultToken string
@@ -150,7 +150,9 @@ func New(t *testing.T) *Harness {
 	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 
 	// Create seeder for test data
-	seeder := seed.New(t, database, testVault.Client)
+	vaultClient := vault.NewConnectVaultServiceClient(testVault.Client)
+
+	seeder := seed.New(t, database, vaultClient)
 
 	// Create all services
 	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
@@ -163,7 +165,7 @@ func New(t *testing.T) *Harness {
 
 	clickhouseUserSvc := clickhouseuser.New(clickhouseuser.Config{
 		DB:         database,
-		Vault:      testVault.Client,
+		Vault:      vaultClient,
 		Clickhouse: chClient,
 	})
 
@@ -171,7 +173,7 @@ func New(t *testing.T) *Harness {
 		DB:                              database,
 		Clickhouse:                      chClient,
 		DefaultDomain:                   "test.example.com",
-		Vault:                           testVault.Client,
+		Vault:                           vaultClient,
 		SentinelImage:                   "test-sentinel:latest",
 		AvailableRegions:                []string{"us-east-1"},
 		GitHub:                          nil,
@@ -233,7 +235,7 @@ func New(t *testing.T) *Harness {
 		ClickHouse:     chClient,
 		ClickHouseConn: conn,
 		ClickHouseDSN:  chDSN,
-		VaultClient:    testVault.Client,
+		VaultClient:    vaultClient,
 		VaultToken:     testVault.Token,
 		Restate:        ingress.NewClient(restateCfg.IngressURL),
 		RestateIngress: restateCfg.IngressURL,

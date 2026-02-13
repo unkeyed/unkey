@@ -18,7 +18,7 @@ go_library(
         "//pkg/clickhouse",
         "//pkg/db",
         "//pkg/rpc/ctrl",
-        "//pkg/vault",
+        "//pkg/rpc/vault",
         "//pkg/zen",
         "//pkg/zen/validation",
         "//svc/api/internal/middleware",

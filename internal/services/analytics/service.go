@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/vault"
+	"github.com/unkeyed/unkey/pkg/rpc/vault"
 )
 
 // connectionManager is the default implementation that manages per-workspace ClickHouse connections
@@ -23,7 +23,7 @@ type connectionManager struct {
 	connectionCache cache.Cache[string, clickhouse.ClickHouse]
 	database        db.Database
 	baseURL         string
-	vault           vault.Client
+	vault           vault.VaultServiceClient
 }
 
 // ConnectionManagerConfig contains configuration for the connection manager
@@ -32,7 +32,7 @@ type ConnectionManagerConfig struct {
 	Database      db.Database
 	Clock         clock.Clock
 	BaseURL       string // e.g., "http://clickhouse:8123/default" or "clickhouse://clickhouse:9000/default"
-	Vault         vault.Client
+	Vault         vault.VaultServiceClient
 }
 
 // NewConnectionManager creates a new connection manager

@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
+	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
@@ -148,15 +149,15 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(sentinelCtrl.Stop)
 
 	// Create vault client for secrets decryption
-	var vaultClient vaultv1connect.VaultServiceClient
+	var vaultClient vault.VaultServiceClient
 	if cfg.VaultURL != "" {
-		vaultClient = vaultv1connect.NewVaultServiceClient(
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 			http.DefaultClient,
 			cfg.VaultURL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
 				"Authorization": "Bearer " + cfg.VaultToken,
 			})),
-		)
+		))
 		logger.Info("Vault client initialized", "url", cfg.VaultURL)
 	}
 

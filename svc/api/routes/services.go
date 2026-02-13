@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/rpc/ctrl"
-	"github.com/unkeyed/unkey/pkg/vault"
+	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
 
@@ -47,7 +47,7 @@ type Services struct {
 	Caches caches.Caches
 
 	// Vault provides encrypted storage for sensitive key material.
-	Vault vault.Client
+	Vault vault.VaultServiceClient
 
 	// ChproxyToken authenticates requests to internal chproxy endpoints.
 	// When empty, chproxy routes are not registered.

@@ -14,7 +14,11 @@ import (
 // Request and response types are plain protobuf messages without connect wrappers.
 type {{ $svc.Name }} interface {
 {{- range $svc.Methods }}
+{{- if eq .Kind "server_stream" }}
+	{{ .Name }}(ctx context.Context, req *{{ $.ProtoAlias }}.{{ .ReqType }}) (*connect.ServerStreamForClient[{{ $.ProtoAlias }}.{{ .RespType }}], error)
+{{- else }}
 	{{ .Name }}(ctx context.Context, req *{{ $.ProtoAlias }}.{{ .ReqType }}) (*{{ $.ProtoAlias }}.{{ .RespType }}, error)
+{{- end }}
 {{- end }}
 }
 
@@ -30,6 +34,11 @@ func NewConnect{{ $svc.Name }}(inner {{ $.ConnectPkg }}.{{ $svc.Name }}) *Connec
 	return &Connect{{ $svc.Name }}{inner: inner}
 }
 {{ range $svc.Methods }}
+{{- if eq .Kind "server_stream" }}
+func (c *Connect{{ $svc.Name }}) {{ .Name }}(ctx context.Context, req *{{ $.ProtoAlias }}.{{ .ReqType }}) (*connect.ServerStreamForClient[{{ $.ProtoAlias }}.{{ .RespType }}], error) {
+	return c.inner.{{ .Name }}(ctx, connect.NewRequest(req))
+}
+{{ else }}
 func (c *Connect{{ $svc.Name }}) {{ .Name }}(ctx context.Context, req *{{ $.ProtoAlias }}.{{ .ReqType }}) (*{{ $.ProtoAlias }}.{{ .RespType }}, error) {
 	resp, err := c.inner.{{ .Name }}(ctx, connect.NewRequest(req))
 	if err != nil {
@@ -38,4 +47,5 @@ func (c *Connect{{ $svc.Name }}) {{ .Name }}(ctx context.Context, req *{{ $.Prot
 	return resp.Msg, nil
 }
 {{ end }}
+{{- end -}}
 {{- end -}}

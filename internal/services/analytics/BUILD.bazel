@@ -19,6 +19,6 @@ go_library(
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
-        "//pkg/vault",
+        "//pkg/rpc/vault",
     ],
 )

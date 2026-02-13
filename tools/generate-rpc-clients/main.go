@@ -2,7 +2,9 @@
 //
 // It parses generated *connect/*.connect.go files, extracts *ServiceClient interfaces,
 // and produces wrapper packages that hide connect.Request/connect.Response boilerplate.
-// Streaming methods are skipped since they cannot use the simple wrap/unwrap pattern.
+// Both unary and server-streaming methods are supported. Unary methods unwrap
+// connect.Request/Response, while streaming methods unwrap the request but pass
+// through the *connect.ServerStreamForClient as-is.
 //
 // Usage:
 //
@@ -11,10 +13,8 @@ package main
 
 import (
 	"bytes"
-	"embed"
 	"flag"
 	"fmt"
-	"go/ast"
 	"go/format"
 	"go/parser"
 	"go/token"
@@ -22,33 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 )
-
-//go:embed wrapper.go.tmpl
-var templateFS embed.FS
-
-var tmpl = template.Must(template.ParseFS(templateFS, "wrapper.go.tmpl"))
-
-type serviceInfo struct {
-	Name    string // e.g. "VaultServiceClient"
-	Methods []methodInfo
-}
-
-type methodInfo struct {
-	Name     string // e.g. "Encrypt"
-	ReqType  string // e.g. "EncryptRequest"
-	RespType string // e.g. "EncryptResponse"
-}
-
-type fileData struct {
-	PackageName   string // e.g. "vaultrpc"
-	ConnectPkg    string // e.g. "vaultv1connect"
-	ConnectImport string // e.g. "github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
-	ProtoAlias    string // e.g. "v1"
-	ProtoImport   string // e.g. "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	Services      []serviceInfo
-}
 
 func main() {
 	sourceGlob := flag.String("source", "", "Glob pattern for input .connect.go files")
@@ -93,52 +67,15 @@ func processFile(srcPath, outDir string) error {
 		return fmt.Errorf("could not find proto import in %s", srcPath)
 	}
 
-	connectImport := protoImport + "/" + connectPkg
-
-	var services []serviceInfo
-	for _, decl := range f.Decls {
-		genDecl, ok := decl.(*ast.GenDecl)
-		if !ok || genDecl.Tok != token.TYPE {
-			continue
-		}
-
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-
-			name := typeSpec.Name.Name
-			if !strings.HasSuffix(name, "ServiceClient") {
-				continue
-			}
-
-			if strings.HasSuffix(name, "ServiceHandler") {
-				continue
-			}
-
-			iface, ok := typeSpec.Type.(*ast.InterfaceType)
-			if !ok {
-				continue
-			}
-
-			svc := extractService(name, iface, protoAlias)
-			if len(svc.Methods) > 0 {
-				services = append(services, svc)
-			}
-		}
-	}
-
+	services := findServices(f, protoAlias)
 	if len(services) == 0 {
 		return nil // no unary methods to wrap
 	}
 
-	pkgName := filepath.Base(outDir)
-
 	data := fileData{
-		PackageName:   pkgName,
+		PackageName:   filepath.Base(outDir),
 		ConnectPkg:    connectPkg,
-		ConnectImport: connectImport,
+		ConnectImport: protoImport + "/" + connectPkg,
 		ProtoAlias:    protoAlias,
 		ProtoImport:   protoImport,
 		Services:      services,
@@ -164,117 +101,4 @@ func processFile(srcPath, outDir string) error {
 
 	fmt.Printf("  %s -> %s\n", srcPath, outPath)
 	return nil
-}
-
-// findProtoImport finds the proto messages import (e.g. "github.com/.../vault/v1")
-// by looking for an import that matches the module path pattern and is NOT the connect package.
-func findProtoImport(f *ast.File) (alias, path string) {
-	for _, imp := range f.Imports {
-		importPath := strings.Trim(imp.Path.Value, `"`)
-		if !strings.Contains(importPath, "/") {
-			continue
-		}
-		if importPath == "connectrpc.com/connect" {
-			continue
-		}
-		if strings.Contains(importPath, "net/http") {
-			continue
-		}
-		if strings.HasSuffix(importPath, "connect") {
-			continue
-		}
-		if imp.Name != nil {
-			alias = imp.Name.Name
-		} else {
-			parts := strings.Split(importPath, "/")
-			alias = parts[len(parts)-1]
-		}
-		return alias, importPath
-	}
-	return "", ""
-}
-
-// extractService extracts unary methods from a ServiceClient interface.
-// Streaming methods (returning *connect.ServerStreamForClient) are skipped.
-func extractService(name string, iface *ast.InterfaceType, protoAlias string) serviceInfo {
-	svc := serviceInfo{Name: name, Methods: nil}
-
-	for _, method := range iface.Methods.List {
-		if len(method.Names) == 0 {
-			continue
-		}
-		methodName := method.Names[0].Name
-
-		funcType, ok := method.Type.(*ast.FuncType)
-		if !ok {
-			continue
-		}
-
-		if funcType.Results == nil || len(funcType.Results.List) != 2 {
-			continue
-		}
-
-		retType := funcType.Results.List[0].Type
-		retStr := typeToString(retType)
-		if strings.Contains(retStr, "ServerStreamForClient") {
-			continue
-		}
-
-		if funcType.Params == nil || len(funcType.Params.List) != 2 {
-			continue
-		}
-
-		reqType := extractGenericTypeArg(funcType.Params.List[1].Type, protoAlias)
-		respType := extractGenericTypeArg(retType, protoAlias)
-
-		if reqType == "" || respType == "" {
-			continue
-		}
-
-		svc.Methods = append(svc.Methods, methodInfo{
-			Name:     methodName,
-			ReqType:  reqType,
-			RespType: respType,
-		})
-	}
-
-	return svc
-}
-
-// extractGenericTypeArg extracts the type argument from a generic type like
-// *connect.Request[v1.FooRequest] or *connect.Response[v1.FooResponse].
-func extractGenericTypeArg(expr ast.Expr, protoAlias string) string {
-	starExpr, ok := expr.(*ast.StarExpr)
-	if !ok {
-		return ""
-	}
-
-	indexExpr, ok := starExpr.X.(*ast.IndexExpr)
-	if !ok {
-		return ""
-	}
-
-	sel, ok := indexExpr.Index.(*ast.SelectorExpr)
-	if !ok {
-		return ""
-	}
-
-	return sel.Sel.Name
-}
-
-// typeToString converts an AST expression to a rough string representation
-// for pattern matching (e.g., detecting ServerStreamForClient).
-func typeToString(expr ast.Expr) string {
-	switch e := expr.(type) {
-	case *ast.StarExpr:
-		return "*" + typeToString(e.X)
-	case *ast.SelectorExpr:
-		return typeToString(e.X) + "." + e.Sel.Name
-	case *ast.Ident:
-		return e.Name
-	case *ast.IndexExpr:
-		return typeToString(e.X) + "[" + typeToString(e.Index) + "]"
-	default:
-		return ""
-	}
 }

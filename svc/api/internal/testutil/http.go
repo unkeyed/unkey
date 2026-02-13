@@ -24,9 +24,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
@@ -61,7 +61,7 @@ type Harness struct {
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
 	Ratelimit                  ratelimit.Service
-	Vault                      vault.Client
+	Vault                      vault.VaultServiceClient
 	AnalyticsConnectionManager analytics.ConnectionManager
 	seeder                     *seed.Seeder
 }
@@ -148,7 +148,7 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
-	v := vault.NewConnectClient(testVault.Client)
+	v := vault.NewConnectVaultServiceClient(testVault.Client)
 
 	// Create analytics connection manager
 	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
