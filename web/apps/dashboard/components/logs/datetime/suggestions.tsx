@@ -80,7 +80,7 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
           {options.map(({ id, display, checked }, index) => (
             <div
               key={id}
-              className={cn("group relative w-full rounded-lg", "focus-within:outline-none")}
+              className={cn("group relative w-full rounded-lg", "focus-within:outline-hidden")}
             >
               <button
                 type="button"
@@ -101,7 +101,7 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
                   "px-2 py-1.5 rounded-lg",
                   "text-[13px] font-medium text-accent-12 text-left",
                   "hover:bg-gray-3",
-                  "focus:outline-none focus:ring-2 focus:ring-accent-7",
+                  "focus:outline-hidden focus:ring-2 focus:ring-accent-7",
                   "focus:bg-gray-3",
                   checked && "bg-gray-3",
                   focusedIndex === index && "bg-gray-3",

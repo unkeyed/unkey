@@ -90,7 +90,7 @@ export const ProjectNavigation = ({
       },
       {
         id: "project",
-        children: <div className="h-6 w-24 bg-grayA-3 rounded animate-pulse transition-all" />,
+        children: <div className="h-6 w-24 bg-grayA-3 rounded-sm animate-pulse transition-all" />,
         href: "#",
         isIdentifier: true,
         className: "group max-md:hidden",
@@ -100,7 +100,7 @@ export const ProjectNavigation = ({
       },
       {
         id: "subpage",
-        children: <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all" />,
+        children: <div className="h-6 w-20 bg-grayA-3 rounded-sm animate-pulse transition-all" />,
         href: "#",
         noop: true,
         active: true,

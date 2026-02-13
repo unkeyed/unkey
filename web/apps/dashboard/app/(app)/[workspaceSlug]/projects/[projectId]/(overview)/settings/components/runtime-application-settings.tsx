@@ -245,7 +245,7 @@ const HealthcheckCard: React.FC<Props & { defaultMethod: "GET" | "POST"; default
             </SelectContent>
           </Select>
           <FormInput
-            className="flex flex-grow w-full"
+            className="flex grow w-full"
             placeholder="/health"
             {...register("path")}
           />

@@ -36,22 +36,22 @@ const statusConfig: Record<
   pending: {
     label: "Pending",
     color: "primary",
-    icon: <Clock className="!size-3" />,
+    icon: <Clock className="size-3!" />,
   },
   verifying: {
     label: "Verifying",
     color: "warning",
-    icon: <Refresh3 className="!size-3 animate-spin" />,
+    icon: <Refresh3 className="size-3! animate-spin" />,
   },
   verified: {
     label: "Verified",
     color: "success",
-    icon: <CircleCheck className="!size-3" />,
+    icon: <CircleCheck className="size-3!" />,
   },
   failed: {
     label: "Failed",
     color: "error",
-    icon: <TriangleWarning className="!size-3" />,
+    icon: <TriangleWarning className="size-3!" />,
   },
 };
 
@@ -80,7 +80,7 @@ export function CustomDomainRow({ domain }: CustomDomainRowProps) {
     <div className="border-b border-gray-4 last:border-b-0 group hover:bg-gray-2 transition-colors">
       <div className="flex items-center justify-between px-4 py-3 h-12">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Link4 className="text-gray-9 !size-[14px] flex-shrink-0" />
+          <Link4 className="text-gray-9 size-[14px]! shrink-0" />
           <a
             href={`https://${domain.domain}`}
             target="_blank"
@@ -107,7 +107,7 @@ export function CustomDomainRow({ domain }: CustomDomainRowProps) {
                   disabled={isRetrying}
                   className="size-7 text-gray-9 hover:text-gray-11"
                 >
-                  <Refresh3 className={cn("!size-[14px]", isRetrying && "animate-spin")} />
+                  <Refresh3 className={cn("size-[14px]!", isRetrying && "animate-spin")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Retry verification</TooltipContent>
@@ -117,7 +117,7 @@ export function CustomDomainRow({ domain }: CustomDomainRowProps) {
           {domain.verificationError && (
             <Tooltip>
               <TooltipTrigger>
-                <CircleInfo className="!size-4 text-error-9" />
+                <CircleInfo className="size-4! text-error-9" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">{domain.verificationError}</TooltipContent>
             </Tooltip>
@@ -130,7 +130,7 @@ export function CustomDomainRow({ domain }: CustomDomainRowProps) {
             onClick={() => setIsConfirmOpen(true)}
             className="size-7 text-gray-9 hover:text-error-9"
           >
-            <Trash className="!size-[14px]" />
+            <Trash className="size-[14px]!" />
           </Button>
 
           {deleteButtonRef.current && (
@@ -203,17 +203,17 @@ function DnsRecordTable({
             <span className="text-gray-11 font-medium">TXT</span>
             <span className="flex items-center gap-1.5 min-w-0">
               <code className="text-content font-mono truncate">{txtRecordName}</code>
-              <CopyButton value={txtRecordName} variant="ghost" className="size-5 flex-shrink-0" />
+              <CopyButton value={txtRecordName} variant="ghost" className="size-5 shrink-0" />
             </span>
             <span className="flex items-center gap-1.5 min-w-0">
               <code className="text-content font-mono truncate">{txtRecordValue}</code>
-              <CopyButton value={txtRecordValue} variant="ghost" className="size-5 flex-shrink-0" />
+              <CopyButton value={txtRecordValue} variant="ghost" className="size-5 shrink-0" />
             </span>
             <span className="flex justify-center">
               {ownershipVerified ? (
-                <CircleCheck className="!size-4 text-success-9" />
+                <CircleCheck className="size-4! text-success-9" />
               ) : (
-                <XMark className="!size-4 text-gray-7" />
+                <XMark className="size-4! text-gray-7" />
               )}
             </span>
           </div>
@@ -240,17 +240,17 @@ function DnsRecordTable({
             <span className="text-gray-11 font-medium">CNAME</span>
             <span className="flex items-center gap-1.5 min-w-0">
               <code className="text-content font-mono truncate">{domain}</code>
-              <CopyButton value={domain} variant="ghost" className="size-5 flex-shrink-0" />
+              <CopyButton value={domain} variant="ghost" className="size-5 shrink-0" />
             </span>
             <span className="flex items-center gap-1.5 min-w-0">
               <code className="text-content font-mono truncate">{targetCname}</code>
-              <CopyButton value={targetCname} variant="ghost" className="size-5 flex-shrink-0" />
+              <CopyButton value={targetCname} variant="ghost" className="size-5 shrink-0" />
             </span>
             <span className="flex justify-center">
               {cnameVerified ? (
-                <CircleCheck className="!size-4 text-success-9" />
+                <CircleCheck className="size-4! text-success-9" />
               ) : (
-                <XMark className="!size-4 text-gray-7" />
+                <XMark className="size-4! text-gray-7" />
               )}
             </span>
           </div>
@@ -263,7 +263,7 @@ function DnsRecordTable({
 function StatusIndicator({ verified, label }: { verified: boolean; label: string }) {
   return (
     <Badge variant={verified ? "success" : "secondary"} className="gap-1 text-xs">
-      {verified ? <CircleCheck className="!size-3" /> : <Clock className="!size-3" />}
+      {verified ? <CircleCheck className="size-3!" /> : <Clock className="size-3!" />}
       {label}
     </Badge>
   );
@@ -273,10 +273,10 @@ export function CustomDomainRowSkeleton() {
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-4 last:border-b-0">
       <div className="flex items-center gap-3">
-        <div className="w-4 h-4 bg-gray-4 rounded animate-pulse" />
-        <div className="w-32 h-4 bg-gray-4 rounded animate-pulse" />
+        <div className="w-4 h-4 bg-gray-4 rounded-sm animate-pulse" />
+        <div className="w-32 h-4 bg-gray-4 rounded-sm animate-pulse" />
       </div>
-      <div className="w-16 h-5 bg-gray-4 rounded animate-pulse" />
+      <div className="w-16 h-5 bg-gray-4 rounded-sm animate-pulse" />
     </div>
   );
 }

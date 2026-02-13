@@ -78,13 +78,13 @@ export const KeySecretSection = ({
         </div>
         <Alert variant="warn">
           <div className="flex items-start mb-1 gap-2">
-            <CircleInfo iconSize="lg-regular" aria-hidden="true" className="flex-shrink-0" />
+            <CircleInfo iconSize="lg-regular" aria-hidden="true" className="shrink-0" />
             <div>
               <AlertTitle className="mb-1">Root Key Required</AlertTitle>
               <AlertDescription className="text-gray-12">
                 To verify keys, you'll need a root key with{" "}
-                <code className="bg-gray-3 px-1 rounded text-xs">api.*.verify_key</code> or{" "}
-                <code className="bg-gray-3 px-1 rounded text-xs">api.{apiId}.verify_key</code>{" "}
+                <code className="bg-gray-3 px-1 rounded-sm text-xs">api.*.verify_key</code> or{" "}
+                <code className="bg-gray-3 px-1 rounded-sm text-xs">api.{apiId}.verify_key</code>{" "}
                 permission.
                 <br />
                 <a

@@ -30,7 +30,7 @@ export const FormDescription = ({
         <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
           <TriangleWarning2
             iconSize="md-medium"
-            className="flex-shrink-0 ml-[-1px] mr-[1px]"
+            className="shrink-0 -ml-px mr-px"
             aria-hidden="true"
           />
           <span className="flex-1">{error}</span>
@@ -50,13 +50,13 @@ export const FormDescription = ({
           {variant === "warning" ? (
             <TriangleWarning2
               iconSize="md-medium"
-              className="flex-shrink-0 mt-[3px]"
+              className="shrink-0 mt-[3px]"
               aria-hidden="true"
             />
           ) : (
             <CircleInfo
               iconSize="md-medium"
-              className="flex-shrink-0 mt-[3px]"
+              className="shrink-0 mt-[3px]"
               aria-hidden="true"
             />
           )}

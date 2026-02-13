@@ -129,7 +129,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
       style.base,
       style.hover,
       "group rounded-md cursor-pointer transition-colors",
-      "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+      "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
       style.focusRing,
       isSelected && style.selected,
     );
@@ -301,7 +301,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                             <div className="break-all max-w-[300px] truncate">{tag}</div>
                             {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
                             <div
-                              className="pointer-events-auto flex-shrink-0"
+                              className="pointer-events-auto shrink-0"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <CopyButton variant="ghost" value={tag} />
@@ -361,7 +361,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                               <div className="break-all max-w-[300px] truncate">{tag}</div>
                               {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
                               <div
-                                className="pointer-events-auto flex-shrink-0"
+                                className="pointer-events-auto shrink-0"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <CopyButton variant="ghost" value={tag} />

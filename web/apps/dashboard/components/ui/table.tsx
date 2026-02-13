@@ -61,7 +61,7 @@ const tableHeadVariant = cva(
     variants: {
       variant: {
         allSidesBorder:
-          "border-t border-b border-border first:border-l first:rounded-l-lg  [&:last-child]:border-r [&:last-child]:rounded-r-lg bg-background-subtle",
+          "border-t border-b border-border first:border-l first:rounded-l-lg  last:border-r last:rounded-r-lg bg-background-subtle",
         bottomBorder: "border-b border-border",
       },
     },

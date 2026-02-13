@@ -169,7 +169,7 @@ export function RuntimeLogsTable() {
       style.base,
       style.hover,
       "group rounded-md",
-      "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+      "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
       style.focusRing,
       isSelected && style.selected,
       selectedLogKey && {

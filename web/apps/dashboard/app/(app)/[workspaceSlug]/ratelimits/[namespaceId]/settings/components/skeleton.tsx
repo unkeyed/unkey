@@ -12,9 +12,9 @@ export const SettingsClientSkeleton = () => {
           <div>
             <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-t-xl border-b">
               <div className="flex flex-col gap-1 text-sm w-fit">
-                <div className="h-5 w-32 bg-grayA-3 rounded animate-pulse transition-all" />
-                <div className="h-4 w-64 bg-grayA-3 rounded animate-pulse transition-all mt-1" />
-                <div className="h-4 w-44 bg-grayA-3 rounded animate-pulse transition-all" />
+                <div className="h-5 w-32 bg-grayA-3 rounded-sm animate-pulse transition-all" />
+                <div className="h-4 w-64 bg-grayA-3 rounded-sm animate-pulse transition-all mt-1" />
+                <div className="h-4 w-44 bg-grayA-3 rounded-sm animate-pulse transition-all" />
               </div>
               <div className="flex w-full lg:w-[420px] h-full justify-end items-end">
                 <div className="flex flex-row justify-end items-center gap-x-2 mt-2 h-9">
@@ -27,8 +27,8 @@ export const SettingsClientSkeleton = () => {
             {/* Namespace ID card skeleton */}
             <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-b-xl border-t-0">
               <div className="flex flex-col gap-1 text-sm w-fit">
-                <div className="h-5 w-28 bg-grayA-3 rounded animate-pulse transition-all" />
-                <div className="h-4 w-56 bg-grayA-3 rounded animate-pulse transition-all mt-1" />
+                <div className="h-5 w-28 bg-grayA-3 rounded-sm animate-pulse transition-all" />
+                <div className="h-4 w-56 bg-grayA-3 rounded-sm animate-pulse transition-all mt-1" />
               </div>
               <div className="flex w-full lg:w-[320px] h-full justify-end items-end">
                 <div className="flex flex-row justify-end items-center gap-x-2 mt-1">
@@ -42,9 +42,9 @@ export const SettingsClientSkeleton = () => {
           <div className="w-full">
             <div className="px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row border border-grayA-4 rounded-xl">
               <div className="flex flex-col gap-1 text-sm w-fit">
-                <div className="h-5 w-28 bg-grayA-3 rounded animate-pulse transition-all" />
-                <div className="h-4 w-52 bg-grayA-3 rounded animate-pulse transition-all mt-1" />
-                <div className="h-4 w-48 bg-grayA-3 rounded animate-pulse transition-all" />
+                <div className="h-5 w-28 bg-grayA-3 rounded-sm animate-pulse transition-all" />
+                <div className="h-4 w-52 bg-grayA-3 rounded-sm animate-pulse transition-all mt-1" />
+                <div className="h-4 w-48 bg-grayA-3 rounded-sm animate-pulse transition-all" />
               </div>
               <div className="flex w-full lg:w-[320px] h-full justify-end items-end">
                 <div className="w-full flex justify-end lg:mt-3">

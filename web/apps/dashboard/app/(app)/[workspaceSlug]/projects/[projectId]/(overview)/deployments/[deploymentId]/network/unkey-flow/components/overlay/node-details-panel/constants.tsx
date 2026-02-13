@@ -150,7 +150,7 @@ export const metrics: Array<{
     value: (
       <Select defaultValue="p50">
         <SelectTrigger
-          className="!bg-grayA-3 rounded-full px-3 py-1.5 flex items-center gap-1.5 border-0 h-auto !min-h-0 focus:border-none"
+          className="!bg-grayA-3 rounded-full px-3 py-1.5 flex items-center gap-1.5 border-0 h-auto min-h-0! focus:border-none"
           rightIcon={
             <ChevronExpandY className="text-gray-10 absolute right-3 w-4 h-4 opacity-70" />
           }

@@ -18,7 +18,7 @@ export const QueriesMadeBy = ({ userName, userImageSrc, createdString }: Queries
             <AvatarImage
               src={userImageSrc}
               alt={userName}
-              className="rounded-full border-[1px] border-gray-4"
+              className="rounded-full border border-gray-4"
             />
           </Avatar>
           <span className="font-mono text-xs font-medium leading-4 text-gray-12">{userName}</span>

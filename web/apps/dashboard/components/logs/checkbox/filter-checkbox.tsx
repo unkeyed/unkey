@@ -209,7 +209,7 @@ export const FilterCheckbox = <
               <Checkbox
                 id={"checkbox-999"}
                 checked={checkboxes.every((checkbox) => checkbox.checked)}
-                className="size-4 rounded border-gray-4 [&_svg]:size-3"
+                className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSelectAll();
@@ -233,7 +233,7 @@ export const FilterCheckbox = <
             <Checkbox
               id={`checkbox-${checkbox.id}`}
               checked={checkbox.checked}
-              className="size-4 rounded border-gray-4 [&_svg]:size-3"
+              className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
               onClick={(e) => {
                 e.stopPropagation();
                 handleCheckboxClick(index);

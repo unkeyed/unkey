@@ -87,7 +87,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
             <Input
               {...field}
               placeholder="my-api"
-              className="min-w-[16rem] items-end h-9"
+              className="min-w-64 items-end h-9"
               onChange={(e) => {
                 if (e.target.value === "") {
                   return;

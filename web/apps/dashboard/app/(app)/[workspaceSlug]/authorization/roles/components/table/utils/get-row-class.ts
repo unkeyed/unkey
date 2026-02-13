@@ -30,8 +30,8 @@ export const getRowClassName = (role: RoleBasic, selectedLog: RoleBasic | null) 
   return cn(
     style.base,
     style.hover,
-    "group rounded",
-    "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+    "group rounded-sm",
+    "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
     style.focusRing,
     isSelected && style.selected,
   );

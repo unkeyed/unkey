@@ -240,7 +240,7 @@ export function OverviewBarChart({
         <div className="flex gap-10 items-center">
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
-              <div className="bg-accent-8 rounded h-[10px] w-1" />
+              <div className="bg-accent-8 rounded-sm h-[10px] w-1" />
               <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">
@@ -249,7 +249,7 @@ export function OverviewBarChart({
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
-              <div className="bg-orange-9 rounded h-[10px] w-1" />
+              <div className="bg-orange-9 rounded-sm h-[10px] w-1" />
               <div className="text-accent-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
             </div>
             <div className="text-accent-12 text-[18px] font-semibold leading-7">

@@ -14,8 +14,8 @@ const SearchPermissions = ({ isProcessing, search, inputRef, onChange }: Props) 
   const isSearching = isProcessing && (search?.trim().length ?? 0) > 0;
 
   return (
-    <div className="flex flex-row items-center gap-2 w-full md:w-[calc(100%_-_16px)] pl-4 py-1 rounded-lg">
-      <div className="flex-shrink-0">
+    <div className="flex flex-row items-center gap-2 w-full md:w-[calc(100%-16px)] pl-4 py-1 rounded-lg">
+      <div className="shrink-0">
         <SearchIcon isProcessing={isProcessing} />
       </div>
       <div className="flex w-full">

@@ -70,7 +70,7 @@ const NavigableDialogRoot = <TStepName extends string>({
           <DialogContent
             onKeyDown={(e) => e.stopPropagation()}
             className={cn(
-              "drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 flex flex-col max-h-[90vh]",
+              "drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden rounded-2xl! p-0 gap-0 flex flex-col max-h-[90vh]",
               dialogClassName,
             )}
             onOpenAutoFocus={(e) => {
@@ -160,7 +160,7 @@ const NavigableDialogNav = <TStepName extends string>({
     <div
       className={cn(
         "border-r border-grayA-4 bg-white dark:bg-black p-6 flex flex-col items-start justify-start gap-3",
-        "flex-shrink-0",
+        "shrink-0",
         navWidthClass,
         className,
       )}
@@ -258,7 +258,7 @@ const NavigableDialogBody = ({
   children: ReactNode;
   className?: string;
 }) => {
-  return <div className={cn("flex flex-grow overflow-hidden", className)}>{children}</div>;
+  return <div className={cn("flex grow overflow-hidden", className)}>{children}</div>;
 };
 
 NavigableDialogBody.displayName = "NavigableDialogBody";

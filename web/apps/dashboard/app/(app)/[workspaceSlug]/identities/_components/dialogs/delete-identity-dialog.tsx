@@ -119,10 +119,10 @@ export const DeleteIdentityDialog = ({
           >
             <IdentityInfo identity={identity} />
             <div className="py-1 my-2">
-              <div className="h-[1px] bg-grayA-3 w-full" />
+              <div className="h-px bg-grayA-3 w-full" />
             </div>
             <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
-              <div className="bg-error-9 size-8 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
                 <TriangleWarning2 iconSize="sm-regular" className="text-white" />
               </div>
               <div className="text-error-12 text-[13px] leading-6">

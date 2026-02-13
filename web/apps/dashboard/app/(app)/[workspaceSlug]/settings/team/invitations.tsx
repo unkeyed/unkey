@@ -55,7 +55,7 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
             <div key={invitation.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div
-                  className="h-8 w-8 rounded-full flex-shrink-0"
+                  className="h-8 w-8 rounded-full shrink-0"
                   style={{
                     background: `linear-gradient(to bottom right, ${getGradientForUser(invitation.email).from}, ${getGradientForUser(invitation.email).to})`,
                   }}

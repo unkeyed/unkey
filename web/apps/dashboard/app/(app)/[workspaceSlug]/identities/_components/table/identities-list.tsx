@@ -34,7 +34,7 @@ const IdentityTableActionPopover = dynamic(
       <button
         type="button"
         className={cn(
-          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded-sm m-0 items-center flex justify-center",
           "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
         )}
       >
@@ -123,7 +123,7 @@ export const IdentitiesList = () => {
               : identity.externalId;
 
           const iconContainer = (
-            <div className={cn("size-5 rounded flex items-center justify-center", "bg-brandA-3")}>
+            <div className={cn("size-5 rounded-sm flex items-center justify-center", "bg-brandA-3")}>
               {isNavigating ? (
                 <div className="text-brandA-11">
                   <Loading size={18} />
@@ -330,7 +330,7 @@ export const IdentitiesList = () => {
             {column.key === "action" && <ActionColumnSkeleton />}
             {!["externalId", "keys", "ratelimits", "created", "last_used", "action"].includes(
               column.key,
-            ) && <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />}
+            ) && <div className="h-4 w-full bg-grayA-3 rounded-sm animate-pulse" />}
           </td>
         ))
       }

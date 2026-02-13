@@ -9,10 +9,10 @@ const codeVariants = cva(
     variants: {
       variant: {
         default:
-          "border-grayA-5 focus:outline-none focus:ring-0 bg-white dark:bg-black text-[11px] py-2",
+          "border-grayA-5 focus:outline-hidden focus:ring-0 bg-white dark:bg-black text-[11px] py-2",
         ghost: "border-none bg-transparent text-[11px] py-2",
         legacy:
-          "text-primary bg-background-subtle rounded-md hover:border-primary focus:outline-none focus:ring-0 border-grayA-4",
+          "text-primary bg-background-subtle rounded-md hover:border-primary focus:outline-hidden focus:ring-0 border-grayA-4",
       },
     },
     defaultVariants: {
@@ -45,14 +45,14 @@ function Code({
     <div className={cn(codeVariants({ variant }), className)}>
       <pre
         className={cn(
-          "border-none bg-transparent focus:outline-none focus:ring-0 pr-2 pt-2",
+          "border-none bg-transparent focus:outline-hidden focus:ring-0 pr-2 pt-2",
           preClassName,
         )}
         {...props}
       />
       <div
         className={cn(
-          "flex items-center justify-between gap-2 flex-shrink-0 mt-1",
+          "flex items-center justify-between gap-2 shrink-0 mt-1",
           buttonsClassName,
         )}
       >

@@ -161,7 +161,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                   setCustomConfig(preset.config);
                 }}
                 disabled={generateMutation.isLoading}
-                className="text-left px-3 py-2 rounded border border-grayA-4 text-xs transition-colors"
+                className="text-left px-3 py-2 rounded-sm border border-grayA-4 text-xs transition-colors"
               >
                 {preset.label}
               </Button>
@@ -207,7 +207,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                     }))
                   }
                   disabled={generateMutation.isLoading}
-                  className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
+                  className="flex-1 px-2 py-1 text-xs rounded-sm border border-grayA-4 bg-gray-1"
                 >
                   <option value="horizontal">Horizontal (side-by-side)</option>
                   <option value="vertical">Vertical (stacked)</option>
@@ -224,7 +224,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
                     }))
                   }
                   disabled={generateMutation.isLoading}
-                  className="flex-1 px-2 py-1 text-xs rounded border border-grayA-4 bg-gray-1"
+                  className="flex-1 px-2 py-1 text-xs rounded-sm border border-grayA-4 bg-gray-1"
                 >
                   <option value="horizontal">Horizontal (side-by-side)</option>
                   <option value="vertical">Vertical (stacked)</option>
@@ -280,7 +280,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
           <Button
             onClick={() => handleGenerate(customConfig)}
             disabled={generateMutation.isLoading}
-            className="w-full px-3 py-2 rounded text-xs font-medium transition-colors"
+            className="w-full px-3 py-2 rounded-sm text-xs font-medium transition-colors"
           >
             Generate Custom Tree
           </Button>
@@ -290,7 +290,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         <Button
           onClick={onReset}
           disabled={generateMutation.isLoading}
-          className="w-full px-3 py-2 rounded text-xs font-medium transition-colors border border-grayA-4"
+          className="w-full px-3 py-2 rounded-sm text-xs font-medium transition-colors border border-grayA-4"
         >
           Reset to Original
         </Button>

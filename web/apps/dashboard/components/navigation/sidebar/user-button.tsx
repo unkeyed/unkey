@@ -42,7 +42,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
       <DropdownMenuTrigger
         className={cn(
           "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0",
-          isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 flex-grow h-8",
+          isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 grow h-8",
           className,
         )}
       >

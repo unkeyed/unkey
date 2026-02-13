@@ -118,7 +118,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
 
           return (
             <div className="flex items-center w-full">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <Badge
                   className={cn(
                     "px-[6px] rounded-md font-mono whitespace-nowrap flex items-center",
@@ -128,7 +128,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                     1,
                   )}%)`}
                 >
-                  <span className="mr-[6px] flex-shrink-0">
+                  <span className="mr-[6px] shrink-0">
                     <Ban iconSize="sm-regular" />
                   </span>
                   <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[45px]">
@@ -136,7 +136,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                   </span>
                 </Badge>
               </div>
-              <div className="ml-2 flex-shrink-0">
+              <div className="ml-2 shrink-0">
                 <OutcomesPopover
                   outcomeCounts={log.outcome_counts}
                   isSelected={selectedLog?.key_id === log.key_id}

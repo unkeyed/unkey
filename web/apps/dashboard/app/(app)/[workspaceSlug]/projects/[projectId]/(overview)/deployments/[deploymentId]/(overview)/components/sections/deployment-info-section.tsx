@@ -54,7 +54,7 @@ export function DeploymentInfoSection() {
             <InfoTooltip asChild content="Show deployment details">
               <Button
                 variant="ghost"
-                className="[&_svg]:size-3 size-3 rounded-sm"
+                className="[&_svg]:size-3 size-3 rounded-xs"
                 size="icon"
                 onClick={() => setIsDetailsOpen(!isDetailsOpen)}
               >

@@ -31,7 +31,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
       }}
     >
       <DialogContent
-        className="drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden !rounded-2xl p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
+        className="drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden rounded-2xl! p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning
         onAttemptClose={handleCloseAttempt}
       >
@@ -66,7 +66,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             </div>
           </div>
           <div className="p-1 w-full my-8">
-            <div className="h-[1px] bg-grayA-3 w-full" />
+            <div className="h-px bg-grayA-3 w-full" />
           </div>
 
           <div className="flex flex-col gap-2 items-start w-full">

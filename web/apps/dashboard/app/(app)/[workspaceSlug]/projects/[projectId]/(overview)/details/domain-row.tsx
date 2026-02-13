@@ -41,11 +41,11 @@ export const DomainRowSkeleton = () => {
     <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] last:border-b w-full px-4 py-3 flex justify-between items-center">
       <div className="flex items-center">
         <Link4 className="text-grayA-6" iconSize="sm-medium" />
-        <div className="h-3 w-32 bg-grayA-3 rounded animate-pulse ml-3 mr-2" />
+        <div className="h-3 w-32 bg-grayA-3 rounded-sm animate-pulse ml-3 mr-2" />
         <ShareUpRight className="text-grayA-6 shrink-0" iconSize="md-regular" />
         <div className="ml-3" />
       </div>
-      <div className="p-[5px] size-[22px] bg-grayA-3 rounded animate-pulse flex items-center justify-center">
+      <div className="p-[5px] size-[22px] bg-grayA-3 rounded-sm animate-pulse flex items-center justify-center">
         <div className="size-3 bg-grayA-4 rounded-full" />
       </div>
     </div>

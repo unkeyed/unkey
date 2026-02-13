@@ -82,7 +82,7 @@ export function SelectedItemsList<T extends BaseItem>({
                 )}
                 {...itemProps}
               >
-                <div className="border rounded flex items-center justify-center border-grayA-4 bg-gray-4 flex-shrink-0 size-5">
+                <div className="border rounded-sm flex items-center justify-center border-grayA-4 bg-gray-4 shrink-0 size-5">
                   {renderIcon(item)}
                 </div>
                 <div className="flex flex-col gap-1 min-w-0">
@@ -103,14 +103,14 @@ export function SelectedItemsList<T extends BaseItem>({
                   <button
                     type="button"
                     onClick={() => onRemoveItem(item.id)}
-                    className="p-0.5 hover:bg-grayA-4 rounded text-grayA-11 hover:text-accent-12 transition-colors flex-shrink-0 ml-auto"
+                    className="p-0.5 hover:bg-grayA-4 rounded-sm text-grayA-11 hover:text-accent-12 transition-colors shrink-0 ml-auto"
                     aria-label={`Remove ${renderPrimaryText(item)}`}
                   >
                     <XMark iconSize="sm-regular" />
                   </button>
                 ) : (
                   <div
-                    className="p-0.5 rounded text-grayA-6 flex-shrink-0 ml-auto opacity-50"
+                    className="p-0.5 rounded-sm text-grayA-6 shrink-0 ml-auto opacity-50"
                     title="Cannot remove - inherited from selected role"
                   >
                     <XMark iconSize="sm-regular" />

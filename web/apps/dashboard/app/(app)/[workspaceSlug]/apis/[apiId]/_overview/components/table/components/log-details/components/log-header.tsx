@@ -11,7 +11,7 @@ export const LogHeader = ({
   log: KeysOverviewLog;
 }) => {
   return (
-    <div className="border-b-[1px] flex justify-between items-center border-gray-4 h-[50px] px-4 py-2">
+    <div className="border-b flex justify-between items-center border-gray-4 h-[50px] px-4 py-2">
       <div className="flex gap-2 items-center flex-1 min-w-0">
         <Badge
           className={cn("uppercase px-[6px] rounded-md font-mono", {

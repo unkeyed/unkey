@@ -155,7 +155,7 @@ export default function DiffPage() {
           {showEmptyState && (
             <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
+                <div className="absolute inset-0 bg-linear-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
                 <div className="relative bg-gray-3 rounded-full p-3 transition-all duration-200">
                   <Magnifier
                     className="text-grayA-9 size-6 transition-all duration-200 animate-pulse"
@@ -187,7 +187,7 @@ export default function DiffPage() {
                 <div className="p-3 pt-0">
                   <div className="flex flex-col items-center gap-4 px-8 py-12 text-center border border-error-6 rounded-lg bg-error-2">
                     <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-error-4 to-error-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
+                      <div className="absolute inset-0 bg-linear-to-r from-error-4 to-error-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
                       <div className="relative bg-error-3 rounded-full p-3 transition-all duration-200">
                         <Magnifier
                           className="text-error-9 size-6 transition-all duration-200 animate-pulse"

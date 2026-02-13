@@ -33,7 +33,7 @@ export const OutcomesPopover = ({ outcomeCounts, isSelected }: OutcomesPopoverPr
           <span className="overflow-hidden text-ellipsis whitespace-nowrap">
             {formatOutcomeName(outcome)}:
           </span>
-          <span className="tabular-nums flex-shrink-0 ml-1">{formatNumber(count)}</span>
+          <span className="tabular-nums shrink-0 ml-1">{formatNumber(count)}</span>
         </div>
       </Badge>
     );
@@ -59,7 +59,7 @@ export const OutcomesPopover = ({ outcomeCounts, isSelected }: OutcomesPopoverPr
               <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-1 max-w-[90px]">
                 +{nonValidOutcomes.length} Outcomes
               </span>
-              <ChevronRight iconSize="sm-regular" className="flex-shrink-0" />
+              <ChevronRight iconSize="sm-regular" className="shrink-0" />
             </div>
           </Button>
         </PopoverTrigger>
@@ -86,13 +86,13 @@ export const OutcomesPopover = ({ outcomeCounts, isSelected }: OutcomesPopoverPr
                 >
                   <div className="flex items-center gap-2.5 pl-1.5 font-mono">
                     <div
-                      className={`size-[10px] ${getOutcomeColor(outcome)} rounded-[2px] shadow-sm`}
+                      className={`size-[10px] ${getOutcomeColor(outcome)} rounded-[2px] shadow-xs`}
                     />
                     <span className="text-accent-12 text-xs font-medium">
                       {formatOutcomeName(outcome)}
                     </span>
                   </div>
-                  <span className="text-accent-11 text-xs font-mono px-1.5 py-0.5 rounded tabular-nums">
+                  <span className="text-accent-11 text-xs font-mono px-1.5 py-0.5 rounded-sm tabular-nums">
                     {count.toLocaleString()}
                   </span>
                 </div>

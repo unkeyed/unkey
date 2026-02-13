@@ -114,7 +114,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
     return (
       <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
+          <div className="absolute inset-0 bg-linear-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
           <div className="relative bg-gray-3 rounded-full p-3 transition-all duration-200">
             <CircleInfo
               className="text-grayA-9 size-6 transition-all duration-200 animate-pulse"
@@ -290,7 +290,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                             {changes.map((change, index) => (
                               <div
                                 key={`${change.id}-${index}`}
-                                className={`px-2 py-1.5 rounded ${getSeverityColor(change.level)}`}
+                                className={`px-2 py-1.5 rounded-sm ${getSeverityColor(change.level)}`}
                               >
                                 <div className="flex items-start gap-2.5">
                                   <div className="shrink-0 mt-0.5">

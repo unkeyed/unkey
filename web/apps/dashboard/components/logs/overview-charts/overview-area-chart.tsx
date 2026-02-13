@@ -237,7 +237,7 @@ export const OverviewAreaChart = ({
               labelsWithDefaults.metrics.map((metric) => (
                 <div
                   key={metric.key}
-                  className="rounded h-[10px] w-1"
+                  className="rounded-sm h-[10px] w-1"
                   style={{ backgroundColor: metric.color }}
                 />
               ))}
@@ -261,7 +261,7 @@ export const OverviewAreaChart = ({
             {labelsWithDefaults.metrics.map((metric) => (
               <div key={metric.key} className="flex flex-col gap-1">
                 <div className="flex gap-2 items-center">
-                  <div className="rounded h-[10px] w-1" style={{ backgroundColor: metric.color }} />
+                  <div className="rounded-sm h-[10px] w-1" style={{ backgroundColor: metric.color }} />
                   <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
                 </div>
                 <div className="text-accent-12 text-[18px] font-semibold leading-7">

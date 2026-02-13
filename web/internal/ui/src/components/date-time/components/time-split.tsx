@@ -105,7 +105,7 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   const inputClassNames = `
     w-5
     bg-transparent
-    outline-none ring-0 focus:ring-0
+    outline-hidden ring-0 focus:ring-0
     text-center
     text-gray-12 leading-6 tracking-normal font-medium text-[13px]
   `;
@@ -126,7 +126,7 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   return (
     <div
       className={cn(
-        "flex h-8 w-full items-center rounded rounded-3 border-[1px]  bg-gray-2 text-gray-12",
+        "flex h-8 w-full items-center rounded-sm rounded-3 border  bg-gray-2 text-gray-12",
         focus ? " border-gray-10" : "border-grayA-4",
       )}
     >

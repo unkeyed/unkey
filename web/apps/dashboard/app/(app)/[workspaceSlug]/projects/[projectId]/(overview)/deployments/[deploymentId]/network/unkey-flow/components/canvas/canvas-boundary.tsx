@@ -21,7 +21,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
               {/* Error state indicator - top section */}
               <div className="h-12 border-b border-grayA-4 flex items-center px-4 gap-3">
                 {/* Icon container */}
-                <div className="size-6 rounded-md bg-redA-3 border border-grayA-4 flex items-center justify-center flex-shrink-0">
+                <div className="size-6 rounded-md bg-redA-3 border border-grayA-4 flex items-center justify-center shrink-0">
                   <TriangleWarning className="text-red-11" iconSize="md-medium" />
                 </div>
                 {/* Title */}

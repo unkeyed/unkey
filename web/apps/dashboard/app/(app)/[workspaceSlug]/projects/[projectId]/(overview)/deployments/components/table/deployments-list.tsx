@@ -73,7 +73,7 @@ export const DeploymentsList = () => {
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
-                <div className="flex-shrink-0">{iconContainer}</div>
+                <div className="shrink-0">{iconContainer}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <div
@@ -85,7 +85,7 @@ export const DeploymentsList = () => {
                       {shortenId(deployment.id)}
                     </div>
                     {isLive ? (
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         {project?.isRolledBack ? (
                           <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
                         ) : (
@@ -183,14 +183,14 @@ export const DeploymentsList = () => {
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }) => {
           const iconContainer = (
-            <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
+            <div className="size-5 rounded-sm flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
               <CodeBranch iconSize="sm-regular" className="text-gray-12" />
             </div>
           );
           return (
             <div className="flex flex-col items-start py-1.5">
               <div className="flex gap-3 items-center w-full">
-                <div className="flex-shrink-0">{iconContainer}</div>
+                <div className="shrink-0">{iconContainer}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <div
@@ -335,7 +335,7 @@ export const DeploymentsList = () => {
             {column.key === "size" && <SizeColumnSkeleton />}
             {column.key === "domains" && (
               <div className="flex items-center min-h-[52px]">
-                <div className="h-4 bg-grayA-3 rounded w-32 animate-pulse" />
+                <div className="h-4 bg-grayA-3 rounded-sm w-32 animate-pulse" />
               </div>
             )}
             {column.key === "source" && <SourceColumnSkeleton />}

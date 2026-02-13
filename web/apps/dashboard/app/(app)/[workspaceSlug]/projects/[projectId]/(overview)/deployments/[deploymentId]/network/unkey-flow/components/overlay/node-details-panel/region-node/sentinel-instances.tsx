@@ -19,7 +19,7 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
     <div className="flex px-4 w-full mt-4 flex-col">
       <div className="flex items-center gap-3 w-full">
         <div className="text-gray-9 text-xs whitespace-nowrap">Instances</div>
-        <div className="h-0.5 bg-grayA-3 rounded-sm flex-1 min-w-[115px]" />
+        <div className="h-0.5 bg-grayA-3 rounded-xs flex-1 min-w-[115px]" />
       </div>
       <div className="flex flex-col gap-6 mt-5">
         {instanceNodes.map((instance) => {

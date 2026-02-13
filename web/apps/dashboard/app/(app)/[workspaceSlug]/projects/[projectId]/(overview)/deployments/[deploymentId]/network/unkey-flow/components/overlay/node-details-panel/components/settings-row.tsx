@@ -17,7 +17,7 @@ export const SettingsSection = ({ title, settings }: SettingsSectionProps) => {
     <div className="flex px-4 w-full mt-4 flex-col">
       <div className="flex items-center gap-3 w-full">
         <div className="text-gray-9 text-xs whitespace-nowrap">{title}</div>
-        <div className="h-0.5 bg-grayA-3 rounded-sm flex-1 min-w-[115px]" />
+        <div className="h-0.5 bg-grayA-3 rounded-xs flex-1 min-w-[115px]" />
       </div>
       <div className="mt-5" />
       <div className="flex flex-col gap-3">

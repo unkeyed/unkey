@@ -23,7 +23,7 @@ export function DeploymentLogsTrigger() {
       <Button size="icon" variant="ghost" onClick={toggleExpanded}>
         <ChevronDown
           className={cn(
-            "text-grayA-9 !size-3 transition-transform duration-200",
+            "text-grayA-9 size-3! transition-transform duration-200",
             isExpanded && "rotate-180",
           )}
         />

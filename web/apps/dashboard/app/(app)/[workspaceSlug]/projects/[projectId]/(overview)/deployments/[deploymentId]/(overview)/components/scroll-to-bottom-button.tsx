@@ -32,14 +32,14 @@ export function ScrollToBottomButton() {
         "border border-grayA-4",
         "transition-all duration-300 ease-out",
         "overflow-hidden",
-        "before:absolute before:inset-0 before:bg-gradient-to-r before:from-infoA-5 before:to-transparent before:-z-10",
-        "after:absolute after:inset-0 after:bg-gray-1 after:dark:bg-black after:-z-20",
+        "before:absolute before:inset-0 before:bg-linear-to-r before:from-infoA-5 before:to-transparent before:-z-10",
+        "after:absolute after:inset-0 after:bg-gray-1 dark:after:bg-black after:-z-20",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none",
       )}
       aria-label="Scroll to bottom of build logs"
     >
       {/* Shimmer animation overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
+      <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
       <span className="text-xs text-infoA-11 font-medium relative z-10">Building...</span>
       <ChevronDown iconSize="sm-regular" className="text-info-11 relative z-10" />
     </button>

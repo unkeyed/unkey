@@ -18,8 +18,8 @@ export const SkeletonNode = () => {
 
             {/* Title/subtitle skeleton */}
             <div className="flex flex-col gap-2 justify-center h-9 py-2">
-              <div className="h-1 w-16 bg-grayA-3 rounded animate-pulse" />
-              <div className="h-1 w-24 bg-grayA-3 rounded animate-pulse" />
+              <div className="h-1 w-16 bg-grayA-3 rounded-sm animate-pulse" />
+              <div className="h-1 w-24 bg-grayA-3 rounded-sm animate-pulse" />
             </div>
           </div>
 

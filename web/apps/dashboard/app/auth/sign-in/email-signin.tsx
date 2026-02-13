@@ -110,7 +110,7 @@ export function EmailSignIn() {
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect="off"
-            className="h-10 dark !bg-black w-full"
+            className="h-10 dark bg-black! w-full"
             onChange={(e) => setCurrentEmail(e.target.value)}
           />
         </div>

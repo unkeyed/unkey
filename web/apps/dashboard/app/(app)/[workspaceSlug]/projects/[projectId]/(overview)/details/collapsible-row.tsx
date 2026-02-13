@@ -15,7 +15,7 @@ export function CollapsibleRow({ icon, title, onToggle }: CollapsibleRowProps) {
         <div className="text-gray-12 font-medium text-xs ml-3 mr-2">{title}</div>
       </div>
       <Button size="icon" variant="ghost" onClick={onToggle}>
-        <ChevronDown className="text-grayA-9 !size-3" />
+        <ChevronDown className="text-grayA-9 size-3!" />
       </Button>
     </div>
   );

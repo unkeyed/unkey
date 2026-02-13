@@ -50,7 +50,7 @@ export const getRowClassName = (log: RatelimitOverviewLog, selectedLog: Ratelimi
     style.hover,
     hasMoreBlocked ? "bg-orange-2" : "",
     "group rounded-md",
-    "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
     style.focus,
     isSelected && style.selected,
     selectedLog && {

@@ -31,7 +31,7 @@ export type NavItem = {
 const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
   <div
     className={cn(
-      "border text-gray-11 border-gray-6 hover:border-gray-8 rounded text-xs px-1 py-0.5 font-mono",
+      "border text-gray-11 border-gray-6 hover:border-gray-8 rounded-sm text-xs px-1 py-0.5 font-mono",
       className,
     )}
   >

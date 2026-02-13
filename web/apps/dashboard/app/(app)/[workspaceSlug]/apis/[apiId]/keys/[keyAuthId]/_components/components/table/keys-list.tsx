@@ -37,7 +37,7 @@ const KeysTableActionPopover = dynamic(
       <button
         type="button"
         className={cn(
-          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded-sm m-0 items-center flex justify-center",
           "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
         )}
       >
@@ -98,7 +98,7 @@ export const KeysList = ({
           const iconContainer = (
             <div
               className={cn(
-                "size-5 rounded flex items-center justify-center cursor-pointer",
+                "size-5 rounded-sm flex items-center justify-center cursor-pointer",
                 identity ? "bg-successA-3" : "bg-grayA-3",
                 isSelected && "bg-brand-5",
               )}
@@ -157,10 +157,10 @@ export const KeysList = ({
                             rel="noopener noreferrer"
                             aria-disabled={isNavigating}
                           >
-                            <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
+                            <span className="font-mono bg-gray-4 p-1 rounded-sm">{identity}</span>
                           </Link>
                         ) : (
-                          <span className="font-mono bg-gray-4 p-1 rounded">{identity}</span>
+                          <span className="font-mono bg-gray-4 p-1 rounded-sm">{identity}</span>
                         )}
                       </>
                     }
@@ -391,7 +391,7 @@ export const KeysList = ({
               {column.key === "action" && <ActionColumnSkeleton />}
               {!["select", "key", "value", "usage", "last_used", "status", "action"].includes(
                 column.key,
-              ) && <div className="h-4 w-full bg-grayA-3 rounded animate-pulse" />}
+              ) && <div className="h-4 w-full bg-grayA-3 rounded-sm animate-pulse" />}
             </td>
           ))
         }

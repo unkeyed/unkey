@@ -24,8 +24,8 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
       )}
     >
       {isLive && (
-        <div className="absolute left-0 right-0 top-0 bottom-0 rounded">
-          <div className="absolute inset-0 bg-info-6 rounded opacity-15 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
+        <div className="absolute left-0 right-0 top-0 bottom-0 rounded-sm">
+          <div className="absolute inset-0 bg-info-6 rounded-sm opacity-15 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
         </div>
       )}
       <CircleCaretRight className="size-4 relative z-10" />

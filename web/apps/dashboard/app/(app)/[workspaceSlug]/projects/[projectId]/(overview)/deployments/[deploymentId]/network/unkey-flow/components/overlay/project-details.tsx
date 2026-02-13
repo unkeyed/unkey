@@ -24,8 +24,8 @@ export const ProjectDetails = () => {
             <InfoChip icon={CodeCommit}>
               <span className="text-grayA-9 text-xs">921103d</span>
             </InfoChip>
-            <button onClick={() => setIsOpen(!isOpen)} type="button" className="flex-shrink-0">
-              <div className="w-3 h-3 flex items-center justify-center flex-shrink-0">
+            <button onClick={() => setIsOpen(!isOpen)} type="button" className="shrink-0">
+              <div className="w-3 h-3 flex items-center justify-center shrink-0">
                 <ChevronDown
                   className={cn(
                     "text-gray-8 transition-transform origin-center",

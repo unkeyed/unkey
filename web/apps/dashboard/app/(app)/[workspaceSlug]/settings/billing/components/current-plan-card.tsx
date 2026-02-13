@@ -30,7 +30,7 @@ export const CurrentPlanCard = ({ currentProduct, onChangePlan }: CurrentPlanCar
         </div>
         <Button
           size="lg"
-          variant={currentProduct ? "outline" : "primary"}
+          variant={currentProduct ? "outline-solid" : "primary"}
           onClick={handleChangePlan}
         >
           {currentProduct ? "Change Plan" : "Upgrade"}

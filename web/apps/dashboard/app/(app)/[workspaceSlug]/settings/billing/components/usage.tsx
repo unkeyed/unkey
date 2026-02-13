@@ -34,7 +34,7 @@ export const Usage: React.FC<{
         contentWidth="w-full lg:w-[320px]"
       >
         <div className="w-full flex h-full items-center justify-end gap-4">
-          <div className="h-5 w-32 bg-gray-4 animate-pulse rounded" />
+          <div className="h-5 w-32 bg-gray-4 animate-pulse rounded-sm" />
           <div className="h-6 w-6 bg-gray-4 animate-pulse rounded-full" />
         </div>
       </SettingCard>

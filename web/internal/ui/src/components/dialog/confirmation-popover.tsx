@@ -45,7 +45,7 @@ const DEFAULT_POPOVER_PROPS = {
   side: "bottom" as const,
   align: "center" as const,
   className:
-    "bg-white dark:bg-black flex flex-col items-center justify-center border-grayA-4 overflow-hidden !rounded-[10px] p-0 gap-0 min-w-[344px]",
+    "bg-white dark:bg-black flex flex-col items-center justify-center border-grayA-4 overflow-hidden rounded-[10px]! p-0 gap-0 min-w-[344px]",
   onOpenAutoFocus: (e: Event) => e.preventDefault(),
 };
 
@@ -94,7 +94,7 @@ export const ConfirmPopover = ({
           <div className="flex gap-3 items-center justify-start">
             <div
               className={cn(
-                "flex items-center justify-center rounded size-[22px]",
+                "flex items-center justify-center rounded-sm size-[22px]",
                 iconBg,
                 iconColor,
               )}
@@ -105,7 +105,7 @@ export const ConfirmPopover = ({
           </div>
         </div>
         <div className="w-full">
-          <div className="h-[1px] bg-grayA-3 w-full" />
+          <div className="h-px bg-grayA-3 w-full" />
         </div>
         <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4">{description}</div>
         <div className="space-x-3 w-full px-4 pb-4">

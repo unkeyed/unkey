@@ -14,14 +14,14 @@ export const MetricStats = ({
   <div className="flex gap-[14px] items-center">
     <div className="flex flex-col gap-1">
       <div className="flex gap-2 items-center">
-        <div className="bg-accent-8 rounded h-[10px] w-1" />
+        <div className="bg-accent-8 rounded-sm h-[10px] w-1" />
         <div className="text-accent-12 text-xs font-medium">{formatNumber(successCount)}</div>
         <div className="text-accent-9 text-[11px] leading-4">{successLabel}</div>
       </div>
     </div>
     <div className="flex flex-col gap-1">
       <div className="flex gap-2 items-center">
-        <div className="bg-orange-9 rounded h-[10px] w-1" />
+        <div className="bg-orange-9 rounded-sm h-[10px] w-1" />
         <div className="text-accent-12 text-xs font-medium">{formatNumber(errorCount)}</div>
         <div className="text-accent-9 text-[11px] leading-4">{errorLabel}</div>
       </div>
