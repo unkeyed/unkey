@@ -17,6 +17,7 @@ import {
   PENDING_SESSION_COOKIE,
   type PendingTurnstileResponse,
   type SignInViaOAuthOptions,
+  UNKEY_LAST_ORG_COOKIE,
   type UserData,
   type VerificationResult,
   errorMessages,
@@ -489,6 +490,14 @@ export async function verifyTurnstileAndRetry(params: {
     code: AuthErrorCode.UNKNOWN_ERROR,
     message: "Invalid challenge parameters.",
   };
+}
+
+/**
+ * Clear pending authentication state when user cancels org selection
+ */
+export async function clearPendingAuth(): Promise<void> {
+  (await cookies()).delete(PENDING_SESSION_COOKIE);
+  (await cookies()).delete(UNKEY_LAST_ORG_COOKIE);
 }
 
 /**

@@ -17,7 +17,7 @@ import {
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useCallback, useContext, useMemo, useState } from "react";
-import { completeOrgSelection } from "../actions";
+import { clearPendingAuth, completeOrgSelection } from "../actions";
 import { SignInContext } from "../context/signin-context";
 
 interface OrgSelectorProps {
@@ -32,6 +32,12 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
   }
   const { setError } = context;
   const router = useRouter();
+
+  const handleClose = useCallback(async () => {
+    // Clear pending auth state when user closes modal
+    await clearPendingAuth();
+    router.push("/auth/sign-in");
+  }, [router]);
 
   const sortedOrgs = useMemo(() => {
     // Sort: recently created first (as proxy for recently used until we track that)
@@ -100,10 +106,12 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
 
   return (
     <DialogContainer
-      className="dark bg-black [&_button[aria-label*='Close']]:hidden"
+      className="dark bg-black"
       isOpen={isOpen}
-      onOpenChange={() => {
-        // Prevent closing the modal - user must select an org
+      onOpenChange={(open) => {
+        if (!open && !isLoading) {
+          handleClose();
+        }
       }}
       preventOutsideClose={true}
       title="Select your workspace"
