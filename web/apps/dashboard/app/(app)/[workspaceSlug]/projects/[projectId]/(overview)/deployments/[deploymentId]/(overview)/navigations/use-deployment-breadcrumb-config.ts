@@ -42,7 +42,6 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
       .orderBy(({ deployment }) => deployment.createdAt, "desc"),
   );
 
-
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).select(({ project }) => ({
       id: project.id,
@@ -101,5 +100,5 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
         },
       },
     ];
-  }, [workspaceSlug, projectId, deploymentId, deployments]);
+  }, [workspaceSlug, projectId, deploymentId, deployments, projects, activeProject?.name]);
 }

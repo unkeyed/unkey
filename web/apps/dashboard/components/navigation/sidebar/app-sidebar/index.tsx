@@ -142,9 +142,9 @@ export function AppSidebar({
           <div
             className={cn(
               "absolute inset-0 flex flex-col justify-between transition-all duration-150 ease-out motion-reduce:duration-0",
-              !isProject
-                ? "translate-x-0 opacity-100"
-                : `${direction > 0 ? "translate-x-full" : "-translate-x-full"} opacity-0 pointer-events-none`,
+              isProject
+                ? `${direction > 0 ? "translate-x-full" : "-translate-x-full"} opacity-0 pointer-events-none`
+                : "translate-x-0 opacity-100",
             )}
             onTransitionEnd={() => setIsAnimating(false)}
           >

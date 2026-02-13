@@ -2,27 +2,19 @@
 import type { NavItem } from "@/components/navigation/sidebar/workspace-navigations";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { shortenId } from "@/lib/shorten-id";
-import { eq, useLiveQuery } from "@tanstack/react-db";
-import {
-  ArrowOppositeDirectionY,
-  Cube,
-  Gear,
-  InputSearch,
-  Layers3,
-  Nodes,
-} from "@unkey/icons";
+import { useLiveQuery } from "@tanstack/react-db";
+import { ArrowOppositeDirectionY, Cube, Gear, InputSearch, Layers3, Nodes } from "@unkey/icons";
 import { useMemo } from "react";
 
 type ProjectScopeResult =
   | { isInsideProject: false }
   | {
-    isInsideProject: true;
-    projectId: string;
-    projectName: string;
-    backHref: string;
-    navItems: NavItem[];
-  };
+      isInsideProject: true;
+      projectId: string;
+      projectName: string;
+      backHref: string;
+      navItems: NavItem[];
+    };
 
 export const useProjectScopedNavigation = (segments: string[]): ProjectScopeResult => {
   const workspace = useWorkspaceNavigation();
@@ -32,15 +24,6 @@ export const useProjectScopedNavigation = (segments: string[]): ProjectScopeResu
 
   const { data: projectData } = useLiveQuery((q) =>
     q.from({ project: collection.projects }).orderBy(({ project }) => project.id, "desc"),
-  );
-
-  const safeProjectId = projectId ?? "__none__";
-
-  const { data: deploymentData } = useLiveQuery((q) =>
-    q
-      .from({ deployment: collection.deployments })
-      .where(({ deployment }) => eq(deployment.projectId, safeProjectId))
-      .orderBy(({ deployment }) => deployment.createdAt, "desc"),
   );
 
   return useMemo(() => {
@@ -56,9 +39,7 @@ export const useProjectScopedNavigation = (segments: string[]): ProjectScopeResu
     // Parse deployment context
     const isOnDeployments = currentSegment === "deployments";
     const deploymentId = isOnDeployments ? cleanSegments.at(projectsIndex + 3) : undefined;
-    const deploymentSubSegment = deploymentId
-      ? cleanSegments.at(projectsIndex + 4)
-      : undefined;
+    const deploymentSubSegment = deploymentId ? cleanSegments.at(projectsIndex + 4) : undefined;
 
     // Build deployment nested children when a specific deployment is selected
     const deploymentItems: NavItem[] = [];
@@ -130,5 +111,5 @@ export const useProjectScopedNavigation = (segments: string[]): ProjectScopeResu
       backHref: basePath,
       navItems,
     };
-  }, [projectId, projectsIndex, projectData, deploymentData, workspace.slug, cleanSegments]);
+  }, [projectId, projectsIndex, projectData, workspace.slug, cleanSegments]);
 };
