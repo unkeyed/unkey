@@ -1,40 +1,15 @@
 package cluster
 
 import (
-	"fmt"
 	"io"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// nodeNameWithTimestamp encodes the node ID and join time into a memberlist node name.
-// Format: "{nodeID}:{unixNano}"
-func nodeNameWithTimestamp(nodeID string, joinTime time.Time) string {
-	return fmt.Sprintf("%s:%d", nodeID, joinTime.UnixNano())
-}
-
-// parseJoinTime extracts the join time from a node name.
-// Returns zero time if parsing fails.
-func parseJoinTime(nodeName string) time.Time {
-	idx := strings.LastIndex(nodeName, ":")
-	if idx < 0 || idx == len(nodeName)-1 {
-		return time.Time{}
-	}
-
-	nanos, err := strconv.ParseInt(nodeName[idx+1:], 10, 64)
-	if err != nil {
-		return time.Time{}
-	}
-
-	return time.Unix(0, nanos)
-}
-
 // evaluateGateway checks whether this node should be the gateway.
-// The oldest node in the LAN pool (by join time encoded in node name) wins.
+// The node with the lexicographically smallest name wins.
 func (c *gossipCluster) evaluateGateway() {
 	// Don't evaluate during shutdown to avoid deadlocks
 	if c.closing.Load() {
@@ -54,28 +29,16 @@ func (c *gossipCluster) evaluateGateway() {
 		return
 	}
 
-	// Find the oldest node
-	var oldest *memberlist.Node
-	var oldestTime time.Time
-
-	for _, m := range members {
-		jt := parseJoinTime(m.Name)
-		if jt.IsZero() {
-			continue
+	// Find the node with the smallest name
+	smallest := members[0]
+	for _, m := range members[1:] {
+		if m.Name < smallest.Name {
+			smallest = m
 		}
-
-		if oldest == nil || jt.Before(oldestTime) {
-			oldest = m
-			oldestTime = jt
-		}
-	}
-
-	if oldest == nil {
-		return
 	}
 
 	localName := lan.LocalNode().Name
-	shouldBeGateway := oldest.Name == localName
+	shouldBeGateway := smallest.Name == localName
 
 	if shouldBeGateway && !c.IsGateway() {
 		c.promoteToGateway()
@@ -95,7 +58,7 @@ func (c *gossipCluster) promoteToGateway() {
 	logger.Info("Promoting to gateway", "node", c.config.NodeID, "region", c.config.Region)
 
 	wanCfg := memberlist.DefaultWANConfig()
-	wanCfg.Name = nodeNameWithTimestamp(c.config.NodeID+"-wan", c.joinTime)
+	wanCfg.Name = c.config.NodeID + "-wan"
 	wanCfg.BindAddr = c.config.BindAddr
 	wanCfg.BindPort = c.config.WANBindPort
 	wanCfg.AdvertisePort = c.config.WANBindPort
