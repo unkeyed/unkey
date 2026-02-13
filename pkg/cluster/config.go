@@ -25,6 +25,11 @@ type Config struct {
 	// WANSeeds are addresses of cross-region gateways to join.
 	WANSeeds []string
 
+	// SecretKey is a shared secret used for AES-256 encryption of all gossip traffic.
+	// When set, both LAN and WAN pools require this key to join and communicate.
+	// Must be 16, 24, or 32 bytes for AES-128, AES-192, or AES-256 respectively.
+	SecretKey []byte
+
 	// OnMessage is called when a broadcast message is received from the cluster.
 	OnMessage func(msg *clusterv1.ClusterMessage)
 }
