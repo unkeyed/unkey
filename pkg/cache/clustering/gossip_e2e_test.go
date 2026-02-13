@@ -33,7 +33,7 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	})
 	require.NoError(t, err)
 	b1 := clustering.NewGossipBroadcaster(c1)
-	mux1.Subscribe(b1.HandleClusterMessage)
+	cluster.Subscribe(mux1, b1.HandleCacheInvalidation)
 
 	d1, err := clustering.NewInvalidationDispatcher(b1)
 	require.NoError(t, err)
@@ -63,7 +63,7 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	})
 	require.NoError(t, err)
 	b2 := clustering.NewGossipBroadcaster(c2)
-	mux2.Subscribe(b2.HandleClusterMessage)
+	cluster.Subscribe(mux2, b2.HandleCacheInvalidation)
 
 	d2, err := clustering.NewInvalidationDispatcher(b2)
 	require.NoError(t, err)

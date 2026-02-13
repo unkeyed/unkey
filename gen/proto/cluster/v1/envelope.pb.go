@@ -81,10 +81,13 @@ type ClusterMessage struct {
 	SourceRegion string `protobuf:"bytes,3,opt,name=source_region,json=sourceRegion,proto3" json:"source_region,omitempty"`
 	// The node ID that originated this message.
 	SenderNode string `protobuf:"bytes,4,opt,name=sender_node,json=senderNode,proto3" json:"sender_node,omitempty"`
-	// Types that are valid to be assigned to Message:
+	// Unix millisecond timestamp when the message was created.
+	// Used to measure transport latency on the receiving end.
+	SentAtMs int64 `protobuf:"varint,5,opt,name=sent_at_ms,json=sentAtMs,proto3" json:"sent_at_ms,omitempty"`
+	// Types that are valid to be assigned to Payload:
 	//
 	//	*ClusterMessage_CacheInvalidation
-	Message       isClusterMessage_Message `protobuf_oneof:"message"`
+	Payload       isClusterMessage_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -140,45 +143,54 @@ func (x *ClusterMessage) GetSenderNode() string {
 	return ""
 }
 
-func (x *ClusterMessage) GetMessage() isClusterMessage_Message {
+func (x *ClusterMessage) GetSentAtMs() int64 {
 	if x != nil {
-		return x.Message
+		return x.SentAtMs
+	}
+	return 0
+}
+
+func (x *ClusterMessage) GetPayload() isClusterMessage_Payload {
+	if x != nil {
+		return x.Payload
 	}
 	return nil
 }
 
 func (x *ClusterMessage) GetCacheInvalidation() *v1.CacheInvalidationEvent {
 	if x != nil {
-		if x, ok := x.Message.(*ClusterMessage_CacheInvalidation); ok {
+		if x, ok := x.Payload.(*ClusterMessage_CacheInvalidation); ok {
 			return x.CacheInvalidation
 		}
 	}
 	return nil
 }
 
-type isClusterMessage_Message interface {
-	isClusterMessage_Message()
+type isClusterMessage_Payload interface {
+	isClusterMessage_Payload()
 }
 
 type ClusterMessage_CacheInvalidation struct {
 	CacheInvalidation *v1.CacheInvalidationEvent `protobuf:"bytes,1,opt,name=cache_invalidation,json=cacheInvalidation,proto3,oneof"`
 }
 
-func (*ClusterMessage_CacheInvalidation) isClusterMessage_Message() {}
+func (*ClusterMessage_CacheInvalidation) isClusterMessage_Payload() {}
 
 var File_cluster_v1_envelope_proto protoreflect.FileDescriptor
 
 const file_cluster_v1_envelope_proto_rawDesc = "" +
 	"\n" +
 	"\x19cluster/v1/envelope.proto\x12\n" +
-	"cluster.v1\x1a\x1bcache/v1/invalidation.proto\"\xe9\x01\n" +
+	"cluster.v1\x1a\x1bcache/v1/invalidation.proto\"\x87\x02\n" +
 	"\x0eClusterMessage\x123\n" +
 	"\tdirection\x18\x02 \x01(\x0e2\x15.cluster.v1.DirectionR\tdirection\x12#\n" +
 	"\rsource_region\x18\x03 \x01(\tR\fsourceRegion\x12\x1f\n" +
 	"\vsender_node\x18\x04 \x01(\tR\n" +
-	"senderNode\x12Q\n" +
+	"senderNode\x12\x1c\n" +
+	"\n" +
+	"sent_at_ms\x18\x05 \x01(\x03R\bsentAtMs\x12Q\n" +
 	"\x12cache_invalidation\x18\x01 \x01(\v2 .cache.v1.CacheInvalidationEventH\x00R\x11cacheInvalidationB\t\n" +
-	"\amessage*L\n" +
+	"\apayload*L\n" +
 	"\tDirection\x12\x19\n" +
 	"\x15DIRECTION_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rDIRECTION_LAN\x10\x01\x12\x11\n" +

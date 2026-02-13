@@ -2,5 +2,5 @@
 
 package clusterv1
 
-// IsClusterMessage_Message is the exported form of the protobuf oneof interface isClusterMessage_Message.
-type IsClusterMessage_Message = isClusterMessage_Message
+// IsClusterMessage_Payload is the exported form of the protobuf oneof interface isClusterMessage_Payload.
+type IsClusterMessage_Payload = isClusterMessage_Payload

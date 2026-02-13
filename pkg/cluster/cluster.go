@@ -17,7 +17,7 @@ const maxJoinAttempts = 10
 
 // Cluster is the public interface for gossip-based cluster membership.
 type Cluster interface {
-	Broadcast(msg clusterv1.IsClusterMessage_Message) error
+	Broadcast(msg clusterv1.IsClusterMessage_Payload) error
 	Members() []*memberlist.Node
 	IsGateway() bool
 	WANAddr() string
@@ -182,11 +182,12 @@ func (c *gossipCluster) gatewayEvalLoop() {
 // Broadcast queues a message for delivery to all cluster members.
 // The message is broadcast on the LAN pool. If this node is the gateway,
 // it is also broadcast on the WAN pool.
-func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Message) error {
+func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Payload) error {
 	msg := &clusterv1.ClusterMessage{
-		Message:      payload,
+		Payload:      payload,
 		SourceRegion: c.config.Region,
 		SenderNode:   c.config.NodeID,
+		SentAtMs:     time.Now().UnixMilli(),
 	}
 
 	c.mu.RLock()
