@@ -83,6 +83,14 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
+	if environmentSlug == "production" {
+
+		domains = append(domains,
+			newDomain{
+				domain: fmt.Sprintf("%s-%s.%s", projectSlug, workspaceSlug, apex),
+				sticky: db.FrontlineRoutesStickyLive,
+			})
+	}
 	return domains
 }
 
