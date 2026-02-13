@@ -36,7 +36,6 @@ type gossipCluster struct {
 	wan       *memberlist.Memberlist
 	wanQueue  *memberlist.TransmitLimitedQueue
 	isGateway bool
-	joinTime  time.Time
 	closing   atomic.Bool
 
 	// evalCh is used to trigger async gateway evaluation from memberlist
@@ -51,8 +50,6 @@ type gossipCluster struct {
 func New(cfg Config) (Cluster, error) {
 	cfg.setDefaults()
 
-	now := time.Now()
-
 	c := &gossipCluster{
 		config:    cfg,
 		mu:        sync.RWMutex{},
@@ -61,7 +58,6 @@ func New(cfg Config) (Cluster, error) {
 		wan:       nil,
 		wanQueue:  nil,
 		isGateway: false,
-		joinTime:  now,
 		closing:   atomic.Bool{},
 		evalCh:    make(chan struct{}, 1),
 		done:      make(chan struct{}),
@@ -72,7 +68,7 @@ func New(cfg Config) (Cluster, error) {
 
 	// Configure LAN memberlist
 	lanCfg := memberlist.DefaultLANConfig()
-	lanCfg.Name = nodeNameWithTimestamp(cfg.NodeID, now)
+	lanCfg.Name = cfg.NodeID
 	lanCfg.BindAddr = cfg.BindAddr
 	lanCfg.BindPort = cfg.BindPort
 	lanCfg.AdvertisePort = cfg.BindPort
