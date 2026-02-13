@@ -5,6 +5,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ProjectsClient } from "./projects-client";
 
+
+export const dynamic = 'force-dynamic'
+
 export default async function ProjectsPage() {
   const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
