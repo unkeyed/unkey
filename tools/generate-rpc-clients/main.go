@@ -197,7 +197,7 @@ func findProtoImport(f *ast.File) (alias, path string) {
 // extractService extracts unary methods from a ServiceClient interface.
 // Streaming methods (returning *connect.ServerStreamForClient) are skipped.
 func extractService(name string, iface *ast.InterfaceType, protoAlias string) serviceInfo {
-	svc := serviceInfo{Name: name}
+	svc := serviceInfo{Name: name, Methods: nil}
 
 	for _, method := range iface.Methods.List {
 		if len(method.Names) == 0 {
