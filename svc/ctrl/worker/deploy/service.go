@@ -2,9 +2,9 @@ package deploy
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
@@ -42,7 +42,7 @@ type Workflow struct {
 	db db.Database
 
 	defaultDomain    string
-	vault            vaultv1connect.VaultServiceClient
+	vault            vault.VaultServiceClient
 	sentinelImage    string
 	availableRegions []string
 	github           githubclient.GitHubClient
@@ -66,7 +66,7 @@ type Config struct {
 	DefaultDomain string
 
 	// Vault provides encryption/decryption services for secrets.
-	Vault vaultv1connect.VaultServiceClient
+	Vault vault.VaultServiceClient
 
 	// SentinelImage is the Docker image used for sentinel containers.
 	SentinelImage string

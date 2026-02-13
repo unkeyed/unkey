@@ -28,9 +28,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
+	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
@@ -175,16 +176,17 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
 	}
 
-	var vaultClient vault.Client
+	var vaultClient vault.VaultServiceClient
 	if cfg.VaultURL != "" {
-		connectClient := vaultv1connect.NewVaultServiceClient(
-			&http.Client{},
-			cfg.VaultURL,
-			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.VaultToken),
-			})),
+		vaultClient = vault.NewConnectVaultServiceClient(
+			vaultv1connect.NewVaultServiceClient(
+				&http.Client{},
+				cfg.VaultURL,
+				connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+					"Authorization": fmt.Sprintf("Bearer %s", cfg.VaultToken),
+				})),
+			),
 		)
-		vaultClient = vault.NewConnectClient(connectClient)
 	}
 
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{
@@ -257,13 +259,15 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Initialize CTRL deployment client using bufconnect
-	ctrlDeploymentClient := ctrlv1connect.NewDeployServiceClient(
-		&http.Client{},
-		cfg.CtrlURL,
-		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
-		})),
+	// Initialize CTRL deployment client
+	ctrlDeploymentClient := ctrl.NewConnectDeployServiceClient(
+		ctrlv1connect.NewDeployServiceClient(
+			&http.Client{},
+			cfg.CtrlURL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
+			})),
+		),
 	)
 
 	logger.Info("CTRL clients initialized", "url", cfg.CtrlURL)

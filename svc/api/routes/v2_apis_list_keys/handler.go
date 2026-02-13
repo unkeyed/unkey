@@ -16,7 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/vault"
+	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -30,7 +30,7 @@ type (
 type Handler struct {
 	DB       db.Database
 	Keys     keys.KeyService
-	Vault    vault.Client
+	Vault    vault.VaultServiceClient
 	ApiCache cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
 

@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
+	ctrl "github.com/unkeyed/unkey/pkg/rpc/ctrl"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -25,7 +24,7 @@ import (
 type Controller struct {
 	clientSet       kubernetes.Interface
 	dynamicClient   dynamic.Interface
-	cluster         ctrlv1connect.ClusterServiceClient
+	cluster         ctrl.ClusterServiceClient
 	cb              circuitbreaker.CircuitBreaker[any]
 	done            chan struct{}
 	region          string
@@ -47,7 +46,7 @@ type Config struct {
 
 	// Cluster is the control plane RPC client for WatchDeployments and
 	// ReportDeploymentStatus calls.
-	Cluster ctrlv1connect.ClusterServiceClient
+	Cluster ctrl.ClusterServiceClient
 
 	// Region identifies the cluster region for filtering deployment streams.
 	Region string
@@ -102,7 +101,7 @@ func (c *Controller) Stop() error {
 // during control plane outages by failing fast after repeated errors.
 func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) error {
 	_, err := c.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
-		return c.cluster.ReportDeploymentStatus(innerCtx, connect.NewRequest(status))
+		return c.cluster.ReportDeploymentStatus(innerCtx, status)
 	})
 	if err != nil {
 		return fmt.Errorf("failed to report deployment status: %w", err)

@@ -3,9 +3,9 @@ package certificate
 import (
 	"github.com/go-acme/lego/v4/challenge"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/rpc/vault"
 )
 
 // Service orchestrates ACME certificate issuance and renewal.
@@ -26,7 +26,7 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCertificateServiceServer
 	db            db.Database
-	vault         vaultv1connect.VaultServiceClient
+	vault         vault.VaultServiceClient
 	emailDomain   string
 	defaultDomain string
 	dnsProvider   challenge.Provider
@@ -43,7 +43,7 @@ type Config struct {
 
 	// Vault encrypts private keys before database storage. Keys are encrypted using
 	// the workspace ID as the keyring identifier.
-	Vault vaultv1connect.VaultServiceClient
+	Vault vault.VaultServiceClient
 
 	// EmailDomain forms the email address for ACME account registration. The service
 	// constructs emails as "acme@{EmailDomain}" for the global ACME account.
