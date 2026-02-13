@@ -15,6 +15,7 @@ const ANIMATION_STYLES = {
 } as const;
 
 const SEVERITY_STYLES = {
+  FATAL: "bg-gradient-to-r from-errorA-3 to-errorA-1 text-errorA-12",
   ERROR: "bg-gradient-to-r from-errorA-3 to-errorA-1 text-errorA-12",
   WARN: "bg-gradient-to-r from-warningA-3 to-warningA-1 text-warningA-12",
   INFO: "text-grayA-12",
@@ -133,24 +134,29 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
                       {format(new Date(log.time), "HH:mm:ss.SSS")}
                     </span>
                     <span>{log.region}</span>
+                    <span className="uppercase text-[10px] font-semibold px-1 py-px rounded">
+                      {severity}
+                    </span>
                     <span>{log.message}</span>
-                    <InfoTooltip
-                      content={
-                        <pre className="text-left">
-                          <code>{JSON.stringify(log.attributes, null, 2)}</code>
-                        </pre>
-                      }
-                      asChild
-                      className="cursor-pointer"
-                      position={{
-                        align: "center",
-                        side: "top",
-                      }}
-                    >
-                      <span className="text-grayA-8 text-[11px] max-w-[200px] truncate">
-                        {JSON.stringify(log.attributes)}
-                      </span>
-                    </InfoTooltip>
+                    {log.attributes && Object.keys(log.attributes).length > 0 && (
+                      <InfoTooltip
+                        content={
+                          <pre className="text-left">
+                            <code>{JSON.stringify(log.attributes, null, 2)}</code>
+                          </pre>
+                        }
+                        asChild
+                        className="cursor-pointer"
+                        position={{
+                          align: "center",
+                          side: "top",
+                        }}
+                      >
+                        <span className="text-grayA-8 text-[11px] max-w-[200px] truncate">
+                          {JSON.stringify(log.attributes)}
+                        </span>
+                      </InfoTooltip>
+                    )}
                   </div>
                 );
               })}
