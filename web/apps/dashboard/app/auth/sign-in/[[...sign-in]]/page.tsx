@@ -1,7 +1,7 @@
 "use client";
 
 import { FadeIn } from "@/components/landing/fade-in";
-import { getCookie } from "@/lib/auth/cookies";
+import { deleteCookie, getCookie } from "@/lib/auth/cookies";
 import {
   AuthErrorCode,
   PENDING_SESSION_COOKIE,
@@ -82,15 +82,31 @@ function SignInContent() {
       completeOrgSelection(lastUsedOrgId)
         .then((result) => {
           if (!result.success) {
+            // Auto-selection failed - clear last used workspace to prevent retry loop
+            deleteCookie(UNKEY_LAST_ORG_COOKIE).catch(() => {
+              // Ignore cookie deletion errors
+            });
+
             setError(result.message);
             setIsLoading(false);
             setIsAutoSelecting(false);
+
+            // If session expired, the pending auth was already cleared
+            // Just show the error and let user see org selector
+            if (result.code === AuthErrorCode.PENDING_SESSION_EXPIRED) {
+              // Session expired error already shown, user will see sign-in form
+            }
             return;
           }
           // On success, redirect to the dashboard
           router.push(result.redirectTo);
         })
         .catch((_err) => {
+          // Clear last used workspace on error
+          deleteCookie(UNKEY_LAST_ORG_COOKIE).catch(() => {
+            // Ignore cookie deletion errors
+          });
+
           setError("Failed to automatically sign in. Please select your workspace.");
           setIsLoading(false);
           setIsAutoSelecting(false);

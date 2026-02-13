@@ -372,10 +372,8 @@ export async function completeOrgSelection(
     } catch (_error) {
       // Ignore cookie setting errors
     }
-  } else {
-    // Clear pending session on error to prevent stale token issues
-    (await cookies()).delete(PENDING_SESSION_COOKIE);
   }
+  // Don't clear pending session on error - let user try again or close modal
 
   return result;
 }
