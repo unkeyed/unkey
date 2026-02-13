@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -31,7 +32,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/vault"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
@@ -176,26 +176,16 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
 	}
 
-	var vaultSvc *vault.Service
-	if len(cfg.VaultMasterKeys) > 0 && cfg.VaultS3 != nil {
-		var vaultStorage storage.Storage
-		vaultStorage, err = storage.NewS3(storage.S3Config{
-			S3URL:             cfg.VaultS3.URL,
-			S3Bucket:          cfg.VaultS3.Bucket,
-			S3AccessKeyID:     cfg.VaultS3.AccessKeyID,
-			S3AccessKeySecret: cfg.VaultS3.AccessKeySecret,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create vault storage: %w", err)
-		}
-
-		vaultSvc, err = vault.New(vault.Config{
-			Storage:    vaultStorage,
-			MasterKeys: cfg.VaultMasterKeys,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create vault service: %w", err)
-		}
+	var vaultClient vault.Client
+	if cfg.VaultURL != "" {
+		connectClient := vaultv1connect.NewVaultServiceClient(
+			&http.Client{},
+			cfg.VaultURL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.VaultToken),
+			})),
+		)
+		vaultClient = vault.NewConnectClient(connectClient)
 	}
 
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{
@@ -255,13 +245,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize analytics connection manager
 	analyticsConnMgr := analytics.NewNoopConnectionManager()
-	if cfg.ClickhouseAnalyticsURL != "" && vaultSvc != nil {
+	if cfg.ClickhouseAnalyticsURL != "" && vaultClient != nil {
 		analyticsConnMgr, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 			SettingsCache: caches.ClickhouseSetting,
 			Database:      db,
 			Clock:         clk,
 			BaseURL:       cfg.ClickhouseAnalyticsURL,
-			Vault:         vaultSvc,
+			Vault:         vaultClient,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create analytics connection manager: %w", err)
@@ -289,7 +279,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Ratelimit:                  rlSvc,
 		Auditlogs:                  auditlogSvc,
 		Caches:                     caches,
-		Vault:                      vaultSvc,
+		Vault:                      vaultClient,
 		ChproxyToken:               cfg.ChproxyToken,
 		CtrlDeploymentClient:       ctrlDeploymentClient,
 		PprofEnabled:               cfg.PprofEnabled,
