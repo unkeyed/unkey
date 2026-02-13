@@ -117,6 +117,14 @@ func (l Labels) ComponentDeployment() Labels {
 	return l
 }
 
+// ComponentGossipLAN adds component label for gossip LAN resources (headless services,
+// network policies). Distinct from ComponentSentinel so label selectors for sentinel
+// services don't accidentally pick up gossip infrastructure.
+func (l Labels) ComponentGossipLAN() Labels {
+	l[LabelKeyComponent] = "gossip-lan"
+	return l
+}
+
 // ComponentCiliumNetworkPolicy adds component label for Cilium network policy resources.
 //
 // This method sets "app.kubernetes.io/component" label to "ciliumnetworkpolicy"
