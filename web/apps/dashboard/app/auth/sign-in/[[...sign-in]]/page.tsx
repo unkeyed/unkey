@@ -2,7 +2,12 @@
 
 import { FadeIn } from "@/components/landing/fade-in";
 import { getCookie } from "@/lib/auth/cookies";
-import { PENDING_SESSION_COOKIE, UNKEY_LAST_ORG_COOKIE } from "@/lib/auth/types";
+import {
+  AuthErrorCode,
+  PENDING_SESSION_COOKIE,
+  UNKEY_LAST_ORG_COOKIE,
+  errorMessages,
+} from "@/lib/auth/types";
 import { ArrowRight } from "@unkey/icons";
 import { Empty, Loading } from "@unkey/ui";
 import Link from "next/link";
@@ -150,7 +155,7 @@ function SignInContent() {
     const checkSessionValidity = async () => {
       const pendingSession = await getCookie(PENDING_SESSION_COOKIE);
       if (!pendingSession) {
-        setError("Your session has expired. Please sign in again.");
+        setError(errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED]);
         // Clear the orgs query parameter to reset to sign-in form
         router.push("/auth/sign-in");
       }

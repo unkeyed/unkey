@@ -30,6 +30,7 @@ import {
   type UserData,
   type VerificationResult,
   WORKOS_RADAR_API_URL,
+  errorMessages,
 } from "./types";
 
 type WorkOSErrorCode =
@@ -865,7 +866,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         return {
           success: false,
           code: AuthErrorCode.PENDING_SESSION_EXPIRED,
-          message: "Your session has expired. Please sign in again.",
+          message: errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED],
         };
       }
 

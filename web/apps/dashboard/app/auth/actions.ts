@@ -350,7 +350,7 @@ export async function completeOrgSelection(
     return {
       success: false,
       code: AuthErrorCode.PENDING_SESSION_EXPIRED,
-      message: "Your session has expired. Please sign in again.",
+      message: errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED],
     };
   }
 
