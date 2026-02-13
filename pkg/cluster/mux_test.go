@@ -22,25 +22,25 @@ func cacheInvalidationMessage(cacheName, cacheKey string) *clusterv1.ClusterMess
 func TestMessageMux_RoutesToSubscriber(t *testing.T) {
 	mux := NewMessageMux()
 
-	var received *clusterv1.ClusterMessage
-	mux.subscribe(func(msg *clusterv1.ClusterMessage) {
-		received = msg
+	var received *cachev1.CacheInvalidationEvent
+	Subscribe(mux, func(payload *clusterv1.ClusterMessage_CacheInvalidation) {
+		received = payload.CacheInvalidation
 	})
 
 	msg := cacheInvalidationMessage("my-cache", "my-key")
 	mux.OnMessage(msg)
 
 	require.NotNil(t, received)
-	require.Equal(t, "my-cache", received.GetCacheInvalidation().GetCacheName())
-	require.Equal(t, "my-key", received.GetCacheInvalidation().GetCacheKey())
+	require.Equal(t, "my-cache", received.GetCacheName())
+	require.Equal(t, "my-key", received.GetCacheKey())
 }
 
 func TestMessageMux_MultipleSubscribers(t *testing.T) {
 	mux := NewMessageMux()
 
 	var count1, count2 int
-	mux.subscribe(func(msg *clusterv1.ClusterMessage) { count1++ })
-	mux.subscribe(func(msg *clusterv1.ClusterMessage) { count2++ })
+	Subscribe(mux, func(payload *clusterv1.ClusterMessage_CacheInvalidation) { count1++ })
+	Subscribe(mux, func(payload *clusterv1.ClusterMessage_CacheInvalidation) { count2++ })
 
 	mux.OnMessage(cacheInvalidationMessage("c", "k"))
 
