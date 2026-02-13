@@ -88,6 +88,8 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_GOSSIP_LAN_SEEDS")),
 		cli.StringSlice("gossip-wan-seeds", "Cross-region gateway seed addresses",
 			cli.EnvVar("UNKEY_GOSSIP_WAN_SEEDS")),
+		cli.String("gossip-secret-key", "Base64-encoded AES-256 key for encrypting gossip traffic",
+			cli.EnvVar("UNKEY_GOSSIP_SECRET_KEY")),
 
 		// Logging Sampler Configuration
 		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
@@ -138,7 +140,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		GossipLANPort:  cmd.Int("gossip-lan-port"),
 		GossipWANPort:  cmd.Int("gossip-wan-port"),
 		GossipLANSeeds: cmd.StringSlice("gossip-lan-seeds"),
-		GossipWANSeeds: cmd.StringSlice("gossip-wan-seeds"),
+		GossipWANSeeds:  cmd.StringSlice("gossip-wan-seeds"),
+		GossipSecretKey: cmd.String("gossip-secret-key"),
 
 		// Logging sampler configuration
 		LogSampleRate:    cmd.Float("log-sample-rate"),

@@ -92,6 +92,11 @@ type Config struct {
 	// GossipWANSeeds are addresses of cross-region gateways
 	GossipWANSeeds []string
 
+	// GossipSecretKey is a base64-encoded shared secret for AES-256 encryption of gossip traffic.
+	// When set, nodes must share this key to join and communicate.
+	// Generate with: openssl rand -base64 32
+	GossipSecretKey string
+
 	// --- ClickHouse proxy configuration ---
 
 	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
