@@ -26,14 +26,17 @@ type CacheInvalidationEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The name/identifier of the cache to invalidate
 	CacheName string `protobuf:"bytes,1,opt,name=cache_name,json=cacheName,proto3" json:"cache_name,omitempty"`
-	// The cache key to invalidate
-	CacheKey string `protobuf:"bytes,2,opt,name=cache_key,json=cacheKey,proto3" json:"cache_key,omitempty"`
 	// Unix millisecond timestamp when the invalidation was triggered
 	Timestamp int64 `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// Optional: The node that triggered the invalidation (to avoid self-invalidation)
 	SourceInstance string `protobuf:"bytes,4,opt,name=source_instance,json=sourceInstance,proto3" json:"source_instance,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Types that are valid to be assigned to Action:
+	//
+	//	*CacheInvalidationEvent_CacheKey
+	//	*CacheInvalidationEvent_ClearAll
+	Action        isCacheInvalidationEvent_Action `protobuf_oneof:"action"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CacheInvalidationEvent) Reset() {
@@ -73,13 +76,6 @@ func (x *CacheInvalidationEvent) GetCacheName() string {
 	return ""
 }
 
-func (x *CacheInvalidationEvent) GetCacheKey() string {
-	if x != nil {
-		return x.CacheKey
-	}
-	return ""
-}
-
 func (x *CacheInvalidationEvent) GetTimestamp() int64 {
 	if x != nil {
 		return x.Timestamp
@@ -94,17 +90,62 @@ func (x *CacheInvalidationEvent) GetSourceInstance() string {
 	return ""
 }
 
+func (x *CacheInvalidationEvent) GetAction() isCacheInvalidationEvent_Action {
+	if x != nil {
+		return x.Action
+	}
+	return nil
+}
+
+func (x *CacheInvalidationEvent) GetCacheKey() string {
+	if x != nil {
+		if x, ok := x.Action.(*CacheInvalidationEvent_CacheKey); ok {
+			return x.CacheKey
+		}
+	}
+	return ""
+}
+
+func (x *CacheInvalidationEvent) GetClearAll() bool {
+	if x != nil {
+		if x, ok := x.Action.(*CacheInvalidationEvent_ClearAll); ok {
+			return x.ClearAll
+		}
+	}
+	return false
+}
+
+type isCacheInvalidationEvent_Action interface {
+	isCacheInvalidationEvent_Action()
+}
+
+type CacheInvalidationEvent_CacheKey struct {
+	// Invalidate a specific cache key
+	CacheKey string `protobuf:"bytes,2,opt,name=cache_key,json=cacheKey,proto3,oneof"`
+}
+
+type CacheInvalidationEvent_ClearAll struct {
+	// Clear the entire cache
+	ClearAll bool `protobuf:"varint,5,opt,name=clear_all,json=clearAll,proto3,oneof"`
+}
+
+func (*CacheInvalidationEvent_CacheKey) isCacheInvalidationEvent_Action() {}
+
+func (*CacheInvalidationEvent_ClearAll) isCacheInvalidationEvent_Action() {}
+
 var File_cache_v1_invalidation_proto protoreflect.FileDescriptor
 
 const file_cache_v1_invalidation_proto_rawDesc = "" +
 	"\n" +
-	"\x1bcache/v1/invalidation.proto\x12\bcache.v1\"\x9b\x01\n" +
+	"\x1bcache/v1/invalidation.proto\x12\bcache.v1\"\xc6\x01\n" +
 	"\x16CacheInvalidationEvent\x12\x1d\n" +
 	"\n" +
-	"cache_name\x18\x01 \x01(\tR\tcacheName\x12\x1b\n" +
-	"\tcache_key\x18\x02 \x01(\tR\bcacheKey\x12\x1c\n" +
+	"cache_name\x18\x01 \x01(\tR\tcacheName\x12\x1c\n" +
 	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp\x12'\n" +
-	"\x0fsource_instance\x18\x04 \x01(\tR\x0esourceInstanceB\x97\x01\n" +
+	"\x0fsource_instance\x18\x04 \x01(\tR\x0esourceInstance\x12\x1d\n" +
+	"\tcache_key\x18\x02 \x01(\tH\x00R\bcacheKey\x12\x1d\n" +
+	"\tclear_all\x18\x05 \x01(\bH\x00R\bclearAllB\b\n" +
+	"\x06actionB\x97\x01\n" +
 	"\fcom.cache.v1B\x11InvalidationProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/cache/v1;cachev1\xa2\x02\x03CXX\xaa\x02\bCache.V1\xca\x02\bCache\\V1\xe2\x02\x14Cache\\V1\\GPBMetadata\xea\x02\tCache::V1b\x06proto3"
 
 var (
@@ -135,6 +176,10 @@ func init() { file_cache_v1_invalidation_proto_init() }
 func file_cache_v1_invalidation_proto_init() {
 	if File_cache_v1_invalidation_proto != nil {
 		return
+	}
+	file_cache_v1_invalidation_proto_msgTypes[0].OneofWrappers = []any{
+		(*CacheInvalidationEvent_CacheKey)(nil),
+		(*CacheInvalidationEvent_ClearAll)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

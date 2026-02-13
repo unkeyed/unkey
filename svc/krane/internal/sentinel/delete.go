@@ -2,11 +2,13 @@ package sentinel
 
 import (
 	"context"
+	"fmt"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -21,7 +23,26 @@ func (c *Controller) DeleteSentinel(ctx context.Context, req *ctrlv1.DeleteSenti
 		"name", req.GetK8SName(),
 	)
 
-	err := c.clientSet.CoreV1().Services(NamespaceSentinel).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
+	gossipName := fmt.Sprintf("%s-gossip-lan", req.GetK8SName())
+
+	// Delete gossip headless service
+	err := c.clientSet.CoreV1().Services(NamespaceSentinel).Delete(ctx, gossipName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	// Delete gossip CiliumNetworkPolicy
+	gvr := schema.GroupVersionResource{
+		Group:    "cilium.io",
+		Version:  "v2",
+		Resource: "ciliumnetworkpolicies",
+	}
+	err = c.dynamicClient.Resource(gvr).Namespace(NamespaceSentinel).Delete(ctx, gossipName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	err = c.clientSet.CoreV1().Services(NamespaceSentinel).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}

@@ -76,8 +76,6 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
-      kafka:
-        condition: service_started
       ctrl-api:
         condition: service_started
     environment:
@@ -92,7 +90,6 @@ services:
       UNKEY_VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
       UNKEY_VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       UNKEY_VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-      UNKEY_KAFKA_BROKERS: "kafka:9092"
       UNKEY_CLICKHOUSE_ANALYTICS_URL: "http://clickhouse:8123/default"
       UNKEY_CTRL_URL: "http://ctrl-api:7091"
       UNKEY_CTRL_TOKEN: "your-local-dev-key"
@@ -113,13 +110,6 @@ services:
       retries: 5
       start_period: 10s
       interval: 5s
-
-  # The Kafka broker, available at localhost:9092
-  kafka:
-    container_name: kafka
-    image: bufbuild/bufstream:0.4.4
-    network_mode: host
-    command: ["serve", "--inmemory"]
 
   # Vault service for encryption and key management
   vault:
@@ -441,7 +431,6 @@ volumes:
   clickhouse:
   clickhouse-keeper:
   s3:
-  kafka_data:
 
 networks:
   default:

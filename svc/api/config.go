@@ -9,11 +9,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/tls"
 )
 
-const (
-	// DefaultCacheInvalidationTopic is the default Kafka topic name for cache invalidation events
-	DefaultCacheInvalidationTopic = "cache-invalidations"
-)
-
 type S3Config struct {
 	URL             string
 	Bucket          string
@@ -85,14 +80,30 @@ type Config struct {
 	VaultMasterKeys []string
 	VaultS3         *S3Config
 
-	// --- Kafka configuration ---
+	// --- Gossip cluster configuration ---
 
-	// KafkaBrokers is the list of Kafka broker addresses
-	KafkaBrokers []string
+	// GossipEnabled controls whether gossip-based cache invalidation is active
+	GossipEnabled bool
 
-	// CacheInvalidationTopic is the Kafka topic name for cache invalidation events
-	// If empty, defaults to DefaultCacheInvalidationTopic
-	CacheInvalidationTopic string
+	// GossipBindAddr is the address to bind gossip listeners on (default "0.0.0.0")
+	GossipBindAddr string
+
+	// GossipLANPort is the LAN memberlist port (default 7946)
+	GossipLANPort int
+
+	// GossipWANPort is the WAN memberlist port for gateways (default 7947)
+	GossipWANPort int
+
+	// GossipLANSeeds are addresses of existing LAN cluster members (e.g. k8s headless service DNS)
+	GossipLANSeeds []string
+
+	// GossipWANSeeds are addresses of cross-region gateways
+	GossipWANSeeds []string
+
+	// GossipSecretKey is a base64-encoded shared secret for AES-256 encryption of gossip traffic.
+	// When set, nodes must share this key to join and communicate.
+	// Generate with: openssl rand -base64 32
+	GossipSecretKey string
 
 	// --- ClickHouse proxy configuration ---
 

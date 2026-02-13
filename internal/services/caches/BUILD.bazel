@@ -10,13 +10,11 @@ go_library(
     importpath = "github.com/unkeyed/unkey/internal/services/caches",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//gen/proto/cache/v1:cache",
         "//pkg/cache",
         "//pkg/cache/clustering",
         "//pkg/cache/middleware",
         "//pkg/clock",
         "//pkg/db",
-        "//pkg/eventstream",
         "//pkg/uid",
     ],
 )
