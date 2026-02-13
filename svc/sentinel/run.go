@@ -129,6 +129,7 @@ func Run(ctx context.Context, cfg Config) error {
 			WANBindPort: cfg.GossipWANPort,
 			LANSeeds:    lanSeeds,
 			WANSeeds:    wanSeeds,
+			SecretKey:   nil, // Sentinel gossip is locked down via CiliumNetworkPolicy
 			OnMessage:   mux.OnMessage,
 		})
 		if clusterErr != nil {
