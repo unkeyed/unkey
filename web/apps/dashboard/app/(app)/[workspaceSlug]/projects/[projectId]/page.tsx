@@ -2,8 +2,6 @@
 import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
 import { EmptySection } from "./(overview)/components/empty-section";
 import { useProjectData } from "./(overview)/data-provider";
-import { DeploymentLogsContent } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-content";
-import { DeploymentLogsTrigger } from "./(overview)/details/active-deployment-card-logs/components/deployment-logs-trigger";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
 import { CustomDomainsSection } from "./(overview)/details/custom-domains-section";
 import { DomainRow, DomainRowSkeleton } from "./(overview)/details/domain-row";
@@ -14,19 +12,15 @@ import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
 
 export default function ProjectDetails() {
-  const {
-    projectId,
-    getDomainsForDeployment,
-    isDomainsLoading,
-    getDeploymentById,
-    project,
-    environments,
-  } = useProjectData();
+  const { getDomainsForDeployment, isDomainsLoading, getDeploymentById, project, environments } =
+    useProjectData();
 
   const liveDeploymentId = project?.liveDeploymentId;
 
   // Get domains for live deployment
-  const domains = liveDeploymentId ? getDomainsForDeployment(liveDeploymentId) : [];
+  const domains = liveDeploymentId
+    ? getDomainsForDeployment(liveDeploymentId).filter((d) => d.sticky === "live")
+    : [];
 
   // Get deployment from provider
   const deploymentStatus = liveDeploymentId
@@ -44,15 +38,6 @@ export default function ProjectDetails() {
           <ActiveDeploymentCard
             deploymentId={project?.liveDeploymentId ?? null}
             statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
-            trailingContent={<DeploymentLogsTrigger />}
-            expandableContent={
-              project?.liveDeploymentId ? (
-                <DeploymentLogsContent
-                  projectId={projectId}
-                  deploymentId={project?.liveDeploymentId}
-                />
-              ) : null
-            }
           />
         </DeploymentLogsProvider>{" "}
       </Section>
@@ -85,7 +70,10 @@ export default function ProjectDetails() {
           title="Custom Domains"
         />
         <CustomDomainsSection
-          environments={environments.map((env) => ({ id: env.id, slug: env.slug }))}
+          environments={environments.map((env) => ({
+            id: env.id,
+            slug: env.slug,
+          }))}
         />
       </Section>
       <Section>
