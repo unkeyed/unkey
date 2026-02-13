@@ -51,9 +51,6 @@ type Config struct {
 	// TLSHandshakeTimeout is the maximum amount of time a TLS handshake will take.
 	TLSHandshakeTimeout time.Duration
 
-	// ResponseHeaderTimeout is the maximum amount of time to wait for response headers.
-	ResponseHeaderTimeout time.Duration
-
 	// Transport allows passing a shared HTTP transport for connection pooling
 	// If nil, a new transport will be created with the other config values
 	Transport *http.Transport
