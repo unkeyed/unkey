@@ -22,10 +22,65 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Direction int32
+
+const (
+	Direction_DIRECTION_UNSPECIFIED Direction = 0
+	Direction_DIRECTION_LAN         Direction = 1
+	Direction_DIRECTION_WAN         Direction = 2
+)
+
+// Enum value maps for Direction.
+var (
+	Direction_name = map[int32]string{
+		0: "DIRECTION_UNSPECIFIED",
+		1: "DIRECTION_LAN",
+		2: "DIRECTION_WAN",
+	}
+	Direction_value = map[string]int32{
+		"DIRECTION_UNSPECIFIED": 0,
+		"DIRECTION_LAN":         1,
+		"DIRECTION_WAN":         2,
+	}
+)
+
+func (x Direction) Enum() *Direction {
+	p := new(Direction)
+	*p = x
+	return p
+}
+
+func (x Direction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Direction) Descriptor() protoreflect.EnumDescriptor {
+	return file_cluster_v1_envelope_proto_enumTypes[0].Descriptor()
+}
+
+func (Direction) Type() protoreflect.EnumType {
+	return &file_cluster_v1_envelope_proto_enumTypes[0]
+}
+
+func (x Direction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Direction.Descriptor instead.
+func (Direction) EnumDescriptor() ([]byte, []int) {
+	return file_cluster_v1_envelope_proto_rawDescGZIP(), []int{0}
+}
+
 // ClusterMessage is the envelope for all gossip broadcast messages.
 // The oneof field routes the payload to the correct handler via MessageMux.
 type ClusterMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// Which pool this message was sent on (LAN or WAN).
+	Direction Direction `protobuf:"varint,2,opt,name=direction,proto3,enum=cluster.v1.Direction" json:"direction,omitempty"`
+	// The region of the node that originated this message.
+	SourceRegion string `protobuf:"bytes,3,opt,name=source_region,json=sourceRegion,proto3" json:"source_region,omitempty"`
+	// The node ID that originated this message.
+	SenderNode string `protobuf:"bytes,4,opt,name=sender_node,json=senderNode,proto3" json:"sender_node,omitempty"`
 	// Types that are valid to be assigned to Message:
 	//
 	//	*ClusterMessage_CacheInvalidation
@@ -64,6 +119,27 @@ func (*ClusterMessage) Descriptor() ([]byte, []int) {
 	return file_cluster_v1_envelope_proto_rawDescGZIP(), []int{0}
 }
 
+func (x *ClusterMessage) GetDirection() Direction {
+	if x != nil {
+		return x.Direction
+	}
+	return Direction_DIRECTION_UNSPECIFIED
+}
+
+func (x *ClusterMessage) GetSourceRegion() string {
+	if x != nil {
+		return x.SourceRegion
+	}
+	return ""
+}
+
+func (x *ClusterMessage) GetSenderNode() string {
+	if x != nil {
+		return x.SenderNode
+	}
+	return ""
+}
+
 func (x *ClusterMessage) GetMessage() isClusterMessage_Message {
 	if x != nil {
 		return x.Message
@@ -95,10 +171,18 @@ var File_cluster_v1_envelope_proto protoreflect.FileDescriptor
 const file_cluster_v1_envelope_proto_rawDesc = "" +
 	"\n" +
 	"\x19cluster/v1/envelope.proto\x12\n" +
-	"cluster.v1\x1a\x1bcache/v1/invalidation.proto\"n\n" +
-	"\x0eClusterMessage\x12Q\n" +
+	"cluster.v1\x1a\x1bcache/v1/invalidation.proto\"\xe9\x01\n" +
+	"\x0eClusterMessage\x123\n" +
+	"\tdirection\x18\x02 \x01(\x0e2\x15.cluster.v1.DirectionR\tdirection\x12#\n" +
+	"\rsource_region\x18\x03 \x01(\tR\fsourceRegion\x12\x1f\n" +
+	"\vsender_node\x18\x04 \x01(\tR\n" +
+	"senderNode\x12Q\n" +
 	"\x12cache_invalidation\x18\x01 \x01(\v2 .cache.v1.CacheInvalidationEventH\x00R\x11cacheInvalidationB\t\n" +
-	"\amessageB\xa1\x01\n" +
+	"\amessage*L\n" +
+	"\tDirection\x12\x19\n" +
+	"\x15DIRECTION_UNSPECIFIED\x10\x00\x12\x11\n" +
+	"\rDIRECTION_LAN\x10\x01\x12\x11\n" +
+	"\rDIRECTION_WAN\x10\x02B\xa1\x01\n" +
 	"\x0ecom.cluster.v1B\rEnvelopeProtoP\x01Z7github.com/unkeyed/unkey/gen/proto/cluster/v1;clusterv1\xa2\x02\x03CXX\xaa\x02\n" +
 	"Cluster.V1\xca\x02\n" +
 	"Cluster\\V1\xe2\x02\x16Cluster\\V1\\GPBMetadata\xea\x02\vCluster::V1b\x06proto3"
@@ -115,18 +199,21 @@ func file_cluster_v1_envelope_proto_rawDescGZIP() []byte {
 	return file_cluster_v1_envelope_proto_rawDescData
 }
 
+var file_cluster_v1_envelope_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_cluster_v1_envelope_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_cluster_v1_envelope_proto_goTypes = []any{
-	(*ClusterMessage)(nil),            // 0: cluster.v1.ClusterMessage
-	(*v1.CacheInvalidationEvent)(nil), // 1: cache.v1.CacheInvalidationEvent
+	(Direction)(0),                    // 0: cluster.v1.Direction
+	(*ClusterMessage)(nil),            // 1: cluster.v1.ClusterMessage
+	(*v1.CacheInvalidationEvent)(nil), // 2: cache.v1.CacheInvalidationEvent
 }
 var file_cluster_v1_envelope_proto_depIdxs = []int32{
-	1, // 0: cluster.v1.ClusterMessage.cache_invalidation:type_name -> cache.v1.CacheInvalidationEvent
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 0: cluster.v1.ClusterMessage.direction:type_name -> cluster.v1.Direction
+	2, // 1: cluster.v1.ClusterMessage.cache_invalidation:type_name -> cache.v1.CacheInvalidationEvent
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_cluster_v1_envelope_proto_init() }
@@ -142,13 +229,14 @@ func file_cluster_v1_envelope_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cluster_v1_envelope_proto_rawDesc), len(file_cluster_v1_envelope_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_cluster_v1_envelope_proto_goTypes,
 		DependencyIndexes: file_cluster_v1_envelope_proto_depIdxs,
+		EnumInfos:         file_cluster_v1_envelope_proto_enumTypes,
 		MessageInfos:      file_cluster_v1_envelope_proto_msgTypes,
 	}.Build()
 	File_cluster_v1_envelope_proto = out.File

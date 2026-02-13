@@ -12,10 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// clearAllSentinel is a reserved cache key used in invalidation events to signal
-// that the entire cache should be cleared, not just a single key.
-const clearAllSentinel = "__clear_all__"
-
 // ClusterCache wraps a local cache and automatically handles distributed invalidation
 // across cluster nodes using a Broadcaster.
 type ClusterCache[K comparable, V any] struct {
@@ -27,7 +23,7 @@ type ClusterCache[K comparable, V any] struct {
 	stringToKey    func(string) (K, error)
 	onInvalidation func(ctx context.Context, key K)
 
-	// Batch processor for broadcasting invalidation events
+	// batchProcessor batches and sends invalidation events to other nodes.
 	batchProcessor *batch.BatchProcessor[*cachev1.CacheInvalidationEvent]
 }
 
@@ -94,7 +90,7 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 
 	c := &ClusterCache[K, V]{
 		broadcaster:    config.Broadcaster,
-		batchProcessor: nil,
+		batchProcessor: nil, // set below; Flush closure captures c
 		localCache:     config.LocalCache,
 		cacheName:      config.LocalCache.Name(),
 		nodeID:         config.NodeID,
@@ -227,14 +223,12 @@ func (c *ClusterCache[K, V]) Restore(ctx context.Context, data []byte) error {
 func (c *ClusterCache[K, V]) Clear(ctx context.Context) {
 	c.localCache.Clear(ctx)
 
-	if c.batchProcessor != nil {
-		c.batchProcessor.Buffer(&cachev1.CacheInvalidationEvent{
-			CacheName:      c.cacheName,
-			CacheKey:       clearAllSentinel,
-			Timestamp:      time.Now().UnixMilli(),
-			SourceInstance: c.nodeID,
-		})
-	}
+	c.batchProcessor.Buffer(&cachev1.CacheInvalidationEvent{
+		CacheName:      c.cacheName,
+		Action:         &cachev1.CacheInvalidationEvent_ClearAll{ClearAll: true},
+		Timestamp:      time.Now().UnixMilli(),
+		SourceInstance: c.nodeID,
+	})
 }
 
 // Name returns the name of this cache instance
@@ -255,35 +249,34 @@ func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cach
 		return false
 	}
 
-	// Handle clear-all sentinel: clear the entire local cache
-	if event.GetCacheKey() == clearAllSentinel {
+	switch event.Action.(type) {
+	case *cachev1.CacheInvalidationEvent_ClearAll:
 		c.localCache.Clear(ctx)
 		return true
-	}
 
-	// Convert string key back to K type
-	key, err := c.stringToKey(event.GetCacheKey())
-	if err != nil {
-		logger.Warn(
-			"Failed to convert cache key",
-			"cache", c.cacheName,
-			"key", event.GetCacheKey(),
-			"error", err,
-		)
+	case *cachev1.CacheInvalidationEvent_CacheKey:
+		key, err := c.stringToKey(event.GetCacheKey())
+		if err != nil {
+			logger.Warn(
+				"Failed to convert cache key",
+				"cache", c.cacheName,
+				"key", event.GetCacheKey(),
+				"error", err,
+			)
+			return false
+		}
+		c.onInvalidation(ctx, key)
+		return true
 
+	default:
+		logger.Warn("Unknown cache invalidation action", "cache", c.cacheName)
 		return false
 	}
-
-	// Call the invalidation handler
-	c.onInvalidation(ctx, key)
-	return true
 }
 
 // Close gracefully shuts down the cluster cache and flushes any pending invalidation events.
 func (c *ClusterCache[K, V]) Close() error {
-	if c.batchProcessor != nil {
-		c.batchProcessor.Close()
-	}
+	c.batchProcessor.Close()
 	return nil
 }
 
@@ -291,7 +284,7 @@ func (c *ClusterCache[K, V]) Close() error {
 // Events are batched and sent asynchronously via the batch processor to avoid
 // creating a goroutine for every cache write operation.
 func (c *ClusterCache[K, V]) broadcastInvalidation(ctx context.Context, keys ...K) {
-	if c.batchProcessor == nil || len(keys) == 0 {
+	if len(keys) == 0 {
 		return
 	}
 
@@ -299,7 +292,7 @@ func (c *ClusterCache[K, V]) broadcastInvalidation(ctx context.Context, keys ...
 	for _, key := range keys {
 		c.batchProcessor.Buffer(&cachev1.CacheInvalidationEvent{
 			CacheName:      c.cacheName,
-			CacheKey:       c.keyToString(key),
+			Action:         &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: c.keyToString(key)},
 			Timestamp:      time.Now().UnixMilli(),
 			SourceInstance: c.nodeID,
 		})

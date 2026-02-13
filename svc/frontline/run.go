@@ -139,10 +139,7 @@ func Run(ctx context.Context, cfg Config) error {
 			"instanceID", cfg.FrontlineID,
 		)
 
-		gossipBroadcaster := clustering.NewGossipBroadcaster()
-
 		mux := cluster.NewMessageMux()
-		mux.HandleCacheInvalidation(gossipBroadcaster.OnMessage)
 
 		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
 		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
@@ -161,7 +158,8 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create gossip cluster: %w", clusterErr)
 		}
 
-		gossipBroadcaster.SetCluster(gossipCluster)
+		gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+		mux.Subscribe(gossipBroadcaster.HandleClusterMessage)
 		broadcaster = gossipBroadcaster
 		r.Defer(gossipCluster.Close)
 	}
