@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	ctrl "github.com/unkeyed/unkey/pkg/rpc/ctrl"
 	"golang.org/x/net/http2"
 )
 
@@ -39,7 +40,7 @@ type ClientConfig struct {
 //
 // All outgoing requests will automatically include the Authorization bearer token
 // and X-Krane-Region headers for proper routing and authentication.
-func NewClient(cfg ClientConfig) ctrlv1connect.ClusterServiceClient {
+func NewClient(cfg ClientConfig) ctrl.ClusterServiceClient {
 	var transport http.RoundTripper
 
 	// Use h2c (HTTP/2 cleartext) for non-TLS URLs, regular HTTP/2 for TLS
@@ -63,12 +64,12 @@ func NewClient(cfg ClientConfig) ctrlv1connect.ClusterServiceClient {
 		}
 	}
 
-	return ctrlv1connect.NewClusterServiceClient(
+	return ctrl.NewConnectClusterServiceClient(ctrlv1connect.NewClusterServiceClient(
 		&http.Client{
 			Timeout:   0,
 			Transport: transport,
 		},
 		cfg.URL,
 		connect.WithInterceptors(connectInterceptor(cfg.Region, cfg.BearerToken)),
-	)
+	))
 }
