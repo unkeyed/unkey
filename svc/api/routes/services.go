@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -10,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
@@ -55,7 +55,7 @@ type Services struct {
 
 	// CtrlDeploymentClient communicates with the control plane for deployment
 	// operations like creating and managing deployments.
-	CtrlDeploymentClient ctrlv1connect.DeployServiceClient
+	CtrlDeploymentClient ctrl.DeployServiceClient
 
 	// PprofEnabled controls whether pprof profiling endpoints are registered.
 	PprofEnabled bool

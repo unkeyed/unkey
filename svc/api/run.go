@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/vault"
@@ -267,13 +268,15 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Initialize CTRL deployment client using bufconnect
-	ctrlDeploymentClient := ctrlv1connect.NewDeployServiceClient(
-		&http.Client{},
-		cfg.CtrlURL,
-		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
-		})),
+	// Initialize CTRL deployment client
+	ctrlDeploymentClient := ctrl.NewConnectDeployServiceClient(
+		ctrlv1connect.NewDeployServiceClient(
+			&http.Client{},
+			cfg.CtrlURL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
+			})),
+		),
 	)
 
 	logger.Info("CTRL clients initialized", "url", cfg.CtrlURL)

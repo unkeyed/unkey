@@ -4,14 +4,13 @@ import (
 	"context"
 	"net/http"
 
-	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -25,7 +24,7 @@ type (
 type Handler struct {
 	DB         db.Database
 	Keys       keys.KeyService
-	CtrlClient ctrlv1connect.DeployServiceClient
+	CtrlClient ctrl.DeployServiceClient
 }
 
 func (h *Handler) Path() string {
@@ -120,9 +119,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctrlReq.GitCommit = gitCommit
 	}
 
-	connectReq := connect.NewRequest(ctrlReq)
-
-	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, connectReq)
+	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
 	if err != nil {
 		return ctrlclient.HandleError(err, "create deployment")
 	}
@@ -132,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2DeployCreateDeploymentResponseData{
-			DeploymentId: ctrlResp.Msg.GetDeploymentId(),
+			DeploymentId: ctrlResp.GetDeploymentId(),
 		},
 	})
 }

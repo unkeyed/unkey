@@ -27,6 +27,7 @@ go_library(
         "//pkg/otel",
         "//pkg/prometheus",
         "//pkg/rbac",
+        "//pkg/rpc/ctrl",
         "//pkg/rpc/interceptor",
         "//pkg/runner",
         "//pkg/tls",
