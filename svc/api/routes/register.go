@@ -79,10 +79,10 @@ import (
 // endpoints require a non-empty ChproxyToken, and pprof endpoints require
 // PprofEnabled to be true.
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
-	withObservability := zen.WithObservability()
+	withObservability := zen.WithObservability(svc.ZenMetrics)
 	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
 	withLogging := zen.WithLogging()
-	withPanicRecovery := zen.WithPanicRecovery()
+	withPanicRecovery := zen.WithPanicRecovery(svc.ZenMetrics)
 	withErrorHandling := middleware.WithErrorHandling()
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
@@ -115,18 +115,21 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		srv.RegisterRoute(chproxyMiddlewares, &chproxyVerifications.Handler{
 			ClickHouse: svc.ClickHouse,
 			Token:      svc.ChproxyToken,
+			Metrics:    svc.ChproxyMetrics,
 		})
 
 		// chproxy/metrics - internal endpoint for API request metrics
 		srv.RegisterRoute(chproxyMiddlewares, &chproxyMetrics.Handler{
 			ClickHouse: svc.ClickHouse,
 			Token:      svc.ChproxyToken,
+			Metrics:    svc.ChproxyMetrics,
 		})
 
 		// chproxy/ratelimits - internal endpoint for ratelimit events
 		srv.RegisterRoute(chproxyMiddlewares, &chproxyRatelimits.Handler{
 			ClickHouse: svc.ClickHouse,
 			Token:      svc.ChproxyToken,
+			Metrics:    svc.ChproxyMetrics,
 		})
 	}
 

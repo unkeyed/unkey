@@ -9,14 +9,16 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/zen"
+
+	chproxyMetrics "github.com/unkeyed/unkey/svc/api/routes/chproxy_metrics"
 )
 
 // Handler handles ratelimit events for ClickHouse proxy
 type Handler struct {
 	ClickHouse clickhouse.ClickHouse
 	Token      string
+	Metrics    chproxyMetrics.Metrics
 }
 
 // Method returns the HTTP method this route responds to
@@ -52,8 +54,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Record metrics
-	metrics.ChproxyRequestsTotal.WithLabelValues("ratelimits").Inc()
-	metrics.ChproxyRowsTotal.WithLabelValues("ratelimits").Add(float64(len(events)))
+	h.Metrics.RecordChproxyRequest("ratelimits")
+	h.Metrics.RecordChproxyRows("ratelimits", float64(len(events)))
 
 	// Buffer all events to ClickHouse
 	for _, event := range events {

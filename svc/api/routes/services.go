@@ -11,7 +11,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/vault"
+	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	chproxyMetrics "github.com/unkeyed/unkey/svc/api/routes/chproxy_metrics"
 )
 
 // Services aggregates all dependencies required by API route handlers. It acts
@@ -74,4 +76,10 @@ type Services struct {
 	// AnalyticsConnectionManager manages connections to analytics backends
 	// for retrieving verification and usage data.
 	AnalyticsConnectionManager analytics.ConnectionManager
+
+	// ZenMetrics provides HTTP request and panic recovery metrics for zen middleware.
+	ZenMetrics zen.Metrics
+
+	// ChproxyMetrics provides ClickHouse proxy metrics for chproxy handlers.
+	ChproxyMetrics chproxyMetrics.Metrics
 }

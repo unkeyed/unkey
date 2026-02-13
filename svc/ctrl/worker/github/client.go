@@ -62,6 +62,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 		MaxSize:  10_000,
 		Resource: "github_installation_token",
 		Clock:    clock.New(),
+		Metrics:  nil,
 	})
 	if err != nil {
 		return nil, err

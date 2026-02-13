@@ -24,8 +24,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/o11y"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -35,6 +35,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/routes"
+	chproxyMetrics "github.com/unkeyed/unkey/svc/api/routes/chproxy_metrics"
 )
 
 // nolint:gocognit
@@ -64,6 +65,21 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 
+	obs, err := o11y.New(ctx, o11y.Config{
+		Service:    "api",
+		Region:     cfg.Region,
+		Version:    version.Version,
+		InstanceID: cfg.InstanceID,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create o11y: %w", err)
+	}
+
+	rlMetrics := ratelimit.NewPrometheusMetrics(obs.Registry(), obs.ConstLabels())
+	ulMetrics := usagelimiter.NewPrometheusMetrics(obs.Registry(), obs.ConstLabels())
+	keyMetrics := keys.NewPrometheusMetrics(obs.Registry(), obs.ConstLabels())
+	chMetrics := chproxyMetrics.NewPrometheusMetrics(obs.Registry(), obs.ConstLabels())
+
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
 	if cfg.OtelEnabled {
@@ -87,6 +103,7 @@ func Run(ctx context.Context, cfg Config) error {
 	db, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		Metrics:     obs.Metrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -95,19 +112,31 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(db.Close)
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New()
+		promSrv, promErr := zen.New(zen.Config{
+			MaxRequestBodySize: 0,
+			Flags:              nil,
+			TLS:                nil,
+			EnableH2C:          false,
+			ReadTimeout:        0,
+			WriteTimeout:       0,
+		})
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
+		metricsHandler := obs.Handler()
+		promSrv.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
+			metricsHandler.ServeHTTP(s.ResponseWriter(), s.Request())
+			return nil
+		}))
 
 		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 		if listenErr != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
 		}
 
-		r.DeferCtx(prom.Shutdown)
+		r.DeferCtx(promSrv.Shutdown)
 		r.Go(func(ctx context.Context) error {
-			serveErr := prom.Serve(ctx, promListener)
+			serveErr := promSrv.Serve(ctx, promListener)
 			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
 				return fmt.Errorf("prometheus server failed: %w", serveErr)
 			}
@@ -158,6 +187,7 @@ func Run(ctx context.Context, cfg Config) error {
 	rlSvc, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
+		Metrics: rlMetrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
@@ -170,6 +200,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:      db,
 		Counter: ctr,
 		TTL:     60 * time.Second,
+		Metrics: ulMetrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
@@ -231,6 +262,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:                  clk,
 		CacheInvalidationTopic: cacheInvalidationTopic,
 		NodeID:                 cfg.InstanceID,
+		Metrics:                obs.Metrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -244,6 +276,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:   ch,
 		Region:       cfg.Region,
 		UsageLimiter: ulSvc,
+		Metrics:      keyMetrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -294,6 +327,8 @@ func Run(ctx context.Context, cfg Config) error {
 		PprofPassword:              cfg.PprofPassword,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
+		ZenMetrics:                 obs.Metrics,
+		ChproxyMetrics:             chMetrics,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

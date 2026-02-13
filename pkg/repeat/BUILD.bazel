@@ -2,10 +2,12 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "repeat",
-    srcs = ["every.go"],
+    srcs = [
+        "every.go",
+        "metrics.go",
+    ],
     importpath = "github.com/unkeyed/unkey/pkg/repeat",
     visibility = ["//visibility:public"],
-    deps = ["//pkg/prometheus/metrics"],
 )
 
 go_test(

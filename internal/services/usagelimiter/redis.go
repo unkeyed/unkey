@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
 
@@ -42,6 +41,9 @@ type RedisConfig struct {
 
 	// TTL for Redis keys, defaults to 10 minutes if not specified
 	TTL time.Duration
+
+	// Metrics for observability
+	Metrics Metrics
 }
 
 // counterService implements usage limiting using the counter interface
@@ -49,6 +51,7 @@ type RedisConfig struct {
 type counterService struct {
 	db      db.Database
 	counter counter.Counter
+	metrics Metrics
 
 	// Fallback to direct DB implementation when Redis fails
 	dbFallback Service
@@ -79,6 +82,9 @@ type CounterConfig struct {
 	// ReplayWorkers is the number of goroutines processing replay requests
 	// Defaults to 8 if not specified
 	ReplayWorkers int
+
+	// Metrics for observability
+	Metrics Metrics
 }
 
 // NewCounter creates a new counter-based usage limiter implementation.
@@ -115,25 +121,38 @@ func NewCounter(config CounterConfig) (Service, error) {
 
 	// Create the direct DB fallback service
 	dbFallback, err := New(Config{
-		DB: config.DB,
+		DB:      config.DB,
+		Metrics: config.Metrics,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DB fallback: %w", err)
 	}
 
+	var bufMetrics buffer.Metrics
+	if bm, ok := interface{}(config.Metrics).(buffer.Metrics); ok {
+		bufMetrics = bm
+	}
+
+	var cb circuitbreaker.CircuitBreaker[any]
+	if cm, ok := interface{}(config.Metrics).(circuitbreaker.Metrics); ok {
+		cb = circuitbreaker.New[any]("usagelimiter_db_writes", circuitbreaker.WithMetrics(cm))
+	} else {
+		cb = circuitbreaker.New[any]("usagelimiter_db_writes")
+	}
+
 	s := &counterService{
 		db:         config.DB,
 		counter:    config.Counter,
+		metrics:    config.Metrics,
 		dbFallback: dbFallback,
 		ttl:        ttl,
 		replayBuffer: buffer.New[CreditChange](buffer.Config{
 			Name:     "usagelimiter_replays",
 			Capacity: 10_000,
 			Drop:     false, // Do NOT drop credits
+			Metrics:  bufMetrics,
 		}),
-		dbCircuitBreaker: circuitbreaker.New[any](
-			"usagelimiter_db_writes",
-		),
+		dbCircuitBreaker: cb,
 	}
 
 	// Start replay workers
@@ -210,13 +229,13 @@ func (s *counterService) handleResult(req UsageRequest, remaining int64, success
 			Cost:  req.Cost,
 		})
 
-		metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
+		s.metrics.RecordDecision("redis", "allowed")
 		return UsageResponse{Valid: true, Remaining: int32(remaining)} //nolint: gosec
 
 	}
 
 	// Insufficient credits - return actual current count for accurate response
-	metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
+	s.metrics.RecordDecision("redis", "denied")
 	return UsageResponse{Valid: false, Remaining: int32(remaining)} //nolint: gosec
 }
 
@@ -301,7 +320,7 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 
 	start := time.Now()
 	defer func() {
-		metrics.UsagelimiterReplayLatency.Observe(time.Since(start).Seconds())
+		s.metrics.RecordReplayLatency(time.Since(start).Seconds())
 	}()
 
 	_, err := s.dbCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
@@ -311,11 +330,11 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 		})
 	})
 	if err != nil {
-		metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
+		s.metrics.RecordReplayOperation("error")
 		return err
 	}
 
-	metrics.UsagelimiterReplayOperations.WithLabelValues("success").Inc()
+	s.metrics.RecordReplayOperation("success")
 	return nil
 }
 
@@ -339,7 +358,13 @@ func (s *counterService) Close() error {
 	// Wait for the buffer to drain with periodic checks using repeat package
 	done := make(chan struct{})
 
-	stopRepeater := repeat.Every(100*time.Millisecond, func() {
+	var rm repeat.Metrics
+	if v, ok := interface{}(s.metrics).(repeat.Metrics); ok {
+		rm = v
+	} else {
+		rm = repeat.NoopMetrics{}
+	}
+	stopRepeater := repeat.Every(100*time.Millisecond, rm, func() {
 		remaining := s.replayBuffer.Size()
 		if remaining == 0 {
 			logger.Debug("usage limiter replay buffer drained successfully")

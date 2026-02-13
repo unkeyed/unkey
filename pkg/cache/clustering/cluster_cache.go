@@ -51,6 +51,9 @@ type Config[K comparable, V any] struct {
 	// StringToKey converts a string from invalidation events back to key type
 	// If not provided, will attempt to cast string to K
 	StringToKey func(string) (K, error)
+
+	// Metrics for batch processor instrumentation (passed to batch.Config)
+	Metrics batch.Metrics
 }
 
 // New creates a new ClusterCache that automatically handles
@@ -116,6 +119,7 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 		BufferSize:    1_000,
 		FlushInterval: 100 * time.Millisecond,
 		Consumers:     2,
+		Metrics:       config.Metrics,
 		Flush: func(ctx context.Context, events []*cachev1.CacheInvalidationEvent) {
 			err := c.producer.Produce(ctx, events...)
 			if err != nil {

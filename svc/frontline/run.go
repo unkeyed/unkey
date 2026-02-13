@@ -16,14 +16,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/o11y"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	pkgtls "github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
 	"github.com/unkeyed/unkey/svc/frontline/services/caches"
 	"github.com/unkeyed/unkey/svc/frontline/services/certmanager"
@@ -50,6 +51,16 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create cached clock with millisecond resolution for efficient time tracking
 	clk := clock.New()
+	obs, err := o11y.New(ctx, o11y.Config{
+		Service:    "frontline",
+		Region:     cfg.Region,
+		Version:    version.Version,
+		InstanceID: cfg.FrontlineID,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create o11y: %w", err)
+	}
+	flMetrics := middleware.NewPrometheusMetrics(obs.Registry())
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
 	var shutdownGrafana func(context.Context) error
@@ -85,19 +96,31 @@ func Run(ctx context.Context, cfg Config) error {
 	r.DeferCtx(shutdownGrafana)
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New()
+		promSrv, promErr := zen.New(zen.Config{
+			MaxRequestBodySize: 0,
+			Flags:              nil,
+			TLS:                nil,
+			EnableH2C:          false,
+			ReadTimeout:        0,
+			WriteTimeout:       0,
+		})
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
+		metricsHandler := obs.Handler()
+		promSrv.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
+			metricsHandler.ServeHTTP(s.ResponseWriter(), s.Request())
+			return nil
+		}))
 
 		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 		if listenErr != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
 		}
 
-		r.DeferCtx(prom.Shutdown)
+		r.DeferCtx(promSrv.Shutdown)
 		r.Go(func(ctx context.Context) error {
-			promListenErr := prom.Serve(ctx, promListener)
+			promListenErr := promSrv.Serve(ctx, promListener)
 			if promListenErr != nil && !errors.Is(promListenErr, context.Canceled) {
 				return fmt.Errorf("prometheus server failed: %w", promListenErr)
 			}
@@ -122,6 +145,7 @@ func Run(ctx context.Context, cfg Config) error {
 	db, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		Metrics:     obs.Metrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
@@ -130,7 +154,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
-		Clock: clk,
+		Clock:   clk,
+		Metrics: obs.Metrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -210,6 +235,8 @@ func Run(ctx context.Context, cfg Config) error {
 		ProxyService:  proxySvc,
 		Clock:         clk,
 		AcmeClient:    acmeClient,
+		ZenMetrics: obs.Metrics,
+		ObsMetrics: flMetrics,
 	}
 
 	// Start HTTPS frontline server (main proxy server)

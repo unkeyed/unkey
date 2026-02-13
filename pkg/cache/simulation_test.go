@@ -109,6 +109,7 @@ func TestSimulation(t *testing.T) {
 						Stale:    stale,
 						MaxSize:  rng.IntN(1_000_000) + 1, // Ensure at least size 1
 						Resource: "test",
+						Metrics:  nil,
 					})
 					require.NoError(t, err)
 					return &state{

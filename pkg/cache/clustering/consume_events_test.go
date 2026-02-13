@@ -49,6 +49,7 @@ func TestClusterCache_ConsumesInvalidationAndRemovesFromCache(t *testing.T) {
 		MaxSize:  1000,
 		Resource: "test-cache",
 		Clock:    clock.New(),
+		Metrics:  cache.NoopMetrics{},
 	})
 	require.NoError(t, err)
 

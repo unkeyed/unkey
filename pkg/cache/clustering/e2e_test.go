@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -58,6 +59,7 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 			MaxSize:  1000,
 			Resource: "test-cache",
 			Clock:    clock.New(),
+			Metrics:  cache.NoopMetrics{},
 		})
 		if err != nil {
 			return nil, nil, err
@@ -69,6 +71,7 @@ func TestClusterCache_EndToEndDistributedInvalidation(t *testing.T) {
 			Topic:      topic,
 			Dispatcher: dispatcher,
 			NodeID:     nodeID,
+			Metrics:    batch.NoopMetrics{},
 		})
 		if err != nil {
 			return nil, nil, err

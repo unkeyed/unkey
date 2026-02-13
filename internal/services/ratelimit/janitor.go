@@ -3,7 +3,6 @@ package ratelimit
 import (
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
 
@@ -37,7 +36,17 @@ import (
 //   - Bucket removed when last window expires
 func (s *service) expireWindowsAndBuckets() {
 
-	repeat.Every(time.Minute, func() {
+	// repeat.Every needs repeat.Metrics for panic recovery. If the caller's
+	// metrics object also satisfies repeat.Metrics (e.g. *o11y.Metrics), use it;
+	// otherwise fall back to repeat.NoopMetrics{}.
+	var rm repeat.Metrics
+	if v, ok := interface{}(s.metrics).(repeat.Metrics); ok {
+		rm = v
+	} else {
+		rm = repeat.NoopMetrics{}
+	}
+
+	repeat.Every(time.Minute, rm, func() {
 		s.bucketsMu.Lock()
 		defer s.bucketsMu.Unlock()
 
@@ -48,21 +57,21 @@ func (s *service) expireWindowsAndBuckets() {
 			for sequence, window := range bucket.windows {
 				if s.clock.Now().After(window.start.Add(3 * window.duration)) {
 					delete(bucket.windows, sequence)
-					metrics.RatelimitWindowsEvicted.Inc()
+					s.metrics.RecordWindowEvicted()
 				} else {
 					windows++
 				}
 			}
 			if len(bucket.windows) == 0 {
 				delete(s.buckets, bucketID)
-				metrics.RatelimitBucketsEvicted.Inc()
+				s.metrics.RecordBucketEvicted()
 			}
 
 			bucket.mu.Unlock()
 		}
 
-		metrics.RatelimitBuckets.Set(float64(len(s.buckets)))
-		metrics.RatelimitWindows.Set(windows)
+		s.metrics.SetBuckets(float64(len(s.buckets)))
+		s.metrics.SetWindows(windows)
 	})
 
 }

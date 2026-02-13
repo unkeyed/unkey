@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -19,32 +17,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-var (
-	frontlineRequestsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "frontline_requests_total",
-			Help: "Total number of requests processed by frontline",
-		},
-		[]string{"status_code", "error_type", "region"},
-	)
-
-	frontlineRequestDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "frontline_request_duration_seconds",
-			Help:    "Request duration in seconds",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"status_code", "error_type", "region"},
-	)
-
-	frontlineActiveRequests = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "frontline_active_requests",
-			Help: "Number of requests currently being processed",
-		},
-		[]string{"region"},
-	)
-)
 
 type ErrorResponse struct {
 	Error ErrorDetail `json:"error"`
@@ -102,7 +74,7 @@ func categorizeErrorTypeFrontline(urn codes.URN, statusCode int, hasError bool) 
 	return "unknown"
 }
 
-func WithObservability(region string) zen.Middleware {
+func WithObservability(m Metrics, region string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()
@@ -118,8 +90,8 @@ func WithObservability(region string) zen.Middleware {
 			)
 			defer span.End()
 
-			frontlineActiveRequests.WithLabelValues(region).Inc()
-			defer frontlineActiveRequests.WithLabelValues(region).Dec()
+			m.IncActiveRequests(region)
+			defer m.DecActiveRequests(region)
 
 			err := next(ctx, s)
 
@@ -206,8 +178,7 @@ func WithObservability(region string) zen.Middleware {
 				"region", region,
 			)
 
-			frontlineRequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
-			frontlineRequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
+			m.RecordRequest(statusStr, errorType, region, duration)
 
 			return nil
 		}

@@ -7,6 +7,7 @@ import (
 
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -67,6 +68,9 @@ type Config struct {
 
 	// NodeID identifies this node in the cluster (defaults to hostname-uniqueid to ensure uniqueness)
 	NodeID string
+
+	// Metrics provides observability metrics for cache operations
+	Metrics cache.Metrics
 }
 
 // createCache creates a cache instance with optional clustering support.
@@ -109,6 +113,13 @@ func createCache[K comparable, V any](
 		return localCache, nil
 	}
 
+	// Type-assert cache.Metrics to batch.Metrics for the clustering batch processor.
+	// At runtime *o11y.Metrics satisfies both; in tests NoopMetrics won't, and nil is fine.
+	var bm batch.Metrics
+	if v, ok := interface{}(config.Metrics).(batch.Metrics); ok {
+		bm = v
+	}
+
 	// Wrap with clustering for distributed invalidation
 	// The cluster cache will automatically register with the dispatcher
 	clusterCache, err := clustering.New(clustering.Config[K, V]{
@@ -118,6 +129,7 @@ func createCache[K comparable, V any](
 		NodeID:      config.NodeID,
 		KeyToString: keyToString,
 		StringToKey: stringToKey,
+		Metrics:     bm,
 	})
 	if err != nil {
 		return nil, err
@@ -191,6 +203,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "ratelimit_namespace",
 			Clock:    config.Clock,
+			Metrics:  config.Metrics,
 		},
 		cache.ScopedKeyToString,
 		cache.ScopedKeyFromString,
@@ -209,6 +222,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "verification_key_by_hash",
 			Clock:    config.Clock,
+			Metrics:  config.Metrics,
 		},
 		nil, // String keys don't need custom converters
 		nil,
@@ -227,6 +241,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "live_api_by_id",
 			Clock:    config.Clock,
+			Metrics:  config.Metrics,
 		},
 		cache.ScopedKeyToString,
 		cache.ScopedKeyFromString,
@@ -244,6 +259,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "clickhouse_setting",
 			Clock:    config.Clock,
+			Metrics:  config.Metrics,
 		},
 		nil,
 		nil,
@@ -262,6 +278,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "key_auth_to_api_row",
 			Clock:    config.Clock,
+			Metrics:  config.Metrics,
 		},
 		cache.ScopedKeyToString,
 		cache.ScopedKeyFromString,
@@ -280,6 +297,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "api_to_key_auth_row",
 			Clock:    config.Clock,
+			Metrics:  config.Metrics,
 		},
 		cache.ScopedKeyToString,
 		cache.ScopedKeyFromString,

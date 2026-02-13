@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "middleware",
-    srcs = ["observability.go"],
+    srcs = [
+        "metrics.go",
+        "observability.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/middleware",
     visibility = ["//visibility:public"],
     deps = [
@@ -12,7 +15,6 @@ go_library(
         "//pkg/otel/tracing",
         "//pkg/zen",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
         "@io_opentelemetry_go_otel//attribute",
     ],
 )

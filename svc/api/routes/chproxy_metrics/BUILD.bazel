@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "chproxy_metrics",
-    srcs = ["handler.go"],
+    srcs = [
+        "handler.go",
+        "metrics.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/api/routes/chproxy_metrics",
     visibility = ["//visibility:public"],
     deps = [
@@ -10,7 +13,7 @@ go_library(
         "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/prometheus/metrics",
         "//pkg/zen",
+        "@com_github_prometheus_client_golang//prometheus",
     ],
 )

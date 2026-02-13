@@ -10,7 +10,7 @@ go_library(
         "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/prometheus/metrics",
         "//pkg/zen",
+        "//svc/api/routes/chproxy_metrics",
     ],
 )

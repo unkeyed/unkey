@@ -132,6 +132,7 @@ func New(config Config) (*clickhouse, error) {
 		BufferSize:    200_000,
 		FlushInterval: 5 * time.Second,
 		Consumers:     2,
+		Metrics:       nil,
 		Flush: func(ctx context.Context, rows []schema.ApiRequest) {
 			table := "default.api_requests_raw_v2"
 			if err := flush(c, ctx, table, rows); err != nil {
@@ -147,6 +148,7 @@ func New(config Config) (*clickhouse, error) {
 		BufferSize:    200_000,
 		FlushInterval: 5 * time.Second,
 		Consumers:     2,
+		Metrics:       nil,
 		Flush: func(ctx context.Context, rows []schema.KeyVerification) {
 			table := "default.key_verifications_raw_v2"
 			if err := flush(c, ctx, table, rows); err != nil {
@@ -162,6 +164,7 @@ func New(config Config) (*clickhouse, error) {
 		BufferSize:    200_000,
 		FlushInterval: 5 * time.Second,
 		Consumers:     2,
+		Metrics:       nil,
 		Flush: func(ctx context.Context, rows []schema.Ratelimit) {
 			table := "default.ratelimits_raw_v2"
 			if err := flush(c, ctx, table, rows); err != nil {
@@ -177,6 +180,7 @@ func New(config Config) (*clickhouse, error) {
 		BufferSize:    200_000,
 		FlushInterval: 2 * time.Second,
 		Consumers:     1,
+		Metrics:       nil,
 		Flush: func(ctx context.Context, rows []schema.BuildStepV1) {
 			table := "default.build_steps_v1"
 			if err := flush(c, ctx, table, rows); err != nil {
@@ -192,6 +196,7 @@ func New(config Config) (*clickhouse, error) {
 		BufferSize:    200_000,
 		FlushInterval: 2 * time.Second,
 		Consumers:     1,
+		Metrics:       nil,
 		Flush: func(ctx context.Context, rows []schema.BuildStepLogV1) {
 			table := "default.build_step_logs_v1"
 			if err := flush(c, ctx, table, rows); err != nil {
@@ -207,6 +212,7 @@ func New(config Config) (*clickhouse, error) {
 		BufferSize:    200_000,
 		FlushInterval: 5 * time.Second,
 		Consumers:     2,
+		Metrics:       nil,
 		Flush: func(ctx context.Context, rows []schema.SentinelRequest) {
 			table := "default.sentinel_requests_raw_v1"
 			if err := flush(c, ctx, table, rows); err != nil {

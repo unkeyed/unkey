@@ -4,12 +4,10 @@ go_library(
     name = "batch",
     srcs = [
         "doc.go",
+        "metrics.go",
         "process.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/batch",
     visibility = ["//visibility:public"],
-    deps = [
-        "//pkg/buffer",
-        "//pkg/prometheus/metrics",
-    ],
+    deps = ["//pkg/buffer"],
 )

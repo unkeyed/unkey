@@ -8,6 +8,7 @@ go_library(
         "get.go",
         "get_migrated.go",
         "interface.go",
+        "metrics.go",
         "options.go",
         "service.go",
         "status.go",
@@ -31,11 +32,11 @@ go_library(
         "//pkg/hash",
         "//pkg/logger",
         "//pkg/otel/tracing",
-        "//pkg/prometheus/metrics",
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/zen",
         "//svc/api/openapi",
+        "@com_github_prometheus_client_golang//prometheus",
     ],
 )
 

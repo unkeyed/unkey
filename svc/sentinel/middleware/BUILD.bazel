@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "error_handling.go",
         "logging.go",
+        "metrics.go",
         "observability.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/sentinel/middleware",
@@ -20,7 +21,6 @@ go_library(
         "//pkg/zen",
         "//svc/sentinel/routes/proxy",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
         "@io_opentelemetry_go_otel//attribute",
     ],
 )

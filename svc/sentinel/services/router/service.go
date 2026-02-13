@@ -34,6 +34,7 @@ func New(cfg Config) (*service, error) {
 		MaxSize:  1000,
 		Fresh:    30 * time.Second,
 		Stale:    5 * time.Minute,
+		Metrics:  nil,
 	})
 	if err != nil {
 		return nil, err
@@ -45,6 +46,7 @@ func New(cfg Config) (*service, error) {
 		MaxSize:  1000,
 		Fresh:    10 * time.Second,
 		Stale:    60 * time.Second,
+		Metrics:  nil,
 	})
 	if err != nil {
 		return nil, err

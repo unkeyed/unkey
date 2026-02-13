@@ -11,11 +11,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/o11y"
 	"github.com/unkeyed/unkey/pkg/otel"
-	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/sentinel/middleware"
 	"github.com/unkeyed/unkey/svc/sentinel/routes"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
@@ -35,6 +36,17 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	clk := clock.New()
+
+	obs, err := o11y.New(ctx, o11y.Config{
+		Service:    "sentinel",
+		Region:     cfg.Region,
+		Version:    version.Version,
+		InstanceID: cfg.SentinelID,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create o11y: %w", err)
+	}
+	snMetrics := middleware.NewPrometheusMetrics(obs.Registry())
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
 	var shutdownGrafana func(context.Context) error
@@ -66,19 +78,31 @@ func Run(ctx context.Context, cfg Config) error {
 	r.DeferCtx(shutdownGrafana)
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New()
+		promSrv, promErr := zen.New(zen.Config{
+			MaxRequestBodySize: 0,
+			Flags:              nil,
+			TLS:                nil,
+			EnableH2C:          false,
+			ReadTimeout:        0,
+			WriteTimeout:       0,
+		})
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
+		metricsHandler := obs.Handler()
+		promSrv.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
+			metricsHandler.ServeHTTP(s.ResponseWriter(), s.Request())
+			return nil
+		}))
 
 		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
 		if listenErr != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
 		}
 
-		r.DeferCtx(prom.Shutdown)
+		r.DeferCtx(promSrv.Shutdown)
 		r.Go(func(ctx context.Context) error {
-			serveErr := prom.Serve(ctx, promListener)
+			serveErr := promSrv.Serve(ctx, promListener)
 			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
 				return fmt.Errorf("prometheus server failed: %w", serveErr)
 			}
@@ -89,6 +113,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		Metrics:     obs.Metrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -125,6 +150,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:             cfg.Region,
 		ClickHouse:         ch,
 		MaxRequestBodySize: maxRequestBodySize,
+		ZenMetrics:         obs.Metrics,
+		ObsMetrics:         snMetrics,
 	}
 
 	srv, err := zen.New(zen.Config{

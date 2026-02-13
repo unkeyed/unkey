@@ -24,8 +24,8 @@ go_library(
         "//pkg/db",
         "//pkg/eventstream",
         "//pkg/logger",
+        "//pkg/o11y",
         "//pkg/otel",
-        "//pkg/prometheus",
         "//pkg/rbac",
         "//pkg/rpc/interceptor",
         "//pkg/runner",
@@ -36,6 +36,7 @@ go_library(
         "//pkg/zen",
         "//pkg/zen/validation",
         "//svc/api/routes",
+        "//svc/api/routes/chproxy_metrics",
         "@com_connectrpc_connect//:connect",
     ],
 )

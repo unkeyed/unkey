@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -85,6 +86,7 @@ func NewHarness(t *testing.T) *Harness {
 	db, err := db.New(db.Config{
 		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
+		Metrics:     db.NoopMetrics{},
 	})
 	require.NoError(t, err)
 
@@ -92,6 +94,7 @@ func NewHarness(t *testing.T) *Harness {
 		CacheInvalidationTopic: nil,
 		NodeID:                 "",
 		Clock:                  clk,
+		Metrics:                cache.NoopMetrics{},
 	})
 	require.NoError(t, err)
 
@@ -127,6 +130,7 @@ func NewHarness(t *testing.T) *Harness {
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
+		Metrics: ratelimit.NoopMetrics{},
 	})
 	require.NoError(t, err)
 
@@ -134,6 +138,7 @@ func NewHarness(t *testing.T) *Harness {
 		DB:      db,
 		Counter: ctr,
 		TTL:     60 * time.Second,
+		Metrics: usagelimiter.NoopMetrics{},
 	})
 	require.NoError(t, err)
 
@@ -145,6 +150,7 @@ func NewHarness(t *testing.T) *Harness {
 		Clickhouse:   ch,
 		Region:       "test",
 		UsageLimiter: ulSvc,
+		Metrics:      keys.NoopMetrics{},
 	})
 	require.NoError(t, err)
 
@@ -202,7 +208,7 @@ func NewHarness(t *testing.T) *Harness {
 		Auditlogs:                  audit,
 		Caches:                     caches,
 		middleware: []zen.Middleware{
-			zen.WithObservability(),
+			zen.WithObservability(zen.NoopMetrics{}),
 			zen.WithLogging(),
 			middleware.WithErrorHandling(),
 			zen.WithValidation(validator),

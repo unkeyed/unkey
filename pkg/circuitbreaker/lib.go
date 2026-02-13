@@ -7,7 +7,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
 // CB is the concrete implementation of [CircuitBreaker]. It tracks request
@@ -61,6 +60,8 @@ type config struct {
 
 	// Clock to use for timing, defaults to the system clock but can be overridden for testing
 	clock clock.Clock
+
+	metrics Metrics
 }
 
 // WithMaxRequests sets the maximum number of requests allowed through during
@@ -114,6 +115,14 @@ func WithClock(clock clock.Clock) applyConfig {
 	}
 }
 
+// WithMetrics sets the metrics instance used to record circuit breaker
+// observations. When nil, no metrics are emitted.
+func WithMetrics(m Metrics) applyConfig {
+	return func(c *config) {
+		c.metrics = m
+	}
+}
+
 // applyConfig is a functional option for configuring a circuit breaker.
 // Use the With* functions to create options.
 type applyConfig func(*config)
@@ -132,6 +141,7 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 		},
 		tripThreshold: 5,
 		clock:         clock.New(),
+		metrics:       nil,
 	}
 
 	for _, apply := range applyConfigs {
@@ -205,7 +215,9 @@ func (cb *CB[Res]) preflight(_ context.Context) error {
 		cb.resetStateAt = now.Add(cb.config.timeout)
 	}
 
-	metrics.CircuitBreakerRequests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
+	if cb.config.metrics != nil {
+		cb.config.metrics.RecordRequest(cb.config.name, string(cb.state))
+	}
 
 	if cb.state == Open {
 		return ErrTripped

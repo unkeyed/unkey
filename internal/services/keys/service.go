@@ -17,6 +17,7 @@ type Config struct {
 	Clickhouse   clickhouse.ClickHouse // Clickhouse for telemetry
 	Region       string                // Geographic region identifier
 	UsageLimiter usagelimiter.Service  // Redis Counter for usage limiting
+	Metrics      Metrics               // Metrics for observability
 
 	KeyCache cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
 }
@@ -28,6 +29,7 @@ type service struct {
 	rbac         *rbac.RBAC
 	clickhouse   clickhouse.ClickHouse
 	region       string
+	metrics      Metrics
 
 	// hash -> cached key data (includes pre-parsed IP whitelist)
 	keyCache cache.Cache[string, db.CachedKeyData]
@@ -43,6 +45,7 @@ func New(config Config) (*service, error) {
 		usageLimiter: config.UsageLimiter,
 		clickhouse:   config.Clickhouse,
 		region:       config.Region,
+		metrics:      config.Metrics,
 		keyCache:     config.KeyCache,
 	}, nil
 }

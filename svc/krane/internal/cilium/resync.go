@@ -25,7 +25,7 @@ import (
 // as directed. Errors are logged but don't stop the loop from processing remaining
 // policies.
 func (c *Controller) runResyncLoop(ctx context.Context) {
-	repeat.Every(1*time.Minute, func() {
+	repeat.Every(1*time.Minute, nil, func() {
 		logger.Info("running periodic resync")
 
 		cursor := ""

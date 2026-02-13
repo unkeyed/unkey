@@ -13,8 +13,8 @@ import (
 // Register registers all frontline routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging()
-	withPanicRecovery := zen.WithPanicRecovery()
-	withObservability := middleware.WithObservability(svc.Region)
+	withPanicRecovery := zen.WithPanicRecovery(svc.ZenMetrics)
+	withObservability := middleware.WithObservability(svc.ObsMetrics, svc.Region)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{
@@ -54,9 +54,9 @@ func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 	// Catches /.well-known/acme-challenge/{token} so we can forward to ctrl plane.
 	srv.RegisterRoute(
 		[]zen.Middleware{
-			zen.WithPanicRecovery(),
+			zen.WithPanicRecovery(svc.ZenMetrics),
 			withLogging,
-			middleware.WithObservability(svc.Region),
+			middleware.WithObservability(svc.ObsMetrics, svc.Region),
 		},
 		&acme.Handler{
 			RouterService: svc.RouterService,

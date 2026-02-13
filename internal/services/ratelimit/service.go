@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -50,6 +49,9 @@ type service struct {
 	// replayCircuitBreaker prevents cascading failures during peer communication
 	// Thread-safe internally
 	replayCircuitBreaker circuitbreaker.CircuitBreaker[int64]
+
+	// metrics holds metric instruments for observability
+	metrics Metrics
 }
 
 // Config holds configuration for creating a new rate limiting service.
@@ -61,6 +63,9 @@ type Config struct {
 	// Counter is the distributed counter backend (typically Redis).
 	// Required - rate limiting cannot function without a counter.
 	Counter counter.Counter
+
+	// Metrics holds metric instruments for observability.
+	Metrics Metrics
 }
 
 // New creates a new rate limiting service.
@@ -75,18 +80,34 @@ func New(config Config) (*service, error) {
 		config.Clock = clock.New()
 	}
 
+	// Type-assert config.Metrics to the interfaces needed by buffer and circuitbreaker.
+	// At runtime, *o11y.Metrics satisfies all of them; in tests, NoopMetrics will not,
+	// and the fallbacks (nil) are handled by each package.
+	var bufMetrics buffer.Metrics
+	if bm, ok := config.Metrics.(buffer.Metrics); ok {
+		bufMetrics = bm
+	}
+
 	s := &service{
 		clock:      config.Clock,
 		shutdownCh: make(chan struct{}),
 		bucketsMu:  sync.RWMutex{},
 		buckets:    make(map[string]*bucket),
 		counter:    config.Counter,
+		metrics:    config.Metrics,
 		replayBuffer: buffer.New[RatelimitRequest](buffer.Config{
 			Name:     "ratelimit_replays",
 			Capacity: 10_000,
 			Drop:     true,
+			Metrics:  bufMetrics,
 		}),
-		replayCircuitBreaker: circuitbreaker.New[int64]("replayRatelimitRequest"),
+		replayCircuitBreaker: nil, // Set below based on metrics type
+	}
+
+	if cm, ok := config.Metrics.(circuitbreaker.Metrics); ok {
+		s.replayCircuitBreaker = circuitbreaker.New[int64]("replayRatelimitRequest", circuitbreaker.WithMetrics(cm))
+	} else {
+		s.replayCircuitBreaker = circuitbreaker.New[int64]("replayRatelimitRequest")
 	}
 
 	s.expireWindowsAndBuckets()
@@ -319,9 +340,9 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 
 		if exceeded {
 			b.strictUntil = req.Time.Add(req.Duration)
-			metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
+			s.metrics.RecordDecision(decisionSource, "denied")
 		} else {
-			metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
+			s.metrics.RecordDecision(decisionSource, "passed")
 		}
 
 		return RatelimitResponse{
@@ -368,7 +389,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 
 	if exceeded {
 		b.strictUntil = req.Time.Add(req.Duration)
-		metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
+		s.metrics.RecordDecision(decisionSource, "denied")
 
 		return RatelimitResponse{
 			Success:   false,
@@ -379,7 +400,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 		}, nil
 	}
 
-	metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
+	s.metrics.RecordDecision(decisionSource, "passed")
 
 	return RatelimitResponse{
 		Success:   true,

@@ -30,6 +30,7 @@ go_test(
     deps = [
         ":clustering",
         "//gen/proto/cache/v1:cache",
+        "//pkg/batch",
         "//pkg/cache",
         "//pkg/clock",
         "//pkg/eventstream",

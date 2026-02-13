@@ -2,8 +2,6 @@ package ratelimit
 
 import (
 	"time"
-
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
 type window struct {
@@ -54,8 +52,10 @@ type window struct {
 //	    time.Now(),
 //	    time.Minute,
 //	)
-func newWindow(sequence int64, t time.Time, duration time.Duration) *window {
-	metrics.RatelimitWindowsCreated.Inc()
+func newWindow(sequence int64, t time.Time, duration time.Duration, m Metrics) *window {
+	if m != nil {
+		m.RecordWindowCreated()
+	}
 	return &window{
 		sequence: sequence,
 		start:    t.Truncate(duration),

@@ -24,6 +24,10 @@ type Config struct {
 	// The readonly replica will be used for most read queries.
 	// If omitted, the primary is used.
 	ReadOnlyDSN string
+
+	// Metrics provides observability for database operations.
+	// Defaults to NoopMetrics if nil.
+	Metrics Metrics
 }
 
 // database implements the Database interface, providing access to database replicas
@@ -98,6 +102,7 @@ func New(config Config) (*database, error) {
 		db:        write,
 		mode:      "rw",
 		debugLogs: false,
+		metrics:   config.Metrics,
 	}
 
 	// Initialize read replica with primary by default
@@ -105,6 +110,7 @@ func New(config Config) (*database, error) {
 		db:        write,
 		mode:      "rw",
 		debugLogs: false,
+		metrics:   config.Metrics,
 	}
 
 	// If a separate read-only DSN is provided, establish that connection
@@ -118,6 +124,7 @@ func New(config Config) (*database, error) {
 			db:        read,
 			mode:      "ro",
 			debugLogs: false,
+			metrics:   config.Metrics,
 		}
 		logger.Info("database configured with separate read replica")
 	} else {

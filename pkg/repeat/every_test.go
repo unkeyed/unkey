@@ -14,7 +14,7 @@ func TestEvery_BasicFunctionality(t *testing.T) {
 	t.Run("calls function repeatedly", func(t *testing.T) {
 		var counter atomic.Int32
 
-		stop := Every(10*time.Millisecond, func() {
+		stop := Every(10*time.Millisecond, nil, func() {
 			counter.Add(1)
 		})
 
@@ -30,7 +30,7 @@ func TestEvery_BasicFunctionality(t *testing.T) {
 	t.Run("stops when stop function is called", func(t *testing.T) {
 		var counter atomic.Int32
 
-		stop := Every(10*time.Millisecond, func() {
+		stop := Every(10*time.Millisecond, nil, func() {
 			counter.Add(1)
 		})
 
@@ -55,7 +55,7 @@ func TestEvery_GoroutineLeak(t *testing.T) {
 
 		var stops []func()
 		for range 10 {
-			stop := Every(100*time.Millisecond, func() {
+			stop := Every(100*time.Millisecond, nil, func() {
 				// Do minimal work
 			})
 			stops = append(stops, stop)
@@ -82,7 +82,7 @@ func TestEvery_GoroutineLeak(t *testing.T) {
 		initialGoroutines := runtime.NumGoroutine()
 
 		for range 5 {
-			stop := Every(1*time.Millisecond, func() {})
+			stop := Every(1*time.Millisecond, nil, func() {})
 			stop() // Stop immediately
 		}
 
@@ -99,7 +99,7 @@ func TestEvery_PanicRecovery(t *testing.T) {
 	t.Run("recovers from panic", func(t *testing.T) {
 		var callCount atomic.Int32
 
-		stop := Every(5*time.Millisecond, func() {
+		stop := Every(5*time.Millisecond, nil, func() {
 			count := callCount.Add(1)
 			if count == 2 {
 				panic("test panic")
@@ -118,7 +118,7 @@ func TestEvery_PanicRecovery(t *testing.T) {
 	t.Run("panic in function does not crash program", func(t *testing.T) {
 		done := make(chan bool)
 
-		stop := Every(5*time.Millisecond, func() {
+		stop := Every(5*time.Millisecond, nil, func() {
 			panic("intentional panic")
 		})
 
@@ -142,7 +142,7 @@ func TestEvery_ConcurrentStops(t *testing.T) {
 	t.Run("multiple stop calls are safe", func(t *testing.T) {
 		var counter atomic.Int32
 
-		stop := Every(5*time.Millisecond, func() {
+		stop := Every(5*time.Millisecond, nil, func() {
 			counter.Add(1)
 		})
 
@@ -162,7 +162,7 @@ func TestEvery_ConcurrentStops(t *testing.T) {
 	t.Run("concurrent stop calls are safe", func(t *testing.T) {
 		var counter atomic.Int32
 
-		stop := Every(5*time.Millisecond, func() {
+		stop := Every(5*time.Millisecond, nil, func() {
 			counter.Add(1)
 		})
 
@@ -189,7 +189,7 @@ func TestEvery_EdgeCases(t *testing.T) {
 	t.Run("very short interval", func(t *testing.T) {
 		var counter atomic.Int32
 
-		stop := Every(1*time.Millisecond, func() {
+		stop := Every(1*time.Millisecond, nil, func() {
 			counter.Add(1)
 		})
 
@@ -205,7 +205,7 @@ func TestEvery_EdgeCases(t *testing.T) {
 	t.Run("very long interval", func(t *testing.T) {
 		var counter atomic.Int32
 
-		stop := Every(1*time.Hour, func() {
+		stop := Every(1*time.Hour, nil, func() {
 			counter.Add(1)
 		})
 
@@ -221,7 +221,7 @@ func TestEvery_EdgeCases(t *testing.T) {
 	t.Run("function that takes longer than interval", func(t *testing.T) {
 		var counter atomic.Int32
 
-		stop := Every(10*time.Millisecond, func() {
+		stop := Every(10*time.Millisecond, nil, func() {
 			counter.Add(1)
 			time.Sleep(20 * time.Millisecond) // Longer than interval
 		})
@@ -240,7 +240,7 @@ func TestEvery_StopBehavior(t *testing.T) {
 	t.Run("stop is idempotent", func(t *testing.T) {
 		var counter atomic.Int32
 
-		stop := Every(10*time.Millisecond, func() {
+		stop := Every(10*time.Millisecond, nil, func() {
 			counter.Add(1)
 		})
 
@@ -262,7 +262,7 @@ func TestEvery_StopBehavior(t *testing.T) {
 
 	t.Run("stop returns immediately", func(t *testing.T) {
 
-		stop := Every(100*time.Millisecond, func() {
+		stop := Every(100*time.Millisecond, nil, func() {
 			time.Sleep(50 * time.Millisecond)
 		})
 
@@ -281,7 +281,7 @@ func BenchmarkEvery(b *testing.B) {
 	b.Run("StartStop", func(b *testing.B) {
 		b.ResetTimer()
 		for b.Loop() {
-			stop := Every(100*time.Millisecond, func() {})
+			stop := Every(100*time.Millisecond, nil, func() {})
 			stop()
 		}
 	})
@@ -289,7 +289,7 @@ func BenchmarkEvery(b *testing.B) {
 	b.Run("WithFunction", func(b *testing.B) {
 		var counter atomic.Int64
 
-		stop := Every(1*time.Microsecond, func() {
+		stop := Every(1*time.Microsecond, nil, func() {
 			counter.Add(1)
 		})
 

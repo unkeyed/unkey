@@ -9,14 +9,16 @@ import (
 
 // service implements the direct DB-based usage limiter
 type service struct {
-	db db.Database
+	db      db.Database
+	metrics Metrics
 }
 
 var _ Service = (*service)(nil)
 
 // Config for the direct DB implementation
 type Config struct {
-	DB db.Database
+	DB      db.Database
+	Metrics Metrics
 }
 
 // New creates a new direct DB-based usage limiter service.
@@ -30,7 +32,8 @@ func New(config Config) (*service, error) {
 	}
 
 	return &service{
-		db: config.DB,
+		db:      config.DB,
+		metrics: config.Metrics,
 	}, nil
 }
 
@@ -58,5 +61,6 @@ func NewRedisWithCounter(config RedisConfig) (Service, error) {
 		DB:      config.DB,
 		Counter: config.Counter,
 		TTL:     config.TTL,
+		Metrics: config.Metrics,
 	})
 }

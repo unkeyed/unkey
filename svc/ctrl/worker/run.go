@@ -118,6 +118,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.DatabasePrimary,
 		ReadOnlyDSN: "",
+		Metrics:     db.NoopMetrics{},
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -215,6 +216,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxSize:  10000,
 		Resource: "domains",
 		Clock:    clk,
+		Metrics:  cache.NoopMetrics{},
 	})
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)

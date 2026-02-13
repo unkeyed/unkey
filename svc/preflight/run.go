@@ -84,7 +84,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	middlewares := []zen.Middleware{
-		zen.WithPanicRecovery(),
+		zen.WithPanicRecovery(nil),
 		zen.WithLogging(),
 	}
 

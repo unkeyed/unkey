@@ -21,6 +21,7 @@ func TestGetMany(t *testing.T) {
 		Stale:    time.Minute * 5,
 		Resource: "test",
 		Clock:    clock.New(),
+		Metrics:  nil,
 	})
 	require.NoError(t, err)
 
@@ -108,6 +109,7 @@ func TestGetMany_Eviction(t *testing.T) {
 		Stale:    time.Second,
 		Resource: "test",
 		Clock:    clk,
+		Metrics:  nil,
 	})
 	require.NoError(t, err)
 
@@ -135,6 +137,7 @@ func TestSetMany(t *testing.T) {
 		Stale:    time.Minute * 5,
 		Resource: "test",
 		Clock:    clock.New(),
+		Metrics:  nil,
 	})
 	require.NoError(t, err)
 
@@ -186,6 +189,7 @@ func TestSetNullMany(t *testing.T) {
 		Stale:    time.Minute * 5,
 		Resource: "test",
 		Clock:    clock.New(),
+		Metrics:  nil,
 	})
 	require.NoError(t, err)
 
@@ -227,6 +231,7 @@ func TestSWRMany(t *testing.T) {
 		MaxSize:  100,
 		Resource: "test",
 		Clock:    mockClock,
+		Metrics:  nil,
 	})
 	require.NoError(t, err)
 

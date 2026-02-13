@@ -6,7 +6,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
 func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, error) {
@@ -31,7 +30,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 	remaining := limit.Int32
 	// Key doesn't have enough credits to cover the request cost
 	if req.Cost > 0 && remaining < req.Cost {
-		metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
+		s.metrics.RecordDecision("db", "denied")
 		return UsageResponse{Valid: false, Remaining: 0}, nil
 	}
 
@@ -43,7 +42,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 		return UsageResponse{}, err
 	}
 
-	metrics.UsagelimiterDecisions.WithLabelValues("db", "allowed").Inc()
+	s.metrics.RecordDecision("db", "allowed")
 	return UsageResponse{Valid: true, Remaining: max(0, remaining-req.Cost)}, nil
 }
 

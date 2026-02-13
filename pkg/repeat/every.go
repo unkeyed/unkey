@@ -3,19 +3,21 @@ package repeat
 import (
 	"sync"
 	"time"
-
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
 // Every runs the given function in a go routine every d duration until the returned function is called.
-func Every(d time.Duration, fn func()) func() {
+func Every(d time.Duration, m Metrics, fn func()) func() {
+	if m == nil {
+		m = NoopMetrics{}
+	}
+
 	t := time.NewTicker(d)
 	done := make(chan struct{})
 
 	fnWithRecovery := func() {
 		defer func() {
 			if r := recover(); r != nil {
-				metrics.PanicsTotal.WithLabelValues("repeat.Every", "background").Inc()
+				m.RecordPanic("repeat.Every", "background")
 			}
 		}()
 		fn()

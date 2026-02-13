@@ -25,7 +25,8 @@ type Caches struct {
 
 // Config defines the configuration options for initializing caches.
 type Config struct {
-	Clock clock.Clock
+	Clock   clock.Clock
+	Metrics cache.Metrics
 }
 
 func New(config Config) (Caches, error) {
@@ -35,6 +36,7 @@ func New(config Config) (Caches, error) {
 		MaxSize:  10_000,
 		Resource: "frontline_route",
 		Clock:    config.Clock,
+		Metrics:  config.Metrics,
 	})
 	if err != nil {
 		return Caches{}, fmt.Errorf("failed to create sentinel config cache: %w", err)
@@ -46,6 +48,7 @@ func New(config Config) (Caches, error) {
 		MaxSize:  10_000,
 		Resource: "sentinels_by_environment",
 		Clock:    config.Clock,
+		Metrics:  config.Metrics,
 	})
 	if err != nil {
 		return Caches{}, fmt.Errorf("failed to create instances by deployment cache: %w", err)
@@ -57,6 +60,7 @@ func New(config Config) (Caches, error) {
 		MaxSize:  10_000,
 		Resource: "tls_certificate",
 		Clock:    config.Clock,
+		Metrics:  config.Metrics,
 	})
 	if err != nil {
 		return Caches{}, fmt.Errorf("failed to create certificate cache: %w", err)

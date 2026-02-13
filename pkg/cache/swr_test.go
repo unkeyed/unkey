@@ -23,6 +23,7 @@ func TestSWR_CacheHit(t *testing.T) {
 		MaxSize:  100,
 		Resource: "test",
 		Clock:    mockClock,
+		Metrics:  nil,
 	})
 	require.NoError(t, err)
 

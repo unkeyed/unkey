@@ -22,7 +22,7 @@ import (
 // This resync loop guarantees eventual consistency by querying the control plane
 // for each existing sentinel and applying any needed changes.
 func (c *Controller) runResyncLoop(ctx context.Context) {
-	repeat.Every(1*time.Minute, func() {
+	repeat.Every(1*time.Minute, nil, func() {
 		logger.Info("running periodic resync")
 
 		cursor := ""

@@ -60,6 +60,7 @@ func New(cfg Config) (*Service, error) {
 		MaxSize:  10000,
 		Resource: "data_encryption_key",
 		Clock:    clock.New(),
+		Metrics:  nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cache: %w", err)

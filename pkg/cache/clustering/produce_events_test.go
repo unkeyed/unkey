@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -55,6 +56,7 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 		MaxSize:  1000,
 		Resource: "test-cache",
 		Clock:    clock.New(),
+		Metrics:  cache.NoopMetrics{},
 	})
 	require.NoError(t, err)
 
@@ -64,6 +66,7 @@ func TestClusterCache_ProducesInvalidationOnRemoveAndSetNull(t *testing.T) {
 		Topic:      topic,
 		Dispatcher: dispatcher,
 		NodeID:     "test-node-1",
+		Metrics:    batch.NoopMetrics{},
 	})
 	require.NoError(t, err)
 

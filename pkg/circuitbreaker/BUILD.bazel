@@ -7,13 +7,13 @@ go_library(
         "errors.go",
         "interface.go",
         "lib.go",
+        "metrics.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/circuitbreaker",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/clock",
         "//pkg/logger",
-        "//pkg/prometheus/metrics",
     ],
 )
 

@@ -7,6 +7,7 @@ go_library(
         "doc.go",
         "interface.go",
         "janitor.go",
+        "metrics.go",
         "replay.go",
         "sequence.go",
         "service.go",
@@ -23,8 +24,8 @@ go_library(
         "//pkg/counter",
         "//pkg/logger",
         "//pkg/otel/tracing",
-        "//pkg/prometheus/metrics",
         "//pkg/repeat",
+        "@com_github_prometheus_client_golang//prometheus",
         "@io_opentelemetry_go_otel//attribute",
     ],
 )
