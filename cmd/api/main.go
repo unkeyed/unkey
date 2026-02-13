@@ -68,16 +68,10 @@ var Cmd = &cli.Command{
 			cli.EnvVar("UNKEY_TLS_KEY_FILE")),
 
 		// Vault Configuration
-		cli.StringSlice("vault-master-keys", "Vault master keys for encryption",
-			cli.EnvVar("UNKEY_VAULT_MASTER_KEYS")),
-		cli.String("vault-s3-url", "S3 Compatible Endpoint URL",
-			cli.EnvVar("UNKEY_VAULT_S3_URL")),
-		cli.String("vault-s3-bucket", "S3 bucket name",
-			cli.EnvVar("UNKEY_VAULT_S3_BUCKET")),
-		cli.String("vault-s3-access-key-id", "S3 access key ID",
-			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_ID")),
-		cli.String("vault-s3-access-key-secret", "S3 secret access key",
-			cli.EnvVar("UNKEY_VAULT_S3_ACCESS_KEY_SECRET")),
+		cli.String("vault-url", "URL of the remote vault service for encryption/decryption",
+			cli.EnvVar("UNKEY_VAULT_URL")),
+		cli.String("vault-token", "Bearer token for vault service authentication",
+			cli.EnvVar("UNKEY_VAULT_TOKEN")),
 
 		// Kafka Configuration
 		cli.StringSlice("kafka-brokers", "Comma-separated list of Kafka broker addresses for distributed cache invalidation",
@@ -146,16 +140,6 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	var vaultS3Config *api.S3Config
-	if cmd.String("vault-s3-url") != "" {
-		vaultS3Config = &api.S3Config{
-			URL:             cmd.String("vault-s3-url"),
-			Bucket:          cmd.String("vault-s3-bucket"),
-			AccessKeyID:     cmd.String("vault-s3-access-key-id"),
-			AccessKeySecret: cmd.String("vault-s3-access-key-secret"),
-		}
-	}
-
 	config := api.Config{
 		// Basic configuration
 		CacheInvalidationTopic: "",
@@ -189,8 +173,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		Listener: nil, // Production uses HttpPort
 
 		// Vault configuration
-		VaultMasterKeys: cmd.StringSlice("vault-master-keys"),
-		VaultS3:         vaultS3Config,
+		VaultURL:   cmd.String("vault-url"),
+		VaultToken: cmd.String("vault-token"),
 
 		// Kafka configuration
 		KafkaBrokers: cmd.StringSlice("kafka-brokers"),
