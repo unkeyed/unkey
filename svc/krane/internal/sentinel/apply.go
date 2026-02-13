@@ -407,7 +407,6 @@ func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ct
 				ProjectID(sentinel.GetProjectId()).
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
-				ManagedByKrane().
 				ComponentGossipLAN(),
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -468,7 +467,6 @@ func (c *Controller) ensureGossipCiliumPolicyExists(ctx context.Context, sentine
 					ProjectID(sentinel.GetProjectId()).
 					EnvironmentID(sentinel.GetEnvironmentId()).
 					SentinelID(sentinel.GetSentinelId()).
-					ManagedByKrane().
 					ComponentGossipLAN(),
 				"ownerReferences": []interface{}{
 					map[string]interface{}{
