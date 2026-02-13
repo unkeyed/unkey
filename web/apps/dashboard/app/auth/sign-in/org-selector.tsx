@@ -33,12 +33,6 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
   const { setError } = context;
   const router = useRouter();
 
-  const handleClose = useCallback(async () => {
-    // Clear pending auth state when user closes modal
-    await clearPendingAuth();
-    router.push("/auth/sign-in");
-  }, [router]);
-
   const sortedOrgs = useMemo(() => {
     // Sort: recently created first (as proxy for recently used until we track that)
     return [...organizations].sort((a, b) => {
@@ -54,9 +48,17 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
       ? lastOrgId
       : sortedOrgs[0]?.id || "";
 
-  const [isOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState(initialOrgId);
+
+  const handleClose = useCallback(async () => {
+    // Close modal immediately to prevent flash
+    setIsOpen(false);
+    // Clear pending auth state and redirect
+    await clearPendingAuth();
+    router.push("/auth/sign-in");
+  }, [router]);
 
   const submit = useCallback(
     async (orgId: string): Promise<boolean> => {
