@@ -4,7 +4,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/tls"
 )
@@ -13,13 +12,6 @@ const (
 	// DefaultCacheInvalidationTopic is the default Kafka topic name for cache invalidation events
 	DefaultCacheInvalidationTopic = "cache-invalidations"
 )
-
-type S3Config struct {
-	URL             string
-	Bucket          string
-	AccessKeyID     string
-	AccessKeySecret string
-}
 
 type Config struct {
 	// InstanceID is the unique identifier for this instance of the API server
@@ -82,8 +74,8 @@ type Config struct {
 	TLSConfig *tls.Config
 
 	// Vault Configuration
-	VaultMasterKeys []string
-	VaultS3         *S3Config
+	VaultURL   string
+	VaultToken string
 
 	// --- Kafka configuration ---
 
@@ -137,17 +129,5 @@ type Config struct {
 func (c Config) Validate() error {
 	// TLS configuration is validated when it's created from files
 	// Other validations may be added here in the future
-	if c.VaultS3 != nil {
-		err := assert.All(
-			assert.NotEmpty(c.VaultS3.URL, "vault s3 url is empty"),
-			assert.NotEmpty(c.VaultS3.Bucket, "vault s3 bucket is empty"),
-			assert.NotEmpty(c.VaultS3.AccessKeyID, "vault s3 access key id is empty"),
-			assert.NotEmpty(c.VaultS3.AccessKeySecret, "vault s3 secret access key is empty"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

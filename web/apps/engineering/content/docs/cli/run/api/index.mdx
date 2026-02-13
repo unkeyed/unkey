@@ -134,39 +134,18 @@ Path to TLS key file for HTTPS. Both cert and key must be provided to enable HTT
 - **Environment:** `UNKEY_TLS_KEY_FILE`
 </Callout>
 
-<Callout type="info" title="--vault-master-keys">
-Vault master keys for encryption
-
-- **Type:** string[]
-- **Environment:** `UNKEY_VAULT_MASTER_KEYS`
-</Callout>
-
-<Callout type="info" title="--vault-s3-url">
-S3 Compatible Endpoint URL
+<Callout type="info" title="--vault-url">
+URL of the remote vault service for encryption/decryption
 
 - **Type:** string
-- **Environment:** `UNKEY_VAULT_S3_URL`
+- **Environment:** `UNKEY_VAULT_URL`
 </Callout>
 
-<Callout type="info" title="--vault-s3-bucket">
-S3 bucket name
+<Callout type="info" title="--vault-token">
+Bearer token for vault service authentication
 
 - **Type:** string
-- **Environment:** `UNKEY_VAULT_S3_BUCKET`
-</Callout>
-
-<Callout type="info" title="--vault-s3-access-key-id">
-S3 access key ID
-
-- **Type:** string
-- **Environment:** `UNKEY_VAULT_S3_ACCESS_KEY_ID`
-</Callout>
-
-<Callout type="info" title="--vault-s3-access-key-secret">
-S3 secret access key
-
-- **Type:** string
-- **Environment:** `UNKEY_VAULT_S3_ACCESS_KEY_SECRET`
+- **Environment:** `UNKEY_VAULT_TOKEN`
 </Callout>
 
 <Callout type="info" title="--chproxy-auth-token">
