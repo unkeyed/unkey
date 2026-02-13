@@ -48,9 +48,7 @@ export default function Page() {
       <div className="w-full h-screen flex justify-center items-center">
         <Empty>
           <Empty.Title>Invalid callback state</Empty.Title>
-          <Empty.Description>
-            Missing or invalid GitHub installation state.
-          </Empty.Description>
+          <Empty.Description>Missing or invalid GitHub installation state.</Empty.Description>
         </Empty>
       </div>
     );
@@ -61,9 +59,7 @@ export default function Page() {
       <div className="w-full h-screen flex justify-center items-center">
         <Empty>
           <Empty.Title>Missing installation</Empty.Title>
-          <Empty.Description>
-            Missing or invalid GitHub installation id.
-          </Empty.Description>
+          <Empty.Description>Missing or invalid GitHub installation id.</Empty.Description>
         </Empty>
       </div>
     );
