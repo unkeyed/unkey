@@ -23,7 +23,7 @@ type connectionManager struct {
 	connectionCache cache.Cache[string, clickhouse.ClickHouse]
 	database        db.Database
 	baseURL         string
-	vault           *vault.Service
+	vault           vault.Client
 }
 
 // ConnectionManagerConfig contains configuration for the connection manager
@@ -32,7 +32,7 @@ type ConnectionManagerConfig struct {
 	Database      db.Database
 	Clock         clock.Clock
 	BaseURL       string // e.g., "http://clickhouse:8123/default" or "clickhouse://clickhouse:9000/default"
-	Vault         *vault.Service
+	Vault         vault.Client
 }
 
 // NewConnectionManager creates a new connection manager

@@ -178,6 +178,19 @@ func OTEL(t *testing.T) OTELConfig {
 	}
 }
 
+// Vault returns the URL and bearer token for the vault service in integration testing.
+//
+// The vault service runs on port 8060 and requires a bearer token for authentication.
+// These values match the vault service configuration in docker-compose.yaml.
+//
+// Example usage:
+//
+//	vaultURL, vaultToken := containers.Vault(t)
+//	client := vaultv1connect.NewVaultServiceClient(httpClient, vaultURL, ...)
+func Vault(t *testing.T) (string, string) {
+	return "http://localhost:8060", "vault-test-token-123"
+}
+
 // Kafka returns Kafka broker addresses for integration testing.
 //
 // Returns broker addresses for connecting to the Kafka service running

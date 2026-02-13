@@ -30,7 +30,7 @@ type (
 type Handler struct {
 	DB       db.Database
 	Keys     keys.KeyService
-	Vault    *vault.Service
+	Vault    vault.Client
 	ApiCache cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
 

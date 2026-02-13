@@ -34,13 +34,13 @@ type Resources struct {
 type Seeder struct {
 	t         *testing.T
 	DB        db.Database
-	Vault     *vault.Service
+	Vault     vault.Client
 	Resources Resources
 }
 
 // New creates a Seeder with the given database and vault service. Call [Seeder.Seed]
 // after creation to populate baseline data.
-func New(t *testing.T, database db.Database, vault *vault.Service) *Seeder {
+func New(t *testing.T, database db.Database, vault vault.Client) *Seeder {
 	return &Seeder{
 		t:         t,
 		DB:        database,

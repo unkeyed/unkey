@@ -47,7 +47,7 @@ type Services struct {
 	Caches caches.Caches
 
 	// Vault provides encrypted storage for sensitive key material.
-	Vault *vault.Service
+	Vault vault.Client
 
 	// ChproxyToken authenticates requests to internal chproxy endpoints.
 	// When empty, chproxy routes are not registered.

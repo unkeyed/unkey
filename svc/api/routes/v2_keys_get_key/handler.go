@@ -29,7 +29,7 @@ type Handler struct {
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
-	Vault     *vault.Service
+	Vault     vault.Client
 }
 
 func (h *Handler) Method() string {
