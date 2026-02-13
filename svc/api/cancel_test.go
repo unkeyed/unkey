@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/vault/keys"
 	"github.com/unkeyed/unkey/svc/api"
 )
 
@@ -30,9 +29,6 @@ func TestContextCancellation(t *testing.T) {
 	// Create a cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
 
-	_, masterKey, err := keys.GenerateMasterKey()
-	require.NoError(t, err)
-
 	// Configure the API server
 	config := api.Config{
 		Platform:                "test",
@@ -46,7 +42,6 @@ func TestContextCancellation(t *testing.T) {
 		DatabasePrimary:         dbDsn,
 		DatabaseReadonlyReplica: "",
 		OtelEnabled:             false,
-		VaultMasterKeys:         []string{masterKey},
 	}
 
 	// Create a channel to receive the result of the Run function

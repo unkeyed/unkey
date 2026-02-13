@@ -32,7 +32,7 @@ type Handler struct {
 	DB        db.Database
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
-	Vault     *vault.Service
+	Vault     vault.Client
 }
 
 // Method returns the HTTP method this route responds to

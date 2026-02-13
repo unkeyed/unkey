@@ -27,12 +27,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/vault"
-	masterKeys "github.com/unkeyed/unkey/pkg/vault/keys"
-	"github.com/unkeyed/unkey/pkg/vault/storage"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
 
 // Harness provides a complete integration test environment with real dependencies.
@@ -62,7 +61,7 @@ type Harness struct {
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
 	Ratelimit                  ratelimit.Service
-	Vault                      *vault.Service
+	Vault                      vault.Client
 	AnalyticsConnectionManager analytics.ConnectionManager
 	seeder                     *seed.Seeder
 }
@@ -148,23 +147,8 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	s3 := containers.S3(t)
-
-	vaultStorage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
-		S3Bucket:          "test",
-		S3AccessKeyID:     s3.AccessKeyID,
-		S3AccessKeySecret: s3.AccessKeySecret,
-	})
-	require.NoError(t, err)
-
-	_, masterKey, err := masterKeys.GenerateMasterKey()
-	require.NoError(t, err)
-	v, err := vault.New(vault.Config{
-		Storage:    vaultStorage,
-		MasterKeys: []string{masterKey},
-	})
-	require.NoError(t, err)
+	testVault := vaulttestutil.StartTestVaultWithMemory(t)
+	v := vault.NewConnectClient(testVault.Client)
 
 	// Create analytics connection manager
 	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
