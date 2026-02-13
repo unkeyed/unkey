@@ -20,7 +20,10 @@ type MessageMux struct {
 
 // NewMessageMux creates a new message multiplexer.
 func NewMessageMux() *MessageMux {
-	return &MessageMux{}
+	return &MessageMux{
+		mu:                       sync.RWMutex{},
+		cacheInvalidationHandler: nil,
+	}
 }
 
 // HandleCacheInvalidation registers a handler for cache invalidation messages.

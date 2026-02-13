@@ -6,6 +6,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/gen/proto/cluster/v1",
     visibility = ["//visibility:public"],
     deps = [
+        "//gen/proto/cache/v1:cache",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
     ],
