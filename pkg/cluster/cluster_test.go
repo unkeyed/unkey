@@ -12,13 +12,11 @@ import (
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 )
 
-func testMessage(key string) *clusterv1.ClusterMessage {
-	return &clusterv1.ClusterMessage{
-		Message: &clusterv1.ClusterMessage_CacheInvalidation{
-			CacheInvalidation: &cachev1.CacheInvalidationEvent{
-				CacheName: "test",
-				Action:    &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: key},
-			},
+func testMessage(key string) *clusterv1.ClusterMessage_CacheInvalidation {
+	return &clusterv1.ClusterMessage_CacheInvalidation{
+		CacheInvalidation: &cachev1.CacheInvalidationEvent{
+			CacheName: "test",
+			Action:    &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: key},
 		},
 	}
 }

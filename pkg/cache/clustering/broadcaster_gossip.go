@@ -47,10 +47,8 @@ func (b *GossipBroadcaster) HandleClusterMessage(msg *clusterv1.ClusterMessage) 
 // Broadcast serializes the events and sends them via the gossip cluster.
 func (b *GossipBroadcaster) Broadcast(_ context.Context, events ...*cachev1.CacheInvalidationEvent) error {
 	for _, event := range events {
-		if err := b.cluster.Broadcast(&clusterv1.ClusterMessage{
-			Message: &clusterv1.ClusterMessage_CacheInvalidation{
-				CacheInvalidation: event,
-			},
+		if err := b.cluster.Broadcast(&clusterv1.ClusterMessage_CacheInvalidation{
+			CacheInvalidation: event,
 		}); err != nil {
 			logger.Error("Failed to broadcast cache invalidation", "error", err)
 		}
