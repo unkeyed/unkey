@@ -350,7 +350,7 @@ export async function completeOrgSelection(
     return {
       success: false,
       code: AuthErrorCode.PENDING_SESSION_EXPIRED,
-      message: errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED],
+      message: "Your session has expired. Please sign in again.",
     };
   }
 
@@ -371,6 +371,9 @@ export async function completeOrgSelection(
     } catch (_error) {
       // Ignore cookie setting errors
     }
+  } else {
+    // Clear pending session on error to prevent stale token issues
+    (await cookies()).delete(PENDING_SESSION_COOKIE);
   }
 
   return result;

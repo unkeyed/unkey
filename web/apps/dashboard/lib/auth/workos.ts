@@ -858,6 +858,17 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         ],
       };
     } catch (error) {
+      const workosError = error as WorkOSError;
+
+      // Handle specific error cases with better messages
+      if (workosError.message?.includes("does not belong to")) {
+        return {
+          success: false,
+          code: AuthErrorCode.PENDING_SESSION_EXPIRED,
+          message: "Your session has expired. Please sign in again.",
+        };
+      }
+
       return this.handleError(error);
     }
   }

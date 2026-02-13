@@ -1,6 +1,7 @@
 "use client";
 
 import type { Organization } from "@/lib/auth/types";
+import { AuthErrorCode } from "@/lib/auth/types";
 import {
   Button,
   DialogContainer,
@@ -13,32 +14,24 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 import type React from "react";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo, useState } from "react";
 import { completeOrgSelection } from "../actions";
 import { SignInContext } from "../context/signin-context";
 
 interface OrgSelectorProps {
   organizations: Organization[];
   lastOrgId?: string;
-  onClose?: () => void;
 }
 
-export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrgId, onClose }) => {
+export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrgId }) => {
   const context = useContext(SignInContext);
   if (!context) {
     throw new Error("OrgSelector must be used within SignInProvider");
   }
   const { setError } = context;
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [clientReady, setClientReady] = useState(false);
-  const [selectedOrgId, setSelectedOrgId] = useState("");
-  const [hasInitialized, setHasInitialized] = useState(false);
-  // Set client ready after hydration
-  useEffect(() => {
-    setClientReady(true);
-  }, []);
+  const router = useRouter();
 
   const sortedOrgs = useMemo(() => {
     // Sort: recently created first (as proxy for recently used until we track that)
@@ -48,6 +41,16 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
       return bDate - aDate; // Newest first
     });
   }, [organizations]);
+
+  // Initialize state directly - no effect needed
+  const initialOrgId =
+    lastOrgId && sortedOrgs.some((org) => org.id === lastOrgId)
+      ? lastOrgId
+      : sortedOrgs[0]?.id || "";
+
+  const [isOpen] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedOrgId, setSelectedOrgId] = useState(initialOrgId);
 
   const submit = useCallback(
     async (orgId: string): Promise<boolean> => {
@@ -63,11 +66,17 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
           setError(result.message);
           setIsLoading(false);
           toast.error(result.message);
+
+          // If session expired, redirect to sign-in to clear stale state
+          if (result.code === AuthErrorCode.PENDING_SESSION_EXPIRED) {
+            router.push("/auth/sign-in");
+          }
+
           return false;
         }
 
         // On success, redirect to the dashboard
-        window.location.href = result.redirectTo;
+        router.push(result.redirectTo);
         return true;
       } catch (error) {
         const errorMessage =
@@ -82,43 +91,21 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
         return false;
       }
     },
-    [isLoading, setError],
+    [isLoading, setError, router],
   );
 
   const handleSubmit = useCallback(async () => {
     await submit(selectedOrgId);
   }, [submit, selectedOrgId]);
 
-  // Initialize org selector when client is ready
-  useEffect(() => {
-    if (!clientReady || hasInitialized) {
-      return;
-    }
-
-    // Pre-select the last used org if it exists in the list, otherwise first org
-    const preselectedOrgId =
-      lastOrgId && sortedOrgs.some((org) => org.id === lastOrgId)
-        ? lastOrgId
-        : sortedOrgs[0]?.id || "";
-
-    setSelectedOrgId(preselectedOrgId);
-    setIsOpen(true); // Always show the modal for manual selection
-    setHasInitialized(true);
-  }, [clientReady, sortedOrgs, lastOrgId, hasInitialized]);
-
   return (
     <DialogContainer
-      className="dark bg-black"
-      isOpen={clientReady && isOpen}
-      onOpenChange={(open) => {
-        if (!isLoading) {
-          setIsOpen(open);
-          // If dialog is being closed, notify parent
-          if (!open && onClose) {
-            onClose();
-          }
-        }
+      className="dark bg-black [&_button[aria-label*='Close']]:hidden"
+      isOpen={isOpen}
+      onOpenChange={() => {
+        // Prevent closing the modal - user must select an org
       }}
+      preventOutsideClose={true}
       title="Select your workspace"
       footer={
         <div className="flex items-center justify-center text-sm w-full text-content-subtle">
@@ -133,8 +120,8 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
             <div className="flex flex-col items-center gap-4 text-center">
               <h3 className="text-lg font-medium text-content">No workspaces found</h3>
               <p className="text-sm text-content-subtle max-w-md">
-                You don't have access to any workspaces. Please contact your administrator or create
-                a new workspace.
+                You don&apos;t have access to any workspaces. Please contact your administrator or
+                create a new workspace.
               </p>
               <div className="flex flex-col gap-2 w-full max-w-sm">
                 <Button

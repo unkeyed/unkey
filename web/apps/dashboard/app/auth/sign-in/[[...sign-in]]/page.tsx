@@ -178,14 +178,9 @@ function SignInContent() {
     );
   }
 
-  const handleOrgSelectorClose = () => {
-    // When user closes the org selector, navigate back to clean sign-in page
-    router.push("/auth/sign-in");
-  };
-
   // Only show org selector if we have pending auth and we're not actively auto-selecting
   return hasPendingAuth && !isAutoSelecting ? (
-    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} onClose={handleOrgSelectorClose} />
+    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} />
   ) : (
     <div className="flex flex-col gap-10">
       {accountNotFound && (
