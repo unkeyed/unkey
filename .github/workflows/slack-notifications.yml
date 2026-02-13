@@ -54,7 +54,7 @@ jobs:
               core.setFailed('Failed to post Slack message');
             }
       - name: Cache slack message timestamp
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v5
         with:
           path: slack-message-timestamp.txt
           key: ${{ github.event.pull_request.html_url }}
@@ -137,7 +137,7 @@ jobs:
               core.setFailed('No emoji selected');
             }
       - name: Read slack message timestamp from cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v5
         with:
           path: slack-message-timestamp.txt
           key: ${{ github.event.pull_request.html_url }}
