@@ -63,6 +63,7 @@ func (c *gossipCluster) promoteToGateway() {
 	wanCfg.BindPort = c.config.WANBindPort
 	wanCfg.AdvertisePort = c.config.WANBindPort
 	wanCfg.LogOutput = io.Discard
+	wanCfg.SecretKey = c.config.SecretKey
 
 	wanCfg.Delegate = newWANDelegate(c)
 

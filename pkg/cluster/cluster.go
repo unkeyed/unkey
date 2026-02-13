@@ -73,6 +73,7 @@ func New(cfg Config) (Cluster, error) {
 	lanCfg.BindPort = cfg.BindPort
 	lanCfg.AdvertisePort = cfg.BindPort
 	lanCfg.LogOutput = io.Discard
+	lanCfg.SecretKey = cfg.SecretKey
 	lanCfg.Delegate = newLANDelegate(c)
 	lanCfg.Events = newLANEventDelegate(c)
 

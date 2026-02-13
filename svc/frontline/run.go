@@ -3,6 +3,7 @@ package frontline
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -143,6 +144,15 @@ func Run(ctx context.Context, cfg Config) error {
 		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
 		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
 
+		var secretKey []byte
+		if cfg.GossipSecretKey != "" {
+			var decodeErr error
+			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.GossipSecretKey)
+			if decodeErr != nil {
+				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
+			}
+		}
+
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
 			Region:      cfg.Region,
 			NodeID:      cfg.FrontlineID,
@@ -151,6 +161,7 @@ func Run(ctx context.Context, cfg Config) error {
 			WANBindPort: cfg.GossipWANPort,
 			LANSeeds:    lanSeeds,
 			WANSeeds:    wanSeeds,
+			SecretKey:   secretKey,
 			OnMessage:   mux.OnMessage,
 		})
 		if clusterErr != nil {

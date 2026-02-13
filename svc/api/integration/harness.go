@@ -157,6 +157,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			GossipWANPort:           0,
 			GossipLANSeeds:          nil,
 			GossipWANSeeds:          nil,
+			GossipSecretKey:         "",
 			PprofEnabled:            true,
 			PprofUsername:           "unkey",
 			PprofPassword:           "password",
