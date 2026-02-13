@@ -66,10 +66,19 @@ export function useSignIn() {
         if (orgsParam) {
           try {
             parsedOrgs = JSON.parse(decodeURIComponent(orgsParam));
-            setOrgs(parsedOrgs);
+            if (Array.isArray(parsedOrgs)) {
+              setOrgs(parsedOrgs);
+            } else {
+              // Invalid format, clear orgs
+              setOrgs([]);
+            }
           } catch (_err) {
-            setError("Failed to load organizations");
+            // Invalid JSON, clear orgs and don't show error
+            setOrgs([]);
           }
+        } else {
+          // No orgs param, clear orgs
+          setOrgs([]);
         }
 
         // Check for pending session cookie
@@ -83,7 +92,7 @@ export function useSignIn() {
     };
 
     checkAuthStatus();
-  }, [searchParams, setError]);
+  }, [searchParams]);
 
   const handleSignInViaEmail = async (email: string) => {
     try {
