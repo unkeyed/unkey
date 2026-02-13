@@ -345,7 +345,7 @@ importers:
         version: 26.0.0
       vitest:
         specifier: 1.6.1
-        version: 1.6.1(@types/node@22.14.0)(jsdom@26.0.0)
+        version: 1.6.1(@types/node@22.14.0)(@vitest/ui@3.2.4)(jsdom@26.0.0)
 
   apps/docs:
     dependencies:
@@ -1319,7 +1319,7 @@ packages:
     resolution: {integrity: sha512-Vu1CbmPURlN5fTboVuKMoJjbO5qcq9fA5YXpskx3dXe/zTBvjODFoerw+69rVBlRLrJpwPqSDqEuJDEKIrTldw==}
     dependencies:
       '@apm-js-collab/code-transformer': 0.8.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       module-details-from-path: 1.0.4
     transitivePeerDependencies:
       - supports-color
@@ -1422,7 +1422,7 @@ packages:
       '@babel/types': 7.28.6
       '@jridgewell/remapping': 2.3.5
       convert-source-map: 2.0.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -1523,7 +1523,7 @@ packages:
       '@babel/parser': 7.28.6
       '@babel/template': 7.28.6
       '@babel/types': 7.28.6
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -3180,7 +3180,7 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     dependencies:
       '@eslint/object-schema': 2.1.7
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -3205,7 +3205,7 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     dependencies:
       ajv: 6.12.6
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       espree: 10.4.0
       globals: 14.0.0
       ignore: 5.3.2
@@ -11814,6 +11814,7 @@ packages:
     resolution: {integrity: sha512-Kmpl+z84ILoG+3T/zQFyAJsU6EPTmOCj8/2+83fSN6djd6I4o7uOuGIH6vq3PrjY5BGitSbFuMN18j3iknubbA==}
     dependencies:
       undici-types: 6.21.0
+    dev: true
 
   /@types/node@22.5.4:
     resolution: {integrity: sha512-FDuKUJQm/ju9fT/SeX/6+gBzoPzlVCzfzmGkwKvRHQVxi4BntVbyIwf6a4Xn62mrvndLiml6z/UBXIdEVjQLXg==}
@@ -11990,7 +11991,7 @@ packages:
       '@typescript-eslint/types': 8.53.1
       '@typescript-eslint/typescript-estree': 8.53.1(typescript@5.7.3)
       '@typescript-eslint/visitor-keys': 8.53.1
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       eslint: 9.39.2
       typescript: 5.7.3
     transitivePeerDependencies:
@@ -12019,7 +12020,7 @@ packages:
     dependencies:
       '@typescript-eslint/tsconfig-utils': 8.53.1(typescript@5.7.3)
       '@typescript-eslint/types': 8.53.1
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       typescript: 5.7.3
     transitivePeerDependencies:
       - supports-color
@@ -12061,7 +12062,7 @@ packages:
       '@typescript-eslint/types': 8.53.1
       '@typescript-eslint/typescript-estree': 8.53.1(typescript@5.7.3)
       '@typescript-eslint/utils': 8.53.1(eslint@9.39.2)(typescript@5.7.3)
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       eslint: 9.39.2
       ts-api-utils: 2.4.0(typescript@5.7.3)
       typescript: 5.7.3
@@ -12104,7 +12105,7 @@ packages:
       '@typescript-eslint/tsconfig-utils': 8.53.1(typescript@5.7.3)
       '@typescript-eslint/types': 8.53.1
       '@typescript-eslint/visitor-keys': 8.53.1
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       minimatch: 9.0.5
       semver: 7.7.4
       tinyglobby: 0.2.15
@@ -12742,7 +12743,7 @@ packages:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -14899,17 +14900,6 @@ packages:
       ms: 2.1.3
     dev: true
 
-  /debug@4.4.3:
-    resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
-    engines: {node: '>=6.0'}
-    peerDependencies:
-      supports-color: '*'
-    peerDependenciesMeta:
-      supports-color:
-        optional: true
-    dependencies:
-      ms: 2.1.3
-
   /debug@4.4.3(supports-color@8.1.1):
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
     engines: {node: '>=6.0'}
@@ -15985,7 +15975,7 @@ packages:
         optional: true
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       eslint: 9.39.2
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.53.1)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.2)
       get-tsconfig: 4.13.0
@@ -16182,7 +16172,7 @@ packages:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.6
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       escape-string-regexp: 4.0.0
       eslint-scope: 8.4.0
       eslint-visitor-keys: 4.2.1
@@ -17863,7 +17853,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -17881,7 +17871,7 @@ packages:
     engines: {node: '>= 6'}
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -17891,7 +17881,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -18628,7 +18618,7 @@ packages:
     resolution: {integrity: sha512-7vuh85V5cdDofPyxn58nrPjBktZo0u9x1g8WtjQol+jZDaE+fhN+cIvTj11GndBnMnyfrUOG1sZQxCdjKh+DKg==}
     engines: {node: '>= 10.13.0'}
     dependencies:
-      '@types/node': 22.14.0
+      '@types/node': 25.0.10
       merge-stream: 2.0.0
       supports-color: 8.1.1
     dev: false
@@ -22504,7 +22494,7 @@ packages:
     resolution: {integrity: sha512-QT7FVMXfWOYFbeRBF6nu+I6tr2Tf3u0q8RIEjNob/heKY/nh7drD/k7eeMFmSQgnTtCzLDcCu/XEnpW2wk4xCQ==}
     engines: {node: '>=9.3.0 || >=8.10.0 <9.0.0'}
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       module-details-from-path: 1.0.4
     transitivePeerDependencies:
       - supports-color
@@ -24695,6 +24685,7 @@ packages:
 
   /undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+    dev: true
 
   /undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
@@ -25174,7 +25165,7 @@ packages:
     hasBin: true
     dependencies:
       cac: 6.7.14
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@8.1.1)
       pathe: 1.1.2
       picocolors: 1.1.1
       vite: 5.4.21(@types/node@22.14.0)
@@ -25437,64 +25428,6 @@ packages:
       acorn-walk: 8.3.4
       chai: 4.5.0
       debug: 4.4.3(supports-color@8.1.1)
-      execa: 8.0.1
-      jsdom: 26.0.0
-      local-pkg: 0.5.1
-      magic-string: 0.30.21
-      pathe: 1.1.2
-      picocolors: 1.1.1
-      std-env: 3.10.0
-      strip-literal: 2.1.1
-      tinybench: 2.9.0
-      tinypool: 0.8.4
-      vite: 5.4.21(@types/node@22.14.0)
-      vite-node: 1.6.1(@types/node@22.14.0)
-      why-is-node-running: 2.3.0
-    transitivePeerDependencies:
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-    dev: true
-
-  /vitest@1.6.1(@types/node@22.14.0)(jsdom@26.0.0):
-    resolution: {integrity: sha512-Ljb1cnSJSivGN0LqXd/zmDbWEM0RNNg2t1QW/XUhYl/qPqyu7CsqeWtqQXHVaJsecLPuDoak2oJcZN2QoRIOag==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-    peerDependencies:
-      '@edge-runtime/vm': '*'
-      '@types/node': ^18.0.0 || >=20.0.0
-      '@vitest/browser': 1.6.1
-      '@vitest/ui': 1.6.1
-      happy-dom: '*'
-      jsdom: '*'
-    peerDependenciesMeta:
-      '@edge-runtime/vm':
-        optional: true
-      '@types/node':
-        optional: true
-      '@vitest/browser':
-        optional: true
-      '@vitest/ui':
-        optional: true
-      happy-dom:
-        optional: true
-      jsdom:
-        optional: true
-    dependencies:
-      '@types/node': 22.14.0
-      '@vitest/expect': 1.6.1
-      '@vitest/runner': 1.6.1
-      '@vitest/snapshot': 1.6.1
-      '@vitest/spy': 1.6.1
-      '@vitest/utils': 1.6.1
-      acorn-walk: 8.3.4
-      chai: 4.5.0
-      debug: 4.4.3
       execa: 8.0.1
       jsdom: 26.0.0
       local-pkg: 0.5.1
