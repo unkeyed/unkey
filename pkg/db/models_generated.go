@@ -1404,7 +1404,7 @@ type Workspace struct {
 	OrgID                string             `db:"org_id"`
 	Name                 string             `db:"name"`
 	Slug                 string             `db:"slug"`
-	K8sNamespace         sql.NullString     `db:"k8s_namespace"`
+	K8sNamespace         string             `db:"k8s_namespace"`
 	PartitionID          sql.NullString     `db:"partition_id"`
 	Plan                 NullWorkspacesPlan `db:"plan"`
 	Tier                 sql.NullString     `db:"tier"`

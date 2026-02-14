@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const setWorkspaceK8sNamespace = `-- name: SetWorkspaceK8sNamespace :exec
@@ -17,8 +16,8 @@ WHERE id = ? AND k8s_namespace IS NULL
 `
 
 type SetWorkspaceK8sNamespaceParams struct {
-	K8sNamespace sql.NullString `db:"k8s_namespace"`
-	ID           string         `db:"id"`
+	K8sNamespace string `db:"k8s_namespace"`
+	ID           string `db:"id"`
 }
 
 // SetWorkspaceK8sNamespace
