@@ -57,8 +57,9 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
     },
     ref,
   ) => {
+    const generatedId = React.useId();
     const inputVariant = error ? "error" : variant;
-    const inputId = propId || React.useId();
+    const inputId = propId || generatedId;
     const descriptionId = `${inputId}-helper`;
     const errorId = `${inputId}-error`;
 
