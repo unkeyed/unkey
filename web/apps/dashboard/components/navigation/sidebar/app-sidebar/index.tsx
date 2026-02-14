@@ -19,12 +19,14 @@ import type { Quotas, Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HelpButton } from "../help-button";
 import { UsageBanner } from "../usage-banner";
 import { NavItems } from "./components/nav-items";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
+import { ProjectSidebarHeader } from "./components/project-sidebar-header";
 import { useApiNavigation } from "./hooks/use-api-navigation";
+import { useProjectScopedNavigation } from "./hooks/use-project-scoped-navigation";
 import { useProjectNavigation } from "./hooks/use-projects-navigation";
 import { useRatelimitNavigation } from "./hooks/use-ratelimit-navigation";
 
@@ -56,6 +58,20 @@ export function AppSidebar({
   const { enhancedNavItems: ratelimitAddedNavItems } = useRatelimitNavigation(apiAddedNavItems);
 
   const { enhancedNavItems: projectAddedNavItems } = useProjectNavigation(ratelimitAddedNavItems);
+
+  const projectScope = useProjectScopedNavigation(segments);
+
+  const isProject = projectScope.isInsideProject;
+  const prevIsProjectRef = useRef(isProject);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const direction = isProject ? 1 : -1;
+
+  useEffect(() => {
+    if (prevIsProjectRef.current !== isProject) {
+      setIsAnimating(true);
+      prevIsProjectRef.current = isProject;
+    }
+  }, [isProject]);
 
   const toggleNavItem: NavItem = useMemo(
     () => ({
@@ -93,22 +109,68 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader className="px-4 items-center pt-4">{headerContent}</SidebarHeader>
-      <SidebarContent className="px-2 flex flex-col justify-between">
-        <SidebarGroup>
-          <SidebarMenu className="gap-2">
-            {state === "collapsed" && (
-              <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
+      <SidebarContent className="px-2 flex flex-col justify-between overflow-hidden">
+        <div className="relative flex-1 overflow-hidden">
+          <div
+            className={cn(
+              "absolute inset-0 flex flex-col transition-all duration-150 ease-out motion-reduce:duration-0",
+              isProject
+                ? "translate-x-0 opacity-100"
+                : `${direction < 0 ? "-translate-x-full" : "translate-x-full"} opacity-0 pointer-events-none`,
             )}
+            onTransitionEnd={() => setIsAnimating(false)}
+          >
+            {(isProject || isAnimating) && projectScope.isInsideProject && (
+              <>
+                <ProjectSidebarHeader backHref={projectScope.backHref} />
+                <SidebarGroup>
+                  <SidebarMenu className="gap-2">
+                    {state === "collapsed" && (
+                      <ToggleSidebarButton
+                        toggleNavItem={toggleNavItem}
+                        toggleSidebar={toggleSidebar}
+                      />
+                    )}
+                    {projectScope.navItems.map((item) => (
+                      <NavItems key={item.label as string} item={item} />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroup>
+              </>
+            )}
+          </div>
+          <div
+            className={cn(
+              "absolute inset-0 flex flex-col justify-between transition-all duration-150 ease-out motion-reduce:duration-0",
+              isProject
+                ? `${direction > 0 ? "translate-x-full" : "-translate-x-full"} opacity-0 pointer-events-none`
+                : "translate-x-0 opacity-100",
+            )}
+            onTransitionEnd={() => setIsAnimating(false)}
+          >
+            {(!isProject || isAnimating) && (
+              <>
+                <SidebarGroup>
+                  <SidebarMenu className="gap-2">
+                    {state === "collapsed" && (
+                      <ToggleSidebarButton
+                        toggleNavItem={toggleNavItem}
+                        toggleSidebar={toggleSidebar}
+                      />
+                    )}
+                    {projectAddedNavItems.map((item) => (
+                      <NavItems key={item.label as string} item={item} />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroup>
 
-            {projectAddedNavItems.map((item) => (
-              <NavItems key={item.label as string} item={item} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <UsageBanner quotas={props.workspace.quotas} />
-        </SidebarGroup>
+                <SidebarGroup>
+                  <UsageBanner quotas={props.workspace.quotas} />
+                </SidebarGroup>
+              </>
+            )}
+          </div>
+        </div>
       </SidebarContent>
       <SidebarFooter>
         <div
