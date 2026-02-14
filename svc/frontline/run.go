@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
@@ -215,12 +214,9 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start HTTPS frontline server (main proxy server)
 	if cfg.HttpsPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
-			TLS: tlsConfig,
-			// Use longer timeouts for proxy operations
-			// WriteTimeout must be longer than the transport's ResponseHeaderTimeout (30s)
-			// so that transport timeouts can be caught and handled properly in ErrorHandler
-			ReadTimeout:        30 * time.Second,
-			WriteTimeout:       60 * time.Second,
+			TLS:                tlsConfig,
+			ReadTimeout:        0,
+			WriteTimeout:       0,
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
