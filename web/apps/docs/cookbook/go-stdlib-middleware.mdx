@@ -1,0 +1,300 @@
+---
+title: "Go Standard Library Middleware"
+description: "Production-ready API key middleware for Go's net/http"
+---
+
+This recipe shows how to create robust API key authentication middleware for Go's standard library HTTP server.
+
+## Complete Middleware Implementation
+
+```go
+package main
+
+import (
+    "context"
+    "encoding/json"
+    "net/http"
+    "os"
+    "strings"
+    "time"
+
+    unkey "github.com/unkeyed/sdks/api/go/v2"
+    "github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+// KeyContext stores Unkey verification result in request context
+type KeyContext struct {
+    KeyID       string
+    OwnerID     string
+    Meta        map[string]any
+    Permissions []string
+    Roles       []string
+}
+
+// contextKey is the key type for storing Unkey context
+type contextKey string
+
+const unkeyContextKey contextKey = "unkey"
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+    unkeyClient = unkey.New(
+        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+    )
+}
+
+// AuthMiddleware creates a middleware that verifies API keys
+func AuthMiddleware(opts ...AuthOption) func(http.Handler) http.Handler {
+    options := &authOptions{
+        headerName: "Authorization",
+        prefix:     "Bearer ",
+        required:   true,
+    }
+    
+    for _, opt := range opts {
+        opt(options)
+    }
+
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            w.Header().Set("Content-Type", "application/json")
+
+            // Extract API key
+            authHeader := r.Header.Get(options.headerName)
+            if authHeader == "" {
+                if options.required {
+                    w.WriteHeader(http.StatusUnauthorized)
+                    json.NewEncoder(w).Encode(map[string]string{
+                        "error": "Missing API key",
+                        "code":  "MISSING_KEY",
+                    })
+                    return
+                }
+                // Auth not required, continue without verification
+                next.ServeHTTP(w, r)
+                return
+            }
+
+            apiKey := strings.TrimPrefix(authHeader, options.prefix)
+
+            // Verify with Unkey
+            ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+            defer cancel()
+
+            res, err := unkeyClient.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
+                Key: apiKey,
+            })
+
+            if err != nil {
+                w.WriteHeader(http.StatusServiceUnavailable)
+                json.NewEncoder(w).Encode(map[string]string{
+                    "error":   "Verification service unavailable",
+                    "code":    "SERVICE_ERROR",
+                    "message": err.Error(),
+                })
+                return
+            }
+
+            result := res.V2KeysVerifyKeyResponseBody
+
+            if !result.Valid {
+                code := "INVALID_KEY"
+                if result.Code != nil {
+                    code = *result.Code
+                }
+                
+                w.WriteHeader(http.StatusUnauthorized)
+                json.NewEncoder(w).Encode(map[string]interface{}{
+                    "error": "Invalid API key",
+                    "code":  code,
+                })
+                return
+            }
+
+            // Build context
+            keyCtx := &KeyContext{
+                KeyID: result.KeyID,
+                Meta:  result.Meta,
+            }
+            
+            if result.OwnerID != nil {
+                keyCtx.OwnerID = *result.OwnerID
+            }
+            if result.Permissions != nil {
+                keyCtx.Permissions = result.Permissions
+            }
+            if result.Roles != nil {
+                keyCtx.Roles = result.Roles
+            }
+
+            // Store in request context
+            ctx = context.WithValue(r.Context(), unkeyContextKey, keyCtx)
+            next.ServeHTTP(w, r.WithContext(ctx))
+        })
+    }
+}
+
+// AuthOption configures the auth middleware
+type authOptions struct {
+    headerName string
+    prefix     string
+    required   bool
+}
+
+type AuthOption func(*authOptions)
+
+// WithHeaderName sets a custom header name for the API key
+func WithHeaderName(name string) AuthOption {
+    return func(o *authOptions) {
+        o.headerName = name
+    }
+}
+
+// WithPrefix sets a custom prefix for the API key
+func WithPrefix(prefix string) AuthOption {
+    return func(o *authOptions) {
+        o.prefix = prefix
+    }
+}
+
+// WithOptional makes authentication optional
+func WithOptional() AuthOption {
+    return func(o *authOptions) {
+        o.required = false
+    }
+}
+
+// GetKeyContext retrieves the Unkey context from request
+func GetKeyContext(r *http.Request) (*KeyContext, bool) {
+    ctx, ok := r.Context().Value(unkeyContextKey).(*KeyContext)
+    return ctx, ok
+}
+
+// RequirePermission middleware checks if the key has a specific permission
+func RequirePermission(permission string) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            keyCtx, ok := GetKeyContext(r)
+            if !ok {
+                w.WriteHeader(http.StatusUnauthorized)
+                json.NewEncoder(w).Encode(map[string]string{
+                    "error": "Authentication required",
+                    "code":  "AUTH_REQUIRED",
+                })
+                return
+            }
+
+            for _, p := range keyCtx.Permissions {
+                if p == permission {
+                    next.ServeHTTP(w, r)
+                    return
+                }
+            }
+
+            w.WriteHeader(http.StatusForbidden)
+            json.NewEncoder(w).Encode(map[string]string{
+                "error": "Insufficient permissions",
+                "code":  "FORBIDDEN",
+                "required": permission,
+            })
+        })
+    }
+}
+
+// Usage example
+func main() {
+    mux := http.NewServeMux()
+
+    // Public route
+    mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+        json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+    })
+
+    // Protected routes
+    mux.Handle("/api/", AuthMiddleware()(http.HandlerFunc(protectedHandler)))
+    
+    // Protected with permission check
+    mux.Handle("/api/admin/", AuthMiddleware(
+        RequirePermission("admin:read"),
+    )(http.HandlerFunc(adminHandler)))
+
+    // Optional auth
+    mux.Handle("/api/public/", AuthMiddleware(
+        WithOptional(),
+    )(http.HandlerFunc(optionalAuthHandler)))
+
+    server := &http.Server{
+        Addr:         ":8080",
+        Handler:      mux,
+        ReadTimeout:  15 * time.Second,
+        WriteTimeout: 15 * time.Second,
+    }
+
+    server.ListenAndServe()
+}
+
+func protectedHandler(w http.ResponseWriter, r *http.Request) {
+    keyCtx, _ := GetKeyContext(r)
+    
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "message": "Access granted",
+        "key_id":  keyCtx.KeyID,
+        "owner":   keyCtx.OwnerID,
+    })
+}
+
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+    keyCtx, _ := GetKeyContext(r)
+    
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "message": "Admin access granted",
+        "key_id":  keyCtx.KeyID,
+    })
+}
+
+func optionalAuthHandler(w http.ResponseWriter, r *http.Request) {
+    keyCtx, ok := GetKeyContext(r)
+    
+    if ok {
+        json.NewEncoder(w).Encode(map[string]interface{}{
+            "message": "Authenticated access",
+            "key_id":  keyCtx.KeyID,
+        })
+    } else {
+        json.NewEncoder(w).Encode(map[string]string{
+            "message": "Anonymous access",
+        })
+    }
+}
+```
+
+## Key Features
+
+- **Context propagation** - Key info stored in request context
+- **Permission checking** - Middleware to check specific permissions
+- **Optional auth** - Support for optional authentication
+- **Custom headers** - Configurable header names and prefixes
+- **Timeout handling** - Request timeouts for Unkey API calls
+- **Error responses** - Structured JSON error responses
+
+## Testing
+
+```bash
+# Start server
+go run main.go
+
+# Test without key
+curl http://localhost:8080/api/data
+# {"error":"Missing API key","code":"MISSING_KEY"}
+
+# Test with valid key
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8080/api/data
+# {"message":"Access granted","key_id":"key_..."}
+```
+
+## Related
+
+<Card title="Go SDK Reference" icon="book" href="/libraries/go/overview">
+  Complete Go SDK documentation
+</Card>

@@ -1,0 +1,322 @@
+---
+title: "Echo Framework Middleware"
+description: "Production-ready API key middleware for Echo"
+---
+
+This recipe shows how to create robust API key authentication middleware for the [Echo web framework](https://echo.labstack.com/).
+
+## Complete Middleware Implementation
+
+```go
+package main
+
+import (
+    "net/http"
+    "os"
+    "strings"
+
+    "github.com/labstack/echo/v4"
+    "github.com/labstack/echo/v4/middleware"
+    unkey "github.com/unkeyed/sdks/api/go/v2"
+    "github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+    unkeyClient = unkey.New(
+        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+    )
+}
+
+// UnkeyAuthMiddleware creates an Echo middleware for API key verification
+func UnkeyAuthMiddleware() echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            authHeader := c.Request().Header.Get("Authorization")
+            if authHeader == "" {
+                return c.JSON(http.StatusUnauthorized, map[string]string{
+                    "error": "Missing Authorization header",
+                    "code":  "MISSING_KEY",
+                })
+            }
+
+            apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+
+            // Verify with Unkey
+            res, err := unkeyClient.Keys.VerifyKey(c.Request().Context(), components.V2KeysVerifyKeyRequestBody{
+                Key: apiKey,
+            })
+
+            if err != nil {
+                return c.JSON(http.StatusServiceUnavailable, map[string]string{
+                    "error":   "Verification service unavailable",
+                    "code":    "SERVICE_ERROR",
+                    "message": err.Error(),
+                })
+            }
+
+            if !res.V2KeysVerifyKeyResponseBody.Valid {
+                code := "INVALID_KEY"
+                if res.V2KeysVerifyKeyResponseBody.Code != nil {
+                    code = *res.V2KeysVerifyKeyResponseBody.Code
+                }
+                
+                return c.JSON(http.StatusUnauthorized, map[string]string{
+                    "error": "Invalid API key",
+                    "code":  code,
+                })
+            }
+
+            // Store verification result in context
+            c.Set("unkey", res.V2KeysVerifyKeyResponseBody)
+            return next(c)
+        }
+    }
+}
+
+// RequirePermission creates middleware to check specific permissions
+func RequirePermission(permission string) echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            result := c.Get("unkey")
+            if result == nil {
+                return c.JSON(http.StatusUnauthorized, map[string]string{
+                    "error": "Authentication required",
+                    "code":  "AUTH_REQUIRED",
+                })
+            }
+
+            keyResult := result.(*components.V2KeysVerifyKeyResponseBody)
+            
+            for _, p := range keyResult.Permissions {
+                if p == permission {
+                    return next(c)
+                }
+            }
+
+            return c.JSON(http.StatusForbidden, map[string]interface{}{
+                "error":    "Insufficient permissions",
+                "code":     "FORBIDDEN",
+                "required": permission,
+            })
+        }
+    }
+}
+
+// RequireRole creates middleware to check specific roles
+func RequireRole(role string) echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            result := c.Get("unkey")
+            if result == nil {
+                return c.JSON(http.StatusUnauthorized, map[string]string{
+                    "error": "Authentication required",
+                    "code":  "AUTH_REQUIRED",
+                })
+            }
+
+            keyResult := result.(*components.V2KeysVerifyKeyResponseBody)
+            
+            for _, r := range keyResult.Roles {
+                if r == role {
+                    return next(c)
+                }
+            }
+
+            return c.JSON(http.StatusForbidden, map[string]interface{}{
+                "error":    "Insufficient role",
+                "code":     "FORBIDDEN",
+                "required": role,
+            })
+        }
+    }
+}
+
+// GetUnkeyResult retrieves the Unkey verification result from context
+func GetUnkeyResult(c echo.Context) *components.V2KeysVerifyKeyResponseBody {
+    result := c.Get("unkey")
+    if result == nil {
+        return nil
+    }
+    return result.(*components.V2KeysVerifyKeyResponseBody)
+}
+
+// Usage example
+func main() {
+    e := echo.New()
+    
+    // Middleware
+    e.Use(middleware.Logger())
+    e.Use(middleware.Recover())
+
+    // Public routes
+    e.GET("/health", func(c echo.Context) error {
+        return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+    })
+
+    // Protected routes
+    api := e.Group("/api")
+    api.Use(UnkeyAuthMiddleware())
+    {
+        api.GET("/data", func(c echo.Context) error {
+            result := GetUnkeyResult(c)
+            return c.JSON(http.StatusOK, map[string]interface{}{
+                "message": "Access granted",
+                "key_id":  result.KeyID,
+                "owner":   result.OwnerID,
+                "meta":    result.Meta,
+            })
+        })
+
+        api.GET("/profile", func(c echo.Context) error {
+            result := GetUnkeyResult(c)
+            return c.JSON(http.StatusOK, map[string]interface{}{
+                "key_id":      result.KeyID,
+                "permissions": result.Permissions,
+                "roles":       result.Roles,
+            })
+        })
+    }
+
+    // Admin routes
+    admin := e.Group("/api/admin")
+    admin.Use(UnkeyAuthMiddleware(), RequirePermission("admin:read"))
+    {
+        admin.GET("/users", func(c echo.Context) error {
+            return c.JSON(http.StatusOK, map[string]interface{}{
+                "message": "Admin access granted",
+                "users":   []string{"user1", "user2"},
+            })
+        })
+
+        admin.POST("/config", func(c echo.Context) error {
+            return c.JSON(http.StatusOK, map[string]string{
+                "message": "Config updated",
+            })
+        }, RequirePermission("admin:write"))
+    }
+
+    e.Start(":8080")
+}
+```
+
+## Custom Configuration
+
+Create configurable middleware:
+
+```go
+type AuthConfig struct {
+    HeaderName string
+    Prefix     string
+    Optional   bool
+}
+
+func UnkeyAuthWithConfig(config AuthConfig) echo.MiddlewareFunc {
+    if config.HeaderName == "" {
+        config.HeaderName = "Authorization"
+    }
+    if config.Prefix == "" {
+        config.Prefix = "Bearer "
+    }
+
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            authHeader := c.Request().Header.Get(config.HeaderName)
+            
+            if authHeader == "" {
+                if config.Optional {
+                    return next(c)
+                }
+                return c.JSON(http.StatusUnauthorized, map[string]string{
+                    "error": "Missing API key",
+                    "code":  "MISSING_KEY",
+                })
+            }
+
+            apiKey := strings.TrimPrefix(authHeader, config.Prefix)
+
+            res, err := unkeyClient.Keys.VerifyKey(c.Request().Context(), components.V2KeysVerifyKeyRequestBody{
+                Key: apiKey,
+            })
+
+            if err != nil {
+                return c.JSON(http.StatusServiceUnavailable, map[string]string{
+                    "error": "Verification failed",
+                })
+            }
+
+            if !res.V2KeysVerifyKeyResponseBody.Valid {
+                return c.JSON(http.StatusUnauthorized, map[string]string{
+                    "error": "Invalid API key",
+                })
+            }
+
+            c.Set("unkey", res.V2KeysVerifyKeyResponseBody)
+            return next(c)
+        }
+    }
+}
+
+// Usage with custom config
+e.GET("/api/public", func(c echo.Context) error {
+    result := GetUnkeyResult(c)
+    if result != nil {
+        return c.JSON(http.StatusOK, map[string]interface{}{
+            "message": "Authenticated",
+            "key_id":  result.KeyID,
+        })
+    }
+    return c.JSON(http.StatusOK, map[string]string{
+        "message": "Anonymous",
+    })
+}, UnkeyAuthWithConfig(AuthConfig{Optional: true}))
+```
+
+## Group-Level Middleware
+
+Apply middleware to route groups:
+
+```go
+// API v1 routes
+v1 := e.Group("/api/v1")
+v1.Use(UnkeyAuthMiddleware())
+
+// Public subset
+public := v1.Group("/public")
+public.GET("/status", statusHandler)
+
+// Protected subset
+protected := v1.Group("/protected")
+protected.Use(RequirePermission("data:read"))
+protected.GET("/data", dataHandler)
+```
+
+## Testing
+
+```bash
+# Test without key
+curl http://localhost:8080/api/data
+# {"error":"Missing Authorization header","code":"MISSING_KEY"}
+
+# Test with valid key
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8080/api/data
+# {"message":"Access granted","key_id":"key_..."}
+
+# Test admin route without permission
+curl -H "Authorization: Bearer USER_KEY" http://localhost:8080/api/admin/users
+# {"error":"Insufficient permissions","code":"FORBIDDEN"}
+
+# Test admin route with permission
+curl -H "Authorization: Bearer ADMIN_KEY" http://localhost:8080/api/admin/users
+# {"message":"Admin access granted","users":["user1","user2"]}
+```
+
+## Related
+
+<Card title="Go Quickstart" icon="rocket" href="/quickstart/apis/go">
+  Get started with Go and Unkey
+</Card>
+<Card title="Go SDK Reference" icon="book" href="/libraries/go/overview">
+  Complete Go SDK documentation
+</Card>

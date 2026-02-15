@@ -1,0 +1,294 @@
+---
+title: "FastAPI Rate Limiting"
+description: "Implement rate limiting in FastAPI with Unkey"
+---
+
+This recipe shows how to add rate limiting to your FastAPI endpoints using Unkey's ratelimit API.
+
+## Basic Rate Limiting
+
+```python
+from fastapi import FastAPI, Header, HTTPException
+from unkey import Unkey
+import os
+
+app = FastAPI()
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+@app.get("/api/data")
+async def get_data(x_api_key: str = Header(..., alias="X-API-Key")):
+    # First verify the key
+    verify_result = unkey.keys.verify_key(key=x_api_key)
+    
+    if not verify_result.valid:
+        raise HTTPException(status_code=401, detail=verify_result.code)
+    
+    # Check rate limit
+    ratelimit_result = unkey.ratelimits.limit(
+        namespace="api",
+        identifier=verify_result.key_id,
+        limit=100,
+        duration=60000,  # 100 requests per minute
+    )
+    
+    if not ratelimit_result.success:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "Rate limit exceeded",
+                "reset": ratelimit_result.reset,
+                "limit": 100,
+                "window": "60s",
+            }
+        )
+    
+    return {
+        "data": "Your data here",
+        "remaining": ratelimit_result.remaining,
+    }
+```
+
+## Advanced Rate Limiting with Dependencies
+
+Create reusable FastAPI dependencies:
+
+```python
+from fastapi import FastAPI, Header, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from unkey import Unkey
+from typing import Optional
+import os
+
+app = FastAPI()
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+security = HTTPBearer()
+
+class RateLimitConfig:
+    def __init__(self, limit: int, duration: int, namespace: str = "default"):
+        self.limit = limit
+        self.duration = duration
+        self.namespace = namespace
+
+def verify_and_rate_limit(
+    config: RateLimitConfig,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Dependency that verifies API key and checks rate limit."""
+    api_key = credentials.credentials
+    
+    # Verify key
+    verify_result = unkey.keys.verify_key(key=api_key)
+    
+    if not verify_result.valid:
+        raise HTTPException(status_code=401, detail=verify_result.code)
+    
+    # Check rate limit
+    ratelimit_result = unkey.ratelimits.limit(
+        namespace=config.namespace,
+        identifier=verify_result.key_id,
+        limit=config.limit,
+        duration=config.duration,
+    )
+    
+    if not ratelimit_result.success:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "Rate limit exceeded",
+                "reset": ratelimit_result.reset,
+                "limit": config.limit,
+                "window": f"{config.duration}ms",
+            }
+        )
+    
+    # Return both key info and rate limit status
+    return {
+        "key_id": verify_result.key_id,
+        "owner_id": verify_result.owner_id,
+        "remaining": ratelimit_result.remaining,
+        "limit": config.limit,
+    }
+
+# Usage with different rate limits
+@app.get("/api/public")
+async def public_endpoint(
+    auth_info: dict = Depends(lambda: verify_and_rate_limit(RateLimitConfig(limit=1000, duration=60000)))
+):
+    """Public endpoint: 1000 requests per minute."""
+    return {
+        "message": "Public data",
+        "rate_limit": auth_info["remaining"],
+    }
+
+@app.get("/api/premium")
+async def premium_endpoint(
+    auth_info: dict = Depends(lambda: verify_and_rate_limit(RateLimitConfig(limit=10000, duration=60000)))
+):
+    """Premium endpoint: 10000 requests per minute."""
+    return {
+        "message": "Premium data",
+        "rate_limit": auth_info["remaining"],
+    }
+
+@app.post("/api/webhook")
+async def webhook_endpoint(
+    auth_info: dict = Depends(lambda: verify_and_rate_limit(RateLimitConfig(limit=10, duration=1000)))
+):
+    """Webhook endpoint: 10 requests per second."""
+    return {
+        "message": "Webhook received",
+        "rate_limit": auth_info["remaining"],
+    }
+```
+
+## Per-User Rate Limiting
+
+Rate limit based on user ID rather than API key:
+
+```python
+from fastapi import FastAPI, Header, HTTPException, Depends
+from unkey import Unkey
+import os
+
+app = FastAPI()
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+def get_user_rate_limit(user_tier: str = "free"):
+    """Get rate limit config based on user tier."""
+    limits = {
+        "free": (100, 3600000),      # 100 per hour
+        "basic": (1000, 3600000),    # 1000 per hour
+        "pro": (10000, 3600000),     # 10000 per hour
+        "enterprise": (100000, 3600000),  # 100000 per hour
+    }
+    return limits.get(user_tier, limits["free"])
+
+@app.get("/api/user-data")
+async def get_user_data(
+    x_api_key: str = Header(..., alias="X-API-Key"),
+    x_user_tier: str = Header("free", alias="X-User-Tier"),
+):
+    # Verify key
+    verify_result = unkey.keys.verify_key(key=x_api_key)
+    
+    if not verify_result.valid:
+        raise HTTPException(status_code=401, detail=verify_result.code)
+    
+    # Use owner_id (your user ID) for rate limiting across all their keys
+    user_id = verify_result.owner_id or verify_result.key_id
+    limit, duration = get_user_rate_limit(x_user_tier)
+    
+    ratelimit_result = unkey.ratelimits.limit(
+        namespace=f"user:{x_user_tier}",
+        identifier=user_id,
+        limit=limit,
+        duration=duration,
+    )
+    
+    if not ratelimit_result.success:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "Rate limit exceeded",
+                "tier": x_user_tier,
+                "reset": ratelimit_result.reset,
+            }
+        )
+    
+    return {
+        "user_id": user_id,
+        "tier": x_user_tier,
+        "remaining": ratelimit_result.remaining,
+        "limit": limit,
+    }
+```
+
+## Sliding Window Rate Limiting
+
+Implement sliding window for smoother rate limiting:
+
+```python
+from fastapi import FastAPI, Header, HTTPException
+from unkey import Unkey
+from datetime import datetime, timedelta
+import os
+
+app = FastAPI()
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+@app.get("/api/expensive")
+async def expensive_operation(x_api_key: str = Header(..., alias="X-API-Key")):
+    """Endpoint with strict sliding window rate limit."""
+    
+    verify_result = unkey.keys.verify_key(key=x_api_key)
+    
+    if not verify_result.valid:
+        raise HTTPException(status_code=401, detail=verify_result.code)
+    
+    # Very strict: 5 requests per minute with sliding window
+    ratelimit_result = unkey.ratelimits.limit(
+        namespace="expensive",
+        identifier=verify_result.key_id,
+        limit=5,
+        duration=60000,
+    )
+    
+    if not ratelimit_result.success:
+        reset_time = datetime.fromtimestamp(ratelimit_result.reset / 1000)
+        wait_seconds = (reset_time - datetime.now()).seconds
+        
+        raise HTTPException(
+            status_code=429,
+            headers={
+                "Retry-After": str(wait_seconds),
+                "X-RateLimit-Limit": "5",
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(ratelimit_result.reset),
+            },
+            detail={
+                "error": "Rate limit exceeded",
+                "retry_after": wait_seconds,
+                "reset_at": reset_time.isoformat(),
+            }
+        )
+    
+    # Set rate limit headers
+    headers = {
+        "X-RateLimit-Limit": "5",
+        "X-RateLimit-Remaining": str(ratelimit_result.remaining),
+        "X-RateLimit-Reset": str(ratelimit_result.reset),
+    }
+    
+    return {
+        "data": "Expensive operation result",
+        "rate_limit": {
+            "limit": 5,
+            "remaining": ratelimit_result.remaining,
+            "reset": ratelimit_result.reset,
+        }
+    }
+```
+
+## Testing Rate Limits
+
+```bash
+# Make requests until rate limited
+for i in {1..105}; do
+    curl -H "X-API-Key: YOUR_KEY" http://localhost:8000/api/data
+done
+
+# Check rate limit headers
+curl -i -H "X-API-Key: YOUR_KEY" http://localhost:8000/api/expensive
+# X-RateLimit-Limit: 5
+# X-RateLimit-Remaining: 3
+# X-RateLimit-Reset: 1234567890
+```
+
+## Related
+
+<Card title="Python Quickstart" icon="rocket" href="/quickstart/apis/python">
+  Get started with Python and Unkey
+</Card>
+<Card title="Rate Limiting Guide" icon="gauge-high" href="/ratelimiting/introduction">
+  Learn more about rate limiting
+</Card>

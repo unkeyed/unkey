@@ -1,0 +1,295 @@
+---
+title: 'Python'
+description: 'Protect your Python APIs with Unkey'
+---
+
+This guide shows how to add API key verification to your Python applications using the official Unkey Python SDK.
+
+## Prerequisites
+
+- Python 3.9 or higher
+- An Unkey account (free at [unkey.com](https://unkey.com))
+
+## 1. Install the SDK
+
+<CodeGroup>
+
+```bash pip
+pip install unkey.py
+```
+
+```bash poetry
+poetry add unkey.py
+```
+
+```bash uv
+uv add unkey.py
+```
+
+</CodeGroup>
+
+## 2. Set up your Unkey credentials
+
+1. Create an API in the [Unkey Dashboard](https://app.unkey.com/apis)
+2. Create a root key at [Settings → Root Keys](https://app.unkey.com/settings/root-keys)
+3. Copy your API ID (looks like `api_xxxx`)
+
+Set your root key as an environment variable:
+
+```bash
+export UNKEY_ROOT_KEY="unkey_xxxx"
+```
+
+## 3. FastAPI Integration
+
+Here's how to protect your FastAPI endpoints:
+
+```python
+from fastapi import FastAPI, Header, HTTPException
+from unkey import Unkey
+import os
+
+app = FastAPI()
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+@app.get("/api/protected")
+async def protected_route(x_api_key: str = Header(..., alias="X-API-Key")):
+    result = unkey.keys.verify_key(key=x_api_key)
+    
+    if not result.valid:
+        raise HTTPException(
+            status_code=401 if result.code == "NOT_FOUND" else 403,
+            detail=f"Unauthorized: {result.code}"
+        )
+    
+    return {
+        "message": "Access granted",
+        "key_id": result.key_id,
+        "remaining_credits": result.credits
+    }
+
+# With async support
+@app.get("/api/protected-async")
+async def protected_route_async(x_api_key: str = Header(..., alias="X-API-Key")):
+    async with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as client:
+        result = await client.keys.verify_key_async(key=x_api_key)
+        
+        if not result.valid:
+            raise HTTPException(status_code=401, detail=result.code)
+        
+        return {"message": "Access granted", "key_id": result.key_id}
+```
+
+Run your FastAPI app:
+
+```bash
+uvicorn main:app --reload
+```
+
+Test with a valid API key:
+
+```bash
+curl -H "X-API-Key: YOUR_API_KEY" http://localhost:8000/api/protected
+```
+
+## 4. Flask Integration
+
+For Flask applications:
+
+```python
+from flask import Flask, request, jsonify
+from unkey import Unkey
+import os
+
+app = Flask(__name__)
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+@app.route("/api/protected")
+def protected_route():
+    api_key = request.headers.get("X-API-Key")
+    
+    if not api_key:
+        return jsonify({"error": "Missing API key"}), 401
+    
+    result = unkey.keys.verify_key(key=api_key)
+    
+    if not result.valid:
+        return jsonify({"error": result.code}), 401
+    
+    return jsonify({
+        "message": "Access granted",
+        "key_id": result.key_id,
+        "meta": result.meta
+    })
+
+if __name__ == "__main__":
+    app.run(debug=True)
+```
+
+## 5. Django Integration
+
+For Django, create a custom middleware:
+
+```python
+# middleware/unkey_auth.py
+from django.http import JsonResponse
+from django.conf import settings
+from unkey import Unkey
+
+class UnkeyAuthMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.unkey = Unkey(root_key=settings.UNKEY_ROOT_KEY)
+
+    def __call__(self, request):
+        # Skip auth for unprotected paths
+        if request.path.startswith('/admin/'):
+            return self.get_response(request)
+        
+        api_key = request.headers.get('X-API-Key')
+        
+        if not api_key:
+            return JsonResponse({'error': 'Missing API key'}, status=401)
+        
+        result = self.unkey.keys.verify_key(key=api_key)
+        
+        if not result.valid:
+            return JsonResponse({'error': result.code}, status=401)
+        
+        # Attach key info to request
+        request.unkey_key_id = result.key_id
+        request.unkey_meta = result.meta
+        
+        return self.get_response(request)
+
+# settings.py
+MIDDLEWARE = [
+    # ... other middleware
+    'myapp.middleware.unkey_auth.UnkeyAuthMiddleware',
+]
+
+UNKEY_ROOT_KEY = os.environ.get("UNKEY_ROOT_KEY")
+```
+
+Then in your views:
+
+```python
+from django.http import JsonResponse
+
+def protected_view(request):
+    return JsonResponse({
+        "message": "Access granted",
+        "key_id": request.unkey_key_id,
+    })
+```
+
+## Creating and Managing Keys
+
+Here's how to create API keys programmatically:
+
+```python
+from datetime import datetime, timedelta
+from unkey import Unkey
+import os
+
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+# Create a new API key
+result = unkey.keys.create_key(
+    api_id="api_...",
+    prefix="sk_live",
+    external_id="user_123",  # Link to your user
+    name="Production key",
+    expires=int((datetime.now() + timedelta(days=30)).timestamp() * 1000),
+    remaining=1000,
+    refill={
+        "amount": 1000,
+        "interval": "monthly",
+    },
+    ratelimit={
+        "limit": 100,
+        "duration": 60000,  # 100 per minute
+    },
+    meta={
+        "plan": "pro",
+        "customer_id": "cust_123",
+    },
+)
+
+print(f"Created key: {result.key}")  # Only time you'll see it!
+print(f"Key ID: {result.key_id}")
+```
+
+<Warning>
+The full API key is only returned once at creation. Store it securely and never show it again.
+</Warning>
+
+## Error Handling
+
+Always handle Unkey errors gracefully:
+
+```python
+from unkey import Unkey, ApiError
+import os
+
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+try:
+    result = unkey.keys.create_key(
+        api_id="api_...",
+        name="My Key"
+    )
+    print(f"Created: {result.key}")
+    
+except ApiError as e:
+    print(f"API Error: {e.status_code} - {e.message}")
+    # Handle specific errors
+    if e.status_code == 401:
+        print("Invalid root key")
+    elif e.status_code == 400:
+        print("Bad request - check your parameters")
+```
+
+## Async Support
+
+All methods have async variants with `_async` suffix:
+
+```python
+import asyncio
+import os
+from unkey import Unkey
+
+async def main():
+    async with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+        # Verify key asynchronously
+        result = await unkey.keys.verify_key_async(key="sk_live_...")
+        
+        if result.valid:
+            print("Key is valid!")
+            
+        # Create key asynchronously
+        new_key = await unkey.keys.create_key_async(
+            api_id="api_...",
+            prefix="sk_live",
+        )
+        print(f"Created: {new_key.key}")
+
+asyncio.run(main())
+```
+
+## What's next?
+
+<CardGroup cols={2}>
+  <Card title="Add rate limiting" icon="gauge-high" href="/ratelimiting/introduction">
+    Protect your endpoints from abuse
+  </Card>
+  <Card title="Python SDK Reference" icon="book" href="/libraries/py/overview">
+    Complete Python SDK documentation
+  </Card>
+  <Card title="Authorization" icon="user-shield" href="/apis/features/authorization/introduction">
+    Add roles and permissions
+  </Card>
+  <Card title="Cookbook" icon="utensils" href="/cookbook">
+    More Python recipes and examples
+  </Card>
+</CardGroup>

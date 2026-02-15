@@ -1,0 +1,275 @@
+---
+title: "Gin Framework Middleware"
+description: "Production-ready API key middleware for Gin"
+---
+
+This recipe shows how to create robust API key authentication middleware for the [Gin web framework](https://gin-gonic.com/).
+
+## Complete Middleware Implementation
+
+```go
+package main
+
+import (
+    "net/http"
+    "os"
+    "strings"
+
+    "github.com/gin-gonic/gin"
+    unkey "github.com/unkeyed/sdks/api/go/v2"
+    "github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+    unkeyClient = unkey.New(
+        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+    )
+}
+
+// UnkeyAuth creates a Gin middleware for API key verification
+func UnkeyAuth() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        authHeader := c.GetHeader("Authorization")
+        if authHeader == "" {
+            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+                "error": "Missing Authorization header",
+                "code":  "MISSING_KEY",
+            })
+            return
+        }
+
+        apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+
+        // Verify with Unkey
+        res, err := unkeyClient.Keys.VerifyKey(c.Request.Context(), components.V2KeysVerifyKeyRequestBody{
+            Key: apiKey,
+        })
+
+        if err != nil {
+            c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+                "error":   "Verification service unavailable",
+                "code":    "SERVICE_ERROR",
+                "message": err.Error(),
+            })
+            return
+        }
+
+        if !res.V2KeysVerifyKeyResponseBody.Valid {
+            code := "INVALID_KEY"
+            if res.V2KeysVerifyKeyResponseBody.Code != nil {
+                code = *res.V2KeysVerifyKeyResponseBody.Code
+            }
+            
+            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+                "error": "Invalid API key",
+                "code":  code,
+            })
+            return
+        }
+
+        // Store verification result in context
+        c.Set("unkey", res.V2KeysVerifyKeyResponseBody)
+        c.Next()
+    }
+}
+
+// RequirePermission creates middleware to check specific permissions
+func RequirePermission(permission string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        result, exists := c.Get("unkey")
+        if !exists {
+            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+                "error": "Authentication required",
+                "code":  "AUTH_REQUIRED",
+            })
+            return
+        }
+
+        keyResult := result.(*components.V2KeysVerifyKeyResponseBody)
+        
+        for _, p := range keyResult.Permissions {
+            if p == permission {
+                c.Next()
+                return
+            }
+        }
+
+        c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+            "error":    "Insufficient permissions",
+            "code":     "FORBIDDEN",
+            "required": permission,
+        })
+    }
+}
+
+// RequireRole creates middleware to check specific roles
+func RequireRole(role string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        result, exists := c.Get("unkey")
+        if !exists {
+            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+                "error": "Authentication required",
+                "code":  "AUTH_REQUIRED",
+            })
+            return
+        }
+
+        keyResult := result.(*components.V2KeysVerifyKeyResponseBody)
+        
+        for _, r := range keyResult.Roles {
+            if r == role {
+                c.Next()
+                return
+            }
+        }
+
+        c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+            "error":    "Insufficient role",
+            "code":     "FORBIDDEN",
+            "required": role,
+        })
+    }
+}
+
+// GetUnkeyResult retrieves the Unkey verification result from context
+func GetUnkeyResult(c *gin.Context) *components.V2KeysVerifyKeyResponseBody {
+    result, _ := c.Get("unkey")
+    return result.(*components.V2KeysVerifyKeyResponseBody)
+}
+
+// Usage example
+func main() {
+    r := gin.Default()
+
+    // Public routes
+    r.GET("/health", func(c *gin.Context) {
+        c.JSON(http.StatusOK, gin.H{"status": "ok"})
+    })
+
+    // Protected API group
+    api := r.Group("/api")
+    api.Use(UnkeyAuth())
+    {
+        api.GET("/data", func(c *gin.Context) {
+            result := GetUnkeyResult(c)
+            c.JSON(http.StatusOK, gin.H{
+                "message": "Access granted",
+                "key_id":  result.KeyID,
+                "owner":   result.OwnerID,
+                "meta":    result.Meta,
+            })
+        })
+
+        api.GET("/profile", func(c *gin.Context) {
+            result := GetUnkeyResult(c)
+            c.JSON(http.StatusOK, gin.H{
+                "key_id": result.KeyID,
+                "permissions": result.Permissions,
+                "roles": result.Roles,
+            })
+        })
+    }
+
+    // Admin routes with permission check
+    admin := r.Group("/api/admin")
+    admin.Use(UnkeyAuth(), RequirePermission("admin:read"))
+    {
+        admin.GET("/users", func(c *gin.Context) {
+            c.JSON(http.StatusOK, gin.H{
+                "message": "Admin access granted",
+                "users":   []string{"user1", "user2"},
+            })
+        })
+
+        admin.POST("/config", RequirePermission("admin:write"), func(c *gin.Context) {
+            c.JSON(http.StatusOK, gin.H{
+                "message": "Config updated",
+            })
+        })
+    }
+
+    r.Run(":8080")
+}
+```
+
+## Rate Limiting Integration
+
+Combine with Unkey's rate limiting:
+
+```go
+func RateLimitMiddleware(namespace string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        result := GetUnkeyResult(c)
+        
+        if result == nil {
+            c.Next()
+            return
+        }
+
+        // Use the key's built-in rate limits from verification
+        // These are already checked during key verification
+        
+        // Or use standalone rate limit API for custom limits
+        res, err := unkeyClient.Ratelimits.Limit(c.Request.Context(), components.V2RatelimitsLimitRequestBody{
+            Namespace:  namespace,
+            Identifier: result.KeyID,
+            Limit:      100,
+            Duration:   60000, // 100 per minute
+        })
+
+        if err != nil {
+            c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+                "error": "Rate limit check failed",
+            })
+            return
+        }
+
+        if !res.V2RatelimitsLimitResponseBody.Success {
+            c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+                "error":   "Rate limit exceeded",
+                "reset":   res.V2RatelimitsLimitResponseBody.Reset,
+                "limit":   100,
+                "window":  "60s",
+            })
+            return
+        }
+
+        // Add rate limit headers
+        c.Header("X-RateLimit-Limit", "100")
+        c.Header("X-RateLimit-Remaining", string(rune(res.V2RatelimitsLimitResponseBody.Remaining)))
+        
+        c.Next()
+    }
+}
+```
+
+## Testing
+
+```bash
+# Test without key
+curl http://localhost:8080/api/data
+# {"error":"Missing Authorization header","code":"MISSING_KEY"}
+
+# Test with valid key
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8080/api/data
+# {"message":"Access granted","key_id":"key_..."}
+
+# Test admin route without permission
+curl -H "Authorization: Bearer USER_KEY" http://localhost:8080/api/admin/users
+# {"error":"Insufficient permissions","code":"FORBIDDEN"}
+
+# Test admin route with permission
+curl -H "Authorization: Bearer ADMIN_KEY" http://localhost:8080/api/admin/users
+# {"message":"Admin access granted","users":["user1","user2"]}
+```
+
+## Related
+
+<Card title="Go Quickstart" icon="rocket" href="/quickstart/apis/go">
+  Get started with Go and Unkey
+</Card>
+<Card title="Go SDK Reference" icon="book" href="/libraries/go/overview">
+  Complete Go SDK documentation
+</Card>

@@ -1,0 +1,283 @@
+---
+title: 'Go'
+description: 'Protect your Go APIs with Unkey'
+---
+
+This guide shows how to add API key verification to your Go applications using the official Unkey Go SDK.
+
+## Prerequisites
+
+- Go 1.21 or higher
+- An Unkey account (free at [unkey.com](https://unkey.com))
+
+## 1. Install the SDK
+
+```bash
+go get github.com/unkeyed/sdks/api/go/v2@latest
+```
+
+## 2. Set up your Unkey credentials
+
+1. Create an API in the [Unkey Dashboard](https://app.unkey.com/apis)
+2. Create a root key at [Settings → Root Keys](https://app.unkey.com/settings/root-keys)
+3. Copy your API ID (looks like `api_xxxx`)
+
+Set your root key as an environment variable:
+
+```bash
+export UNKEY_ROOT_KEY="unkey_xxxx"
+```
+
+## 3. Create middleware
+
+Here's how to verify API keys with standard library `net/http`:
+
+```go
+package main
+
+import (
+    "context"
+    "net/http"
+    "os"
+    "strings"
+
+    unkey "github.com/unkeyed/sdks/api/go/v2"
+    "github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+    unkeyClient = unkey.New(
+        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+    )
+}
+
+// AuthMiddleware verifies API keys on incoming requests
+func AuthMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Extract API key from header
+        authHeader := r.Header.Get("Authorization")
+        if authHeader == "" {
+            http.Error(w, `{"error": "Missing Authorization header"}`, http.StatusUnauthorized)
+            return
+        }
+
+        apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+
+        // Verify with Unkey
+        res, err := unkeyClient.Keys.VerifyKey(r.Context(), components.V2KeysVerifyKeyRequestBody{
+            Key: apiKey,
+        })
+
+        if err != nil {
+            http.Error(w, `{"error": "Verification service unavailable"}`, http.StatusServiceUnavailable)
+            return
+        }
+
+        if !res.V2KeysVerifyKeyResponseBody.Valid {
+            http.Error(w, `{"error": "Invalid API key"}`, http.StatusUnauthorized)
+            return
+        }
+
+        // Add key info to context for handlers
+        ctx := context.WithValue(r.Context(), "keyId", res.V2KeysVerifyKeyResponseBody.KeyID)
+        next.ServeHTTP(w, r.WithContext(ctx))
+    })
+}
+
+func main() {
+    mux := http.NewServeMux()
+    
+    // Protected route
+    mux.HandleFunc("/api/protected", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
+        w.Write([]byte(`{"message": "Access granted!"}`))
+    })
+
+    // Wrap with auth middleware
+    http.ListenAndServe(":8080", AuthMiddleware(mux))
+}
+```
+
+## 4. Run your server
+
+```bash
+go run main.go
+```
+
+Test it with a valid API key:
+
+```bash
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8080/api/protected
+```
+
+## Using with Gin
+
+If you're using the [Gin framework](https://gin-gonic.com/):
+
+```go
+package main
+
+import (
+    "net/http"
+    "os"
+    "strings"
+
+    "github.com/gin-gonic/gin"
+    unkey "github.com/unkeyed/sdks/api/go/v2"
+    "github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+    unkeyClient = unkey.New(
+        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+    )
+}
+
+func UnkeyAuth() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        authHeader := c.GetHeader("Authorization")
+        if authHeader == "" {
+            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing API key"})
+            return
+        }
+
+        apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+
+        res, err := unkeyClient.Keys.VerifyKey(c.Request.Context(), components.V2KeysVerifyKeyRequestBody{
+            Key: apiKey,
+        })
+
+        if err != nil {
+            c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "Verification failed"})
+            return
+        }
+
+        if !res.V2KeysVerifyKeyResponseBody.Valid {
+            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+                "error": "Invalid API key",
+                "code":  res.V2KeysVerifyKeyResponseBody.Code,
+            })
+            return
+        }
+
+        // Store verification result in context
+        c.Set("unkeyResult", res.V2KeysVerifyKeyResponseBody)
+        c.Next()
+    }
+}
+
+func main() {
+    r := gin.Default()
+
+    // Protected routes
+    api := r.Group("/api", UnkeyAuth())
+    {
+        api.GET("/data", func(c *gin.Context) {
+            result := c.MustGet("unkeyResult").(*components.V2KeysVerifyKeyResponseBody)
+            c.JSON(http.StatusOK, gin.H{
+                "message": "Access granted",
+                "key_id":  result.KeyID,
+            })
+        })
+    }
+
+    r.Run(":8080")
+}
+```
+
+## Using with Echo
+
+For the [Echo framework](https://echo.labstack.com/):
+
+```go
+package main
+
+import (
+    "net/http"
+    "os"
+    "strings"
+
+    "github.com/labstack/echo/v4"
+    "github.com/labstack/echo/v4/middleware"
+    unkey "github.com/unkeyed/sdks/api/go/v2"
+    "github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+var unkeyClient *unkey.Unkey
+
+func init() {
+    unkeyClient = unkey.New(
+        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+    )
+}
+
+func UnkeyAuthMiddleware() echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            authHeader := c.Request().Header.Get("Authorization")
+            if authHeader == "" {
+                return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing API key"})
+            }
+
+            apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+
+            res, err := unkeyClient.Keys.VerifyKey(c.Request().Context(), components.V2KeysVerifyKeyRequestBody{
+                Key: apiKey,
+            })
+
+            if err != nil {
+                return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "Verification failed"})
+            }
+
+            if !res.V2KeysVerifyKeyResponseBody.Valid {
+                return c.JSON(http.StatusUnauthorized, map[string]string{
+                    "error": "Invalid API key",
+                    "code":  *res.V2KeysVerifyKeyResponseBody.Code,
+                })
+            }
+
+            // Store in context
+            c.Set("keyId", res.V2KeysVerifyKeyResponseBody.KeyID)
+            return next(c)
+        }
+    }
+}
+
+func main() {
+    e := echo.New()
+    
+    e.Use(middleware.Logger())
+    e.Use(middleware.Recover())
+
+    // Protected route
+    e.GET("/api/protected", func(c echo.Context) error {
+        return c.JSON(http.StatusOK, map[string]string{
+            "message": "Access granted",
+            "key_id":  c.Get("keyId").(string),
+        })
+    }, UnkeyAuthMiddleware())
+
+    e.Start(":8080")
+}
+```
+
+## What's next?
+
+<CardGroup cols={2}>
+  <Card title="Add rate limiting" icon="gauge-high" href="/ratelimiting/introduction">
+    Protect your endpoints from abuse
+  </Card>
+  <Card title="Go SDK Reference" icon="book" href="/libraries/go/overview">
+    Complete Go SDK documentation
+  </Card>
+  <Card title="Authorization" icon="user-shield" href="/apis/features/authorization/introduction">
+    Add roles and permissions
+  </Card>
+  <Card title="Cookbook" icon="utensils" href="/cookbook">
+    More Go recipes and examples
+  </Card>
+</CardGroup>
