@@ -75,6 +75,22 @@ var Cmd = &cli.Command{
 		cli.String("ctrl-addr", "Address of the control plane",
 			cli.Default("localhost:8080"), cli.EnvVar("UNKEY_CTRL_ADDR")),
 
+		// Gossip Cluster Configuration
+		cli.Bool("gossip-enabled", "Enable gossip-based distributed cache invalidation",
+			cli.Default(false), cli.EnvVar("UNKEY_GOSSIP_ENABLED")),
+		cli.String("gossip-bind-addr", "Address for gossip listeners. Default: 0.0.0.0",
+			cli.Default("0.0.0.0"), cli.EnvVar("UNKEY_GOSSIP_BIND_ADDR")),
+		cli.Int("gossip-lan-port", "LAN memberlist port. Default: 7946",
+			cli.Default(7946), cli.EnvVar("UNKEY_GOSSIP_LAN_PORT")),
+		cli.Int("gossip-wan-port", "WAN memberlist port for bridges. Default: 7947",
+			cli.Default(7947), cli.EnvVar("UNKEY_GOSSIP_WAN_PORT")),
+		cli.StringSlice("gossip-lan-seeds", "LAN seed addresses (e.g. k8s headless service DNS)",
+			cli.EnvVar("UNKEY_GOSSIP_LAN_SEEDS")),
+		cli.StringSlice("gossip-wan-seeds", "Cross-region bridge seed addresses",
+			cli.EnvVar("UNKEY_GOSSIP_WAN_SEEDS")),
+		cli.String("gossip-secret-key", "Base64-encoded AES-256 key for encrypting gossip traffic",
+			cli.EnvVar("UNKEY_GOSSIP_SECRET_KEY")),
+
 		// Logging Sampler Configuration
 		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
 			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SAMPLE_RATE")),
@@ -117,6 +133,15 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		// Vault configuration
 		VaultURL:   cmd.String("vault-url"),
 		VaultToken: cmd.String("vault-token"),
+
+		// Gossip cluster configuration
+		GossipEnabled:   cmd.Bool("gossip-enabled"),
+		GossipBindAddr:  cmd.String("gossip-bind-addr"),
+		GossipLANPort:   cmd.Int("gossip-lan-port"),
+		GossipWANPort:   cmd.Int("gossip-wan-port"),
+		GossipLANSeeds:  cmd.StringSlice("gossip-lan-seeds"),
+		GossipWANSeeds:  cmd.StringSlice("gossip-wan-seeds"),
+		GossipSecretKey: cmd.String("gossip-secret-key"),
 
 		// Logging sampler configuration
 		LogSampleRate:    cmd.Float("log-sample-rate"),

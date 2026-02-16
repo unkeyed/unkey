@@ -1,0 +1,40 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cluster",
+    srcs = [
+        "bridge.go",
+        "cluster.go",
+        "config.go",
+        "delegate_lan.go",
+        "delegate_wan.go",
+        "discovery.go",
+        "doc.go",
+        "message.go",
+        "mux.go",
+        "noop.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/cluster",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/cluster/v1:cluster",
+        "//pkg/logger",
+        "@com_github_hashicorp_memberlist//:memberlist",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "cluster_test",
+    srcs = [
+        "bridge_test.go",
+        "cluster_test.go",
+        "mux_test.go",
+    ],
+    embed = [":cluster"],
+    deps = [
+        "//gen/proto/cache/v1:cache",
+        "//gen/proto/cluster/v1:cluster",
+        "@com_github_stretchr_testify//require",
+    ],
+)

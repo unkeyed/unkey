@@ -16,6 +16,8 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -66,6 +68,16 @@ func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 	}
 
 	err = c.ensurePDBExists(ctx, req, sentinel)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.ensureGossipServiceExists(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	err = c.ensureGossipCiliumPolicyExists(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -187,12 +199,16 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							{Name: "UNKEY_ENVIRONMENT_ID", Value: sentinel.GetEnvironmentId()},
 							{Name: "UNKEY_SENTINEL_ID", Value: sentinel.GetSentinelId()},
 							{Name: "UNKEY_REGION", Value: c.region},
+							{Name: "UNKEY_GOSSIP_ENABLED", Value: "true"},
+							{Name: "UNKEY_GOSSIP_LAN_PORT", Value: strconv.Itoa(GossipLANPort)},
+							{Name: "UNKEY_GOSSIP_LAN_SEEDS", Value: fmt.Sprintf("%s-gossip-lan", sentinel.GetK8SName())},
 						},
 
-						Ports: []corev1.ContainerPort{{
-							ContainerPort: SentinelPort,
-							Name:          "sentinel",
-						}},
+						Ports: []corev1.ContainerPort{
+							{ContainerPort: SentinelPort, Name: "sentinel"},
+							{ContainerPort: GossipLANPort, Name: "gossip-lan", Protocol: corev1.ProtocolTCP},
+							{ContainerPort: GossipLANPort, Name: "gossip-lan-udp", Protocol: corev1.ProtocolUDP},
+						},
 
 						LivenessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
@@ -367,4 +383,142 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 		FieldManager: fieldManagerKrane,
 	})
 	return err
+}
+
+// ensureGossipServiceExists creates or updates a headless Service for gossip LAN peer
+// discovery. The Service uses clusterIP: None so that DNS resolves to individual pod IPs,
+// allowing memberlist to discover all peers in the environment. The selector matches all
+// sentinel pods in the environment (not just one k8sName) for cross-sentinel peer discovery.
+func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*corev1.Service, error) {
+	client := c.clientSet.CoreV1().Services(NamespaceSentinel)
+
+	gossipName := fmt.Sprintf("%s-gossip-lan", sentinel.GetK8SName())
+
+	desired := &corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Service",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gossipName,
+			Namespace: NamespaceSentinel,
+			Labels: labels.New().
+				WorkspaceID(sentinel.GetWorkspaceId()).
+				ProjectID(sentinel.GetProjectId()).
+				EnvironmentID(sentinel.GetEnvironmentId()).
+				SentinelID(sentinel.GetSentinelId()).
+				ComponentGossipLAN(),
+			// No OwnerReferences: this Service is environment-scoped (selector matches all
+			// sentinel pods in the environment), so it must not be owned by a single Deployment.
+			// Krane manages its lifecycle via server-side apply.
+		},
+		Spec: corev1.ServiceSpec{
+			Type:      corev1.ServiceTypeClusterIP,
+			ClusterIP: "None",
+			Selector: labels.New().
+				EnvironmentID(sentinel.GetEnvironmentId()).
+				ComponentSentinel(),
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "gossip-lan",
+					Port:       GossipLANPort,
+					TargetPort: intstr.FromInt(GossipLANPort),
+					Protocol:   corev1.ProtocolTCP,
+				},
+				{
+					Name:       "gossip-lan-udp",
+					Port:       GossipLANPort,
+					TargetPort: intstr.FromInt(GossipLANPort),
+					Protocol:   corev1.ProtocolUDP,
+				},
+			},
+		},
+	}
+
+	patch, err := json.Marshal(desired)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal gossip service: %w", err)
+	}
+
+	return client.Patch(ctx, gossipName, types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerKrane,
+	})
+}
+
+// ensureGossipCiliumPolicyExists creates or updates a CiliumNetworkPolicy that allows
+// gossip traffic (TCP+UDP on GossipLANPort) between sentinel pods in the same environment.
+func (c *Controller) ensureGossipCiliumPolicyExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) error {
+	policyName := fmt.Sprintf("%s-gossip-lan", sentinel.GetK8SName())
+
+	policy := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "cilium.io/v2",
+			"kind":       "CiliumNetworkPolicy",
+			"metadata": map[string]interface{}{
+				"name":      policyName,
+				"namespace": NamespaceSentinel,
+				"labels": labels.New().
+					WorkspaceID(sentinel.GetWorkspaceId()).
+					ProjectID(sentinel.GetProjectId()).
+					EnvironmentID(sentinel.GetEnvironmentId()).
+					SentinelID(sentinel.GetSentinelId()).
+					ComponentGossipLAN(),
+				// No ownerReferences: this policy is environment-scoped (selects all sentinel
+				// pods in the environment), so it must not be owned by a single Deployment.
+				// Krane manages its lifecycle via server-side apply.
+			},
+			"spec": map[string]interface{}{
+				"endpointSelector": map[string]interface{}{
+					"matchLabels": map[string]interface{}{
+						labels.LabelKeyEnvironmentID: sentinel.GetEnvironmentId(),
+						labels.LabelKeyComponent:     "sentinel",
+					},
+				},
+				"ingress": []interface{}{
+					map[string]interface{}{
+						"fromEndpoints": []interface{}{
+							map[string]interface{}{
+								"matchLabels": map[string]interface{}{
+									labels.LabelKeyEnvironmentID: sentinel.GetEnvironmentId(),
+									labels.LabelKeyComponent:     "sentinel",
+								},
+							},
+						},
+						"toPorts": []interface{}{
+							map[string]interface{}{
+								"ports": []interface{}{
+									map[string]interface{}{
+										"port":     strconv.Itoa(GossipLANPort),
+										"protocol": "TCP",
+									},
+									map[string]interface{}{
+										"port":     strconv.Itoa(GossipLANPort),
+										"protocol": "UDP",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "cilium.io",
+		Version:  "v2",
+		Resource: "ciliumnetworkpolicies",
+	}
+
+	_, err := c.dynamicClient.Resource(gvr).Namespace(NamespaceSentinel).Apply(
+		ctx,
+		policyName,
+		policy,
+		metav1.ApplyOptions{FieldManager: fieldManagerKrane},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to apply gossip cilium network policy: %w", err)
+	}
+
+	return nil
 }
