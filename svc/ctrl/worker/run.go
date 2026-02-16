@@ -64,11 +64,6 @@ import (
 // fails, or during server startup. Context cancellation results in
 // clean shutdown with nil error.
 func Run(ctx context.Context, cfg Config) error {
-	err := cfg.Validate()
-	if err != nil {
-		return fmt.Errorf("bad config: %w", err)
-	}
-
 	// Disable CNAME following in lego to prevent it from following wildcard CNAMEs
 	// (e.g., *.example.com -> loadbalancer.aws.com) and failing Route53 zone lookup.
 	// Must be set before creating any ACME DNS providers.
@@ -76,13 +71,14 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize OTEL before logger so logger picks up OTLP handler
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	var err error
+	if cfg.Otel.Enabled {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "worker",
 			Version:         version.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Otel.TraceSamplingRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -103,21 +99,21 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create vault client for remote vault service
 	var vaultClient vaultv1connect.VaultServiceClient
-	if cfg.VaultURL != "" {
+	if cfg.Vault.URL != "" {
 		vaultClient = vaultv1connect.NewVaultServiceClient(
 			http.DefaultClient,
-			cfg.VaultURL,
+			cfg.Vault.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": "Bearer " + cfg.VaultToken,
+				"Authorization": "Bearer " + cfg.Vault.Token,
 			})),
 		)
-		logger.Info("Vault client initialized", "url", cfg.VaultURL)
+		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	}
 
 	// Initialize database
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: "",
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -143,9 +139,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
-	if cfg.ClickhouseURL != "" {
+	if cfg.ClickHouse.URL != "" {
 		chClient, chErr := clickhouse.New(clickhouse.Config{
-			URL: cfg.ClickhouseURL,
+			URL: cfg.ClickHouse.URL,
 		})
 		if chErr != nil {
 			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
@@ -157,6 +153,11 @@ func Run(ctx context.Context, cfg Config) error {
 	// Restate Server - uses logging.GetHandler() for slog integration
 	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 
+	buildPlatform, err := cfg.GetBuildPlatform()
+	if err != nil {
+		return fmt.Errorf("invalid build platform: %w", err)
+	}
+
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploy.New(deploy.Config{
 		DB:                              database,
 		DefaultDomain:                   cfg.DefaultDomain,
@@ -165,7 +166,7 @@ func Run(ctx context.Context, cfg Config) error {
 		AvailableRegions:                cfg.AvailableRegions,
 		GitHub:                          ghClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
-		BuildPlatform:                   deploy.BuildPlatform(cfg.GetBuildPlatform()),
+		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
 		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
 		AllowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
@@ -256,8 +257,8 @@ func Run(ctx context.Context, cfg Config) error {
 	// Certificate service needs a longer timeout for ACME DNS-01 challenges
 	// which can take 5-10 minutes for DNS propagation
 	var certHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
-	if cfg.CertRenewalHeartbeatURL != "" {
-		certHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.CertRenewalHeartbeatURL)
+	if cfg.Heartbeat.CertRenewalURL != "" {
+		certHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.CertRenewalURL)
 	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
 		DB:            database,
@@ -270,13 +271,13 @@ func Run(ctx context.Context, cfg Config) error {
 	}), restate.WithInactivityTimeout(15*time.Minute)))
 
 	// ClickHouse user provisioning service (optional - requires admin URL and vault)
-	if cfg.ClickhouseAdminURL == "" {
-		logger.Info("ClickhouseUserService disabled: CLICKHOUSE_ADMIN_URL not configured")
+	if cfg.ClickHouse.AdminURL == "" {
+		logger.Info("ClickhouseUserService disabled: clickhouse admin_url not configured")
 	} else if vaultClient == nil {
 		logger.Warn("ClickhouseUserService disabled: vault not configured")
 	} else {
 		chAdmin, chAdminErr := clickhouse.New(clickhouse.Config{
-			URL: cfg.ClickhouseAdminURL,
+			URL: cfg.ClickHouse.AdminURL,
 		})
 		if chAdminErr != nil {
 			logger.Warn("ClickhouseUserService disabled: failed to connect to admin",
@@ -294,14 +295,14 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Quota check service for monitoring workspace usage
 	var quotaHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
-	if cfg.QuotaCheckHeartbeatURL != "" {
-		quotaHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.QuotaCheckHeartbeatURL)
+	if cfg.Heartbeat.QuotaCheckURL != "" {
+		quotaHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.QuotaCheckURL)
 	}
 	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
 		DB:              database,
 		Clickhouse:      ch,
 		Heartbeat:       quotaHeartbeat,
-		SlackWebhookURL: cfg.QuotaCheckSlackWebhookURL,
+		SlackWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
 	})
 	if err != nil {
 		return fmt.Errorf("create quota check service: %w", err)
@@ -311,8 +312,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Key refill service for scheduled key usage limit refills
 	var keyRefillHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
-	if cfg.KeyRefillHeartbeatURL != "" {
-		keyRefillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.KeyRefillHeartbeatURL)
+	if cfg.Heartbeat.KeyRefillURL != "" {
+		keyRefillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.KeyRefillURL)
 	}
 
 	keyRefillSvc, err := keyrefill.New(keyrefill.Config{

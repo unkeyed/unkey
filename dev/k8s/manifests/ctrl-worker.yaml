@@ -1,4 +1,58 @@
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ctrl-worker-config
+  namespace: unkey
+  labels:
+    app: ctrl-worker
+data:
+  unkey.toml: |
+    instance_id = "worker-dev"
+    region = "local"
+    default_domain = "unkey.local"
+    cname_domain = "unkey.local"
+    build_platform = "linux/arm64"
+    sentinel_image = "unkey/sentinel:latest"
+    available_regions = ["local.dev"]
+    allow_unauthenticated_deployments = false
+
+    [database]
+    primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+
+    [vault]
+    url = "http://vault:8060"
+    token = "${UNKEY_VAULT_TOKEN}"
+
+    [otel]
+    enabled = false
+
+    [restate]
+    admin_url = "http://restate:9070"
+    http_port = 9080
+    register_as = "http://ctrl-worker:9080"
+
+    [registry]
+    url = "registry.depot.dev"
+    username = "x-token"
+    password = "${UNKEY_REGISTRY_PASSWORD}"
+
+    [depot]
+    api_url = "https://api.depot.dev"
+    project_region = "us-east-1"
+
+    [acme]
+    enabled = false
+
+    [clickhouse]
+    url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+    admin_url = "clickhouse://unkey_user_admin:C57RqT5EPZBqCJkMxN9mEZZEzMPcw9yBlwhIizk99t7kx6uLi9rYmtWObsXzdl@clickhouse:9000?secure=false&skip_verify=true"
+
+    [github]
+    app_id = 0
+    private_key_pem = "${UNKEY_GITHUB_PRIVATE_KEY_PEM}"
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,10 +76,13 @@ spec:
           hostPath:
             path: /var/run/docker.sock
             type: Socket
+        - name: config
+          configMap:
+            name: ctrl-worker-config
       containers:
         - name: ctrl-worker
           image: unkey/go:latest
-          args: ["run", "ctrl", "worker"]
+          args: ["run", "ctrl", "worker", "--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 9080
@@ -42,71 +99,13 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
           env:
-            # Server Configuration
-            - name: UNKEY_INSTANCE_ID
-              value: "worker-dev"
-            # Database Configuration
-            - name: UNKEY_DATABASE_PRIMARY
-              value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-
-            # Vault Configuration (required)
-            - name: UNKEY_VAULT_URL
-              value: http://vault:8060
             - name: UNKEY_VAULT_TOKEN
               value: vault-test-token-123
-
-            # Build Configuration
-            - name: UNKEY_BUILD_PLATFORM
-              value: "linux/arm64"
-
-            # Registry Configuration
-            - name: UNKEY_REGISTRY_URL
-              value: "registry.depot.dev"
-            - name: UNKEY_REGISTRY_USERNAME
-              value: "x-token"
             - name: UNKEY_REGISTRY_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: depot-credentials
                   key: UNKEY_DEPOT_TOKEN
-                  optional: true
-
-            # Depot-Specific Configuration
-            - name: UNKEY_DEPOT_API_URL
-              value: "https://api.depot.dev"
-            - name: UNKEY_DEPOT_PROJECT_REGION
-              value: "us-east-1"
-
-            # ACME Configuration
-            - name: UNKEY_ACME_ENABLED
-              value: "false"
-
-            # Domain configuration (used by deploy and routing services)
-            - name: UNKEY_DEFAULT_DOMAIN
-              value: "unkey.local"
-            - name: UNKEY_CNAME_DOMAIN
-              value: "unkey.local"
-
-            # Restate Configuration
-            - name: UNKEY_RESTATE_ADMIN_URL
-              value: "http://restate:9070"
-            - name: UNKEY_RESTATE_HTTP_PORT
-              value: "9080"
-            - name: UNKEY_RESTATE_REGISTER_AS
-              value: "http://ctrl-worker:9080"
-
-            # ClickHouse Configuration
-            - name: UNKEY_CLICKHOUSE_URL
-              value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
-            - name: UNKEY_CLICKHOUSE_ADMIN_URL
-              value: "clickhouse://unkey_user_admin:C57RqT5EPZBqCJkMxN9mEZZEzMPcw9yBlwhIizk99t7kx6uLi9rYmtWObsXzdl@clickhouse:9000?secure=false&skip_verify=true"
-
-            # GitHub App Configuration (optional)
-            - name: UNKEY_GITHUB_APP_ID
-              valueFrom:
-                secretKeyRef:
-                  name: github-credentials
-                  key: UNKEY_GITHUB_APP_ID
                   optional: true
             - name: UNKEY_GITHUB_PRIVATE_KEY_PEM
               valueFrom:
@@ -114,23 +113,12 @@ spec:
                   name: github-credentials
                   key: UNKEY_GITHUB_PRIVATE_KEY_PEM
                   optional: true
-            - name: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
-              valueFrom:
-                secretKeyRef:
-                  name: github-credentials
-                  key: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
-                  optional: true
-
-            - name: UNKEY_SENTINEL_IMAGE
-              value: "unkey/sentinel:latest"
-          envFrom:
-            # Optional webhooks (heartbeat URLs, Slack webhooks)
-            - configMapRef:
-                name: ctrl-worker-webhooks
-                optional: true
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock
+            - name: config
+              mountPath: /etc/unkey
+              readOnly: true
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36
@@ -153,10 +141,6 @@ spec:
   selector:
     app: ctrl-worker
   ports:
-    - name: health
-      port: 7092
-      targetPort: 7092
-      protocol: TCP
     - name: restate
       port: 9080
       targetPort: 9080
