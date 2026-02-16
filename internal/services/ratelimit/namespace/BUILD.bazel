@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "namespace",
+    srcs = [
+        "create.go",
+        "get.go",
+        "interface.go",
+        "invalidate.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/ratelimit/namespace",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/services/auditlogs",
+        "//internal/services/caches",
+        "//pkg/assert",
+        "//pkg/auditlog",
+        "//pkg/cache",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/uid",
+    ],
+)

@@ -42,6 +42,6 @@ func (q *BulkQueries) InsertAuditLogTargets(ctx context.Context, db DBTX, args [
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }

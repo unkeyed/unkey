@@ -41,6 +41,6 @@ func (q *BulkQueries) UpsertEnvironmentBuildSettings(ctx context.Context, db DBT
 	}
 
 	// Execute the bulk insert
-    _, err := db.ExecContext(ctx, bulkQuery, allArgs...)
-    return err
+	_, err := db.ExecContext(ctx, bulkQuery, allArgs...)
+	return err
 }
