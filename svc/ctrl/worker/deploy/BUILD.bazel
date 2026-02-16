@@ -19,7 +19,7 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/hydra/v1:hydra",
-        "//gen/proto/vault/v1/vaultv1connect",
+        "//gen/rpc/vault",
         "//pkg/assert",
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",

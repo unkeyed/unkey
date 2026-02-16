@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"k8s.io/client-go/kubernetes"
 )
@@ -20,7 +19,7 @@ import (
 // the DeploymentController with its own version cursor and circuit breaker.
 type Controller struct {
 	clientSet       kubernetes.Interface
-	cluster         ctrlv1connect.ClusterServiceClient
+	cluster         ctrl.ClusterServiceClient
 	cb              circuitbreaker.CircuitBreaker[any]
 	done            chan struct{}
 	stopOnce        sync.Once
@@ -31,7 +30,7 @@ type Controller struct {
 // Config holds the configuration required to create a new [Controller].
 type Config struct {
 	ClientSet kubernetes.Interface
-	Cluster   ctrlv1connect.ClusterServiceClient
+	Cluster   ctrl.ClusterServiceClient
 	Region    string
 }
 
@@ -87,7 +86,7 @@ func (c *Controller) Stop() error {
 // control plane outages by failing fast after repeated errors.
 func (c *Controller) reportSentinelStatus(ctx context.Context, status *ctrlv1.ReportSentinelStatusRequest) error {
 	_, err := c.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
-		return c.cluster.ReportSentinelStatus(innerCtx, connect.NewRequest(status))
+		return c.cluster.ReportSentinelStatus(innerCtx, status)
 	})
 	if err != nil {
 		return fmt.Errorf("failed to report sentinel status: %w", err)
