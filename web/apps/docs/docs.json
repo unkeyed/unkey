@@ -105,19 +105,39 @@
                 "expanded": false,
                 "group": "Recipes",
                 "pages": [
-                  "cookbook/nextjs-api-routes",
-                  "cookbook/express-middleware",
-                  "cookbook/fastapi-auth",
-                  "cookbook/cloudflare-workers",
-                  "cookbook/per-user-ratelimit",
-                  "cookbook/endpoint-ratelimit",
-                  "cookbook/usage-billing",
-                  "cookbook/tiered-subscriptions",
-                  "cookbook/go-stdlib-middleware",
-                  "cookbook/go-gin-middleware",
-                  "cookbook/go-echo-middleware",
-                  "cookbook/python-fastapi-ratelimit",
-                  "cookbook/python-flask-auth"
+                  {
+                    "group": "TypeScript",
+                    "pages": [
+                      "cookbook/nextjs-api-routes",
+                      "cookbook/express-middleware",
+                      "cookbook/cloudflare-workers"
+                    ]
+                  },
+                  {
+                    "group": "Go",
+                    "pages": [
+                      "cookbook/go-stdlib-middleware",
+                      "cookbook/go-gin-middleware",
+                      "cookbook/go-echo-middleware"
+                    ]
+                  },
+                  {
+                    "group": "Python",
+                    "pages": [
+                      "cookbook/fastapi-auth",
+                      "cookbook/python-fastapi-ratelimit",
+                      "cookbook/python-flask-auth"
+                    ]
+                  },
+                  {
+                    "group": "General",
+                    "pages": [
+                      "cookbook/per-user-ratelimit",
+                      "cookbook/endpoint-ratelimit",
+                      "cookbook/usage-billing",
+                      "cookbook/tiered-subscriptions"
+                    ]
+                  }
                 ]
               }
             ]

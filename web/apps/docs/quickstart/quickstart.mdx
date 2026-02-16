@@ -74,6 +74,40 @@ result = unkey.keys.create_key(
 print(result.key)  # This is the key to give to your user
 ```
 
+```go Go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+
+    unkey "github.com/unkeyed/sdks/api/go/v2"
+    "github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+    ctx := context.Background()
+    
+    client := unkey.New(
+        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+    )
+
+    res, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{
+        APIID: "api_xxxx",
+        Name:  stringPtr("My First Key"),
+    })
+    
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res.V2KeysCreateKeyResponseBody.Key) // Give this to your user
+}
+
+func stringPtr(s string) *string { return &s }
+```
+
 </CodeGroup>
 
 Save the returned `key` value — that's what you'll verify in the next step.
@@ -124,6 +158,44 @@ if not result.valid:
     print("Denied:", result.code)
 else:
     print("Key ID:", result.key_id)
+```
+
+```go Go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+
+    unkey "github.com/unkeyed/sdks/api/go/v2"
+    "github.com/unkeyed/sdks/api/go/v2/models/components"
+)
+
+func main() {
+    ctx := context.Background()
+    
+    client := unkey.New(
+        unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+    )
+
+    res, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
+        Key: "THE_KEY_FROM_STEP_3",
+    })
+    
+    if err != nil {
+        panic(err)
+    }
+
+    result := res.V2KeysVerifyKeyResponseBody
+    
+    if !result.Valid {
+        fmt.Println("Denied:", *result.Code)
+        return
+    }
+
+    fmt.Println("Key ID:", result.KeyID)
+}
 ```
 
 </CodeGroup>
