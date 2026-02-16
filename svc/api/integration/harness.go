@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
+	sharedconfig "github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -139,36 +140,55 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		kafkaBrokers := containers.Kafka(h.t)
 		vaultURL, vaultToken := containers.Vault(h.t)
 		apiConfig := api.Config{
-			CacheInvalidationTopic:  "",
-			MaxRequestBodySize:      0,
-			HttpPort:                7070,
-			ChproxyToken:            "",
-			Platform:                "test",
-			Image:                   "test",
-			Listener:                ln,
-			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
-			DatabaseReadonlyReplica: "",
-			ClickhouseURL:           clickhouseHostDSN,
-			ClickhouseAnalyticsURL:  "",
-			RedisUrl:                h.redisUrl,
-			Region:                  "test",
-			InstanceID:              fmt.Sprintf("test-node-%d", i),
-			Clock:                   clock.New(),
-			TestMode:                true,
-			OtelEnabled:             false,
-			OtelTraceSamplingRate:   0.0,
-			PrometheusPort:          0,
-			TLSConfig:               nil,
-			VaultURL:                vaultURL,
-			VaultToken:              vaultToken,
-			KafkaBrokers:            kafkaBrokers, // Use host brokers for test runner connections
-			PprofEnabled:            true,
-			PprofUsername:           "unkey",
-			PprofPassword:           "password",
-			CtrlURL:                 "http://ctrl:7091",
-			CtrlToken:               "your-local-dev-key",
-			LogSampleRate:           1.0,
-			LogSlowThreshold:        time.Second,
+			HttpPort:           7070,
+			Platform:           "test",
+			Image:              "test",
+			Listener:           ln,
+			RedisURL:           h.redisUrl,
+			Region:             "test",
+			InstanceID:         fmt.Sprintf("test-node-%d", i),
+			Clock:              clock.New(),
+			TestMode:           true,
+			PrometheusPort:     0,
+			TLSConfig:          nil,
+			MaxRequestBodySize: 0,
+			Database: sharedconfig.DatabaseConfig{
+				Primary:         mysqlHostCfg.FormatDSN(),
+				ReadonlyReplica: "",
+			},
+			ClickHouse: api.ClickHouseConfig{
+				URL:          clickhouseHostDSN,
+				AnalyticsURL: "",
+				ProxyToken:   "",
+			},
+			Otel: sharedconfig.OtelConfig{
+				Enabled:           false,
+				TraceSamplingRate: 0.0,
+			},
+			TLS: sharedconfig.TLSFiles{
+				CertFile: "",
+				KeyFile:  "",
+			},
+			Vault: sharedconfig.VaultConfig{
+				URL:   vaultURL,
+				Token: vaultToken,
+			},
+			Kafka: &api.KafkaConfig{
+				Brokers:                kafkaBrokers, // Use host brokers for test runner connections
+				CacheInvalidationTopic: "",
+			},
+			Ctrl: api.CtrlConfig{
+				URL:   "http://ctrl:7091",
+				Token: "your-local-dev-key",
+			},
+			Pprof: &api.PprofConfig{
+				Username: "unkey",
+				Password: "password",
+			},
+			Logging: sharedconfig.LoggingConfig{
+				SampleRate:    1.0,
+				SlowThreshold: time.Second,
+			},
 		}
 
 		// Start API server in goroutine
