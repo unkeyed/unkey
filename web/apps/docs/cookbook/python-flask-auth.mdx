@@ -1,0 +1,309 @@
+---
+title: "Flask Authentication"
+description: "Production-ready API key authentication for Flask"
+---
+
+This recipe shows how to implement secure API key authentication in Flask applications using Unkey.
+
+## Basic Flask Decorator
+
+```python
+from functools import wraps
+from flask import Flask, request, jsonify, g
+from unkey import Unkey, ApiError
+import os
+
+app = Flask(__name__)
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+def require_api_key(f):
+    """Decorator to require valid API key for a route."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Get API key from header
+        api_key = request.headers.get("X-API-Key")
+        
+        if not api_key:
+            return jsonify({
+                "error": "Missing API key",
+                "code": "MISSING_KEY"
+            }), 401
+        
+        try:
+            # Verify with Unkey
+            result = unkey.keys.verify_key(key=api_key)
+            
+            if not result.valid:
+                return jsonify({
+                    "error": "Invalid API key",
+                    "code": result.code
+                }), 401
+            
+            # Store key info in Flask's g object
+            g.key_id = result.key_id
+            g.owner_id = result.owner_id
+            g.key_meta = result.meta
+            g.permissions = result.permissions or []
+            g.roles = result.roles or []
+            
+            return f(*args, **kwargs)
+            
+        except ApiError as e:
+            return jsonify({
+                "error": "Authentication service error",
+                "message": e.message
+            }), 503
+    
+    return decorated_function
+
+# Usage
+@app.route("/api/public")
+def public_route():
+    return jsonify({"message": "This is public"})
+
+@app.route("/api/protected")
+@require_api_key
+def protected_route():
+    return jsonify({
+        "message": "Access granted",
+        "key_id": g.key_id,
+        "owner": g.owner_id
+    })
+```
+
+## Advanced Decorator with Permissions
+
+```python
+def require_permission(permission):
+    """Decorator factory to require specific permission."""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            api_key = request.headers.get("X-API-Key")
+            
+            if not api_key:
+                return jsonify({"error": "Missing API key"}), 401
+            
+            try:
+                result = unkey.keys.verify_key(key=api_key)
+                
+                if not result.valid:
+                    return jsonify({"error": "Invalid API key"}), 401
+                
+                # Check permission
+                permissions = result.permissions or []
+                if permission not in permissions:
+                    return jsonify({
+                        "error": "Insufficient permissions",
+                        "required": permission,
+                        "code": "FORBIDDEN"
+                    }), 403
+                
+                # Store info
+                g.key_id = result.key_id
+                g.owner_id = result.owner_id
+                g.permissions = permissions
+                
+                return f(*args, **kwargs)
+                
+            except ApiError as e:
+                return jsonify({"error": e.message}), 503
+        
+        return decorated_function
+    return decorator
+
+def require_role(role):
+    """Decorator factory to require specific role."""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            api_key = request.headers.get("X-API-Key")
+            
+            if not api_key:
+                return jsonify({"error": "Missing API key"}), 401
+            
+            try:
+                result = unkey.keys.verify_key(key=api_key)
+                
+                if not result.valid:
+                    return jsonify({"error": "Invalid API key"}), 401
+                
+                # Check role
+                roles = result.roles or []
+                if role not in roles:
+                    return jsonify({
+                        "error": "Insufficient role",
+                        "required": role,
+                        "code": "FORBIDDEN"
+                    }), 403
+                
+                g.key_id = result.key_id
+                g.roles = roles
+                
+                return f(*args, **kwargs)
+                
+            except ApiError as e:
+                return jsonify({"error": e.message}), 503
+        
+        return decorated_function
+    return decorator
+
+# Usage with permissions
+@app.route("/api/data")
+@require_api_key
+def read_data():
+    """Any valid key can read."""
+    return jsonify({"data": "some data"})
+
+@app.route("/api/data", methods=["POST"])
+@require_permission("data:write")
+def write_data():
+    """Only keys with data:write permission."""
+    return jsonify({"message": "Data created"})
+
+@app.route("/api/admin/users")
+@require_role("admin")
+def admin_users():
+    """Only admin role can access."""
+    return jsonify({"users": ["user1", "user2"]})
+```
+
+## Flask Blueprint Integration
+
+Organize authentication with Blueprints:
+
+```python
+from flask import Blueprint, request, jsonify, g
+from functools import wraps
+from unkey import Unkey, ApiError
+
+api_bp = Blueprint("api", __name__, url_prefix="/api")
+unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+
+def verify_key():
+    """Verify API key and store result in g."""
+    api_key = request.headers.get("X-API-Key")
+    
+    if not api_key:
+        return None, (jsonify({"error": "Missing API key"}), 401)
+    
+    try:
+        result = unkey.keys.verify_key(key=api_key)
+        
+        if not result.valid:
+            return None, (jsonify({"error": "Invalid API key"}), 401)
+        
+        return result, None
+        
+    except ApiError as e:
+        return None, (jsonify({"error": e.message}), 503)
+
+@api_bp.before_request
+def authenticate():
+    """Run before each request in this blueprint."""
+    # Skip auth for specific routes if needed
+    if request.endpoint == "api.health":
+        return None
+    
+    result, error = verify_key()
+    
+    if error:
+        return error
+    
+    # Store in g for route handlers
+    g.unkey = result
+    g.key_id = result.key_id
+
+@api_bp.route("/health")
+def health():
+    """Public health check endpoint."""
+    return jsonify({"status": "ok"})
+
+@api_bp.route("/profile")
+def profile():
+    """Protected profile endpoint."""
+    return jsonify({
+        "key_id": g.key_id,
+        "owner": g.unkey.owner_id,
+        "meta": g.unkey.meta,
+    })
+
+@api_bp.route("/resources")
+def list_resources():
+    """List resources for authenticated user."""
+    # Use owner_id to filter resources
+    owner_id = g.unkey.owner_id or g.key_id
+    
+    return jsonify({
+        "owner": owner_id,
+        "resources": ["resource1", "resource2"]
+    })
+
+# Register blueprint in main app
+# app.register_blueprint(api_bp)
+```
+
+## Error Handling
+
+Centralized error handling for auth errors:
+
+```python
+from flask import Flask, jsonify
+from unkey import ApiError
+
+app = Flask(__name__)
+
+@app.errorhandler(ApiError)
+def handle_unkey_error(error):
+    """Handle Unkey API errors."""
+    return jsonify({
+        "error": "Unkey API error",
+        "message": error.message,
+        "status": error.status_code
+    }), error.status_code
+
+@app.errorhandler(401)
+def handle_unauthorized(error):
+    """Handle 401 errors."""
+    return jsonify({
+        "error": "Unauthorized",
+        "message": "Valid API key required"
+    }), 401
+
+@app.errorhandler(403)
+def handle_forbidden(error):
+    """Handle 403 errors."""
+    return jsonify({
+        "error": "Forbidden",
+        "message": "Insufficient permissions"
+    }), 403
+```
+
+## Testing
+
+```bash
+# Test without key
+curl http://localhost:5000/api/protected
+# {"error":"Missing API key"}
+
+# Test with invalid key
+curl -H "X-API-Key: invalid_key" http://localhost:5000/api/protected
+# {"error":"Invalid API key"}
+
+# Test with valid key
+curl -H "X-API-Key: YOUR_VALID_KEY" http://localhost:5000/api/protected
+# {"message":"Access granted","key_id":"key_..."}
+
+# Test permission-protected route
+curl -H "X-API-Key: KEY_WITHOUT_PERMISSION" http://localhost:5000/api/data -X POST
+# {"error":"Insufficient permissions","required":"data:write"}
+```
+
+## Related
+
+<Card title="Python Quickstart" icon="rocket" href="/quickstart/apis/python">
+  Get started with Python and Unkey
+</Card>
+<Card title="FastAPI Rate Limiting" icon="gauge-high" href="/cookbook/python-fastapi-ratelimit">
+  Add rate limiting to your Python APIs
+</Card>
