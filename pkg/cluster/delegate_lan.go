@@ -57,8 +57,9 @@ func (d *lanDelegate) NotifyMsg(data []byte) {
 		d.cluster.mu.RUnlock()
 
 		if wanQ != nil {
-			msg.Direction = clusterv1.Direction_DIRECTION_WAN
-			wanBytes, err := proto.Marshal(&msg)
+			relay := proto.Clone(&msg).(*clusterv1.ClusterMessage)
+			relay.Direction = clusterv1.Direction_DIRECTION_WAN
+			wanBytes, err := proto.Marshal(relay)
 			if err != nil {
 				logger.Warn("Failed to marshal WAN relay message", "error", err)
 				return

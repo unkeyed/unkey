@@ -250,8 +250,11 @@ func (c *gossipCluster) Members() []*memberlist.Node {
 
 // Close gracefully leaves both LAN and WAN pools and shuts down.
 // The closing flag prevents evaluateAmbassador from running during Leave.
+// Safe to call multiple times; only the first call performs the shutdown.
 func (c *gossipCluster) Close() error {
-	c.closing.Store(true)
+	if alreadyClosing := c.closing.Swap(true); alreadyClosing {
+		return nil
+	}
 	close(c.done)
 
 	// Demote from ambassador first (leaves WAN).

@@ -20,37 +20,43 @@ func cacheInvalidationMessage(cacheName, cacheKey string) *clusterv1.ClusterMess
 }
 
 func TestMessageMux_RoutesToSubscriber(t *testing.T) {
-	mux := NewMessageMux()
+	t.Run("delivers payload to typed subscriber", func(t *testing.T) {
+		mux := NewMessageMux()
 
-	var received *cachev1.CacheInvalidationEvent
-	Subscribe(mux, func(payload *clusterv1.ClusterMessage_CacheInvalidation) {
-		received = payload.CacheInvalidation
+		var received *cachev1.CacheInvalidationEvent
+		Subscribe(mux, func(payload *clusterv1.ClusterMessage_CacheInvalidation) {
+			received = payload.CacheInvalidation
+		})
+
+		msg := cacheInvalidationMessage("my-cache", "my-key")
+		mux.OnMessage(msg)
+
+		require.NotNil(t, received)
+		require.Equal(t, "my-cache", received.GetCacheName())
+		require.Equal(t, "my-key", received.GetCacheKey())
 	})
-
-	msg := cacheInvalidationMessage("my-cache", "my-key")
-	mux.OnMessage(msg)
-
-	require.NotNil(t, received)
-	require.Equal(t, "my-cache", received.GetCacheName())
-	require.Equal(t, "my-key", received.GetCacheKey())
 }
 
 func TestMessageMux_MultipleSubscribers(t *testing.T) {
-	mux := NewMessageMux()
+	t.Run("fans out to all subscribers", func(t *testing.T) {
+		mux := NewMessageMux()
 
-	var count1, count2 int
-	Subscribe(mux, func(payload *clusterv1.ClusterMessage_CacheInvalidation) { count1++ })
-	Subscribe(mux, func(payload *clusterv1.ClusterMessage_CacheInvalidation) { count2++ })
+		var count1, count2 int
+		Subscribe(mux, func(payload *clusterv1.ClusterMessage_CacheInvalidation) { count1++ })
+		Subscribe(mux, func(payload *clusterv1.ClusterMessage_CacheInvalidation) { count2++ })
 
-	mux.OnMessage(cacheInvalidationMessage("c", "k"))
+		mux.OnMessage(cacheInvalidationMessage("c", "k"))
 
-	require.Equal(t, 1, count1)
-	require.Equal(t, 1, count2)
+		require.Equal(t, 1, count1)
+		require.Equal(t, 1, count2)
+	})
 }
 
 func TestMessageMux_NoSubscribersNoOp(t *testing.T) {
-	mux := NewMessageMux()
+	t.Run("no panic without subscribers", func(t *testing.T) {
+		mux := NewMessageMux()
 
-	// Should not panic when no subscribers are registered
-	mux.OnMessage(cacheInvalidationMessage("c", "k"))
+		// Should not panic when no subscribers are registered
+		mux.OnMessage(cacheInvalidationMessage("c", "k"))
+	})
 }

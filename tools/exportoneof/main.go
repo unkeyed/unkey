@@ -34,13 +34,16 @@ func main() {
 	packages := map[string][]oneofInterface{}
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, walkErr error) error {
-		if walkErr != nil || info.IsDir() || !strings.HasSuffix(path, ".pb.go") {
+		if walkErr != nil {
+			return walkErr
+		}
+		if info.IsDir() || !strings.HasSuffix(path, ".pb.go") {
 			return nil
 		}
 
 		f, openErr := os.Open(path)
 		if openErr != nil {
-			return nil
+			return fmt.Errorf("open %s: %w", path, openErr)
 		}
 		defer func() { _ = f.Close() }()
 
@@ -63,6 +66,9 @@ func main() {
 					exported:   exported,
 				})
 			}
+		}
+		if scanErr := scanner.Err(); scanErr != nil {
+			return fmt.Errorf("scan %s: %w", path, scanErr)
 		}
 		return nil
 	})

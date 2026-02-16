@@ -72,12 +72,12 @@ func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
-	_, err = c.ensureGossipServiceExists(ctx, req, sentinel)
+	_, err = c.ensureGossipServiceExists(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	err = c.ensureGossipCiliumPolicyExists(ctx, req, sentinel)
+	err = c.ensureGossipCiliumPolicyExists(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -389,7 +389,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 // discovery. The Service uses clusterIP: None so that DNS resolves to individual pod IPs,
 // allowing memberlist to discover all peers in the environment. The selector matches all
 // sentinel pods in the environment (not just one k8sName) for cross-sentinel peer discovery.
-func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) (*corev1.Service, error) {
+func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*corev1.Service, error) {
 	client := c.clientSet.CoreV1().Services(NamespaceSentinel)
 
 	gossipName := fmt.Sprintf("%s-gossip-lan", sentinel.GetK8SName())
@@ -408,14 +408,9 @@ func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ct
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
 				ComponentGossipLAN(),
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: "apps/v1",
-					Kind:       "Deployment",
-					Name:       deployment.GetName(),
-					UID:        deployment.UID,
-				},
-			},
+			// No OwnerReferences: this Service is environment-scoped (selector matches all
+			// sentinel pods in the environment), so it must not be owned by a single Deployment.
+			// Krane manages its lifecycle via server-side apply.
 		},
 		Spec: corev1.ServiceSpec{
 			Type:      corev1.ServiceTypeClusterIP,
@@ -452,7 +447,7 @@ func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ct
 
 // ensureGossipCiliumPolicyExists creates or updates a CiliumNetworkPolicy that allows
 // gossip traffic (TCP+UDP on GossipLANPort) between sentinel pods in the same environment.
-func (c *Controller) ensureGossipCiliumPolicyExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) error {
+func (c *Controller) ensureGossipCiliumPolicyExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) error {
 	policyName := fmt.Sprintf("%s-gossip-lan", sentinel.GetK8SName())
 
 	policy := &unstructured.Unstructured{
@@ -468,14 +463,9 @@ func (c *Controller) ensureGossipCiliumPolicyExists(ctx context.Context, sentine
 					EnvironmentID(sentinel.GetEnvironmentId()).
 					SentinelID(sentinel.GetSentinelId()).
 					ComponentGossipLAN(),
-				"ownerReferences": []interface{}{
-					map[string]interface{}{
-						"apiVersion": "apps/v1",
-						"kind":       "Deployment",
-						"name":       deployment.GetName(),
-						"uid":        string(deployment.UID),
-					},
-				},
+				// No ownerReferences: this policy is environment-scoped (selects all sentinel
+				// pods in the environment), so it must not be owned by a single Deployment.
+				// Krane manages its lifecycle via server-side apply.
 			},
 			"spec": map[string]interface{}{
 				"endpointSelector": map[string]interface{}{

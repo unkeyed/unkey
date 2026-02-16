@@ -7,19 +7,21 @@ import (
 )
 
 func TestAmbassadorElection_SmallestNameWins(t *testing.T) {
-	names := []string{
-		"node-3",
-		"node-1", // smallest
-		"node-2",
-	}
-
-	// Find smallest (same logic as evaluateAmbassador)
-	smallest := names[0]
-	for _, name := range names[1:] {
-		if name < smallest {
-			smallest = name
+	t.Run("smallest name wins", func(t *testing.T) {
+		names := []string{
+			"node-3",
+			"node-1", // smallest
+			"node-2",
 		}
-	}
 
-	require.Equal(t, "node-1", smallest)
+		// Find smallest (same logic as evaluateAmbassador)
+		smallest := names[0]
+		for _, name := range names[1:] {
+			if name < smallest {
+				smallest = name
+			}
+		}
+
+		require.Equal(t, "node-1", smallest)
+	})
 }

@@ -98,40 +98,44 @@ func TestGossipCacheInvalidation_Remove(t *testing.T) {
 	ctx := context.Background()
 	tc := setupTwoNodeCluster(t)
 
-	// Set a value on node 2
-	tc.Cache2.Set(ctx, "test-key", "test-value")
-	val, hit := tc.Cache2.Get(ctx, "test-key")
-	require.Equal(t, cache.Hit, hit)
-	require.Equal(t, "test-value", val)
+	t.Run("remove propagates to peer", func(t *testing.T) {
+		// Set a value on node 2
+		tc.Cache2.Set(ctx, "test-key", "test-value")
+		val, hit := tc.Cache2.Get(ctx, "test-key")
+		require.Equal(t, cache.Hit, hit)
+		require.Equal(t, "test-value", val)
 
-	// Remove on node 1 — should propagate to node 2
-	tc.Cache1.Remove(ctx, "test-key")
+		// Remove on node 1 — should propagate to node 2
+		tc.Cache1.Remove(ctx, "test-key")
 
-	require.Eventually(t, func() bool {
-		_, hit := tc.Cache2.Get(ctx, "test-key")
-		return hit == cache.Miss
-	}, 5*time.Second, 100*time.Millisecond, "key should be invalidated on node 2")
+		require.Eventually(t, func() bool {
+			_, hit := tc.Cache2.Get(ctx, "test-key")
+			return hit == cache.Miss
+		}, 5*time.Second, 100*time.Millisecond, "key should be invalidated on node 2")
+	})
 }
 
 func TestGossipCacheInvalidation_Clear(t *testing.T) {
 	ctx := context.Background()
 	tc := setupTwoNodeCluster(t)
 
-	// Populate node 2's cache with multiple keys
-	tc.Cache2.Set(ctx, "key-a", "value-a")
-	tc.Cache2.Set(ctx, "key-b", "value-b")
-	tc.Cache2.Set(ctx, "key-c", "value-c")
+	t.Run("clear propagates to peers", func(t *testing.T) {
+		// Populate node 2's cache with multiple keys
+		tc.Cache2.Set(ctx, "key-a", "value-a")
+		tc.Cache2.Set(ctx, "key-b", "value-b")
+		tc.Cache2.Set(ctx, "key-c", "value-c")
 
-	_, hit := tc.Cache2.Get(ctx, "key-a")
-	require.Equal(t, cache.Hit, hit)
+		_, hit := tc.Cache2.Get(ctx, "key-a")
+		require.Equal(t, cache.Hit, hit)
 
-	// Clear on node 1 — should propagate and clear node 2's cache
-	tc.Cache1.Clear(ctx)
+		// Clear on node 1 — should propagate and clear node 2's cache
+		tc.Cache1.Clear(ctx)
 
-	require.Eventually(t, func() bool {
-		_, hitA := tc.Cache2.Get(ctx, "key-a")
-		_, hitB := tc.Cache2.Get(ctx, "key-b")
-		_, hitC := tc.Cache2.Get(ctx, "key-c")
-		return hitA == cache.Miss && hitB == cache.Miss && hitC == cache.Miss
-	}, 5*time.Second, 100*time.Millisecond, "all keys should be cleared on node 2")
+		require.Eventually(t, func() bool {
+			_, hitA := tc.Cache2.Get(ctx, "key-a")
+			_, hitB := tc.Cache2.Get(ctx, "key-b")
+			_, hitC := tc.Cache2.Get(ctx, "key-c")
+			return hitA == cache.Miss && hitB == cache.Miss && hitC == cache.Miss
+		}, 5*time.Second, 100*time.Millisecond, "all keys should be cleared on node 2")
+	})
 }

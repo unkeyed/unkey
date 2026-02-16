@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
@@ -12,6 +13,7 @@ import (
 // It sits between the cluster transport and application-level handlers, allowing
 // multiple subsystems to share the same gossip cluster.
 type MessageMux struct {
+	mu       sync.RWMutex
 	handlers []func(*clusterv1.ClusterMessage)
 }
 
@@ -24,7 +26,9 @@ func NewMessageMux() *MessageMux {
 
 // subscribe adds a raw handler that receives all cluster messages.
 func (m *MessageMux) subscribe(handler func(*clusterv1.ClusterMessage)) {
+	m.mu.Lock()
 	m.handlers = append(m.handlers, handler)
+	m.mu.Unlock()
 }
 
 // Subscribe registers a typed handler that only receives messages matching
@@ -55,7 +59,12 @@ func (m *MessageMux) OnMessage(msg *clusterv1.ClusterMessage) {
 		"payload_type", fmt.Sprintf("%T", msg.Payload),
 	)
 
-	for _, h := range m.handlers {
+	m.mu.RLock()
+	snapshot := make([]func(*clusterv1.ClusterMessage), len(m.handlers))
+	copy(snapshot, m.handlers)
+	m.mu.RUnlock()
+
+	for _, h := range snapshot {
 		h(msg)
 	}
 }
