@@ -176,6 +176,7 @@ Organize authentication with Blueprints:
 from flask import Blueprint, request, jsonify, g
 from functools import wraps
 from unkey import Unkey, ApiError
+import os
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
