@@ -1,4 +1,5 @@
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
+import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
 import { type Key, and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -75,18 +76,19 @@ export const updateKeyOwner = workspaceProcedure
       console.warn(`Some keys were not found: ${missingKeyIds.join(", ")}`);
     }
 
-    if (input.ownerType === "v1") {
-      return updateOwnerV1(input, keys, {
-        audit: ctx.audit,
-        userId: ctx.user.id,
-        workspaceId: ctx.workspace.id,
-      });
-    }
-    return updateOwnerV2(input, keys, {
+    const updateFn = input.ownerType === "v1" ? updateOwnerV1 : updateOwnerV2;
+    const result = await updateFn(input, keys, {
       audit: ctx.audit,
       userId: ctx.user.id,
       workspaceId: ctx.workspace.id,
     });
+
+    const cacheClient = getCacheInvalidationClient();
+    if (cacheClient) {
+      await cacheClient.invalidateKeysByHash(keys.map((k) => k.hash)).catch(console.error);
+    }
+
+    return result;
   });
 
 const updateOwnerV1 = async (

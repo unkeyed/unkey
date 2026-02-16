@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
+import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
 import { db, eq, schema } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
@@ -121,5 +122,10 @@ export const deleteApi = workspaceProcedure
         code: "INTERNAL_SERVER_ERROR",
         message: "We are unable to delete the API. Please try again or contact support@unkey.com",
       });
+    }
+
+    const cacheClient = getCacheInvalidationClient();
+    if (cacheClient) {
+      await cacheClient.invalidateApiById(ctx.workspace.id, input.apiId).catch(console.error);
     }
   });

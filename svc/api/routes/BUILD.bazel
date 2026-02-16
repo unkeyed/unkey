@@ -25,6 +25,7 @@ go_library(
         "//svc/api/routes/chproxy_metrics",
         "//svc/api/routes/chproxy_ratelimits",
         "//svc/api/routes/chproxy_verifications",
+        "//svc/api/routes/internal_cache_invalidate",
         "//svc/api/routes/openapi",
         "//svc/api/routes/pprof",
         "//svc/api/routes/reference",

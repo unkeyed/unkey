@@ -1,5 +1,6 @@
 import { nameSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
+import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -93,6 +94,11 @@ export const updateKeyName = workspaceProcedure
             "We are unable to update name on this key. Please try again or contact support@unkey.com",
         });
       });
+
+    const cacheClient = getCacheInvalidationClient();
+    if (cacheClient) {
+      await cacheClient.invalidateKeyByHash(key.hash).catch(console.error);
+    }
 
     return {
       keyId: key.id,

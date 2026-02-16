@@ -53,6 +53,10 @@ type Services struct {
 	// When empty, chproxy routes are not registered.
 	ChproxyToken string
 
+	// DashboardToken authenticates requests to the internal cache invalidation endpoint.
+	// When empty, the cache invalidation route is not registered.
+	DashboardToken string
+
 	// CtrlDeploymentClient communicates with the control plane for deployment
 	// operations like creating and managing deployments.
 	CtrlDeploymentClient ctrl.DeployServiceClient

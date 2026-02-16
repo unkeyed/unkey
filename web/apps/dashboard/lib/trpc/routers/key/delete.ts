@@ -1,4 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -37,6 +38,7 @@ export const deleteKeys = workspaceProcedure
               and(isNull(table.deletedAtM), inArray(table.id, keyIds)),
             columns: {
               id: true,
+              hash: true,
             },
           },
         },
@@ -129,6 +131,13 @@ export const deleteKeys = workspaceProcedure
           });
         }
         throw txErr; // Re-throw to be caught by outer catch
+      }
+
+      const cacheClient = getCacheInvalidationClient();
+      if (cacheClient) {
+        await cacheClient
+          .invalidateKeysByHash(workspace.keys.map((k) => k.hash))
+          .catch(console.error);
       }
 
       return {
