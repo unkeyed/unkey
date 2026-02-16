@@ -2,88 +2,88 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dashboard
-  namespace: unkey
-  labels:
-    app: dashboard
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: dashboard
-  template:
-    metadata:
-      labels:
+    name: dashboard
+    namespace: unkey
+    labels:
         app: dashboard
-    spec:
-      initContainers:
-        - name: wait-for-dependencies
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z planetscale 3900 && nc -z agent 8080; do
-                echo waiting for dependencies
-                sleep 2
-              done
-      containers:
-        - name: dashboard
-          image: unkey/dashboard:latest
-          imagePullPolicy: Never
-          ports:
-            - containerPort: 3000
-          env:
-            # Database configuration
-            - name: DATABASE_HOST
-              value: "planetscale:3900"
-            # ClickHouse configuration
-            - name: CLICKHOUSE_URL
-              value: "http://default:password@clickhouse:8123"
-            # Environment
-            - name: NODE_ENV
-              value: "production"
-            # Instance identification
-            - name: UNKEY_PLATFORM
-              value: "kubernetes"
-            - name: UNKEY_REGION
-              value: "local"
-            - name: CTRL_URL
-              value: "http://ctrl-api:7091"
-            - name: CTRL_API_KEY
-              value: "your-local-dev-key"
-            # Agent configuration
-            - name: AGENT_URL
-              value: "http://agent:8080"
-            - name: AGENT_TOKEN
-              value: "agent-auth-secret"
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 3000
-            initialDelaySeconds: 10
-            periodSeconds: 5
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 3000
-            initialDelaySeconds: 30
-            periodSeconds: 10
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: dashboard
+    template:
+        metadata:
+            labels:
+                app: dashboard
+        spec:
+            initContainers:
+                - name: wait-for-dependencies
+                  image: busybox:1.36
+                  command:
+                      - sh
+                      - -c
+                      - |
+                          until nc -z planetscale 3900 && nc -z agent 8080; do
+                            echo waiting for dependencies
+                            sleep 2
+                          done
+            containers:
+                - name: dashboard
+                  image: unkey/dashboard:latest
+                  imagePullPolicy: Never
+                  ports:
+                      - containerPort: 3000
+                  env:
+                      # Database configuration
+                      - name: DATABASE_HOST
+                        value: "planetscale:3900"
+                      # ClickHouse configuration
+                      - name: CLICKHOUSE_URL
+                        value: "http://default:password@clickhouse:8123"
+                      # Environment
+                      - name: NODE_ENV
+                        value: "production"
+                      # Instance identification
+                      - name: UNKEY_PLATFORM
+                        value: "kubernetes"
+                      - name: UNKEY_REGION
+                        value: "local"
+                      - name: CTRL_URL
+                        value: "http://ctrl-api:7091"
+                      - name: CTRL_API_KEY
+                        value: "your-local-dev-key"
+                      # Agent configuration
+                      - name: VAULT_URL
+                        value: "http://vault:8060"
+                      - name: VAULT_TOKEN
+                        value: "vault-test-token-123"
+                  readinessProbe:
+                      httpGet:
+                          path: /
+                          port: 3000
+                      initialDelaySeconds: 10
+                      periodSeconds: 5
+                  livenessProbe:
+                      httpGet:
+                          path: /
+                          port: 3000
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: dashboard
-  namespace: unkey
-  labels:
-    app: dashboard
+    name: dashboard
+    namespace: unkey
+    labels:
+        app: dashboard
 spec:
-  selector:
-    app: dashboard
-  ports:
-    - name: http
-      port: 3000
-      targetPort: 3000
-      protocol: TCP
-  type: LoadBalancer
+    selector:
+        app: dashboard
+    ports:
+        - name: http
+          port: 3000
+          targetPort: 3000
+          protocol: TCP
+    type: LoadBalancer
