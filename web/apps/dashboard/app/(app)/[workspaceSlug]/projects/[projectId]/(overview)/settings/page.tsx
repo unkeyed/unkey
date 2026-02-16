@@ -7,6 +7,8 @@ import { GitHubSettingsClient } from "./components/github-settings-client";
 import { RuntimeApplicationSettings } from "./components/runtime-application-settings";
 import { RuntimeScalingSettings } from "./components/runtime-scaling-settings";
 
+export const dynamic = "force-dynamic";
+
 export default function SettingsPage() {
   const { environments } = useProjectData();
   const [environmentId, setEnvironmentId] = useQueryState(
