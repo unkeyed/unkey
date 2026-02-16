@@ -19,26 +19,26 @@ const maxJoinAttempts = 10
 type Cluster interface {
 	Broadcast(msg clusterv1.IsClusterMessage_Payload) error
 	Members() []*memberlist.Node
-	IsGateway() bool
+	IsAmbassador() bool
 	WANAddr() string
 	Close() error
 }
 
 // gossipCluster manages a two-tier gossip membership: a LAN pool for intra-region
-// communication and, on the elected gateway node, a WAN pool for cross-region
+// communication and, on the elected ambassador node, a WAN pool for cross-region
 // communication.
 type gossipCluster struct {
 	config Config
 
-	mu        sync.RWMutex
-	lan       *memberlist.Memberlist
-	lanQueue  *memberlist.TransmitLimitedQueue
-	wan       *memberlist.Memberlist
-	wanQueue  *memberlist.TransmitLimitedQueue
-	isGateway bool
-	closing   atomic.Bool
+	mu           sync.RWMutex
+	lan          *memberlist.Memberlist
+	lanQueue     *memberlist.TransmitLimitedQueue
+	wan          *memberlist.Memberlist
+	wanQueue     *memberlist.TransmitLimitedQueue
+	isAmbassador bool
+	closing      atomic.Bool
 
-	// evalCh is used to trigger async gateway evaluation from memberlist
+	// evalCh is used to trigger async ambassador evaluation from memberlist
 	// callbacks. This avoids calling Members() inside NotifyJoin/NotifyLeave
 	// where memberlist holds its internal state lock.
 	evalCh chan struct{}
@@ -46,25 +46,25 @@ type gossipCluster struct {
 }
 
 // New creates a new cluster node, starts the LAN memberlist, joins LAN seeds,
-// and begins gateway evaluation.
+// and begins ambassador evaluation.
 func New(cfg Config) (Cluster, error) {
 	cfg.setDefaults()
 
 	c := &gossipCluster{
-		config:    cfg,
-		mu:        sync.RWMutex{},
-		lan:       nil,
-		lanQueue:  nil,
-		wan:       nil,
-		wanQueue:  nil,
-		isGateway: false,
-		closing:   atomic.Bool{},
-		evalCh:    make(chan struct{}, 1),
-		done:      make(chan struct{}),
+		config:       cfg,
+		mu:           sync.RWMutex{},
+		lan:          nil,
+		lanQueue:     nil,
+		wan:          nil,
+		wanQueue:     nil,
+		isAmbassador: false,
+		closing:      atomic.Bool{},
+		evalCh:       make(chan struct{}, 1),
+		done:         make(chan struct{}),
 	}
 
-	// Start the async gateway evaluator
-	go c.gatewayEvalLoop()
+	// Start the async ambassador evaluator
+	go c.ambassadorEvalLoop()
 
 	// Configure LAN memberlist
 	lanCfg := memberlist.DefaultLANConfig()
@@ -98,11 +98,11 @@ func New(cfg Config) (Cluster, error) {
 			c.mu.RLock()
 			defer c.mu.RUnlock()
 			return c.lan
-		}, cfg.LANSeeds, c.triggerEvalGateway)
+		}, cfg.LANSeeds, c.triggerEvalAmbassador)
 	}
 
-	// Trigger initial gateway evaluation
-	c.triggerEvalGateway()
+	// Trigger initial ambassador evaluation
+	c.triggerEvalAmbassador()
 
 	return c, nil
 }
@@ -155,8 +155,8 @@ func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlis
 	)
 }
 
-// triggerEvalGateway sends a non-blocking signal to the gateway evaluator goroutine.
-func (c *gossipCluster) triggerEvalGateway() {
+// triggerEvalAmbassador sends a non-blocking signal to the ambassador evaluator goroutine.
+func (c *gossipCluster) triggerEvalAmbassador() {
 	select {
 	case c.evalCh <- struct{}{}:
 	default:
@@ -164,20 +164,20 @@ func (c *gossipCluster) triggerEvalGateway() {
 	}
 }
 
-// gatewayEvalLoop runs in a goroutine and processes gateway evaluation requests.
-func (c *gossipCluster) gatewayEvalLoop() {
+// ambassadorEvalLoop runs in a goroutine and processes ambassador evaluation requests.
+func (c *gossipCluster) ambassadorEvalLoop() {
 	for {
 		select {
 		case <-c.done:
 			return
 		case <-c.evalCh:
-			c.evaluateGateway()
+			c.evaluateAmbassador()
 		}
 	}
 }
 
 // Broadcast queues a message for delivery to all cluster members.
-// The message is broadcast on the LAN pool. If this node is the gateway,
+// The message is broadcast on the LAN pool. If this node is the ambassador,
 // it is also broadcast on the WAN pool.
 func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Payload) error {
 	msg := &clusterv1.ClusterMessage{
@@ -189,7 +189,7 @@ func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Payload) er
 
 	c.mu.RLock()
 	lanQ := c.lanQueue
-	isGW := c.isGateway
+	isAmb := c.isAmbassador
 	wanQ := c.wanQueue
 	c.mu.RUnlock()
 
@@ -202,7 +202,7 @@ func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Payload) er
 		lanQ.QueueBroadcast(newBroadcast(lanBytes))
 	}
 
-	if isGW && wanQ != nil {
+	if isAmb && wanQ != nil {
 		msg.Direction = clusterv1.Direction_DIRECTION_WAN
 		wanBytes, err := proto.Marshal(msg)
 		if err != nil {
@@ -214,15 +214,15 @@ func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Payload) er
 	return nil
 }
 
-// IsGateway returns whether this node is currently the WAN gateway.
-func (c *gossipCluster) IsGateway() bool {
+// IsAmbassador returns whether this node is currently the WAN ambassador.
+func (c *gossipCluster) IsAmbassador() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.isGateway
+	return c.isAmbassador
 }
 
 // WANAddr returns the WAN pool's advertise address (e.g. "127.0.0.1:54321")
-// if this node is the gateway, or an empty string otherwise.
+// if this node is the ambassador, or an empty string otherwise.
 func (c *gossipCluster) WANAddr() string {
 	c.mu.RLock()
 	wan := c.wan
@@ -249,13 +249,13 @@ func (c *gossipCluster) Members() []*memberlist.Node {
 }
 
 // Close gracefully leaves both LAN and WAN pools and shuts down.
-// The closing flag prevents evaluateGateway from running during Leave.
+// The closing flag prevents evaluateAmbassador from running during Leave.
 func (c *gossipCluster) Close() error {
 	c.closing.Store(true)
 	close(c.done)
 
-	// Demote from gateway first (leaves WAN).
-	c.demoteFromGateway()
+	// Demote from ambassador first (leaves WAN).
+	c.demoteFromAmbassador()
 
 	// Grab the LAN memberlist reference then nil it under lock.
 	c.mu.Lock()

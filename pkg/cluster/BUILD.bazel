@@ -9,7 +9,7 @@ go_library(
         "delegate_wan.go",
         "discovery.go",
         "doc.go",
-        "gateway.go",
+        "ambassador.go",
         "message.go",
         "mux.go",
         "noop.go",
@@ -28,7 +28,7 @@ go_test(
     name = "cluster_test",
     srcs = [
         "cluster_test.go",
-        "gateway_test.go",
+        "ambassador_test.go",
         "mux_test.go",
     ],
     embed = [":cluster"],

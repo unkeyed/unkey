@@ -8,9 +8,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// evaluateGateway checks whether this node should be the gateway.
+// evaluateAmbassador checks whether this node should be the ambassador.
 // The node with the lexicographically smallest name wins.
-func (c *gossipCluster) evaluateGateway() {
+func (c *gossipCluster) evaluateAmbassador() {
 	// Don't evaluate during shutdown to avoid deadlocks
 	if c.closing.Load() {
 		return
@@ -38,24 +38,24 @@ func (c *gossipCluster) evaluateGateway() {
 	}
 
 	localName := lan.LocalNode().Name
-	shouldBeGateway := smallest.Name == localName
+	shouldBeAmbassador := smallest.Name == localName
 
-	if shouldBeGateway && !c.IsGateway() {
-		c.promoteToGateway()
-	} else if !shouldBeGateway && c.IsGateway() {
-		c.demoteFromGateway()
+	if shouldBeAmbassador && !c.IsAmbassador() {
+		c.promoteToAmbassador()
+	} else if !shouldBeAmbassador && c.IsAmbassador() {
+		c.demoteFromAmbassador()
 	}
 }
 
-// promoteToGateway creates a WAN memberlist and joins WAN seeds.
-func (c *gossipCluster) promoteToGateway() {
+// promoteToAmbassador creates a WAN memberlist and joins WAN seeds.
+func (c *gossipCluster) promoteToAmbassador() {
 	c.mu.Lock()
-	if c.isGateway {
+	if c.isAmbassador {
 		c.mu.Unlock()
 		return
 	}
 
-	logger.Info("Promoting to gateway", "node", c.config.NodeID, "region", c.config.Region)
+	logger.Info("Promoting to ambassador", "node", c.config.NodeID, "region", c.config.Region)
 
 	wanCfg := memberlist.DefaultWANConfig()
 	wanCfg.Name = c.config.NodeID + "-wan"
@@ -80,7 +80,7 @@ func (c *gossipCluster) promoteToGateway() {
 		RetransmitMult: 4,
 	}
 
-	c.isGateway = true
+	c.isAmbassador = true
 	seeds := c.config.WANSeeds
 	c.mu.Unlock()
 
@@ -94,15 +94,15 @@ func (c *gossipCluster) promoteToGateway() {
 	}
 }
 
-// demoteFromGateway shuts down the WAN memberlist.
-func (c *gossipCluster) demoteFromGateway() {
+// demoteFromAmbassador shuts down the WAN memberlist.
+func (c *gossipCluster) demoteFromAmbassador() {
 	c.mu.Lock()
-	if !c.isGateway {
+	if !c.isAmbassador {
 		c.mu.Unlock()
 		return
 	}
 
-	logger.Info("Demoting from gateway",
+	logger.Info("Demoting from ambassador",
 		"node", c.config.NodeID,
 		"region", c.config.Region,
 	)
@@ -110,7 +110,7 @@ func (c *gossipCluster) demoteFromGateway() {
 	wan := c.wan
 	c.wan = nil
 	c.wanQueue = nil
-	c.isGateway = false
+	c.isAmbassador = false
 	c.mu.Unlock()
 
 	// Leave and shutdown outside the lock since Leave can trigger callbacks
