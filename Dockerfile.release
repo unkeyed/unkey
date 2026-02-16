@@ -1,5 +1,4 @@
 FROM gcr.io/distroless/static-debian12
-COPY unkey /unkey
-LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
-LABEL org.opencontainers.image.description="Unkey API"
+ARG TARGETPLATFORM
+COPY ${TARGETPLATFORM}/unkey /unkey
 ENTRYPOINT ["/unkey"]

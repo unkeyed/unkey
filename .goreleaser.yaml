@@ -70,34 +70,19 @@ npms:
     repository: "https://github.com/unkeyed/unkey"
     license: "AGPL-3.0-only"
 
-dockers:
-  - id: unkey-amd64
-    ids: [unkey]
-    goos: linux
-    goarch: amd64
-    use: buildx
-    image_templates:
-      - "ghcr.io/unkeyed/unkey:v{{ .Version }}-amd64"
+dockers_v2:
+  - ids: [unkey]
+    images:
+      - "ghcr.io/unkeyed/unkey"
+    tags:
+      - "v{{ .Version }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
     dockerfile: Dockerfile.release
-    build_flag_templates:
-      - "--platform=linux/amd64"
-
-  - id: unkey-arm64
-    ids: [unkey]
-    goos: linux
-    goarch: arm64
-    use: buildx
-    image_templates:
-      - "ghcr.io/unkeyed/unkey:v{{ .Version }}-arm64"
-    dockerfile: Dockerfile.release
-    build_flag_templates:
-      - "--platform=linux/arm64"
-
-docker_manifests:
-  - name_template: "ghcr.io/unkeyed/unkey:v{{ .Version }}"
-    image_templates:
-      - "ghcr.io/unkeyed/unkey:v{{ .Version }}-amd64"
-      - "ghcr.io/unkeyed/unkey:v{{ .Version }}-arm64"
+    labels:
+      "org.opencontainers.image.source": "https://github.com/unkeyed/unkey"
+      "org.opencontainers.image.description": "Unkey API"
 
 changelog:
   use: github
