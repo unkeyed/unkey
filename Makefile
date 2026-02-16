@@ -85,6 +85,7 @@ generate: generate-sql ## Generate code from protobuf and other sources
 	rm -rf ./gen || true
 	rm ./pkg/db/*_generated.go || true
 	go generate ./...
+	go run ./tools/exportoneof ./gen/proto
 	bazel run //:gazelle
 	go fmt ./...
 	pnpm --dir=web fmt
