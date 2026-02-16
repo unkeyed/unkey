@@ -140,6 +140,14 @@ build-local-image: ## Build and push image to local registry (usage: make build-
 	@echo "Image pushed successfully!"
 	@echo "Use in pod spec: ctlptl-registry:5000/$(NAME):$(TAG)"
 
+.PHONY: config-docs
+config-docs: ## Generate MDX config docs from Go struct tags
+	go run ./cmd/generate-config-docs --pkg=./svc/api --type=Config --title=API --out=web/apps/engineering/content/docs/architecture/services/api/config.mdx
+	go run ./cmd/generate-config-docs --pkg=./svc/vault --type=Config --title=Vault --out=web/apps/engineering/content/docs/architecture/services/vault.mdx
+	go run ./cmd/generate-config-docs --pkg=./svc/sentinel --type=Config --title=Sentinel --out=web/apps/engineering/content/docs/architecture/services/sentinel.mdx
+	go run ./cmd/generate-config-docs --pkg=./svc/krane --type=Config --title=Krane --out=web/apps/engineering/content/docs/architecture/services/krane/config.mdx
+	go run ./cmd/generate-config-docs --pkg=./svc/frontline --type=Config --title=Frontline --out=web/apps/engineering/content/docs/architecture/services/frontline.mdx
+
 .PHONY: fuzz
 fuzz: ## Run fuzz tests
 	@files=$$(grep -r --include='*_test.go' -l 'func Fuzz' .); \
