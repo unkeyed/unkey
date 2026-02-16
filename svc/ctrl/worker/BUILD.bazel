@@ -16,6 +16,7 @@ go_library(
         "//pkg/cache",
         "//pkg/clickhouse",
         "//pkg/clock",
+        "//pkg/config",
         "//pkg/db",
         "//pkg/healthcheck",
         "//pkg/logger",

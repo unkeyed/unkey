@@ -1,4 +1,35 @@
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ctrl-api-config
+  namespace: unkey
+  labels:
+    app: ctrl-api
+data:
+  unkey.toml: |
+    instance_id = "ctrl-api-dev"
+    region = "local"
+    http_port = 7091
+    auth_token = "your-local-dev-key"
+    available_regions = ["local.dev"]
+    default_domain = "unkey.local"
+    cname_domain = "unkey.local"
+
+    [database]
+    primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+
+    [otel]
+    enabled = false
+
+    [restate]
+    url = "http://restate:8080"
+    admin_url = "http://restate:9070"
+
+    [github]
+    webhook_secret = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,7 +51,7 @@ spec:
       containers:
         - name: ctrl-api
           image: unkey/go:latest
-          args: ["run", "ctrl", "api"]
+          args: ["run", "ctrl", "api", "--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7091
@@ -37,58 +68,20 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
           env:
-            # Server Configuration
-            - name: UNKEY_HTTP_PORT
-              value: "7091"
-            - name: UNKEY_LOGS_COLOR
-              value: "true"
-            # Instance Identification
-            - name: UNKEY_PLATFORM
-              value: "kubernetes"
-            - name: UNKEY_REGION
-              value: "local"
-            - name: UNKEY_INSTANCE_ID
-              value: "ctrl-api-dev"
-            # Database Configuration
-            - name: UNKEY_DATABASE_PRIMARY
-              value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-
-            # Observability - DISABLED for development
-            - name: UNKEY_OTEL
-              value: "false"
-
-            #kubectl create secret docker-registry depot-registry \
-            # --docker-server=registry.depot.dev \
-            # --docker-username=x-token \
-            # --docker-password=xxx \
-            # --namespace=unkey
-
-            # Restate Configuration (ctrl-api only needs ingress client)
-            - name: UNKEY_RESTATE_INGRESS_URL
-              value: "http://restate:8080"
-            - name: UNKEY_RESTATE_ADMIN_URL
-              value: "http://restate:9070"
-            - name: UNKEY_RESTATE_API_KEY
-              value: ""
-
-            # API Key
-            - name: UNKEY_AUTH_TOKEN
-              value: "your-local-dev-key"
-
-            # Certificate bootstrap
-            - name: UNKEY_DEFAULT_DOMAIN
-              value: "unkey.local"
-            - name: UNKEY_CNAME_DOMAIN
-              value: "unkey.local"
-
-            # GitHub webhook (optional)
             - name: UNKEY_GITHUB_APP_WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:
                   name: github-credentials
                   key: UNKEY_GITHUB_APP_WEBHOOK_SECRET
                   optional: true
-
+          volumeMounts:
+            - name: config
+              mountPath: /etc/unkey
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: ctrl-api-config
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36

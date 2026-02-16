@@ -6,14 +6,14 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/svc/ctrl/worker"
 )
 
 // workerCmd defines the "worker" subcommand for running the background job
 // processor. The worker handles durable workflows via Restate including container
-// builds, deployments, and ACME certificate provisioning. It supports two build
-// backends: "docker" for local development and "depot" for production.
+// builds, deployments, and ACME certificate provisioning. Configuration is loaded
+// from a TOML file specified by --config.
 var workerCmd = &cli.Command{
 	Version:     "",
 	Commands:    []*cli.Command{},
@@ -22,198 +22,24 @@ var workerCmd = &cli.Command{
 	Name:        "worker",
 	Usage:       "Run the Unkey Restate worker service for background jobs and workflows",
 	Flags: []cli.Flag{
-		// Server Configuration
-		cli.Int("prometheus-port", "Port for Prometheus metrics, set to 0 to disable.",
-			cli.Default(0), cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
-
-		// Instance Identification
-		cli.String("instance-id", "Unique identifier for this instance. Auto-generated if not provided.",
-			cli.Default(uid.New(uid.InstancePrefix, 4)), cli.EnvVar("UNKEY_INSTANCE_ID")),
-
-		// Database Configuration
-		cli.String("database-primary", "MySQL connection string for primary database. Required for all deployments. Example: user:pass@host:3306/unkey?parseTime=true",
-			cli.Required(), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
-
-		cli.String("vault-url", "Url where vault is available",
-			cli.Required(),
-			cli.EnvVar("UNKEY_VAULT_URL"),
-			cli.Default("https://vault.unkey.cloud"),
-		),
-
-		cli.String("vault-token", "Authentication for vault",
-			cli.Required(),
-			cli.EnvVar("UNKEY_VAULT_TOKEN"),
-		),
-
-		// Build Configuration
-		cli.String("build-platform", "Run builds on this platform ('dynamic', 'linux/amd64', 'linux/arm64')",
-			cli.Default("linux/amd64"), cli.EnvVar("UNKEY_BUILD_PLATFORM")),
-
-		// Registry Configuration
-		cli.String("registry-url", "URL of the container registry for pulling images. Example: registry.depot.dev",
-			cli.EnvVar("UNKEY_REGISTRY_URL")),
-		cli.String("registry-username", "Username for authenticating with the container registry.",
-			cli.EnvVar("UNKEY_REGISTRY_USERNAME")),
-		cli.String("registry-password", "Password/token for authenticating with the container registry.",
-			cli.EnvVar("UNKEY_REGISTRY_PASSWORD")),
-
-		// Depot Build Backend Configuration
-		cli.String("depot-api-url", "Depot API endpoint URL",
-			cli.EnvVar("UNKEY_DEPOT_API_URL")),
-		cli.String("depot-project-region", "Build data will be stored in the chosen region ('us-east-1','eu-central-1')",
-			cli.EnvVar("UNKEY_DEPOT_PROJECT_REGION"), cli.Default("us-east-1")),
-
-		// ACME Configuration
-		cli.Bool("acme-enabled", "Enable Let's Encrypt for acme challenges", cli.EnvVar("UNKEY_ACME_ENABLED")),
-		cli.String("acme-email-domain", "Domain for ACME registration emails (workspace_id@domain)", cli.Default("unkey.com"), cli.EnvVar("UNKEY_ACME_EMAIL_DOMAIN")),
-
-		// Route53 DNS provider
-		cli.Bool("acme-route53-enabled", "Enable Route53 for DNS-01 challenges", cli.EnvVar("UNKEY_ACME_ROUTE53_ENABLED")),
-		cli.String("acme-route53-access-key-id", "AWS access key ID for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_ACCESS_KEY_ID")),
-		cli.String("acme-route53-secret-access-key", "AWS secret access key for Route53", cli.EnvVar("UNKEY_ACME_ROUTE53_SECRET_ACCESS_KEY")),
-		cli.String("acme-route53-region", "AWS region for Route53", cli.Default("us-east-1"), cli.EnvVar("UNKEY_ACME_ROUTE53_REGION")),
-		cli.String("acme-route53-hosted-zone-id", "Route53 hosted zone ID (bypasses auto-discovery, required when wildcard CNAMEs exist)", cli.EnvVar("UNKEY_ACME_ROUTE53_HOSTED_ZONE_ID")),
-
-		cli.String("default-domain", "Default domain for auto-generated hostnames", cli.Default("unkey.app"), cli.EnvVar("UNKEY_DEFAULT_DOMAIN")),
-		cli.String("cname-domain", "Base domain for custom domain CNAME targets (e.g., unkey-dns.com)", cli.Required(), cli.EnvVar("UNKEY_CNAME_DOMAIN")),
-
-		// Restate Configuration
-		cli.String("restate-admin-url", "URL of the Restate admin endpoint for service registration. Example: http://restate:9070",
-			cli.Default("http://restate:9070"), cli.EnvVar("UNKEY_RESTATE_ADMIN_URL")),
-		cli.String("restate-api-key", "API key for Restate admin API requests",
-			cli.EnvVar("UNKEY_RESTATE_API_KEY")),
-		cli.Int("restate-http-port", "Port where we listen for Restate HTTP requests. Example: 9080",
-			cli.Default(9080), cli.EnvVar("UNKEY_RESTATE_HTTP_PORT")),
-		cli.String("restate-register-as", "URL of this service for self-registration with Restate. Example: http://worker:9080",
-			cli.EnvVar("UNKEY_RESTATE_REGISTER_AS")),
-
-		// ClickHouse Configuration
-		cli.String("clickhouse-url", "ClickHouse connection string for analytics. Required. Example: clickhouse://user:pass@host:9000/unkey",
-			cli.EnvVar("UNKEY_CLICKHOUSE_URL")),
-		cli.String("clickhouse-admin-url", "ClickHouse admin connection string for user provisioning. Optional. Example: clickhouse://unkey_user_admin:password@host:9000/default",
-			cli.EnvVar("UNKEY_CLICKHOUSE_ADMIN_URL")),
-
-		// Sentinel configuration
-		cli.String("sentinel-image", "The image new sentinels get deployed with", cli.Default("ghcr.io/unkeyed/unkey:local"), cli.EnvVar("UNKEY_SENTINEL_IMAGE")),
-		cli.StringSlice("available-regions", "Available regions for deployment", cli.EnvVar("UNKEY_AVAILABLE_REGIONS"), cli.Default([]string{"local.dev"})),
-
-		// GitHub App Configuration
-		cli.Int64("github-app-id", "GitHub App ID for webhook-triggered deployments", cli.EnvVar("UNKEY_GITHUB_APP_ID")),
-		cli.String("github-private-key-pem", "GitHub App private key in PEM format", cli.EnvVar("UNKEY_GITHUB_PRIVATE_KEY_PEM")),
-		cli.Bool("allow-unauthenticated-deployments", "Allow deployments without GitHub authentication. Enable only for local dev.", cli.Default(false), cli.EnvVar("UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS")),
-
-		// Healthcheck heartbeat URLs
-		cli.String("cert-renewal-heartbeat-url", "Checkly heartbeat URL for certificate renewal", cli.EnvVar("UNKEY_CERT_RENEWAL_HEARTBEAT_URL")),
-		cli.String("quota-check-heartbeat-url", "Checkly heartbeat URL for quota checks", cli.EnvVar("UNKEY_QUOTA_CHECK_HEARTBEAT_URL")),
-		cli.String("key-refill-heartbeat-url", "Checkly heartbeat URL for key refills", cli.EnvVar("UNKEY_KEY_REFILL_HEARTBEAT_URL")),
-
-		// Slack notifications
-		cli.String("quota-check-slack-webhook-url", "Slack webhook URL for quota exceeded notifications", cli.EnvVar("UNKEY_QUOTA_CHECK_SLACK_WEBHOOK_URL")),
-
-		// Observability
-		cli.Bool("otel-enabled", "Enable OpenTelemetry tracing and logging",
-			cli.Default(false),
-			cli.EnvVar("UNKEY_OTEL_ENABLED")),
-		cli.Float("otel-trace-sampling-rate", "Sampling rate for traces (0.0 to 1.0)",
-			cli.Default(0.01),
-			cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
-		cli.String("region", "Cloud region identifier",
-			cli.EnvVar("UNKEY_REGION")),
+		cli.String("config", "Path to a TOML config file",
+			cli.Default("unkey.toml"), cli.EnvVar("UNKEY_CONFIG")),
 	},
 	Action: workerAction,
 }
 
-// workerAction validates configuration and starts the background worker service.
-// It returns an error if required configuration is missing or if the worker fails
-// to start. The function blocks until the context is cancelled or the worker exits.
+// workerAction loads configuration from a file and starts the background worker
+// service. It sets runtime-only fields before delegating to [worker.Run].
 func workerAction(ctx context.Context, cmd *cli.Command) error {
-	config := worker.Config{
-		// Basic configuration
-		PrometheusPort: cmd.Int("prometheus-port"),
-		InstanceID:     cmd.String("instance-id"),
-
-		// Database configuration
-		DatabasePrimary: cmd.String("database-primary"),
-
-		// Vault configuration
-		VaultURL:   cmd.String("vault-url"),
-		VaultToken: cmd.String("vault-token"),
-
-		// Build configuration
-		BuildPlatform: cmd.String("build-platform"),
-
-		// Registry configuration
-		RegistryURL:      cmd.String("registry-url"),
-		RegistryUsername: cmd.String("registry-username"),
-		RegistryPassword: cmd.String("registry-password"),
-
-		// Depot build backend configuration
-		Depot: worker.DepotConfig{
-			APIUrl:        cmd.String("depot-api-url"),
-			ProjectRegion: cmd.String("depot-project-region"),
-		},
-
-		// Acme configuration
-		Acme: worker.AcmeConfig{
-			Enabled:     cmd.Bool("acme-enabled"),
-			EmailDomain: cmd.String("acme-email-domain"),
-			Route53: worker.Route53Config{
-				Enabled:         cmd.Bool("acme-route53-enabled"),
-				AccessKeyID:     cmd.String("acme-route53-access-key-id"),
-				SecretAccessKey: cmd.String("acme-route53-secret-access-key"),
-				Region:          cmd.String("acme-route53-region"),
-				HostedZoneID:    cmd.String("acme-route53-hosted-zone-id"),
-			},
-		},
-
-		DefaultDomain: cmd.String("default-domain"),
-
-		// Restate configuration
-		Restate: worker.RestateConfig{
-			AdminURL:   cmd.String("restate-admin-url"),
-			APIKey:     cmd.String("restate-api-key"),
-			HttpPort:   cmd.Int("restate-http-port"),
-			RegisterAs: cmd.String("restate-register-as"),
-		},
-
-		// Clickhouse Configuration
-		ClickhouseURL:      cmd.String("clickhouse-url"),
-		ClickhouseAdminURL: cmd.String("clickhouse-admin-url"),
-
-		// Sentinel configuration
-		SentinelImage:    cmd.String("sentinel-image"),
-		AvailableRegions: cmd.RequireStringSlice("available-regions"),
-
-		// GitHub configuration
-		GitHub: worker.GitHubConfig{
-			AppID:         cmd.Int64("github-app-id"),
-			PrivateKeyPEM: cmd.String("github-private-key-pem"),
-		},
-		AllowUnauthenticatedDeployments: cmd.Bool("allow-unauthenticated-deployments"),
-
-		// Custom domain configuration
-		CnameDomain: strings.TrimSuffix(strings.TrimSpace(cmd.RequireString("cname-domain")), "."),
-
-		Clock: clock.New(),
-
-		// Healthcheck heartbeat URLs
-		CertRenewalHeartbeatURL: cmd.String("cert-renewal-heartbeat-url"),
-		QuotaCheckHeartbeatURL:  cmd.String("quota-check-heartbeat-url"),
-		KeyRefillHeartbeatURL:   cmd.String("key-refill-heartbeat-url"),
-
-		// Slack notifications
-		QuotaCheckSlackWebhookURL: cmd.String("quota-check-slack-webhook-url"),
-
-		// Observability
-		OtelEnabled:           cmd.Bool("otel-enabled"),
-		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
-		Region:                cmd.String("region"),
-	}
-
-	err := config.Validate()
+	cfg, err := config.Load[worker.Config](cmd.String("config"))
 	if err != nil {
-		return err
+		return cli.Exit("Failed to load config: "+err.Error(), 1)
 	}
 
-	return worker.Run(ctx, config)
+	// Normalize CNAME domain: trim whitespace and trailing dot
+	cfg.CnameDomain = strings.TrimSuffix(strings.TrimSpace(cfg.CnameDomain), ".")
+
+	cfg.Clock = clock.New()
+
+	return worker.Run(ctx, cfg)
 }

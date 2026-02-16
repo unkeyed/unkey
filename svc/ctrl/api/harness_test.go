@@ -17,6 +17,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -92,23 +93,29 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	}
 
 	apiConfig := Config{
-		InstanceID:            "test",
-		Region:                "local",
-		HttpPort:              ctrlPort,
-		PrometheusPort:        0,
-		DatabasePrimary:       mysqlCfg.DSN,
-		OtelEnabled:           false,
-		OtelTraceSamplingRate: 0,
-		TLSConfig:             nil,
-		AuthToken:             "",
+		InstanceID:       "test",
+		Region:           "local",
+		HttpPort:         ctrlPort,
+		PrometheusPort:   0,
+		AuthToken:        "",
+		AvailableRegions: []string{"local.dev"},
+		DefaultDomain:    "",
+		RegionalDomain:   "",
+		Database: config.DatabaseConfig{
+			Primary:         mysqlCfg.DSN,
+			ReadonlyReplica: "",
+		},
+		Otel: config.OtelConfig{
+			Enabled:           false,
+			TraceSamplingRate: 0,
+		},
 		Restate: RestateConfig{
 			URL:    restateCfg.IngressURL,
 			APIKey: "",
 		},
-		AvailableRegions:    []string{"local.dev"},
-		GitHubWebhookSecret: secret,
-		DefaultDomain:       "",
-		RegionalDomain:      "",
+		GitHub: GitHubConfig{
+			WebhookSecret: secret,
+		},
 	}
 
 	ctrlCtx, ctrlCancel := context.WithCancel(ctx)
