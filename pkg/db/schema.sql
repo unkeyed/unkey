@@ -291,8 +291,8 @@ CREATE TABLE `quota` (
 	`logs_retention_days` int NOT NULL DEFAULT 0,
 	`audit_logs_retention_days` int NOT NULL DEFAULT 0,
 	`team` boolean NOT NULL DEFAULT false,
-	`ratelimit_limit` bigint NOT NULL DEFAULT 0,
-	`ratelimit_duration` bigint NOT NULL DEFAULT 0,
+	`ratelimit_limit` bigint,
+	`ratelimit_duration` bigint,
 	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
 );

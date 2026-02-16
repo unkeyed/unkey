@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
@@ -25,7 +26,7 @@ func (m *mockQuotaCache) Get(_ context.Context, _ string) (db.Quotum, cache.Cach
 func (m *mockQuotaCache) GetMany(_ context.Context, _ []string) (map[string]db.Quotum, map[string]cache.CacheHit) {
 	return nil, nil
 }
-func (m *mockQuotaCache) Set(_ context.Context, _ string, _ db.Quotum) {}
+func (m *mockQuotaCache) Set(_ context.Context, _ string, _ db.Quotum)      {}
 func (m *mockQuotaCache) SetMany(_ context.Context, _ map[string]db.Quotum) {}
 func (m *mockQuotaCache) SetNull(_ context.Context, _ string)               {}
 func (m *mockQuotaCache) SetNullMany(_ context.Context, _ []string)         {}
@@ -88,8 +89,8 @@ func TestCheckWorkspaceRateLimit_LimitZero(t *testing.T) {
 		quotaCache: &mockQuotaCache{
 			swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
 				return db.Quotum{
-					RatelimitLimit:    0,
-					RatelimitDuration: 60000,
+					RatelimitLimit:    sql.NullInt64{Valid: true, Int64: 0},
+					RatelimitDuration: sql.NullInt64{Valid: true, Int64: 60000},
 				}, cache.Hit, nil
 			},
 		},
@@ -106,8 +107,8 @@ func TestCheckWorkspaceRateLimit_DurationZero(t *testing.T) {
 		quotaCache: &mockQuotaCache{
 			swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
 				return db.Quotum{
-					RatelimitLimit:    100,
-					RatelimitDuration: 0,
+					RatelimitLimit:    sql.NullInt64{Valid: true, Int64: 100},
+					RatelimitDuration: sql.NullInt64{Valid: true, Int64: 0},
 				}, cache.Hit, nil
 			},
 		},
@@ -142,8 +143,8 @@ func TestCheckWorkspaceRateLimit_UnderLimit(t *testing.T) {
 		quotaCache: &mockQuotaCache{
 			swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
 				return db.Quotum{
-					RatelimitLimit:    100,
-					RatelimitDuration: 60000,
+					RatelimitLimit:    sql.NullInt64{Valid: true, Int64: 100},
+					RatelimitDuration: sql.NullInt64{Valid: true, Int64: 60000},
 				}, cache.Hit, nil
 			},
 		},
@@ -171,8 +172,8 @@ func TestCheckWorkspaceRateLimit_OverLimit(t *testing.T) {
 		quotaCache: &mockQuotaCache{
 			swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
 				return db.Quotum{
-					RatelimitLimit:    100,
-					RatelimitDuration: 60000,
+					RatelimitLimit:    sql.NullInt64{Valid: true, Int64: 100},
+					RatelimitDuration: sql.NullInt64{Valid: true, Int64: 60000},
 				}, cache.Hit, nil
 			},
 		},
@@ -215,8 +216,8 @@ func TestCheckWorkspaceRateLimit_RateLimiterError_FailsOpen(t *testing.T) {
 		quotaCache: &mockQuotaCache{
 			swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
 				return db.Quotum{
-					RatelimitLimit:    100,
-					RatelimitDuration: 60000,
+					RatelimitLimit:    sql.NullInt64{Valid: true, Int64: 100},
+					RatelimitDuration: sql.NullInt64{Valid: true, Int64: 60000},
 				}, cache.Hit, nil
 			},
 		},
@@ -233,8 +234,8 @@ func TestCheckWorkspaceRateLimit_NegativeLimit(t *testing.T) {
 		quotaCache: &mockQuotaCache{
 			swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
 				return db.Quotum{
-					RatelimitLimit:    -1,
-					RatelimitDuration: 60000,
+					RatelimitLimit:    sql.NullInt64{Valid: true, Int64: -1},
+					RatelimitDuration: sql.NullInt64{Valid: true, Int64: 60000},
 				}, cache.Hit, nil
 			},
 		},

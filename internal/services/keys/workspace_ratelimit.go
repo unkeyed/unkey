@@ -38,7 +38,7 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 		return nil // fail open
 	}
 
-	if quota.RatelimitLimit <= 0 || quota.RatelimitDuration <= 0 {
+	if !quota.RatelimitLimit.Valid || quota.RatelimitLimit.Int64 <= 0 || !quota.RatelimitDuration.Valid || quota.RatelimitDuration.Int64 <= 0 {
 		return nil // rate limiting not configured
 	}
 
@@ -75,8 +75,8 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	resp, err := s.rateLimiter.Ratelimit(ctx, ratelimit.RatelimitRequest{
 		Name:       rlName,
 		Identifier: workspaceID,
-		Limit:      quota.RatelimitLimit,
-		Duration:   time.Duration(quota.RatelimitDuration) * time.Millisecond,
+		Limit:      quota.RatelimitLimit.Int64,
+		Duration:   time.Duration(quota.RatelimitDuration.Int64) * time.Millisecond,
 		Cost:       1,
 	})
 	if err != nil {

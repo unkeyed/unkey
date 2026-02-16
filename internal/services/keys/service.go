@@ -20,8 +20,8 @@ type Config struct {
 	UsageLimiter usagelimiter.Service  // Redis Counter for usage limiting
 
 	KeyCache         cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
-	QuotaCache       cache.Cache[string, db.Quotum]         // Cache for workspace quota lookups
-	NamespaceService namespace.Service                      // Namespace service for workspace rate limiting
+	QuotaCache       cache.Cache[string, db.Quotum]        // Cache for workspace quota lookups
+	NamespaceService namespace.Service                     // Namespace service for workspace rate limiting
 }
 
 type service struct {
