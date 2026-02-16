@@ -139,9 +139,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start the sentinel controller (independent control loop)
 	sentinelCtrl := sentinel.New(sentinel.Config{
-		ClientSet: clientset,
-		Cluster:   cluster,
-		Region:    cfg.Region,
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Cluster:       cluster,
+		Region:        cfg.Region,
 	})
 	if err := sentinelCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)
