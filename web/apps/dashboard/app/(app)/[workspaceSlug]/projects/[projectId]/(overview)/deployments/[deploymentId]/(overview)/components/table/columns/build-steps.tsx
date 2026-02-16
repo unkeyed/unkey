@@ -29,7 +29,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   },
   {
     key: "started_at",
-    header: "Started At",
+    //header: "Started At",
     width: "180px",
     render: (step) => (
       <div className="font-mono text-xs truncate max-w-[300px] flex items-center gap-2 ">
@@ -60,7 +60,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   },
   {
     key: "name",
-    header: "Step",
+    // header: "Step",
     width: "250px",
     render: (step) => (
       <div
@@ -73,21 +73,8 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   },
 
   {
-    key: "duration",
-    header: "Duration",
-    width: "120px",
-    render: (step) => {
-      const duration = step.completed_at - step.started_at;
-      return (
-        <span className="px-[6px] font-mono whitespace-nowrap tabular-nums">
-          {formatLatency(duration)}
-        </span>
-      );
-    },
-  },
-  {
     key: "error",
-    header: "Error",
+    //header: "Error",
     width: "300px",
     render: (step) => {
       if (!step.error) {
@@ -96,6 +83,19 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
       return (
         <span className="truncate font-mono" title={step.error}>
           {step.error}
+        </span>
+      );
+    },
+  },
+  {
+    key: "duration",
+    //header: "Duration",
+    width: "10%",
+    render: (step) => {
+      const duration = step.completed_at - step.started_at;
+      return (
+        <span className="px-[6px] font-mono whitespace-nowrap tabular-nums">
+          {formatLatency(duration)}
         </span>
       );
     },

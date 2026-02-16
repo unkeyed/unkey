@@ -150,6 +150,12 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	//EndDeploymentStep
+	//
+	//  UPDATE `deployment_steps`
+	//  SET endedAt = ?, error = ?
+	//  WHERE deployment_id = ? AND step = ?
+	EndDeploymentStep(ctx context.Context, db DBTX, arg EndDeploymentStepParams) error
 	//FindAcmeChallengeByToken
 	//
 	//  SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
@@ -1298,6 +1304,27 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error
+	//InsertDeploymentStep
+	//
+	//  INSERT INTO `deployment_steps` (
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      deployment_id,
+	//      step,
+	//      started_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      started_at = VALUES(started_at)
+	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
 	//InsertDeploymentTopology
 	//
 	//  INSERT INTO `deployment_topology` (
@@ -2412,13 +2439,6 @@ type Querier interface {
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
-	//UpdateDeploymentTopologyDesiredStatus updates the desired_status and version of a topology entry.
-	// A new version is required so that WatchDeployments picks up the change.
-	//
-	//  UPDATE `deployment_topology`
-	//  SET desired_status = ?, version = ?, updated_at = ?
-	//  WHERE deployment_id = ? AND region = ?
-	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
@@ -2437,6 +2457,13 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, db DBTX, arg UpdateDeploymentStatusParams) error
+	// UpdateDeploymentTopologyDesiredStatus updates the desired_status and version of a topology entry.
+	// A new version is required so that WatchDeployments picks up the change.
+	//
+	//  UPDATE `deployment_topology`
+	//  SET desired_status = ?, version = ?, updated_at = ?
+	//  WHERE deployment_id = ? AND region = ?
+	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateFrontlineRouteDeploymentId
 	//
 	//  UPDATE frontline_routes

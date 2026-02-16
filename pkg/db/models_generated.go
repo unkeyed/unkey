@@ -227,6 +227,50 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 	return string(ns.CustomDomainsVerificationStatus), nil
 }
 
+type DeploymentStepsStep string
+
+const (
+	DeploymentStepsStepQueued    DeploymentStepsStep = "queued"
+	DeploymentStepsStepBuilding  DeploymentStepsStep = "building"
+	DeploymentStepsStepDeploying DeploymentStepsStep = "deploying"
+	DeploymentStepsStepNetwork   DeploymentStepsStep = "network"
+)
+
+func (e *DeploymentStepsStep) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentStepsStep(s)
+	case string:
+		*e = DeploymentStepsStep(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentStepsStep: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentStepsStep struct {
+	DeploymentStepsStep DeploymentStepsStep
+	Valid               bool // Valid is true if DeploymentStepsStep is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentStepsStep) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentStepsStep, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentStepsStep.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentStepsStep) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentStepsStep), nil
+}
+
 type DeploymentTopologyDesiredStatus string
 
 const (
@@ -1049,6 +1093,18 @@ type Deployment struct {
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
+}
+
+type DeploymentStep struct {
+	Pk            uint64              `db:"pk"`
+	WorkspaceID   string              `db:"workspace_id"`
+	ProjectID     string              `db:"project_id"`
+	EnvironmentID string              `db:"environment_id"`
+	DeploymentID  string              `db:"deployment_id"`
+	Step          DeploymentStepsStep `db:"step"`
+	StartedAt     uint64              `db:"started_at"`
+	Endedat       sql.NullInt64       `db:"endedat"`
+	Error         sql.NullString      `db:"error"`
 }
 
 type DeploymentTopology struct {

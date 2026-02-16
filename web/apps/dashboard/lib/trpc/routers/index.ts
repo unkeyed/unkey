@@ -43,6 +43,7 @@ import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
 import { retryVerification } from "./deploy/custom-domains/retry";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
+import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
@@ -419,6 +420,7 @@ export const router = t.router({
     deployment: t.router({
       list: listDeployments,
       buildSteps: getDeploymentBuildSteps,
+      steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
       rollback,
