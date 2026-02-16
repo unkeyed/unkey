@@ -1,0 +1,233 @@
+---
+title: Gossip Cluster
+---
+
+The `pkg/cluster` package provides gossip-based cluster membership and cross-region message propagation. Its primary use case is **cache invalidation** — when one node mutates data, all other nodes (including those in different regions) evict stale cache entries.
+
+Built on [hashicorp/memberlist](https://github.com/hashicorp/memberlist) (SWIM protocol).
+
+## Two-Tier Architecture
+
+The cluster uses a two-tier gossip design: a fast **LAN pool** within each region and a **WAN pool** that connects regions through elected **ambassador** nodes.
+
+```
+┌──────────────────────── Region: us-east-1 ────────────────────────┐
+│                                                                    │
+│   ┌────────┐      ┌────────┐      ┌──────────────┐                │
+│   │ API-1  │◄────►│ API-2  │◄────►│    API-3     │                │
+│   │        │      │        │      │ (ambassador) │                │
+│   └────────┘      └────────┘      └──────┬───────┘                │
+│        ▲               ▲                 │                         │
+│        └──── LAN pool (SWIM, ~1ms) ──────┘                         │
+│                                          │                         │
+└──────────────────────────────────────────┼─────────────────────────┘
+                                           │
+                                      WAN pool
+                                    (SWIM, tuned
+                                    for latency)
+                                           │
+┌──────────────────────────────────────────┼─────────────────────────┐
+│                                          │                         │
+│   ┌────────┐      ┌────────┐      ┌──────┴───────┐                │
+│   │ API-4  │◄────►│ API-5  │◄────►│    API-6     │                │
+│   │        │      │        │      │ (ambassador) │                │
+│   └────────┘      └────────┘      └──────────────┘                │
+│        ▲               ▲                 ▲                         │
+│        └──── LAN pool (SWIM, ~1ms) ──────┘                         │
+│                                                                    │
+└──────────────────────── Region: eu-west-1 ────────────────────────┘
+```
+
+### LAN Pool (intra-region)
+
+Every node in a region joins the same LAN pool. Uses `memberlist.DefaultLANConfig()` — tuned for low-latency networks with ~1ms propagation. All nodes broadcast and receive messages.
+
+- **Port**: `GossipLANPort` (default `7946`)
+- **Seeds**: `GossipLANSeeds` — typically a Kubernetes headless service DNS name resolving to all pod IPs in the region
+- **Encryption**: AES-256 via `GossipSecretKey`
+
+### WAN Pool (cross-region)
+
+Only the **ambassador** node in each region participates in the WAN pool. Uses `memberlist.DefaultWANConfig()` — tolerates higher latency and packet loss typical of cross-region links.
+
+- **Port**: `GossipWANPort` (default `7947`)
+- **Seeds**: `GossipWANSeeds` — addresses of ambassador-capable nodes in other regions
+
+## Ambassador Election
+
+Each region auto-elects exactly **one ambassador** — the node whose `NodeID` is lexicographically smallest among all LAN pool members. This is fully deterministic and requires no coordination protocol.
+
+```
+evaluateAmbassador():
+    members = LAN pool members
+    smallest = member with min(Name)
+    if smallest == me && !isAmbassador → promoteToAmbassador()
+    if smallest != me && isAmbassador  → demoteFromAmbassador()
+```
+
+Election is re-evaluated whenever:
+- A node **joins** the LAN pool (`NotifyJoin`)
+- A node **leaves** the LAN pool (`NotifyLeave`)
+- The initial LAN seed join completes
+
+### Failover
+
+When the ambassador leaves (crash, scale-down, deployment), `NotifyLeave` fires on remaining nodes, triggering re-evaluation. The node with the next smallest name automatically promotes itself. No manual intervention required.
+
+## Message Flow
+
+### Same-region broadcast
+
+```
+API-1 calls Broadcast(CacheInvalidation{key: "api_123"})
+  │
+  ├─► Serialized as protobuf ClusterMessage (direction=LAN)
+  └─► Queued on LAN TransmitLimitedQueue
+        │
+        ├─► API-2 receives via NotifyMsg → OnMessage handler
+        └─► API-3 receives via NotifyMsg → OnMessage handler
+```
+
+### Cross-region relay
+
+```
+API-1 (us-east-1) calls Broadcast(CacheInvalidation{key: "api_123"})
+  │
+  ├─► LAN broadcast → all us-east-1 nodes receive it
+  │
+  └─► API-3 (ambassador) receives LAN message
+        │
+        ├─► Detects: I am ambassador AND direction == LAN
+        ├─► Re-serializes with direction=WAN
+        └─► Queues on WAN TransmitLimitedQueue
+              │
+              └─► API-6 (eu-west-1 ambassador) receives via WAN
+                    │
+                    ├─► Checks source_region != my region (not a loop)
+                    ├─► Delivers to local OnMessage handler
+                    └─► Re-broadcasts on eu-west-1 LAN pool
+                          │
+                          ├─► API-4 receives it
+                          └─► API-5 receives it
+```
+
+### Loop Prevention
+
+- LAN → WAN relay only happens for messages with `direction=LAN` (prevents re-relaying WAN messages)
+- WAN → LAN re-broadcast is tagged `direction=WAN`, so the receiving ambassador doesn't relay it again
+- `source_region` check on the WAN delegate drops messages originating in the same region
+
+## Protobuf Envelope
+
+All messages use a single protobuf envelope (`proto/cluster/v1/envelope.proto`):
+
+```protobuf
+message ClusterMessage {
+  Direction direction = 2;     // LAN or WAN
+  string source_region = 3;    // originating region
+  string sender_node = 4;      // originating node ID
+  int64 sent_at_ms = 5;        // creation timestamp (latency measurement)
+
+  oneof payload {
+    CacheInvalidationEvent cache_invalidation = 1;
+    // future message types added here
+  }
+}
+```
+
+Adding a new message type:
+1. Add a new `oneof` variant to `ClusterMessage`
+2. Call `cluster.Subscribe[*clusterv1.ClusterMessage_YourType](mux, handler)`
+
+The `MessageMux` handles routing automatically.
+
+## Wiring: API Service Example
+
+The API service (`svc/api/run.go`) wires gossip like this:
+
+```go
+// 1. Create a message multiplexer (fan-out to multiple subsystems)
+mux := cluster.NewMessageMux()
+
+// 2. Resolve seed addresses (DNS → IPs for k8s headless services)
+lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
+wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
+
+// 3. Create the gossip cluster
+gossipCluster, _ := cluster.New(cluster.Config{
+    Region:      cfg.Region,
+    NodeID:      cfg.InstanceID,
+    BindAddr:    cfg.GossipBindAddr,
+    BindPort:    cfg.GossipLANPort,
+    WANBindPort: cfg.GossipWANPort,
+    LANSeeds:    lanSeeds,
+    WANSeeds:    wanSeeds,
+    SecretKey:   secretKey,
+    OnMessage:   mux.OnMessage,
+})
+
+// 4. Wire cache invalidation
+broadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+cluster.Subscribe(mux, broadcaster.HandleCacheInvalidation)
+
+// 5. Pass broadcaster to the cache layer
+caches, _ := caches.New(caches.Config{
+    Broadcaster: broadcaster,
+    NodeID:      cfg.InstanceID,
+})
+```
+
+### Component Roles
+
+| Component | Role |
+|---|---|
+| `cluster.Cluster` | Manages LAN/WAN memberlists, ambassador election, message transport |
+| `cluster.MessageMux` | Routes incoming `ClusterMessage` payloads to typed handlers |
+| `cluster.Subscribe[T]` | Generic subscription — only receives messages matching the oneof variant |
+| `clustering.GossipBroadcaster` | Bridges `cache.Broadcaster` interface to gossip `Cluster.Broadcast()` |
+
+## Fail-Open Design
+
+Gossip is designed to **never** take down the API service. Every failure path degrades gracefully to local-only caching:
+
+| Failure | Behavior |
+|---|---|
+| `cluster.New()` fails at startup | Logs error, continues without gossip (local-only caching) |
+| LAN/WAN seed join exhaustion | Retries in background goroutine, logs and gives up — never crashes |
+| `Broadcast()` fails (proto marshal) | Error logged and swallowed, returns nil to caller |
+| Ambassador promotion fails | Logs error, node stays non-ambassador — LAN still works |
+| Incoming message handler errors | Logged, never propagated to request handling |
+| Ambassador node dies | Next node auto-promotes, no manual intervention |
+
+## Configuration Reference
+
+| Config Field | Default | Description |
+|---|---|---|
+| `GossipEnabled` | `false` | Enable gossip cluster |
+| `GossipBindAddr` | `0.0.0.0` | Bind address for memberlist |
+| `GossipLANPort` | `7946` | LAN memberlist port |
+| `GossipWANPort` | `7947` | WAN memberlist port (ambassador only) |
+| `GossipLANSeeds` | — | Comma-separated LAN seed addresses |
+| `GossipWANSeeds` | — | Comma-separated WAN seed addresses |
+| `GossipSecretKey` | — | Base64-encoded AES key (`openssl rand -base64 32`) |
+
+## File Map
+
+```
+pkg/cluster/
+├── ambassador.go       # Ambassador election, promote/demote logic
+├── ambassador_test.go  # Election unit test
+├── cluster.go          # Cluster interface, gossipCluster impl, Broadcast, Close
+├── cluster_test.go     # Integration tests (single-node, multi-node, failover, multi-region)
+├── config.go           # Config struct and defaults
+├── delegate_lan.go     # LAN pool callbacks (message relay, event-driven election)
+├── delegate_wan.go     # WAN pool callbacks (cross-region receive + LAN re-broadcast)
+├── discovery.go        # DNS seed resolution (headless service → IPs)
+├── doc.go              # Package doc
+├── message.go          # memberlist.Broadcast wrapper
+├── mux.go              # MessageMux fan-out + generic Subscribe[T]
+└── noop.go             # No-op Cluster for when gossip is disabled
+
+pkg/cache/clustering/
+└── broadcaster_gossip.go  # Bridges cache.Broadcaster ↔ cluster.Cluster
+```
