@@ -3,12 +3,6 @@ title: Analytics
 description: 'Query your verification data with SQL'
 ---
 
-<Warning>
-**Analytics has moved.** This page describes the legacy dashboard analytics.
-
-For the new SQL-based analytics, see [**Analytics Overview**](/analytics/overview).
-</Warning>
-
 ## Overview
 
 Unkey Analytics provides a powerful SQL interface to query your API key verification data. Instead of building your own analytics pipeline, you can leverage Unkey's built-in data warehouse to:
@@ -35,8 +29,30 @@ The new Analytics platform includes:
 Analytics is currently in private beta. See [Getting Started](/analytics/getting-started) for access instructions.
 </Note>
 
-## Legacy Dashboard Analytics
+## Dashboard Analytics
 
-The dashboard-based analytics (per-API and per-key metrics) are being migrated to the new Analytics platform. For now, you can still view basic metrics in your [dashboard](https://app.unkey.com).
+### Per API Metrics
 
-For detailed analytics, use the [new SQL-based Analytics](/analytics/overview).
+The dashboard shows aggregate metrics for each API:
+
+- **Total Verifications**: Total number of API key verifications
+- **Success Rate**: Percentage of successful verifications
+- **Rate Limit Exceeded**: Number of rate limit exceeded errors
+- **Invalid Key**: Number of invalid key errors
+
+<Frame caption="Per API Analytics">
+  <img src="/images/per-api-analytics.png" alt="Per API Analytics"/>
+</Frame>
+
+### Per Key Metrics
+
+The dashboard shows aggregate metrics for each API key:
+
+- **Total Verifications**: Total number of API key verifications
+- **Success Rate**: Percentage of successful verifications
+- **Rate Limit Exceeded**: Number of rate limit exceeded errors
+- **Invalid Key**: Number of invalid key errors
+
+<Frame caption="Per Key Analytics">
+  <img src="/images/per-key-analytics.png" alt="Per Key Analytics"/>
+</Frame>
