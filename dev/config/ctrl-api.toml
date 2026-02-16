@@ -1,0 +1,20 @@
+instance_id = "ctrl-api-dev"
+region = "local"
+http_port = 7091
+auth_token = "your-local-dev-key"
+available_regions = ["local.dev"]
+default_domain = "unkey.local"
+cname_domain = "unkey.local"
+
+[database]
+primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+
+[otel]
+enabled = false
+
+[restate]
+url = "http://restate:8080"
+admin_url = "http://restate:9070"
+
+[github]
+webhook_secret = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
