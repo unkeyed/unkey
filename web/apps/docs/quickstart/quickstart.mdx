@@ -190,7 +190,11 @@ func main() {
     result := res.V2KeysVerifyKeyResponseBody
     
     if !result.Valid {
-        fmt.Println("Denied:", *result.Code)
+        code := "unknown"
+        if result.Code != nil {
+            code = *result.Code
+        }
+        fmt.Println("Denied:", code)
         return
     }
 

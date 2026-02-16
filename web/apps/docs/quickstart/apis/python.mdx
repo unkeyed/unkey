@@ -54,7 +54,7 @@ unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 
 @app.get("/api/protected")
 async def protected_route(x_api_key: str = Header(..., alias="X-API-Key")):
-    result = unkey.keys.verify_key(key=x_api_key)
+    result = await unkey.keys.verify_key_async(key=x_api_key)
     
     if not result.valid:
         raise HTTPException(
