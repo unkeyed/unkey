@@ -2,7 +2,6 @@ package internalCacheInvalidate
 
 import (
 	"context"
-	"crypto/subtle"
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -32,16 +31,8 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	s.DisableClickHouseLogging()
 
-	token, err := zen.Bearer(s)
-	if err != nil {
+	if err := zen.BearerTokenAuth(s, h.Token); err != nil {
 		return err
-	}
-
-	if subtle.ConstantTimeCompare([]byte(token), []byte(h.Token)) != 1 {
-		return fault.New("invalid dashboard token",
-			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
-			fault.Internal("dashboard token does not match"),
-			fault.Public("The provided token is invalid."))
 	}
 
 	req, err := zen.BindBody[request](s)

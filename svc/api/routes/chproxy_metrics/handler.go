@@ -2,13 +2,10 @@ package chproxyMetrics
 
 import (
 	"context"
-	"crypto/subtle"
 	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -33,17 +30,8 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	s.DisableClickHouseLogging()
 
-	// Authenticate using Bearer token
-	token, err := zen.Bearer(s)
-	if err != nil {
+	if err := zen.BearerTokenAuth(s, h.Token); err != nil {
 		return err
-	}
-
-	if subtle.ConstantTimeCompare([]byte(token), []byte(h.Token)) != 1 {
-		return fault.New("invalid chproxy token",
-			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
-			fault.Internal("chproxy token does not match"),
-			fault.Public("The provided token is invalid."))
 	}
 
 	events, err := zen.BindBody[[]schema.ApiRequest](s)
