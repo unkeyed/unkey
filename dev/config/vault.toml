@@ -1,0 +1,13 @@
+instance_id = "vault-dev"
+http_port = 8060
+bearer_token = "vault-test-token-123"
+master_keys = ["Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="]
+
+[s3]
+url = "http://s3:3902"
+bucket = "vault"
+access_key_id = "minio_root_user"
+access_key_secret = "minio_root_password"
+
+[otel]
+enabled = false

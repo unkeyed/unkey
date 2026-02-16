@@ -10,7 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/vault/v1/vaultv1connect",
-        "//pkg/assert",
+        "//pkg/config",
         "//pkg/logger",
         "//pkg/otel",
         "//pkg/runner",
