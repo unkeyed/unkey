@@ -78,7 +78,9 @@
                   "quickstart/apis/nextjs",
                   "quickstart/apis/express",
                   "quickstart/apis/bun",
-                  "quickstart/apis/hono"
+                  "quickstart/apis/hono",
+                  "quickstart/apis/go",
+                  "quickstart/apis/python"
                 ]
               },
               {
@@ -110,7 +112,12 @@
                   "cookbook/per-user-ratelimit",
                   "cookbook/endpoint-ratelimit",
                   "cookbook/usage-billing",
-                  "cookbook/tiered-subscriptions"
+                  "cookbook/tiered-subscriptions",
+                  "cookbook/go-stdlib-middleware",
+                  "cookbook/go-gin-middleware",
+                  "cookbook/go-echo-middleware",
+                  "cookbook/python-fastapi-ratelimit",
+                  "cookbook/python-flask-auth"
                 ]
               }
             ]
