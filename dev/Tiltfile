@@ -78,7 +78,7 @@ local_resource(
 
 local_resource(
   'hubble-ui',
-  serve_cmd='kubectl port-forward -n kube-system svc/hubble-ui 12000:80',
+  serve_cmd='while true; do kubectl wait --for=condition=ready pod -l k8s-app=hubble-ui -n kube-system --timeout=120s && kubectl port-forward -n kube-system svc/hubble-ui 12000:80; echo "port-forward exited, retrying in 5s..."; sleep 5; done',
   resource_deps=['hubble'],
   labels=['observability'],
   links=['http://localhost:12000'],
