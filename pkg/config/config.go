@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"gopkg.in/yaml.v3"
 )
 
 // envWithDefaultRe matches ${VAR:-default} patterns.
@@ -38,12 +36,8 @@ func expandEnv(s string) string {
 type Format int
 
 const (
-	// JSON indicates JSON encoding.
-	JSON Format = iota
-	// YAML indicates YAML encoding.
-	YAML
 	// TOML indicates TOML encoding.
-	TOML
+	TOML Format = iota
 )
 
 // Validator is an optional interface that configuration types can implement
@@ -57,8 +51,8 @@ type Validator interface {
 }
 
 // Load reads a configuration file at path, parses it into T, and returns the
-// validated result. The format is detected from the file extension: ".json" for
-// JSON, ".yaml" or ".yml" for YAML. An unsupported extension returns an error.
+// validated result. The format is detected from the file extension: ".toml" for
+// TOML. An unsupported extension returns an error.
 //
 // The processing pipeline is: read the file, expand environment variables in
 // the raw bytes (supporting $VAR, ${VAR}, and ${VAR:-default} syntax via
@@ -78,10 +72,6 @@ func Load[T any](path string) (T, error) {
 
 	var format Format
 	switch ext {
-	case ".json":
-		format = JSON
-	case ".yaml", ".yml":
-		format = YAML
 	case ".toml":
 		format = TOML
 	default:
@@ -118,14 +108,6 @@ func LoadBytes[T any](data []byte, format Format) (T, error) {
 	expanded := expandEnv(string(data))
 
 	switch format {
-	case JSON:
-		if err := json.Unmarshal([]byte(expanded), &cfg); err != nil {
-			return cfg, fault.Wrap(err, fault.Internal("failed to unmarshal JSON config"))
-		}
-	case YAML:
-		if err := yaml.Unmarshal([]byte(expanded), &cfg); err != nil {
-			return cfg, fault.Wrap(err, fault.Internal("failed to unmarshal YAML config"))
-		}
 	case TOML:
 		if err := toml.Unmarshal([]byte(expanded), &cfg); err != nil {
 			return cfg, fault.Wrap(err, fault.Internal("failed to unmarshal TOML config"))
