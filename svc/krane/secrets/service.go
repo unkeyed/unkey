@@ -9,7 +9,7 @@ import (
 	kranev1 "github.com/unkeyed/unkey/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -22,7 +22,7 @@ import (
 // and token validator for request authentication.
 type Config struct {
 	// Vault provides secure decryption services for encrypted secrets via the vault API.
-	Vault vaultv1connect.VaultServiceClient
+	Vault vault.VaultServiceClient
 
 	// TokenValidator validates Kubernetes service account tokens
 	// to ensure requests originate from authorized deployments.
@@ -31,7 +31,7 @@ type Config struct {
 
 type Service struct {
 	kranev1connect.UnimplementedSecretsServiceHandler
-	vault          vaultv1connect.VaultServiceClient
+	vault          vault.VaultServiceClient
 	tokenValidator token.Validator
 }
 
@@ -112,10 +112,10 @@ func (s *Service) DecryptSecretsBlob(
 	// Decrypt each secret value individually
 	envVars := make(map[string]string, len(secretsConfig.GetSecrets()))
 	for key, encryptedValue := range secretsConfig.GetSecrets() {
-		decrypted, decryptErr := s.vault.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
+		decrypted, decryptErr := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   environmentID,
 			Encrypted: encryptedValue,
-		}))
+		})
 		if decryptErr != nil {
 			logger.Error("failed to decrypt env var",
 				"deployment_id", deploymentID,
@@ -125,7 +125,7 @@ func (s *Service) DecryptSecretsBlob(
 			)
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to decrypt env var %s: %w", key, decryptErr))
 		}
-		envVars[key] = decrypted.Msg.GetPlaintext()
+		envVars[key] = decrypted.GetPlaintext()
 	}
 
 	logger.Info("decrypted secrets blob",

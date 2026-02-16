@@ -6,6 +6,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_keys_whoami",
     visibility = ["//visibility:public"],
     deps = [
+        "//gen/rpc/vault",
         "//internal/services/auditlogs",
         "//internal/services/keys",
         "//pkg/codes",
@@ -14,7 +15,6 @@ go_library(
         "//pkg/hash",
         "//pkg/logger",
         "//pkg/rbac",
-        "//pkg/vault",
         "//pkg/zen",
         "//svc/api/openapi",
         "@com_github_oapi_codegen_nullable//:nullable",
