@@ -13,6 +13,7 @@ package main
 import (
     "net/http"
     "os"
+    "strconv"
     "strings"
 
     "github.com/gin-gonic/gin"
@@ -238,7 +239,7 @@ func RateLimitMiddleware(namespace string) gin.HandlerFunc {
 
         // Add rate limit headers
         c.Header("X-RateLimit-Limit", "100")
-        c.Header("X-RateLimit-Remaining", string(rune(res.V2RatelimitsLimitResponseBody.Remaining)))
+        c.Header("X-RateLimit-Remaining", strconv.FormatInt(res.V2RatelimitsLimitResponseBody.Remaining, 10))
         
         c.Next()
     }

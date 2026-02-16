@@ -215,14 +215,11 @@ func main() {
     mux.Handle("/api/", AuthMiddleware()(http.HandlerFunc(protectedHandler)))
     
     // Protected with permission check
-    mux.Handle("/api/admin/", AuthMiddleware(
-        RequirePermission("admin:read"),
-    )(http.HandlerFunc(adminHandler)))
+    // Compose middleware: AuthMiddleware wraps RequirePermission which wraps the handler
+    mux.Handle("/api/admin/", AuthMiddleware()(RequirePermission("admin:read")(http.HandlerFunc(adminHandler))))
 
     // Optional auth
-    mux.Handle("/api/public/", AuthMiddleware(
-        WithOptional(),
-    )(http.HandlerFunc(optionalAuthHandler)))
+    mux.Handle("/api/public/", AuthMiddleware(WithOptional())(http.HandlerFunc(optionalAuthHandler)))
 
     server := &http.Server{
         Addr:         ":8080",

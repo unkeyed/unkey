@@ -234,9 +234,13 @@ func UnkeyAuthMiddleware() echo.MiddlewareFunc {
             }
 
             if !res.V2KeysVerifyKeyResponseBody.Valid {
+                code := "INVALID_KEY"
+                if res.V2KeysVerifyKeyResponseBody.Code != nil {
+                    code = *res.V2KeysVerifyKeyResponseBody.Code
+                }
                 return c.JSON(http.StatusUnauthorized, map[string]string{
                     "error": "Invalid API key",
-                    "code":  *res.V2KeysVerifyKeyResponseBody.Code,
+                    "code":  code,
                 })
             }
 
@@ -255,9 +259,15 @@ func main() {
 
     // Protected route
     e.GET("/api/protected", func(c echo.Context) error {
+        keyId, ok := c.Get("keyId").(string)
+        if !ok || keyId == "" {
+            return c.JSON(http.StatusInternalServerError, map[string]string{
+                "error": "Key ID not found in context",
+            })
+        }
         return c.JSON(http.StatusOK, map[string]string{
             "message": "Access granted",
-            "key_id":  c.Get("keyId").(string),
+            "key_id":  keyId,
         })
     }, UnkeyAuthMiddleware())
 

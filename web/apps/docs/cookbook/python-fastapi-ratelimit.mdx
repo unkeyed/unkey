@@ -9,6 +9,7 @@ This recipe shows how to add rate limiting to your FastAPI endpoints using Unkey
 
 ```python
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse
 from unkey import Unkey
 import os
 
@@ -235,7 +236,7 @@ async def expensive_operation(x_api_key: str = Header(..., alias="X-API-Key")):
     
     if not ratelimit_result.success:
         reset_time = datetime.fromtimestamp(ratelimit_result.reset / 1000)
-        wait_seconds = (reset_time - datetime.now()).seconds
+        wait_seconds = max(0, int((reset_time - datetime.now()).total_seconds()))
         
         raise HTTPException(
             status_code=429,
@@ -252,21 +253,24 @@ async def expensive_operation(x_api_key: str = Header(..., alias="X-API-Key")):
             }
         )
     
-    # Set rate limit headers
+    # Return response with rate limit headers
     headers = {
         "X-RateLimit-Limit": "5",
         "X-RateLimit-Remaining": str(ratelimit_result.remaining),
         "X-RateLimit-Reset": str(ratelimit_result.reset),
     }
     
-    return {
-        "data": "Expensive operation result",
-        "rate_limit": {
-            "limit": 5,
-            "remaining": ratelimit_result.remaining,
-            "reset": ratelimit_result.reset,
-        }
-    }
+    return JSONResponse(
+        content={
+            "data": "Expensive operation result",
+            "rate_limit": {
+                "limit": 5,
+                "remaining": ratelimit_result.remaining,
+                "reset": ratelimit_result.reset,
+            }
+        },
+        headers=headers
+    )
 ```
 
 ## Testing Rate Limits
