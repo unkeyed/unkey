@@ -16,7 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 
-import { ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
+import { ChartEmpty, ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
 import type { Selection, TimeseriesData } from "./types";
 
 export type ChartMetric = {
@@ -212,6 +212,14 @@ export const OverviewAreaChart = ({
 
     ranges[metric.key] = { min, max, avg };
   });
+
+  // Check if all metrics have no data (all averages are 0)
+  const hasNoData = labelsWithDefaults.metrics.every((metric) => ranges[metric.key].avg === 0);
+
+  // Show empty state when there's no data
+  if (hasNoData) {
+    return <ChartEmpty variant="full" labels={labelsWithDefaults} />;
+  }
 
   // Get primary metric for range display
   const primaryMetric = labelsWithDefaults.metrics[0];

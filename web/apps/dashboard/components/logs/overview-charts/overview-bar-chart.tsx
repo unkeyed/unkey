@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 
+import { OverviewChartEmpty } from "./overview-bar-chart-empty";
 import { OverviewChartError } from "./overview-bar-chart-error";
 import { OverviewChartLoader } from "./overview-bar-chart-loader";
 import type { Selection, TimeseriesData } from "./types";
@@ -211,6 +212,12 @@ export function OverviewBarChart({
     (acc, crr) => acc + (crr[labels.primaryKey] as number) + (crr[labels.secondaryKey] as number),
     0,
   );
+
+  // Show empty state when there's no data
+  if (totalCount === 0) {
+    return <OverviewChartEmpty labels={labels} />;
+  }
+
   const primaryCount = (data ?? []).reduce(
     (acc, crr) => acc + (crr[labels.primaryKey] as number),
     0,
