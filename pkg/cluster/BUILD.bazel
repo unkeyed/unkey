@@ -3,7 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "cluster",
     srcs = [
-        "ambassador.go",
+        "bridge.go",
         "cluster.go",
         "config.go",
         "delegate_lan.go",
@@ -27,7 +27,7 @@ go_library(
 go_test(
     name = "cluster_test",
     srcs = [
-        "ambassador_test.go",
+        "bridge_test.go",
         "cluster_test.go",
         "mux_test.go",
     ],

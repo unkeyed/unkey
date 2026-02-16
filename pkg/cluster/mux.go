@@ -20,6 +20,7 @@ type MessageMux struct {
 // NewMessageMux creates a new message multiplexer.
 func NewMessageMux() *MessageMux {
 	return &MessageMux{
+		mu:       sync.RWMutex{},
 		handlers: nil,
 	}
 }

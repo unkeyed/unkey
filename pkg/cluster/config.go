@@ -17,14 +17,14 @@ type Config struct {
 	// In production, set explicitly (e.g. 7946).
 	BindPort int
 
-	// WANBindPort is the WAN memberlist port (used when this node becomes ambassador). Default 0 (ephemeral).
+	// WANBindPort is the WAN memberlist port (used when this node becomes bridge). Default 0 (ephemeral).
 	// In production, set explicitly (e.g. 7947).
 	WANBindPort int
 
 	// LANSeeds are addresses of existing LAN cluster members to join (e.g. k8s headless service).
 	LANSeeds []string
 
-	// WANSeeds are addresses of cross-region ambassadors to join.
+	// WANSeeds are addresses of cross-region bridges to join.
 	WANSeeds []string
 
 	// SecretKey is a shared secret used for AES-256 encryption of all gossip traffic.

@@ -22,25 +22,33 @@ func testMessage(key string) *clusterv1.ClusterMessage_CacheInvalidation {
 }
 
 func TestCluster_SingleNode_BroadcastAndReceive(t *testing.T) {
-	var received atomic.Int32
+	t.Run("broadcast receives on single node", func(t *testing.T) {
+		var received atomic.Int32
 
-	c, err := New(Config{
-		Region:   "us-east-1",
-		NodeID:   "test-node-1",
-		BindAddr: "127.0.0.1",
-		OnMessage: func(msg *clusterv1.ClusterMessage) {
-			received.Add(1)
-		},
+		c, err := New(Config{
+			Region:   "us-east-1",
+			NodeID:   "test-node-1",
+			BindAddr: "127.0.0.1",
+			OnMessage: func(msg *clusterv1.ClusterMessage) {
+				received.Add(1)
+			},
+		})
+		require.NoError(t, err)
+		defer func() { require.NoError(t, c.Close()) }()
+
+		// Single node should be bridge
+		require.Eventually(t, func() bool {
+			return c.IsBridge()
+		}, 2*time.Second, 50*time.Millisecond, "single node should become bridge")
+
+		require.Len(t, c.Members(), 1, "should have 1 member")
+
+		require.NoError(t, c.Broadcast(testMessage("hello")))
+
+		require.Eventually(t, func() bool {
+			return received.Load() >= 1
+		}, 5*time.Second, 50*time.Millisecond, "handler should have received the broadcast")
 	})
-	require.NoError(t, err)
-	defer func() { require.NoError(t, c.Close()) }()
-
-	// Single node should be ambassador
-	require.Eventually(t, func() bool {
-		return c.IsAmbassador()
-	}, 2*time.Second, 50*time.Millisecond, "single node should become ambassador")
-
-	require.Len(t, c.Members(), 1, "should have 1 member")
 }
 
 func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
@@ -66,7 +74,7 @@ func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 	// Create remaining nodes, seeding with first node
 	for i := 1; i < nodeCount; i++ {
 		idx := i
-		// Delay to ensure deterministic ordering for ambassador election
+		// Delay to ensure deterministic ordering for bridge election
 		time.Sleep(50 * time.Millisecond)
 
 		cn, createErr := New(Config{
@@ -98,23 +106,34 @@ func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 		return true
 	}, 5*time.Second, 100*time.Millisecond, "all nodes should see each other")
 
-	// Wait for ambassador election to settle
+	// Wait for bridge election to settle
 	require.Eventually(t, func() bool {
-		ambassadorCount := 0
+		bridgeCount := 0
 		for _, c := range clusters {
-			if c.IsAmbassador() {
-				ambassadorCount++
+			if c.IsBridge() {
+				bridgeCount++
 			}
 		}
-		return ambassadorCount == 1
-	}, 5*time.Second, 100*time.Millisecond, "exactly one node should be ambassador")
+		return bridgeCount == 1
+	}, 5*time.Second, 100*time.Millisecond, "exactly one node should be bridge")
 
-	// The first node (oldest) should be ambassador
-	require.True(t, clusters[0].IsAmbassador(), "oldest node should be ambassador")
+	// The first node (oldest) should be bridge
+	require.True(t, clusters[0].IsBridge(), "oldest node should be bridge")
+
+	t.Run("broadcast delivers to all", func(t *testing.T) {
+		require.NoError(t, clusters[0].Broadcast(testMessage("multi-node-hello")))
+
+		for i := 0; i < nodeCount; i++ {
+			idx := i
+			require.Eventually(t, func() bool {
+				return received[idx].Load() >= 1
+			}, 5*time.Second, 50*time.Millisecond, "node %d should have received the broadcast", idx)
+		}
+	})
 }
 
-func TestCluster_AmbassadorFailover(t *testing.T) {
-	// Create first node (will be ambassador)
+func TestCluster_BridgeFailover(t *testing.T) {
+	// Create first node (will be bridge)
 	var recv1, recv2 atomic.Int32
 
 	c1, err := New(Config{
@@ -149,18 +168,18 @@ func TestCluster_AmbassadorFailover(t *testing.T) {
 		return len(c1.Members()) == 2 && len(c2.Members()) == 2
 	}, 5*time.Second, 100*time.Millisecond)
 
-	// Wait for ambassador to settle: c1 should be ambassador (oldest)
+	// Wait for bridge to settle: c1 should be bridge (oldest)
 	require.Eventually(t, func() bool {
-		return c1.IsAmbassador() && !c2.IsAmbassador()
-	}, 5*time.Second, 100*time.Millisecond, "c1 should be ambassador, c2 should not")
+		return c1.IsBridge() && !c2.IsBridge()
+	}, 5*time.Second, 100*time.Millisecond, "c1 should be bridge, c2 should not")
 
-	// Kill c1 (the ambassador)
+	// Kill c1 (the bridge)
 	require.NoError(t, c1.Close())
 
-	// c2 should become ambassador
+	// c2 should become bridge
 	require.Eventually(t, func() bool {
-		return c2.IsAmbassador()
-	}, 10*time.Second, 100*time.Millisecond, "c2 should become ambassador after c1 leaves")
+		return c2.IsBridge()
+	}, 10*time.Second, 100*time.Millisecond, "c2 should become bridge after c1 leaves")
 }
 
 func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
@@ -168,7 +187,7 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 	var muB sync.Mutex
 	var lastKeyB string
 
-	// --- Region A: single node (auto-promotes to ambassador) ---
+	// --- Region A: single node (auto-promotes to bridge) ---
 	nodeA, err := New(Config{
 		Region:   "us-east-1",
 		NodeID:   "node-a",
@@ -179,10 +198,10 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Wait for node A to become ambassador
+	// Wait for node A to become bridge
 	require.Eventually(t, func() bool {
-		return nodeA.IsAmbassador()
-	}, 5*time.Second, 50*time.Millisecond, "node A should become ambassador")
+		return nodeA.IsBridge()
+	}, 5*time.Second, 50*time.Millisecond, "node A should become bridge")
 
 	// Get node A's WAN address (assigned after promotion)
 	var wanAddrA string
@@ -191,7 +210,7 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 		return wanAddrA != ""
 	}, 5*time.Second, 50*time.Millisecond, "node A WAN address should be available")
 
-	// --- Region B: single node, seeds WAN with region A's ambassador ---
+	// --- Region B: single node, seeds WAN with region A's bridge ---
 	nodeB, err := New(Config{
 		Region:   "eu-west-1",
 		NodeID:   "node-b",
@@ -211,12 +230,12 @@ func TestCluster_MultiRegion_WANBroadcast(t *testing.T) {
 		require.NoError(t, nodeA.Close())
 	}()
 
-	// Wait for node B to become ambassador
+	// Wait for node B to become bridge
 	require.Eventually(t, func() bool {
-		return nodeB.IsAmbassador()
-	}, 5*time.Second, 50*time.Millisecond, "node B should become ambassador")
+		return nodeB.IsBridge()
+	}, 5*time.Second, 50*time.Millisecond, "node B should become bridge")
 
-	// Wait for WAN pools to see each other (each ambassador sees 2 WAN members)
+	// Wait for WAN pools to see each other (each bridge sees 2 WAN members)
 	implA := nodeA.(*gossipCluster)
 	implB := nodeB.(*gossipCluster)
 	require.Eventually(t, func() bool {
@@ -265,7 +284,7 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Eventually(t, func() bool {
-		return nodeA.IsAmbassador() && nodeA.WANAddr() != ""
+		return nodeA.IsBridge() && nodeA.WANAddr() != ""
 	}, 5*time.Second, 50*time.Millisecond)
 
 	wanAddrA := nodeA.WANAddr()
@@ -290,7 +309,7 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 	}()
 
 	require.Eventually(t, func() bool {
-		return nodeB.IsAmbassador()
+		return nodeB.IsBridge()
 	}, 5*time.Second, 50*time.Millisecond)
 
 	// Wait for WAN connectivity
@@ -343,7 +362,7 @@ func TestCluster_MultiRegion_BidirectionalBroadcast(t *testing.T) {
 func TestCluster_Noop(t *testing.T) {
 	c := NewNoop()
 
-	require.False(t, c.IsAmbassador())
+	require.False(t, c.IsBridge())
 	require.Nil(t, c.Members())
 	require.NoError(t, c.Broadcast(testMessage("test")))
 	require.NoError(t, c.Close())

@@ -2,6 +2,7 @@ package clustering
 
 import (
 	"context"
+	"sync"
 
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
@@ -14,7 +15,12 @@ import (
 // variant directly, avoiding double serialization.
 type GossipBroadcaster struct {
 	cluster cluster.Cluster
+
+	mu      sync.RWMutex
 	handler func(context.Context, *cachev1.CacheInvalidationEvent) error
+
+	closeOnce sync.Once
+	closeErr  error
 }
 
 var _ Broadcaster = (*GossipBroadcaster)(nil)
@@ -23,16 +29,23 @@ var _ Broadcaster = (*GossipBroadcaster)(nil)
 // given cluster instance.
 func NewGossipBroadcaster(c cluster.Cluster) *GossipBroadcaster {
 	return &GossipBroadcaster{
-		cluster: c,
-		handler: nil,
+		cluster:   c,
+		mu:        sync.RWMutex{},
+		handler:   nil,
+		closeOnce: sync.Once{},
+		closeErr:  nil,
 	}
 }
 
 // HandleCacheInvalidation is the typed handler for cache invalidation messages.
 // Register it with cluster.Subscribe(mux, broadcaster.HandleCacheInvalidation).
 func (b *GossipBroadcaster) HandleCacheInvalidation(ci *clusterv1.ClusterMessage_CacheInvalidation) {
-	if b.handler != nil {
-		if err := b.handler(context.Background(), ci.CacheInvalidation); err != nil {
+	b.mu.RLock()
+	h := b.handler
+	b.mu.RUnlock()
+
+	if h != nil {
+		if err := h(context.Background(), ci.CacheInvalidation); err != nil {
 			logger.Error("Failed to handle gossip cache event", "error", err)
 		}
 	}
@@ -54,10 +67,16 @@ func (b *GossipBroadcaster) Broadcast(_ context.Context, events ...*cachev1.Cach
 // Subscribe sets the single handler for incoming invalidation events.
 // Calling Subscribe again replaces the previous handler.
 func (b *GossipBroadcaster) Subscribe(_ context.Context, handler func(context.Context, *cachev1.CacheInvalidationEvent) error) {
+	b.mu.Lock()
 	b.handler = handler
+	b.mu.Unlock()
 }
 
-// Close shuts down the underlying cluster.
+// Close shuts down the underlying cluster. It is safe to call multiple times;
+// only the first call closes the cluster, subsequent calls return the original result.
 func (b *GossipBroadcaster) Close() error {
-	return b.cluster.Close()
+	b.closeOnce.Do(func() {
+		b.closeErr = b.cluster.Close()
+	})
+	return b.closeErr
 }

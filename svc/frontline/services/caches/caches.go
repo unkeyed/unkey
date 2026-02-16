@@ -117,6 +117,16 @@ func New(config Config) (*Caches, error) {
 		}
 	}
 
+	// Ensure the dispatcher is closed if any subsequent cache creation fails.
+	initialized := false
+	if dispatcher != nil {
+		defer func() {
+			if !initialized {
+				_ = dispatcher.Close()
+			}
+		}()
+	}
+
 	frontlineRoute, err := createCache(
 		cache.Config[string, db.FrontlineRoute]{
 			Fresh:    30 * time.Second,
@@ -159,6 +169,7 @@ func New(config Config) (*Caches, error) {
 		return nil, fmt.Errorf("failed to create certificate cache: %w", err)
 	}
 
+	initialized = true
 	return &Caches{
 		FrontlineRoutes:        middleware.WithTracing(frontlineRoute),
 		SentinelsByEnvironment: middleware.WithTracing(sentinelsByEnvironment),

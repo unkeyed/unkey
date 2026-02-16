@@ -13,7 +13,7 @@ var _ Cluster = noopCluster{}
 
 func (noopCluster) Broadcast(clusterv1.IsClusterMessage_Payload) error { return nil }
 func (noopCluster) Members() []*memberlist.Node                        { return nil }
-func (noopCluster) IsAmbassador() bool                                 { return false }
+func (noopCluster) IsBridge() bool                                     { return false }
 func (noopCluster) WANAddr() string                                    { return "" }
 func (noopCluster) Close() error                                       { return nil }
 

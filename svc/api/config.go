@@ -83,13 +83,13 @@ type Config struct {
 	// GossipLANPort is the LAN memberlist port (default 7946)
 	GossipLANPort int
 
-	// GossipWANPort is the WAN memberlist port for ambassadors (default 7947)
+	// GossipWANPort is the WAN memberlist port for bridges (default 7947)
 	GossipWANPort int
 
 	// GossipLANSeeds are addresses of existing LAN cluster members (e.g. k8s headless service DNS)
 	GossipLANSeeds []string
 
-	// GossipWANSeeds are addresses of cross-region ambassadors
+	// GossipWANSeeds are addresses of cross-region bridges
 	GossipWANSeeds []string
 
 	// GossipSecretKey is a base64-encoded shared secret for AES-256 encryption of gossip traffic.

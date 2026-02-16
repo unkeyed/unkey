@@ -165,6 +165,16 @@ func New(config Config) (Caches, error) {
 		}
 	}
 
+	// Ensure the dispatcher is closed if any subsequent cache creation fails.
+	initialized := false
+	if dispatcher != nil {
+		defer func() {
+			if !initialized {
+				_ = dispatcher.Close()
+			}
+		}()
+	}
+
 	ratelimitNamespace, err := createCache(
 		cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
 			Fresh:    time.Minute,
@@ -249,6 +259,7 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	initialized = true
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),

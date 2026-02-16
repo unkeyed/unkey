@@ -60,11 +60,11 @@ var Cmd = &cli.Command{
 			cli.Default("0.0.0.0"), cli.EnvVar("UNKEY_GOSSIP_BIND_ADDR")),
 		cli.Int("gossip-lan-port", "LAN memberlist port. Default: 7946",
 			cli.Default(7946), cli.EnvVar("UNKEY_GOSSIP_LAN_PORT")),
-		cli.Int("gossip-wan-port", "WAN memberlist port for ambassadors. Default: 7947",
+		cli.Int("gossip-wan-port", "WAN memberlist port for bridges. Default: 7947",
 			cli.Default(7947), cli.EnvVar("UNKEY_GOSSIP_WAN_PORT")),
 		cli.StringSlice("gossip-lan-seeds", "LAN seed addresses (e.g. k8s headless service DNS)",
 			cli.EnvVar("UNKEY_GOSSIP_LAN_SEEDS")),
-		cli.StringSlice("gossip-wan-seeds", "Cross-region ambassador seed addresses",
+		cli.StringSlice("gossip-wan-seeds", "Cross-region bridge seed addresses",
 			cli.EnvVar("UNKEY_GOSSIP_WAN_SEEDS")),
 		// Logging Sampler Configuration
 		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",

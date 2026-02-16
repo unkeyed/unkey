@@ -49,7 +49,7 @@ func (d *wanDelegate) NotifyMsg(data []byte) {
 		return
 	}
 
-	// Deliver to the application callback on this ambassador node
+	// Deliver to the application callback on this bridge node
 	if d.cluster.config.OnMessage != nil {
 		d.cluster.config.OnMessage(&msg)
 	}

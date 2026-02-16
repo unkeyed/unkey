@@ -49,9 +49,9 @@ func (d *lanDelegate) NotifyMsg(data []byte) {
 		d.cluster.config.OnMessage(&msg)
 	}
 
-	// If this node is the ambassador and the message originated locally (LAN direction),
+	// If this node is the bridge and the message originated locally (LAN direction),
 	// relay it to the WAN pool for cross-region delivery.
-	if d.cluster.IsAmbassador() && msg.Direction == clusterv1.Direction_DIRECTION_LAN {
+	if d.cluster.IsBridge() && msg.Direction == clusterv1.Direction_DIRECTION_LAN {
 		d.cluster.mu.RLock()
 		wanQ := d.cluster.wanQueue
 		d.cluster.mu.RUnlock()
@@ -69,7 +69,7 @@ func (d *lanDelegate) NotifyMsg(data []byte) {
 	}
 }
 
-// lanEventDelegate handles join/leave events for ambassador election.
+// lanEventDelegate handles join/leave events for bridge election.
 type lanEventDelegate struct {
 	cluster *gossipCluster
 }
@@ -81,11 +81,11 @@ func newLANEventDelegate(c *gossipCluster) *lanEventDelegate {
 }
 
 func (d *lanEventDelegate) NotifyJoin(node *memberlist.Node) {
-	d.cluster.triggerEvalAmbassador()
+	d.cluster.triggerEvalBridge()
 }
 
 func (d *lanEventDelegate) NotifyLeave(node *memberlist.Node) {
-	d.cluster.triggerEvalAmbassador()
+	d.cluster.triggerEvalBridge()
 }
 
 func (d *lanEventDelegate) NotifyUpdate(node *memberlist.Node) {}
