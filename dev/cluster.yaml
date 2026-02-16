@@ -10,6 +10,6 @@ minikube:
     - "--container-runtime=containerd"
     - "--docker-opt=containerd=/var/run/containerd/containerd.sock"
     - "--cni=cilium"
-    - "--addons=gvisor,metrics-server"
+    - "--addons=metrics-server"
 registry: ctlptl-registry
 kubernetesVersion: v1.34.0
