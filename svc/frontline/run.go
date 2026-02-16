@@ -166,13 +166,15 @@ func Run(ctx context.Context, cfg Config) error {
 			OnMessage:   mux.OnMessage,
 		})
 		if clusterErr != nil {
-			return fmt.Errorf("unable to create gossip cluster: %w", clusterErr)
+			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
+				"error", clusterErr,
+			)
+		} else {
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
+			broadcaster = gossipBroadcaster
+			r.Defer(gossipCluster.Close)
 		}
-
-		gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
-		cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
-		broadcaster = gossipBroadcaster
-		r.Defer(gossipCluster.Close)
 	}
 
 	// Initialize caches
