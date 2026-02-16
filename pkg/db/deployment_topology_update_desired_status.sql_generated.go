@@ -31,6 +31,12 @@ type UpdateDeploymentTopologyDesiredStatusParams struct {
 //	SET desired_status = ?, version = ?, updated_at = ?
 //	WHERE deployment_id = ? AND region = ?
 func (q *Queries) UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error {
-	_, err := db.ExecContext(ctx, updateDeploymentTopologyDesiredStatus, arg.DesiredStatus, arg.Version, arg.UpdatedAt, arg.DeploymentID, arg.Region)
+	_, err := db.ExecContext(ctx, updateDeploymentTopologyDesiredStatus,
+		arg.DesiredStatus,
+		arg.Version,
+		arg.UpdatedAt,
+		arg.DeploymentID,
+		arg.Region,
+	)
 	return err
 }

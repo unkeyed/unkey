@@ -30,21 +30,21 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
+		SlowThreshold: cfg.Logging.SlowThreshold,
+		SampleRate:    cfg.Logging.SampleRate,
 	})
 
 	clk := clock.New()
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Otel.Enabled {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "sentinel",
 			Version:         version.Version,
 			InstanceID:      cfg.SentinelID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Otel.TraceSamplingRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -87,8 +87,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -96,9 +96,9 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(database.Close)
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
-	if cfg.ClickhouseURL != "" {
+	if cfg.ClickHouse.URL != "" {
 		ch, err = clickhouse.New(clickhouse.Config{
-			URL: cfg.ClickhouseURL,
+			URL: cfg.ClickHouse.URL,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
