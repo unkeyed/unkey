@@ -19,7 +19,6 @@ go_library(
         "//internal/services/keys",
         "//internal/services/ratelimit",
         "//internal/services/usagelimiter",
-        "//pkg/assert",
         "//pkg/cache/clustering",
         "//pkg/clickhouse",
         "//pkg/clock",
