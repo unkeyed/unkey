@@ -1,0 +1,17 @@
+region = "local.dev"
+
+[control_plane]
+url = "http://ctrl-api:7091"
+bearer = "your-local-dev-key"
+
+[vault]
+url = "http://vault:8060"
+token = "vault-test-token-123"
+
+[registry]
+url = "${UNKEY_REGISTRY_URL}"
+username = "${UNKEY_REGISTRY_USERNAME}"
+password = "${UNKEY_REGISTRY_PASSWORD}"
+
+[otel]
+enabled = false

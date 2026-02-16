@@ -2,10 +2,10 @@ package krane
 
 import (
 	"context"
-	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/svc/krane"
 )
 
@@ -21,113 +21,21 @@ var Cmd = &cli.Command{
 It manages the lifecycle of deployments in a kubernetes cluster:
 
 EXAMPLES:
-unkey run krane                                   # Run with default configuration`,
+  unkey run krane --config /etc/unkey/krane.toml`,
 	Flags: []cli.Flag{
-		// Server Configuration
-		cli.String("control-plane-url",
-			"URL of the control plane to connect to",
-			cli.Default("https://control.unkey.cloud"),
-			cli.EnvVar("UNKEY_CONTROL_PLANE_URL"),
-		),
-		cli.String("control-plane-bearer",
-			"Bearer token for authenticating with the control plane",
-			cli.Default(""),
-			cli.EnvVar("UNKEY_CONTROL_PLANE_BEARER"),
-		),
-
-		// Instance Identification
-		cli.String("instance-id",
-			"Unique identifier for this instance. Auto-generated if not provided.",
-			cli.Default(uid.New(uid.InstancePrefix, 4)),
-			cli.EnvVar("UNKEY_INSTANCE_ID"),
-		),
-		cli.String("region",
-			"The cloud region with platform, e.g. us-east-1.aws",
-			cli.Required(),
-			cli.EnvVar("UNKEY_REGION"),
-		),
-
-		cli.String("registry-url",
-			"URL of the container registry for pulling images. Example: registry.depot.dev",
-			cli.EnvVar("UNKEY_REGISTRY_URL"),
-		),
-
-		cli.String("registry-username",
-			"Username for authenticating with the container registry.",
-			cli.EnvVar("UNKEY_REGISTRY_USERNAME"),
-		),
-
-		cli.String("registry-password",
-			"Password/token for authenticating with the container registry.",
-			cli.EnvVar("UNKEY_REGISTRY_PASSWORD"),
-		),
-
-		cli.Int("prometheus-port",
-			"Port for Prometheus metrics, set to 0 to disable.",
-			cli.Default(0),
-			cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
-
-		cli.Int("rpc-port",
-			"Port for RPC server",
-			cli.Default(8070),
-			cli.EnvVar("UNKEY_RPC_PORT")),
-
-		// Vault Configuration
-		cli.String("vault-url", "URL of the vault service",
-			cli.EnvVar("UNKEY_VAULT_URL")),
-		cli.String("vault-token", "Authentication token for the vault service",
-			cli.EnvVar("UNKEY_VAULT_TOKEN")),
-
-		cli.String("cluster-id", "ID of the cluster",
-			cli.Default("local"),
-			cli.EnvVar("UNKEY_CLUSTER_ID")),
-
-		// Observability
-		cli.Bool("otel-enabled", "Enable OpenTelemetry tracing and logging",
-			cli.Default(false),
-			cli.EnvVar("UNKEY_OTEL_ENABLED")),
-		cli.Float("otel-trace-sampling-rate", "Sampling rate for traces (0.0 to 1.0)",
-			cli.Default(0.01),
-			cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
-
-		// Logging Sampler Configuration
-		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
-			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SAMPLE_RATE")),
-		cli.Duration("log-slow-threshold", "Duration threshold for slow event sampling. Default: 1s",
-			cli.Default(time.Second), cli.EnvVar("UNKEY_LOG_SLOW_THRESHOLD")),
+		cli.String("config", "Path to a TOML config file",
+			cli.Default("unkey.toml"), cli.EnvVar("UNKEY_CONFIG")),
 	},
 	Action: action,
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
-
-	config := krane.Config{
-		Clock:                 nil,
-		Region:                cmd.RequireString("region"),
-		InstanceID:            cmd.RequireString("instance-id"),
-		RegistryURL:           cmd.RequireString("registry-url"),
-		RegistryUsername:      cmd.RequireString("registry-username"),
-		RegistryPassword:      cmd.RequireString("registry-password"),
-		RPCPort:               cmd.RequireInt("rpc-port"),
-		VaultURL:              cmd.String("vault-url"),
-		VaultToken:            cmd.String("vault-token"),
-		PrometheusPort:        cmd.RequireInt("prometheus-port"),
-		ControlPlaneURL:       cmd.RequireString("control-plane-url"),
-		ControlPlaneBearer:    cmd.RequireString("control-plane-bearer"),
-		OtelEnabled:           cmd.Bool("otel-enabled"),
-		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
-
-		// Logging sampler configuration
-		LogSampleRate:    cmd.Float("log-sample-rate"),
-		LogSlowThreshold: cmd.Duration("log-slow-threshold"),
-	}
-
-	// Validate configuration
-	err := config.Validate()
+	cfg, err := config.Load[krane.Config](cmd.String("config"))
 	if err != nil {
-		return cli.Exit("Invalid configuration: "+err.Error(), 1)
+		return cli.Exit("Failed to load config: "+err.Error(), 1)
 	}
 
-	// Run krane
-	return krane.Run(ctx, config)
+	cfg.Clock = clock.New()
+
+	return krane.Run(ctx, cfg)
 }
