@@ -9,9 +9,9 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/sentinel",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/assert",
         "//pkg/clickhouse",
         "//pkg/clock",
+        "//pkg/config",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/otel",
