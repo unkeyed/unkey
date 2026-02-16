@@ -22,33 +22,25 @@ func testMessage(key string) *clusterv1.ClusterMessage_CacheInvalidation {
 }
 
 func TestCluster_SingleNode_BroadcastAndReceive(t *testing.T) {
-	t.Run("broadcast receives on single node", func(t *testing.T) {
-		var received atomic.Int32
-
-		c, err := New(Config{
-			Region:   "us-east-1",
-			NodeID:   "test-node-1",
-			BindAddr: "127.0.0.1",
-			OnMessage: func(msg *clusterv1.ClusterMessage) {
-				received.Add(1)
-			},
-		})
-		require.NoError(t, err)
-		defer func() { require.NoError(t, c.Close()) }()
-
-		// Single node should be bridge
-		require.Eventually(t, func() bool {
-			return c.IsBridge()
-		}, 2*time.Second, 50*time.Millisecond, "single node should become bridge")
-
-		require.Len(t, c.Members(), 1, "should have 1 member")
-
-		require.NoError(t, c.Broadcast(testMessage("hello")))
-
-		require.Eventually(t, func() bool {
-			return received.Load() >= 1
-		}, 5*time.Second, 50*time.Millisecond, "handler should have received the broadcast")
+	c, err := New(Config{
+		Region:   "us-east-1",
+		NodeID:   "test-node-1",
+		BindAddr: "127.0.0.1",
+		OnMessage: func(msg *clusterv1.ClusterMessage) {
+		},
 	})
+	require.NoError(t, err)
+	defer func() { require.NoError(t, c.Close()) }()
+
+	// Single node should be bridge
+	require.Eventually(t, func() bool {
+		return c.IsBridge()
+	}, 2*time.Second, 50*time.Millisecond, "single node should become bridge")
+
+	require.Len(t, c.Members(), 1, "should have 1 member")
+
+	// Broadcast should succeed even with no peers (gossip has no one to deliver to)
+	require.NoError(t, c.Broadcast(testMessage("hello")))
 }
 
 func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
@@ -120,10 +112,11 @@ func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {
 	// The first node (oldest) should be bridge
 	require.True(t, clusters[0].IsBridge(), "oldest node should be bridge")
 
-	t.Run("broadcast delivers to all", func(t *testing.T) {
+	t.Run("broadcast delivers to other nodes", func(t *testing.T) {
 		require.NoError(t, clusters[0].Broadcast(testMessage("multi-node-hello")))
 
-		for i := 0; i < nodeCount; i++ {
+		// Gossip delivers to other nodes, not back to the sender (node-0).
+		for i := 1; i < nodeCount; i++ {
 			idx := i
 			require.Eventually(t, func() bool {
 				return received[idx].Load() >= 1
