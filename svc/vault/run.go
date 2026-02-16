@@ -23,18 +23,18 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
+		SlowThreshold: cfg.Logging.SlowThreshold,
+		SampleRate:    cfg.Logging.SampleRate,
 	})
 
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Otel.Enabled {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "vault",
 			Version:         version.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Otel.TraceSamplingRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -51,10 +51,10 @@ func Run(ctx context.Context, cfg Config) error {
 	r.RegisterHealth(mux)
 
 	s3, err := storage.NewS3(storage.S3Config{
-		S3URL:             cfg.S3URL,
-		S3Bucket:          cfg.S3Bucket,
-		S3AccessKeyID:     cfg.S3AccessKeyID,
-		S3AccessKeySecret: cfg.S3AccessKeySecret,
+		S3URL:             cfg.S3.URL,
+		S3Bucket:          cfg.S3.Bucket,
+		S3AccessKeyID:     cfg.S3.AccessKeyID,
+		S3AccessKeySecret: cfg.S3.AccessKeySecret,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create s3 storage: %w", err)

@@ -12,6 +12,7 @@ go_library(
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/clock",
+        "//pkg/config",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/otel",

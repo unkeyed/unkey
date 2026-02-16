@@ -1,0 +1,29 @@
+http_port = 7070
+region = "local"
+redis_url = "redis://redis:6379"
+
+[database]
+primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
+
+[clickhouse]
+url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+analytics_url = "http://clickhouse:8123/default"
+proxy_token = "chproxy-test-token-123"
+
+[otel]
+enabled = false
+
+[vault]
+url = "http://vault:8060"
+token = "vault-test-token-123"
+
+[kafka]
+brokers = ["kafka:9092"]
+
+[ctrl]
+url = "http://ctrl-api:7091"
+token = "your-local-dev-key"
+
+[pprof]
+username = "admin"
+password = "password"

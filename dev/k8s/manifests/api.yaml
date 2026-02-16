@@ -1,4 +1,41 @@
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: unkey
+data:
+  unkey.toml: |
+    instance_id = "api-dev"
+    platform = "kubernetes"
+    image = "unkey:local"
+    region = "local"
+    http_port = 7070
+    redis_url = "redis://redis:6379"
+    test_mode = false
+    prometheus_port = 0
+    max_request_body_size = 10485760
+
+    [database]
+    primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+
+    [clickhouse]
+    url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+    analytics_url = "http://clickhouse:8123/default"
+    proxy_token = "chproxy-test-token-123"
+
+    [otel]
+    enabled = false
+
+    [vault]
+    url = "http://vault:8060"
+    token = "vault-test-token-123"
+
+    [ctrl]
+    url = "http://ctrl-api:7091"
+    token = "your-local-dev-key"
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,58 +56,14 @@ spec:
       containers:
         - name: api
           image: unkey/go:latest
-          args: ["run", "api"]
+          args: ["run", "api", "--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7070
-          env:
-            # Server Configuration
-            - name: UNKEY_HTTP_PORT
-              value: "7070"
-            - name: UNKEY_LOGS_COLOR
-              value: "true"
-            - name: UNKEY_TEST_MODE
-              value: "false"
-            # Instance Identification
-            - name: UNKEY_PLATFORM
-              value: "kubernetes"
-            - name: UNKEY_IMAGE
-              value: "unkey:local"
-            - name: UNKEY_REGION
-              value: "local"
-            - name: UNKEY_INSTANCE_ID
-              value: "api-dev"
-            # Database Configuration
-            - name: UNKEY_DATABASE_PRIMARY
-              value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
-            # Caching and Storage
-            - name: UNKEY_REDIS_URL
-              value: "redis://redis:6379"
-            - name: UNKEY_CLICKHOUSE_URL
-              value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
-            - name: UNKEY_CLICKHOUSE_ANALYTICS_URL
-              value: "http://clickhouse:8123/default"
-            # Observability - DISABLED for development
-            - name: UNKEY_OTEL
-              value: "false"
-            - name: UNKEY_PROMETHEUS_PORT
-              value: "0"
-            # Vault Configuration
-            - name: UNKEY_VAULT_URL
-              value: "http://vault:8060"
-            - name: UNKEY_VAULT_TOKEN
-              value: "vault-test-token-123"
-            # ClickHouse Proxy Service Configuration
-            - name: UNKEY_CHPROXY_AUTH_TOKEN
-              value: "chproxy-test-token-123"
-            # Control Plane Configuration
-            - name: UNKEY_CTRL_URL
-              value: "http://ctrl-api:7091"
-            - name: UNKEY_CTRL_TOKEN
-              value: "your-local-dev-key"
-            # Request Body Configuration
-            - name: UNKEY_MAX_REQUEST_BODY_SIZE
-              value: "10485760"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/unkey
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /health/ready
@@ -83,6 +76,10 @@ spec:
               port: 7070
             initialDelaySeconds: 30
             periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: api-config
       initContainers:
         - name: wait-for-dependencies
           image: busybox:1.36

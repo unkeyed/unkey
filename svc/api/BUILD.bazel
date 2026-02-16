@@ -20,6 +20,7 @@ go_library(
         "//internal/services/usagelimiter",
         "//pkg/clickhouse",
         "//pkg/clock",
+        "//pkg/config",
         "//pkg/counter",
         "//pkg/db",
         "//pkg/eventstream",
@@ -45,6 +46,7 @@ go_test(
     srcs = ["cancel_test.go"],
     deps = [
         ":api",
+        "//pkg/config",
         "//pkg/dockertest",
         "//pkg/uid",
         "@com_github_stretchr_testify//require",

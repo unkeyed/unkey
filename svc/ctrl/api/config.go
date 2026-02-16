@@ -1,6 +1,9 @@
 package api
 
 import (
+	"fmt"
+
+	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/tls"
 )
 
@@ -11,91 +14,113 @@ import (
 type RestateConfig struct {
 	// URL is the Restate ingress endpoint URL for workflow invocation.
 	// Used by clients to start and interact with workflow executions.
-	// Example: "http://restate:8080".
-	URL string
+	URL string `toml:"url" config:"default=http://restate:8080"`
 
 	// AdminURL is the Restate admin API endpoint for managing invocations.
-	// Used for canceling invocations. Example: "http://restate:9070".
-	AdminURL string
+	// Used for canceling invocations.
+	AdminURL string `toml:"admin_url" config:"default=http://restate:9070"`
 
 	// APIKey is the authentication key for Restate ingress requests.
 	// If set, this key will be sent with all requests to the Restate ingress.
-	APIKey string
+	APIKey string `toml:"api_key"`
 }
 
-// Config holds configuration for the control plane API server.
+// GitHubConfig holds GitHub App integration settings for webhook-triggered
+// deployments.
+type GitHubConfig struct {
+	// WebhookSecret is the secret used to verify webhook signatures.
+	// Configured in the GitHub App webhook settings.
+	WebhookSecret string `toml:"webhook_secret"`
+}
+
+// Config holds the complete configuration for the control plane API server.
+// It is designed to be loaded from a TOML file using [config.Load]:
 //
-// The API server handles Connect RPC requests and delegates workflow
-// execution to Restate. It does NOT run workflows directly - that's
-// the worker's job.
+//	cfg, err := config.Load[api.Config]("/etc/unkey/ctrl-api.toml")
+//
+// Environment variables are expanded in file values using ${VAR} or
+// ${VAR:-default} syntax before parsing. Struct tag defaults are applied to
+// any field left at its zero value after parsing, and validation runs
+// automatically via [Config.Validate].
+//
+// TLSConfig is runtime-only and cannot be set through a config file. It is
+// tagged toml:"-" and must be set programmatically after loading.
 type Config struct {
 	// InstanceID is the unique identifier for this control plane instance.
 	// Used for logging, tracing, and cluster coordination.
-	InstanceID string
+	InstanceID string `toml:"instance_id"`
 
 	// Region is the geographic region where this control plane instance runs.
 	// Used for logging, tracing, and region-aware routing decisions.
-	Region string
+	Region string `toml:"region" config:"required,nonempty"`
 
 	// HttpPort defines the HTTP port for the control plane server.
-	// Default: 8080. Cannot be 0.
-	HttpPort int
+	// Default: 7091. Cannot be 0.
+	HttpPort int `toml:"http_port" config:"default=7091,min=1,max=65535"`
 
 	// PrometheusPort specifies the port for exposing Prometheus metrics.
 	// Set to 0 to disable metrics exposure. When enabled, metrics are served
 	// on all interfaces (0.0.0.0) on the specified port.
-	PrometheusPort int
-
-	// DatabasePrimary is the primary database connection string.
-	// Used for both read and write operations to persistent storage.
-	DatabasePrimary string
-
-	// OtelEnabled enables sending telemetry data to collector endpoint.
-	// When true, enables metrics, traces, and structured logs.
-	OtelEnabled bool
-
-	// OtelTraceSamplingRate controls the percentage of traces sampled.
-	// Range: 0.0 (no traces) to 1.0 (all traces). Recommended: 0.1.
-	OtelTraceSamplingRate float64
-
-	// TLSConfig contains TLS configuration for HTTPS server.
-	// When nil, server runs in HTTP mode for development.
-	TLSConfig *tls.Config
+	PrometheusPort int `toml:"prometheus_port"`
 
 	// AuthToken is the authentication token for control plane API access.
 	// Used by clients and services to authenticate with this control plane.
-	AuthToken string
-
-	// Restate configures workflow engine integration.
-	// The API invokes workflows via Restate ingress.
-	Restate RestateConfig
+	AuthToken string `toml:"auth_token" config:"required,nonempty"`
 
 	// AvailableRegions is a list of available regions for deployments.
 	// Typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
-	AvailableRegions []string
-
-	// GitHubWebhookSecret is the secret used to verify webhook signatures.
-	// Configured in the GitHub App webhook settings.
-	GitHubWebhookSecret string
+	AvailableRegions []string `toml:"available_regions"`
 
 	// DefaultDomain is the fallback domain for system operations.
 	// Used for wildcard certificate bootstrapping. When set, the API will
 	// ensure a wildcard certificate exists for *.{DefaultDomain}.
-	DefaultDomain string
+	DefaultDomain string `toml:"default_domain"`
 
 	// RegionalDomain is the base domain for cross-region communication
 	// between frontline instances. Combined with AvailableRegions to create
 	// per-region wildcard certificates like *.{region}.{RegionalDomain}.
-	RegionalDomain string
+	RegionalDomain string `toml:"regional_domain"`
 
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
-	// For production: "unkey-dns.com"
-	// For local: "unkey.local"
-	CnameDomain string
+	CnameDomain string `toml:"cname_domain"`
+
+	// Database configures MySQL connections. See [config.DatabaseConfig].
+	Database config.DatabaseConfig `toml:"database"`
+
+	// Otel configures OpenTelemetry export. See [config.OtelConfig].
+	Otel config.OtelConfig `toml:"otel"`
+
+	// TLS provides filesystem paths for HTTPS certificate and key.
+	// See [config.TLSFiles].
+	TLS config.TLSFiles `toml:"tls"`
+
+	// Restate configures workflow engine integration. See [RestateConfig].
+	Restate RestateConfig `toml:"restate"`
+
+	// GitHub configures GitHub App webhook integration. See [GitHubConfig].
+	GitHub GitHubConfig `toml:"github"`
+
+	// Logging configures log sampling. See [config.LoggingConfig].
+	Logging config.LoggingConfig `toml:"logging"`
+
+	// TLSConfig is the resolved [tls.Config] built from [TLSFiles.CertFile]
+	// and [TLSFiles.KeyFile] at startup. This field is populated by the CLI
+	// entrypoint after loading the config file and must not be set in TOML.
+	TLSConfig *tls.Config `toml:"-"`
 }
 
-// Validate checks the configuration for required fields and logical consistency.
-func (c Config) Validate() error {
+// Validate checks cross-field constraints that cannot be expressed through
+// struct tags alone. It implements [config.Validator] so that [config.Load]
+// calls it automatically after tag-level validation.
+//
+// Currently validates that TLS certificate and key paths are either both
+// provided or both absent — setting only one is an error.
+func (c *Config) Validate() error {
+	certFile := c.TLS.CertFile
+	keyFile := c.TLS.KeyFile
+	if (certFile == "") != (keyFile == "") {
+		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided to enable HTTPS")
+	}
 	return nil
 }

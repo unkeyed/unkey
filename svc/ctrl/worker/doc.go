@@ -14,20 +14,22 @@
 //
 // # Configuration
 //
-// Configuration is provided through [Config], which validates settings on startup. The worker
-// supports multiple build backends and validates their requirements in [Config.Validate].
+// Configuration is loaded from a TOML file using [config.Load]:
+//
+//	cfg, err := config.Load[worker.Config]("/etc/unkey/unkey.toml")
+//
+// The worker validates settings through struct tags and [Config.Validate].
 //
 // # Usage
 //
 // The worker is started with [Run], which blocks until the context is cancelled or a fatal
 // error occurs:
 //
-//	cfg := worker.Config{
-//	    InstanceID:      "worker-1",
-//	    HttpPort:        7092,
-//	    DatabasePrimary: "mysql://...",
-//	    // ... additional configuration
+//	cfg, err := config.Load[worker.Config]("unkey.toml")
+//	if err != nil {
+//	    log.Fatal(err)
 //	}
+//	cfg.Clock = clock.New()
 //
 //	if err := worker.Run(ctx, cfg); err != nil {
 //	    log.Fatal(err)

@@ -57,18 +57,18 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
+		SlowThreshold: cfg.Logging.SlowThreshold,
+		SampleRate:    cfg.Logging.SampleRate,
 	})
 
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Otel.Enabled {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "krane",
 			Version:         pkgversion.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Otel.TraceSamplingRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -92,8 +92,8 @@ func Run(ctx context.Context, cfg Config) error {
 	r.DeferCtx(shutdownGrafana)
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
-		URL:         cfg.ControlPlaneURL,
-		BearerToken: cfg.ControlPlaneBearer,
+		URL:         cfg.ControlPlane.URL,
+		BearerToken: cfg.ControlPlane.Bearer,
 		Region:      cfg.Region,
 	})
 
@@ -149,15 +149,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create vault client for secrets decryption
 	var vaultClient vaultv1connect.VaultServiceClient
-	if cfg.VaultURL != "" {
+	if cfg.Vault.URL != "" {
 		vaultClient = vaultv1connect.NewVaultServiceClient(
 			http.DefaultClient,
-			cfg.VaultURL,
+			cfg.Vault.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": "Bearer " + cfg.VaultToken,
+				"Authorization": "Bearer " + cfg.Vault.Token,
 			})),
 		)
-		logger.Info("Vault client initialized", "url", cfg.VaultURL)
+		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	}
 
 	// Create the connect handler

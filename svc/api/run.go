@@ -45,8 +45,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
+		SlowThreshold: cfg.Logging.SlowThreshold,
+		SampleRate:    cfg.Logging.SampleRate,
 	})
 	logger.AddBaseAttrs(slog.GroupAttrs("instance",
 		slog.String("id", cfg.InstanceID),
@@ -66,13 +66,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Otel.Enabled {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "api",
 			Version:         version.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Otel.TraceSamplingRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -85,8 +85,8 @@ func Run(ctx context.Context, cfg Config) error {
 	r.DeferCtx(shutdownGrafana)
 
 	db, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -116,9 +116,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
-	if cfg.ClickhouseURL != "" {
+	if cfg.ClickHouse.URL != "" {
 		ch, err = clickhouse.New(clickhouse.Config{
-			URL: cfg.ClickhouseURL,
+			URL: cfg.ClickHouse.URL,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
@@ -149,7 +149,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	ctr, err := counter.NewRedis(counter.RedisConfig{
-		RedisURL: cfg.RedisUrl,
+		RedisURL: cfg.RedisURL,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create counter: %w", err)
@@ -176,12 +176,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var vaultClient vault.Client
-	if cfg.VaultURL != "" {
+	if cfg.Vault.URL != "" {
 		connectClient := vaultv1connect.NewVaultServiceClient(
 			&http.Client{},
-			cfg.VaultURL,
+			cfg.Vault.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.VaultToken),
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Vault.Token),
 			})),
 		)
 		vaultClient = vault.NewConnectClient(connectClient)
@@ -196,16 +196,16 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize cache invalidation topic
 	cacheInvalidationTopic := eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()
-	if len(cfg.KafkaBrokers) > 0 {
-		logger.Info("Initializing cache invalidation topic", "brokers", cfg.KafkaBrokers, "instanceID", cfg.InstanceID)
+	if cfg.Kafka != nil {
+		logger.Info("Initializing cache invalidation topic", "brokers", cfg.Kafka.Brokers, "instanceID", cfg.InstanceID)
 
-		topicName := cfg.CacheInvalidationTopic
+		topicName := cfg.Kafka.CacheInvalidationTopic
 		if topicName == "" {
 			topicName = DefaultCacheInvalidationTopic
 		}
 
 		cacheInvalidationTopic, err = eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
-			Brokers:    cfg.KafkaBrokers,
+			Brokers:    cfg.Kafka.Brokers,
 			Topic:      topicName,
 			InstanceID: cfg.InstanceID,
 		})
@@ -244,12 +244,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize analytics connection manager
 	analyticsConnMgr := analytics.NewNoopConnectionManager()
-	if cfg.ClickhouseAnalyticsURL != "" && vaultClient != nil {
+	if cfg.ClickHouse.AnalyticsURL != "" && vaultClient != nil {
 		analyticsConnMgr, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 			SettingsCache: caches.ClickhouseSetting,
 			Database:      db,
 			Clock:         clk,
-			BaseURL:       cfg.ClickhouseAnalyticsURL,
+			BaseURL:       cfg.ClickHouse.AnalyticsURL,
 			Vault:         vaultClient,
 		})
 		if err != nil {
@@ -260,13 +260,19 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize CTRL deployment client using bufconnect
 	ctrlDeploymentClient := ctrlv1connect.NewDeployServiceClient(
 		&http.Client{},
-		cfg.CtrlURL,
+		cfg.Ctrl.URL,
 		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
+			"Authorization": fmt.Sprintf("Bearer %s", cfg.Ctrl.Token),
 		})),
 	)
 
-	logger.Info("CTRL clients initialized", "url", cfg.CtrlURL)
+	logger.Info("CTRL clients initialized", "url", cfg.Ctrl.URL)
+
+	var pprofUsername, pprofPassword string
+	if cfg.Pprof != nil {
+		pprofUsername = cfg.Pprof.Username
+		pprofPassword = cfg.Pprof.Password
+	}
 
 	routes.Register(srv, &routes.Services{
 		Database:                   db,
@@ -277,11 +283,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:                  auditlogSvc,
 		Caches:                     caches,
 		Vault:                      vaultClient,
-		ChproxyToken:               cfg.ChproxyToken,
+		ChproxyToken:               cfg.ClickHouse.ProxyToken,
 		CtrlDeploymentClient:       ctrlDeploymentClient,
-		PprofEnabled:               cfg.PprofEnabled,
-		PprofUsername:              cfg.PprofUsername,
-		PprofPassword:              cfg.PprofPassword,
+		PprofEnabled:               cfg.Pprof != nil,
+		PprofUsername:              pprofUsername,
+		PprofPassword:              pprofPassword,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
 	},

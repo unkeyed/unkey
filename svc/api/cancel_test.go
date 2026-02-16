@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	sharedconfig "github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api"
@@ -31,17 +32,19 @@ func TestContextCancellation(t *testing.T) {
 
 	// Configure the API server
 	config := api.Config{
-		Platform:                "test",
-		Image:                   "test",
-		Listener:                ln,
-		Region:                  "test-region",
-		Clock:                   nil, // Will use real clock
-		InstanceID:              uid.New(uid.InstancePrefix),
-		RedisUrl:                redisUrl,
-		ClickhouseURL:           "",
-		DatabasePrimary:         dbDsn,
-		DatabaseReadonlyReplica: "",
-		OtelEnabled:             false,
+		Platform:   "test",
+		Image:      "test",
+		Listener:   ln,
+		Region:     "test-region",
+		Clock:      nil, // Will use real clock
+		InstanceID: uid.New(uid.InstancePrefix),
+		RedisURL:   redisUrl,
+		Database: sharedconfig.DatabaseConfig{
+			Primary: dbDsn,
+		},
+		Otel: sharedconfig.OtelConfig{
+			Enabled: false,
+		},
 	}
 
 	// Create a channel to receive the result of the Run function

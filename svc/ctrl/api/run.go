@@ -55,13 +55,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Otel.Enabled {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "ctrl",
 			Version:         pkgversion.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Otel.TraceSamplingRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -86,7 +86,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize database
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
+		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: "",
 	})
 	if err != nil {
@@ -163,11 +163,11 @@ func Run(ctx context.Context, cfg Config) error {
 		CnameDomain:  cfg.CnameDomain,
 	})))
 
-	if cfg.GitHubWebhookSecret != "" {
+	if cfg.GitHub.WebhookSecret != "" {
 		mux.Handle("POST /webhooks/github", &GitHubWebhook{
 			db:            database,
 			restate:       restateClient,
-			webhookSecret: cfg.GitHubWebhookSecret,
+			webhookSecret: cfg.GitHub.WebhookSecret,
 		})
 		logger.Info("GitHub webhook handler registered")
 	} else {

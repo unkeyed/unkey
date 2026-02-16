@@ -25,8 +25,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
+		SlowThreshold: cfg.Logging.SlowThreshold,
+		SampleRate:    cfg.Logging.SampleRate,
 	})
 
 	r := runner.New()
@@ -55,11 +55,11 @@ func Run(ctx context.Context, cfg Config) error {
 	reg := registry.New(registry.Config{
 		Clientset:          clientset,
 		Credentials:        credentialsManager,
-		InsecureRegistries: cfg.InsecureRegistries,
-		RegistryAliases:    cfg.RegistryAliases,
+		InsecureRegistries: cfg.Registry.InsecureRegistries,
+		RegistryAliases:    cfg.Registry.Aliases,
 	})
 
-	tlsConfig, err := tls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)
+	tlsConfig, err := tls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
 	if err != nil {
 		return fmt.Errorf("failed to load TLS certificates: %w", err)
 	}
@@ -78,8 +78,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Registry:                reg,
 		Clientset:               clientset,
 		Credentials:             credentialsManager,
-		InjectImage:             cfg.InjectImage,
-		InjectImagePullPolicy:   cfg.InjectImagePullPolicy,
+		InjectImage:             cfg.Inject.Image,
+		InjectImagePullPolicy:   cfg.Inject.ImagePullPolicy,
 		DefaultProviderEndpoint: cfg.KraneEndpoint,
 	})
 

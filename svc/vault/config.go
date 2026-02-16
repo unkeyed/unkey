@@ -1,63 +1,67 @@
 package vault
 
 import (
-	"time"
-
-	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/config"
 )
 
-type Config struct {
-	// InstanceID is the unique identifier for this instance of the API server
-	InstanceID string
+// S3Config configures the S3-compatible object storage backend used by vault to
+// persist encrypted secrets. All fields are required.
+type S3Config struct {
+	// URL is the S3-compatible endpoint URL.
+	// Example: "http://s3:3902"
+	URL string `toml:"url" config:"required,nonempty"`
 
-	// HttpPort defines the HTTP port for the API server to listen on (default: 7070)
-	HttpPort int
+	// Bucket is the S3 bucket name for storing encrypted secrets.
+	Bucket string `toml:"bucket" config:"required,nonempty"`
 
-	// Region is the cloud region where this instance is running
-	Region string
+	// AccessKeyID is the access key ID for authenticating with S3.
+	AccessKeyID string `toml:"access_key_id" config:"required,nonempty"`
 
-	// OtelEnabled enables OpenTelemetry instrumentation
-	OtelEnabled bool
-
-	// OtelTraceSamplingRate is the sampling rate for traces (0.0 to 1.0)
-	OtelTraceSamplingRate float64
-
-	// S3Bucket is the bucket to store secrets in
-	S3Bucket string
-	// S3URL is the url to store secrets in
-	S3URL string
-	// S3AccessKeyID is the access key id to use for s3
-	S3AccessKeyID string
-	// S3AccessKeySecret is the access key secret to use for s3
-	S3AccessKeySecret string
-	// MasterKeys
-	// The first key is used for encryption, additional keys may be provided for backwards compatible decryption
-	//
-	// If multiple keys are provided, vault will start a rekey process to migrate all secrets to the new key
-	MasterKeys []string
-	// BearerToken is the authentication token for securing vault operations
-	BearerToken string
-
-	// --- Logging sampler configuration ---
-
-	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
-	LogSampleRate float64
-
-	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
-	LogSlowThreshold time.Duration
+	// AccessKeySecret is the secret access key for authenticating with S3.
+	AccessKeySecret string `toml:"access_key_secret" config:"required,nonempty"`
 }
 
-func (c Config) Validate() error {
+// Config holds the complete configuration for the vault service. It is designed
+// to be loaded from a TOML file using [config.Load]:
+//
+//	cfg, err := config.Load[vault.Config]("/etc/unkey/vault.toml")
+//
+// Environment variables are expanded in file values using ${VAR} or
+// ${VAR:-default} syntax before parsing.
+type Config struct {
+	// InstanceID identifies this particular vault instance. Used in log
+	// attribution and observability labels.
+	InstanceID string `toml:"instance_id" config:"required,nonempty"`
 
-	return assert.All(
-		assert.NotEmpty(c.InstanceID, "instanceID must not be empty"),
-		assert.Greater(c.HttpPort, 0, "httpPort must be greater than 0"),
-		assert.NotEmpty(c.S3Bucket, "s3Bucket must not be empty"),
-		assert.NotEmpty(c.S3URL, "s3Url must not be empty"),
-		assert.NotEmpty(c.S3AccessKeyID, "s3AccessKeyID must not be empty"),
-		assert.NotEmpty(c.S3AccessKeySecret, "s3AccessKeySecret must not be empty"),
-		assert.NotEmpty(c.MasterKeys, "masterKeys must not be empty"),
-		assert.NotEmpty(c.BearerToken, "bearerToken must not be empty"),
-	)
+	// HttpPort is the TCP port the vault server binds to.
+	HttpPort int `toml:"http_port" config:"default=8060,min=1,max=65535"`
 
+	// Region is the geographic region identifier (e.g. "us-east-1").
+	// Included in structured logs and OpenTelemetry attributes.
+	Region string `toml:"region"`
+
+	// BearerToken is the authentication token for securing vault operations.
+	BearerToken string `toml:"bearer_token" config:"required,nonempty"`
+
+	// MasterKeys holds encryption keys for the vault. The first key is used
+	// for encryption; additional keys are retained for backwards-compatible
+	// decryption. If multiple keys are provided, vault will start a rekey
+	// process to migrate all secrets to the new key.
+	MasterKeys []string `toml:"master_keys" config:"required,nonempty"`
+
+	// S3 configures the S3-compatible storage backend. See [S3Config].
+	S3 S3Config `toml:"s3"`
+
+	// Otel configures OpenTelemetry export. See [config.OtelConfig].
+	Otel config.OtelConfig `toml:"otel"`
+
+	// Logging configures log sampling. See [config.LoggingConfig].
+	Logging config.LoggingConfig `toml:"logging"`
+}
+
+// Validate implements [config.Validator] so that [config.Load] calls it
+// automatically after tag-level validation. All constraints are expressed
+// through struct tags, so this method has nothing additional to check.
+func (c *Config) Validate() error {
+	return nil
 }
