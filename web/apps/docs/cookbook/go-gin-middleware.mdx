@@ -88,7 +88,14 @@ func RequirePermission(permission string) gin.HandlerFunc {
             return
         }
 
-        keyResult := result.(*components.V2KeysVerifyKeyResponseBody)
+        keyResult, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+        if !ok || keyResult == nil {
+            c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+                "error": "Invalid authentication context",
+                "code":  "INTERNAL_ERROR",
+            })
+            return
+        }
         
         for _, p := range keyResult.Permissions {
             if p == permission {

@@ -87,7 +87,13 @@ func RequirePermission(permission string) echo.MiddlewareFunc {
                 })
             }
 
-            keyResult := result.(*components.V2KeysVerifyKeyResponseBody)
+            keyResult, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+            if !ok || keyResult == nil {
+                return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+                    "error": "Invalid authentication context",
+                    "code":  "INTERNAL_ERROR",
+                })
+            }
             
             for _, p := range keyResult.Permissions {
                 if p == permission {
@@ -135,11 +141,15 @@ func RequireRole(role string) echo.MiddlewareFunc {
 
 // GetUnkeyResult retrieves the Unkey verification result from context
 func GetUnkeyResult(c echo.Context) *components.V2KeysVerifyKeyResponseBody {
-    result := c.Get("unkey")
-    if result == nil {
+    result, ok := c.Get("unkey")
+    if !ok || result == nil {
         return nil
     }
-    return result.(*components.V2KeysVerifyKeyResponseBody)
+    r, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+    if !ok {
+        return nil
+    }
+    return r
 }
 
 // Usage example
