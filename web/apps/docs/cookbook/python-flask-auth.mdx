@@ -10,7 +10,8 @@ This recipe shows how to implement secure API key authentication in Flask applic
 ```python
 from functools import wraps
 from flask import Flask, request, jsonify, g
-from unkey import Unkey, ApiError
+from unkey import Unkey
+from unkey.errors import UnkeyError
 import os
 
 app = Flask(__name__)
@@ -48,7 +49,7 @@ def require_api_key(f):
             
             return f(*args, **kwargs)
             
-        except ApiError as e:
+        except UnkeyError as e:
             return jsonify({
                 "error": "Authentication service error",
                 "message": e.message
@@ -106,7 +107,7 @@ def require_permission(permission):
                 
                 return f(*args, **kwargs)
                 
-            except ApiError as e:
+            except UnkeyError as e:
                 return jsonify({"error": e.message}), 503
         
         return decorated_function
@@ -142,7 +143,7 @@ def require_role(role):
                 
                 return f(*args, **kwargs)
                 
-            except ApiError as e:
+            except UnkeyError as e:
                 return jsonify({"error": e.message}), 503
         
         return decorated_function
@@ -175,7 +176,8 @@ Organize authentication with Blueprints:
 ```python
 from flask import Blueprint, request, jsonify, g
 from functools import wraps
-from unkey import Unkey, ApiError
+from unkey import Unkey
+from unkey.errors import UnkeyError
 import os
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -196,7 +198,7 @@ def verify_key():
         
         return result, None
         
-    except ApiError as e:
+    except UnkeyError as e:
         return None, (jsonify({"error": e.message}), 503)
 
 @api_bp.before_request
@@ -250,11 +252,11 @@ Centralized error handling for auth errors:
 
 ```python
 from flask import Flask, jsonify
-from unkey import ApiError
+from unkey.errors import UnkeyError
 
 app = Flask(__name__)
 
-@app.errorhandler(ApiError)
+@app.errorhandler(UnkeyError)
 def handle_unkey_error(error):
     """Handle Unkey API errors."""
     return jsonify({

@@ -231,7 +231,8 @@ The full API key is only returned once at creation. Store it securely and never 
 Always handle Unkey errors gracefully:
 
 ```python
-from unkey import Unkey, ApiError
+from unkey import Unkey
+from unkey.errors import UnkeyError
 import os
 
 unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
@@ -243,7 +244,7 @@ try:
     )
     print(f"Created: {result.key}")
     
-except ApiError as e:
+except UnkeyError as e:
     print(f"API Error: {e.status_code} - {e.message}")
     # Handle specific errors
     if e.status_code == 401:
