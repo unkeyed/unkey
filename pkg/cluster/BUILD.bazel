@@ -3,13 +3,13 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "cluster",
     srcs = [
+        "ambassador.go",
         "cluster.go",
         "config.go",
         "delegate_lan.go",
         "delegate_wan.go",
         "discovery.go",
         "doc.go",
-        "ambassador.go",
         "message.go",
         "mux.go",
         "noop.go",
@@ -27,8 +27,8 @@ go_library(
 go_test(
     name = "cluster_test",
     srcs = [
-        "cluster_test.go",
         "ambassador_test.go",
+        "cluster_test.go",
         "mux_test.go",
     ],
     embed = [":cluster"],
