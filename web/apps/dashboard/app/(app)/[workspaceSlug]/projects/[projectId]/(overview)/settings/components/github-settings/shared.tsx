@@ -11,11 +11,11 @@ export const GitHubSettingCard = ({
   chevronState: ChevronState;
 }) => (
   <SettingCard
-    className="px-4 py-[18px]"
+    className="px-4 py-[18px] "
     icon={<Github className="text-gray-12" iconSize="xl-regular" />}
     title="Repository"
     description="Source repository for this deployment"
-    border="both"
+    border="top"
     contentWidth="w-full lg:w-[320px] justify-end"
     expandable={expandable}
     chevronState={chevronState}
