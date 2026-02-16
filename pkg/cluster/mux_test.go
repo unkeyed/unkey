@@ -3,9 +3,9 @@ package cluster
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
-	"github.com/stretchr/testify/require"
 )
 
 func cacheInvalidationMessage(cacheName, cacheKey string) *clusterv1.ClusterMessage {

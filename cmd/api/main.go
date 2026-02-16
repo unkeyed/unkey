@@ -188,11 +188,11 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		VaultToken: cmd.String("vault-token"),
 
 		// Gossip cluster configuration
-		GossipEnabled:  cmd.Bool("gossip-enabled"),
-		GossipBindAddr: cmd.String("gossip-bind-addr"),
-		GossipLANPort:  cmd.Int("gossip-lan-port"),
-		GossipWANPort:  cmd.Int("gossip-wan-port"),
-		GossipLANSeeds: cmd.StringSlice("gossip-lan-seeds"),
+		GossipEnabled:   cmd.Bool("gossip-enabled"),
+		GossipBindAddr:  cmd.String("gossip-bind-addr"),
+		GossipLANPort:   cmd.Int("gossip-lan-port"),
+		GossipWANPort:   cmd.Int("gossip-wan-port"),
+		GossipLANSeeds:  cmd.StringSlice("gossip-lan-seeds"),
 		GossipWANSeeds:  cmd.StringSlice("gossip-wan-seeds"),
 		GossipSecretKey: cmd.String("gossip-secret-key"),
 
