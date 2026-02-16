@@ -3,8 +3,9 @@ package main
 import (
 	"bytes"
 	"go/format"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func renderAndValidate(t *testing.T, data fileData) string {
@@ -37,17 +38,18 @@ func TestTemplateOutput_Unary(t *testing.T) {
 		},
 	}
 
-	output := renderAndValidate(t, data)
-
-	if !strings.Contains(output, "resp.Msg") {
-		t.Error("unary method should contain resp.Msg unwrapping")
-	}
-	if !strings.Contains(output, "(*v1.GetItemResponse, error)") {
-		t.Error("unary interface method should return plain proto response")
-	}
-	if strings.Contains(output, "ServerStreamForClient") {
-		t.Error("unary-only output should not contain ServerStreamForClient")
-	}
+	t.Run("unwraps response via resp.Msg", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, "resp.Msg")
+	})
+	t.Run("returns plain proto response type", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, "(*v1.GetItemResponse, error)")
+	})
+	t.Run("does not contain ServerStreamForClient", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.NotContains(t, output, "ServerStreamForClient")
+	})
 }
 
 func TestTemplateOutput_ServerStream(t *testing.T) {
@@ -67,17 +69,18 @@ func TestTemplateOutput_ServerStream(t *testing.T) {
 		},
 	}
 
-	output := renderAndValidate(t, data)
-
-	if !strings.Contains(output, "ServerStreamForClient[v1.EventState]") {
-		t.Error("streaming interface method should contain ServerStreamForClient in signature")
-	}
-	if !strings.Contains(output, "return c.inner.WatchEvents(ctx, connect.NewRequest(req))") {
-		t.Error("streaming adapter should directly return the inner call")
-	}
-	if strings.Contains(output, "resp.Msg") {
-		t.Error("streaming output should not contain resp.Msg unwrapping")
-	}
+	t.Run("signature contains ServerStreamForClient", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, "ServerStreamForClient[v1.EventState]")
+	})
+	t.Run("adapter directly returns inner call", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, "return c.inner.WatchEvents(ctx, connect.NewRequest(req))")
+	})
+	t.Run("does not contain resp.Msg unwrapping", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.NotContains(t, output, "resp.Msg")
+	})
 }
 
 func TestTemplateOutput_Mixed(t *testing.T) {
@@ -98,15 +101,16 @@ func TestTemplateOutput_Mixed(t *testing.T) {
 		},
 	}
 
-	output := renderAndValidate(t, data)
-
-	if !strings.Contains(output, "ServerStreamForClient[v1.ItemState]") {
-		t.Error("mixed output should contain ServerStreamForClient for streaming method")
-	}
-	if !strings.Contains(output, "resp.Msg") {
-		t.Error("mixed output should contain resp.Msg for unary method")
-	}
-	if !strings.Contains(output, "return c.inner.WatchItems(ctx, connect.NewRequest(req))") {
-		t.Error("streaming adapter should directly return the inner call")
-	}
+	t.Run("contains ServerStreamForClient for streaming method", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, "ServerStreamForClient[v1.ItemState]")
+	})
+	t.Run("contains resp.Msg for unary method", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, "resp.Msg")
+	})
+	t.Run("streaming adapter directly returns inner call", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, "return c.inner.WatchItems(ctx, connect.NewRequest(req))")
+	})
 }

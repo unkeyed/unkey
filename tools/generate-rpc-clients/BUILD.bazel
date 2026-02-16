@@ -26,4 +26,5 @@ go_test(
         "template_test.go",
     ],
     embed = [":generate-rpc-clients_lib"],
+    deps = ["@com_github_stretchr_testify//require"],
 )

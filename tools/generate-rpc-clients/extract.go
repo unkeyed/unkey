@@ -7,15 +7,13 @@ import (
 )
 
 // findProtoImport finds the proto messages import (e.g. "github.com/.../vault/v1")
-// by looking for an import that matches the module path pattern and is NOT the connect package.
+// by looking for an import whose path contains "gen/proto/" and does NOT end in "connect"
+// (which would be the connect service package, not the message package).
 func findProtoImport(f *ast.File) (alias, path string) {
 	for _, imp := range f.Imports {
 		importPath := strings.Trim(imp.Path.Value, `"`)
 
-		// Skip stdlib, connect runtime, and connect service packages.
-		if !strings.Contains(importPath, "/") ||
-			importPath == "connectrpc.com/connect" ||
-			strings.Contains(importPath, "net/http") ||
+		if !strings.Contains(importPath, "gen/proto/") ||
 			strings.HasSuffix(importPath, "connect") {
 			continue
 		}

@@ -5,6 +5,8 @@ import (
 	"go/parser"
 	"go/token"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func parseSource(t *testing.T, src string) *ast.File {
@@ -17,54 +19,43 @@ func parseSource(t *testing.T, src string) *ast.File {
 	return f
 }
 
-func TestFindProtoImport_Named(t *testing.T) {
-	src := `package fooconnect
-
+func TestFindProtoImport(t *testing.T) {
+	cases := []struct {
+		name, src, wantAlias, wantPath string
+	}{
+		{"named", `package fooconnect
 import (
 	v1 "github.com/example/gen/proto/foo/v1"
 	"connectrpc.com/connect"
 )
-`
-	f := parseSource(t, src)
-	alias, path := findProtoImport(f)
-	if alias != "v1" {
-		t.Errorf("alias = %q, want %q", alias, "v1")
-	}
-	if path != "github.com/example/gen/proto/foo/v1" {
-		t.Errorf("path = %q, want %q", path, "github.com/example/gen/proto/foo/v1")
-	}
-}
-
-func TestFindProtoImport_Unnamed(t *testing.T) {
-	src := `package barconnect
-
+`, "v1", "github.com/example/gen/proto/foo/v1"},
+		{"unnamed", `package barconnect
 import (
 	"github.com/example/gen/proto/bar/v1"
 	"connectrpc.com/connect"
 )
-`
-	f := parseSource(t, src)
-	alias, path := findProtoImport(f)
-	if alias != "v1" {
-		t.Errorf("alias = %q, want %q", alias, "v1")
-	}
-	if path != "github.com/example/gen/proto/bar/v1" {
-		t.Errorf("path = %q, want %q", path, "github.com/example/gen/proto/bar/v1")
-	}
-}
-
-func TestFindProtoImport_NoMatch(t *testing.T) {
-	src := `package fooconnect
-
+`, "v1", "github.com/example/gen/proto/bar/v1"},
+		{"skips_well_known_proto", `package fooconnect
+import (
+	v1 "github.com/example/gen/proto/foo/v1"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"connectrpc.com/connect"
+)
+`, "v1", "github.com/example/gen/proto/foo/v1"},
+		{"no_match", `package fooconnect
 import (
 	"connectrpc.com/connect"
 	"net/http"
 )
-`
-	f := parseSource(t, src)
-	alias, path := findProtoImport(f)
-	if alias != "" || path != "" {
-		t.Errorf("expected no match, got alias=%q path=%q", alias, path)
+`, "", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := parseSource(t, tc.src)
+			alias, path := findProtoImport(f)
+			require.Equal(t, tc.wantAlias, alias)
+			require.Equal(t, tc.wantPath, path)
+		})
 	}
 }
 
