@@ -10,7 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	ctrl "github.com/unkeyed/unkey/pkg/rpc/ctrl"
+	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"golang.org/x/net/http2"
 )
 

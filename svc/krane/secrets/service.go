@@ -9,8 +9,8 @@ import (
 	kranev1 "github.com/unkeyed/unkey/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/unkeyed/unkey/svc/krane/secrets/token"

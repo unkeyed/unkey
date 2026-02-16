@@ -16,7 +16,7 @@ go_library(
     visibility = ["//svc/krane:__subpackages__"],
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
-        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/rpc/ctrl",
         "//pkg/assert",
         "//pkg/logger",
         "//pkg/repeat",

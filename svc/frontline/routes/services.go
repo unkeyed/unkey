@@ -1,8 +1,8 @@
 package routes
 
 import (
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/rpc/ctrl"
 	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/services/router"
 )

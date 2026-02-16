@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
-	ctrl "github.com/unkeyed/unkey/pkg/rpc/ctrl"
 	"k8s.io/client-go/kubernetes"
 )
 

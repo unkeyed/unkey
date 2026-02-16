@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/rpc/ctrl"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 )
 
 var _ ctrl.DeployServiceClient = (*MockDeploymentClient)(nil)

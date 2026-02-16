@@ -3,7 +3,7 @@ package cilium
 import (
 	"context"
 
-	ctrl "github.com/unkeyed/unkey/pkg/rpc/ctrl"
+	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )

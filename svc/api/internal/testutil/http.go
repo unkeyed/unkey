@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -24,7 +25,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"

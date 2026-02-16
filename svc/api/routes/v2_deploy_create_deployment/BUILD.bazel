@@ -7,12 +7,12 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
+        "//gen/rpc/ctrl",
         "//internal/services/keys",
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
         "//pkg/rbac",
-        "//pkg/rpc/ctrl",
         "//pkg/zen",
         "//svc/api/internal/ctrlclient",
         "//svc/api/openapi",

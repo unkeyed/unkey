@@ -12,6 +12,8 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/vault/v1:vault",
+        "//gen/rpc/ctrl",
+        "//gen/rpc/vault",
         "//internal/services/analytics",
         "//internal/services/auditlogs",
         "//internal/services/caches",
@@ -24,8 +26,6 @@ go_library(
         "//pkg/db",
         "//pkg/dockertest",
         "//pkg/rbac",
-        "//pkg/rpc/ctrl",
-        "//pkg/rpc/vault",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "//pkg/zen",

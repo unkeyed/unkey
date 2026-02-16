@@ -7,6 +7,7 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -16,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )

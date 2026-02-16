@@ -10,12 +10,12 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 

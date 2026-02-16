@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"

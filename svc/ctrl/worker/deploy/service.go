@@ -2,9 +2,9 @@ package deploy
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/rpc/vault"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
