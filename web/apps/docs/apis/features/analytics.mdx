@@ -1,209 +1,42 @@
 ---
 title: Analytics
-description: 'Track usage per key, per API, and with custom tags'
+description: 'Query your verification data with SQL'
 ---
 
-Unkey provides analytics at multiple levels — see overall API usage, drill down into individual keys, and use tags to segment data however you need.
+<Warning>
+**Analytics has moved.** This page describes the legacy dashboard analytics.
 
-## What you can track
+For the new SQL-based analytics, see [**Analytics Overview**](/analytics/overview).
+</Warning>
 
-<CardGroup cols={2}>
-  <Card title="API-level metrics" icon="chart-line">
-    Total verifications, active keys, usage trends across your entire API.
-  </Card>
-  <Card title="Key-level metrics" icon="key">
-    Per-key usage, success/failure rates, geographic distribution.
-  </Card>
-  <Card title="Custom tags" icon="tags">
-    Add context to verifications: endpoint, resource, version, region.
-  </Card>
-  <Card title="Identity tracking" icon="user">
-    Track usage across multiple keys for the same user.
-  </Card>
-</CardGroup>
+## Overview
 
-## Per-API analytics
+Unkey Analytics provides a powerful SQL interface to query your API key verification data. Instead of building your own analytics pipeline, you can leverage Unkey's built-in data warehouse to:
 
-The dashboard shows aggregate metrics for each API:
+- **Build custom dashboards** for internal teams or end-users
+- **Power usage-based billing** by querying verification counts per user/organization
+- **Generate reports** on API usage patterns, top users, and performance metrics
+- **Monitor and alert** on verification outcomes, rate limits, and errors
 
-- **Total keys**: How many keys exist for this API
-- **Active keys**: Keys used in the last 30 days
-- **Verifications**: Total verification requests over time
-- **Success/failure rates**: Valid vs invalid/expired/rate-limited
+<Card title="Get Started with Analytics" icon="chart-line" href="/analytics/overview">
+  Learn how to query your verification data using SQL
+</Card>
 
-<Frame caption="Per API Analytics">
-  <img src="/images/per-api-analytics.png" alt="Per API Analytics"/>
-</Frame>
+## What's Available
 
-## Per-key analytics
+The new Analytics platform includes:
 
-Drill into individual keys to see:
-
-- **Usage over time**: Verification volume by day/hour
-- **Geographic distribution**: Where requests originate
-- **Response codes**: Success, rate limited, expired, etc.
-- **Remaining credits**: If using usage limits
-
-<Frame caption="Per Key Analytics">
-  <img src="/images/per-key-analytics.png" alt="Per key analytics"/>
-</Frame>
-
-## Tags: Custom dimensions
-
-Tags let you add context to verification requests. Later, you can filter and aggregate analytics by these tags.
-
-### Example use cases
-
-- **By endpoint**: `path=/v1/posts.create` — see which endpoints are most used
-- **By resource**: `postId=post_123` — track access to specific resources
-- **By version**: `apiVersion=2.1.0` — compare usage across versions
-- **By region**: `region=us-east-1` — geographic breakdown
-
-### Adding tags to verification
-
-Include up to 10 tags per verification request:
-
-<CodeGroup>
-
-```bash cURL
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -d '{
-    "key": "sk_...",
-    "tags": [
-      "path=/v1/posts.create",
-      "postId=post_abc123",
-      "region=us-east-1"
-    ]
-  }'
-```
-
-```typescript TypeScript
-try {
-  const { meta, data } = await verifyKey({
-    key: "sk_...",
-    apiId: "api_...",
-    tags: [
-      "path=/v1/posts.create",
-      "postId=post_abc123",
-      "region=us-east-1",
-    ],
-  });
-
-  if (!data.valid) {
-    return Response.json({ error: data.code }, { status: 401 });
-  }
-} catch (err) {
-  console.error(err);
-  return Response.json({ error: "Internal error" }, { status: 500 });
-}
-```
-
-</CodeGroup>
-
-### Tag format
-
-Tags are arbitrary strings. Unkey doesn't parse them, but we recommend key-value format for consistency:
-
-```
-key=value
-key:value
-```
-
-**Limits:**
-- Up to 10 tags per request
-- Each tag: 1-128 characters
-
-### Tag naming conventions
-
-Pick a convention and stick with it:
-
-```typescript
-// Good: consistent key=value format
-const tags = [
-  "endpoint=/v1/users",
-  "method=POST",
-  "version=2024-01",
-];
-
-// Also good: namespaced
-const tags = [
-  "api.endpoint=/v1/users",
-  "api.method=POST",
-  "deploy.sha=abc123",
-];
-```
-
-## Identity-level analytics
-
-When keys are linked to an [identity](/concepts/identities/overview), you can track usage across all keys belonging to that identity. This is useful when users have multiple keys (e.g., different environments or applications).
-
-```typescript
-try {
-  const { meta, data } = await unkey.keys.create({
-    apiId: "api_...",
-    identity: {
-      externalId: "user_123",  // Links to this user
-    },
-  });
-  console.log(data.keyId);
-} catch (err) {
-  console.error(err);
-  return Response.json({ error: "Internal error" }, { status: 500 });
-}
-```
-
-Now analytics can be viewed per-user, aggregating all their keys.
-
-## Querying analytics
-
-Analytics can be queried via the API for building custom dashboards:
-
-```typescript
-// Get verification stats for a key
-try {
-  const { meta, data } = await unkey.analytics.getKeyStats({
-    keyId: "key_...",
-    start: Date.now() - 30 * 24 * 60 * 60 * 1000, // Last 30 days
-    end: Date.now(),
-  });
-  console.log(data);
-} catch (err) {
-  console.error(err);
-  return Response.json({ error: "Internal error" }, { status: 500 });
-}
-```
+- **SQL querying** of verification data
+- **Time-series aggregations** (minute, hour, day, month tables)
+- **Automatic filtering** by workspace and API
+- **Custom dashboards** and reporting
 
 <Note>
-We're working on a v2 analytics API with advanced SQL querying capabilities. Contact us if you're interested in early access.
+Analytics is currently in private beta. See [Getting Started](/analytics/getting-started) for access instructions.
 </Note>
 
-## Common patterns
+## Legacy Dashboard Analytics
 
-### Finding your top users
+The dashboard-based analytics (per-API and per-key metrics) are being migrated to the new Analytics platform. For now, you can still view basic metrics in your [dashboard](https://app.unkey.com).
 
-Query keys sorted by verification count to identify power users or potential abuse.
-
-### Tracking feature adoption
-
-Tag verifications with feature names to see which features are most used:
-
-```typescript
-const tags = data.meta?.features ?? [];
-// tags: ["feature=export", "feature=bulk-upload"]
-```
-
-### Billing and usage reports
-
-Combine verification counts with custom costs to generate accurate usage reports for billing.
-
-## Next steps
-
-<CardGroup cols={2}>
-  <Card title="Usage limits" icon="calculator" href="/apis/features/remaining">
-    Cap total requests and track remaining credits
-  </Card>
-  <Card title="Identities" icon="user" href="/concepts/identities/overview">
-    Group keys by user for aggregate analytics
-  </Card>
-</CardGroup>
+For detailed analytics, use the [new SQL-based Analytics](/analytics/overview).

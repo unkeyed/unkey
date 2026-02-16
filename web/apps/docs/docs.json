@@ -151,7 +151,6 @@
               "apis/features/remaining",
               "apis/features/refill",
               "apis/features/temp-keys",
-              "apis/features/analytics",
               {
                 "group": "Authorization",
                 "pages": [
@@ -512,6 +511,10 @@
     {
       "destination": "/api-reference/v1/migration/index",
       "source": "/api-reference/v1/liveness"
+    },
+    {
+      "destination": "/analytics/overview",
+      "source": "/apis/features/analytics"
     },
     {
       "destination": "/docs/apis/features/authorization/introduction",
