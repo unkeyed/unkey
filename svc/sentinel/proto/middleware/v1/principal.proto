@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// Principal is the authenticated entity produced by any authentication policy.
+//
+// This message is the composition seam that decouples authentication from
+// everything else. Authentication policies (KeyAuth, JWTAuth, BasicAuth) each
+// verify credentials in their own way, but they all produce the same Principal
+// output. Downstream policies — RateLimit for per-subject or per-claim
+// throttling — consume the Principal without knowing or caring which auth
+// method created it.
+//
+// The name "Principal" rather than "User" is deliberate. The authenticated
+// entity might be a human user, an API key representing a service, or an
+// OAuth token from a third-party integration. "Principal" captures all of
+// these without implying a specific identity model.
+//
+// Each authn policy populates the Principal differently:
+//
+//   KeyAuth:    subject = key owner ID or key ID, claims = key metadata
+//   JWTAuth:    subject = value of subject_claim (default "sub"), claims = forwarded JWT claims
+//   BasicAuth:  subject = username, claims = empty
+//
+// Only one Principal exists per request. If multiple authn policies match a
+// request, the first successful one wins and later authn policies are skipped.
+// This prevents ambiguity about which identity is "the" authenticated entity.
+message Principal {
+  // The authenticated identity string. What this contains depends on the authn
+  // method: a user ID from a JWT sub claim, an Unkey key owner ID, or a
+  // username from Basic auth. Downstream policies use this as the primary
+  // identity key for rate limiting and audit logging.
+  string subject = 1;
+
+  // Which authentication method produced this principal. This allows
+  // downstream policies to make auth-method-aware decisions if needed (for
+  // example, applying different rate limits to API key vs JWT authentication),
+  // though most policies treat all principal types identically.
+  PrincipalType type = 2;
+
+  // Arbitrary key-value metadata from the authentication source. JWTAuth
+  // populates this with forwarded token claims (org_id, plan, role, etc.).
+  // KeyAuth populates it with key metadata from Unkey. BasicAuth leaves it
+  // empty since that protocol carries no additional claims.
+  //
+  // The map uses string values rather than a richer type because claims are
+  // primarily consumed by RateLimit (via PrincipalClaimKey) and log
+  // enrichment, both of which operate on strings. Complex claim values
+  // (arrays, nested objects) are JSON-encoded.
+  map<string, string> claims = 3;
+}
+
+// PrincipalType identifies which authentication method produced a [Principal].
+// This enum has a value for each authn policy type in the middleware schema.
+enum PrincipalType {
+  PRINCIPAL_TYPE_UNSPECIFIED = 0;
+  // Produced by [KeyAuth]. The subject is an Unkey key owner or key ID.
+  PRINCIPAL_TYPE_API_KEY = 1;
+  // Produced by [JWTAuth]. The subject is a JWT claim value.
+  PRINCIPAL_TYPE_JWT = 2;
+  // Produced by [BasicAuth]. The subject is the HTTP Basic username.
+  PRINCIPAL_TYPE_BASIC = 3;
+}
+

@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// RateLimit enforces request rate limits at the gateway, protecting upstream
+// services from being overwhelmed by traffic spikes, abusive clients, or
+// misconfigured integrations.
+//
+// Rate limiting at the proxy layer rather than in application code ensures
+// consistent enforcement across all endpoints. It also means the upstream
+// never sees the excess traffic, which matters for cost-sensitive services
+// and APIs with expensive backend operations.
+//
+// Sentinel delegates rate limit state to Unkey's distributed rate limiting
+// service, which provides consistent counts across multiple sentinel
+// instances. This is critical for horizontally scaled deployments where
+// per-instance counters would allow N times the intended rate.
+message RateLimit {
+  // Maximum number of requests allowed within the window. When the count
+  // within the current window exceeds this value, subsequent requests are
+  // rejected with 429 Too Many Requests.
+  int64 limit = 1;
+
+  // The time window in milliseconds over which the limit is enforced.
+  // For example, limit=100 with window_ms=60000 means "100 requests per
+  // minute".
+  int64 window_ms = 2;
+
+  // How to derive the rate limit key — the identity of "who" is being
+  // limited. This determines whether limits are per-IP, per-header-value,
+  // per-authenticated-subject, or per-claim. Choosing the right key source
+  // is critical: IP-based limiting can be defeated by proxies and NAT,
+  // header-based limiting relies on client-supplied values, and subject-based
+  // limiting requires an upstream authn policy to have produced a [Principal].
+  RateLimitKey key = 3;
+}
+
+// RateLimitKey determines how sentinel identifies the entity being rate
+// limited. The choice of key source fundamentally changes the limiting
+// behavior, so it should match the threat model and use case.
+message RateLimitKey {
+  oneof source {
+    // Limit by the client's IP address. Effective for anonymous traffic and
+    // DDoS protection, but can over-limit legitimate users behind shared
+    // NATs or corporate proxies where many clients share a single IP.
+    // The client IP is derived using the trusted proxy configuration in
+    // [Middleware.trusted_proxy_cidrs].
+    RemoteIpKey remote_ip = 1;
+    // Limit by the value of a specific request header. Useful for
+    // pre-authenticated traffic where a trusted upstream has already
+    // identified the caller via a header like X-Tenant-Id. Since clients
+    // can set arbitrary headers, this should only be used when sentinel is
+    // behind a trusted proxy that sets the header.
+    HeaderKey header = 2;
+    // Limit by the [Principal] subject produced by an upstream authn policy.
+    // This is the most accurate key source for authenticated APIs because
+    // it limits each authenticated identity independently, regardless of
+    // how many IPs or devices they use. Requires a [KeyAuth], [JWTAuth],
+    // or [BasicAuth] policy earlier in the policy list.
+    AuthenticatedSubjectKey authenticated_subject = 3;
+    // Limit by the request URL path. Creates a separate rate limit bucket
+    // per path, useful for protecting specific expensive endpoints without
+    // needing a separate policy per route.
+    PathKey path = 4;
+    // Limit by a specific claim from the [Principal]. This enables
+    // per-organization or per-tenant rate limiting when the identity claim
+    // is more granular than what you want to throttle. For example, using
+    // claim_name "org_id" creates a shared rate limit bucket for all users
+    // within the same organization, regardless of which individual subject
+    // authenticated. Requires a [Principal] with the named claim present
+    // in its claims map.
+    PrincipalClaimKey principal_claim = 5;
+  }
+}
+
+// RemoteIpKey derives the rate limit key from the client's IP address.
+message RemoteIpKey {}
+
+// HeaderKey derives the rate limit key from a request header value.
+message HeaderKey {
+  // The header name to read, e.g. "X-Tenant-Id". If the header is absent,
+  // the request is rate limited under a shared "unknown" bucket.
+  string name = 1;
+}
+
+// AuthenticatedSubjectKey derives the rate limit key from the [Principal]
+// subject. If no Principal exists (no authn policy matched or all authn
+// policies allowed anonymous access), the request is rate limited under a
+// shared anonymous bucket.
+message AuthenticatedSubjectKey {}
+
+// PathKey derives the rate limit key from the request URL path.
+message PathKey {}
+
+// PrincipalClaimKey derives the rate limit key from a named claim in the
+// [Principal]'s claims map. If the claim is absent or the Principal does
+// not exist, the request is rate limited under a shared "unknown" bucket.
+message PrincipalClaimKey {
+  // The claim name to read from [Principal].claims, e.g. "org_id" or
+  // "plan". The claim value becomes the rate limit bucket key.
+  string claim_name = 1;
+}

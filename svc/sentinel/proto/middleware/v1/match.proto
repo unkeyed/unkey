@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// MatchExpr tests a single property of an incoming HTTP request.
+//
+// A Policy carries a repeated list of MatchExpr. All entries must match for
+// the policy to run (implicit AND). An empty list matches all requests.
+//
+// If you need OR semantics, create multiple policies with the same config
+// and different match lists. This is simpler to reason about than a recursive
+// expression tree, and covers the vast majority of real-world routing needs.
+// Combinators (And/Or/Not) can be added later as new oneof branches without
+// breaking the wire format.
+message MatchExpr {
+  oneof expr {
+    PathMatch path = 1;
+    MethodMatch method = 2;
+    HeaderMatch header = 3;
+    QueryParamMatch query_param = 4;
+  }
+}
+
+// StringMatch is the shared string matching primitive used by all leaf
+// matchers that compare against string values (paths, header values, query
+// parameter values). Centralizing matching logic in one message ensures
+// consistent behavior across all matchers and avoids duplicating regex
+// validation, case folding, and prefix logic.
+//
+// Exactly one of exact, prefix, or regex must be set. When ignore_case is
+// true, comparison is performed after Unicode case folding for exact and
+// prefix matches. For regex matches, ignore_case prepends (?i) to the
+// pattern.
+message StringMatch {
+  // When true, matching is case-insensitive. Applied to all match modes.
+  bool ignore_case = 1;
+
+  oneof match {
+    // The string must equal this value exactly (after optional case folding).
+    string exact = 2;
+    // The string must start with this prefix (after optional case folding).
+    string prefix = 3;
+    // The string must match this RE2-compatible regular expression. RE2 is
+    // required (not PCRE) because Go's regexp package uses RE2, which
+    // guarantees linear-time matching and is safe for user-provided patterns.
+    // See https://github.com/google/re2/wiki/Syntax for the full syntax.
+    string regex = 4;
+  }
+}
+
+// PathMatch tests the URL path of the incoming request. The path is compared
+// without the query string — use [QueryParamMatch] to match query parameters
+// separately. Leading slashes are preserved, so patterns should include them
+// (e.g., prefix "/api/v1" not "api/v1").
+message PathMatch {
+  StringMatch path = 1;
+}
+
+// MethodMatch tests the HTTP method of the incoming request. Comparison is
+// always case-insensitive per the HTTP specification, regardless of the
+// StringMatch ignore_case setting. The methods list is an OR — the request
+// matches if its method equals any entry.
+message MethodMatch {
+  // HTTP methods to match against, e.g. ["GET", "POST"]. The match succeeds
+  // if the request method equals any of these values (case-insensitive).
+  repeated string methods = 1;
+}
+
+// HeaderMatch tests a request header by name and optionally by value. Header
+// names are always matched case-insensitively per HTTP semantics (RFC 7230).
+//
+// When the request contains multiple values for the same header name (either
+// via repeated headers or comma-separated values), the match succeeds if any
+// single value satisfies the condition. This follows the principle of least
+// surprise for operators who may not know whether their clients send headers
+// as separate entries or comma-delimited lists.
+message HeaderMatch {
+  // The header name to match, e.g. "X-API-Version" or "Content-Type".
+  // Matched case-insensitively.
+  string name = 1;
+
+  oneof match {
+    // When set to true, the match succeeds if the header is present in the
+    // request, regardless of its value. Useful for policies that should only
+    // apply to requests carrying a specific header (e.g., match requests
+    // with an Authorization header to apply auth policies).
+    bool present = 2;
+    // Match against the header value(s) using a [StringMatch]. If the header
+    // has multiple values, the match succeeds if any value satisfies the
+    // StringMatch condition.
+    StringMatch value = 3;
+  }
+}
+
+// QueryParamMatch tests a URL query parameter by name and optionally by
+// value. Query parameter names are matched case-sensitively (per the URI
+// specification), unlike header names.
+//
+// When the same parameter appears multiple times in the query string (e.g.,
+// ?tag=a&tag=b), the match succeeds if any occurrence satisfies the
+// condition.
+message QueryParamMatch {
+  // The query parameter name to match, e.g. "version" or "debug".
+  string name = 1;
+
+  oneof match {
+    // When set to true, the match succeeds if the query parameter is present,
+    // regardless of its value. Useful for feature-flag-style routing (e.g.,
+    // match requests with ?debug to apply verbose access logging).
+    bool present = 2;
+    // Match against the parameter value(s) using a [StringMatch].
+    StringMatch value = 3;
+  }
+}

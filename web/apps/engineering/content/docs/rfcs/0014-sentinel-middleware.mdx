@@ -1,0 +1,176 @@
+---
+title: 0014 Sentinel Middleware
+description: Composable HTTP middleware schema for Sentinel, Unkey's reverse proxy.
+date: 2026-02-16
+authors:
+  - Andreas Thomas
+---
+
+Sentinel is Unkey's reverse proxy. It sits in front of customer deployments and applies a configurable list of policies to every HTTP request before forwarding it to the upstream. This RFC defines the middleware schema as protobuf configuration.
+
+The proto files live in `svc/sentinel/proto/middleware/v1/`. This document covers the architecture of the middleware system, not individual policy types — read the proto files for policy-specific documentation.
+
+## Three Core Abstractions
+
+The entire system is built on three concepts. Everything else follows from how they compose.
+
+### Policy
+
+A Policy is the unit of composition. It pairs _what to do_ (the `oneof config` — a rate limiter, an auth check, an IP allowlist, etc.) with _when to do it_ (a `MatchExpr`). This separation is the key design decision: policies know nothing about request routing, and the match system knows nothing about policy behavior. A rate limiter doesn't need "apply only to POST" logic because that's handled by the match expression wrapping it.
+
+Each Policy also carries an `id` (stable identifier for logs/metrics/debugging), a `name` (human label), and an `enabled` flag. The enabled flag exists for operational control — during incidents, operators can disable a misbehaving policy without deleting its configuration or triggering a redeploy.
+
+```
+Policy {
+    id,
+    name,
+    enabled,
+    match: MatchExpr       ← which requests
+    config: oneof { ... }  ← what to do
+}
+```
+
+### MatchExpr
+
+A Policy carries a `repeated MatchExpr` — a flat list of conditions that are implicitly ANDed. All entries must match for the policy to run. An empty list matches all requests, which is the common case for global policies like IP allowlists or rate limiting.
+
+Each MatchExpr tests a single request property: path, method, header, or query parameter. All string matching goes through a shared `StringMatch` message (exact, prefix, or RE2 regex, with optional case folding).
+
+For OR semantics, create multiple policies with the same config and different match lists. This is simpler to reason about than a recursive expression tree and covers the vast majority of real-world routing needs.
+
+### Principal
+
+Principal is the composition seam between authentication and everything downstream. All authn policy types (KeyAuth, JWTAuth, BasicAuth) verify credentials in their own way, but they all produce the same output: a Principal with a `subject` (string identity), a `type` (which auth method produced it), and `claims` (key-value metadata from the auth source).
+
+Downstream policies consume the Principal without knowing or caring which auth method created it. RateLimit (with `authenticated_subject` or `principal_claim` key) throttles per-subject or per-claim. KeyAuth can enforce Unkey permissions via its `permission_query` field. This decoupling is what makes it possible to swap auth methods (e.g., migrate from API keys to JWT) without touching any other policy configuration.
+
+The name "Principal" rather than "User" is deliberate — the authenticated entity might be a person, an API key, a service certificate, or an OAuth client.
+
+```
+         ┌──────────┐
+         │ KeyAuth  │──┐
+         ├──────────┤  │     ┌───────────┐     ┌───────────┐
+         │ JWTAuth  │──┼────▶│ Principal │────▶│ RateLimit │
+         ├──────────┤  │     │           │     │ IPRules   │
+         │BasicAuth │──┘     │ subject   │     │ ...       │
+                             │ type      │     └───────────┘
+                             │ claims    │
+                             └───────────┘
+            authn              shared             consumers
+           (produce)          contract            (consume)
+```
+
+Only one Principal exists per request. If multiple authn policies match, the first successful one wins.
+
+### Principal Forwarding
+
+After all policies execute, if a Principal exists, sentinel forwards the subject and claims as JSON in the `X-Unkey-Principal` request header. The type field is not forwarded — it is an internal detail useful for sentinel's own logging and policy evaluation, but meaningless to the upstream. Sentinel always strips any client-supplied `X-Unkey-Principal` header before policy evaluation, preventing spoofing.
+
+The security model is network-level: the upstream must only be reachable through sentinel. This is the same trust model as Envoy, nginx, and every service mesh sidecar. No cryptographic signing is needed because sentinel controls the network path. If a request reaches the upstream, it came through sentinel, and the header is trustworthy.
+
+When no Principal exists (anonymous request), the header is absent. The upstream checks for header presence to distinguish authenticated from anonymous requests.
+
+Example: a request authenticated with an Unkey API key that has no identity attached. The key ID becomes the subject and key metadata flows into claims:
+
+```json
+{
+  "subject": "<key_id>",
+  "claims": {
+    "key_id": "<key_id>",
+    "name": "<string>",
+    "meta": {},
+    ...
+  }
+}
+
+```
+
+Example: a request authenticated with an Unkey API key that has an identity. The identity's external ID becomes the subject, and both key and identity metadata are available in claims:
+
+```json
+{
+  "subject": "<external_id>",
+  "claims": {
+    "keyId": "<string>",
+    "name": "<string>",
+    "meta": {},
+    "identity": {
+      "id": "<string>",
+      "externalId": "<string>",
+      "meta": {},
+      ...
+    },
+  ...
+  }
+}
+```
+
+For local development without sentinel, developers set the header manually (`-H 'X-Unkey-Principal: {"subject":"test"}'`) or omit it entirely for anonymous behavior. No key management or token generation required. At some point we should make it easy to run a sentinel in devmode as proxy.
+
+## Request Evaluation
+
+Sentinel is not a router. It registers a single catch-all route. When a request arrives:
+
+1. Load the deployment's `Middleware` config (a `repeated Policy` list).
+2. For each policy, in list order:
+   - Skip if `enabled == false`.
+   - Evaluate the `repeated MatchExpr` against the request. Skip if any condition doesn't match.
+   - Execute the policy. It can short-circuit (reject) or continue to the next policy.
+3. If all matching policies pass, forward the request to the upstream.
+
+**List order is execution order.** The field numbers in the `oneof config` have no effect on runtime behavior.
+
+The operator has full control over execution order. Authn policies should come before policies that need a Principal. But these are conventions, not constraints — the engine doesn't enforce them.
+
+## Error Responses
+
+When a policy rejects a request, sentinel returns a fixed JSON response using the same RFC 7807 Problem Details format as the Unkey API (see `svc/api/openapi/spec/error/BaseError.yaml`). The response body is not configurable — every rejection uses the same structure:
+
+```json
+{
+  "meta": { "requestId": "req_abc123" },
+  "error": {
+    "title": "Unauthorized",
+    "detail": "API key is invalid or expired",
+    "status": 401,
+    "type": "https://unkey.com/docs/errors/sentinel/unauthorized"
+  }
+}
+```
+
+Each policy maps to a standard HTTP status code: KeyAuth/JWTAuth/BasicAuth → 401 for missing/invalid credentials, 403 for insufficient permissions (KeyAuth `permission_query`), RateLimit → 429, IPRules → 403, OpenAPI validation → 400. The `detail` field provides a human-readable explanation specific to the rejection reason. The `type` URI is stable per error kind and suitable for programmatic handling.
+
+Custom error responses are not supported in this version. Status codes are what API clients branch on, and the RFC 7807 format is a widely supported standard. If customization becomes necessary, it can be added as a per-status-code template on Middleware without breaking existing behavior.
+
+## Adding a New Policy Type
+
+1. Create a new `.proto` file in `svc/sentinel/proto/middleware/v1/` with the policy's configuration message.
+2. Import it in `middleware.proto` and add a field to the `oneof config` block.
+3. Implement the policy's execution logic in Go, conforming to the same interface as existing policies: receive the request context (which may contain a Principal), optionally short-circuit, or call next.
+4. If the policy is an authn method, it must produce a Principal. If it depends on authentication, it should read the Principal from context and reject if absent.
+
+No changes to the match system, evaluation engine, or other policies are needed. This is the benefit of the Policy/MatchExpr/Principal separation — new policies compose with the existing system without modification.
+
+## Schema Conventions
+
+- **Durations as int64 milliseconds**: All time fields use `int64` milliseconds (e.g., `window_ms`, `clock_skew_ms`, `jwks_cache_ms`). No `google.protobuf.Duration` — consistent with the rest of the Unkey proto codebase.
+- **Policy-internal filtering vs. MatchExpr**: Some policies have their own filtering fields that are not redundant with MatchExpr. MatchExpr controls whether the policy _runs_. Internal fields control the policy's _behavior_ once running.
+- **Client IP derivation**: All client-IP-dependent behavior (IPRules, RateLimit with RemoteIpKey) uses the client IP derived from `Middleware.trusted_proxy_cidrs`. This is resolved once per request, not per policy.
+
+## Proto Location
+
+```
+svc/sentinel/proto/middleware/v1/
+├── middleware.proto       ← Middleware + Policy (top-level container)
+├── match.proto            ← MatchExpr expression tree
+├── principal.proto        ← Principal (shared authn output)
+├── keyauth.proto          ← individual policy configs...
+├── jwtauth.proto
+├── basicauth.proto
+├── ratelimit.proto
+├── iprules.proto
+├── openapi.proto
+```
+
+Package: `sentinel.v1`
+Go import: `github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1`
