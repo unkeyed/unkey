@@ -29,6 +29,12 @@ post:
           schema:
             $ref: "../../../error/BadRequestErrorResponse.yaml"
       description: Invalid request body or malformed events
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/TooManyRequestsErrorResponse.yaml"
     "529":
       content:
         application/json:

@@ -93,6 +93,12 @@ post:
                   detail: No override found for the specified identifier in this namespace.
                   status: 404
                   type: not_found
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
     "500":
       description: Internal Server Error
       content:

@@ -2,13 +2,10 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
-	"strings"
 
-	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
-	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -25,22 +22,8 @@ type (
 
 // Handler implements zen.Route interface for the v2 ratelimit get override endpoint
 type Handler struct {
-	DB                      db.Database
-	Keys                    keys.KeyService
-	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
-}
-
-// decodeOverrides safely decodes JSON bytes into override slice with proper error handling
-func decodeOverrides(data any) ([]db.FindRatelimitNamespaceLimitOverride, error) {
-	overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
-	if overrideBytes, ok := data.([]byte); ok && overrideBytes != nil {
-		if err := json.Unmarshal(overrideBytes, &overrides); err != nil {
-			return nil, fault.Wrap(err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Public("An unexpected error occurred while processing override data."))
-		}
-	}
-	return overrides, nil
+	Keys       keys.KeyService
+	Namespaces namespace.Service
 }
 
 // Method returns the HTTP method this route responds to
@@ -66,65 +49,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	namespace, hit, err := h.RatelimitNamespaceCache.SWR(ctx,
-		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
-		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
-			var response db.FindRatelimitNamespaceRow
-			response, err = db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Namespace:   req.Namespace,
-			})
-			if err != nil {
-				return db.FindRatelimitNamespace{}, err
-			}
-
-			result := db.FindRatelimitNamespace{
-				ID:                response.ID,
-				WorkspaceID:       response.WorkspaceID,
-				Name:              response.Name,
-				CreatedAtM:        response.CreatedAtM,
-				UpdatedAtM:        response.UpdatedAtM,
-				DeletedAtM:        response.DeletedAtM,
-				DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
-			}
-
-			var overrides []db.FindRatelimitNamespaceLimitOverride
-			overrides, err = decodeOverrides(response.Overrides)
-			if err != nil {
-				return result, err
-			}
-
-			for _, override := range overrides {
-				result.DirectOverrides[override.Identifier] = override
-				if strings.Contains(override.Identifier, "*") {
-					result.WildcardOverrides = append(result.WildcardOverrides, override)
-				}
-			}
-
-			return result, nil
-		}, caches.DefaultFindFirstOp)
+	ns, found, err := h.Namespaces.Get(ctx, auth.AuthorizedWorkspaceID, req.Namespace)
 	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("namespace was deleted",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Public("This namespace does not exist."),
-			)
-		}
-
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Public("An unexpected error occurred while fetching the namespace."))
 	}
 
-	if hit == cache.Null {
-		return fault.New("namespace cache null",
+	if !found {
+		return fault.New("namespace not found",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 			fault.Public("This namespace does not exist."),
 		)
 	}
 
-	if namespace.DeletedAtM.Valid {
+	if ns.DeletedAtM.Valid {
 		return fault.New("namespace was deleted",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 			fault.Public("This namespace does not exist."),
@@ -134,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
-			ResourceID:   namespace.ID,
+			ResourceID:   ns.ID,
 			Action:       rbac.ReadOverride,
 		}),
 		rbac.T(rbac.Tuple{
@@ -147,7 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	override, found, err := matchOverride(req.Identifier, namespace)
+	override, overrideFound, err := matchOverride(req.Identifier, ns)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -155,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if !found {
+	if !overrideFound {
 		return fault.New("override not found",
 			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
 			fault.Public("This override does not exist."),

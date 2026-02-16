@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -59,6 +60,7 @@ type Harness struct {
 	Keys                       keys.KeyService
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
+	Namespaces                 namespace.Service
 	ClickHouse                 clickhouse.ClickHouse
 	Ratelimit                  ratelimit.Service
 	Vault                      vault.VaultServiceClient
@@ -171,6 +173,13 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	namespaceSvc, err := namespace.New(namespace.Config{
+		DB:        db,
+		Cache:     caches.RatelimitNamespace,
+		Auditlogs: audit,
+	})
+	require.NoError(t, err)
+
 	h := Harness{
 		t:                          t,
 		srv:                        srv,
@@ -185,6 +194,7 @@ func NewHarness(t *testing.T) *Harness {
 		Clock:                      clk,
 		AnalyticsConnectionManager: analyticsConnManager,
 		Auditlogs:                  audit,
+		Namespaces:                 namespaceSvc,
 		Caches:                     caches,
 		middleware: []zen.Middleware{
 			zen.WithObservability(),
