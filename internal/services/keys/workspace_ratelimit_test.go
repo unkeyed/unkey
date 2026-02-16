@@ -62,7 +62,7 @@ func TestCheckWorkspaceRateLimit_NilCache(t *testing.T) {
 
 	s := &service{quotaCache: nil}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), "ws_123")
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
 	require.NoError(t, err)
 }
 
@@ -77,7 +77,7 @@ func TestCheckWorkspaceRateLimit_NoQuotaRow(t *testing.T) {
 		},
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), "ws_123")
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
 	require.NoError(t, err)
 }
 
@@ -95,7 +95,7 @@ func TestCheckWorkspaceRateLimit_LimitZero(t *testing.T) {
 		},
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), "ws_123")
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
 	require.NoError(t, err)
 }
 
@@ -113,7 +113,7 @@ func TestCheckWorkspaceRateLimit_DurationZero(t *testing.T) {
 		},
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), "ws_123")
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
 	require.NoError(t, err)
 }
 
@@ -122,7 +122,8 @@ func TestCheckWorkspaceRateLimit_UnderLimit(t *testing.T) {
 
 	rl := &mockRateLimiter{
 		fn: func(_ context.Context, req ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error) {
-			require.Equal(t, "__unkey_workspace_api_ratelimit", req.Name)
+			// Without a namespace service, falls back to the constant name
+			require.Equal(t, "workspace.ratelimit", req.Name)
 			require.Equal(t, "ws_123", req.Identifier)
 			require.Equal(t, int64(100), req.Limit)
 			require.Equal(t, 60*time.Second, req.Duration)
@@ -148,7 +149,7 @@ func TestCheckWorkspaceRateLimit_UnderLimit(t *testing.T) {
 		},
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), "ws_123")
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
 	require.NoError(t, err)
 }
 
@@ -177,7 +178,7 @@ func TestCheckWorkspaceRateLimit_OverLimit(t *testing.T) {
 		},
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), "ws_123")
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
 	require.Error(t, err)
 
 	urn, ok := fault.GetCode(err)
@@ -196,7 +197,7 @@ func TestCheckWorkspaceRateLimit_CacheError_FailsOpen(t *testing.T) {
 		},
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), "ws_123")
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
 	require.NoError(t, err)
 }
 
@@ -221,7 +222,7 @@ func TestCheckWorkspaceRateLimit_RateLimiterError_FailsOpen(t *testing.T) {
 		},
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), "ws_123")
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
 	require.NoError(t, err)
 }
 
@@ -239,6 +240,6 @@ func TestCheckWorkspaceRateLimit_NegativeLimit(t *testing.T) {
 		},
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), "ws_123")
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
 	require.NoError(t, err)
 }

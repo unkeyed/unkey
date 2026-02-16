@@ -54,6 +54,12 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/ConflictErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
     "500":
       description: Internal Server Error
       content:

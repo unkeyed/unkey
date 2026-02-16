@@ -3,17 +3,14 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -28,10 +25,10 @@ type (
 )
 
 type Handler struct {
-	DB                      db.Database
-	Keys                    keys.KeyService
-	Auditlogs               auditlogs.AuditLogService
-	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
+	DB         db.Database
+	Keys       keys.KeyService
+	Auditlogs  auditlogs.AuditLogService
+	Namespaces namespace.Service
 }
 
 func (h *Handler) Method() string {
@@ -54,76 +51,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	namespace, hit, err := h.RatelimitNamespaceCache.SWR(
-		ctx,
-		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.Namespace},
-		func(ctx context.Context) (db.FindRatelimitNamespace, error) {
-			result := db.FindRatelimitNamespace{} // nolint:exhaustruct
-			var response db.FindRatelimitNamespaceRow
-			response, err = db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
-				return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Namespace:   req.Namespace,
-				})
-			})
-			if err != nil {
-				return result, err
-			}
-
-			result = db.FindRatelimitNamespace{
-				ID:                response.ID,
-				WorkspaceID:       response.WorkspaceID,
-				Name:              response.Name,
-				CreatedAtM:        response.CreatedAtM,
-				UpdatedAtM:        response.UpdatedAtM,
-				DeletedAtM:        response.DeletedAtM,
-				DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
-			}
-
-			overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
-			if overrideBytes, ok := response.Overrides.([]byte); ok && overrideBytes != nil {
-				err = json.Unmarshal(overrideBytes, &overrides)
-				if err != nil {
-					return result, err
-				}
-			}
-
-			for _, override := range overrides {
-				result.DirectOverrides[override.Identifier] = override
-				if strings.Contains(override.Identifier, "*") {
-					result.WildcardOverrides = append(result.WildcardOverrides, override)
-				}
-			}
-
-			return result, nil
-		},
-		caches.DefaultFindFirstOp,
-	)
+	ns, found, err := h.Namespaces.Get(ctx, auth.AuthorizedWorkspaceID, req.Namespace)
 	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("namespace not found",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"),
-				fault.Public("This namespace does not exist."),
-			)
-		}
-
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Public("An unexpected error occurred while fetching the namespace."),
 		)
 	}
 
-	if namespace.DeletedAtM.Valid {
-		return fault.New("namespace deleted",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace deleted"),
-			fault.Public("This namespace does not exist."),
-		)
-	}
-
-	if hit == cache.Null {
+	if !found {
 		return fault.New("namespace not found",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 			fault.Internal("namespace not found"),
@@ -131,10 +67,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	if ns.DeletedAtM.Valid {
+		return fault.New("namespace deleted",
+			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
+			fault.Internal("namespace deleted"),
+			fault.Public("This namespace does not exist."),
+		)
+	}
+
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
-			ResourceID:   namespace.ID,
+			ResourceID:   ns.ID,
 			Action:       rbac.DeleteOverride,
 		}),
 		rbac.T(rbac.Tuple{
@@ -147,7 +91,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	override, ok := namespace.DirectOverrides[req.Identifier]
+	override, ok := ns.DirectOverrides[req.Identifier]
 	if !ok {
 		return fault.New("override not found",
 			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
@@ -189,9 +133,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Meta:        nil,
 					},
 					{
-						ID:          namespace.ID,
-						Name:        namespace.Name,
-						DisplayName: namespace.Name,
+						ID:          ns.ID,
+						Name:        ns.Name,
+						DisplayName: ns.Name,
 						Type:        auditlog.RatelimitNamespaceResourceType,
 						Meta:        nil,
 					},
@@ -208,17 +152,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.RatelimitNamespaceCache.Remove(
-		ctx,
-		cache.ScopedKey{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Key:         namespace.ID,
-		},
-		cache.ScopedKey{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Key:         namespace.Name,
-		},
-	)
+	h.Namespaces.Invalidate(ctx, auth.AuthorizedWorkspaceID, ns)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

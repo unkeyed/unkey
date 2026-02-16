@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -63,6 +64,9 @@ type Services struct {
 	// PprofPassword is the HTTP basic auth password for pprof endpoints.
 	// Required when PprofEnabled is true.
 	PprofPassword string
+
+	// Namespaces provides ratelimit namespace lookup, creation, and cache management.
+	Namespaces namespace.Service
 
 	// UsageLimiter tracks and enforces usage limits on API keys.
 	UsageLimiter usagelimiter.Service

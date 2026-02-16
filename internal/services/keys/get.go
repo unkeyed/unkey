@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -63,7 +65,13 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
 	sess.WorkspaceID = key.AuthorizedWorkspaceID
 
-	if err := s.checkWorkspaceRateLimit(ctx, key.AuthorizedWorkspaceID); err != nil {
+	if err := s.checkWorkspaceRateLimit(ctx, sess, key.AuthorizedWorkspaceID, &namespace.AuditContext{
+		ActorID:   key.Key.ID,
+		ActorName: key.Key.Name.String,
+		ActorType: auditlog.RootKeyActor,
+		RemoteIP:  sess.Location(),
+		UserAgent: sess.UserAgent(),
+	}); err != nil {
 		return nil, log, err
 	}
 

@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -252,15 +253,25 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
 
+	namespaceSvc, err := namespace.New(namespace.Config{
+		DB:        db,
+		Cache:     caches.RatelimitNamespace,
+		Auditlogs: auditlogSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create namespace service: %w", err)
+	}
+
 	keySvc, err := keys.New(keys.Config{
-		DB:           db,
-		KeyCache:     caches.VerificationKeyByHash,
-		QuotaCache:   caches.WorkspaceQuota,
-		RateLimiter:  rlSvc,
-		RBAC:         rbac.New(),
-		Clickhouse:   ch,
-		Region:       cfg.Region,
-		UsageLimiter: ulSvc,
+		DB:               db,
+		KeyCache:         caches.VerificationKeyByHash,
+		QuotaCache:       caches.WorkspaceQuota,
+		RateLimiter:      rlSvc,
+		RBAC:             rbac.New(),
+		Clickhouse:       ch,
+		Region:           cfg.Region,
+		UsageLimiter:     ulSvc,
+		NamespaceService: namespaceSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -316,6 +327,7 @@ func Run(ctx context.Context, cfg Config) error {
 		PprofEnabled:               cfg.Pprof != nil,
 		PprofUsername:              pprofUsername,
 		PprofPassword:              pprofPassword,
+		Namespaces:                 namespaceSvc,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
 	},

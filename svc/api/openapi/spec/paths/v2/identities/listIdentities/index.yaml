@@ -93,6 +93,12 @@ post:
                   detail: Your root key requires the 'identity.*.read_identity' permission to perform this operation
                   status: 403
                   type: forbidden
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
     "500":
       description: Internal Server Error
       content:

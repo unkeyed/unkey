@@ -2,18 +2,14 @@ package v2_ratelimit_multi_limit
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -23,7 +19,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -35,13 +30,11 @@ type (
 
 // Handler implements zen.Route interface for the v2 ratelimit multiLimit endpoint
 type Handler struct {
-	Keys                    keys.KeyService
-	DB                      db.Database
-	ClickHouse              clickhouse.Bufferer
-	Ratelimit               ratelimit.Service
-	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
-	Auditlogs               auditlogs.AuditLogService
-	TestMode                bool
+	Keys       keys.KeyService
+	ClickHouse clickhouse.Bufferer
+	Ratelimit  ratelimit.Service
+	Namespaces namespace.Service
+	TestMode   bool
 }
 
 // Method returns the HTTP method this route responds to
@@ -67,82 +60,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Collect unique namespaces and build cache keys
-	uniqueNamespaces := make(map[string]bool)
+	// Collect unique namespace names
+	uniqueNames := make(map[string]bool)
 	for _, check := range req {
-		uniqueNamespaces[check.Namespace] = true
+		uniqueNames[check.Namespace] = true
+	}
+	names := make([]string, 0, len(uniqueNames))
+	for name := range uniqueNames {
+		names = append(names, name)
 	}
 
-	cacheKeys := make([]cache.ScopedKey, 0, len(uniqueNamespaces))
-	for ns := range uniqueNamespaces {
-		cacheKeys = append(cacheKeys, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns})
-	}
-
-	// Batch load all namespaces using SWRMany
-	namespaceLoader := func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindRatelimitNamespace, error) {
-		if len(keys) == 0 {
-			return map[cache.ScopedKey]db.FindRatelimitNamespace{}, nil
-		}
-
-		results := make(map[cache.ScopedKey]db.FindRatelimitNamespace)
-		namespaces := make([]string, 0, len(keys))
-		for _, key := range keys {
-			namespaces = append(namespaces, key.Key)
-		}
-
-		// Fetch all namespaces in a single batch query with overrides included
-		rows, err := db.WithRetryContext(ctx, func() ([]db.FindManyRatelimitNamespacesRow, error) {
-			return db.Query.FindManyRatelimitNamespaces(ctx, h.DB.RO(), db.FindManyRatelimitNamespacesParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Namespaces:  namespaces,
-			})
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		for _, row := range rows {
-			result := db.FindRatelimitNamespace{
-				ID:                row.ID,
-				WorkspaceID:       row.WorkspaceID,
-				Name:              row.Name,
-				CreatedAtM:        row.CreatedAtM,
-				UpdatedAtM:        row.UpdatedAtM,
-				DeletedAtM:        row.DeletedAtM,
-				DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
-			}
-
-			overrides, err := db.UnmarshalNullableJSONTo[[]db.FindRatelimitNamespaceLimitOverride](row.Overrides)
-			if err != nil {
-				logger.Error("failed to unmarshal overrides", "err", err)
-			}
-
-			for _, override := range overrides {
-				result.DirectOverrides[override.Identifier] = override
-				if strings.Contains(override.Identifier, "*") {
-					result.WildcardOverrides = append(result.WildcardOverrides, override)
-				}
-			}
-
-			// Cache by namespace name
-			nameKey := cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: row.Name}
-			results[nameKey] = result
-
-			// Also cache by namespace ID to support ID-based lookups
-			idKey := cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: row.ID}
-			results[idKey] = result
-		}
-
-		return results, nil
-	}
-
-	namespaces, hits, err := h.RatelimitNamespaceCache.SWRMany(
-		ctx,
-		cacheKeys,
-		namespaceLoader,
-		caches.DefaultFindFirstOp,
-	)
+	// Batch load all namespaces
+	namespaces, missing, err := h.Namespaces.GetMany(ctx, auth.AuthorizedWorkspaceID, names)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -150,44 +79,52 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Collect all missing namespaces
-	missingKeys := make([]cache.ScopedKey, 0)
-	for _, key := range cacheKeys {
-		hit := hits[key]
-		if hit == cache.Null {
-			missingKeys = append(missingKeys, key)
-		}
-	}
-
 	// Auto-create any missing namespaces
-	if len(missingKeys) > 0 {
-		err = h.createMissingNamespaces(ctx, s, auth, missingKeys, namespaces, namespaceLoader)
+	if len(missing) > 0 {
+		err = auth.VerifyRootKey(ctx, keys.WithPermissions(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   "*",
+				Action:       rbac.CreateNamespace,
+			}),
+		))
 		if err != nil {
 			return err
 		}
+
+		created, createErr := h.Namespaces.CreateMany(ctx, auth.AuthorizedWorkspaceID, missing, &namespace.AuditContext{
+			ActorID:   auth.Key.ID,
+			ActorName: auth.Key.Name.String,
+			ActorType: auditlog.RootKeyActor,
+			RemoteIP:  s.Location(),
+			UserAgent: s.UserAgent(),
+		})
+		if createErr != nil {
+			return createErr
+		}
+
+		for name, ns := range created {
+			namespaces[name] = ns
+		}
 	}
 
-	// Verify permissions for rate limiting - user needs either wildcard OR ALL specific namespace permissions
-	// Build a list of all specific namespace permissions from the request
+	// Verify permissions for rate limiting
 	requiredPerms := make([]rbac.PermissionQuery, 0, len(req))
 	for _, check := range req {
-		cacheKey := cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: check.Namespace}
-		namespace := namespaces[cacheKey]
+		ns := namespaces[check.Namespace]
 		requiredPerms = append(requiredPerms, rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
-			ResourceID:   namespace.ID,
+			ResourceID:   ns.ID,
 			Action:       rbac.Limit,
 		}))
 	}
 
-	// Create wildcard permission
 	wildcardPermission := rbac.T(rbac.Tuple{
 		ResourceType: rbac.Ratelimit,
 		ResourceID:   "*",
 		Action:       rbac.Limit,
 	})
 
-	// User needs EITHER wildcard permission OR ALL specific namespace permissions
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(wildcardPermission, rbac.And(requiredPerms...))))
 	if err != nil {
 		return err
@@ -210,10 +147,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	for i, check := range req {
-		cacheKey := cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: check.Namespace}
-		namespace := namespaces[cacheKey]
+		ns := namespaces[check.Namespace]
 
-		if namespace.DeletedAtM.Valid {
+		if ns.DeletedAtM.Valid {
 			return fault.New("namespace was deleted",
 				fault.Code(codes.Data.RatelimitNamespace.Gone.URN()),
 				fault.Public("This namespace has been deleted. Contact support to restore."),
@@ -221,9 +157,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Apply override if found, otherwise use request values
-		limit, duration, overrideID, err := getLimitAndDuration(check, namespace)
-		if err != nil {
-			return fault.Wrap(err,
+		limit, duration, overrideID, matchErr := getLimitAndDuration(check, ns)
+		if matchErr != nil {
+			return fault.Wrap(matchErr,
 				fault.Code(codes.App.Internal.UnexpectedError.URN()),
 				fault.Internal("error matching overrides"),
 				fault.Public("Error matching ratelimit override"),
@@ -231,7 +167,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		ratelimitReqs[i] = ratelimit.RatelimitRequest{
-			Name:       namespace.ID,
+			Name:       ns.ID,
 			Identifier: check.Identifier,
 			Duration:   time.Duration(duration) * time.Millisecond,
 			Limit:      limit,
@@ -241,7 +177,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		checkMetadata[i] = checkMeta{
 			namespaceName: check.Namespace,
-			namespaceID:   namespace.ID,
+			namespaceID:   ns.ID,
 			identifier:    check.Identifier,
 			overrideID:    overrideID,
 			limit:         limit,
@@ -309,145 +245,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limits: limits,
 		},
 	})
-}
-
-func (h *Handler) createMissingNamespaces(
-	ctx context.Context,
-	s *zen.Session,
-	auth *keys.KeyVerifier,
-	missingKeys []cache.ScopedKey,
-	namespaces map[cache.ScopedKey]db.FindRatelimitNamespace,
-	namespaceLoader func(context.Context, []cache.ScopedKey) (map[cache.ScopedKey]db.FindRatelimitNamespace, error),
-) error {
-	// Verify permission to create namespace once for all missing namespaces
-	err := auth.VerifyRootKey(ctx, keys.WithPermissions(
-		rbac.T(
-			rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   "*",
-				Action:       rbac.CreateNamespace,
-			},
-		),
-	))
-	if err != nil {
-		return err
-	}
-
-	createdNamespaces, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (map[cache.ScopedKey]db.FindRatelimitNamespace, error) {
-		now := time.Now().UnixMilli()
-		created := make(map[cache.ScopedKey]db.FindRatelimitNamespace)
-
-		// Prepare bulk insert params
-		insertParams := make([]db.InsertRatelimitNamespaceParams, 0, len(missingKeys))
-		auditLogs := make([]auditlog.AuditLog, 0, len(missingKeys))
-		keyToID := make(map[cache.ScopedKey]string, len(missingKeys))
-
-		for _, key := range missingKeys {
-			id := uid.New(uid.RatelimitNamespacePrefix)
-			keyToID[key] = id
-
-			insertParams = append(insertParams, db.InsertRatelimitNamespaceParams{
-				ID:          id,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Name:        key.Key,
-				CreatedAt:   now,
-			})
-
-			// Collect audit log for this namespace
-			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.RatelimitNamespaceCreateEvent,
-				Display:     "Created ratelimit namespace " + key.Key,
-				ActorID:     auth.Key.ID,
-				ActorName:   auth.Key.Name.String,
-				ActorMeta:   map[string]any{},
-				ActorType:   auditlog.RootKeyActor,
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
-				Resources: []auditlog.AuditLogResource{
-					{
-						ID:          id,
-						Type:        auditlog.RatelimitNamespaceResourceType,
-						Meta:        nil,
-						Name:        key.Key,
-						DisplayName: key.Key,
-					},
-				},
-			})
-		}
-
-		// Bulk insert all namespaces in a single query
-		err := db.BulkQuery.InsertRatelimitNamespaces(ctx, tx, insertParams)
-		if err != nil && !db.IsDuplicateKeyError(err) {
-			return nil, fault.Wrap(err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Public("An unexpected error occurred while creating the namespaces."),
-			)
-		}
-
-		// If successful (no race condition), build the created map
-		if err == nil {
-			for _, key := range missingKeys {
-				id := keyToID[key]
-				created[key] = db.FindRatelimitNamespace{
-					ID:                id,
-					WorkspaceID:       auth.AuthorizedWorkspaceID,
-					Name:              key.Key,
-					CreatedAtM:        now,
-					UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
-					DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},
-					DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-					WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
-				}
-			}
-
-			// Batch insert all audit logs
-			if len(auditLogs) > 0 {
-				err := h.Auditlogs.Insert(ctx, tx, auditLogs)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-		// If duplicate key error, return empty map - we'll fetch after transaction
-
-		return created, nil
-	})
-	if err != nil {
-		return err
-	}
-
-	// Handle any race condition cases by fetching them
-	for _, key := range missingKeys {
-		if ns, ok := createdNamespaces[key]; ok {
-			namespaces[key] = ns
-			// Cache by both name and ID
-			h.RatelimitNamespaceCache.Set(ctx, key, ns)
-			idKey := cache.ScopedKey{WorkspaceID: key.WorkspaceID, Key: ns.ID}
-			h.RatelimitNamespaceCache.Set(ctx, idKey, ns)
-		} else {
-			// Namespace was created by another request, fetch it
-			loader, err := namespaceLoader(ctx, []cache.ScopedKey{key})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.UnexpectedError.URN()),
-					fault.Public("Failed to fetch namespace after race condition."),
-				)
-			}
-
-			if ns, ok := loader[key]; ok {
-				namespaces[key] = ns
-				// Cache by both name and ID
-				h.RatelimitNamespaceCache.Set(ctx, key, ns)
-				idKey := cache.ScopedKey{WorkspaceID: key.WorkspaceID, Key: ns.ID}
-				h.RatelimitNamespaceCache.Set(ctx, idKey, ns)
-			} else {
-				return fault.New("namespace not found after duplicate key error")
-			}
-		}
-	}
-
-	return nil
 }
 
 type checkMeta struct {
