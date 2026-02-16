@@ -6,7 +6,6 @@ go_library(
         "common.go",
         "config.go",
         "doc.go",
-        "schema.go",
         "tags.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/config",
@@ -14,7 +13,6 @@ go_library(
     deps = [
         "//pkg/fault",
         "@com_github_burntsushi_toml//:toml",
-        "@in_gopkg_yaml_v3//:yaml_v3",
     ],
 )
 
