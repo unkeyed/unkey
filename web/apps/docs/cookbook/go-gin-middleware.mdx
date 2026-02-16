@@ -136,8 +136,15 @@ func RequireRole(role string) gin.HandlerFunc {
 
 // GetUnkeyResult retrieves the Unkey verification result from context
 func GetUnkeyResult(c *gin.Context) *components.V2KeysVerifyKeyResponseBody {
-    result, _ := c.Get("unkey")
-    return result.(*components.V2KeysVerifyKeyResponseBody)
+    result, ok := c.Get("unkey")
+    if !ok {
+        return nil
+    }
+    r, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+    if !ok {
+        return nil
+    }
+    return r
 }
 
 // Usage example

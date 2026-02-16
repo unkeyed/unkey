@@ -18,19 +18,20 @@ unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 
 @app.get("/api/data")
 async def get_data(x_api_key: str = Header(..., alias="X-API-Key")):
-    # First verify the key
-    verify_result = unkey.keys.verify_key(key=x_api_key)
-    
-    if not verify_result.valid:
-        raise HTTPException(status_code=401, detail=verify_result.code)
-    
-    # Check rate limit
-    ratelimit_result = unkey.ratelimits.limit(
-        namespace="api",
-        identifier=verify_result.key_id,
-        limit=100,
-        duration=60000,  # 100 requests per minute
-    )
+    # First verify the key using async API
+    async with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as client:
+        verify_result = await client.keys.verify_key_async(key=x_api_key)
+        
+        if not verify_result.valid:
+            raise HTTPException(status_code=401, detail=verify_result.code)
+        
+        # Check rate limit using async API
+        ratelimit_result = await client.ratelimits.limit_async(
+            namespace="api",
+            identifier=verify_result.key_id,
+            limit=100,
+            duration=60000,  # 100 requests per minute
+        )
     
     if not ratelimit_result.success:
         raise HTTPException(
@@ -210,8 +211,9 @@ Implement sliding window for smoother rate limiting:
 
 ```python
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse
 from unkey import Unkey
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 
 app = FastAPI()

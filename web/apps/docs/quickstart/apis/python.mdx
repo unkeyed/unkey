@@ -163,6 +163,8 @@ class UnkeyAuthMiddleware:
         return self.get_response(request)
 
 # settings.py
+import os
+
 MIDDLEWARE = [
     # ... other middleware
     'myapp.middleware.unkey_auth.UnkeyAuthMiddleware',
