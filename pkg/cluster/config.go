@@ -13,10 +13,12 @@ type Config struct {
 	// BindAddr is the address to bind memberlist listeners on. Default "0.0.0.0".
 	BindAddr string
 
-	// BindPort is the LAN memberlist port. Default 7946.
+	// BindPort is the LAN memberlist port. Default 0 (ephemeral).
+	// In production, set explicitly (e.g. 7946).
 	BindPort int
 
-	// WANBindPort is the WAN memberlist port (used when this node becomes ambassador). Default 7947.
+	// WANBindPort is the WAN memberlist port (used when this node becomes ambassador). Default 0 (ephemeral).
+	// In production, set explicitly (e.g. 7947).
 	WANBindPort int
 
 	// LANSeeds are addresses of existing LAN cluster members to join (e.g. k8s headless service).

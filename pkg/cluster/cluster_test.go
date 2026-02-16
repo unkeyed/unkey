@@ -23,17 +23,12 @@ func testMessage(key string) *clusterv1.ClusterMessage_CacheInvalidation {
 
 func TestCluster_SingleNode_BroadcastAndReceive(t *testing.T) {
 	var received atomic.Int32
-	var mu sync.Mutex
-	var receivedMsg *clusterv1.ClusterMessage
 
 	c, err := New(Config{
 		Region:   "us-east-1",
 		NodeID:   "test-node-1",
 		BindAddr: "127.0.0.1",
 		OnMessage: func(msg *clusterv1.ClusterMessage) {
-			mu.Lock()
-			receivedMsg = msg
-			mu.Unlock()
 			received.Add(1)
 		},
 	})
@@ -46,8 +41,6 @@ func TestCluster_SingleNode_BroadcastAndReceive(t *testing.T) {
 	}, 2*time.Second, 50*time.Millisecond, "single node should become ambassador")
 
 	require.Len(t, c.Members(), 1, "should have 1 member")
-
-	_ = receivedMsg // used in multi-region tests
 }
 
 func TestCluster_MultiNode_BroadcastDelivery(t *testing.T) {

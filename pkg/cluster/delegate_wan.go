@@ -55,11 +55,19 @@ func (d *wanDelegate) NotifyMsg(data []byte) {
 	}
 
 	// Re-broadcast to the local LAN pool so all nodes in this region receive it.
+	d.cluster.mu.RLock()
+	lanQ := d.cluster.lanQueue
+	d.cluster.mu.RUnlock()
+
+	if lanQ == nil {
+		return
+	}
+
 	msg.Direction = clusterv1.Direction_DIRECTION_WAN
 	lanBytes, err := proto.Marshal(&msg)
 	if err != nil {
 		logger.Warn("Failed to marshal LAN relay message", "error", err)
 		return
 	}
-	d.cluster.lanQueue.QueueBroadcast(newBroadcast(lanBytes))
+	lanQ.QueueBroadcast(newBroadcast(lanBytes))
 }
