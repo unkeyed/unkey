@@ -16,19 +16,20 @@ enum Direction {
 // The oneof field routes the payload to the correct handler via MessageMux.
 message ClusterMessage {
   // Which pool this message was sent on (LAN or WAN).
-  Direction direction = 2;
+  Direction direction = 1;
 
   // The region of the node that originated this message.
-  string source_region = 3;
+  string source_region = 2;
 
   // The node ID that originated this message.
-  string sender_node = 4;
+  string sender_node = 3;
 
   // Unix millisecond timestamp when the message was created.
   // Used to measure transport latency on the receiving end.
-  int64 sent_at_ms = 5;
+  int64 sent_at_ms = 4;
 
   oneof payload {
-    cache.v1.CacheInvalidationEvent cache_invalidation = 1;
+    cache.v1.CacheInvalidationEvent cache_invalidation = 5;
+    // next payload type = 6
   }
 }

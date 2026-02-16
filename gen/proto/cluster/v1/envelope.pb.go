@@ -76,14 +76,14 @@ func (Direction) EnumDescriptor() ([]byte, []int) {
 type ClusterMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Which pool this message was sent on (LAN or WAN).
-	Direction Direction `protobuf:"varint,2,opt,name=direction,proto3,enum=cluster.v1.Direction" json:"direction,omitempty"`
+	Direction Direction `protobuf:"varint,1,opt,name=direction,proto3,enum=cluster.v1.Direction" json:"direction,omitempty"`
 	// The region of the node that originated this message.
-	SourceRegion string `protobuf:"bytes,3,opt,name=source_region,json=sourceRegion,proto3" json:"source_region,omitempty"`
+	SourceRegion string `protobuf:"bytes,2,opt,name=source_region,json=sourceRegion,proto3" json:"source_region,omitempty"`
 	// The node ID that originated this message.
-	SenderNode string `protobuf:"bytes,4,opt,name=sender_node,json=senderNode,proto3" json:"sender_node,omitempty"`
+	SenderNode string `protobuf:"bytes,3,opt,name=sender_node,json=senderNode,proto3" json:"sender_node,omitempty"`
 	// Unix millisecond timestamp when the message was created.
 	// Used to measure transport latency on the receiving end.
-	SentAtMs int64 `protobuf:"varint,5,opt,name=sent_at_ms,json=sentAtMs,proto3" json:"sent_at_ms,omitempty"`
+	SentAtMs int64 `protobuf:"varint,4,opt,name=sent_at_ms,json=sentAtMs,proto3" json:"sent_at_ms,omitempty"`
 	// Types that are valid to be assigned to Payload:
 	//
 	//	*ClusterMessage_CacheInvalidation
@@ -171,7 +171,7 @@ type isClusterMessage_Payload interface {
 }
 
 type ClusterMessage_CacheInvalidation struct {
-	CacheInvalidation *v1.CacheInvalidationEvent `protobuf:"bytes,1,opt,name=cache_invalidation,json=cacheInvalidation,proto3,oneof"`
+	CacheInvalidation *v1.CacheInvalidationEvent `protobuf:"bytes,5,opt,name=cache_invalidation,json=cacheInvalidation,proto3,oneof"` // next payload type = 6
 }
 
 func (*ClusterMessage_CacheInvalidation) isClusterMessage_Payload() {}
@@ -183,13 +183,13 @@ const file_cluster_v1_envelope_proto_rawDesc = "" +
 	"\x19cluster/v1/envelope.proto\x12\n" +
 	"cluster.v1\x1a\x1bcache/v1/invalidation.proto\"\x87\x02\n" +
 	"\x0eClusterMessage\x123\n" +
-	"\tdirection\x18\x02 \x01(\x0e2\x15.cluster.v1.DirectionR\tdirection\x12#\n" +
-	"\rsource_region\x18\x03 \x01(\tR\fsourceRegion\x12\x1f\n" +
-	"\vsender_node\x18\x04 \x01(\tR\n" +
+	"\tdirection\x18\x01 \x01(\x0e2\x15.cluster.v1.DirectionR\tdirection\x12#\n" +
+	"\rsource_region\x18\x02 \x01(\tR\fsourceRegion\x12\x1f\n" +
+	"\vsender_node\x18\x03 \x01(\tR\n" +
 	"senderNode\x12\x1c\n" +
 	"\n" +
-	"sent_at_ms\x18\x05 \x01(\x03R\bsentAtMs\x12Q\n" +
-	"\x12cache_invalidation\x18\x01 \x01(\v2 .cache.v1.CacheInvalidationEventH\x00R\x11cacheInvalidationB\t\n" +
+	"sent_at_ms\x18\x04 \x01(\x03R\bsentAtMs\x12Q\n" +
+	"\x12cache_invalidation\x18\x05 \x01(\v2 .cache.v1.CacheInvalidationEventH\x00R\x11cacheInvalidationB\t\n" +
 	"\apayload*L\n" +
 	"\tDirection\x12\x19\n" +
 	"\x15DIRECTION_UNSPECIFIED\x10\x00\x12\x11\n" +
