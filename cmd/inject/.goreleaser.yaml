@@ -29,21 +29,46 @@ upx:
   - enabled: true
     ids:
       - inject
+    goos:
+      - linux
     compress: best
     lzma: true
 
-kos:
-  - build: inject
-    base_image: cgr.dev/chainguard/busybox:latest
-    repositories:
-      - ghcr.io/unkeyed/inject
-    tags:
-      - "{{ .Version }}"
-      - latest
-    bare: true
-    platforms:
-      - linux/amd64
-      - linux/arm64
+dockers:
+  - id: inject-amd64
+    ids: [inject]
+    goos: linux
+    goarch: amd64
+    use: buildx
+    image_templates:
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-amd64"
+      - "ghcr.io/unkeyed/inject:latest-amd64"
+    dockerfile: cmd/inject/Dockerfile.release
+    build_flag_templates:
+      - "--platform=linux/amd64"
+
+  - id: inject-arm64
+    ids: [inject]
+    goos: linux
+    goarch: arm64
+    use: buildx
+    image_templates:
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-arm64"
+      - "ghcr.io/unkeyed/inject:latest-arm64"
+    dockerfile: cmd/inject/Dockerfile.release
+    build_flag_templates:
+      - "--platform=linux/arm64"
+
+docker_manifests:
+  - name_template: "ghcr.io/unkeyed/inject:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-amd64"
+      - "ghcr.io/unkeyed/inject:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/unkeyed/inject:latest"
+    image_templates:
+      - "ghcr.io/unkeyed/inject:latest-amd64"
+      - "ghcr.io/unkeyed/inject:latest-arm64"
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"

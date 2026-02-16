@@ -8,6 +8,9 @@
 
 version: 2
 
+partial:
+  by: goos
+
 git:
   ignore_tags:
     - "inject/*"
@@ -34,7 +37,7 @@ builds:
       - -X 'github.com/unkeyed/unkey/pkg/version.Version={{.Version}}'
 
 upx:
-  - enabled: false
+  - enabled: true
     ids:
       - unkey
     goos:
@@ -67,15 +70,34 @@ npms:
     repository: "https://github.com/unkeyed/unkey"
     license: "AGPL-3.0-only"
 
-kos:
-  - repositories:
-      - ghcr.io/unkeyed/unkey
-    tags:
-      - "v{{.Version}}"
-    bare: true
-    platforms:
-      - linux/amd64
-      - linux/arm64
+dockers:
+  - id: unkey-amd64
+    ids: [unkey]
+    goos: linux
+    goarch: amd64
+    use: buildx
+    image_templates:
+      - "ghcr.io/unkeyed/unkey:v{{ .Version }}-amd64"
+    dockerfile: Dockerfile.release
+    build_flag_templates:
+      - "--platform=linux/amd64"
+
+  - id: unkey-arm64
+    ids: [unkey]
+    goos: linux
+    goarch: arm64
+    use: buildx
+    image_templates:
+      - "ghcr.io/unkeyed/unkey:v{{ .Version }}-arm64"
+    dockerfile: Dockerfile.release
+    build_flag_templates:
+      - "--platform=linux/arm64"
+
+docker_manifests:
+  - name_template: "ghcr.io/unkeyed/unkey:v{{ .Version }}"
+    image_templates:
+      - "ghcr.io/unkeyed/unkey:v{{ .Version }}-amd64"
+      - "ghcr.io/unkeyed/unkey:v{{ .Version }}-arm64"
 
 changelog:
   use: github

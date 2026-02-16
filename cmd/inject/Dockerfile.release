@@ -1,0 +1,4 @@
+FROM cgr.dev/chainguard/busybox:latest
+COPY inject /inject
+LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
+ENTRYPOINT ["/inject"]
