@@ -1,0 +1,4 @@
+FROM gcr.io/distroless/static-debian12
+ARG TARGETPLATFORM
+COPY ${TARGETPLATFORM}/unkey /unkey
+ENTRYPOINT ["/unkey"]

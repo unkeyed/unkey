@@ -55,7 +55,6 @@ func New(cfg Config) (*service, error) {
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
-			ResponseHeaderTimeout: 40 * time.Second, // Longer than sentinel timeout (30s) to receive its error response
 			// Enable TLS session resumption for faster cross-region forwarding
 			TLSClientConfig: &tls.Config{
 				MinVersion:         tls.VersionTLS12,
@@ -75,9 +74,6 @@ func New(cfg Config) (*service, error) {
 			transport.TLSHandshakeTimeout = cfg.TLSHandshakeTimeout
 		}
 
-		if cfg.ResponseHeaderTimeout > 0 {
-			transport.ResponseHeaderTimeout = cfg.ResponseHeaderTimeout
-		}
 	}
 
 	// Create h2c transport for HTTP/2 cleartext connections to sentinel

@@ -9,12 +9,16 @@ message CacheInvalidationEvent {
   // The name/identifier of the cache to invalidate
   string cache_name = 1;
 
-  // The cache key to invalidate
-  string cache_key = 2;
-
   // Unix millisecond timestamp when the invalidation was triggered
   int64 timestamp = 3;
 
   // Optional: The node that triggered the invalidation (to avoid self-invalidation)
   string source_instance = 4;
+
+  oneof action {
+    // Invalidate a specific cache key
+    string cache_key = 2;
+    // Clear the entire cache
+    bool clear_all = 5;
+  }
 }

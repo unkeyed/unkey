@@ -3,17 +3,21 @@ package frontline
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -105,15 +109,15 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 	}
 
-	var vaultClient vaultv1connect.VaultServiceClient
+	var vaultClient vault.VaultServiceClient
 	if cfg.VaultURL != "" {
-		vaultClient = vaultv1connect.NewVaultServiceClient(
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 			http.DefaultClient,
 			cfg.VaultURL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
 				"Authorization": "Bearer " + cfg.VaultToken,
 			})),
-		)
+		))
 		logger.Info("Vault client initialized", "url", cfg.VaultURL)
 	} else {
 		logger.Warn("Vault not configured - TLS certificate decryption will be unavailable")
@@ -128,13 +132,61 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(db.Close)
 
+	// Initialize gossip-based cache invalidation
+	var broadcaster clustering.Broadcaster
+	if cfg.GossipEnabled {
+		logger.Info("Initializing gossip cluster for cache invalidation",
+			"region", cfg.Region,
+			"instanceID", cfg.FrontlineID,
+		)
+
+		mux := cluster.NewMessageMux()
+
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
+
+		var secretKey []byte
+		if cfg.GossipSecretKey != "" {
+			var decodeErr error
+			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.GossipSecretKey)
+			if decodeErr != nil {
+				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
+			}
+		}
+
+		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Region:      cfg.Region,
+			NodeID:      cfg.FrontlineID,
+			BindAddr:    cfg.GossipBindAddr,
+			BindPort:    cfg.GossipLANPort,
+			WANBindPort: cfg.GossipWANPort,
+			LANSeeds:    lanSeeds,
+			WANSeeds:    wanSeeds,
+			SecretKey:   secretKey,
+			OnMessage:   mux.OnMessage,
+		})
+		if clusterErr != nil {
+			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
+				"error", clusterErr,
+			)
+		} else {
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
+			broadcaster = gossipBroadcaster
+			r.Defer(gossipCluster.Close)
+		}
+	}
+
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
-		Clock: clk,
+		Clock:       clk,
+		Broadcaster: broadcaster,
+		NodeID:      cfg.FrontlineID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
+	r.Defer(cache.Close)
 
 	// Initialize certificate manager for dynamic TLS
 	var certManager certmanager.Service
@@ -203,7 +255,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	acmeClient := ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr)
+	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
 	svcs := &routes.Services{
 		Region:        cfg.Region,
 		RouterService: routerSvc,
@@ -215,12 +267,9 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start HTTPS frontline server (main proxy server)
 	if cfg.HttpsPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
-			TLS: tlsConfig,
-			// Use longer timeouts for proxy operations
-			// WriteTimeout must be longer than the transport's ResponseHeaderTimeout (30s)
-			// so that transport timeouts can be caught and handled properly in ErrorHandler
-			ReadTimeout:        30 * time.Second,
-			WriteTimeout:       60 * time.Second,
+			TLS:                tlsConfig,
+			ReadTimeout:        0,
+			WriteTimeout:       0,
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,

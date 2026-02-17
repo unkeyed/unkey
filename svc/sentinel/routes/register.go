@@ -17,15 +17,12 @@ func Register(srv *zen.Server, svc *Services) {
 	withSentinelLogging := middleware.WithSentinelLogging(svc.ClickHouse, svc.Clock, svc.SentinelID, svc.Region)
 	withProxyErrorHandling := middleware.WithProxyErrorHandling()
 	withLogging := zen.WithLogging()
-	withTimeout := zen.WithTimeout(5 * time.Minute)
-
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withObservability,
 		withSentinelLogging,
 		withProxyErrorHandling,
 		withLogging,
-		withTimeout,
 	}
 
 	srv.RegisterRoute(
@@ -39,10 +36,9 @@ func Register(srv *zen.Server, svc *Services) {
 			Timeout:   10 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
-		MaxIdleConns:          200,
-		MaxIdleConnsPerHost:   50,
-		IdleConnTimeout:       90 * time.Second,
-		ResponseHeaderTimeout: 30 * time.Second,
+		MaxIdleConns:        200,
+		MaxIdleConnsPerHost: 50,
+		IdleConnTimeout:     90 * time.Second,
 	}
 
 	srv.RegisterRoute(
