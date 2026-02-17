@@ -21,7 +21,7 @@ type Config struct {
 
 	KeyCache         cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
 	QuotaCache       cache.Cache[string, db.Quotum]        // Cache for workspace quota lookups
-	NamespaceService namespace.Service                     // Namespace service for workspace rate limiting
+	RatelimitNamespaceService namespace.Service // Ratelimit namespace service for workspace rate limiting
 }
 
 type service struct {
@@ -38,8 +38,8 @@ type service struct {
 	// workspace_id -> quota (for workspace rate limiting)
 	quotaCache cache.Cache[string, db.Quotum]
 
-	// namespaceService provides namespace lookup/creation for workspace rate limiting
-	namespaceService namespace.Service
+	// ratelimitNamespaceService provides namespace lookup/creation for workspace rate limiting
+	ratelimitNamespaceService namespace.Service
 }
 
 // New creates a new keys service instance with the provided configuration.
@@ -54,7 +54,7 @@ func New(config Config) (*service, error) {
 		region:           config.Region,
 		keyCache:         config.KeyCache,
 		quotaCache:       config.QuotaCache,
-		namespaceService: config.NamespaceService,
+		ratelimitNamespaceService: config.RatelimitNamespaceService,
 	}, nil
 }
 

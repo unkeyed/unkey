@@ -1346,8 +1346,8 @@ type Quotum struct {
 	LogsRetentionDays      int32         `db:"logs_retention_days"`
 	AuditLogsRetentionDays int32         `db:"audit_logs_retention_days"`
 	Team                   bool          `db:"team"`
-	RatelimitLimit         sql.NullInt64 `db:"ratelimit_limit"`
-	RatelimitDuration      sql.NullInt64 `db:"ratelimit_duration"`
+	RatelimitLimit         sql.NullInt32 `db:"ratelimit_limit"`
+	RatelimitDuration      sql.NullInt32 `db:"ratelimit_duration"`
 }
 
 type Ratelimit struct {
