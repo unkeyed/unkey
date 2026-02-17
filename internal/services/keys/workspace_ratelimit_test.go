@@ -134,7 +134,7 @@ func TestCheckWorkspaceRateLimit_NullLimit_Unlimited(t *testing.T) {
 		ratelimitNamespaceService: noopNamespaceService(),
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
 	require.NoError(t, err)
 }
 
@@ -150,7 +150,7 @@ func TestCheckWorkspaceRateLimit_NoQuotaRow(t *testing.T) {
 		ratelimitNamespaceService: noopNamespaceService(),
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
 	require.NoError(t, err)
 }
 
@@ -174,7 +174,7 @@ func TestCheckWorkspaceRateLimit_LimitZero_BlocksAll(t *testing.T) {
 		ratelimitNamespaceService: noopNamespaceService(),
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
 	require.Error(t, err)
 
 	urn, ok := fault.GetCode(err)
@@ -207,7 +207,7 @@ func TestCheckWorkspaceRateLimit_UnderLimit(t *testing.T) {
 		ratelimitNamespaceService: noopNamespaceService(),
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
 	require.NoError(t, err)
 }
 
@@ -230,7 +230,7 @@ func TestCheckWorkspaceRateLimit_OverLimit(t *testing.T) {
 		ratelimitNamespaceService: noopNamespaceService(),
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
 	require.Error(t, err)
 
 	urn, ok := fault.GetCode(err)
@@ -250,7 +250,7 @@ func TestCheckWorkspaceRateLimit_CacheError_FailsOpen(t *testing.T) {
 		ratelimitNamespaceService: noopNamespaceService(),
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
 	require.NoError(t, err)
 }
 
@@ -269,6 +269,6 @@ func TestCheckWorkspaceRateLimit_RateLimiterError_FailsOpen(t *testing.T) {
 		ratelimitNamespaceService: noopNamespaceService(),
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", nil)
+	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
 	require.NoError(t, err)
 }
