@@ -29,30 +29,6 @@ type ClickHouseConfig struct {
 	ProxyToken string `toml:"proxy_token"`
 }
 
-// CtrlConfig configures the connection to the CTRL service, which manages
-// deployments and rolling updates across the cluster.
-type CtrlConfig struct {
-	// URL is the CTRL service endpoint.
-	// Example: "http://ctrl-api:7091"
-	URL string `toml:"url"`
-
-	// Token is the bearer token used to authenticate with the CTRL service.
-	Token string `toml:"token"`
-}
-
-// PprofConfig controls the Go pprof profiling endpoints served at /debug/pprof/*.
-// Pprof is enabled when this section is present in the config file and disabled
-// when omitted (the field is a pointer on [Config]).
-type PprofConfig struct {
-	// Username is the Basic Auth username for pprof endpoints. When both
-	// Username and Password are empty, pprof endpoints are served without
-	// authentication — only appropriate in development environments.
-	Username string `toml:"username"`
-
-	// Password is the Basic Auth password for pprof endpoints.
-	Password string `toml:"password"`
-}
-
 // Config holds the complete configuration for the API server. It is designed to
 // be loaded from a TOML file using [config.Load]:
 //
@@ -125,12 +101,12 @@ type Config struct {
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
 	Gossip *config.GossipConfig `toml:"gossip"`
 
-	// Ctrl configures the deployment management service. See [CtrlConfig].
-	Ctrl CtrlConfig `toml:"ctrl"`
+	// Ctrl configures the deployment management service. See [config.CtrlConfig].
+	Ctrl config.CtrlConfig `toml:"ctrl"`
 
-	// Pprof configures Go profiling endpoints. See [PprofConfig].
+	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.
-	Pprof *PprofConfig `toml:"pprof"`
+	Pprof *config.PprofConfig `toml:"pprof"`
 
 	// Listener is a pre-created [net.Listener] for the HTTP server. When set,
 	// the server uses this listener instead of binding to HttpPort. This is

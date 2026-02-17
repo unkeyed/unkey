@@ -94,3 +94,27 @@ type GossipConfig struct {
 	// All cluster nodes must share this key. Generate with: openssl rand -base64 32
 	SecretKey string `toml:"secret_key" config:"required,min=32,max=128"`
 }
+
+// CtrlConfig configures the connection to the CTRL service, which manages
+// deployments and rolling updates across the cluster.
+type CtrlConfig struct {
+	// URL is the CTRL service endpoint.
+	// Example: "http://ctrl-api:7091"
+	URL string `toml:"url"`
+
+	// Token is the bearer token used to authenticate with the CTRL service.
+	Token string `toml:"token"`
+}
+
+// PprofConfig controls the Go pprof profiling endpoints served at /debug/pprof/*.
+// Pprof is enabled when this section is present in the config file and disabled
+// when omitted (the field is a pointer on the Config).
+type PprofConfig struct {
+	// Username is the Basic Auth username for pprof endpoints. When both
+	// Username and Password are empty, pprof endpoints are served without
+	// authentication — only appropriate in development environments.
+	Username string `toml:"username"`
+
+	// Password is the Basic Auth password for pprof endpoints.
+	Password string `toml:"password"`
+}

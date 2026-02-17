@@ -19,16 +19,6 @@ type RegistryConfig struct {
 	Password string `toml:"password"`
 }
 
-// ControlPlaneConfig configures the connection to the control plane that streams
-// deployment and sentinel state to krane agents.
-type ControlPlaneConfig struct {
-	// URL is the control plane endpoint.
-	URL string `toml:"url" config:"default=https://control.unkey.cloud"`
-
-	// Bearer is the authentication token for the control plane API.
-	Bearer string `toml:"bearer" config:"required,nonempty"`
-}
-
 // Config holds the complete configuration for the krane agent. It is designed
 // to be loaded from a TOML file using [config.Load]:
 //
@@ -56,8 +46,8 @@ type Config struct {
 	// Vault configures the secrets decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
 
-	// ControlPlane configures the upstream control plane. See [ControlPlaneConfig].
-	ControlPlane ControlPlaneConfig `toml:"control_plane"`
+	// Ctrl configures the upstream control plane. See [config.CtrlConfig].
+	Ctrl config.CtrlConfig `toml:"ctrl"`
 
 	Observability config.Observability `toml:"observability"`
 

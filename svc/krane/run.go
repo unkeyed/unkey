@@ -95,8 +95,8 @@ func Run(ctx context.Context, cfg Config) error {
 	r.DeferCtx(shutdownGrafana)
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
-		URL:         cfg.ControlPlane.URL,
-		BearerToken: cfg.ControlPlane.Bearer,
+		URL:         cfg.Ctrl.URL,
+		BearerToken: cfg.Ctrl.Token,
 		Region:      cfg.Region,
 	})
 
