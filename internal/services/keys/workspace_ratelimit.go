@@ -61,6 +61,15 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, req WorkspaceRate
 		return nil
 	}
 
+	// 0 = explicitly blocked, no requests allowed
+	if quota.RatelimitLimit.Int32 == 0 {
+		return fault.New("workspace rate limit exceeded",
+			fault.Code(codes.User.TooManyRequests.WorkspaceRateLimited.URN()),
+			fault.Internal("workspace rate limit is zero"),
+			fault.Public("This workspace has exceeded its API rate limit. Please try again later."),
+		)
+	}
+
 	// Resolve real namespace in the root key's workspace for analytics
 	var namespaceID string
 

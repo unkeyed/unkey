@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
+	"golang.org/x/sync/singleflight"
 )
 
 // Config holds the dependencies for creating a new namespace service.
@@ -17,9 +18,10 @@ type Config struct {
 }
 
 type service struct {
-	db        db.Database
-	cache     cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
-	auditlogs auditlogs.AuditLogService
+	db           db.Database
+	cache        cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
+	auditlogs    auditlogs.AuditLogService
+	createFlight singleflight.Group
 }
 
 var _ Service = (*service)(nil)
@@ -35,8 +37,9 @@ func New(cfg Config) (Service, error) {
 	}
 
 	return &service{
-		db:        cfg.DB,
-		cache:     cfg.Cache,
-		auditlogs: cfg.Auditlogs,
+		db:           cfg.DB,
+		cache:        cfg.Cache,
+		auditlogs:    cfg.Auditlogs,
+		createFlight: singleflight.Group{},
 	}, nil
 }

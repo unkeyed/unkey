@@ -13,10 +13,23 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// Create inserts a new namespace into the database. If another request races
-// and creates it first (duplicate key), Create re-fetches from the DB.
+// Create inserts a new namespace into the database. Concurrent creates for the
+// same workspace+name are collapsed via singleflight so only one goroutine
+// hits the DB. If another node races and creates it first (duplicate key),
+// Create re-fetches from the DB.
 // An audit log is always written for successful creation.
 func (s *service) Create(ctx context.Context, workspaceID, name string, audit *AuditContext) (db.FindRatelimitNamespace, error) {
+	key := workspaceID + ":" + name
+	v, err, _ := s.createFlight.Do(key, func() (any, error) {
+		return s.doCreate(ctx, workspaceID, name, audit)
+	})
+	if err != nil {
+		return db.FindRatelimitNamespace{}, err
+	}
+	return v.(db.FindRatelimitNamespace), nil
+}
+
+func (s *service) doCreate(ctx context.Context, workspaceID, name string, audit *AuditContext) (db.FindRatelimitNamespace, error) {
 	ns, err := db.TxWithResultRetry(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
 		now := time.Now().UnixMilli()
 		id := uid.New(uid.RatelimitNamespacePrefix)
