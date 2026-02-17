@@ -15,6 +15,7 @@ import (
     "encoding/json"
     "net/http"
     "os"
+    "slices"
     "strings"
     "time"
 
@@ -96,16 +97,13 @@ func AuthMiddleware(opts ...AuthOption) func(http.Handler) http.Handler {
                 return
             }
 
-            result := res.V2KeysVerifyKeyResponseBody
+            result := res.V2KeysVerifyKeyResponseBody.Data
 
             if !result.Valid {
-                code := "INVALID_KEY"
-                if result.Code != nil {
-                    code = *result.Code
-                }
-                
+                code := string(result.Code)
+
                 w.WriteHeader(http.StatusUnauthorized)
-                json.NewEncoder(w).Encode(map[string]interface{}{
+                json.NewEncoder(w).Encode(map[string]any{
                     "error": "Invalid API key",
                     "code":  code,
                 })
@@ -114,18 +112,14 @@ func AuthMiddleware(opts ...AuthOption) func(http.Handler) http.Handler {
 
             // Build context
             keyCtx := &KeyContext{
-                KeyID: result.KeyID,
-                Meta:  result.Meta,
+                KeyID:       *result.KeyID,
+                Meta:        result.Meta,
+                Permissions: result.Permissions,
+                Roles:       result.Roles,
             }
-            
-            if result.OwnerID != nil {
-                keyCtx.OwnerID = *result.OwnerID
-            }
-            if result.Permissions != nil {
-                keyCtx.Permissions = result.Permissions
-            }
-            if result.Roles != nil {
-                keyCtx.Roles = result.Roles
+
+            if result.Identity != nil {
+                keyCtx.OwnerID = result.Identity.ExternalID
             }
 
             // Store in request context
@@ -185,11 +179,9 @@ func RequirePermission(permission string) func(http.Handler) http.Handler {
                 return
             }
 
-            for _, p := range keyCtx.Permissions {
-                if p == permission {
-                    next.ServeHTTP(w, r)
-                    return
-                }
+            if slices.Contains(keyCtx.Permissions, permission) {
+                next.ServeHTTP(w, r)
+                return
             }
 
             w.WriteHeader(http.StatusForbidden)
@@ -212,14 +204,14 @@ func main() {
     })
 
     // Protected routes
-    mux.Handle("/api/", AuthMiddleware()(http.HandlerFunc(protectedHandler)))
-    
+    mux.Handle("/api/protected", AuthMiddleware()(http.HandlerFunc(protectedHandler)))
+
     // Protected with permission check
     // Compose middleware: AuthMiddleware wraps RequirePermission which wraps the handler
-    mux.Handle("/api/admin/", AuthMiddleware()(RequirePermission("admin:read")(http.HandlerFunc(adminHandler))))
+    mux.Handle("/api/admin", AuthMiddleware()(RequirePermission("admin:read")(http.HandlerFunc(adminHandler))))
 
     // Optional auth
-    mux.Handle("/api/public/", AuthMiddleware(WithOptional())(http.HandlerFunc(optionalAuthHandler)))
+    mux.Handle("/api/public", AuthMiddleware(WithOptional())(http.HandlerFunc(optionalAuthHandler)))
 
     server := &http.Server{
         Addr:         ":8080",
@@ -234,7 +226,7 @@ func main() {
 func protectedHandler(w http.ResponseWriter, r *http.Request) {
     keyCtx, _ := GetKeyContext(r)
     
-    json.NewEncoder(w).Encode(map[string]interface{}{
+    json.NewEncoder(w).Encode(map[string]any{
         "message": "Access granted",
         "key_id":  keyCtx.KeyID,
         "owner":   keyCtx.OwnerID,
@@ -244,7 +236,7 @@ func protectedHandler(w http.ResponseWriter, r *http.Request) {
 func adminHandler(w http.ResponseWriter, r *http.Request) {
     keyCtx, _ := GetKeyContext(r)
     
-    json.NewEncoder(w).Encode(map[string]interface{}{
+    json.NewEncoder(w).Encode(map[string]any{
         "message": "Admin access granted",
         "key_id":  keyCtx.KeyID,
     })
@@ -254,12 +246,12 @@ func optionalAuthHandler(w http.ResponseWriter, r *http.Request) {
     keyCtx, ok := GetKeyContext(r)
     
     if ok {
-        json.NewEncoder(w).Encode(map[string]interface{}{
+        json.NewEncoder(w).Encode(map[string]any{
             "message": "Authenticated access",
             "key_id":  keyCtx.KeyID,
         })
     } else {
-        json.NewEncoder(w).Encode(map[string]string{
+        json.NewEncoder(w).Encode(map[string]any{
             "message": "Anonymous access",
         })
     }
@@ -281,13 +273,29 @@ func optionalAuthHandler(w http.ResponseWriter, r *http.Request) {
 # Start server
 go run main.go
 
-# Test without key
-curl http://localhost:8080/api/data
+# Test protected route without key
+curl http://localhost:8080/api/protected
 # {"error":"Missing API key","code":"MISSING_KEY"}
 
-# Test with valid key
-curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8080/api/data
+# Test protected route with valid key
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8080/api/protected
 # {"message":"Access granted","key_id":"key_..."}
+
+# Test public route (no auth required)
+curl http://localhost:8080/api/public
+# {"message":"Anonymous access"}
+
+# Test public route with auth
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8080/api/public
+# {"message":"Authenticated access","key_id":"key_..."}
+
+# Test admin route without permission
+curl -H "Authorization: Bearer USER_API_KEY" http://localhost:8080/api/admin
+# {"error":"Insufficient permissions","code":"FORBIDDEN","required":"admin:read"}
+
+# Test admin route with permission
+curl -H "Authorization: Bearer ADMIN_API_KEY" http://localhost:8080/api/admin
+# {"message":"Admin access granted","key_id":"key_..."}
 ```
 
 ## Related

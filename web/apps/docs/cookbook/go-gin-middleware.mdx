@@ -13,6 +13,7 @@ package main
 import (
     "net/http"
     "os"
+    "slices"
     "strconv"
     "strings"
 
@@ -57,12 +58,9 @@ func UnkeyAuth() gin.HandlerFunc {
             return
         }
 
-        if !res.V2KeysVerifyKeyResponseBody.Valid {
-            code := "INVALID_KEY"
-            if res.V2KeysVerifyKeyResponseBody.Code != nil {
-                code = *res.V2KeysVerifyKeyResponseBody.Code
-            }
-            
+        if !res.V2KeysVerifyKeyResponseBody.Data.Valid {
+            code := string(res.V2KeysVerifyKeyResponseBody.Data.Code)
+
             c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
                 "error": "Invalid API key",
                 "code":  code,
@@ -71,7 +69,7 @@ func UnkeyAuth() gin.HandlerFunc {
         }
 
         // Store verification result in context (as pointer for type assertion compatibility)
-        c.Set("unkey", &res.V2KeysVerifyKeyResponseBody)
+        c.Set("unkey", &res.V2KeysVerifyKeyResponseBody.Data)
         c.Next()
     }
 }
@@ -88,7 +86,7 @@ func RequirePermission(permission string) gin.HandlerFunc {
             return
         }
 
-        keyResult, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+        keyResult, ok := result.(*components.V2KeysVerifyKeyResponseData)
         if !ok || keyResult == nil {
             c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
                 "error": "Invalid authentication context",
@@ -96,12 +94,10 @@ func RequirePermission(permission string) gin.HandlerFunc {
             })
             return
         }
-        
-        for _, p := range keyResult.Permissions {
-            if p == permission {
-                c.Next()
-                return
-            }
+
+        if slices.Contains(keyResult.Permissions, permission) {
+            c.Next()
+            return
         }
 
         c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
@@ -124,7 +120,7 @@ func RequireRole(role string) gin.HandlerFunc {
             return
         }
 
-        keyResult, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+        keyResult, ok := result.(*components.V2KeysVerifyKeyResponseData)
         if !ok || keyResult == nil {
             c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
                 "error": "Invalid authentication context",
@@ -132,12 +128,10 @@ func RequireRole(role string) gin.HandlerFunc {
             })
             return
         }
-        
-        for _, r := range keyResult.Roles {
-            if r == role {
-                c.Next()
-                return
-            }
+
+        if slices.Contains(keyResult.Roles, role) {
+            c.Next()
+            return
         }
 
         c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
@@ -149,12 +143,12 @@ func RequireRole(role string) gin.HandlerFunc {
 }
 
 // GetUnkeyResult retrieves the Unkey verification result from context
-func GetUnkeyResult(c *gin.Context) *components.V2KeysVerifyKeyResponseBody {
+func GetUnkeyResult(c *gin.Context) *components.V2KeysVerifyKeyResponseData {
     result, ok := c.Get("unkey")
     if !ok {
         return nil
     }
-    r, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+    r, ok := result.(*components.V2KeysVerifyKeyResponseData)
     if !ok {
         return nil
     }
@@ -176,10 +170,14 @@ func main() {
     {
         api.GET("/data", func(c *gin.Context) {
             result := GetUnkeyResult(c)
+            ownerID := ""
+            if result.Identity != nil {
+                ownerID = result.Identity.ExternalID
+            }
             c.JSON(http.StatusOK, gin.H{
                 "message": "Access granted",
-                "key_id":  result.KeyID,
-                "owner":   result.OwnerID,
+                "key_id":  *result.KeyID,
+                "owner":   ownerID,
                 "meta":    result.Meta,
             })
         })
@@ -187,7 +185,7 @@ func main() {
         api.GET("/profile", func(c *gin.Context) {
             result := GetUnkeyResult(c)
             c.JSON(http.StatusOK, gin.H{
-                "key_id": result.KeyID,
+                "key_id": *result.KeyID,
                 "permissions": result.Permissions,
                 "roles": result.Roles,
             })
@@ -224,7 +222,7 @@ Combine with Unkey's rate limiting:
 func RateLimitMiddleware(namespace string) gin.HandlerFunc {
     return func(c *gin.Context) {
         result := GetUnkeyResult(c)
-        
+
         if result == nil {
             c.Next()
             return
@@ -232,11 +230,11 @@ func RateLimitMiddleware(namespace string) gin.HandlerFunc {
 
         // Use the key's built-in rate limits from verification
         // These are already checked during key verification
-        
+
         // Or use standalone rate limit API for custom limits
         res, err := unkeyClient.Ratelimits.Limit(c.Request.Context(), components.V2RatelimitsLimitRequestBody{
             Namespace:  namespace,
-            Identifier: result.KeyID,
+            Identifier: *result.KeyID,
             Limit:      100,
             Duration:   60000, // 100 per minute
         })
@@ -261,7 +259,7 @@ func RateLimitMiddleware(namespace string) gin.HandlerFunc {
         // Add rate limit headers
         c.Header("X-RateLimit-Limit", "100")
         c.Header("X-RateLimit-Remaining", strconv.FormatInt(res.V2RatelimitsLimitResponseBody.Remaining, 10))
-        
+
         c.Next()
     }
 }

@@ -13,6 +13,7 @@ package main
 import (
     "net/http"
     "os"
+    "slices"
     "strings"
 
     "github.com/labstack/echo/v4"
@@ -56,12 +57,9 @@ func UnkeyAuthMiddleware() echo.MiddlewareFunc {
                 })
             }
 
-            if !res.V2KeysVerifyKeyResponseBody.Valid {
-                code := "INVALID_KEY"
-                if res.V2KeysVerifyKeyResponseBody.Code != nil {
-                    code = *res.V2KeysVerifyKeyResponseBody.Code
-                }
-                
+            if !res.V2KeysVerifyKeyResponseBody.Data.Valid {
+                code := string(res.V2KeysVerifyKeyResponseBody.Data.Code)
+
                 return c.JSON(http.StatusUnauthorized, map[string]string{
                     "error": "Invalid API key",
                     "code":  code,
@@ -69,7 +67,7 @@ func UnkeyAuthMiddleware() echo.MiddlewareFunc {
             }
 
             // Store verification result in context
-            c.Set("unkey", res.V2KeysVerifyKeyResponseBody)
+            c.Set("unkey", &res.V2KeysVerifyKeyResponseBody.Data)
             return next(c)
         }
     }
@@ -87,21 +85,19 @@ func RequirePermission(permission string) echo.MiddlewareFunc {
                 })
             }
 
-            keyResult, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+            keyResult, ok := result.(*components.V2KeysVerifyKeyResponseData)
             if !ok || keyResult == nil {
-                return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+                return c.JSON(http.StatusInternalServerError, map[string]any{
                     "error": "Invalid authentication context",
                     "code":  "INTERNAL_ERROR",
                 })
             }
-            
-            for _, p := range keyResult.Permissions {
-                if p == permission {
-                    return next(c)
-                }
+
+            if slices.Contains(keyResult.Permissions, permission) {
+                return next(c)
             }
 
-            return c.JSON(http.StatusForbidden, map[string]interface{}{
+            return c.JSON(http.StatusForbidden, map[string]any{
                 "error":    "Insufficient permissions",
                 "code":     "FORBIDDEN",
                 "required": permission,
@@ -122,15 +118,19 @@ func RequireRole(role string) echo.MiddlewareFunc {
                 })
             }
 
-            keyResult := result.(*components.V2KeysVerifyKeyResponseBody)
-            
-            for _, r := range keyResult.Roles {
-                if r == role {
-                    return next(c)
-                }
+            keyResult, ok := result.(*components.V2KeysVerifyKeyResponseData)
+            if !ok || keyResult == nil {
+                return c.JSON(http.StatusInternalServerError, map[string]any{
+                    "error": "Invalid authentication context",
+                    "code":  "INTERNAL_ERROR",
+                })
             }
 
-            return c.JSON(http.StatusForbidden, map[string]interface{}{
+            if slices.Contains(keyResult.Roles, role) {
+                return next(c)
+            }
+
+            return c.JSON(http.StatusForbidden, map[string]any{
                 "error":    "Insufficient role",
                 "code":     "FORBIDDEN",
                 "required": role,
@@ -140,12 +140,12 @@ func RequireRole(role string) echo.MiddlewareFunc {
 }
 
 // GetUnkeyResult retrieves the Unkey verification result from context
-func GetUnkeyResult(c echo.Context) *components.V2KeysVerifyKeyResponseBody {
-    result, ok := c.Get("unkey")
-    if !ok || result == nil {
+func GetUnkeyResult(c echo.Context) *components.V2KeysVerifyKeyResponseData {
+    result := c.Get("unkey")
+    if result == nil {
         return nil
     }
-    r, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+    r, ok := result.(*components.V2KeysVerifyKeyResponseData)
     if !ok {
         return nil
     }
@@ -171,18 +171,22 @@ func main() {
     {
         api.GET("/data", func(c echo.Context) error {
             result := GetUnkeyResult(c)
-            return c.JSON(http.StatusOK, map[string]interface{}{
+            ownerID := ""
+            if result.Identity != nil {
+                ownerID = result.Identity.ExternalID
+            }
+            return c.JSON(http.StatusOK, map[string]any{
                 "message": "Access granted",
-                "key_id":  result.KeyID,
-                "owner":   result.OwnerID,
+                "key_id":  *result.KeyID,
+                "owner":   ownerID,
                 "meta":    result.Meta,
             })
         })
 
         api.GET("/profile", func(c echo.Context) error {
             result := GetUnkeyResult(c)
-            return c.JSON(http.StatusOK, map[string]interface{}{
-                "key_id":      result.KeyID,
+            return c.JSON(http.StatusOK, map[string]any{
+                "key_id":      *result.KeyID,
                 "permissions": result.Permissions,
                 "roles":       result.Roles,
             })
@@ -194,7 +198,7 @@ func main() {
     admin.Use(UnkeyAuthMiddleware(), RequirePermission("admin:read"))
     {
         admin.GET("/users", func(c echo.Context) error {
-            return c.JSON(http.StatusOK, map[string]interface{}{
+            return c.JSON(http.StatusOK, map[string]any{
                 "message": "Admin access granted",
                 "users":   []string{"user1", "user2"},
             })
@@ -256,13 +260,13 @@ func UnkeyAuthWithConfig(config AuthConfig) echo.MiddlewareFunc {
                 })
             }
 
-            if !res.V2KeysVerifyKeyResponseBody.Valid {
+            if !res.V2KeysVerifyKeyResponseBody.Data.Valid {
                 return c.JSON(http.StatusUnauthorized, map[string]string{
                     "error": "Invalid API key",
                 })
             }
 
-            c.Set("unkey", res.V2KeysVerifyKeyResponseBody)
+            c.Set("unkey", &res.V2KeysVerifyKeyResponseBody.Data)
             return next(c)
         }
     }
@@ -272,9 +276,9 @@ func UnkeyAuthWithConfig(config AuthConfig) echo.MiddlewareFunc {
 e.GET("/api/public", func(c echo.Context) error {
     result := GetUnkeyResult(c)
     if result != nil {
-        return c.JSON(http.StatusOK, map[string]interface{}{
+        return c.JSON(http.StatusOK, map[string]any{
             "message": "Authenticated",
-            "key_id":  result.KeyID,
+            "key_id":  *result.KeyID,
         })
     }
     return c.JSON(http.StatusOK, map[string]string{
