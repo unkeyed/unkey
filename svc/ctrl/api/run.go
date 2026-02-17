@@ -83,7 +83,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize database
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
-		ReadOnlyDSN: "",
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
