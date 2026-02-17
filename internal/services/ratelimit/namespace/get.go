@@ -22,13 +22,13 @@ func (s *service) Get(ctx context.Context, workspaceID, nameOrID string) (db.Fin
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return db.FindRatelimitNamespace{}, false, nil
+			return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
 		}
-		return db.FindRatelimitNamespace{}, false, err
+		return db.FindRatelimitNamespace{}, false, err //nolint:exhaustruct
 	}
 
 	if hit == cache.Null {
-		return db.FindRatelimitNamespace{}, false, nil
+		return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
 	}
 
 	return ns, true, nil

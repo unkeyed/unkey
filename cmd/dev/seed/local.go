@@ -42,13 +42,15 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:           database,
-		RateLimiter:  nil,
-		RBAC:         nil,
-		Clickhouse:   nil,
-		Region:       "local",
-		UsageLimiter: nil,
-		KeyCache:     nil,
+		DB:               database,
+		RateLimiter:      nil,
+		RBAC:             nil,
+		Clickhouse:       nil,
+		Region:           "local",
+		UsageLimiter:     nil,
+		KeyCache:         nil,
+		QuotaCache:       nil,
+		NamespaceService: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
@@ -217,6 +219,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AuditLogsRetentionDays: 30,
 				LogsRetentionDays:      7,
 				Team:                   false,
+				RatelimitLimit:         sql.NullInt64{}, //nolint:exhaustruct
+				RatelimitDuration:      sql.NullInt64{}, //nolint:exhaustruct
 			},
 			{
 				WorkspaceID:            rootWorkspaceID,
@@ -224,6 +228,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AuditLogsRetentionDays: 30,
 				LogsRetentionDays:      7,
 				Team:                   false,
+				RatelimitLimit:         sql.NullInt64{}, //nolint:exhaustruct
+				RatelimitDuration:      sql.NullInt64{}, //nolint:exhaustruct
 			},
 		})
 		if err != nil {

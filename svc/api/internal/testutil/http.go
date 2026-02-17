@@ -139,14 +139,15 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:           db,
-		KeyCache:     caches.VerificationKeyByHash,
-		QuotaCache:   caches.WorkspaceQuota,
-		RateLimiter:  ratelimitService,
-		RBAC:         rbac.New(),
-		Clickhouse:   ch,
-		Region:       "test",
-		UsageLimiter: ulSvc,
+		DB:               db,
+		KeyCache:         caches.VerificationKeyByHash,
+		QuotaCache:       caches.WorkspaceQuota,
+		RateLimiter:      ratelimitService,
+		RBAC:             rbac.New(),
+		Clickhouse:       ch,
+		Region:           "test",
+		UsageLimiter:     ulSvc,
+		NamespaceService: nil,
 	})
 	require.NoError(t, err)
 
@@ -463,6 +464,8 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		AuditLogsRetentionDays: config.RetentionDays,
 		RequestsPerMonth:       1_000_000,
 		Team:                   false,
+		RatelimitLimit:         sql.NullInt64{}, //nolint:exhaustruct
+		RatelimitDuration:      sql.NullInt64{}, //nolint:exhaustruct
 	})
 	require.NoError(h.t, err)
 
