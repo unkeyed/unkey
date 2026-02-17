@@ -48,7 +48,7 @@ func TestLoadBytes_ParsesTOML(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := LoadBytes[cfg]([]byte(tt.input), TOML)
+			got, err := LoadBytes[cfg]([]byte(tt.input))
 			if tt.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.wantErr)
@@ -67,7 +67,7 @@ func TestLoadBytes_AppliesDefaults(t *testing.T) {
 		type cfg struct {
 			Port int `toml:"port" config:"default=8080"`
 		}
-		got, err := LoadBytes[cfg]([]byte(""), TOML)
+		got, err := LoadBytes[cfg]([]byte(""))
 		require.NoError(t, err)
 		require.Equal(t, 8080, got.Port)
 	})
@@ -76,7 +76,7 @@ func TestLoadBytes_AppliesDefaults(t *testing.T) {
 		type cfg struct {
 			Host string `toml:"host" config:"default=localhost"`
 		}
-		got, err := LoadBytes[cfg]([]byte(""), TOML)
+		got, err := LoadBytes[cfg]([]byte(""))
 		require.NoError(t, err)
 		require.Equal(t, "localhost", got.Host)
 	})
@@ -85,7 +85,7 @@ func TestLoadBytes_AppliesDefaults(t *testing.T) {
 		type cfg struct {
 			Rate float64 `toml:"rate" config:"default=0.5"`
 		}
-		got, err := LoadBytes[cfg]([]byte(""), TOML)
+		got, err := LoadBytes[cfg]([]byte(""))
 		require.NoError(t, err)
 		require.InDelta(t, 0.5, got.Rate, 0.001)
 	})
@@ -94,7 +94,7 @@ func TestLoadBytes_AppliesDefaults(t *testing.T) {
 		type cfg struct {
 			Debug bool `toml:"debug" config:"default=true"`
 		}
-		got, err := LoadBytes[cfg]([]byte(""), TOML)
+		got, err := LoadBytes[cfg]([]byte(""))
 		require.NoError(t, err)
 		require.True(t, got.Debug)
 	})
@@ -103,7 +103,7 @@ func TestLoadBytes_AppliesDefaults(t *testing.T) {
 		type cfg struct {
 			Timeout time.Duration `toml:"timeout" config:"default=5s"`
 		}
-		got, err := LoadBytes[cfg]([]byte(""), TOML)
+		got, err := LoadBytes[cfg]([]byte(""))
 		require.NoError(t, err)
 		require.Equal(t, 5*time.Second, got.Timeout)
 	})
@@ -112,7 +112,7 @@ func TestLoadBytes_AppliesDefaults(t *testing.T) {
 		type cfg struct {
 			Port int `toml:"port" config:"default=8080"`
 		}
-		got, err := LoadBytes[cfg]([]byte("port = 9090"), TOML)
+		got, err := LoadBytes[cfg]([]byte("port = 9090"))
 		require.NoError(t, err)
 		require.Equal(t, 9090, got.Port)
 	})
@@ -123,7 +123,7 @@ func TestLoadBytes_ValidatesRequired(t *testing.T) {
 		type cfg struct {
 			Name string `toml:"name" config:"required"`
 		}
-		_, err := LoadBytes[cfg]([]byte(""), TOML)
+		_, err := LoadBytes[cfg]([]byte(""))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "Name")
 	})
@@ -132,7 +132,7 @@ func TestLoadBytes_ValidatesRequired(t *testing.T) {
 		type cfg struct {
 			Name string `toml:"name" config:"required"`
 		}
-		_, err := LoadBytes[cfg]([]byte("name = \"hello\""), TOML)
+		_, err := LoadBytes[cfg]([]byte("name = \"hello\""))
 		require.NoError(t, err)
 	})
 
@@ -140,7 +140,7 @@ func TestLoadBytes_ValidatesRequired(t *testing.T) {
 		type cfg struct {
 			Items []string `toml:"items" config:"required"`
 		}
-		_, err := LoadBytes[cfg]([]byte(""), TOML)
+		_, err := LoadBytes[cfg]([]byte(""))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "Items")
 	})
@@ -162,7 +162,7 @@ func TestLoadBytes_ValidatesNumericBounds(t *testing.T) {
 		{
 			name: "value below min is rejected",
 			run: func() error {
-				_, err := LoadBytes[minCfg]([]byte("count = 0"), TOML)
+				_, err := LoadBytes[minCfg]([]byte("count = 0"))
 				return err
 			},
 			wantErr: true,
@@ -170,21 +170,21 @@ func TestLoadBytes_ValidatesNumericBounds(t *testing.T) {
 		{
 			name: "value at min is accepted",
 			run: func() error {
-				_, err := LoadBytes[minCfg]([]byte("count = 1"), TOML)
+				_, err := LoadBytes[minCfg]([]byte("count = 1"))
 				return err
 			},
 		},
 		{
 			name: "value above min is accepted",
 			run: func() error {
-				_, err := LoadBytes[minCfg]([]byte("count = 5"), TOML)
+				_, err := LoadBytes[minCfg]([]byte("count = 5"))
 				return err
 			},
 		},
 		{
 			name: "value above max is rejected",
 			run: func() error {
-				_, err := LoadBytes[maxCfg]([]byte("count = 101"), TOML)
+				_, err := LoadBytes[maxCfg]([]byte("count = 101"))
 				return err
 			},
 			wantErr: true,
@@ -192,7 +192,7 @@ func TestLoadBytes_ValidatesNumericBounds(t *testing.T) {
 		{
 			name: "value at max is accepted",
 			run: func() error {
-				_, err := LoadBytes[maxCfg]([]byte("count = 100"), TOML)
+				_, err := LoadBytes[maxCfg]([]byte("count = 100"))
 				return err
 			},
 		},
@@ -216,7 +216,7 @@ func TestLoadBytes_ValidatesStringLength(t *testing.T) {
 		type cfg struct {
 			Code string `toml:"code" config:"min=3"`
 		}
-		_, err := LoadBytes[cfg]([]byte("code = \"ab\""), TOML)
+		_, err := LoadBytes[cfg]([]byte("code = \"ab\""))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "Code")
 	})
@@ -225,7 +225,7 @@ func TestLoadBytes_ValidatesStringLength(t *testing.T) {
 		type cfg struct {
 			Code string `toml:"code" config:"min=3"`
 		}
-		_, err := LoadBytes[cfg]([]byte("code = \"abc\""), TOML)
+		_, err := LoadBytes[cfg]([]byte("code = \"abc\""))
 		require.NoError(t, err)
 	})
 
@@ -233,7 +233,7 @@ func TestLoadBytes_ValidatesStringLength(t *testing.T) {
 		type cfg struct {
 			Code string `toml:"code" config:"max=5"`
 		}
-		_, err := LoadBytes[cfg]([]byte("code = \"abcdef\""), TOML)
+		_, err := LoadBytes[cfg]([]byte("code = \"abcdef\""))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "Code")
 	})
@@ -242,7 +242,7 @@ func TestLoadBytes_ValidatesStringLength(t *testing.T) {
 		type cfg struct {
 			Code string `toml:"code" config:"max=5"`
 		}
-		_, err := LoadBytes[cfg]([]byte("code = \"abcde\""), TOML)
+		_, err := LoadBytes[cfg]([]byte("code = \"abcde\""))
 		require.NoError(t, err)
 	})
 }
@@ -252,7 +252,7 @@ func TestLoadBytes_ValidatesNonempty(t *testing.T) {
 		type cfg struct {
 			Name string `toml:"name" config:"nonempty"`
 		}
-		_, err := LoadBytes[cfg]([]byte("name = \"\""), TOML)
+		_, err := LoadBytes[cfg]([]byte("name = \"\""))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "Name")
 	})
@@ -261,7 +261,7 @@ func TestLoadBytes_ValidatesNonempty(t *testing.T) {
 		type cfg struct {
 			Items []string `toml:"items" config:"nonempty"`
 		}
-		_, err := LoadBytes[cfg]([]byte("items = []"), TOML)
+		_, err := LoadBytes[cfg]([]byte("items = []"))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "Items")
 	})
@@ -270,7 +270,7 @@ func TestLoadBytes_ValidatesNonempty(t *testing.T) {
 		type cfg struct {
 			Items []string `toml:"items" config:"nonempty"`
 		}
-		_, err := LoadBytes[cfg]([]byte("items = [\"a\"]"), TOML)
+		_, err := LoadBytes[cfg]([]byte("items = [\"a\"]"))
 		require.NoError(t, err)
 	})
 }
@@ -281,12 +281,12 @@ func TestLoadBytes_ValidatesOneof(t *testing.T) {
 	}
 
 	t.Run("value in set is accepted", func(t *testing.T) {
-		_, err := LoadBytes[cfg]([]byte("mode = \"b\""), TOML)
+		_, err := LoadBytes[cfg]([]byte("mode = \"b\""))
 		require.NoError(t, err)
 	})
 
 	t.Run("value not in set is rejected", func(t *testing.T) {
-		_, err := LoadBytes[cfg]([]byte("mode = \"d\""), TOML)
+		_, err := LoadBytes[cfg]([]byte("mode = \"d\""))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "Mode")
 	})
@@ -299,7 +299,7 @@ func TestLoadBytes_CollectsAllValidationErrors(t *testing.T) {
 		C string `toml:"c" config:"required"`
 	}
 
-	_, err := LoadBytes[cfg]([]byte(""), TOML)
+	_, err := LoadBytes[cfg]([]byte(""))
 	require.Error(t, err)
 
 	msg := err.Error()
@@ -316,13 +316,13 @@ func TestLoadBytes_ValidatesNestedStructFields(t *testing.T) {
 		Database dbCfg `toml:"database"`
 	}
 
-	_, err := LoadBytes[cfg]([]byte("[database]\nprimary = \"\""), TOML)
+	_, err := LoadBytes[cfg]([]byte("[database]\nprimary = \"\""))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Database.Primary")
 }
 
 func TestLoadBytes_CallsValidatorInterface(t *testing.T) {
-	_, err := LoadBytes[validatedCfg]([]byte("port = 0"), TOML)
+	_, err := LoadBytes[validatedCfg]([]byte("port = 0"))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "port must be positive")
 }
@@ -346,7 +346,7 @@ func TestLoadBytes_ExpandsEnvVars(t *testing.T) {
 
 	t.Setenv("CONFIG_TEST_SECRET", "hunter2")
 
-	got, err := LoadBytes[cfg]([]byte("secret = \"${CONFIG_TEST_SECRET}\""), TOML)
+	got, err := LoadBytes[cfg]([]byte("secret = \"${CONFIG_TEST_SECRET}\""))
 	require.NoError(t, err)
 	require.Equal(t, "hunter2", got.Secret)
 }
@@ -358,7 +358,7 @@ func TestLoadBytes_ExpandsEnvVarsWithDefault(t *testing.T) {
 	}
 
 	t.Run("uses default when env var is unset", func(t *testing.T) {
-		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_UNSET_VAR:-localhost}\""), TOML)
+		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_UNSET_VAR:-localhost}\""))
 		require.NoError(t, err)
 		require.Equal(t, "localhost", got.Host)
 	})
@@ -366,7 +366,7 @@ func TestLoadBytes_ExpandsEnvVarsWithDefault(t *testing.T) {
 	t.Run("uses default when env var is empty", func(t *testing.T) {
 		t.Setenv("CONFIG_TEST_EMPTY_VAR", "")
 
-		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_EMPTY_VAR:-fallback}\""), TOML)
+		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_EMPTY_VAR:-fallback}\""))
 		require.NoError(t, err)
 		require.Equal(t, "fallback", got.Host)
 	})
@@ -374,13 +374,13 @@ func TestLoadBytes_ExpandsEnvVarsWithDefault(t *testing.T) {
 	t.Run("uses env value when set", func(t *testing.T) {
 		t.Setenv("CONFIG_TEST_SET_VAR", "prod.example.com")
 
-		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_SET_VAR:-localhost}\""), TOML)
+		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_SET_VAR:-localhost}\""))
 		require.NoError(t, err)
 		require.Equal(t, "prod.example.com", got.Host)
 	})
 
 	t.Run("empty default is valid", func(t *testing.T) {
-		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_UNSET_VAR2:-}\""), TOML)
+		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_UNSET_VAR2:-}\""))
 		require.NoError(t, err)
 		require.Equal(t, "", got.Host)
 	})

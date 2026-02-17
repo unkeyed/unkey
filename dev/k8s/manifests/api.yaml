@@ -27,6 +27,7 @@ data:
     [gossip]
     lan_port = 7946
     lan_seeds = ["api-gossip-lan"]
+    secret_key = "dGhpcy1pcy1hLWRldi1vbmx5LWdvc3NpcC1rZXkh"
 
     [otel]
     enabled = false

@@ -143,12 +143,11 @@ type GitHubConfig struct {
 
 	// PrivateKeyPEM is the GitHub App private key in PEM format.
 	PrivateKeyPEM string `toml:"private_key_pem"`
-}
 
-// Enabled returns true only if ALL required GitHub App fields are configured.
-// This ensures we never register the workflow with partial/insecure config.
-func (c GitHubConfig) Enabled() bool {
-	return c.AppID != 0 && c.PrivateKeyPEM != ""
+	// AllowUnauthenticatedDeployments controls whether deployments can skip
+	// GitHub authentication. Set to true only for local development.
+	// Production should keep this false to require GitHub App authentication.
+	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
 // HeartbeatConfig holds Checkly heartbeat URLs for health monitoring.
@@ -223,11 +222,6 @@ type Config struct {
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	CnameDomain string `toml:"cname_domain" config:"required,nonempty"`
 
-	// AllowUnauthenticatedDeployments controls whether deployments can skip
-	// GitHub authentication. Set to true only for local development.
-	// Production should keep this false to require GitHub App authentication.
-	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
-
 	// Database configures MySQL connections. See [config.DatabaseConfig].
 	Database config.DatabaseConfig `toml:"database"`
 
@@ -258,7 +252,7 @@ type Config struct {
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
 
 	// GitHub configures GitHub App integration for webhook-triggered deployments.
-	GitHub GitHubConfig `toml:"github"`
+	GitHub *GitHubConfig `toml:"github"`
 
 	// Heartbeat configures Checkly heartbeat URLs for health monitoring.
 	Heartbeat HeartbeatConfig `toml:"heartbeat"`

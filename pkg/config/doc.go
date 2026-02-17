@@ -1,55 +1,41 @@
-// Package config loads, validates, and defaults struct-tag-driven configuration
-// from TOML files with environment variable expansion.
+// Package config loads and validates TOML configuration into Go structs using
+// struct tags for defaults and constraints.
 //
-// Configuration is currently wired through CLI flags (pkg/cli), but as the
-// number of options grows, file-based config provides better ergonomics:
-// editors gain autocomplete and validation via JSON Schema,
-// environment variables are expanded inline, and validation reports every
-// error at once instead of failing on the first one.
+// File-based config was chosen over CLI flags because the number of service
+// options makes flag-based configuration unwieldy. TOML files give operators
+// editor support, inline environment variable expansion, and validation that
+// reports every error at once instead of failing on the first.
 //
 // # Processing Pipeline
 //
-// Both [Load] and [LoadBytes] follow the same pipeline once raw bytes are
-// available: expand environment variables with os.ExpandEnv, unmarshal into
-// the target struct, apply default values from struct tags, validate struct
-// tag constraints, and finally call the [Validator] interface if the type
-// implements it.
+// [Load] and [LoadBytes] follow the same pipeline once raw bytes are available:
+// expand environment variables with [os.ExpandEnv] (supports $VAR and ${VAR}),
+// unmarshal TOML into the target struct, apply default values from struct tags,
+// validate struct tag constraints, and finally call [Validator].Validate if the
+// type implements it.
 //
-// Environment variable expansion happens on the raw bytes before unmarshalling
-// so that references like ${DB_URL} or shell-style defaults like ${PORT:-8080}
-// work directly inside TOML values without any awareness from the
-// unmarshaller.
+// Environment variable expansion happens on the raw TOML bytes before
+// unmarshalling, so references like ${DB_URL} resolve before the TOML parser
+// sees them. Undefined variables expand to the empty string.
 //
-// Validation collects all constraint violations into a single error rather
-// than short-circuiting on the first failure. This lets operators (and CI)
-// fix every problem in one pass.
+// Validation collects all constraint violations into a single joined error
+// rather than short-circuiting on the first failure. This lets operators fix
+// every problem in one pass.
 //
 // # Struct Tags
 //
 // Fields are annotated with `config:"..."` directives that control defaults
-// and validation. Available directives: required, default=V, min=N, max=N,
-// nonempty, and oneof=a|b|c. min/max check the numeric value for numbers
-// and the length for strings, slices, and maps.
+// and validation. Available directives:
 //
-// # Formats
+//   - required — field must be non-zero (non-nil for pointers/slices/maps)
+//   - default=V — applied when the field is the zero value after unmarshalling
+//   - min=N — for numbers: minimum value; for strings/slices/maps: minimum length
+//   - max=N — for numbers: maximum value; for strings/slices/maps: maximum length
+//   - nonempty — strings must have length > 0; slices/maps must be non-nil and non-empty
+//   - oneof=a|b|c — string must be one of the listed values
 //
-// [Load] auto-detects the format from the file extension: ".toml" for TOML.
-// [LoadBytes] accepts an explicit [Format] constant.
-//
-// TOML uses github.com/BurntSushi/toml for full TOML v1.0.0 support.
-// Nested Go structs map to TOML [section] table headers. For example:
-//
-//	type Config struct {
-//	    Database DB `toml:"database"`
-//	}
-//	type DB struct {
-//	    Host string `toml:"host"`
-//	}
-//
-// maps to:
-//
-//	[database]
-//	host = "localhost"
+// Defaults are not applied to slices. Supported default types are string, int
+// variants, uint variants, float variants, bool, and [time.Duration].
 //
 // # Usage
 //
@@ -62,10 +48,9 @@
 //
 //	cfg, err := config.Load[Config]("/etc/unkey/api.toml")
 //
-// For programmatic use or testing, [LoadBytes] accepts raw bytes with an
-// explicit [Format]:
+// For programmatic use or testing, [LoadBytes] accepts raw TOML bytes directly:
 //
-//	cfg, err := config.LoadBytes[Config](data, config.TOML)
+//	cfg, err := config.LoadBytes[Config](data)
 //
 // Types that need cross-field or semantic validation can implement [Validator];
 // its Validate method is called after struct tag validation so both sources of

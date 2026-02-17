@@ -15,7 +15,6 @@ data:
     build_platform = "linux/arm64"
     sentinel_image = "unkey/sentinel:latest"
     available_regions = ["local.dev"]
-    allow_unauthenticated_deployments = false
 
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
@@ -50,7 +49,8 @@ data:
 
     [github]
     app_id = 0
-    private_key_pem = "${UNKEY_GITHUB_PRIVATE_KEY_PEM}"
+    private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
+    allow_unauthenticated_deployments = true
 
 ---
 apiVersion: apps/v1

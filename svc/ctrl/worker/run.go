@@ -124,7 +124,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
-	if cfg.GitHub.Enabled() {
+	if cfg.GitHub != nil {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
@@ -170,7 +170,7 @@ func Run(ctx context.Context, cfg Config) error {
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
 		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
-		AllowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 	}),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
 		restate.WithInvocationRetryPolicy(

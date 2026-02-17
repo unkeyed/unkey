@@ -334,8 +334,8 @@ func hasDirective(directives []directive, name string) bool {
 	return false
 }
 
-// validateCustom calls Validate() on v and recursively on all nested structs
-// that implement the Validator interface.
+// validateCustom calls [Validator].Validate on v and recursively on all
+// nested structs that implement [Validator].
 func validateCustom(v any) error {
 	rv := reflect.ValueOf(v)
 	errs := validateCustomRecursive(rv)
