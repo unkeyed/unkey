@@ -70,8 +70,8 @@ func UnkeyAuth() gin.HandlerFunc {
             return
         }
 
-        // Store verification result in context
-        c.Set("unkey", res.V2KeysVerifyKeyResponseBody)
+        // Store verification result in context (as pointer for type assertion compatibility)
+        c.Set("unkey", &res.V2KeysVerifyKeyResponseBody)
         c.Next()
     }
 }
@@ -124,7 +124,14 @@ func RequireRole(role string) gin.HandlerFunc {
             return
         }
 
-        keyResult := result.(*components.V2KeysVerifyKeyResponseBody)
+        keyResult, ok := result.(*components.V2KeysVerifyKeyResponseBody)
+        if !ok || keyResult == nil {
+            c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+                "error": "Invalid authentication context",
+                "code":  "INTERNAL_ERROR",
+            })
+            return
+        }
         
         for _, r := range keyResult.Roles {
             if r == role {
