@@ -105,10 +105,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 			Primary:         mysqlCfg.DSN,
 			ReadonlyReplica: "",
 		},
-		Otel: config.OtelConfig{
-			Enabled:           false,
-			TraceSamplingRate: 0,
-		},
+		Tracing: nil,
 		Restate: RestateConfig{
 			URL:    restateCfg.IngressURL,
 			APIKey: "",

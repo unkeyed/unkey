@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/config"
 	sharedconfig "github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -42,9 +43,7 @@ func TestContextCancellation(t *testing.T) {
 		Database: sharedconfig.DatabaseConfig{
 			Primary: dbDsn,
 		},
-		Otel: sharedconfig.OtelConfig{
-			Enabled: false,
-		},
+		Observability: config.Observability{},
 	}
 
 	// Create a channel to receive the result of the Run function

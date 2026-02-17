@@ -5,12 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
+	"github.com/BurntSushi/toml"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
+	sentinelcfg "github.com/unkeyed/unkey/svc/sentinel"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -121,6 +125,32 @@ func (c *Controller) ensureNamespaceExists(ctx context.Context) error {
 // server-side apply. Returns the resulting Deployment so the caller can extract
 // its UID for setting owner references on related resources.
 func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
+
+	configEnv, err := toml.Marshal(sentinelcfg.Config{
+		SentinelID:    sentinel.GetSentinelId(),
+		WorkspaceID:   sentinel.GetWorkspaceId(),
+		EnvironmentID: sentinel.GetEnvironmentId(),
+		Region:        c.region,
+		HttpPort:      SentinelPort,
+		Database: config.DatabaseConfig{
+			Primary:         "${UNKEY_DATABASE_PRIMARY}",
+			ReadonlyReplica: "${UNKEY_DATABASE_REPLICA}",
+		},
+		ClickHouse: sentinelcfg.ClickHouseConfig{
+			URL: "${UNKEY_CLICKHOUSE_URL}",
+		},
+		PrometheusPort: 0,
+		Gossip:         nil,
+		Tracing:        nil,
+		Logging: config.LoggingConfig{
+			SampleRate:    1.0,
+			SlowThreshold: time.Second,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	client := c.clientSet.AppsV1().Deployments(NamespaceSentinel)
 
 	desired := &appsv1.Deployment{
@@ -193,15 +223,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						},
 
 						Env: []corev1.EnvVar{
-							{Name: "UNKEY_HTTP_PORT", Value: strconv.Itoa(SentinelPort)},
-							{Name: "UNKEY_WORKSPACE_ID", Value: sentinel.GetWorkspaceId()},
-							{Name: "UNKEY_PROJECT_ID", Value: sentinel.GetProjectId()},
-							{Name: "UNKEY_ENVIRONMENT_ID", Value: sentinel.GetEnvironmentId()},
-							{Name: "UNKEY_SENTINEL_ID", Value: sentinel.GetSentinelId()},
-							{Name: "UNKEY_REGION", Value: c.region},
-							{Name: "UNKEY_GOSSIP_ENABLED", Value: "true"},
-							{Name: "UNKEY_GOSSIP_LAN_PORT", Value: strconv.Itoa(GossipLANPort)},
-							{Name: "UNKEY_GOSSIP_LAN_SEEDS", Value: fmt.Sprintf("%s-gossip-lan", sentinel.GetK8SName())},
+							{Name: "UNKEY_CONFIG_DATA", Value: string(configEnv)},
 						},
 
 						Ports: []corev1.ContainerPort{

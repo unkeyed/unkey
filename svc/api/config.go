@@ -101,9 +101,7 @@ type Config struct {
 	// Do not enable in production.
 	TestMode bool `toml:"test_mode" config:"default=false"`
 
-	// PrometheusPort starts a Prometheus /metrics HTTP endpoint on the
-	// specified port. Set to 0 (the default) to disable the endpoint entirely.
-	PrometheusPort int `toml:"prometheus_port"`
+	Observability config.Observability `toml:"observability"`
 
 	// MaxRequestBodySize caps incoming request bodies at this many bytes.
 	// The zen server rejects requests exceeding this limit with a 413 status.
@@ -115,9 +113,6 @@ type Config struct {
 
 	// ClickHouse configures analytics storage. See [ClickHouseConfig].
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
-
-	// Otel configures OpenTelemetry export. See [config.OtelConfig].
-	Otel config.OtelConfig `toml:"otel"`
 
 	// TLS provides filesystem paths for HTTPS certificate and key.
 	// See [config.TLSFiles].
@@ -136,9 +131,6 @@ type Config struct {
 	// Pprof configures Go profiling endpoints. See [PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.
 	Pprof *PprofConfig `toml:"pprof"`
-
-	// Logging configures log sampling. See [config.LoggingConfig].
-	Logging config.LoggingConfig `toml:"logging"`
 
 	// Listener is a pre-created [net.Listener] for the HTTP server. When set,
 	// the server uses this listener instead of binding to HttpPort. This is

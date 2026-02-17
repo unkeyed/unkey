@@ -2,13 +2,28 @@ package config
 
 import "time"
 
-// OtelConfig controls OpenTelemetry tracing and metrics export.
-type OtelConfig struct {
-	// Enabled activates trace and metric export to the collector.
-	Enabled bool `toml:"enabled" config:"default=false"`
+// Observability holds configuration for tracing, logging, and metrics collection.
+// All fields are optional; omitting a section leaves it nil and enables sensible defaults.
+type Observability struct {
+	Tracing *TracingConfig `toml:"tracing"`
+	Logging *LoggingConfig `toml:"logging"`
+	Metrics *MetricsConfig `toml:"metrics"`
+}
 
-	// TraceSamplingRate is the probability (0.0–1.0) that a trace is sampled.
-	TraceSamplingRate float64 `toml:"trace_sampling_rate" config:"default=0.25,min=0,max=1"`
+// MetricsConfig controls Prometheus metrics exposition.
+type MetricsConfig struct {
+	// PrometheusPort is the TCP port where Prometheus-compatible metrics are served.
+	// Set to 0 to disable metrics exposure.
+	PrometheusPort int
+}
+
+// TracingConfig controls OpenTelemetry tracing and metrics export.
+// SampleRate determines what fraction of traces are exported; the rest are dropped
+// to reduce storage costs and processing overhead.
+type TracingConfig struct {
+
+	// SampleRate is the probability (0.0–1.0) that a trace is sampled.
+	SampleRate float64 `toml:"sample_rate" config:"default=0.25,min=0,max=1"`
 }
 
 // LoggingConfig controls log sampling. Events faster than SlowThreshold are
@@ -35,8 +50,8 @@ type DatabaseConfig struct {
 	ReadonlyReplica string `toml:"readonly_replica"`
 }
 
-// VaultConfig configures the connection to a remote vault service for
-// encrypting and decrypting sensitive data.
+// VaultConfig configures the connection to a HashiCorp Vault service for
+// encrypting and decrypting sensitive data at rest.
 type VaultConfig struct {
 	// URL is the vault service endpoint.
 	URL string `toml:"url"`
@@ -45,7 +60,8 @@ type VaultConfig struct {
 	Token string `toml:"token"`
 }
 
-// TLSFiles holds PEM file paths for a TLS certificate and private key.
+// TLSFiles holds paths to PEM-encoded certificate and private key files for TLS.
+// Used for serving HTTPS or mTLS connections.
 type TLSFiles struct {
 	// CertFile is the path to a PEM-encoded TLS certificate.
 	CertFile string `toml:"cert_file"`

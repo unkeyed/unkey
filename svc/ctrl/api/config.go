@@ -85,8 +85,8 @@ type Config struct {
 	// Database configures MySQL connections. See [config.DatabaseConfig].
 	Database config.DatabaseConfig `toml:"database"`
 
-	// Otel configures OpenTelemetry export. See [config.OtelConfig].
-	Otel config.OtelConfig `toml:"otel"`
+	// Tracing configures OpenTelemetry export. See [config.TracingConfig].
+	Tracing *config.TracingConfig `toml:"tracing"`
 
 	// Restate configures workflow engine integration. See [RestateConfig].
 	Restate RestateConfig `toml:"restate"`

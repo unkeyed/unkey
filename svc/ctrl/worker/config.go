@@ -228,8 +228,8 @@ type Config struct {
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
 
-	// Otel configures OpenTelemetry export. See [config.OtelConfig].
-	Otel config.OtelConfig `toml:"otel"`
+	// Tracing configures OpenTelemetry export. See [config.TracingConfig].
+	Tracing *config.TracingConfig `toml:"tracing"`
 
 	// Logging configures log sampling. See [config.LoggingConfig].
 	Logging config.LoggingConfig `toml:"logging"`

@@ -73,13 +73,13 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize OTEL before logger so logger picks up OTLP handler
 	var shutdownGrafana func(context.Context) error
 	var err error
-	if cfg.Otel.Enabled {
+	if cfg.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "worker",
 			Version:         version.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Otel.TraceSamplingRate,
+			TraceSampleRate: cfg.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)

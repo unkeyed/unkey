@@ -70,8 +70,7 @@ type Config struct {
 	// Database configures MySQL connections. See [config.DatabaseConfig].
 	Database config.DatabaseConfig `toml:"database"`
 
-	// Otel configures OpenTelemetry export. See [config.OtelConfig].
-	Otel config.OtelConfig `toml:"otel"`
+	Observability config.Observability `toml:"observability"`
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`

@@ -54,8 +54,8 @@ type Config struct {
 	// ClickHouse configures analytics storage. See [ClickHouseConfig].
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
 
-	// Otel configures OpenTelemetry export. See [config.OtelConfig].
-	Otel config.OtelConfig `toml:"otel"`
+	// Tracing configures OpenTelemetry export. See [config.TracingConfig].
+	Tracing *config.TracingConfig `toml:"tracing"`
 
 	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.

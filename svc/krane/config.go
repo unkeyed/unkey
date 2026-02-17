@@ -63,8 +63,7 @@ type Config struct {
 	// ControlPlane configures the upstream control plane. See [ControlPlaneConfig].
 	ControlPlane ControlPlaneConfig `toml:"control_plane"`
 
-	// Otel configures OpenTelemetry export. See [config.OtelConfig].
-	Otel config.OtelConfig `toml:"otel"`
+	Observability config.Observability `toml:"observability"`
 
 	// Logging configures log sampling. See [config.LoggingConfig].
 	Logging config.LoggingConfig `toml:"logging"`

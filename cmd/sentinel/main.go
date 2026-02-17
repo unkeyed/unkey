@@ -21,12 +21,23 @@ var Cmd = &cli.Command{
 	Flags: []cli.Flag{
 		cli.String("config", "Path to a TOML config file",
 			cli.Default("unkey.toml"), cli.EnvVar("UNKEY_CONFIG")),
+		cli.String("config-data", "Inline TOML config content (takes precedence over --config)",
+			cli.EnvVar("UNKEY_CONFIG_DATA")),
 	},
 	Action: action,
 }
 
 func action(ctx context.Context, cmd *cli.Command) error {
-	cfg, err := config.Load[sentinel.Config](cmd.String("config"))
+	var (
+		cfg sentinel.Config
+		err error
+	)
+
+	if data := cmd.String("config-data"); data != "" {
+		cfg, err = config.LoadBytes[sentinel.Config]([]byte(data))
+	} else {
+		cfg, err = config.Load[sentinel.Config](cmd.String("config"))
+	}
 	if err != nil {
 		return fmt.Errorf("unable to load config: %w", err)
 	}

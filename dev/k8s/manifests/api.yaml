@@ -29,9 +29,6 @@ data:
     lan_seeds = ["api-gossip-lan"]
     secret_key = "dGhpcy1pcy1hLWRldi1vbmx5LWdvc3NpcC1rZXkh"
 
-    [otel]
-    enabled = false
-
     [vault]
     url = "http://vault:8060"
     token = "vault-test-token-123"

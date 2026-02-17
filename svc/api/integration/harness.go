@@ -141,7 +141,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			InstanceID:         fmt.Sprintf("test-node-%d", i),
 			Clock:              clock.New(),
 			TestMode:           true,
-			PrometheusPort:     0,
 			TLSConfig:          nil,
 			MaxRequestBodySize: 0,
 			Database: sharedconfig.DatabaseConfig{
@@ -153,9 +152,15 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				AnalyticsURL: "",
 				ProxyToken:   "",
 			},
-			Otel: sharedconfig.OtelConfig{
-				Enabled:           false,
-				TraceSamplingRate: 0.0,
+			Observability: sharedconfig.Observability{
+				Tracing: nil,
+				Logging: &sharedconfig.LoggingConfig{
+					SampleRate:    1.0,
+					SlowThreshold: time.Second,
+				},
+				Metrics: &sharedconfig.MetricsConfig{
+					PrometheusPort: 0,
+				},
 			},
 			TLS: sharedconfig.TLSFiles{
 				CertFile: "",
@@ -172,10 +177,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			Pprof: &api.PprofConfig{
 				Username: "unkey",
 				Password: "password",
-			},
-			Logging: sharedconfig.LoggingConfig{
-				SampleRate:    1.0,
-				SlowThreshold: time.Second,
 			},
 			Gossip: nil,
 		}
