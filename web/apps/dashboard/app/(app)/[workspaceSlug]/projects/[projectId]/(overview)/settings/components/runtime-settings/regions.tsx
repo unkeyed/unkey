@@ -162,7 +162,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       icon={<Location2 className="text-gray-12" iconSize="xl-medium" />}
       title="Regions"
       description="Geographic regions where your project will run"
-      border="both"
+      border="top"
       displayValue={displayValue}
       formId="update-regions-form"
       canSave={isValid && !isSubmitting && hasChanges}

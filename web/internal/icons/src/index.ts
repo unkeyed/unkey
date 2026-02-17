@@ -114,6 +114,7 @@ export * from "./icons/plus";
 export * from "./icons/progress-bar";
 export * from "./icons/pulse";
 export * from "./icons/refresh-3";
+export * from "./icons/scan-code";
 export * from "./icons/share-up-right";
 export * from "./icons/shield";
 export * from "./icons/shield-alert";

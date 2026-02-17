@@ -4,7 +4,9 @@ import { CircleHalfDottedClock } from "@unkey/icons";
 import { DockerfileSettings } from "./components/basic-settings/dockerfile-settings";
 import { GitHubSettings } from "./components/basic-settings/github-settings";
 import { RootDirectorySettings } from "./components/basic-settings/root-directory-settings";
+import { Cpu } from "./components/runtime-settings/cpu";
 import { Instances } from "./components/runtime-settings/instances";
+import { Memory } from "./components/runtime-settings/memory";
 import { Regions } from "./components/runtime-settings/regions";
 import { SettingsGroup } from "./components/shared/settings-group";
 
@@ -29,6 +31,8 @@ export default function SettingsPage() {
         >
           <Regions />
           <Instances />
+          <Cpu />
+          <Memory />
         </SettingsGroup>
       </div>
     </div>
