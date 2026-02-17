@@ -138,19 +138,6 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	keyService, err := keys.New(keys.Config{
-		DB:               db,
-		KeyCache:         caches.VerificationKeyByHash,
-		QuotaCache:       caches.WorkspaceQuota,
-		RateLimiter:      ratelimitService,
-		RBAC:             rbac.New(),
-		Clickhouse:       ch,
-		Region:           "test",
-		UsageLimiter:     ulSvc,
-		RatelimitNamespaceService: nil,
-	})
-	require.NoError(t, err)
-
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
 	v := vault.NewConnectVaultServiceClient(testVault.Client)
 
@@ -178,6 +165,19 @@ func NewHarness(t *testing.T) *Harness {
 		DB:        db,
 		Cache:     caches.RatelimitNamespace,
 		Auditlogs: audit,
+	})
+	require.NoError(t, err)
+
+	keyService, err := keys.New(keys.Config{
+		DB:               db,
+		KeyCache:         caches.VerificationKeyByHash,
+		QuotaCache:       caches.WorkspaceQuota,
+		RateLimiter:      ratelimitService,
+		RBAC:             rbac.New(),
+		Clickhouse:       ch,
+		Region:           "test",
+		UsageLimiter:     ulSvc,
+		RatelimitNamespaceService: namespaceSvc,
 	})
 	require.NoError(t, err)
 

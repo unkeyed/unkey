@@ -65,12 +65,17 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
 	sess.WorkspaceID = key.AuthorizedWorkspaceID
 
-	if err := s.checkWorkspaceRateLimit(ctx, sess, key.AuthorizedWorkspaceID, key.Key.WorkspaceID, &namespace.AuditContext{
-		ActorID:   key.Key.ID,
-		ActorName: key.Key.Name.String,
-		ActorType: auditlog.RootKeyActor,
-		RemoteIP:  sess.Location(),
-		UserAgent: sess.UserAgent(),
+	if err := s.checkWorkspaceRateLimit(ctx, WorkspaceRateLimitRequest{
+		Session:               sess,
+		AuthorizedWorkspaceID: key.AuthorizedWorkspaceID,
+		RootKeyWorkspaceID:    key.Key.WorkspaceID,
+		Audit: &namespace.AuditContext{
+			ActorID:   key.Key.ID,
+			ActorName: key.Key.Name.String,
+			ActorType: auditlog.RootKeyActor,
+			RemoteIP:  sess.Location(),
+			UserAgent: sess.UserAgent(),
+		},
 	}); err != nil {
 		return nil, log, err
 	}

@@ -44,7 +44,7 @@ go_library(
 
 go_test(
     name = "keys_test",
-    size = "small",
+    size = "large",
     srcs = [
         "create_test.go",
         "get_test.go",
@@ -52,12 +52,21 @@ go_test(
     ],
     embed = [":keys"],
     deps = [
+        "//internal/services/auditlogs",
+        "//internal/services/caches",
         "//internal/services/ratelimit",
-        "//pkg/cache",
+        "//internal/services/ratelimit/namespace",
+        "//pkg/auditlog",
+        "//pkg/clickhouse",
+        "//pkg/clock",
         "//pkg/codes",
+        "//pkg/counter",
         "//pkg/db",
+        "//pkg/dockertest",
         "//pkg/fault",
         "//pkg/hash",
+        "//pkg/testutil/containers",
+        "//pkg/uid",
         "@com_github_stretchr_testify//require",
     ],
 )
