@@ -9,8 +9,6 @@ cname_domain = "unkey.local"
 [database]
 primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
-[observability]
-
 [restate]
 url = "http://restate:8080"
 admin_url = "http://restate:9070"

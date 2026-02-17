@@ -12,8 +12,6 @@ primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams
 url = "http://vault:8060"
 token = "vault-test-token-123"
 
-[observability]
-
 [restate]
 admin_url = "http://restate:9070"
 http_port = 9080
