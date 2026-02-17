@@ -32,7 +32,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unable to load config: %w", err)
 	}
 
-	cfg.FrontlineID = uid.New("frontline", 4)
+	if cfg.FrontlineID == "" {
+		cfg.FrontlineID = uid.New("frontline", 4)
+	}
 
 	return frontline.Run(ctx, cfg)
 }
