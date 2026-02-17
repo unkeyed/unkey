@@ -27,7 +27,10 @@ go_library(
 go_test(
     name = "namespace_test",
     size = "large",
-    srcs = ["create_test.go"],
+    srcs = [
+        "create_test.go",
+        "get_test.go",
+    ],
     embed = [":namespace"],
     deps = [
         "//internal/services/auditlogs",
