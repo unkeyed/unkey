@@ -19,18 +19,24 @@ const workspaceRatelimitNamespace = "workspace.ratelimit"
 
 // checkWorkspaceRateLimit enforces per-workspace API rate limiting based on
 // the quota table, using a real ratelimit namespace for analytics.
+//
+// authorizedWorkspaceID is the workspace being accessed (ForWorkspaceID) — used
+// for quota lookup and as the ratelimit identifier.
+// rootKeyWorkspaceID is the workspace the root key lives in — used for the
+// ratelimit namespace and analytics (so the root key owner sees the logs).
+//
 // NULL limit/duration = unlimited (no rate limiting configured).
 // 0 limit = zero requests allowed.
 // On any internal error (cache miss, rate limiter failure) the check fails
 // open to avoid blocking legitimate traffic.
-func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, workspaceID string, audit *namespace.AuditContext) error {
+func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, authorizedWorkspaceID string, rootKeyWorkspaceID string, audit *namespace.AuditContext) error {
 
-	quota, _, err := s.quotaCache.SWR(ctx, workspaceID, func(ctx context.Context) (db.Quotum, error) {
-		return db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), workspaceID)
+	quota, _, err := s.quotaCache.SWR(ctx, authorizedWorkspaceID, func(ctx context.Context) (db.Quotum, error) {
+		return db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), authorizedWorkspaceID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		logger.Warn("workspace rate limit: failed to load quota",
-			"workspace_id", workspaceID,
+			"workspace_id", authorizedWorkspaceID,
 			"error", err.Error(),
 		)
 		return nil // fail open
@@ -41,20 +47,20 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 		return nil
 	}
 
-	// Resolve real namespace for analytics — fail open if unavailable
+	// Resolve real namespace in the root key's workspace for analytics
 	var namespaceID string
 
-	ns, found, nsErr := s.ratelimitNamespaceService.Get(ctx, workspaceID, workspaceRatelimitNamespace)
+	ns, found, nsErr := s.ratelimitNamespaceService.Get(ctx, rootKeyWorkspaceID, workspaceRatelimitNamespace)
 	if nsErr != nil {
 		logger.Warn("workspace rate limit: failed to get namespace",
-			"workspace_id", workspaceID,
+			"workspace_id", rootKeyWorkspaceID,
 			"error", nsErr.Error(),
 		)
 	} else if !found {
-		ns, nsErr = s.ratelimitNamespaceService.Create(ctx, workspaceID, workspaceRatelimitNamespace, audit)
+		ns, nsErr = s.ratelimitNamespaceService.Create(ctx, rootKeyWorkspaceID, workspaceRatelimitNamespace, audit)
 		if nsErr != nil {
 			logger.Warn("workspace rate limit: failed to create namespace",
-				"workspace_id", workspaceID,
+				"workspace_id", rootKeyWorkspaceID,
 				"error", nsErr.Error(),
 			)
 		} else {
@@ -73,7 +79,7 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	rlStart := time.Now()
 	resp, err := s.rateLimiter.Ratelimit(ctx, ratelimit.RatelimitRequest{
 		Name:       rlName,
-		Identifier: workspaceID,
+		Identifier: authorizedWorkspaceID,
 		Limit:      int64(quota.RatelimitLimit.Int32),
 		Duration:   time.Duration(quota.RatelimitDuration.Int32) * time.Millisecond,
 		Cost:       1,
@@ -82,20 +88,20 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	rlLatency := time.Since(rlStart)
 	if err != nil {
 		logger.Warn("workspace rate limit: ratelimiter error",
-			"workspace_id", workspaceID,
+			"workspace_id", authorizedWorkspaceID,
 			"error", err.Error(),
 		)
 		return nil // fail open
 	}
 
-	// Emit analytics with real namespace ID when available
+	// Emit analytics in the root key's workspace so the owner sees the logs
 	if namespaceID != "" && sess != nil {
 		s.clickhouse.BufferRatelimit(schema.Ratelimit{
 			RequestID:   sess.RequestID(),
-			WorkspaceID: workspaceID,
+			WorkspaceID: rootKeyWorkspaceID,
 			Time:        time.Now().UnixMilli(),
 			NamespaceID: namespaceID,
-			Identifier:  workspaceID,
+			Identifier:  authorizedWorkspaceID,
 			Passed:      resp.Success,
 			Latency:     float64(rlLatency.Milliseconds()),
 			OverrideID:  "",
