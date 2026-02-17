@@ -20,13 +20,9 @@ import (
 // An audit log is always written for successful creation.
 func (s *service) Create(ctx context.Context, workspaceID, name string, audit *AuditContext) (db.FindRatelimitNamespace, error) {
 	key := workspaceID + ":" + name
-	v, err, _ := s.createFlight.Do(key, func() (any, error) {
+	return s.createFlight.Do(key, func() (db.FindRatelimitNamespace, error) {
 		return s.doCreate(ctx, workspaceID, name, audit)
 	})
-	if err != nil {
-		return db.FindRatelimitNamespace{}, err
-	}
-	return v.(db.FindRatelimitNamespace), nil
 }
 
 func (s *service) doCreate(ctx context.Context, workspaceID, name string, audit *AuditContext) (db.FindRatelimitNamespace, error) {
