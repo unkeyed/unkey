@@ -44,9 +44,8 @@ type Config struct {
 	// HttpPort is the TCP port the sentinel server binds to.
 	HttpPort int `toml:"http_port" config:"default=8080,min=1,max=65535"`
 
-	// PrometheusPort starts a Prometheus /metrics HTTP endpoint on the
-	// specified port. Set to 0 (the default) to disable the endpoint entirely.
-	PrometheusPort int `toml:"prometheus_port"`
+	// Observability configures tracing, logging, and metrics. See [config.Observability].
+	Observability config.Observability `toml:"observability"`
 
 	// Database configures MySQL connections. See [config.DatabaseConfig].
 	Database config.DatabaseConfig `toml:"database"`
@@ -54,15 +53,9 @@ type Config struct {
 	// ClickHouse configures analytics storage. See [ClickHouseConfig].
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
 
-	// Tracing configures OpenTelemetry export. See [config.TracingConfig].
-	Tracing *config.TracingConfig `toml:"tracing"`
-
 	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
 	Gossip *config.GossipConfig `toml:"gossip"`
-
-	// Logging configures log sampling. See [config.LoggingConfig].
-	Logging config.LoggingConfig `toml:"logging"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

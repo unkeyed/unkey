@@ -21,11 +21,13 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	if cfg.Observability.Logging != nil {
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.Logging.SlowThreshold,
-		SampleRate:    cfg.Logging.SampleRate,
-	})
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {

@@ -197,10 +197,8 @@ type Config struct {
 	// Used for logging and tracing context.
 	Region string `toml:"region"`
 
-	// PrometheusPort specifies the port for exposing Prometheus metrics.
-	// Set to 0 to disable metrics exposure. When enabled, metrics are served
-	// on all interfaces (0.0.0.0) on the specified port.
-	PrometheusPort int `toml:"prometheus_port"`
+	// Observability configures tracing, logging, and metrics. See [config.Observability].
+	Observability config.Observability `toml:"observability"`
 
 	// DefaultDomain is the fallback domain for system operations.
 	// Used for sentinel deployment and automatic certificate bootstrapping.
@@ -227,12 +225,6 @@ type Config struct {
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
-
-	// Tracing configures OpenTelemetry export. See [config.TracingConfig].
-	Tracing *config.TracingConfig `toml:"tracing"`
-
-	// Logging configures log sampling. See [config.LoggingConfig].
-	Logging config.LoggingConfig `toml:"logging"`
 
 	// Acme configures automatic TLS certificate management.
 	// Enables Let's Encrypt integration for domain certificates.

@@ -139,13 +139,15 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		ClickHouse: sentinelcfg.ClickHouseConfig{
 			URL: "${UNKEY_CLICKHOUSE_URL}",
 		},
-		PrometheusPort: 0,
-		Gossip:         nil,
-		Tracing:        nil,
-		Logging: config.LoggingConfig{
-			SampleRate:    1.0,
-			SlowThreshold: time.Second,
+		Observability: config.Observability{
+			Logging: &config.LoggingConfig{
+				SampleRate:    1.0,
+				SlowThreshold: time.Second,
+			},
+			Tracing: nil,
+			Metrics: nil,
 		},
+		Gossip: nil,
 	})
 	if err != nil {
 		return nil, err

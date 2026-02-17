@@ -85,17 +85,14 @@ type Config struct {
 	// Database configures MySQL connections. See [config.DatabaseConfig].
 	Database config.DatabaseConfig `toml:"database"`
 
-	// Tracing configures OpenTelemetry export. See [config.TracingConfig].
-	Tracing *config.TracingConfig `toml:"tracing"`
+	// Observability configures tracing, logging, and metrics. See [config.Observability].
+	Observability config.Observability `toml:"observability"`
 
 	// Restate configures workflow engine integration. See [RestateConfig].
 	Restate RestateConfig `toml:"restate"`
 
 	// GitHub configures GitHub App webhook integration. See [GitHubConfig].
 	GitHub GitHubConfig `toml:"github"`
-
-	// Logging configures log sampling. See [config.LoggingConfig].
-	Logging config.LoggingConfig `toml:"logging"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

@@ -30,23 +30,25 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	if cfg.Observability.Logging != nil {
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.Logging.SlowThreshold,
-		SampleRate:    cfg.Logging.SampleRate,
-	})
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 
 	clk := clock.New()
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
 	var shutdownGrafana func(context.Context) error
-	if cfg.Tracing != nil {
+	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "sentinel",
 			Version:         version.Version,
 			InstanceID:      cfg.SentinelID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Tracing.SampleRate,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -67,15 +69,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	if cfg.PrometheusPort > 0 {
+	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
 
-		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort))
 		if listenErr != nil {
-			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.Observability.Metrics.PrometheusPort, listenErr)
 		}
 
 		r.DeferCtx(prom.Shutdown)

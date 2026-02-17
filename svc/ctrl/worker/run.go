@@ -73,13 +73,13 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize OTEL before logger so logger picks up OTLP handler
 	var shutdownGrafana func(context.Context) error
 	var err error
-	if cfg.Tracing != nil {
+	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "worker",
 			Version:         version.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Tracing.SampleRate,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -390,20 +390,20 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("Skipping Restate registration (restate-register-as not configured)")
 	}
 
-	if cfg.PrometheusPort > 0 {
+	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}
 
-		ln, lnErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		ln, lnErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort))
 		if lnErr != nil {
-			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, lnErr)
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.Observability.Metrics.PrometheusPort, lnErr)
 		}
 
 		r.DeferCtx(prom.Shutdown)
 		r.Go(func(ctx context.Context) error {
-			logger.Info("prometheus started", "port", cfg.PrometheusPort)
+			logger.Info("prometheus started", "port", cfg.Observability.Metrics.PrometheusPort)
 			if serveErr := prom.Serve(ctx, ln); serveErr != nil && !errors.Is(serveErr, context.Canceled) {
 				return fmt.Errorf("failed to start prometheus server: %w", serveErr)
 			}

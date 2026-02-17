@@ -67,8 +67,8 @@ type Config struct {
 	// Registry configures container registry behavior. See [RegistryConfig].
 	Registry RegistryConfig `toml:"registry"`
 
-	// Logging configures log sampling. See [config.LoggingConfig].
-	Logging config.LoggingConfig `toml:"logging"`
+	// Observability configures tracing, logging, and metrics. See [config.Observability].
+	Observability config.Observability `toml:"observability"`
 }
 
 // Validate implements [config.Validator] so that [config.Load] calls it

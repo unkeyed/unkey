@@ -52,10 +52,8 @@ type Config struct {
 	// S3 configures the S3-compatible storage backend. See [S3Config].
 	S3 S3Config `toml:"s3"`
 
+	// Observability configures tracing, logging, and metrics. See [config.Observability].
 	Observability config.Observability `toml:"observability"`
-
-	// Logging configures log sampling. See [config.LoggingConfig].
-	Logging config.LoggingConfig `toml:"logging"`
 }
 
 // Validate implements [config.Validator] so that [config.Load] calls it
