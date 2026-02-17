@@ -9,14 +9,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/tls"
 )
 
-const (
-	// DefaultCacheInvalidationTopic is the fallback Kafka topic name used when
-	// [KafkaConfig.CacheInvalidationTopic] is empty. This exists for programmatic
-	// callers (tests, harnesses) that construct [Config] directly without going
-	// through [config.Load], which would apply the struct tag default.
-	DefaultCacheInvalidationTopic = "cache-invalidations"
-)
-
 // ClickHouseConfig configures connections to ClickHouse for analytics storage.
 // All fields are optional; when URL is empty, a no-op analytics backend is used.
 type ClickHouseConfig struct {
@@ -35,20 +27,6 @@ type ClickHouseConfig struct {
 	// ProxyToken is the bearer token for authenticating against ClickHouse proxy
 	// endpoints exposed by the API server itself.
 	ProxyToken string `toml:"proxy_token"`
-}
-
-// KafkaConfig configures the Kafka connection used for distributed cache
-// invalidation across API server instances. When Brokers is empty, cache
-// invalidation is local-only and a no-op topic is used.
-type KafkaConfig struct {
-	// Brokers is the list of Kafka broker addresses. When empty, distributed
-	// cache invalidation is disabled and each node operates independently.
-	// Example: ["kafka-0:9092", "kafka-1:9092"]
-	Brokers []string `toml:"brokers" config:"required,nonempty"`
-
-	// CacheInvalidationTopic is the Kafka topic name for broadcasting cache
-	// invalidation events between API nodes.
-	CacheInvalidationTopic string `toml:"cache_invalidation_topic" config:"default=cache-invalidations"`
 }
 
 // CtrlConfig configures the connection to the CTRL service, which manages

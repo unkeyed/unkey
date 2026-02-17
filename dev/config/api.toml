@@ -17,8 +17,6 @@ enabled = false
 url = "http://vault:8060"
 token = "vault-test-token-123"
 
-[kafka]
-brokers = ["kafka:9092"]
 
 [ctrl]
 url = "http://ctrl-api:7091"
