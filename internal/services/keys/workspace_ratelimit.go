@@ -71,27 +71,7 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, req WorkspaceRate
 	}
 
 	// Resolve real namespace in the root key's workspace for analytics
-	var namespaceID string
-
-	ns, found, nsErr := s.ratelimitNamespaceService.Get(ctx, req.RootKeyWorkspaceID, workspaceRatelimitNamespace)
-	if nsErr != nil {
-		logger.Warn("workspace rate limit: failed to get namespace",
-			"workspace_id", req.RootKeyWorkspaceID,
-			"error", nsErr.Error(),
-		)
-	} else if !found {
-		ns, nsErr = s.ratelimitNamespaceService.Create(ctx, req.RootKeyWorkspaceID, workspaceRatelimitNamespace, req.Audit)
-		if nsErr != nil {
-			logger.Warn("workspace rate limit: failed to create namespace",
-				"workspace_id", req.RootKeyWorkspaceID,
-				"error", nsErr.Error(),
-			)
-		} else {
-			namespaceID = ns.ID
-		}
-	} else {
-		namespaceID = ns.ID
-	}
+	namespaceID := s.resolveWorkspaceNamespace(ctx, req)
 
 	// Use namespace ID as the ratelimit name when available, otherwise fall back
 	rlName := workspaceRatelimitNamespace
@@ -143,4 +123,33 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, req WorkspaceRate
 	}
 
 	return nil
+}
+
+// resolveWorkspaceNamespace looks up or creates the workspace ratelimit namespace
+// in the root key's workspace. Returns the namespace ID, or empty string if
+// resolution fails (callers should continue without analytics).
+func (s *service) resolveWorkspaceNamespace(ctx context.Context, req WorkspaceRateLimitRequest) string {
+	ns, found, err := s.ratelimitNamespaceService.Get(ctx, req.RootKeyWorkspaceID, workspaceRatelimitNamespace)
+	if err != nil {
+		logger.Warn("workspace rate limit: failed to get namespace",
+			"workspace_id", req.RootKeyWorkspaceID,
+			"error", err.Error(),
+		)
+		return ""
+	}
+
+	if found {
+		return ns.ID
+	}
+
+	ns, err = s.ratelimitNamespaceService.Create(ctx, req.RootKeyWorkspaceID, workspaceRatelimitNamespace, req.Audit)
+	if err != nil {
+		logger.Warn("workspace rate limit: failed to create namespace",
+			"workspace_id", req.RootKeyWorkspaceID,
+			"error", err.Error(),
+		)
+		return ""
+	}
+
+	return ns.ID
 }

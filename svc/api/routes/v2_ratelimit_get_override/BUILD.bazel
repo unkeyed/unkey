@@ -27,6 +27,7 @@ go_test(
         "401_test.go",
         "403_test.go",
         "404_test.go",
+        "429_test.go",
     ],
     deps = [
         ":v2_ratelimit_get_override",
