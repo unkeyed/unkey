@@ -12,7 +12,9 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -74,6 +76,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
+	if err = w.startDeploymentStep(ctx, deployment, db.DeploymentStepsStepQueued); err != nil {
+		return nil, err
+	}
+
 	defer func() {
 		if finishedSuccessfully {
 			return
@@ -130,6 +136,14 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
+	if err = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepQueued, nil); err != nil {
+		return nil, err
+	}
+
+	if err = w.startDeploymentStep(ctx, deployment, db.DeploymentStepsStepBuilding); err != nil {
+		return nil, err
+	}
+
 	dockerImage := ""
 
 	switch source := req.GetSource().(type) {
@@ -147,7 +161,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			WorkspaceID:    deployment.WorkspaceID,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to build docker image from git: %w", err)
+			buildErr := fmt.Errorf("failed to build docker image from git: %w", err)
+			_ = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepBuilding, ptr.P(fault.UserFacingMessage(err)))
+			return nil, buildErr
 		}
 		dockerImage = build.ImageName
 
@@ -177,7 +193,15 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
+	if err = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepBuilding, nil); err != nil {
+		return nil, err
+	}
+
 	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
+		return nil, err
+	}
+
+	if err = w.startDeploymentStep(ctx, deployment, db.DeploymentStepsStepDeploying); err != nil {
 		return nil, err
 	}
 
@@ -351,6 +375,14 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 	logger.Info("deployments ready", "deployment_id", deployment.ID)
 
+	if err = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepDeploying, nil); err != nil {
+		return nil, err
+	}
+
+	if err = w.startDeploymentStep(ctx, deployment, db.DeploymentStepsStepNetwork); err != nil {
+		return nil, err
+	}
+
 	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
@@ -425,6 +457,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to assign domains: %w", err)
+	}
+
+	if err = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepNetwork, nil); err != nil {
+		return nil, err
 	}
 
 	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusReady); err != nil {
