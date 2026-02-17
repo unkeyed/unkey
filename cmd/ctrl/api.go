@@ -32,7 +32,7 @@ var apiCmd = &cli.Command{
 func apiAction(ctx context.Context, cmd *cli.Command) error {
 	cfg, err := config.Load[ctrlapi.Config](cmd.String("config"))
 	if err != nil {
-		return fmt.Errorf("unable to load config: %w")
+		return fmt.Errorf("unable to load config: %w", err)
 	}
 
 	return ctrlapi.Run(ctx, cfg)

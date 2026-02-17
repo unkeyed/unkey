@@ -33,7 +33,7 @@ EXAMPLES:
 func action(ctx context.Context, cmd *cli.Command) error {
 	cfg, err := config.Load[krane.Config](cmd.String("config"))
 	if err != nil {
-		return fmt.Errorf("unable to load config: %w")
+		return fmt.Errorf("unable to load config: %w", err)
 	}
 
 	cfg.Clock = clock.New()

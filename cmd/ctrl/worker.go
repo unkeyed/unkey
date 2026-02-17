@@ -34,7 +34,7 @@ var workerCmd = &cli.Command{
 func workerAction(ctx context.Context, cmd *cli.Command) error {
 	cfg, err := config.Load[worker.Config](cmd.String("config"))
 	if err != nil {
-		return fmt.Errorf("unable to load config: %w")
+		return fmt.Errorf("unable to load config: %w", err)
 	}
 
 	// Normalize CNAME domain: trim whitespace and trailing dot

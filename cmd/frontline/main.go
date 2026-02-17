@@ -29,7 +29,7 @@ var Cmd = &cli.Command{
 func action(ctx context.Context, cmd *cli.Command) error {
 	cfg, err := config.Load[frontline.Config](cmd.String("config"))
 	if err != nil {
-		return fmt.Errorf("unable to load config: %w")
+		return fmt.Errorf("unable to load config: %w", err)
 	}
 
 	cfg.FrontlineID = uid.New("frontline", 4)

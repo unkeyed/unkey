@@ -24,7 +24,7 @@ var Cmd = &cli.Command{
 func action(ctx context.Context, cmd *cli.Command) error {
 	cfg, err := config.Load[preflight.Config](cmd.String("config"))
 	if err != nil {
-		return fmt.Errorf("unable to load config: %w")
+		return fmt.Errorf("unable to load config: %w", err)
 	}
 
 	return preflight.Run(ctx, cfg)
