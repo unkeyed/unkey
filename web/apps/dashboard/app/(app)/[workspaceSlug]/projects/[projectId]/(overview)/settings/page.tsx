@@ -9,6 +9,7 @@ import { Instances } from "./components/runtime-settings/instances";
 import { Memory } from "./components/runtime-settings/memory";
 import { Regions } from "./components/runtime-settings/regions";
 import { Storage } from "./components/runtime-settings/storage";
+import { Healthcheck } from "./components/runtime-settings/healthcheck";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 export default function SettingsPage() {
@@ -35,6 +36,7 @@ export default function SettingsPage() {
           <Cpu />
           <Memory />
           <Storage />
+          <Healthcheck />
         </SettingsGroup>
       </div>
     </div>

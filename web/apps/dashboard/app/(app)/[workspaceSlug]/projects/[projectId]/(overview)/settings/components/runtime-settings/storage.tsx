@@ -62,7 +62,6 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
       icon={<Harddrive className="text-gray-12" iconSize="xl-medium" />}
       title="Storage"
       description="Ephemeral disk space per instance"
-      border="bottom"
       displayValue={(() => {
         const [value, unit] = parseStorageDisplay(defaultStorage);
         return (
