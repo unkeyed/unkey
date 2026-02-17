@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ctrl",
+    srcs = [
+        "acme_generated.go",
+        "cluster_generated.go",
+        "custom_domain_generated.go",
+        "deployment_generated.go",
+        "environment_generated.go",
+        "openapi_generated.go",
+        "service_generated.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/gen/rpc/ctrl",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

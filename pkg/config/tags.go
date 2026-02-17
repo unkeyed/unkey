@@ -232,9 +232,16 @@ func validateDirective(field reflect.Value, fieldPath string, d directive) error
 		if err != nil {
 			return fmt.Errorf("field %q: invalid min value %q: %w", fieldPath, d.value, err)
 		}
-		val, ok := numericValue(field)
-		if ok && val < bound {
-			return fmt.Errorf("field %q: value %v is less than minimum %v", fieldPath, formatNumeric(field), formatBound(bound))
+		switch field.Kind() {
+		case reflect.String, reflect.Slice, reflect.Map:
+			if field.Len() < int(bound) {
+				return fmt.Errorf("field %q: length %d is less than minimum %v", fieldPath, field.Len(), formatBound(bound))
+			}
+		default:
+			val, ok := numericValue(field)
+			if ok && val < bound {
+				return fmt.Errorf("field %q: value %v is less than minimum %v", fieldPath, formatNumeric(field), formatBound(bound))
+			}
 		}
 
 	case "max":
@@ -242,27 +249,16 @@ func validateDirective(field reflect.Value, fieldPath string, d directive) error
 		if err != nil {
 			return fmt.Errorf("field %q: invalid max value %q: %w", fieldPath, d.value, err)
 		}
-		val, ok := numericValue(field)
-		if ok && val > bound {
-			return fmt.Errorf("field %q: value %v exceeds maximum %v", fieldPath, formatNumeric(field), formatBound(bound))
-		}
-
-	case "minLength":
-		n, err := strconv.Atoi(d.value)
-		if err != nil {
-			return fmt.Errorf("field %q: invalid minLength value %q: %w", fieldPath, d.value, err)
-		}
-		if field.Kind() == reflect.String && field.Len() < n {
-			return fmt.Errorf("field %q: length %d is less than minimum %d", fieldPath, field.Len(), n)
-		}
-
-	case "maxLength":
-		n, err := strconv.Atoi(d.value)
-		if err != nil {
-			return fmt.Errorf("field %q: invalid maxLength value %q: %w", fieldPath, d.value, err)
-		}
-		if field.Kind() == reflect.String && field.Len() > n {
-			return fmt.Errorf("field %q: length %d exceeds maximum %d", fieldPath, field.Len(), n)
+		switch field.Kind() {
+		case reflect.String, reflect.Slice, reflect.Map:
+			if field.Len() > int(bound) {
+				return fmt.Errorf("field %q: length %d exceeds maximum %v", fieldPath, field.Len(), formatBound(bound))
+			}
+		default:
+			val, ok := numericValue(field)
+			if ok && val > bound {
+				return fmt.Errorf("field %q: value %v exceeds maximum %v", fieldPath, formatNumeric(field), formatBound(bound))
+			}
 		}
 
 	case "oneof":

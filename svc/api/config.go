@@ -148,9 +148,9 @@ type Config struct {
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
 
-	// Kafka configures distributed cache invalidation. See [KafkaConfig].
-	// When nil (section omitted), cache invalidation is local-only.
-	Kafka *KafkaConfig `toml:"kafka"`
+	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
+	// When nil (section omitted), gossip is disabled and invalidation is local-only.
+	Gossip *config.GossipConfig `toml:"gossip"`
 
 	// Ctrl configures the deployment management service. See [CtrlConfig].
 	Ctrl CtrlConfig `toml:"ctrl"`

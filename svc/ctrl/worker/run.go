@@ -16,6 +16,7 @@ import (
 	restateServer "github.com/restatedev/sdk-go/server"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -98,15 +99,15 @@ func Run(ctx context.Context, cfg Config) error {
 	r.DeferCtx(shutdownGrafana)
 
 	// Create vault client for remote vault service
-	var vaultClient vaultv1connect.VaultServiceClient
+	var vaultClient vault.VaultServiceClient
 	if cfg.Vault.URL != "" {
-		vaultClient = vaultv1connect.NewVaultServiceClient(
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 			http.DefaultClient,
 			cfg.Vault.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
 				"Authorization": "Bearer " + cfg.Vault.Token,
 			})),
-		)
+		))
 		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	}
 

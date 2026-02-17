@@ -20,6 +20,10 @@ data:
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
+    [gossip]
+    lan_port = 7946
+    lan_seeds = ["frontline-gossip-lan"]
+
     [otel]
     enabled = false
 
@@ -54,6 +58,12 @@ spec:
               name: http
             - containerPort: 7443
               name: https
+            - containerPort: 7946
+              name: gossip-lan
+              protocol: TCP
+            - containerPort: 7946
+              name: gossip-lan-udp
+              protocol: UDP
           volumeMounts:
             - name: config
               mountPath: /etc/unkey
@@ -106,3 +116,23 @@ spec:
       port: 443
       targetPort: 7443
   type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontline-gossip-lan
+  namespace: unkey
+spec:
+  clusterIP: None
+  selector:
+    app: frontline
+  ports:
+    - name: gossip-lan
+      port: 7946
+      targetPort: 7946
+      protocol: TCP
+    - name: gossip-lan-udp
+      port: 7946
+      targetPort: 7946
+      protocol: UDP

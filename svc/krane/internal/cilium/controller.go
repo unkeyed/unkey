@@ -3,7 +3,7 @@ package cilium
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -20,7 +20,7 @@ import (
 type Controller struct {
 	clientSet       kubernetes.Interface
 	dynamicClient   dynamic.Interface
-	cluster         ctrlv1connect.ClusterServiceClient
+	cluster         ctrl.ClusterServiceClient
 	done            chan struct{}
 	region          string
 	versionLastSeen uint64
@@ -40,7 +40,7 @@ type Config struct {
 	DynamicClient dynamic.Interface
 
 	// Cluster is the control plane RPC client for WatchCiliumNetworkPolicies calls.
-	Cluster ctrlv1connect.ClusterServiceClient
+	Cluster ctrl.ClusterServiceClient
 
 	// Region identifies the cluster region for filtering policy streams.
 	Region string

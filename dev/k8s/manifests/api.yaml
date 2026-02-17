@@ -24,6 +24,10 @@ data:
     analytics_url = "http://clickhouse:8123/default"
     proxy_token = "chproxy-test-token-123"
 
+    [gossip]
+    lan_port = 7946
+    lan_seeds = ["api-gossip-lan"]
+
     [otel]
     enabled = false
 
@@ -60,6 +64,12 @@ spec:
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7070
+            - containerPort: 7946
+              name: gossip-lan
+              protocol: TCP
+            - containerPort: 7946
+              name: gossip-lan-udp
+              protocol: UDP
           volumeMounts:
             - name: config
               mountPath: /etc/unkey
@@ -126,3 +136,23 @@ spec:
       targetPort: 7070
       protocol: TCP
   type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gossip-lan
+  namespace: unkey
+spec:
+  clusterIP: None
+  selector:
+    app: api
+  ports:
+    - name: gossip-lan
+      port: 7946
+      targetPort: 7946
+      protocol: TCP
+    - name: gossip-lan-udp
+      port: 7946
+      targetPort: 7946
+      protocol: UDP

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,27 +11,28 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/eventstream"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
@@ -175,16 +177,15 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
 	}
 
-	var vaultClient vault.Client
+	var vaultClient vault.VaultServiceClient
 	if cfg.Vault.URL != "" {
-		connectClient := vaultv1connect.NewVaultServiceClient(
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 			&http.Client{},
 			cfg.Vault.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
 				"Authorization": fmt.Sprintf("Bearer %s", cfg.Vault.Token),
 			})),
-		)
-		vaultClient = vault.NewConnectClient(connectClient)
+		))
 	}
 
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{
@@ -194,33 +195,55 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create auditlogs service: %w", err)
 	}
 
-	// Initialize cache invalidation topic
-	cacheInvalidationTopic := eventstream.NewNoopTopic[*cachev1.CacheInvalidationEvent]()
-	if cfg.Kafka != nil {
-		logger.Info("Initializing cache invalidation topic", "brokers", cfg.Kafka.Brokers, "instanceID", cfg.InstanceID)
+	// Initialize gossip-based cache invalidation
+	var broadcaster clustering.Broadcaster
+	if cfg.Gossip != nil {
+		logger.Info("Initializing gossip cluster for cache invalidation",
+			"region", cfg.Region,
+			"instanceID", cfg.InstanceID,
+		)
 
-		topicName := cfg.Kafka.CacheInvalidationTopic
-		if topicName == "" {
-			topicName = DefaultCacheInvalidationTopic
+		mux := cluster.NewMessageMux()
+
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
+
+		var secretKey []byte
+		if cfg.Gossip.SecretKey != "" {
+			var decodeErr error
+			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
+			if decodeErr != nil {
+				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
+			}
 		}
 
-		cacheInvalidationTopic, err = eventstream.NewTopic[*cachev1.CacheInvalidationEvent](eventstream.TopicConfig{
-			Brokers:    cfg.Kafka.Brokers,
-			Topic:      topicName,
-			InstanceID: cfg.InstanceID,
+		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Region:      cfg.Region,
+			NodeID:      cfg.InstanceID,
+			BindAddr:    cfg.Gossip.BindAddr,
+			BindPort:    cfg.Gossip.LANPort,
+			WANBindPort: cfg.Gossip.WANPort,
+			LANSeeds:    lanSeeds,
+			WANSeeds:    wanSeeds,
+			SecretKey:   secretKey,
+			OnMessage:   mux.OnMessage,
 		})
-		if err != nil {
-			return fmt.Errorf("unable to create cache invalidation topic: %w", err)
+		if clusterErr != nil {
+			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
+				"error", clusterErr,
+			)
+		} else {
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
+			broadcaster = gossipBroadcaster
+			r.Defer(gossipCluster.Close)
 		}
-
-		// Register topic for graceful shutdown
-		r.Defer(cacheInvalidationTopic.Close)
 	}
 
 	caches, err := caches.New(caches.Config{
-		Clock:                  clk,
-		CacheInvalidationTopic: cacheInvalidationTopic,
-		NodeID:                 cfg.InstanceID,
+		Clock:       clk,
+		Broadcaster: broadcaster,
+		NodeID:      cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -257,13 +280,15 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Initialize CTRL deployment client using bufconnect
-	ctrlDeploymentClient := ctrlv1connect.NewDeployServiceClient(
-		&http.Client{},
-		cfg.Ctrl.URL,
-		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", cfg.Ctrl.Token),
-		})),
+	// Initialize CTRL deployment client
+	ctrlDeploymentClient := ctrl.NewConnectDeployServiceClient(
+		ctrlv1connect.NewDeployServiceClient(
+			&http.Client{},
+			cfg.Ctrl.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Ctrl.Token),
+			})),
+		),
 	)
 
 	logger.Info("CTRL clients initialized", "url", cfg.Ctrl.URL)

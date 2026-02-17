@@ -212,35 +212,35 @@ func TestLoadBytes_ValidatesNumericBounds(t *testing.T) {
 }
 
 func TestLoadBytes_ValidatesStringLength(t *testing.T) {
-	t.Run("string shorter than minLength is rejected", func(t *testing.T) {
+	t.Run("string shorter than min is rejected", func(t *testing.T) {
 		type cfg struct {
-			Code string `toml:"code" config:"minLength=3"`
+			Code string `toml:"code" config:"min=3"`
 		}
 		_, err := LoadBytes[cfg]([]byte("code = \"ab\""), TOML)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "Code")
 	})
 
-	t.Run("string at minLength is accepted", func(t *testing.T) {
+	t.Run("string at min is accepted", func(t *testing.T) {
 		type cfg struct {
-			Code string `toml:"code" config:"minLength=3"`
+			Code string `toml:"code" config:"min=3"`
 		}
 		_, err := LoadBytes[cfg]([]byte("code = \"abc\""), TOML)
 		require.NoError(t, err)
 	})
 
-	t.Run("string longer than maxLength is rejected", func(t *testing.T) {
+	t.Run("string longer than max is rejected", func(t *testing.T) {
 		type cfg struct {
-			Code string `toml:"code" config:"maxLength=5"`
+			Code string `toml:"code" config:"max=5"`
 		}
 		_, err := LoadBytes[cfg]([]byte("code = \"abcdef\""), TOML)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "Code")
 	})
 
-	t.Run("string at maxLength is accepted", func(t *testing.T) {
+	t.Run("string at max is accepted", func(t *testing.T) {
 		type cfg struct {
-			Code string `toml:"code" config:"maxLength=5"`
+			Code string `toml:"code" config:"max=5"`
 		}
 		_, err := LoadBytes[cfg]([]byte("code = \"abcde\""), TOML)
 		require.NoError(t, err)

@@ -57,6 +57,10 @@ type Config struct {
 	// Otel configures OpenTelemetry export. See [config.OtelConfig].
 	Otel config.OtelConfig `toml:"otel"`
 
+	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
+	// When nil (section omitted), gossip is disabled and invalidation is local-only.
+	Gossip *config.GossipConfig `toml:"gossip"`
+
 	// Logging configures log sampling. See [config.LoggingConfig].
 	Logging config.LoggingConfig `toml:"logging"`
 }

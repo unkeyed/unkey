@@ -51,9 +51,9 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					continue
 				}
 
-				res, err := c.cluster.GetDesiredDeploymentState(ctx, connect.NewRequest(&ctrlv1.GetDesiredDeploymentStateRequest{
+				res, err := c.cluster.GetDesiredDeploymentState(ctx, &ctrlv1.GetDesiredDeploymentStateRequest{
 					DeploymentId: deploymentID,
-				}))
+				})
 				if err != nil {
 					if connect.CodeOf(err) == connect.CodeNotFound {
 						if err := c.DeleteDeployment(ctx, &ctrlv1.DeleteDeployment{
@@ -69,13 +69,13 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					continue
 				}
 
-				switch res.Msg.GetState().(type) {
+				switch res.GetState().(type) {
 				case *ctrlv1.DeploymentState_Apply:
-					if err := c.ApplyDeployment(ctx, res.Msg.GetApply()); err != nil {
+					if err := c.ApplyDeployment(ctx, res.GetApply()); err != nil {
 						logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", deploymentID)
 					}
 				case *ctrlv1.DeploymentState_Delete:
-					if err := c.DeleteDeployment(ctx, res.Msg.GetDelete()); err != nil {
+					if err := c.DeleteDeployment(ctx, res.GetDelete()); err != nil {
 						logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
 					}
 				}

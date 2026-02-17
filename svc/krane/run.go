@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -138,9 +139,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start the sentinel controller (independent control loop)
 	sentinelCtrl := sentinel.New(sentinel.Config{
-		ClientSet: clientset,
-		Cluster:   cluster,
-		Region:    cfg.Region,
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Cluster:       cluster,
+		Region:        cfg.Region,
 	})
 	if err := sentinelCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)
@@ -148,15 +150,15 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(sentinelCtrl.Stop)
 
 	// Create vault client for secrets decryption
-	var vaultClient vaultv1connect.VaultServiceClient
+	var vaultClient vault.VaultServiceClient
 	if cfg.Vault.URL != "" {
-		vaultClient = vaultv1connect.NewVaultServiceClient(
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 			http.DefaultClient,
 			cfg.Vault.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
 				"Authorization": "Bearer " + cfg.Vault.Token,
 			})),
-		)
+		))
 		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	}
 

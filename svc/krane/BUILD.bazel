@@ -12,6 +12,7 @@ go_library(
     deps = [
         "//gen/proto/krane/v1/kranev1connect",
         "//gen/proto/vault/v1/vaultv1connect",
+        "//gen/rpc/vault",
         "//pkg/clock",
         "//pkg/config",
         "//pkg/logger",

@@ -24,7 +24,6 @@ type ApiConfig struct {
 	Nodes         int
 	MysqlDSN      string
 	ClickhouseDSN string
-	KafkaBrokers  []string
 }
 
 // ApiCluster represents a cluster of API containers
@@ -98,17 +97,11 @@ func New(t *testing.T, config Config) *Harness {
 
 	h.Seed.Seed(ctx)
 
-	// For docker DSN, use docker service name
-	clickhouseDockerDSN := "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true&dial_timeout=10s"
-
-	// Create dynamic API container cluster for chaos testing
-	kafkaBrokers := containers.Kafka(t)
-
+	// Create dynamic API container cluster
 	cluster := h.RunAPI(ApiConfig{
 		Nodes:         config.NumNodes,
 		MysqlDSN:      mysqlDockerDSN,
-		ClickhouseDSN: clickhouseDockerDSN,
-		KafkaBrokers:  kafkaBrokers,
+		ClickhouseDSN: clickhouseHostDSN,
 	})
 	h.apiCluster = cluster
 	h.instanceAddrs = cluster.Addrs
@@ -135,9 +128,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 
 		// Create API config for this node using host connections
 		mysqlHostCfg := containers.MySQL(h.t)
-		mysqlHostCfg.DBName = "unkey" // Set the database name
+		mysqlHostCfg.DBName = "unkey"
 		clickhouseHostDSN := containers.ClickHouse(h.t)
-		kafkaBrokers := containers.Kafka(h.t)
 		vaultURL, vaultToken := containers.Vault(h.t)
 		apiConfig := api.Config{
 			HttpPort:           7070,
@@ -173,10 +165,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				URL:   vaultURL,
 				Token: vaultToken,
 			},
-			Kafka: &api.KafkaConfig{
-				Brokers:                kafkaBrokers, // Use host brokers for test runner connections
-				CacheInvalidationTopic: "",
-			},
 			Ctrl: api.CtrlConfig{
 				URL:   "http://ctrl:7091",
 				Token: "your-local-dev-key",
@@ -189,6 +177,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				SampleRate:    1.0,
 				SlowThreshold: time.Second,
 			},
+			Gossip: nil,
 		}
 
 		// Start API server in goroutine

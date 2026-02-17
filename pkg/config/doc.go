@@ -28,7 +28,8 @@
 //
 // Fields are annotated with `config:"..."` directives that control defaults
 // and validation. Available directives: required, default=V, min=N, max=N,
-// minLength=N, maxLength=N, nonempty, and oneof=a|b|c.
+// nonempty, and oneof=a|b|c. min/max check the numeric value for numbers
+// and the length for strings, slices, and maps.
 //
 // # Formats
 //
