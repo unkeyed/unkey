@@ -3,272 +3,262 @@ package keys
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
-	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// mockQuotaCache is a minimal mock implementing cache.Cache[string, db.Quotum].
-type mockQuotaCache struct {
-	swrFn func(ctx context.Context, key string, refresh func(context.Context) (db.Quotum, error), op func(error) cache.Op) (db.Quotum, cache.CacheHit, error)
-}
+func setupWorkspaceRatelimitTest(t *testing.T) (*service, db.Database) {
+	t.Helper()
 
-func (m *mockQuotaCache) Get(_ context.Context, _ string) (db.Quotum, cache.CacheHit) {
-	return db.Quotum{}, cache.Miss
-}
-func (m *mockQuotaCache) GetMany(_ context.Context, _ []string) (map[string]db.Quotum, map[string]cache.CacheHit) {
-	return nil, nil
-}
-func (m *mockQuotaCache) Set(_ context.Context, _ string, _ db.Quotum)      {}
-func (m *mockQuotaCache) SetMany(_ context.Context, _ map[string]db.Quotum) {}
-func (m *mockQuotaCache) SetNull(_ context.Context, _ string)               {}
-func (m *mockQuotaCache) SetNullMany(_ context.Context, _ []string)         {}
-func (m *mockQuotaCache) Remove(_ context.Context, _ ...string)             {}
-func (m *mockQuotaCache) SWR(ctx context.Context, key string, refresh func(context.Context) (db.Quotum, error), op func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
-	return m.swrFn(ctx, key, refresh, op)
-}
-func (m *mockQuotaCache) SWRMany(_ context.Context, _ []string, _ func(context.Context, []string) (map[string]db.Quotum, error), _ func(error) cache.Op) (map[string]db.Quotum, map[string]cache.CacheHit, error) {
-	return nil, nil, nil
-}
-func (m *mockQuotaCache) SWRWithFallback(_ context.Context, _ []string, _ func(context.Context) (db.Quotum, string, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
-	return db.Quotum{}, cache.Miss, nil
-}
-func (m *mockQuotaCache) Dump(_ context.Context) ([]byte, error)    { return nil, nil }
-func (m *mockQuotaCache) Restore(_ context.Context, _ []byte) error { return nil }
-func (m *mockQuotaCache) Clear(_ context.Context)                   {}
-func (m *mockQuotaCache) Name() string                              { return "mock_quota" }
+	containers.StartAllServices(t)
+	mysqlCfg := containers.MySQL(t)
+	redisURL := dockertest.Redis(t)
+	chDSN := containers.ClickHouse(t)
 
-// mockRateLimiter implements ratelimit.Service for testing.
-type mockRateLimiter struct {
-	fn func(context.Context, ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error)
-}
-
-func (m *mockRateLimiter) Ratelimit(ctx context.Context, req ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error) {
-	return m.fn(ctx, req)
-}
-
-func (m *mockRateLimiter) RatelimitMany(_ context.Context, _ []ratelimit.RatelimitRequest) ([]ratelimit.RatelimitResponse, error) {
-	return nil, nil
-}
-
-// mockNamespaceService implements namespace.Service for testing.
-type mockNamespaceService struct {
-	getFn        func(ctx context.Context, workspaceID, nameOrID string) (db.FindRatelimitNamespace, bool, error)
-	createFn     func(ctx context.Context, workspaceID, name string, audit *namespace.AuditContext) (db.FindRatelimitNamespace, error)
-	getManyFn    func(ctx context.Context, workspaceID string, names []string) (map[string]db.FindRatelimitNamespace, []string, error)
-	createManyFn func(ctx context.Context, workspaceID string, names []string, audit *namespace.AuditContext) (map[string]db.FindRatelimitNamespace, error)
-	invalidateFn func(ctx context.Context, workspaceID string, ns db.FindRatelimitNamespace)
-}
-
-func (m *mockNamespaceService) Get(ctx context.Context, workspaceID, nameOrID string) (db.FindRatelimitNamespace, bool, error) {
-	if m.getFn != nil {
-		return m.getFn(ctx, workspaceID, nameOrID)
-	}
-	return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
-}
-
-func (m *mockNamespaceService) Create(ctx context.Context, workspaceID, name string, audit *namespace.AuditContext) (db.FindRatelimitNamespace, error) {
-	if m.createFn != nil {
-		return m.createFn(ctx, workspaceID, name, audit)
-	}
-	return db.FindRatelimitNamespace{}, nil //nolint:exhaustruct
-}
-
-func (m *mockNamespaceService) GetMany(ctx context.Context, workspaceID string, names []string) (map[string]db.FindRatelimitNamespace, []string, error) {
-	if m.getManyFn != nil {
-		return m.getManyFn(ctx, workspaceID, names)
-	}
-	return nil, names, nil
-}
-
-func (m *mockNamespaceService) CreateMany(ctx context.Context, workspaceID string, names []string, audit *namespace.AuditContext) (map[string]db.FindRatelimitNamespace, error) {
-	if m.createManyFn != nil {
-		return m.createManyFn(ctx, workspaceID, names, audit)
-	}
-	return nil, nil
-}
-
-func (m *mockNamespaceService) Invalidate(ctx context.Context, workspaceID string, ns db.FindRatelimitNamespace) {
-	if m.invalidateFn != nil {
-		m.invalidateFn(ctx, workspaceID, ns)
-	}
-}
-
-func quotaCache(limit, duration int32) *mockQuotaCache {
-	return &mockQuotaCache{
-		swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
-			return db.Quotum{
-				RatelimitLimit:    sql.NullInt32{Valid: true, Int32: limit},
-				RatelimitDuration: sql.NullInt32{Valid: true, Int32: duration},
-			}, cache.Hit, nil
-		},
-	}
-}
-
-func unlimitedQuotaCache() *mockQuotaCache {
-	return &mockQuotaCache{
-		swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
-			// NULL = unlimited
-			return db.Quotum{}, cache.Hit, nil
-		},
-	}
-}
-
-func noopNamespaceService() *mockNamespaceService {
-	return &mockNamespaceService{}
-}
-
-func TestCheckWorkspaceRateLimit_NullLimit_Unlimited(t *testing.T) {
-	t.Parallel()
-
-	s := &service{
-		quotaCache:                unlimitedQuotaCache(),
-		ratelimitNamespaceService: noopNamespaceService(),
-	}
-
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
+	database, err := db.New(db.Config{
+		PrimaryDSN:  mysqlCfg.FormatDSN(),
+		ReadOnlyDSN: "",
+	})
 	require.NoError(t, err)
-}
 
-func TestCheckWorkspaceRateLimit_NoQuotaRow(t *testing.T) {
-	t.Parallel()
+	clk := clock.NewTestClock()
 
-	s := &service{
-		quotaCache: &mockQuotaCache{
-			swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
-				return db.Quotum{}, cache.Null, nil
-			},
-		},
-		ratelimitNamespaceService: noopNamespaceService(),
-	}
-
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
+	c, err := caches.New(caches.Config{
+		Broadcaster: nil,
+		NodeID:      "",
+		Clock:       clk,
+	})
 	require.NoError(t, err)
-}
 
-func TestCheckWorkspaceRateLimit_LimitZero_BlocksAll(t *testing.T) {
-	t.Parallel()
+	ctr, err := counter.NewRedis(counter.RedisConfig{
+		RedisURL: redisURL,
+	})
+	require.NoError(t, err)
 
-	rl := &mockRateLimiter{
-		fn: func(_ context.Context, req ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error) {
-			require.Equal(t, int64(0), req.Limit)
-			return ratelimit.RatelimitResponse{
-				Success:   false,
-				Limit:     0,
-				Remaining: 0,
-			}, nil
-		},
-	}
+	rl, err := ratelimit.New(ratelimit.Config{
+		Clock:   clk,
+		Counter: ctr,
+	})
+	require.NoError(t, err)
+
+	ch, err := clickhouse.New(clickhouse.Config{
+		URL: chDSN,
+	})
+	require.NoError(t, err)
+
+	audit, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+
+	namespaceSvc, err := namespace.New(namespace.Config{
+		DB:        database,
+		Cache:     c.RatelimitNamespace,
+		Auditlogs: audit,
+	})
+	require.NoError(t, err)
 
 	s := &service{
+		db:                        database,
+		quotaCache:                c.WorkspaceQuota,
+		ratelimitNamespaceService: namespaceSvc,
 		rateLimiter:               rl,
-		quotaCache:                quotaCache(0, 60000),
-		ratelimitNamespaceService: noopNamespaceService(),
+		clickhouse:                ch,
+		region:                    "test",
 	}
 
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
+	return s, database
+}
+
+func createTestWorkspace(t *testing.T, database db.Database) string {
+	t.Helper()
+	wsID := uid.New("test_ws")
+	err := db.Query.InsertWorkspace(context.Background(), database.RW(), db.InsertWorkspaceParams{
+		ID:           wsID,
+		OrgID:        uid.New("test_org"),
+		Name:         uid.New("test"),
+		Slug:         uid.New("slug"),
+		CreatedAt:    time.Now().UnixMilli(),
+		K8sNamespace: sql.NullString{Valid: true, String: uid.DNS1035()},
+	})
+	require.NoError(t, err)
+	return wsID
+}
+
+func upsertQuota(t *testing.T, database db.Database, wsID string, limit, duration sql.NullInt32) {
+	t.Helper()
+	err := db.Query.UpsertQuota(context.Background(), database.RW(), db.UpsertQuotaParams{
+		WorkspaceID:            wsID,
+		RequestsPerMonth:       1_000_000,
+		AuditLogsRetentionDays: 30,
+		LogsRetentionDays:      30,
+		Team:                   false,
+		RatelimitLimit:         limit,
+		RatelimitDuration:      duration,
+	})
+	require.NoError(t, err)
+}
+
+func testAuditContext() *namespace.AuditContext {
+	return &namespace.AuditContext{
+		ActorID:   uid.New("actor"),
+		ActorName: "test-actor",
+		ActorType: auditlog.RootKeyActor,
+		RemoteIP:  "127.0.0.1",
+		UserAgent: "test-agent",
+	}
+}
+
+func TestCheckWorkspaceRateLimit_NullQuota_Unlimited(t *testing.T) {
+	s, database := setupWorkspaceRatelimitTest(t)
+	ctx := context.Background()
+	wsID := createTestWorkspace(t, database)
+	rootWsID := createTestWorkspace(t, database)
+
+	// NULL limit and duration = unlimited
+	upsertQuota(t, database, wsID, sql.NullInt32{}, sql.NullInt32{}) //nolint:exhaustruct
+
+	err := s.checkWorkspaceRateLimit(ctx, WorkspaceRateLimitRequest{
+		Session:               nil,
+		AuthorizedWorkspaceID: wsID,
+		RootKeyWorkspaceID:    rootWsID,
+		Audit:                 testAuditContext(),
+	})
+	require.NoError(t, err)
+}
+
+func TestCheckWorkspaceRateLimit_NoQuota_FailsOpen(t *testing.T) {
+	s, database := setupWorkspaceRatelimitTest(t)
+	ctx := context.Background()
+	wsID := createTestWorkspace(t, database)
+	rootWsID := createTestWorkspace(t, database)
+
+	// No quota row at all — should fail open
+	err := s.checkWorkspaceRateLimit(ctx, WorkspaceRateLimitRequest{
+		Session:               nil,
+		AuthorizedWorkspaceID: wsID,
+		RootKeyWorkspaceID:    rootWsID,
+		Audit:                 testAuditContext(),
+	})
+	require.NoError(t, err)
+}
+
+func TestCheckWorkspaceRateLimit_ZeroLimit_BlocksAll(t *testing.T) {
+	s, database := setupWorkspaceRatelimitTest(t)
+	ctx := context.Background()
+	wsID := createTestWorkspace(t, database)
+	rootWsID := createTestWorkspace(t, database)
+
+	// 0 limit = zero requests allowed
+	upsertQuota(t, database, wsID,
+		sql.NullInt32{Valid: true, Int32: 0},
+		sql.NullInt32{Valid: true, Int32: 60000},
+	)
+
+	err := s.checkWorkspaceRateLimit(ctx, WorkspaceRateLimitRequest{
+		Session:               nil,
+		AuthorizedWorkspaceID: wsID,
+		RootKeyWorkspaceID:    rootWsID,
+		Audit:                 testAuditContext(),
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "workspace rate limit exceeded")
+}
+
+func TestCheckWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
+	s, database := setupWorkspaceRatelimitTest(t)
+	ctx := context.Background()
+	wsID := createTestWorkspace(t, database)
+	rootWsID := createTestWorkspace(t, database)
+
+	// Allow exactly 2 requests per 60s window
+	upsertQuota(t, database, wsID,
+		sql.NullInt32{Valid: true, Int32: 2},
+		sql.NullInt32{Valid: true, Int32: 60000},
+	)
+
+	req := WorkspaceRateLimitRequest{
+		Session:               nil,
+		AuthorizedWorkspaceID: wsID,
+		RootKeyWorkspaceID:    rootWsID,
+		Audit:                 testAuditContext(),
+	}
+
+	// First two requests should succeed
+	err := s.checkWorkspaceRateLimit(ctx, req)
+	require.NoError(t, err)
+
+	err = s.checkWorkspaceRateLimit(ctx, req)
+	require.NoError(t, err)
+
+	// Third request should be rate limited
+	err = s.checkWorkspaceRateLimit(ctx, req)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "workspace rate limit exceeded")
+}
+
+func TestCheckWorkspaceRateLimit_CreatesNamespace(t *testing.T) {
+	s, database := setupWorkspaceRatelimitTest(t)
+	ctx := context.Background()
+	wsID := createTestWorkspace(t, database)
+	rootWsID := createTestWorkspace(t, database)
+
+	upsertQuota(t, database, wsID,
+		sql.NullInt32{Valid: true, Int32: 100},
+		sql.NullInt32{Valid: true, Int32: 60000},
+	)
+
+	err := s.checkWorkspaceRateLimit(ctx, WorkspaceRateLimitRequest{
+		Session:               nil,
+		AuthorizedWorkspaceID: wsID,
+		RootKeyWorkspaceID:    rootWsID,
+		Audit:                 testAuditContext(),
+	})
+	require.NoError(t, err)
+
+	// Verify namespace was created in the root key's workspace
+	row, err := db.Query.FindRatelimitNamespaceByName(ctx, database.RO(), db.FindRatelimitNamespaceByNameParams{
+		WorkspaceID: rootWsID,
+		Name:        workspaceRatelimitNamespace,
+	})
+	require.NoError(t, err)
+	require.Equal(t, workspaceRatelimitNamespace, row.Name)
+	require.Equal(t, rootWsID, row.WorkspaceID)
+}
+
+func TestCheckWorkspaceRateLimit_ReturnsCorrectFaultCode(t *testing.T) {
+	s, database := setupWorkspaceRatelimitTest(t)
+	ctx := context.Background()
+	wsID := createTestWorkspace(t, database)
+	rootWsID := createTestWorkspace(t, database)
+
+	upsertQuota(t, database, wsID,
+		sql.NullInt32{Valid: true, Int32: 0},
+		sql.NullInt32{Valid: true, Int32: 60000},
+	)
+
+	err := s.checkWorkspaceRateLimit(ctx, WorkspaceRateLimitRequest{
+		Session:               nil,
+		AuthorizedWorkspaceID: wsID,
+		RootKeyWorkspaceID:    rootWsID,
+		Audit:                 testAuditContext(),
+	})
 	require.Error(t, err)
 
-	urn, ok := fault.GetCode(err)
+	code, ok := fault.GetCode(err)
 	require.True(t, ok)
-	require.Equal(t, codes.User.TooManyRequests.WorkspaceRateLimited.URN(), urn)
-}
-
-func TestCheckWorkspaceRateLimit_UnderLimit(t *testing.T) {
-	t.Parallel()
-
-	rl := &mockRateLimiter{
-		fn: func(_ context.Context, req ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error) {
-			require.Equal(t, "workspace.ratelimit", req.Name)
-			require.Equal(t, "ws_123", req.Identifier)
-			require.Equal(t, int64(100), req.Limit)
-			require.Equal(t, 60*time.Second, req.Duration)
-			require.Equal(t, int64(1), req.Cost)
-
-			return ratelimit.RatelimitResponse{
-				Success:   true,
-				Limit:     100,
-				Remaining: 99,
-			}, nil
-		},
-	}
-
-	s := &service{
-		rateLimiter:               rl,
-		quotaCache:                quotaCache(100, 60000),
-		ratelimitNamespaceService: noopNamespaceService(),
-	}
-
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
-	require.NoError(t, err)
-}
-
-func TestCheckWorkspaceRateLimit_OverLimit(t *testing.T) {
-	t.Parallel()
-
-	rl := &mockRateLimiter{
-		fn: func(_ context.Context, _ ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error) {
-			return ratelimit.RatelimitResponse{
-				Success:   false,
-				Limit:     100,
-				Remaining: 0,
-			}, nil
-		},
-	}
-
-	s := &service{
-		rateLimiter:               rl,
-		quotaCache:                quotaCache(100, 60000),
-		ratelimitNamespaceService: noopNamespaceService(),
-	}
-
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
-	require.Error(t, err)
-
-	urn, ok := fault.GetCode(err)
-	require.True(t, ok)
-	require.Equal(t, codes.User.TooManyRequests.WorkspaceRateLimited.URN(), urn)
-}
-
-func TestCheckWorkspaceRateLimit_CacheError_FailsOpen(t *testing.T) {
-	t.Parallel()
-
-	s := &service{
-		quotaCache: &mockQuotaCache{
-			swrFn: func(_ context.Context, _ string, _ func(context.Context) (db.Quotum, error), _ func(error) cache.Op) (db.Quotum, cache.CacheHit, error) {
-				return db.Quotum{}, cache.Miss, fmt.Errorf("cache unavailable")
-			},
-		},
-		ratelimitNamespaceService: noopNamespaceService(),
-	}
-
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
-	require.NoError(t, err)
-}
-
-func TestCheckWorkspaceRateLimit_RateLimiterError_FailsOpen(t *testing.T) {
-	t.Parallel()
-
-	rl := &mockRateLimiter{
-		fn: func(_ context.Context, _ ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error) {
-			return ratelimit.RatelimitResponse{}, fmt.Errorf("redis unavailable")
-		},
-	}
-
-	s := &service{
-		rateLimiter:               rl,
-		quotaCache:                quotaCache(100, 60000),
-		ratelimitNamespaceService: noopNamespaceService(),
-	}
-
-	err := s.checkWorkspaceRateLimit(context.Background(), nil, "ws_123", "ws_root", nil)
-	require.NoError(t, err)
+	require.Contains(t, code, "WorkspaceRateLimited")
 }

@@ -17,26 +17,40 @@ import (
 
 const workspaceRatelimitNamespace = "workspace.ratelimit"
 
+// WorkspaceRateLimitRequest contains everything needed to enforce and record
+// a workspace-level rate limit check.
+type WorkspaceRateLimitRequest struct {
+	// Session is the current request session for analytics. May be nil in tests.
+	Session *zen.Session
+
+	// AuthorizedWorkspaceID is the workspace being accessed (ForWorkspaceID).
+	// Used for quota lookup and as the ratelimit identifier.
+	AuthorizedWorkspaceID string
+
+	// RootKeyWorkspaceID is the workspace the root key lives in.
+	// The ratelimit namespace and analytics are written here so the
+	// root key owner sees the logs.
+	RootKeyWorkspaceID string
+
+	// Audit context for namespace creation audit logs.
+	Audit *namespace.AuditContext
+}
+
 // checkWorkspaceRateLimit enforces per-workspace API rate limiting based on
 // the quota table, using a real ratelimit namespace for analytics.
-//
-// authorizedWorkspaceID is the workspace being accessed (ForWorkspaceID) — used
-// for quota lookup and as the ratelimit identifier.
-// rootKeyWorkspaceID is the workspace the root key lives in — used for the
-// ratelimit namespace and analytics (so the root key owner sees the logs).
 //
 // NULL limit/duration = unlimited (no rate limiting configured).
 // 0 limit = zero requests allowed.
 // On any internal error (cache miss, rate limiter failure) the check fails
 // open to avoid blocking legitimate traffic.
-func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, authorizedWorkspaceID string, rootKeyWorkspaceID string, audit *namespace.AuditContext) error {
+func (s *service) checkWorkspaceRateLimit(ctx context.Context, req WorkspaceRateLimitRequest) error {
 
-	quota, _, err := s.quotaCache.SWR(ctx, authorizedWorkspaceID, func(ctx context.Context) (db.Quotum, error) {
-		return db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), authorizedWorkspaceID)
+	quota, _, err := s.quotaCache.SWR(ctx, req.AuthorizedWorkspaceID, func(ctx context.Context) (db.Quotum, error) {
+		return db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), req.AuthorizedWorkspaceID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		logger.Warn("workspace rate limit: failed to load quota",
-			"workspace_id", authorizedWorkspaceID,
+			"workspace_id", req.AuthorizedWorkspaceID,
 			"error", err.Error(),
 		)
 		return nil // fail open
@@ -50,17 +64,17 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	// Resolve real namespace in the root key's workspace for analytics
 	var namespaceID string
 
-	ns, found, nsErr := s.ratelimitNamespaceService.Get(ctx, rootKeyWorkspaceID, workspaceRatelimitNamespace)
+	ns, found, nsErr := s.ratelimitNamespaceService.Get(ctx, req.RootKeyWorkspaceID, workspaceRatelimitNamespace)
 	if nsErr != nil {
 		logger.Warn("workspace rate limit: failed to get namespace",
-			"workspace_id", rootKeyWorkspaceID,
+			"workspace_id", req.RootKeyWorkspaceID,
 			"error", nsErr.Error(),
 		)
 	} else if !found {
-		ns, nsErr = s.ratelimitNamespaceService.Create(ctx, rootKeyWorkspaceID, workspaceRatelimitNamespace, audit)
+		ns, nsErr = s.ratelimitNamespaceService.Create(ctx, req.RootKeyWorkspaceID, workspaceRatelimitNamespace, req.Audit)
 		if nsErr != nil {
 			logger.Warn("workspace rate limit: failed to create namespace",
-				"workspace_id", rootKeyWorkspaceID,
+				"workspace_id", req.RootKeyWorkspaceID,
 				"error", nsErr.Error(),
 			)
 		} else {
@@ -79,7 +93,7 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	rlStart := time.Now()
 	resp, err := s.rateLimiter.Ratelimit(ctx, ratelimit.RatelimitRequest{
 		Name:       rlName,
-		Identifier: authorizedWorkspaceID,
+		Identifier: req.AuthorizedWorkspaceID,
 		Limit:      int64(quota.RatelimitLimit.Int32),
 		Duration:   time.Duration(quota.RatelimitDuration.Int32) * time.Millisecond,
 		Cost:       1,
@@ -88,20 +102,20 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	rlLatency := time.Since(rlStart)
 	if err != nil {
 		logger.Warn("workspace rate limit: ratelimiter error",
-			"workspace_id", authorizedWorkspaceID,
+			"workspace_id", req.AuthorizedWorkspaceID,
 			"error", err.Error(),
 		)
 		return nil // fail open
 	}
 
 	// Emit analytics in the root key's workspace so the owner sees the logs
-	if namespaceID != "" && sess != nil {
+	if namespaceID != "" && req.Session != nil {
 		s.clickhouse.BufferRatelimit(schema.Ratelimit{
-			RequestID:   sess.RequestID(),
-			WorkspaceID: rootKeyWorkspaceID,
+			RequestID:   req.Session.RequestID(),
+			WorkspaceID: req.RootKeyWorkspaceID,
 			Time:        time.Now().UnixMilli(),
 			NamespaceID: namespaceID,
-			Identifier:  authorizedWorkspaceID,
+			Identifier:  req.AuthorizedWorkspaceID,
 			Passed:      resp.Success,
 			Latency:     float64(rlLatency.Milliseconds()),
 			OverrideID:  "",

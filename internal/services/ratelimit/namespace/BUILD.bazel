@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "namespace",
@@ -21,5 +21,22 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/uid",
+    ],
+)
+
+go_test(
+    name = "namespace_test",
+    size = "large",
+    srcs = ["create_test.go"],
+    embed = [":namespace"],
+    deps = [
+        "//internal/services/auditlogs",
+        "//internal/services/caches",
+        "//pkg/auditlog",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/testutil/containers",
+        "//pkg/uid",
+        "@com_github_stretchr_testify//require",
     ],
 )
