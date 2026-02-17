@@ -61,6 +61,7 @@ export * from "./icons/code";
 export * from "./icons/code-branch";
 export * from "./icons/code-commit";
 export * from "./icons/coins";
+export * from "./icons/connections3";
 export * from "./icons/connections";
 export * from "./icons/conversion";
 export * from "./icons/cube";

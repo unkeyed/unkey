@@ -4,6 +4,7 @@ import { CircleHalfDottedClock } from "@unkey/icons";
 import { DockerfileSettings } from "./components/basic-settings/dockerfile-settings";
 import { GitHubSettings } from "./components/basic-settings/github-settings";
 import { RootDirectorySettings } from "./components/basic-settings/root-directory-settings";
+import { Instances } from "./components/runtime-settings/instances";
 import { Regions } from "./components/runtime-settings/regions";
 import { SettingsGroup } from "./components/shared/settings-group";
 
@@ -22,11 +23,14 @@ export default function SettingsPage() {
           <DockerfileSettings />
           <RootDirectorySettings />
         </div>
-        <SettingsGroup icon={<CircleHalfDottedClock iconSize="md-medium" />} title="Runtime settings">
+        <SettingsGroup
+          icon={<CircleHalfDottedClock iconSize="md-medium" />}
+          title="Runtime settings"
+        >
           <Regions />
+          <Instances />
         </SettingsGroup>
       </div>
-
     </div>
   );
 }

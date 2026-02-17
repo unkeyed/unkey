@@ -20,7 +20,6 @@ const regionsSchema = z.object({
 
 type RegionsFormValues = z.infer<typeof regionsSchema>;
 
-
 export const Regions = () => {
   const { environments } = useProjectData();
   const environmentId = environments[0]?.id;
@@ -35,7 +34,8 @@ export const Regions = () => {
     { enabled: Boolean(environmentId) },
   );
 
-  const regionConfig = (settingsData?.runtimeSettings?.regionConfig as Record<string, number>) ?? {};
+  const regionConfig =
+    (settingsData?.runtimeSettings?.regionConfig as Record<string, number>) ?? {};
   const defaultRegions = Object.keys(regionConfig);
 
   if (!environmentId) {
@@ -56,7 +56,6 @@ type RegionsFormProps = {
   defaultRegions: string[];
   availableRegions: string[];
 };
-
 
 const RegionsForm: React.FC<RegionsFormProps> = ({
   environmentId,
@@ -79,7 +78,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
 
   useEffect(() => {
     reset({ regions: defaultRegions });
-  }, [defaultRegions.join(",")]);
+  }, [defaultRegions, reset]);
 
   const currentRegions = useWatch({ control, name: "regions" });
 
@@ -126,10 +125,15 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       <span className="flex items-center gap-1.5">
         {defaultRegions.map((r, i) => (
           <span key={r} className="flex items-center gap-1.5">
-            {i > 0 && <span className="text-gray-6">|</span>}
+            {i > 0 && <span className="text-grayA-4">|</span>}
             <span className="flex items-center gap-1">
-              <RegionFlag flagCode={mapRegionToFlag(r)} size="xs" shape="circle" className="[&_img]:size-3" />
-              <span className="text-gray-12 font-medium">{r}</span>
+              <RegionFlag
+                flagCode={mapRegionToFlag(r)}
+                size="xs"
+                shape="circle"
+                className="[&_img]:size-3"
+              />
+              <span className="text-gray-11">{r}</span>
             </span>
           </span>
         ))}
@@ -183,7 +187,12 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
                     key={r}
                     className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
                   >
-                    <RegionFlag flagCode={mapRegionToFlag(r)} size="xs" shape="circle" className="[&_img]:size-3" />
+                    <RegionFlag
+                      flagCode={mapRegionToFlag(r)}
+                      size="xs"
+                      shape="circle"
+                      className="[&_img]:size-3"
+                    />
                     {r}
                     {currentRegions.length > 1 && (
                       <button
