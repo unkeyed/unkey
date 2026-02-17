@@ -2,7 +2,7 @@ package clickhouseuser
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 )
@@ -19,7 +19,7 @@ import (
 type Service struct {
 	hydrav1.UnimplementedClickhouseUserServiceServer
 	db         db.Database
-	vault      vaultv1connect.VaultServiceClient
+	vault      vault.VaultServiceClient
 	clickhouse clickhouse.ClickHouse
 }
 
@@ -32,7 +32,7 @@ type Config struct {
 
 	// Vault encrypts passwords before database storage. Passwords are encrypted using
 	// the workspace ID as the keyring identifier.
-	Vault vaultv1connect.VaultServiceClient
+	Vault vault.VaultServiceClient
 
 	// Clickhouse is the admin connection for creating users and managing permissions.
 	// Must be connected as a user with CREATE/ALTER/DROP permissions for USER, QUOTA,

@@ -1,7 +1,8 @@
 package routes
 
 import (
-	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -10,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/vault"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
 
@@ -47,7 +47,7 @@ type Services struct {
 	Caches caches.Caches
 
 	// Vault provides encrypted storage for sensitive key material.
-	Vault vault.Client
+	Vault vault.VaultServiceClient
 
 	// ChproxyToken authenticates requests to internal chproxy endpoints.
 	// When empty, chproxy routes are not registered.
@@ -55,7 +55,7 @@ type Services struct {
 
 	// CtrlDeploymentClient communicates with the control plane for deployment
 	// operations like creating and managing deployments.
-	CtrlDeploymentClient ctrlv1connect.DeployServiceClient
+	CtrlDeploymentClient ctrl.DeployServiceClient
 
 	// PprofEnabled controls whether pprof profiling endpoints are registered.
 	PprofEnabled bool

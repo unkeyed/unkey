@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package cluster.v1;
+
+import "cache/v1/invalidation.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/cluster/v1;clusterv1";
+
+enum Direction {
+  DIRECTION_UNSPECIFIED = 0;
+  DIRECTION_LAN = 1;
+  DIRECTION_WAN = 2;
+}
+
+// ClusterMessage is the envelope for all gossip broadcast messages.
+// The oneof field routes the payload to the correct handler via MessageMux.
+message ClusterMessage {
+  // Which pool this message was sent on (LAN or WAN).
+  Direction direction = 1;
+
+  // The region of the node that originated this message.
+  string source_region = 2;
+
+  // The node ID that originated this message.
+  string sender_node = 3;
+
+  // Unix millisecond timestamp when the message was created.
+  // Used to measure transport latency on the receiving end.
+  int64 sent_at_ms = 4;
+
+  oneof payload {
+    cache.v1.CacheInvalidationEvent cache_invalidation = 5;
+    // next payload type = 6
+  }
+}
