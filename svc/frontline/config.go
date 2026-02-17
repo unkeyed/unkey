@@ -6,23 +6,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/config"
 )
 
-// TLSConfig controls TLS termination for the frontline server. When Enabled
-// is true and both CertFile and KeyFile are set, the server uses static
-// file-based TLS (dev mode). When only Enabled is true and a vault/cert
-// manager is available, dynamic certificates are used (production mode).
-type TLSConfig struct {
-	// Enabled activates TLS termination. Defaults to true.
-	Enabled bool `toml:"enabled" config:"default=true"`
-
-	// CertFile is the filesystem path to a PEM-encoded TLS certificate.
-	// Used together with KeyFile for static file-based TLS (dev mode).
-	CertFile string `toml:"cert_file"`
-
-	// KeyFile is the filesystem path to a PEM-encoded TLS private key.
-	// Used together with CertFile for static file-based TLS (dev mode).
-	KeyFile string `toml:"key_file"`
-}
-
 // Config holds the complete configuration for the frontline server. It is
 // designed to be loaded from a TOML file using [config.Load]:
 //
@@ -64,8 +47,10 @@ type Config struct {
 	// specified port. Set to 0 to disable.
 	PrometheusPort int `toml:"prometheus_port"`
 
-	// TLS controls TLS termination. See [TLSConfig].
-	TLS TLSConfig `toml:"tls"`
+	// TLS provides filesystem paths for HTTPS certificate and key.
+	// When nil (section omitted), TLS is disabled.
+	// See [config.TLSFiles].
+	TLS *config.TLSFiles `toml:"tls"`
 
 	// Database configures MySQL connections. See [config.DatabaseConfig].
 	Database config.DatabaseConfig `toml:"database"`
@@ -78,16 +63,13 @@ type Config struct {
 	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
 	Gossip *config.GossipConfig `toml:"gossip"`
-
-	// Logging configures log sampling. See [config.LoggingConfig].
-	Logging config.LoggingConfig `toml:"logging"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
 func (c *Config) Validate() error {
-	if (c.TLS.CertFile == "") != (c.TLS.KeyFile == "") {
+	if c.TLS != nil && (c.TLS.CertFile == "") != (c.TLS.KeyFile == "") {
 		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided together")
 	}
 	return nil

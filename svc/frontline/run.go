@@ -48,8 +48,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.Logging.SlowThreshold,
-		SampleRate:    cfg.Logging.SampleRate,
+		SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+		SampleRate:    cfg.Observability.Logging.SampleRate,
 	})
 
 	// Create cached clock with millisecond resolution for efficient time tracking
@@ -225,7 +225,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create TLS config - either from static files (dev mode) or dynamic certificates (production)
 	var tlsConfig *pkgtls.Config
-	if cfg.TLS.Enabled {
+	if cfg.TLS != nil {
 		if cfg.TLS.CertFile != "" && cfg.TLS.KeyFile != "" {
 			// Dev mode: static file-based certificate
 			fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
