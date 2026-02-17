@@ -78,7 +78,7 @@ const RootDirectoryForm = ({
           label="Root directory"
           required
           className="w-[480px]"
-          description="Build context directory for Docker"
+          description="Build context directory for Docker. Changes apply on next deploy."
           placeholder="."
           error={errors.dockerContext?.message}
           variant={errors.dockerContext ? "error" : "default"}

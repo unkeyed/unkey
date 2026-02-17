@@ -69,7 +69,7 @@ const PortCard: React.FC<Props & { defaultPort: number }> = ({ environmentId, de
     <form onSubmit={handleSubmit(onSubmit)}>
       <SettingCard
         title="Port"
-        description="The port your application listens on."
+        description="The port your application listens on. Changes apply on next deploy."
         border="top"
         contentWidth="w-full lg:w-[420px]"
       >
@@ -141,7 +141,7 @@ const CommandCard: React.FC<Props & { defaultCommand: string }> = ({
     <form onSubmit={handleSubmit(onSubmit)}>
       <SettingCard
         title="Command"
-        description="The command to start your application."
+        description="The command to start your application. Changes apply on next deploy."
         border="default"
         contentWidth="w-full lg:w-[420px]"
       >
@@ -225,7 +225,7 @@ const HealthcheckCard: React.FC<Props & { defaultMethod: "GET" | "POST"; default
     <form onSubmit={handleSubmit(onSubmit)}>
       <SettingCard
         title="Healthcheck"
-        description="The healthcheck endpoint for your application."
+        description="The healthcheck endpoint for your application. Changes apply on next deploy."
         border="bottom"
         contentWidth="w-full lg:w-[420px]"
       >

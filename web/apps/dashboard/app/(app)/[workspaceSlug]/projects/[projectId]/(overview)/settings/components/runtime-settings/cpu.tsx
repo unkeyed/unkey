@@ -10,6 +10,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
 import { EditableSettingCard } from "../shared/editable-setting-card";
+import { SettingDescription } from "../shared/setting-description";
 
 const CPU_OPTIONS = [
   { label: "1/4 vCPU", value: 256 },
@@ -131,6 +132,7 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
               <span className="font-medium text-gray-12">{formatCpu(currentCpu)}</span>
             </span>
           </div>
+          <SettingDescription>Higher CPU improves compute-heavy workloads. Changes apply on next deploy.</SettingDescription>
         </div>
       </form>
     </EditableSettingCard>

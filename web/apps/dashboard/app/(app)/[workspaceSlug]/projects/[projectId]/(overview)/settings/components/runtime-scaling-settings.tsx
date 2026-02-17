@@ -86,7 +86,7 @@ const CpuCard: React.FC<Props & { defaultCpu: number }> = ({ environmentId, defa
     <form onSubmit={handleSubmit(onSubmit)}>
       <SettingCard
         title="CPU"
-        description="The amount of CPU allocated to each replica."
+        description="The amount of CPU allocated to each replica. Changes apply on next deploy."
         border="top"
         contentWidth="w-full lg:w-[420px]"
       >
@@ -165,7 +165,7 @@ const MemoryCard: React.FC<Props & { defaultMemory: number }> = ({
     <form onSubmit={handleSubmit(onSubmit)}>
       <SettingCard
         title="Memory"
-        description="The amount of memory allocated to each replica."
+        description="The amount of memory allocated to each replica. Changes apply on next deploy."
         border="default"
         contentWidth="w-full lg:w-[420px]"
       >
@@ -246,7 +246,7 @@ const ReplicasCard: React.FC<Props & { defaultReplicas: number }> = ({
     <form onSubmit={handleSubmit(onSubmit)}>
       <SettingCard
         title="Replicas per Region"
-        description="Number of replicas to run in each region."
+        description="Number of replicas to run in each region. Changes apply on next deploy."
         border="bottom"
         contentWidth="w-full lg:w-[420px]"
       >

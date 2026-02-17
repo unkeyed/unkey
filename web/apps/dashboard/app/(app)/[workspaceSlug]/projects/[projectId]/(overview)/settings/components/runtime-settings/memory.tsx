@@ -10,6 +10,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
 import { EditableSettingCard } from "../shared/editable-setting-card";
+import { SettingDescription } from "../shared/setting-description";
 
 const MEMORY_OPTIONS = [
   { label: "256 MiB", value: 256 },
@@ -92,7 +93,6 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
       icon={<ScanCode className="text-gray-12" iconSize="xl-medium" />}
       title="Memory"
       description="Memory allocation for each instance"
-      border="bottom"
       displayValue={(() => {
         const [value, unit] = parseMemoryDisplay(defaultMemory);
         return (
@@ -132,6 +132,7 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
               <span className="font-medium text-gray-12">{formatMemory(currentMemory)}</span>
             </span>
           </div>
+          <SettingDescription>Increase memory for applications with large datasets or caching needs. Changes apply on next deploy.</SettingDescription>
         </div>
       </form>
     </EditableSettingCard>

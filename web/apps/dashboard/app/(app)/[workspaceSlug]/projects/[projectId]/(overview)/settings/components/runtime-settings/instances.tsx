@@ -11,6 +11,7 @@ import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
 import { useProjectData } from "../../../data-provider";
 import { EditableSettingCard } from "../shared/editable-setting-card";
+import { SettingDescription } from "../shared/setting-description";
 
 const instancesSchema = z.object({
   instances: z.number().min(1).max(10),
@@ -147,6 +148,7 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
               </span>
             </span>
           </div>
+          <SettingDescription>More instances improve availability and handle higher traffic. Changes apply on next deploy.</SettingDescription>
         </div>
       </form>
     </EditableSettingCard>

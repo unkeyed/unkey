@@ -8,6 +8,7 @@ import { Cpu } from "./components/runtime-settings/cpu";
 import { Instances } from "./components/runtime-settings/instances";
 import { Memory } from "./components/runtime-settings/memory";
 import { Regions } from "./components/runtime-settings/regions";
+import { Storage } from "./components/runtime-settings/storage";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 export default function SettingsPage() {
@@ -33,6 +34,7 @@ export default function SettingsPage() {
           <Instances />
           <Cpu />
           <Memory />
+          <Storage />
         </SettingsGroup>
       </div>
     </div>

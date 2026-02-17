@@ -77,7 +77,7 @@ const DockerfileForm = ({
           required
           className="w-[480px]"
           label="Dockerfile path"
-          description="Dockerfile location used for docker build"
+          description="Dockerfile location used for docker build. Changes apply on next deploy."
           placeholder="Dockerfile"
           error={errors.dockerfile?.message}
           variant={errors.dockerfile ? "error" : "default"}

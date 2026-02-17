@@ -171,7 +171,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       <form id="update-regions-form" onSubmit={handleSubmit(onSubmit)}>
         <FormCombobox
           label="Regions"
-          description="Traffic is routed to the nearest selected region"
+          description="Traffic is routed to the nearest selected region. Changes apply on next deploy."
           optional
           className="w-[480px]"
           options={comboboxOptions}
