@@ -46,9 +46,9 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					continue
 				}
 
-				res, err := c.cluster.GetDesiredSentinelState(ctx, connect.NewRequest(&ctrlv1.GetDesiredSentinelStateRequest{
+				res, err := c.cluster.GetDesiredSentinelState(ctx, &ctrlv1.GetDesiredSentinelStateRequest{
 					SentinelId: sentinelID,
-				}))
+				})
 				if err != nil {
 					if connect.CodeOf(err) == connect.CodeNotFound {
 						if err := c.DeleteSentinel(ctx, &ctrlv1.DeleteSentinel{
@@ -63,13 +63,13 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					continue
 				}
 
-				switch res.Msg.GetState().(type) {
+				switch res.GetState().(type) {
 				case *ctrlv1.SentinelState_Apply:
-					if err := c.ApplySentinel(ctx, res.Msg.GetApply()); err != nil {
+					if err := c.ApplySentinel(ctx, res.GetApply()); err != nil {
 						logger.Error("unable to apply sentinel", "error", err.Error(), "sentinel_id", sentinelID)
 					}
 				case *ctrlv1.SentinelState_Delete:
-					if err := c.DeleteSentinel(ctx, res.Msg.GetDelete()); err != nil {
+					if err := c.DeleteSentinel(ctx, res.GetDelete()); err != nil {
 						logger.Error("unable to delete sentinel", "error", err.Error(), "sentinel_id", sentinelID)
 					}
 				}

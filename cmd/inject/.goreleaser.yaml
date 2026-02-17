@@ -29,21 +29,24 @@ upx:
   - enabled: true
     ids:
       - inject
+    goos:
+      - linux
     compress: best
     lzma: true
 
-kos:
-  - build: inject
-    base_image: cgr.dev/chainguard/busybox:latest
-    repositories:
-      - ghcr.io/unkeyed/inject
+dockers_v2:
+  - ids: [inject]
+    images:
+      - "ghcr.io/unkeyed/inject"
     tags:
       - "{{ .Version }}"
-      - latest
-    bare: true
+      - "latest"
     platforms:
       - linux/amd64
       - linux/arm64
+    dockerfile: cmd/inject/Dockerfile.release
+    labels:
+      "org.opencontainers.image.source": "https://github.com/unkeyed/unkey"
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
