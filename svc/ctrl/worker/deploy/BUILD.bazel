@@ -24,6 +24,7 @@ go_library(
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
         "//pkg/db",
+        "//pkg/fault",
         "//pkg/logger",
         "//pkg/ptr",
         "//pkg/uid",
