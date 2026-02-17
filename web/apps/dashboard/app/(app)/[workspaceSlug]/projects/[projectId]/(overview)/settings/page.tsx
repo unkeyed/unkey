@@ -1,8 +1,8 @@
 "use client";
 
-import { FileSettings, FolderLink } from "@unkey/icons";
-import { SettingCard } from "@unkey/ui";
+import { DockerfileSettings } from "./components/dockerfile-settings";
 import { GitHubSettings } from "./components/github-settings";
+import { RootDirectorySettings } from "./components/root-directory-settings";
 
 export default function SettingsPage() {
   return (
@@ -15,25 +15,8 @@ export default function SettingsPage() {
       </div>
       <div className="flex flex-col w-full">
         <GitHubSettings />
-        <SettingCard
-          className="px-4 py-[18px]"
-          icon={<FileSettings className="text-gray-12" iconSize="xl-regular" />}
-          title="Dockerfile"
-          description="Dockerfile location used for docker build. (e.g., services/api/Dockerfile)"
-          contentWidth="w-full lg:w-[320px] justify-end"
-        >
-          <div>asdsd</div>
-        </SettingCard>
-        <SettingCard
-          className="px-4 py-[18px]"
-          icon={<FolderLink className="text-gray-12" iconSize="xl-regular" />}
-          title="Root directory"
-          description="Build context directory. All COPY/ADD commands are relative to this path. (e.g., services/api)"
-          border="bottom"
-          contentWidth="w-full lg:w-[320px] justify-end"
-        >
-          <div>asdsd</div>
-        </SettingCard>
+        <DockerfileSettings />
+        <RootDirectorySettings />
       </div>
     </div>
   );
