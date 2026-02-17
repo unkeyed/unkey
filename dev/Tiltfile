@@ -65,7 +65,7 @@ EOF
 
 local_resource(
   'cilium-policies',
-  'kubectl apply -f k8s/manifests/cilium-policies.yaml',
+  'until kubectl apply -f k8s/manifests/cilium-policies.yaml 2>/dev/null; do echo "Waiting for Cilium CRDs..."; sleep 2; done',
   labels=['setup'],
 )
 
