@@ -55,7 +55,7 @@ export const createRootKeyColumns = ({
         <InfoTooltip
           content={
             <p>
-              This is the first part of the key to visually match it. We don't store the full key
+              This is the first part of the key to visually match it. We don&apos;t store the full key
               for security reasons.
             </p>
           }
