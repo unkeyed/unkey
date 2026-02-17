@@ -271,7 +271,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:       ch,
 		Region:           cfg.Region,
 		UsageLimiter:     ulSvc,
-		NamespaceService: namespaceSvc,
+		RatelimitNamespaceService: namespaceSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)

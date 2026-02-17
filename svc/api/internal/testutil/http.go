@@ -147,7 +147,7 @@ func NewHarness(t *testing.T) *Harness {
 		Clickhouse:       ch,
 		Region:           "test",
 		UsageLimiter:     ulSvc,
-		NamespaceService: nil,
+		RatelimitNamespaceService: nil,
 	})
 	require.NoError(t, err)
 
@@ -464,8 +464,8 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		AuditLogsRetentionDays: config.RetentionDays,
 		RequestsPerMonth:       1_000_000,
 		Team:                   false,
-		RatelimitLimit:         sql.NullInt64{}, //nolint:exhaustruct
-		RatelimitDuration:      sql.NullInt64{}, //nolint:exhaustruct
+		RatelimitLimit:         sql.NullInt32{}, //nolint:exhaustruct
+		RatelimitDuration:      sql.NullInt32{}, //nolint:exhaustruct
 	})
 	require.NoError(h.t, err)
 

@@ -49,15 +49,17 @@ export const quotas = mysqlTable("quota", {
 
   /**
    * ratelimitLimit is the maximum number of API requests allowed per duration window.
-   * When set to 0 or null, workspace rate limiting is disabled.
+   * NULL means unlimited (no workspace rate limiting).
+   * 0 means zero requests allowed.
    */
-  ratelimitLimit: bigint("ratelimit_limit", { mode: "number" }),
+  ratelimitLimit: int("ratelimit_limit", { unsigned: true }),
 
   /**
    * ratelimitDuration is the time window in milliseconds for the workspace rate limit.
    * Used together with ratelimitLimit to enforce per-workspace API rate limiting.
+   * NULL means unlimited (no workspace rate limiting).
    */
-  ratelimitDuration: bigint("ratelimit_duration", { mode: "number" }),
+  ratelimitDuration: int("ratelimit_duration", { unsigned: true }),
 });
 export const quotasRelations = relations(quotas, ({ one }) => ({
   workspace: one(workspaces, {

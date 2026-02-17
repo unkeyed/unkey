@@ -50,7 +50,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		UsageLimiter:     nil,
 		KeyCache:         nil,
 		QuotaCache:       nil,
-		NamespaceService: nil,
+		RatelimitNamespaceService: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
@@ -219,8 +219,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AuditLogsRetentionDays: 30,
 				LogsRetentionDays:      7,
 				Team:                   false,
-				RatelimitLimit:         sql.NullInt64{}, //nolint:exhaustruct
-				RatelimitDuration:      sql.NullInt64{}, //nolint:exhaustruct
+				RatelimitLimit:         sql.NullInt32{}, //nolint:exhaustruct
+				RatelimitDuration:      sql.NullInt32{}, //nolint:exhaustruct
 			},
 			{
 				WorkspaceID:            rootWorkspaceID,
@@ -228,8 +228,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AuditLogsRetentionDays: 30,
 				LogsRetentionDays:      7,
 				Team:                   false,
-				RatelimitLimit:         sql.NullInt64{}, //nolint:exhaustruct
-				RatelimitDuration:      sql.NullInt64{}, //nolint:exhaustruct
+				RatelimitLimit:         sql.NullInt32{}, //nolint:exhaustruct
+				RatelimitDuration:      sql.NullInt32{}, //nolint:exhaustruct
 			},
 		})
 		if err != nil {

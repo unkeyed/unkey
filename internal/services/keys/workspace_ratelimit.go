@@ -19,13 +19,11 @@ const workspaceRatelimitNamespace = "workspace.ratelimit"
 
 // checkWorkspaceRateLimit enforces per-workspace API rate limiting based on
 // the quota table, using a real ratelimit namespace for analytics.
-// If the rate limit is configured as 0 (unlimited), the request is allowed.
+// NULL limit/duration = unlimited (no rate limiting configured).
+// 0 limit = zero requests allowed.
 // On any internal error (cache miss, rate limiter failure) the check fails
 // open to avoid blocking legitimate traffic.
 func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, workspaceID string, audit *namespace.AuditContext) error {
-	if s.quotaCache == nil {
-		return nil
-	}
 
 	quota, _, err := s.quotaCache.SWR(ctx, workspaceID, func(ctx context.Context) (db.Quotum, error) {
 		return db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), workspaceID)
@@ -38,32 +36,32 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 		return nil // fail open
 	}
 
-	if !quota.RatelimitLimit.Valid || quota.RatelimitLimit.Int64 <= 0 || !quota.RatelimitDuration.Valid || quota.RatelimitDuration.Int64 <= 0 {
-		return nil // rate limiting not configured
+	// NULL = unlimited, no rate limiting configured
+	if !quota.RatelimitLimit.Valid || !quota.RatelimitDuration.Valid {
+		return nil
 	}
 
 	// Resolve real namespace for analytics — fail open if unavailable
 	var namespaceID string
-	if s.namespaceService != nil {
-		ns, found, nsErr := s.namespaceService.Get(ctx, workspaceID, workspaceRatelimitNamespace)
+
+	ns, found, nsErr := s.ratelimitNamespaceService.Get(ctx, workspaceID, workspaceRatelimitNamespace)
+	if nsErr != nil {
+		logger.Warn("workspace rate limit: failed to get namespace",
+			"workspace_id", workspaceID,
+			"error", nsErr.Error(),
+		)
+	} else if !found {
+		ns, nsErr = s.ratelimitNamespaceService.Create(ctx, workspaceID, workspaceRatelimitNamespace, audit)
 		if nsErr != nil {
-			logger.Warn("workspace rate limit: failed to get namespace",
+			logger.Warn("workspace rate limit: failed to create namespace",
 				"workspace_id", workspaceID,
 				"error", nsErr.Error(),
 			)
-		} else if !found {
-			ns, nsErr = s.namespaceService.Create(ctx, workspaceID, workspaceRatelimitNamespace, audit)
-			if nsErr != nil {
-				logger.Warn("workspace rate limit: failed to create namespace",
-					"workspace_id", workspaceID,
-					"error", nsErr.Error(),
-				)
-			} else {
-				namespaceID = ns.ID
-			}
 		} else {
 			namespaceID = ns.ID
 		}
+	} else {
+		namespaceID = ns.ID
 	}
 
 	// Use namespace ID as the ratelimit name when available, otherwise fall back
@@ -75,8 +73,8 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	resp, err := s.rateLimiter.Ratelimit(ctx, ratelimit.RatelimitRequest{
 		Name:       rlName,
 		Identifier: workspaceID,
-		Limit:      quota.RatelimitLimit.Int64,
-		Duration:   time.Duration(quota.RatelimitDuration.Int64) * time.Millisecond,
+		Limit:      int64(quota.RatelimitLimit.Int32),
+		Duration:   time.Duration(quota.RatelimitDuration.Int32) * time.Millisecond,
 		Cost:       1,
 		Time:       time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
 	})
