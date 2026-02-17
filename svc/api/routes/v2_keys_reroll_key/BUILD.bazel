@@ -7,6 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/vault/v1:vault",
+        "//gen/rpc/vault",
         "//internal/services/auditlogs",
         "//internal/services/keys",
         "//pkg/auditlog",
@@ -15,7 +16,6 @@ go_library(
         "//pkg/fault",
         "//pkg/rbac",
         "//pkg/uid",
-        "//pkg/vault",
         "//pkg/zen",
         "//svc/api/openapi",
     ],

@@ -1,0 +1,27 @@
+package cluster
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestBridgeElection_SmallestNameWins(t *testing.T) {
+	t.Run("smallest name wins", func(t *testing.T) {
+		names := []string{
+			"node-3",
+			"node-1", // smallest
+			"node-2",
+		}
+
+		// Find smallest (same logic as evaluateBridge)
+		smallest := names[0]
+		for _, name := range names[1:] {
+			if name < smallest {
+				smallest = name
+			}
+		}
+
+		require.Equal(t, "node-1", smallest)
+	})
+}

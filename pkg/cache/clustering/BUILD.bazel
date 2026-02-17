@@ -3,6 +3,9 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "clustering",
     srcs = [
+        "broadcaster.go",
+        "broadcaster_gossip.go",
+        "broadcaster_noop.go",
         "cluster_cache.go",
         "dispatcher.go",
         "noop.go",
@@ -11,10 +14,11 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/cache/v1:cache",
+        "//gen/proto/cluster/v1:cluster",
         "//pkg/assert",
         "//pkg/batch",
         "//pkg/cache",
-        "//pkg/eventstream",
+        "//pkg/cluster",
         "//pkg/logger",
     ],
 )
@@ -22,19 +26,12 @@ go_library(
 go_test(
     name = "clustering_test",
     size = "small",
-    srcs = [
-        "consume_events_test.go",
-        "e2e_test.go",
-        "produce_events_test.go",
-    ],
+    srcs = ["gossip_e2e_test.go"],
     deps = [
         ":clustering",
-        "//gen/proto/cache/v1:cache",
         "//pkg/cache",
         "//pkg/clock",
-        "//pkg/eventstream",
-        "//pkg/testutil/containers",
-        "//pkg/uid",
+        "//pkg/cluster",
         "@com_github_stretchr_testify//require",
     ],
 )

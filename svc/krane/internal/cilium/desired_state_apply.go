@@ -5,7 +5,6 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
@@ -49,10 +48,10 @@ func (c *Controller) runDesiredStateApplyLoop(ctx context.Context) {
 func (c *Controller) streamDesiredStateOnce(ctx context.Context) error {
 	logger.Info("connecting to control plane for desired state")
 
-	stream, err := c.cluster.WatchCiliumNetworkPolicies(ctx, connect.NewRequest(&ctrlv1.WatchCiliumNetworkPoliciesRequest{
+	stream, err := c.cluster.WatchCiliumNetworkPolicies(ctx, &ctrlv1.WatchCiliumNetworkPoliciesRequest{
 		Region:          c.region,
 		VersionLastSeen: c.versionLastSeen,
-	}))
+	})
 	if err != nil {
 		return err
 	}

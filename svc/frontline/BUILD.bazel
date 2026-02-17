@@ -11,7 +11,11 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/vault/v1/vaultv1connect",
+        "//gen/rpc/ctrl",
+        "//gen/rpc/vault",
+        "//pkg/cache/clustering",
         "//pkg/clock",
+        "//pkg/cluster",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/otel",
