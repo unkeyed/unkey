@@ -13,5 +13,4 @@ url = "${UNKEY_REGISTRY_URL}"
 username = "${UNKEY_REGISTRY_USERNAME}"
 password = "${UNKEY_REGISTRY_PASSWORD}"
 
-[otel]
-enabled = false
+[observability]

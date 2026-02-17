@@ -9,5 +9,4 @@ bucket = "vault"
 access_key_id = "minio_root_user"
 access_key_secret = "minio_root_password"
 
-[otel]
-enabled = false
+[observability]

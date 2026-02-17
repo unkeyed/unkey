@@ -10,8 +10,7 @@ url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=tr
 analytics_url = "http://clickhouse:8123/default"
 proxy_token = "chproxy-test-token-123"
 
-[otel]
-enabled = false
+[observability]
 
 [vault]
 url = "http://vault:8060"
