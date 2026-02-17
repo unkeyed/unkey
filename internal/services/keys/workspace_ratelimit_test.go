@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
@@ -175,7 +176,10 @@ func TestCheckWorkspaceRateLimit_ZeroLimit_BlocksAll(t *testing.T) {
 		Audit:                 testAuditContext(),
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "workspace rate limit exceeded")
+
+	code, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.User.TooManyRequests.WorkspaceRateLimited.URN(), code)
 }
 
 func TestCheckWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
@@ -207,7 +211,10 @@ func TestCheckWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
 	// Third request should be rate limited
 	err = s.checkWorkspaceRateLimit(ctx, req)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "workspace rate limit exceeded")
+
+	code, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.User.TooManyRequests.WorkspaceRateLimited.URN(), code)
 }
 
 func TestCheckWorkspaceRateLimit_CreatesNamespace(t *testing.T) {
@@ -260,5 +267,5 @@ func TestCheckWorkspaceRateLimit_ReturnsCorrectFaultCode(t *testing.T) {
 
 	code, ok := fault.GetCode(err)
 	require.True(t, ok)
-	require.Contains(t, code, "WorkspaceRateLimited")
+	require.Equal(t, codes.User.TooManyRequests.WorkspaceRateLimited.URN(), code)
 }
