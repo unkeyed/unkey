@@ -33,7 +33,7 @@ func Load[T any](path string) (T, error) {
 		return zero, fault.Wrap(err, fault.Internal("failed to read config file: "+path))
 	}
 
-	logger.Info("using config", "path", path, "raw", string(data))
+	logger.Info("using config", "path", path)
 
 	return LoadBytes[T](data)
 }
