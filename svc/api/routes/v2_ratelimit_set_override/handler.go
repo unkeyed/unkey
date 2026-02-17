@@ -179,8 +179,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Invalidate cache for this namespace after the transaction commits
 	h.Namespaces.Invalidate(ctx, auth.AuthorizedWorkspaceID, db.FindRatelimitNamespace{
-		ID:   result.namespaceID,
-		Name: result.namespaceName,
+		ID:                result.namespaceID,
+		WorkspaceID:       auth.AuthorizedWorkspaceID,
+		Name:              result.namespaceName,
+		CreatedAtM:        0,
+		UpdatedAtM:        sql.NullInt64{}, //nolint:exhaustruct
+		DeletedAtM:        sql.NullInt64{}, //nolint:exhaustruct
+		DirectOverrides:   nil,
+		WildcardOverrides: nil,
 	})
 
 	return s.JSON(http.StatusOK, Response{

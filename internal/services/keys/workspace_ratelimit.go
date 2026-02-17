@@ -78,6 +78,7 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 		Limit:      quota.RatelimitLimit.Int64,
 		Duration:   time.Duration(quota.RatelimitDuration.Int64) * time.Millisecond,
 		Cost:       1,
+		Time:       time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
 	})
 	if err != nil {
 		logger.Warn("workspace rate limit: ratelimiter error",
@@ -96,6 +97,8 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 			NamespaceID: namespaceID,
 			Identifier:  workspaceID,
 			Passed:      resp.Success,
+			Latency:     0,
+			OverrideID:  "",
 			Limit:       uint64(resp.Limit),
 			Remaining:   uint64(resp.Remaining),
 			ResetAt:     resp.Reset.UnixMilli(),
