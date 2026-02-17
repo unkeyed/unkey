@@ -34,8 +34,8 @@ type ControlPlaneConfig struct {
 //
 //	cfg, err := config.Load[krane.Config]("/etc/unkey/krane.toml")
 //
-// Environment variables are expanded in file values using ${VAR} or
-// ${VAR:-default} syntax before parsing. Struct tag defaults are applied to
+// Environment variables are expanded in file values using ${VAR}
+// syntax before parsing. Struct tag defaults are applied to
 // any field left at its zero value after parsing, and validation runs
 // automatically via [Config.Validate].
 //
@@ -50,10 +50,6 @@ type Config struct {
 	// RPCPort is the TCP port for the gRPC server.
 	RPCPort int `toml:"rpc_port" config:"default=8070,min=1,max=65535"`
 
-	// PrometheusPort starts a Prometheus /metrics endpoint on the specified
-	// port. Set to 0 to disable.
-	PrometheusPort int `toml:"prometheus_port"`
-
 	// Registry configures container image registry access. See [RegistryConfig].
 	Registry RegistryConfig `toml:"registry"`
 
@@ -64,9 +60,6 @@ type Config struct {
 	ControlPlane ControlPlaneConfig `toml:"control_plane"`
 
 	Observability config.Observability `toml:"observability"`
-
-	// Logging configures log sampling. See [config.LoggingConfig].
-	Logging config.LoggingConfig `toml:"logging"`
 
 	// Clock provides time operations and is injected for testability. Production
 	// callers set this to [clock.New]; tests can substitute a fake clock.

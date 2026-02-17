@@ -57,10 +57,12 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.Logging.SlowThreshold,
-		SampleRate:    cfg.Logging.SampleRate,
-	})
+	if cfg.Observability.Logging != nil {
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
@@ -205,21 +207,21 @@ func Run(ctx context.Context, cfg Config) error {
 		return nil
 	})
 
-	if cfg.PrometheusPort > 0 {
+	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 
 		prom, err := prometheus.New()
 		if err != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", err)
 		}
 
-		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort))
 		if err != nil {
-			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, err)
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.Observability.Metrics.PrometheusPort, err)
 		}
 
 		r.DeferCtx(prom.Shutdown)
 		r.Go(func(ctx context.Context) error {
-			logger.Info("prometheus started", "port", cfg.PrometheusPort)
+			logger.Info("prometheus started", "port", cfg.Observability.Metrics.PrometheusPort)
 			if serveErr := prom.Serve(ctx, ln); serveErr != nil && !errors.Is(serveErr, context.Canceled) {
 				return fmt.Errorf("failed to start prometheus server: %w", serveErr)
 			}

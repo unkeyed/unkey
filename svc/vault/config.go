@@ -26,8 +26,8 @@ type S3Config struct {
 //
 //	cfg, err := config.Load[vault.Config]("/etc/unkey/vault.toml")
 //
-// Environment variables are expanded in file values using ${VAR} or
-// ${VAR:-default} syntax before parsing.
+// Environment variables are expanded in file values using ${VAR}
+// syntax before parsing.
 type Config struct {
 	// InstanceID identifies this particular vault instance. Used in log
 	// attribution and observability labels.

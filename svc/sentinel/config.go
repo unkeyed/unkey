@@ -20,8 +20,8 @@ type ClickHouseConfig struct {
 //
 //	cfg, err := config.Load[sentinel.Config]("/etc/unkey/sentinel.toml")
 //
-// Environment variables are expanded in file values using ${VAR} or
-// ${VAR:-default} syntax before parsing. Struct tag defaults are applied to
+// Environment variables are expanded in file values using ${VAR}
+// syntax before parsing. Struct tag defaults are applied to
 // any field left at its zero value after parsing, and validation runs
 // automatically via [Config.Validate].
 type Config struct {

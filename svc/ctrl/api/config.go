@@ -35,8 +35,8 @@ type GitHubConfig struct {
 //
 //	cfg, err := config.Load[api.Config]("/etc/unkey/ctrl-api.toml")
 //
-// Environment variables are expanded in file values using ${VAR} or
-// ${VAR:-default} syntax before parsing. Struct tag defaults are applied to
+// Environment variables are expanded in file values using ${VAR}
+// syntax before parsing. Struct tag defaults are applied to
 // any field left at its zero value after parsing, and validation runs
 // automatically via [Config.Validate].
 //

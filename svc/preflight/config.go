@@ -43,8 +43,8 @@ type RegistryConfig struct {
 //
 //	cfg, err := config.Load[preflight.Config]("/etc/unkey/preflight.toml")
 //
-// Environment variables are expanded in file values using ${VAR} or
-// ${VAR:-default} syntax before parsing.
+// Environment variables are expanded in file values using ${VAR}
+// syntax before parsing.
 type Config struct {
 	// HttpPort is the TCP port the webhook HTTPS server binds to.
 	HttpPort int `toml:"http_port" config:"default=8443,min=1,max=65535"`
