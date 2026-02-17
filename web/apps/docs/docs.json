@@ -152,6 +152,7 @@
               "apis/features/refill",
               "apis/features/temp-keys",
               "apis/features/analytics"
+              ],
               {
                 "group": "Authorization",
                 "pages": [
