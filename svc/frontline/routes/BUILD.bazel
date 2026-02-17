@@ -9,7 +9,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/frontline/routes",
     visibility = ["//visibility:public"],
     deps = [
-        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/rpc/ctrl",
         "//pkg/clock",
         "//pkg/zen",
         "//svc/frontline/middleware",
