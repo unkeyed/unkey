@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/config"
@@ -27,7 +28,7 @@ var Cmd = &cli.Command{
 func action(ctx context.Context, cmd *cli.Command) error {
 	cfg, err := config.Load[sentinel.Config](cmd.String("config"))
 	if err != nil {
-		return cli.Exit("Failed to load config: "+err.Error(), 1)
+		return fmt.Errorf("unable to load config: %w")
 	}
 
 	return sentinel.Run(ctx, cfg)

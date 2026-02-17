@@ -2,6 +2,7 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -33,7 +34,7 @@ var workerCmd = &cli.Command{
 func workerAction(ctx context.Context, cmd *cli.Command) error {
 	cfg, err := config.Load[worker.Config](cmd.String("config"))
 	if err != nil {
-		return cli.Exit("Failed to load config: "+err.Error(), 1)
+		return fmt.Errorf("unable to load config: %w")
 	}
 
 	// Normalize CNAME domain: trim whitespace and trailing dot
