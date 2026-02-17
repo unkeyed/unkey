@@ -38,7 +38,7 @@ export const ChartEmpty = ({
   // Simple variant: just centered message
   if (variant === "simple") {
     return (
-      <div className={cn("flex flex-col h-full", className)}>
+      <div className={cn("flex flex-col h-full bg-grayA-2", className)}>
         <div className="flex-1 min-h-0 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <span className="text-sm text-accent-9">{message}</span>
@@ -51,7 +51,7 @@ export const ChartEmpty = ({
   // Compact variant: with time placeholders and fixed height
   if (variant === "compact") {
     return (
-      <div className={cn("w-full relative", className)}>
+      <div className={cn("w-full relative bg-grayA-2", className)}>
         <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between opacity-50">
           {Array(5)
             .fill(0)
@@ -83,7 +83,7 @@ export const ChartEmpty = ({
     };
 
     return (
-      <div className={cn("flex flex-col h-full", className)}>
+      <div className={cn("flex flex-col h-full bg-grayA-2", className)}>
         {/* Header section with metrics */}
         <div
           className={cn(
@@ -151,7 +151,7 @@ export const ChartEmpty = ({
 
   // Fallback to simple if variant is "full" but no labels provided
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div className={cn("flex flex-col h-full bg-grayA-2", className)}>
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <span className="text-sm text-accent-9">{message}</span>
