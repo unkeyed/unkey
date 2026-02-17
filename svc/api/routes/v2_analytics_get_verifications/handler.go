@@ -95,7 +95,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		SecurityFilters:   securityFilters,
 		TableAliases:      tableAliases,
 		AllowedTables:     allowedTables,
-		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
+		MaxQueryRangeDays: settings.Quotum.LogsRetentionDays,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
