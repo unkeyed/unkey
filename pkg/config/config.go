@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -22,6 +23,10 @@ type Validator interface {
 // other behavior (env expansion, defaults, validation) to [LoadBytes].
 func Load[T any](path string) (T, error) {
 	var zero T
+
+	if filepath.Ext(path) != ".toml" {
+		return zero, fault.New("failed to read config: only .toml files are supported")
+	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {

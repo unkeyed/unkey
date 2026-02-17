@@ -5,7 +5,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/config"
-	"github.com/unkeyed/unkey/pkg/tls"
 	ctrlapi "github.com/unkeyed/unkey/svc/ctrl/api"
 )
 
@@ -33,15 +32,6 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 	cfg, err := config.Load[ctrlapi.Config](cmd.String("config"))
 	if err != nil {
 		return cli.Exit("Failed to load config: "+err.Error(), 1)
-	}
-
-	// Resolve TLS config from file paths
-	if cfg.TLS.CertFile != "" {
-		tlsCfg, tlsErr := tls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
-		if tlsErr != nil {
-			return cli.Exit("Failed to load TLS configuration: "+tlsErr.Error(), 1)
-		}
-		cfg.TLSConfig = tlsCfg
 	}
 
 	return ctrlapi.Run(ctx, cfg)

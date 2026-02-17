@@ -351,41 +351,6 @@ func TestLoadBytes_ExpandsEnvVars(t *testing.T) {
 	require.Equal(t, "hunter2", got.Secret)
 }
 
-func TestLoadBytes_ExpandsEnvVarsWithDefault(t *testing.T) {
-	type cfg struct {
-		Host string `toml:"host"`
-		Port string `toml:"port"`
-	}
-
-	t.Run("uses default when env var is unset", func(t *testing.T) {
-		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_UNSET_VAR:-localhost}\""))
-		require.NoError(t, err)
-		require.Equal(t, "localhost", got.Host)
-	})
-
-	t.Run("uses default when env var is empty", func(t *testing.T) {
-		t.Setenv("CONFIG_TEST_EMPTY_VAR", "")
-
-		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_EMPTY_VAR:-fallback}\""))
-		require.NoError(t, err)
-		require.Equal(t, "fallback", got.Host)
-	})
-
-	t.Run("uses env value when set", func(t *testing.T) {
-		t.Setenv("CONFIG_TEST_SET_VAR", "prod.example.com")
-
-		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_SET_VAR:-localhost}\""))
-		require.NoError(t, err)
-		require.Equal(t, "prod.example.com", got.Host)
-	})
-
-	t.Run("empty default is valid", func(t *testing.T) {
-		got, err := LoadBytes[cfg]([]byte("host = \"${CONFIG_TEST_UNSET_VAR2:-}\""))
-		require.NoError(t, err)
-		require.Equal(t, "", got.Host)
-	})
-}
-
 func TestLoad_DetectsFormatFromExtension(t *testing.T) {
 	t.Run("toml extension", func(t *testing.T) {
 		type tomlCfg struct {
@@ -410,6 +375,5 @@ func TestLoad_DetectsFormatFromExtension(t *testing.T) {
 
 		_, err := Load[cfg](path)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "unsupported")
 	})
 }

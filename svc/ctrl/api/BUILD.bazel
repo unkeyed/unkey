@@ -25,7 +25,6 @@ go_library(
         "//pkg/prometheus",
         "//pkg/restate/admin",
         "//pkg/runner",
-        "//pkg/tls",
         "//pkg/uid",
         "//pkg/version",
         "//svc/ctrl/services/acme",

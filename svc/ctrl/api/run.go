@@ -75,10 +75,6 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("version", pkgversion.Version),
 	))
 
-	if cfg.TLSConfig != nil {
-		logger.Info("TLS is enabled, server will use HTTPS")
-	}
-
 	r := runner.New()
 	defer r.Recover()
 
@@ -207,17 +203,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start server
 	r.Go(func(ctx context.Context) error {
-		logger.Info("Starting ctrl server", "addr", addr, "tls", cfg.TLSConfig != nil)
+		logger.Info("Starting ctrl server", "addr", addr)
 
-		var err error
-		if cfg.TLSConfig != nil {
-			server.TLSConfig = cfg.TLSConfig
-			// For TLS, use the regular mux without h2c wrapper
-			server.Handler = mux
-			err = server.ListenAndServeTLS("", "")
-		} else {
-			err = server.ListenAndServe()
-		}
+		err := server.ListenAndServe()
 
 		if err != nil && err != http.ErrServerClosed {
 			return fmt.Errorf("server failed: %w", err)

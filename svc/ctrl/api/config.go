@@ -1,10 +1,7 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/unkeyed/unkey/pkg/config"
-	"github.com/unkeyed/unkey/pkg/tls"
 )
 
 // RestateConfig holds configuration for Restate workflow engine integration.
@@ -91,10 +88,6 @@ type Config struct {
 	// Otel configures OpenTelemetry export. See [config.OtelConfig].
 	Otel config.OtelConfig `toml:"otel"`
 
-	// TLS provides filesystem paths for HTTPS certificate and key.
-	// See [config.TLSFiles].
-	TLS config.TLSFiles `toml:"tls"`
-
 	// Restate configures workflow engine integration. See [RestateConfig].
 	Restate RestateConfig `toml:"restate"`
 
@@ -103,24 +96,12 @@ type Config struct {
 
 	// Logging configures log sampling. See [config.LoggingConfig].
 	Logging config.LoggingConfig `toml:"logging"`
-
-	// TLSConfig is the resolved [tls.Config] built from [TLSFiles.CertFile]
-	// and [TLSFiles.KeyFile] at startup. This field is populated by the CLI
-	// entrypoint after loading the config file and must not be set in TOML.
-	TLSConfig *tls.Config `toml:"-"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
-//
-// Currently validates that TLS certificate and key paths are either both
-// provided or both absent — setting only one is an error.
 func (c *Config) Validate() error {
-	certFile := c.TLS.CertFile
-	keyFile := c.TLS.KeyFile
-	if (certFile == "") != (keyFile == "") {
-		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided to enable HTTPS")
-	}
+
 	return nil
 }
