@@ -26,8 +26,8 @@ func TestProjectNotFound(t *testing.T) {
 		DB:   h.DB,
 		Keys: h.Keys,
 		CtrlClient: &testutil.MockDeploymentClient{
-			CreateDeploymentFunc: func(ctx context.Context, req *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
-				return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}), nil
+			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
+				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil
 			},
 		},
 	}
@@ -64,7 +64,7 @@ func TestEnvironmentNotFound(t *testing.T) {
 		DB:   h.DB,
 		Keys: h.Keys,
 		CtrlClient: &testutil.MockDeploymentClient{
-			CreateDeploymentFunc: func(ctx context.Context, req *connect.Request[ctrlv1.CreateDeploymentRequest]) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
+			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
 				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
 			},
 		},
