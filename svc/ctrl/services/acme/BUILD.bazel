@@ -16,7 +16,7 @@ go_library(
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/vault/v1:vault",
-        "//gen/proto/vault/v1/vaultv1connect",
+        "//gen/rpc/vault",
         "//internal/services/caches",
         "//pkg/cache",
         "//pkg/db",

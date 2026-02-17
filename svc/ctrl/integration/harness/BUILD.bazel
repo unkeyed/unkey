@@ -7,7 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/hydra/v1:hydra",
-        "//gen/proto/vault/v1/vaultv1connect",
+        "//gen/rpc/vault",
         "//pkg/clickhouse",
         "//pkg/db",
         "//pkg/dockertest",

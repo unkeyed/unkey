@@ -10,7 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/vault/v1:vault",
-        "//gen/proto/vault/v1/vaultv1connect",
+        "//gen/rpc/vault",
         "//pkg/assert",
         "//pkg/clickhouse/schema",
         "//pkg/db",
@@ -18,7 +18,6 @@ go_library(
         "//pkg/hash",
         "//pkg/ptr",
         "//pkg/uid",
-        "@com_connectrpc_connect//:connect",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
         "@com_github_go_sql_driver_mysql//:mysql",
         "@com_github_stretchr_testify//require",
