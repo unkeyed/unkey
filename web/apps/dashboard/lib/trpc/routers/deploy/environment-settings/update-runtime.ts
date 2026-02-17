@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import { environmentRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
@@ -25,11 +25,24 @@ export const updateEnvironmentRuntimeSettings = workspaceProcedure
       cpuMillicores: z.number().optional(),
       memoryMib: z.number().optional(),
       replicasPerRegion: z.number().min(1).max(10).optional(),
+      regions: z.array(z.string()).optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
     const regionConfig: Record<string, number> = {};
-    if (input.replicasPerRegion !== undefined) {
+
+    if (input.regions !== undefined) {
+      const existing = await db.query.environmentRuntimeSettings.findFirst({
+        where: and(
+          eq(environmentRuntimeSettings.workspaceId, ctx.workspace.id),
+          eq(environmentRuntimeSettings.environmentId, input.environmentId),
+        ),
+      });
+      const currentConfig = (existing?.regionConfig as Record<string, number>) ?? {};
+      for (const region of input.regions) {
+        regionConfig[region] = currentConfig[region] ?? 1;
+      }
+    } else if (input.replicasPerRegion !== undefined) {
       const regionsEnv = process.env.AVAILABLE_REGIONS ?? "";
       for (const region of regionsEnv.split(",")) {
         regionConfig[region] = input.replicasPerRegion;

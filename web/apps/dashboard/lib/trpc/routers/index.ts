@@ -55,6 +55,7 @@ import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
 import { getEnvironmentSettings } from "./deploy/environment-settings/get";
+import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
 import { updateEnvironmentBuildSettings } from "./deploy/environment-settings/update-build";
 import { updateEnvironmentRuntimeSettings } from "./deploy/environment-settings/update-runtime";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
@@ -394,6 +395,7 @@ export const router = t.router({
     }),
     environmentSettings: t.router({
       get: getEnvironmentSettings,
+      getAvailableRegions,
       updateBuild: updateEnvironmentBuildSettings,
       updateRuntime: updateEnvironmentRuntimeSettings,
     }),

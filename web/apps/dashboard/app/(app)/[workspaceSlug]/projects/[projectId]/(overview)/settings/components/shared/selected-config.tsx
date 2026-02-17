@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@unkey/ui";
 
 type SelectedConfigProps = {
-  label: string;
+  label: React.ReactNode;
   className?: string;
 };
 

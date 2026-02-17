@@ -111,26 +111,26 @@ export const ExternalIdField = ({
   const createOption =
     trimmedSearchValue && !exactMatch && hasPartialMatches && !isSearching
       ? {
-          label: (
-            <div className="flex items-center gap-2 w-full">
-              <div
-                className={cn(
-                  "flex items-center rounded size-5 justify-center flex-shrink-0",
-                  "bg-warningA-4",
-                  "text-warning-11",
-                )}
-              >
-                <TriangleWarning2 iconSize="sm-regular" />
-              </div>
-              <span className="text-[13px] text-gray-12 ">
-                <span className="text-accent-10 font-normal">Create</span> "{trimmedSearchValue}"
-              </span>
+        label: (
+          <div className="flex items-center gap-2 w-full">
+            <div
+              className={cn(
+                "flex items-center rounded size-5 justify-center flex-shrink-0",
+                "bg-warningA-4",
+                "text-warning-11",
+              )}
+            >
+              <TriangleWarning2 iconSize="sm-regular" />
             </div>
-          ),
-          value: "__create_new__",
-          selectedLabel: <></>,
-          searchValue: trimmedSearchValue,
-        }
+            <span className="text-[13px] text-gray-12 ">
+              <span className="text-accent-10 font-normal">Create</span> "{trimmedSearchValue}"
+            </span>
+          </div>
+        ),
+        value: "__create_new__",
+        selectedLabel: <></>,
+        searchValue: trimmedSearchValue,
+      }
       : null;
 
   const options = createOption ? [createOption, ...baseOptions] : baseOptions;
@@ -232,13 +232,6 @@ export const ExternalIdField = ({
       error={error}
       disabled={disabled || isLoading}
       loading={isComboboxLoading}
-      title={
-        isComboboxLoading
-          ? isSearching && trimmedSearchValue
-            ? "Searching for identities..."
-            : "Loading available identities..."
-          : undefined
-      }
     />
   );
 };

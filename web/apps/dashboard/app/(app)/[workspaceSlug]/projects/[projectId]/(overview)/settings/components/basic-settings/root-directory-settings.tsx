@@ -4,8 +4,8 @@ import { FolderLink } from "@unkey/icons";
 import { FormInput, toast } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../data-provider";
-import { EditableSettingCard } from "./editable-setting-card";
+import { useProjectData } from "../../../data-provider";
+import { EditableSettingCard } from "../shared/editable-setting-card";
 
 const rootDirectorySchema = z.object({
   dockerContext: z.string(),
@@ -68,7 +68,7 @@ const RootDirectoryForm = ({
       title="Root directory"
       description="Build context directory. All COPY/ADD commands are relative to this path. (e.g., services/api)"
       border="bottom"
-      displayValue={currentDockerContext || "."}
+      displayValue={defaultValue || "."}
       formId="update-root-directory-form"
       canSave={isValid && !isSubmitting && currentDockerContext !== defaultValue}
       isSaving={updateBuild.isLoading || isSubmitting}
@@ -76,6 +76,8 @@ const RootDirectoryForm = ({
       <form id="update-root-directory-form" onSubmit={handleSubmit(onSubmit)}>
         <FormInput
           label="Root directory"
+          required
+          className="w-[480px]"
           description="Build context directory for Docker"
           placeholder="."
           error={errors.dockerContext?.message}

@@ -8,7 +8,7 @@ type EditableSettingCardProps = {
   description: string;
   border?: "top" | "bottom" | "both" | "none" | "default";
 
-  displayValue: string;
+  displayValue: React.ReactNode;
 
   formId: string;
   children: React.ReactNode;
@@ -37,7 +37,7 @@ export const EditableSettingCard = ({
       border={border}
       contentWidth="w-full lg:w-[320px] justify-end"
       expandable={
-        <div className="px-6 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-xl">
+        <div className="px-4 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-xl">
           {children}
           <div className="flex justify-end">
             <Button

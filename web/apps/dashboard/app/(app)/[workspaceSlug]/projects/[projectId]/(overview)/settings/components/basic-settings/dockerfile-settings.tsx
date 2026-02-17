@@ -4,8 +4,8 @@ import { FileSettings } from "@unkey/icons";
 import { FormInput, toast } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../data-provider";
-import { EditableSettingCard } from "./editable-setting-card";
+import { useProjectData } from "../../../data-provider";
+import { EditableSettingCard } from "../shared/editable-setting-card";
 
 const dockerfileSchema = z.object({
   dockerfile: z.string().min(1, "Dockerfile path is required"),
@@ -67,7 +67,7 @@ const DockerfileForm = ({
       icon={<FileSettings className="text-gray-12" iconSize="xl-medium" />}
       title="Dockerfile"
       description="Dockerfile location used for docker build. (e.g., services/api/Dockerfile)"
-      displayValue={currentDockerfile}
+      displayValue={defaultValue}
       formId="update-dockerfile-form"
       canSave={isValid && !isSubmitting && currentDockerfile !== defaultValue}
       isSaving={updateBuild.isLoading || isSubmitting}
@@ -75,6 +75,7 @@ const DockerfileForm = ({
       <form id="update-dockerfile-form" onSubmit={handleSubmit(onSubmit)}>
         <FormInput
           required
+          className="w-[480px]"
           label="Dockerfile path"
           description="Dockerfile location used for docker build"
           placeholder="Dockerfile"

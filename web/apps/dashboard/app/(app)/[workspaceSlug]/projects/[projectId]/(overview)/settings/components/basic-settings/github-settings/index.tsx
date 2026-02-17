@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { useProjectData } from "../../../data-provider";
+import { useProjectData } from "../../../../data-provider";
 import { GitHubConnected } from "./github-connected";
 import { GitHubNoRepo } from "./github-no-repo";
 import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink } from "./shared";

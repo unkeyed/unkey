@@ -1,10 +1,11 @@
 "use client";
 
 import { CircleHalfDottedClock } from "@unkey/icons";
-import { DockerfileSettings } from "./components/dockerfile-settings";
-import { GitHubSettings } from "./components/github-settings";
-import { RootDirectorySettings } from "./components/root-directory-settings";
-import { SettingsGroup } from "./components/settings-group";
+import { DockerfileSettings } from "./components/basic-settings/dockerfile-settings";
+import { GitHubSettings } from "./components/basic-settings/github-settings";
+import { RootDirectorySettings } from "./components/basic-settings/root-directory-settings";
+import { Regions } from "./components/runtime-settings/regions";
+import { SettingsGroup } from "./components/shared/settings-group";
 
 export default function SettingsPage() {
   return (
@@ -22,9 +23,7 @@ export default function SettingsPage() {
           <RootDirectorySettings />
         </div>
         <SettingsGroup icon={<CircleHalfDottedClock iconSize="md-medium" />} title="Runtime settings">
-          <GitHubSettings />
-          <DockerfileSettings />
-          <RootDirectorySettings />
+          <Regions />
         </SettingsGroup>
       </div>
 
