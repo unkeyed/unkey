@@ -1,4 +1,4 @@
 -- name: EndDeploymentStep :exec
 UPDATE `deployment_steps`
-SET endedAt = ?, error = ?
+SET ended_at = ?, error = ?
 WHERE deployment_id = ? AND step = ?;

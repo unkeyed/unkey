@@ -22,7 +22,7 @@ export const deploymentSteps = mysqlTable(
       mode: "number",
       unsigned: true,
     }).notNull(),
-    endedAt: bigint("endedAt", { mode: "number", unsigned: true }),
+    endedAt: bigint("ended_at", { mode: "number", unsigned: true }),
     error: varchar("error", { length: 512 }),
   },
   (table) => [

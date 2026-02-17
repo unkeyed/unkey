@@ -487,10 +487,10 @@ CREATE TABLE `deployment_steps` (
 	`deployment_id` varchar(128) NOT NULL,
 	`step` enum('queued','building','deploying','network') NOT NULL DEFAULT 'queued',
 	`started_at` bigint unsigned NOT NULL,
-	`endedAt` bigint unsigned,
+	`ended_at` bigint unsigned,
 	`error` varchar(512),
 	CONSTRAINT `deployment_steps_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `unique_step_per_deployment` UNIQUE(`deployment_id`, `step`)
+	CONSTRAINT `unique_step_per_deployment` UNIQUE(`deployment_id`,`step`)
 );
 
 CREATE TABLE `deployment_topology` (

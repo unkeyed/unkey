@@ -62,7 +62,7 @@ func (w *Workflow) endDeploymentStep(
 		return db.Query.EndDeploymentStep(runCtx, w.db.RW(), db.EndDeploymentStepParams{
 			DeploymentID: deploymentID,
 			Step:         step,
-			Endedat:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			Error:        errStr,
 		})
 	}, restate.WithName(fmt.Sprintf("end deployment step %s", step)))

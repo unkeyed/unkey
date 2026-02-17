@@ -153,7 +153,7 @@ type Querier interface {
 	//EndDeploymentStep
 	//
 	//  UPDATE `deployment_steps`
-	//  SET endedAt = ?, error = ?
+	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ?
 	EndDeploymentStep(ctx context.Context, db DBTX, arg EndDeploymentStepParams) error
 	//FindAcmeChallengeByToken
@@ -1322,8 +1322,6 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//      started_at = VALUES(started_at)
 	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
 	//InsertDeploymentTopology
 	//

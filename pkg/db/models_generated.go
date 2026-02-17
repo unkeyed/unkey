@@ -1103,7 +1103,7 @@ type DeploymentStep struct {
 	DeploymentID  string              `db:"deployment_id"`
 	Step          DeploymentStepsStep `db:"step"`
 	StartedAt     uint64              `db:"started_at"`
-	Endedat       sql.NullInt64       `db:"endedat"`
+	EndedAt       sql.NullInt64       `db:"ended_at"`
 	Error         sql.NullString      `db:"error"`
 }
 

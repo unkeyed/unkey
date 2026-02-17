@@ -12,12 +12,12 @@ import (
 
 const endDeploymentStep = `-- name: EndDeploymentStep :exec
 UPDATE ` + "`" + `deployment_steps` + "`" + `
-SET endedAt = ?, error = ?
+SET ended_at = ?, error = ?
 WHERE deployment_id = ? AND step = ?
 `
 
 type EndDeploymentStepParams struct {
-	Endedat      sql.NullInt64       `db:"endedat"`
+	EndedAt      sql.NullInt64       `db:"ended_at"`
 	Error        sql.NullString      `db:"error"`
 	DeploymentID string              `db:"deployment_id"`
 	Step         DeploymentStepsStep `db:"step"`
@@ -26,11 +26,11 @@ type EndDeploymentStepParams struct {
 // EndDeploymentStep
 //
 //	UPDATE `deployment_steps`
-//	SET endedAt = ?, error = ?
+//	SET ended_at = ?, error = ?
 //	WHERE deployment_id = ? AND step = ?
 func (q *Queries) EndDeploymentStep(ctx context.Context, db DBTX, arg EndDeploymentStepParams) error {
 	_, err := db.ExecContext(ctx, endDeploymentStep,
-		arg.Endedat,
+		arg.EndedAt,
 		arg.Error,
 		arg.DeploymentID,
 		arg.Step,

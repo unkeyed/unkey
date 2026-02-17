@@ -9,8 +9,7 @@ import (
 )
 
 // bulkInsertDeploymentStep is the base query for bulk insert
-const bulkInsertDeploymentStep = `INSERT INTO ` + "`" + `deployment_steps` + "`" + ` ( workspace_id, project_id, environment_id, deployment_id, step, started_at ) VALUES %s ON DUPLICATE KEY UPDATE
-    started_at = VALUES(started_at)`
+const bulkInsertDeploymentStep = `INSERT INTO ` + "`" + `deployment_steps` + "`" + ` ( workspace_id, project_id, environment_id, deployment_id, step, started_at ) VALUES %s`
 
 // InsertDeploymentSteps performs bulk insert in a single query
 func (q *BulkQueries) InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error {
