@@ -91,7 +91,7 @@ func (s *Service) ConfigureUser(
 		logger.Info("creating new user", "workspace_id", workspaceID)
 
 		// Fetch retention days from workspace quota
-		quota, err := restate.Run(ctx, func(rc restate.RunContext) (db.Quotum, error) {
+		quota, err := restate.Run(ctx, func(rc restate.RunContext) (db.Quotas, error) {
 			return db.Query.FindQuotaByWorkspaceID(rc, s.db.RO(), workspaceID)
 		}, restate.WithName("fetch quota"))
 		if err != nil {
@@ -167,7 +167,7 @@ func (s *Service) ConfigureUser(
 
 	} else {
 		logger.Info("updating existing user", "workspace_id", workspaceID)
-		retentionDays = result.Row.Quotum.LogsRetentionDays
+		retentionDays = result.Row.Quotas.LogsRetentionDays
 		encryptedPassword = result.Row.ClickhouseWorkspaceSetting.PasswordEncrypted
 
 		now := time.Now().UnixMilli()

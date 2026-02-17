@@ -20,7 +20,7 @@ WHERE c.workspace_id = ?
 
 type FindClickhouseWorkspaceSettingsByWorkspaceIDRow struct {
 	ClickhouseWorkspaceSetting ClickhouseWorkspaceSetting `db:"clickhouse_workspace_setting"`
-	Quotum                     Quotum                     `db:"quotum"`
+	Quotas                     Quotas                     `db:"quotas"`
 }
 
 // FindClickhouseWorkspaceSettingsByWorkspaceID
@@ -47,14 +47,14 @@ func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Conte
 		&i.ClickhouseWorkspaceSetting.MaxQueryResultRows,
 		&i.ClickhouseWorkspaceSetting.CreatedAt,
 		&i.ClickhouseWorkspaceSetting.UpdatedAt,
-		&i.Quotum.Pk,
-		&i.Quotum.WorkspaceID,
-		&i.Quotum.RequestsPerMonth,
-		&i.Quotum.LogsRetentionDays,
-		&i.Quotum.AuditLogsRetentionDays,
-		&i.Quotum.Team,
-		&i.Quotum.RatelimitLimit,
-		&i.Quotum.RatelimitDuration,
+		&i.Quotas.Pk,
+		&i.Quotas.WorkspaceID,
+		&i.Quotas.RequestsPerMonth,
+		&i.Quotas.LogsRetentionDays,
+		&i.Quotas.AuditLogsRetentionDays,
+		&i.Quotas.Team,
+		&i.Quotas.RatelimitLimit,
+		&i.Quotas.RatelimitDuration,
 	)
 	return i, err
 }

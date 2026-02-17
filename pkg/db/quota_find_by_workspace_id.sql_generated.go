@@ -20,9 +20,9 @@ WHERE workspace_id = ?
 //	SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_limit, ratelimit_duration
 //	FROM `quota`
 //	WHERE workspace_id = ?
-func (q *Queries) FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotum, error) {
+func (q *Queries) FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error) {
 	row := db.QueryRowContext(ctx, findQuotaByWorkspaceID, workspaceID)
-	var i Quotum
+	var i Quotas
 	err := row.Scan(
 		&i.Pk,
 		&i.WorkspaceID,

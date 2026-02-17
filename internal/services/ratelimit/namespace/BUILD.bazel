@@ -20,8 +20,8 @@ go_library(
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
-        "//pkg/uid",
         "//pkg/singleflight",
+        "//pkg/uid",
     ],
 )
 

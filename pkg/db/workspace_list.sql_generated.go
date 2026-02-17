@@ -22,7 +22,7 @@ LIMIT 100
 
 type ListWorkspacesRow struct {
 	Workspace Workspace `db:"workspace"`
-	Quotum    Quotum    `db:"quotum"`
+	Quotas    Quotas    `db:"quotas"`
 }
 
 // ListWorkspaces
@@ -64,14 +64,14 @@ func (q *Queries) ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([
 			&i.Workspace.CreatedAtM,
 			&i.Workspace.UpdatedAtM,
 			&i.Workspace.DeletedAtM,
-			&i.Quotum.Pk,
-			&i.Quotum.WorkspaceID,
-			&i.Quotum.RequestsPerMonth,
-			&i.Quotum.LogsRetentionDays,
-			&i.Quotum.AuditLogsRetentionDays,
-			&i.Quotum.Team,
-			&i.Quotum.RatelimitLimit,
-			&i.Quotum.RatelimitDuration,
+			&i.Quotas.Pk,
+			&i.Quotas.WorkspaceID,
+			&i.Quotas.RequestsPerMonth,
+			&i.Quotas.LogsRetentionDays,
+			&i.Quotas.AuditLogsRetentionDays,
+			&i.Quotas.Team,
+			&i.Quotas.RatelimitLimit,
+			&i.Quotas.RatelimitDuration,
 		); err != nil {
 			return nil, err
 		}

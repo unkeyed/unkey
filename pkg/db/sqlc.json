@@ -30,7 +30,9 @@
           "output_batch_file_name": "batch_generated",
           "output_copyfrom_file_name": "copyfrom_generated",
           "output_db_file_name": "delete_me",
-          "rename": {},
+          "rename": {
+            "quotum": "Quotas"
+          },
           "overrides": [
             {
               "db_type": "json",

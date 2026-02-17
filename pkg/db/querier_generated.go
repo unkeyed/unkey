@@ -950,7 +950,7 @@ type Querier interface {
 	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_limit, ratelimit_duration
 	//  FROM `quota`
 	//  WHERE workspace_id = ?
-	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotum, error)
+	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error)
 	//FindRatelimitNamespace
 	//
 	//  SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
