@@ -150,6 +150,12 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	//EndDeploymentStep
+	//
+	//  UPDATE `deployment_steps`
+	//  SET ended_at = ?, error = ?
+	//  WHERE deployment_id = ? AND step = ?
+	EndDeploymentStep(ctx context.Context, db DBTX, arg EndDeploymentStepParams) error
 	//FindAcmeChallengeByToken
 	//
 	//  SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
@@ -1298,6 +1304,25 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error
+	//InsertDeploymentStep
+	//
+	//  INSERT INTO `deployment_steps` (
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      deployment_id,
+	//      step,
+	//      started_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
 	//InsertDeploymentTopology
 	//
 	//  INSERT INTO `deployment_topology` (
