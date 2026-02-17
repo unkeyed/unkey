@@ -1339,7 +1339,7 @@ type Project struct {
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
 
-type Quotum struct {
+type Quotas struct {
 	Pk                     uint64        `db:"pk"`
 	WorkspaceID            string        `db:"workspace_id"`
 	RequestsPerMonth       int64         `db:"requests_per_month"`

@@ -45,7 +45,7 @@ type WorkspaceRateLimitRequest struct {
 // open to avoid blocking legitimate traffic.
 func (s *service) checkWorkspaceRateLimit(ctx context.Context, req WorkspaceRateLimitRequest) error {
 
-	quota, _, err := s.quotaCache.SWR(ctx, req.AuthorizedWorkspaceID, func(ctx context.Context) (db.Quotum, error) {
+	quota, _, err := s.quotaCache.SWR(ctx, req.AuthorizedWorkspaceID, func(ctx context.Context) (db.Quotas, error) {
 		return db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), req.AuthorizedWorkspaceID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {

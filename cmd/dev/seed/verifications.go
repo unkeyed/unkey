@@ -58,14 +58,14 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 
 	// Create key service for proper key generation
 	keyService, err := keys.New(keys.Config{
-		DB:               database,
-		RateLimiter:      nil,
-		RBAC:             nil,
-		Clickhouse:       ch,
-		Region:           "test",
-		UsageLimiter:     nil,
-		KeyCache:         nil,
-		QuotaCache:       nil,
+		DB:                        database,
+		RateLimiter:               nil,
+		RBAC:                      nil,
+		Clickhouse:                ch,
+		Region:                    "test",
+		UsageLimiter:              nil,
+		KeyCache:                  nil,
+		QuotaCache:                nil,
 		RatelimitNamespaceService: nil,
 	})
 	if err != nil {

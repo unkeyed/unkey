@@ -169,14 +169,14 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:               db,
-		KeyCache:         caches.VerificationKeyByHash,
-		QuotaCache:       caches.WorkspaceQuota,
-		RateLimiter:      ratelimitService,
-		RBAC:             rbac.New(),
-		Clickhouse:       ch,
-		Region:           "test",
-		UsageLimiter:     ulSvc,
+		DB:                        db,
+		KeyCache:                  caches.VerificationKeyByHash,
+		QuotaCache:                caches.WorkspaceQuota,
+		RateLimiter:               ratelimitService,
+		RBAC:                      rbac.New(),
+		Clickhouse:                ch,
+		Region:                    "test",
+		UsageLimiter:              ulSvc,
 		RatelimitNamespaceService: namespaceSvc,
 	})
 	require.NoError(t, err)

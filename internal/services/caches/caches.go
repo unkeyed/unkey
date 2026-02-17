@@ -41,8 +41,8 @@ type Caches struct {
 	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
 
 	// WorkspaceQuota caches workspace quota lookups by workspace ID.
-	// Keys are string (workspace ID) and values are db.Quotum.
-	WorkspaceQuota cache.Cache[string, db.Quotum]
+	// Keys are string (workspace ID) and values are db.Quotas.
+	WorkspaceQuota cache.Cache[string, db.Quotas]
 
 	// dispatcher handles routing of invalidation events to all caches in this process.
 	// This is not exported as it's an internal implementation detail.
@@ -264,7 +264,7 @@ func New(config Config) (Caches, error) {
 	}
 
 	workspaceQuota, err := createCache(
-		cache.Config[string, db.Quotum]{
+		cache.Config[string, db.Quotas]{
 			Fresh:    time.Minute,
 			Stale:    24 * time.Hour,
 			MaxSize:  100_000,
