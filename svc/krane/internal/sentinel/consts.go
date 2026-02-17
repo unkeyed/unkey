@@ -9,6 +9,9 @@ const (
 	// SentinelPort is the port sentinel pods listen on.
 	SentinelPort = 8040
 
+	// GossipLANPort is the port used for gossip protocol LAN communication between sentinel pods.
+	GossipLANPort = 7946
+
 	// SentinelNodeClass is the node class for sentinel workloads.
 	SentinelNodeClass = "sentinel"
 

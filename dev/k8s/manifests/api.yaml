@@ -23,6 +23,12 @@ spec:
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7070
+            - containerPort: 7946
+              name: gossip-lan
+              protocol: TCP
+            - containerPort: 7946
+              name: gossip-lan-udp
+              protocol: UDP
           env:
             # Server Configuration
             - name: UNKEY_HTTP_PORT
@@ -38,8 +44,6 @@ spec:
               value: "unkey:local"
             - name: UNKEY_REGION
               value: "local"
-            - name: UNKEY_INSTANCE_ID
-              value: "api-dev"
             # Database Configuration
             - name: UNKEY_DATABASE_PRIMARY
               value: "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
@@ -71,6 +75,13 @@ spec:
             # Request Body Configuration
             - name: UNKEY_MAX_REQUEST_BODY_SIZE
               value: "10485760"
+            # Gossip Configuration
+            - name: UNKEY_GOSSIP_ENABLED
+              value: "true"
+            - name: UNKEY_GOSSIP_LAN_PORT
+              value: "7946"
+            - name: UNKEY_GOSSIP_LAN_SEEDS
+              value: "api-gossip-lan"
           readinessProbe:
             httpGet:
               path: /health/ready
@@ -129,3 +140,23 @@ spec:
       targetPort: 7070
       protocol: TCP
   type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gossip-lan
+  namespace: unkey
+spec:
+  clusterIP: None
+  selector:
+    app: api
+  ports:
+    - name: gossip-lan
+      port: 7946
+      targetPort: 7946
+      protocol: TCP
+    - name: gossip-lan-udp
+      port: 7946
+      targetPort: 7946
+      protocol: UDP

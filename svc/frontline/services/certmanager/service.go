@@ -7,9 +7,8 @@ import (
 	"errors"
 	"strings"
 
-	"connectrpc.com/connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -22,7 +21,7 @@ var _ Service = (*service)(nil)
 type service struct {
 	db db.Database
 
-	vault vaultv1connect.VaultServiceClient
+	vault vault.VaultServiceClient
 
 	cache cache.Cache[string, tls.Certificate]
 }
@@ -70,15 +69,15 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 			}
 		}
 
-		pem, err := s.vault.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
+		pem, err := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   bestRow.WorkspaceID,
 			Encrypted: bestRow.EncryptedPrivateKey,
-		}))
+		})
 		if err != nil {
 			return tls.Certificate{}, "", err
 		}
 
-		tlsCert, err := tls.X509KeyPair([]byte(bestRow.Certificate), []byte(pem.Msg.GetPlaintext()))
+		tlsCert, err := tls.X509KeyPair([]byte(bestRow.Certificate), []byte(pem.GetPlaintext()))
 		if err != nil {
 			return tls.Certificate{}, "", err
 		}

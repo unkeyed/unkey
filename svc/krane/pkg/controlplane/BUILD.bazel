@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/rpc/ctrl",
         "@com_connectrpc_connect//:connect",
         "@org_golang_x_net//http2",
     ],

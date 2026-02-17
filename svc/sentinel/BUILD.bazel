@@ -10,8 +10,10 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/assert",
+        "//pkg/cache/clustering",
         "//pkg/clickhouse",
         "//pkg/clock",
+        "//pkg/cluster",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/otel",
