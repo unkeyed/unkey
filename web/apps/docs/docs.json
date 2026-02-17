@@ -6,13 +6,7 @@
     "primary": "#999999"
   },
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity"
-    ]
+    "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
   },
   "favicon": "/unkey.png",
   "fonts": {
@@ -61,11 +55,7 @@
         "groups": [
           {
             "group": "Getting Started",
-            "pages": [
-              "introduction",
-              "quickstart/quickstart",
-              "glossary"
-            ]
+            "pages": ["introduction", "quickstart/quickstart", "glossary"]
           },
           {
             "group": "Framework Guides",
@@ -151,8 +141,7 @@
               "apis/features/remaining",
               "apis/features/refill",
               "apis/features/temp-keys",
-              "apis/features/analytics"
-              ],
+              "apis/features/analytics",
               {
                 "group": "Authorization",
                 "pages": [
@@ -208,10 +197,7 @@
           {
             "group": "Audit Logs",
             "icon": "scroll",
-            "pages": [
-              "audit-log/introduction",
-              "audit-log/types"
-            ]
+            "pages": ["audit-log/introduction", "audit-log/types"]
           },
           {
             "group": "Security",
@@ -250,10 +236,7 @@
           {
             "group": "Migrations",
             "icon": "arrows-rotate",
-            "pages": [
-              "migrations/introduction",
-              "migrations/keys"
-            ]
+            "pages": ["migrations/introduction", "migrations/keys"]
           },
           {
             "group": "Errors",
@@ -427,17 +410,11 @@
               },
               {
                 "group": "Go",
-                "pages": [
-                  "libraries/go/overview",
-                  "libraries/go/api"
-                ]
+                "pages": ["libraries/go/overview", "libraries/go/api"]
               },
               {
                 "group": "Python",
-                "pages": [
-                  "libraries/py/overview",
-                  "libraries/py/api"
-                ]
+                "pages": ["libraries/py/overview", "libraries/py/api"]
               }
             ]
           },
@@ -446,9 +423,7 @@
             "pages": [
               {
                 "group": "Nuxt",
-                "pages": [
-                  "libraries/nuxt/overview"
-                ]
+                "pages": ["libraries/nuxt/overview"]
               }
             ]
           }
