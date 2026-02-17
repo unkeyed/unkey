@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
 )
@@ -17,7 +17,7 @@ type Service interface {
 type Config struct {
 	DB db.Database
 
-	Vault vaultv1connect.VaultServiceClient
+	Vault vault.VaultServiceClient
 
 	TLSCertificateCache cache.Cache[string, tls.Certificate]
 }

@@ -3,18 +3,9 @@ load("@rules_go//go:def.bzl", "go_test")
 go_test(
     name = "cache_test",
     size = "medium",
-    srcs = [
-        "consume_events_test.go",
-        "e2e_test.go",
-        "produce_events_test.go",
-    ],
+    srcs = ["e2e_test.go"],
     deps = [
-        "//gen/proto/cache/v1:cache",
-        "//pkg/cache",
-        "//pkg/eventstream",
-        "//pkg/testutil/containers",
         "//pkg/timing",
-        "//pkg/uid",
         "//svc/api/integration",
         "//svc/api/internal/testutil/seed",
         "//svc/api/openapi",

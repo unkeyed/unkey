@@ -10,11 +10,10 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -41,7 +40,7 @@ func (u *AcmeUser) GetPrivateKey() crypto.PrivateKey {
 
 type UserConfig struct {
 	DB          db.Database
-	Vault       vaultv1connect.VaultServiceClient
+	Vault       vault.VaultServiceClient
 	WorkspaceID string
 	EmailDomain string // Domain for ACME registration emails (e.g., "unkey.com")
 }
@@ -55,15 +54,15 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 		return nil, fmt.Errorf("failed to find acme user: %w", err)
 	}
 
-	resp, err := cfg.Vault.Decrypt(ctx, connect.NewRequest(&vaultv1.DecryptRequest{
+	resp, err := cfg.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 		Keyring:   cfg.WorkspaceID,
 		Encrypted: foundUser.EncryptedKey,
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
 	}
 
-	key, err := stringToPrivateKey(resp.Msg.GetPlaintext())
+	key, err := stringToPrivateKey(resp.GetPlaintext())
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert private key: %w", err)
 	}
@@ -131,10 +130,10 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 		return nil, fmt.Errorf("failed to serialize private key: %w", err)
 	}
 
-	resp, err := cfg.Vault.Encrypt(ctx, connect.NewRequest(&vaultv1.EncryptRequest{
+	resp, err := cfg.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 		Keyring: cfg.WorkspaceID,
 		Data:    privKeyString,
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt private key: %w", err)
 	}
@@ -143,7 +142,7 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 	err = db.Query.InsertAcmeUser(ctx, cfg.DB.RW(), db.InsertAcmeUserParams{
 		ID:           id,
 		WorkspaceID:  cfg.WorkspaceID,
-		EncryptedKey: resp.Msg.GetEncrypted(),
+		EncryptedKey: resp.GetEncrypted(),
 		CreatedAt:    time.Now().UnixMilli(),
 	})
 	if err != nil {

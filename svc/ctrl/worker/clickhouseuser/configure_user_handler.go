@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -107,14 +106,14 @@ func (s *Service) ConfigureUser(
 				return "", fmt.Errorf("generate password: %w", err)
 			}
 
-			resp, err := s.vault.Encrypt(rc, connect.NewRequest(&vaultv1.EncryptRequest{
+			resp, err := s.vault.Encrypt(rc, &vaultv1.EncryptRequest{
 				Keyring: workspaceID,
 				Data:    password,
-			}))
+			})
 			if err != nil {
 				return "", fmt.Errorf("encrypt password: %w", err)
 			}
-			encrypted := resp.Msg.GetEncrypted()
+			encrypted := resp.GetEncrypted()
 
 			now := time.Now().UnixMilli()
 			err = db.Query.InsertClickhouseWorkspaceSettings(rc, s.db.RW(), db.InsertClickhouseWorkspaceSettingsParams{
@@ -191,10 +190,10 @@ func (s *Service) ConfigureUser(
 
 	// Configure ClickHouse - decrypt inside step to avoid journaling plaintext
 	_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-		resp, err := s.vault.Decrypt(rc, connect.NewRequest(&vaultv1.DecryptRequest{
+		resp, err := s.vault.Decrypt(rc, &vaultv1.DecryptRequest{
 			Keyring:   workspaceID,
 			Encrypted: encryptedPassword,
-		}))
+		})
 		if err != nil {
 			return restate.Void{}, fmt.Errorf("decrypt password: %w", err)
 		}
@@ -202,7 +201,7 @@ func (s *Service) ConfigureUser(
 		return restate.Void{}, s.clickhouse.ConfigureUser(rc, clickhouse.UserConfig{
 			WorkspaceID:               workspaceID,
 			Username:                  workspaceID,
-			Password:                  resp.Msg.GetPlaintext(),
+			Password:                  resp.GetPlaintext(),
 			AllowedTables:             clickhouse.DefaultAllowedTables(),
 			QuotaDurationSeconds:      quotas.quotaDurationSeconds,
 			MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
