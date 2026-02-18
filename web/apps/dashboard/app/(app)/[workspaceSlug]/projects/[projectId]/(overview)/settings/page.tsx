@@ -3,10 +3,10 @@
 import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 
-import { DockerfileSettings } from "./components/basic-settings/dockerfile-settings";
-import { GitHubSettings } from "./components/basic-settings/github-settings";
-import { PortSettings } from "./components/basic-settings/port-settings";
-import { RootDirectorySettings } from "./components/basic-settings/root-directory-settings";
+import { DockerfileSettings } from "./components/build-settings/dockerfile-settings";
+import { GitHubSettings } from "./components/build-settings/github-settings";
+import { PortSettings } from "./components/build-settings/port-settings";
+import { RootDirectorySettings } from "./components/build-settings/root-directory-settings";
 
 import { Cpu } from "./components/runtime-settings/cpu";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
