@@ -1346,8 +1346,8 @@ type Quotas struct {
 	LogsRetentionDays      int32         `db:"logs_retention_days"`
 	AuditLogsRetentionDays int32         `db:"audit_logs_retention_days"`
 	Team                   bool          `db:"team"`
-	RatelimitLimit         sql.NullInt32 `db:"ratelimit_limit"`
-	RatelimitDuration      sql.NullInt32 `db:"ratelimit_duration"`
+	RatelimitApiLimit      sql.NullInt32 `db:"ratelimit_api_limit"`
+	RatelimitApiDuration   sql.NullInt32 `db:"ratelimit_api_duration"`
 }
 
 type Ratelimit struct {
