@@ -20,7 +20,7 @@ import (
 )
 
 type service struct {
-	frontlineID  string
+	instanceID   string
 	region       string
 	apexDomain   string
 	clock        clock.Clock
@@ -91,7 +91,7 @@ func New(cfg Config) (*service, error) {
 	}
 
 	return &service{
-		frontlineID:  cfg.FrontlineID,
+		instanceID:   cfg.InstanceID,
 		region:       cfg.Region,
 		apexDomain:   cfg.ApexDomain,
 		clock:        cfg.Clock,

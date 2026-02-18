@@ -39,6 +39,30 @@ subjects:
     name: preflight
     namespace: unkey
 ---
+# ConfigMap for the preflight
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: preflight-config
+  namespace: unkey
+data:
+  unkey.toml: |
+    http_port = 8443
+    krane_endpoint = "http://krane.unkey.svc.cluster.local:8070"
+    depot_token = "${UNKEY_DEPOT_TOKEN}"
+
+    [tls]
+    cert_file = "/certs/tls.crt"
+    key_file = "/certs/tls.key"
+
+    [inject]
+    image = "inject:latest"
+    image_pull_policy = "Never"
+
+    [registry]
+    insecure_registries = ["ctlptl-registry.unkey.svc.cluster.local:5000"]
+    aliases = ["ctlptl-registry:5000=ctlptl-registry.unkey.svc.cluster.local:5000"]
+---
 # Deployment for the preflight
 apiVersion: apps/v1
 kind: Deployment
@@ -89,25 +113,9 @@ spec:
       containers:
         - name: webhook
           image: unkey/go:latest
-          args: ["run", "preflight"]
+          args: ["run", "preflight", "--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: IfNotPresent
           env:
-            - name: UNKEY_HTTP_PORT
-              value: "8443"
-            - name: UNKEY_TLS_CERT_FILE
-              value: "/certs/tls.crt"
-            - name: UNKEY_TLS_KEY_FILE
-              value: "/certs/tls.key"
-            - name: UNKEY_INJECT_IMAGE
-              value: "inject:latest"
-            - name: UNKEY_INJECT_IMAGE_PULL_POLICY
-              value: "Never" # Local dev uses pre-loaded images; use IfNotPresent in prod
-            - name: UNKEY_KRANE_ENDPOINT
-              value: "http://krane.unkey.svc.cluster.local:8070"
-            - name: UNKEY_INSECURE_REGISTRIES
-              value: "ctlptl-registry.unkey.svc.cluster.local:5000"
-            - name: UNKEY_REGISTRY_ALIASES
-              value: "ctlptl-registry:5000=ctlptl-registry.unkey.svc.cluster.local:5000"
             - name: UNKEY_DEPOT_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -120,6 +128,9 @@ spec:
           volumeMounts:
             - name: tls-certs
               mountPath: /certs
+              readOnly: true
+            - name: config
+              mountPath: /etc/unkey
               readOnly: true
           resources:
             requests:
@@ -172,6 +183,9 @@ spec:
       volumes:
         - name: tls-certs
           emptyDir: {}
+        - name: config
+          configMap:
+            name: preflight-config
 ---
 # Service for the webhook
 apiVersion: v1

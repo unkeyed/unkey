@@ -13,7 +13,7 @@ go_library(
     deps = [
         "//pkg/cli",
         "//pkg/clock",
-        "//pkg/tls",
+        "//pkg/config",
         "//pkg/uid",
         "//svc/ctrl/api",
         "//svc/ctrl/worker",
