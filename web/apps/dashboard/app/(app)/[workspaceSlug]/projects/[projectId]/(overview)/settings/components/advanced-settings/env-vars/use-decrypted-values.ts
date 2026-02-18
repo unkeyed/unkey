@@ -1,27 +1,33 @@
 import { trpc } from "@/lib/trpc/client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type EnvVariable = {
+export type EnvVariable = {
   id: string;
   key: string;
   type: "writeonly" | "recoverable";
 };
 
-export type EnvData = {
-  variables: EnvVariable[];
-};
-
-export function useDecryptedValues(envData: EnvData | undefined) {
+export function useDecryptedValues(variables: EnvVariable[]) {
   const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
   const [decryptedValues, setDecryptedValues] = useState<Record<string, string>>({});
   const [isDecrypting, setIsDecrypting] = useState(false);
 
+  const variableFingerprint = useMemo(
+    () =>
+      variables
+        .map((v) => v.id)
+        .sort()
+        .join(","),
+    [variables],
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: its safe to keep
   useEffect(() => {
-    if (!envData) {
+    if (variables.length === 0) {
       return;
     }
 
-    const recoverableVars = envData.variables.filter((v) => v.type === "recoverable");
+    const recoverableVars = variables.filter((v) => v.type === "recoverable");
     if (recoverableVars.length === 0) {
       return;
     }
@@ -29,8 +35,8 @@ export function useDecryptedValues(envData: EnvData | undefined) {
     setIsDecrypting(true);
     Promise.all(
       recoverableVars.map((v) =>
-        decryptMutation.mutateAsync({ envVarId: v.id }).then((r) => [v.id, r.value] as const)
-      )
+        decryptMutation.mutateAsync({ envVarId: v.id }).then((r) => [v.id, r.value] as const),
+      ),
     )
       .then((entries) => {
         setDecryptedValues(Object.fromEntries(entries));
@@ -38,7 +44,7 @@ export function useDecryptedValues(envData: EnvData | undefined) {
       .finally(() => {
         setIsDecrypting(false);
       });
-  }, [envData]);
+  }, [variableFingerprint, decryptMutation]);
 
   return { decryptedValues, isDecrypting };
 }

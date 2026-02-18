@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const envVarEntrySchema = z.object({
   id: z.string().optional(),
+  environmentId: z.string().min(1, "Environment is required"),
   key: z
     .string()
     .min(1, "Key is required")
@@ -11,13 +12,38 @@ export const envVarEntrySchema = z.object({
 });
 
 export const envVarsSchema = z.object({
-  envVars: z.array(envVarEntrySchema).min(1),
+  envVars: z
+    .array(envVarEntrySchema)
+    .min(1)
+    .superRefine((vars, ctx) => {
+      const seen = new Map<string, number>();
+      for (let i = 0; i < vars.length; i++) {
+        const v = vars[i];
+        if (!v.key) {
+          continue;
+        }
+        const compound = `${v.environmentId}::${v.key}`;
+        const prevIndex = seen.get(compound);
+        if (prevIndex !== undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Duplicate key in the same environment",
+            path: [i, "key"],
+          });
+        } else {
+          seen.set(compound, i);
+        }
+      }
+    }),
 });
 
 export type EnvVarsFormValues = z.infer<typeof envVarsSchema>;
 
-export const EMPTY_ROW: EnvVarsFormValues["envVars"][number] = {
-  key: "",
-  value: "",
-  secret: false,
-};
+export function createEmptyRow(environmentId: string): EnvVarsFormValues["envVars"][number] {
+  return {
+    key: "",
+    value: "",
+    secret: false,
+    environmentId,
+  };
+}

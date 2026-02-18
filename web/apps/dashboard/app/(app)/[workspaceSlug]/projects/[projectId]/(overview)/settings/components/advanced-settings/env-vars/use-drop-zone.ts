@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { UseFormReset } from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
 
-const parseEnvText = (text: string): EnvVarsFormValues["envVars"] => {
+const parseEnvText = (text: string): Array<{ key: string; value: string; secret: boolean }> => {
   const lines = text.trim().split("\n");
   return lines
     .map((line) => {
@@ -36,7 +36,7 @@ const parseEnvText = (text: string): EnvVarsFormValues["envVars"] => {
     .filter((v): v is NonNullable<typeof v> => v !== null);
 };
 
-export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
+export function useDropZone(reset: UseFormReset<EnvVarsFormValues>, defaultEnvironmentId: string) {
   const [isDragging, setIsDragging] = useState(false);
   const ref = useRef<HTMLFormElement>(null);
 
@@ -60,7 +60,15 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
           const text = await file.text();
           const parsed = parseEnvText(text);
           if (parsed.length > 0) {
-            reset({ envVars: parsed }, { keepDefaultValues: true });
+            reset(
+              {
+                envVars: parsed.map((row) => ({
+                  ...row,
+                  environmentId: defaultEnvironmentId,
+                })),
+              },
+              { keepDefaultValues: true },
+            );
             toast.success(`Imported ${parsed.length} variable(s)`);
           } else {
             toast.error("No valid environment variables found");
@@ -74,7 +82,15 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
         e.preventDefault();
         const parsed = parseEnvText(text);
         if (parsed.length > 0) {
-          reset({ envVars: parsed }, { keepDefaultValues: true });
+          reset(
+            {
+              envVars: parsed.map((row) => ({
+                ...row,
+                environmentId: defaultEnvironmentId,
+              })),
+            },
+            { keepDefaultValues: true },
+          );
           toast.success(`Imported ${parsed.length} variable(s)`);
         } else {
           toast.error("No valid environment variables found");
@@ -116,7 +132,15 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
         const text = await file.text();
         const parsed = parseEnvText(text);
         if (parsed.length > 0) {
-          reset({ envVars: parsed }, { keepDefaultValues: true });
+          reset(
+            {
+              envVars: parsed.map((row) => ({
+                ...row,
+                environmentId: defaultEnvironmentId,
+              })),
+            },
+            { keepDefaultValues: true },
+          );
           toast.success(`Imported ${parsed.length} variable(s)`);
         } else {
           toast.error("No valid environment variables found");
@@ -139,7 +163,7 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
       dropZone.removeEventListener("dragleave", handleDragLeave);
       dropZone.removeEventListener("drop", handleDrop);
     };
-  }, [reset]);
+  }, [reset, defaultEnvironmentId]);
 
   return { ref, isDragging };
 }

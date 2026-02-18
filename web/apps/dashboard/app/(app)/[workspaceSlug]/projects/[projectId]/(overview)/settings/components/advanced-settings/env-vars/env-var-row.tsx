@@ -1,6 +1,15 @@
 import { cn } from "@/lib/utils";
-import { Eye, EyeSlash, Plus, Trash } from "@unkey/icons";
-import { Button, FormCheckbox, FormInput } from "@unkey/ui";
+import { ChevronDown, Eye, EyeSlash, Plus, Trash } from "@unkey/icons";
+import {
+  Button,
+  FormCheckbox,
+  FormInput,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@unkey/ui";
 import { useState } from "react";
 import { type Control, Controller, type UseFormRegister, useWatch } from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
@@ -11,7 +20,9 @@ type EnvVarRowProps = {
   isLast: boolean;
   isOnly: boolean;
   keyError: string | undefined;
+  environmentError: string | undefined;
   defaultEnvVars: EnvVarItem[];
+  environments: { id: string; slug: string }[];
   control: Control<EnvVarsFormValues>;
   register: UseFormRegister<EnvVarsFormValues>;
   onAdd: () => void;
@@ -23,7 +34,9 @@ export const EnvVarRow = ({
   isLast,
   isOnly,
   keyError,
+  environmentError,
   defaultEnvVars,
+  environments,
   control,
   register,
   onAdd,
@@ -35,7 +48,7 @@ export const EnvVarRow = ({
   const currentVar = useWatch({ control, name: `envVars.${index}` });
   const isSecret = currentVar?.secret ?? false;
   const isPreviouslyAdded = Boolean(
-    currentVar?.id && defaultEnvVars.some((v) => v.id === currentVar.id && v.key !== "")
+    currentVar?.id && defaultEnvVars.some((v) => v.id === currentVar.id && v.key !== ""),
   );
 
   const inputType = isPreviouslyAdded ? (isVisible ? "text" : "password") : "text";
@@ -54,6 +67,34 @@ export const EnvVarRow = ({
 
   return (
     <div className="flex items-start gap-2">
+      <div className="w-[120px] shrink-0">
+        <Controller
+          control={control}
+          name={`envVars.${index}.environmentId`}
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange} disabled={isPreviouslyAdded}>
+              <SelectTrigger
+                className={cn("h-9", environmentError && !isPreviouslyAdded && "border-error-9")}
+                wrapperClassName="w-[120px]"
+                rightIcon={
+                  isPreviouslyAdded ? undefined : (
+                    <ChevronDown className="absolute right-3 size-3 opacity-70" />
+                  )
+                }
+              >
+                <SelectValue placeholder="Env" />
+              </SelectTrigger>
+              <SelectContent>
+                {environments.map((env) => (
+                  <SelectItem key={env.id} value={env.id}>
+                    {env.slug}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+      </div>
       <FormInput
         className="flex-1 [&_input]:h-9 [&_input]:font-mono"
         placeholder="MY_VAR"
@@ -93,7 +134,7 @@ export const EnvVarRow = ({
           size="sm"
           className={cn(
             "absolute left-0 w-7 px-0 justify-center text-error-11 hover:text-error-11 transition-opacity duration-150",
-            isOnly ? "opacity-0 pointer-events-none" : "opacity-100"
+            isOnly ? "opacity-0 pointer-events-none" : "opacity-100",
           )}
           onClick={onRemove}
         >
@@ -106,7 +147,7 @@ export const EnvVarRow = ({
           className={cn(
             "absolute left-0 w-7 px-0 justify-center transition-all duration-150",
             isOnly ? "translate-x-0" : "translate-x-9",
-            isLast ? "opacity-100" : "opacity-0 pointer-events-none"
+            isLast ? "opacity-100" : "opacity-0 pointer-events-none",
           )}
           onClick={onAdd}
         >
