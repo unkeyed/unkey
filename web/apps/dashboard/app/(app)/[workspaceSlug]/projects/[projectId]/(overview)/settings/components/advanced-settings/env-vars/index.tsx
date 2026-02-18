@@ -214,10 +214,12 @@ const EnvVarsForm: React.FC<EnvVarsFormProps> = ({
     if (vars.length === 0) {
       return <span className="text-gray-11 font-normal">None</span>;
     }
-    if (vars.length === 1) {
-      return <span className="font-medium text-gray-12 font-mono text-xs">{vars[0].key}</span>;
-    }
-    return <span className="text-gray-11 font-normal">{vars.length} variables</span>;
+    return (
+      <div className="space-x-1">
+        <span className="font-medium text-gray-12">{vars.length}</span>
+        <span className="text-gray-11 font-normal">variable{vars.length !== 1 ? "s" : ""}</span>
+      </div>
+    );
   })();
 
   return (

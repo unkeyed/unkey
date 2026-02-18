@@ -3,7 +3,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SquareTerminal } from "@unkey/icons";
-import { FormTextarea, toast } from "@unkey/ui";
+import { FormTextarea, InfoTooltip, toast } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -83,9 +83,11 @@ const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand
       description="The command to start your application. Changes apply on next deploy."
       displayValue={
         defaultCommand ? (
-          <span className="font-medium text-gray-12 font-mono text-xs truncate max-w-[300px]">
-            {defaultCommand}
-          </span>
+          <InfoTooltip content={defaultCommand} asChild position={{ side: "bottom" }}>
+            <span className="font-medium text-gray-12 font-mono text-xs truncate max-w-[100px]">
+              {defaultCommand}
+            </span>
+          </InfoTooltip>
         ) : (
           <span className="text-gray-11 font-normal">Default</span>
         )
