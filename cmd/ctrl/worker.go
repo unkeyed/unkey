@@ -38,7 +38,9 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unable to load config: %w", err)
 	}
 
-	cfg.InstanceID = uid.New(uid.IdentityPrefix)
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
 
 	// Normalize CNAME domain: trim whitespace and trailing dot
 	cfg.CnameDomain = strings.TrimSuffix(strings.TrimSpace(cfg.CnameDomain), ".")

@@ -11,12 +11,12 @@ import (
 //
 //	cfg, err := config.Load[frontline.Config]("/etc/unkey/frontline.toml")
 //
-// FrontlineID and Image are runtime-only fields set programmatically after
+// InstanceID and Image are runtime-only fields set programmatically after
 // loading and tagged toml:"-".
 type Config struct {
-	// FrontlineID is the unique identifier for this instance of the frontline
-	// server. Set at runtime; not read from the config file.
-	FrontlineID string `toml:"-"`
+	// InstanceID is the unique identifier for this instance of the frontline
+	// server.
+	InstanceID string `toml:"instance_id"`
 
 	// Image is the container image identifier including repository and tag.
 	// Set at runtime; not read from the config file.

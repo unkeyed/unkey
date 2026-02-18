@@ -32,7 +32,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unable to load config: %w", err)
 	}
 
-	cfg.InstanceID = uid.New(uid.InstancePrefix)
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
 
 	return vault.Run(ctx, cfg)
 }

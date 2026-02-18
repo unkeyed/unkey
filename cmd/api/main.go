@@ -47,7 +47,9 @@ func action(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	cfg.Clock = clock.New()
-	cfg.InstanceID = uid.New(uid.IdentityPrefix)
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
 
 	return api.Run(ctx, cfg)
 }

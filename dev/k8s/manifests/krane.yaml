@@ -10,13 +10,14 @@ data:
   unkey.toml: |
     region = "local.dev"
 
-    [control_plane]
+    [control]
     url = "http://ctrl-api:7091"
-    bearer = "your-local-dev-key"
+    token = "your-local-dev-key"
 
     [vault]
     url = "http://vault:8060"
     token = "vault-test-token-123"
+
 ---
 apiVersion: v1
 kind: Service

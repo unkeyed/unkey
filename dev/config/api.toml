@@ -15,7 +15,7 @@ url = "http://vault:8060"
 token = "vault-test-token-123"
 
 
-[ctrl]
+[control]
 url = "http://ctrl-api:7091"
 token = "your-local-dev-key"
 

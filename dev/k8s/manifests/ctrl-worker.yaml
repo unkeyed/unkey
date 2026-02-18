@@ -23,9 +23,6 @@ data:
     url = "http://vault:8060"
     token = "${UNKEY_VAULT_TOKEN}"
 
-    [otel]
-    enabled = false
-
     [restate]
     admin_url = "http://restate:9070"
     http_port = 9080

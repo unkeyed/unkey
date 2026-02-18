@@ -36,7 +36,9 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unable to load config: %w", err)
 	}
 
-	cfg.InstanceID = uid.New(uid.IdentityPrefix)
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
 
 	return ctrlapi.Run(ctx, cfg)
 }

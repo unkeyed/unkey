@@ -63,7 +63,7 @@ func Run(ctx context.Context, cfg Config) error {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "frontline",
 			Version:         version.Version,
-			InstanceID:      cfg.FrontlineID,
+			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
 			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
@@ -73,8 +73,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Configure global logger with base attributes
-	if cfg.FrontlineID != "" {
-		logger.AddBaseAttrs(slog.String("instanceID", cfg.FrontlineID))
+	if cfg.InstanceID != "" {
+		logger.AddBaseAttrs(slog.String("instanceID", cfg.InstanceID))
 	}
 
 	if cfg.Region != "" {
@@ -139,7 +139,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Gossip != nil {
 		logger.Info("Initializing gossip cluster for cache invalidation",
 			"region", cfg.Region,
-			"instanceID", cfg.FrontlineID,
+			"instanceID", cfg.InstanceID,
 		)
 
 		mux := cluster.NewMessageMux()
@@ -158,7 +158,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
 			Region:      cfg.Region,
-			NodeID:      cfg.FrontlineID,
+			NodeID:      cfg.InstanceID,
 			BindAddr:    cfg.Gossip.BindAddr,
 			BindPort:    cfg.Gossip.LANPort,
 			WANBindPort: cfg.Gossip.WANPort,
@@ -183,7 +183,7 @@ func Run(ctx context.Context, cfg Config) error {
 	cache, err := caches.New(caches.Config{
 		Clock:       clk,
 		Broadcaster: broadcaster,
-		NodeID:      cfg.FrontlineID,
+		NodeID:      cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -214,11 +214,11 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize proxy service with shared transport for connection pooling
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
-		FrontlineID: cfg.FrontlineID,
-		Region:      cfg.Region,
-		ApexDomain:  cfg.ApexDomain,
-		Clock:       clk,
-		MaxHops:     cfg.MaxHops,
+		InstanceID: cfg.InstanceID,
+		Region:     cfg.Region,
+		ApexDomain: cfg.ApexDomain,
+		Clock:      clk,
+		MaxHops:    cfg.MaxHops,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
 	})
 	if err != nil {

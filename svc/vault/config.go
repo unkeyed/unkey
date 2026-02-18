@@ -40,8 +40,7 @@ type S3Config struct {
 // syntax before parsing.
 type Config struct {
 	// InstanceID identifies this particular vault instance.
-	// This is not configured in our config file but generated on startup.
-	InstanceID string `toml:"-"`
+	InstanceID string `toml:"instance_id"`
 
 	// HttpPort is the TCP port the vault server binds to.
 	HttpPort int `toml:"http_port" config:"default=8060,min=1,max=65535"`

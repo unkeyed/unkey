@@ -32,8 +32,7 @@ type RegistryConfig struct {
 // The Clock field is runtime-only and cannot be set through a config file.
 type Config struct {
 	// InstanceID is the unique identifier for this krane agent instance.
-	// Gets populated automatically
-	InstanceID string `toml:"-"`
+	InstanceID string `toml:"instance_id"`
 
 	// Region identifies the geographic region where this node is deployed.
 	Region string `toml:"region" config:"required,nonempty"`
@@ -42,7 +41,7 @@ type Config struct {
 	RPCPort int `toml:"rpc_port" config:"default=8070,min=1,max=65535"`
 
 	// Registry configures container image registry access. See [RegistryConfig].
-	Registry RegistryConfig `toml:"registry"`
+	Registry *RegistryConfig `toml:"registry"`
 
 	// Vault configures the secrets decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`

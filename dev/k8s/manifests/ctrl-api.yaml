@@ -19,9 +19,6 @@ data:
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
-    [otel]
-    enabled = false
-
     [restate]
     url = "http://restate:8080"
     admin_url = "http://restate:9070"

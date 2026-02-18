@@ -191,7 +191,7 @@ type SlackConfig struct {
 type Config struct {
 	// InstanceID is the unique identifier for this worker instance.
 	// Used for logging, tracing, and cluster coordination.
-	InstanceID string `toml:"-"`
+	InstanceID string `toml:"instance_id"`
 
 	// Region is the geographic region where this worker instance is running.
 	// Used for logging and tracing context.
