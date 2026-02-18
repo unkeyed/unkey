@@ -4,7 +4,6 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, HeartPulse } from "@unkey/icons";
 import {
-  Badge,
   FormInput,
   Select,
   SelectContent,
@@ -15,30 +14,11 @@ import {
 } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
-import { useProjectData } from "../../../data-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
-
-// TODO: extend when API supports more methods
-const HTTP_METHODS = ["GET", "POST"] as const;
-
-const INTERVAL_REGEX = /^\d+[smh]$/;
-
-// TODO: MAX_CHECKS = 3 and array schema for multi-check when API supports
-const healthcheckSchema = z.object({
-  method: z.enum(["GET", "POST"]),
-  path: z
-    .string()
-    .min(1, "Path is required")
-    .startsWith("/", "Path must start with /")
-    .regex(/^\/[\w\-./]*$/, "Invalid path characters"),
-  interval: z
-    .string()
-    .min(1, "Interval is required")
-    .regex(INTERVAL_REGEX, "Use format like 15s, 2m, or 1h"),
-});
-
-type HealthcheckFormValues = z.infer<typeof healthcheckSchema>;
+import { useProjectData } from "../../../../data-provider";
+import { FormSettingCard } from "../../shared/form-setting-card";
+import { MethodBadge } from "./method-badge";
+import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
+import { intervalToSeconds, secondsToInterval } from "./utils";
 
 export const Healthcheck = () => {
   const { environments } = useProjectData();
@@ -206,51 +186,3 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
     </FormSettingCard>
   );
 };
-
-function getMethodVariant(method: string): "success" | "warning" | "error" | "primary" | "blocked" {
-  switch (method) {
-    case "GET":
-    case "HEAD":
-      return "success";
-    case "POST":
-      return "warning";
-    case "PUT":
-    case "PATCH":
-      return "blocked";
-    case "DELETE":
-      return "error";
-    default:
-      return "primary";
-  }
-}
-
-const MethodBadge: React.FC<{ method: string }> = ({ method }) => (
-  <Badge
-    variant={getMethodVariant(method)}
-    size="sm"
-    className="text-[11px] font-medium w-10 h-[18px] flex items-center justify-center"
-  >
-    {method}
-  </Badge>
-);
-
-function intervalToSeconds(interval: string): number {
-  const num = Number.parseInt(interval, 10);
-  if (interval.endsWith("h")) {
-    return num * 3600;
-  }
-  if (interval.endsWith("m")) {
-    return num * 60;
-  }
-  return num;
-}
-
-function secondsToInterval(seconds: number): string {
-  if (seconds % 3600 === 0) {
-    return `${seconds / 3600}h`;
-  }
-  if (seconds % 60 === 0) {
-    return `${seconds / 60}m`;
-  }
-  return `${seconds}s`;
-}

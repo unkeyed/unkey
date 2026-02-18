@@ -11,6 +11,7 @@ import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
+import { indexToValue, valueToIndex } from "../shared/slider-utils";
 
 const CPU_OPTIONS = [
   { label: "1/4 vCPU", value: 256 },
@@ -104,7 +105,7 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
   };
 
   const hasChanges = currentCpu !== defaultCpu;
-  const currentIndex = valueToIndex(currentCpu);
+  const currentIndex = valueToIndex(CPU_OPTIONS, currentCpu);
 
   return (
     <FormSettingCard
@@ -134,7 +135,7 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
             value={[currentIndex]}
             onValueChange={([value]) => {
               if (value !== undefined) {
-                setValue("cpu", indexToValue(value), { shouldValidate: true });
+                setValue("cpu", indexToValue(CPU_OPTIONS, value, 256), { shouldValidate: true });
               }
             }}
             className="flex-1 max-w-[480px]"
@@ -155,15 +156,6 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
     </FormSettingCard>
   );
 };
-
-function valueToIndex(millicores: number): number {
-  const idx = CPU_OPTIONS.findIndex((o) => o.value === millicores);
-  return idx >= 0 ? idx : 0;
-}
-
-function indexToValue(index: number): number {
-  return CPU_OPTIONS[index]?.value ?? 256;
-}
 
 function parseCpuDisplay(millicores: number): [string, string] {
   if (millicores === 256) {

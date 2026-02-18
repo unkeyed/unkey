@@ -8,6 +8,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
+import { indexToValue, valueToIndex } from "../shared/slider-utils";
 
 const STORAGE_OPTIONS = [
   { label: "512 MiB", value: 512 },
@@ -49,7 +50,7 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
   const currentStorage = useWatch({ control, name: "storage" });
 
   const hasChanges = currentStorage !== defaultStorage;
-  const currentIndex = valueToIndex(currentStorage);
+  const currentIndex = valueToIndex(STORAGE_OPTIONS, currentStorage);
 
   return (
     <FormSettingCard
@@ -79,7 +80,9 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
             value={[currentIndex]}
             onValueChange={([value]) => {
               if (value !== undefined) {
-                setValue("storage", indexToValue(value), { shouldValidate: true });
+                setValue("storage", indexToValue(STORAGE_OPTIONS, value, 1024), {
+                  shouldValidate: true,
+                });
               }
             }}
             className="flex-1 max-w-[480px]"
@@ -101,15 +104,6 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
     </FormSettingCard>
   );
 };
-
-function valueToIndex(mib: number): number {
-  const idx = STORAGE_OPTIONS.findIndex((o) => o.value === mib);
-  return idx >= 0 ? idx : 0;
-}
-
-function indexToValue(index: number): number {
-  return STORAGE_OPTIONS[index]?.value ?? 1024;
-}
 
 function parseStorageDisplay(mib: number): [string, string] {
   if (mib >= 1024) {

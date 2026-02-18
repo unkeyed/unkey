@@ -13,19 +13,9 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
 import { useProjectData } from "../../../../data-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
-
-const customDomainSchema = z.object({
-  environmentId: z.string().min(1, "Environment is required"),
-  domain: z
-    .string()
-    .min(1, "Domain is required")
-    .regex(/^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}$/, "Invalid domain format"),
-});
-
-type CustomDomainFormValues = z.infer<typeof customDomainSchema>;
+import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
 export const CustomDomains = () => {
   const { environments, customDomains, projectId } = useProjectData();

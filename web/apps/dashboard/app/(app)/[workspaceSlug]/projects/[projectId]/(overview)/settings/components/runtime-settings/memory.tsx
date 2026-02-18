@@ -11,6 +11,7 @@ import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
+import { indexToValue, valueToIndex } from "../shared/slider-utils";
 
 const MEMORY_OPTIONS = [
   { label: "256 MiB", value: 256 },
@@ -104,7 +105,7 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
   };
 
   const hasChanges = currentMemory !== defaultMemory;
-  const currentIndex = valueToIndex(currentMemory);
+  const currentIndex = valueToIndex(MEMORY_OPTIONS, currentMemory);
 
   return (
     <FormSettingCard
@@ -134,7 +135,9 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
             value={[currentIndex]}
             onValueChange={([value]) => {
               if (value !== undefined) {
-                setValue("memory", indexToValue(value), { shouldValidate: true });
+                setValue("memory", indexToValue(MEMORY_OPTIONS, value, 256), {
+                  shouldValidate: true,
+                });
               }
             }}
             className="flex-1 max-w-[480px]"
@@ -157,15 +160,6 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
     </FormSettingCard>
   );
 };
-
-function valueToIndex(mib: number): number {
-  const idx = MEMORY_OPTIONS.findIndex((o) => o.value === mib);
-  return idx >= 0 ? idx : 0;
-}
-
-function indexToValue(index: number): number {
-  return MEMORY_OPTIONS[index]?.value ?? 256;
-}
 
 function parseMemoryDisplay(mib: number): [string, string] {
   if (mib >= 1024) {
