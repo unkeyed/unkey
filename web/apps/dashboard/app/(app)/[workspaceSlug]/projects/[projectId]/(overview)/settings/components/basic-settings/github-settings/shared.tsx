@@ -25,7 +25,7 @@ export const GitHubSettingCard = ({
 );
 
 export const ComboboxSkeleton = () => (
-  <div className="w-[250px] h-8 rounded-lg border border-gray-5 bg-gray-2 flex items-center justify-between px-3 py-2">
+  <div className="w-[185px] h-8 rounded-lg border border-gray-5 bg-gray-2 flex items-center justify-between px-3 py-2">
     <div className="flex gap-1.5 items-center">
       <div className="h-3.5 w-16 bg-grayA-3 rounded animate-pulse" />
       <div className="h-3.5 w-24 bg-grayA-3 rounded animate-pulse" />
@@ -37,7 +37,8 @@ export const ComboboxSkeleton = () => (
 export const RepoNameLabel = ({ fullName }: { fullName: string }) => {
   const [handle, repoName] = fullName.split("/");
   return (
-    <div>
+    // This max-w-[185px] and w-[185px] in ComboboxSkeleton should match
+    <div className="max-w-[185px] truncate">
       <span className="text-[13px] text-gray-12 font-medium">{handle}</span>
       <span className="text-[13px] text-gray-11">/{repoName}</span>
     </div>

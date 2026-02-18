@@ -2,17 +2,16 @@ import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { Button, InfoTooltip, toast } from "@unkey/ui";
 import { GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
+import { SelectedConfig } from "../../shared/selected-config";
 
 export const GitHubConnected = ({
   projectId,
   installUrl,
   repoFullName,
-  repositoryId,
 }: {
   projectId: string;
   installUrl: string;
   repoFullName: string;
-  repositoryId: number;
 }) => {
   const utils = trpc.useUtils();
 
@@ -26,35 +25,15 @@ export const GitHubConnected = ({
     },
   });
 
-  const connectedValue = String(repositoryId);
-  const connectedOption = [
-    {
-      value: connectedValue,
-      label: repoFullName,
-      searchValue: repoFullName,
-      selectedLabel: <RepoNameLabel fullName={repoFullName} />,
-    },
-  ];
-
   const collapsed = (
     <InfoTooltip
-      asChild
-      className="pointer-events-none"
       content="Connected repository. Expand to disconnect or manage settings."
       variant="inverted"
       position={{
         side: "top",
       }}
     >
-      {/* Without this wrapper div combobox will trigger expandable content */}
-      <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-        <Combobox
-          className="w-[250px] text-left min-h-8 pointer-events-none opacity-75"
-          options={connectedOption}
-          value={connectedValue}
-          onSelect={() => {}}
-        />
-      </div>
+      <SelectedConfig label={<RepoNameLabel fullName={repoFullName + "asdasdsadsd"} />} />
     </InfoTooltip>
   );
 
@@ -77,11 +56,11 @@ export const GitHubConnected = ({
         </div>
         <ManageGitHubAppLink
           installUrl={installUrl}
+          variant="outline"
           text={
-            <>
-              <span className="text-gray-9">Manage</span>
-              <span className="text-gray-12 font-medium"> GitHub</span>
-            </>
+            <span >Manage
+              GitHub
+            </span>
           }
         />
       </div>

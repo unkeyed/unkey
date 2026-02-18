@@ -66,7 +66,6 @@ export const GitHubSettings = () => {
           projectId={projectId}
           installUrl={connectionState.installUrl}
           repoFullName={connectionState.repoFullName}
-          repositoryId={connectionState.repositoryId}
         />
       );
   }

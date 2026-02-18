@@ -37,7 +37,7 @@ export const GitHubNoRepo = ({
     () =>
       (reposData?.repositories ?? []).map((repo) => ({
         value: `${repo.installationId}:${repo.id}`,
-        label: repo.fullName,
+        label: <RepoNameLabel fullName={repo.fullName} />,
         searchValue: repo.fullName,
         selectedLabel: <RepoNameLabel fullName={repo.fullName} />,
       })),
@@ -64,7 +64,7 @@ export const GitHubNoRepo = ({
         <ComboboxSkeleton />
       ) : repoOptions.length ? (
         <Combobox
-          className="w-[250px] text-left min-h-8"
+          className="w-[200px] text-left min-h-8"
           options={repoOptions}
           value={selectedRepo}
           onSelect={handleSelectRepository}
