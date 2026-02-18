@@ -1,6 +1,7 @@
 http_port = 7070
 region = "local"
 redis_url = "redis://redis:6379"
+dashboard_token = "dashboard-test-token-123"
 
 [database]
 primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
