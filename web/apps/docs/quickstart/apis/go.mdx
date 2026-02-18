@@ -75,13 +75,15 @@ func AuthMiddleware(next http.Handler) http.Handler {
             return
         }
 
-        if !res.V2KeysVerifyKeyResponseBody.Valid {
+        result := res.V2KeysVerifyKeyResponseBody.Data
+
+        if !result.Valid {
             http.Error(w, `{"error": "Invalid API key"}`, http.StatusUnauthorized)
             return
         }
 
         // Add key info to context for handlers
-        ctx := context.WithValue(r.Context(), "keyId", res.V2KeysVerifyKeyResponseBody.KeyID)
+        ctx := context.WithValue(r.Context(), "keyId", *result.KeyID)
         next.ServeHTTP(w, r.WithContext(ctx))
     })
 }
@@ -156,16 +158,18 @@ func UnkeyAuth() gin.HandlerFunc {
             return
         }
 
-        if !res.V2KeysVerifyKeyResponseBody.Valid {
+        result := res.V2KeysVerifyKeyResponseBody.Data
+
+        if !result.Valid {
             c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
                 "error": "Invalid API key",
-                "code":  res.V2KeysVerifyKeyResponseBody.Code,
+                "code":  string(result.Code),
             })
             return
         }
 
         // Store verification result in context
-        c.Set("unkeyResult", res.V2KeysVerifyKeyResponseBody)
+        c.Set("unkeyResult", &result)
         c.Next()
     }
 }
@@ -177,10 +181,10 @@ func main() {
     api := r.Group("/api", UnkeyAuth())
     {
         api.GET("/data", func(c *gin.Context) {
-            result := c.MustGet("unkeyResult").(*components.V2KeysVerifyKeyResponseBody)
+            result := c.MustGet("unkeyResult").(*components.V2KeysVerifyKeyResponseData)
             c.JSON(http.StatusOK, gin.H{
                 "message": "Access granted",
-                "key_id":  result.KeyID,
+                "key_id":  *result.KeyID,
             })
         })
     }
@@ -233,19 +237,17 @@ func UnkeyAuthMiddleware() echo.MiddlewareFunc {
                 return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "Verification failed"})
             }
 
-            if !res.V2KeysVerifyKeyResponseBody.Valid {
-                code := "INVALID_KEY"
-                if res.V2KeysVerifyKeyResponseBody.Code != nil {
-                    code = *res.V2KeysVerifyKeyResponseBody.Code
-                }
+            result := res.V2KeysVerifyKeyResponseBody.Data
+
+            if !result.Valid {
                 return c.JSON(http.StatusUnauthorized, map[string]string{
                     "error": "Invalid API key",
-                    "code":  code,
+                    "code":  string(result.Code),
                 })
             }
 
             // Store in context
-            c.Set("keyId", res.V2KeysVerifyKeyResponseBody.KeyID)
+            c.Set("keyId", *result.KeyID)
             return next(c)
         }
     }

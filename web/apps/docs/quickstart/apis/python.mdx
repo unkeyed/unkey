@@ -3,7 +3,7 @@ title: 'Python'
 description: 'Protect your Python APIs with Unkey'
 ---
 
-This guide shows how to add API key verification to your Python applications using the official Unkey Python SDK.
+This guide shows how to add API key verification to your Python applications using the official Unkey Python SDK (v2).
 
 ## Prerequisites
 
@@ -15,15 +15,15 @@ This guide shows how to add API key verification to your Python applications usi
 <CodeGroup>
 
 ```bash pip
-pip install unkey.py
+pip install unkey-py
 ```
 
 ```bash poetry
-poetry add unkey.py
+poetry add unkey-py
 ```
 
 ```bash uv
-uv add unkey.py
+uv add unkey-py
 ```
 
 </CodeGroup>
@@ -32,7 +32,6 @@ uv add unkey.py
 
 1. Create an API in the [Unkey Dashboard](https://app.unkey.com/apis)
 2. Create a root key at [Settings → Root Keys](https://app.unkey.com/settings/root-keys)
-3. Copy your API ID (looks like `api_xxxx`)
 
 Set your root key as an environment variable:
 
@@ -42,42 +41,32 @@ export UNKEY_ROOT_KEY="unkey_xxxx"
 
 ## 3. FastAPI Integration
 
-Here's how to protect your FastAPI endpoints:
+Here's how to protect your FastAPI endpoints using the v2 SDK:
 
 ```python
 from fastapi import FastAPI, Header, HTTPException
-from unkey import Unkey
+from unkey_py import Unkey
 import os
 
 app = FastAPI()
-unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 
 @app.get("/api/protected")
 async def protected_route(x_api_key: str = Header(..., alias="X-API-Key")):
-    result = await unkey.keys.verify_key_async(key=x_api_key)
-    
+    with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+        res = unkey.keys.verify_key(request={"key": x_api_key})
+        result = res.data
+
     if not result.valid:
         raise HTTPException(
             status_code=401 if result.code == "NOT_FOUND" else 403,
             detail=f"Unauthorized: {result.code}"
         )
-    
+
     return {
         "message": "Access granted",
         "key_id": result.key_id,
-        "remaining_credits": result.credits
+        "remaining_credits": result.remaining
     }
-
-# With async support
-@app.get("/api/protected-async")
-async def protected_route_async(x_api_key: str = Header(..., alias="X-API-Key")):
-    async with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as client:
-        result = await client.keys.verify_key_async(key=x_api_key)
-        
-        if not result.valid:
-            raise HTTPException(status_code=401, detail=result.code)
-        
-        return {"message": "Access granted", "key_id": result.key_id}
 ```
 
 Run your FastAPI app:
@@ -94,28 +83,29 @@ curl -H "X-API-Key: YOUR_API_KEY" http://localhost:8000/api/protected
 
 ## 4. Flask Integration
 
-For Flask applications:
+For Flask applications using the v2 SDK:
 
 ```python
 from flask import Flask, request, jsonify
-from unkey import Unkey
+from unkey_py import Unkey
 import os
 
 app = Flask(__name__)
-unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 
 @app.route("/api/protected")
 def protected_route():
     api_key = request.headers.get("X-API-Key")
-    
+
     if not api_key:
         return jsonify({"error": "Missing API key"}), 401
-    
-    result = unkey.keys.verify_key(key=api_key)
-    
+
+    with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+        res = unkey.keys.verify_key(request={"key": api_key})
+        result = res.data
+
     if not result.valid:
         return jsonify({"error": result.code}), 401
-    
+
     return jsonify({
         "message": "Access granted",
         "key_id": result.key_id,
@@ -128,38 +118,39 @@ if __name__ == "__main__":
 
 ## 5. Django Integration
 
-For Django, create a custom middleware:
+For Django, create a custom middleware using the v2 SDK:
 
 ```python
 # middleware/unkey_auth.py
 from django.http import JsonResponse
 from django.conf import settings
-from unkey import Unkey
+from unkey_py import Unkey
 
 class UnkeyAuthMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
-        self.unkey = Unkey(root_key=settings.UNKEY_ROOT_KEY)
 
     def __call__(self, request):
         # Skip auth for unprotected paths
         if request.path.startswith('/admin/'):
             return self.get_response(request)
-        
+
         api_key = request.headers.get('X-API-Key')
-        
+
         if not api_key:
             return JsonResponse({'error': 'Missing API key'}, status=401)
-        
-        result = self.unkey.keys.verify_key(key=api_key)
-        
+
+        with Unkey(bearer_auth=settings.UNKEY_ROOT_KEY) as unkey:
+            res = unkey.keys.verify_key(request={'key': api_key})
+            result = res.data
+
         if not result.valid:
             return JsonResponse({'error': result.code}, status=401)
-        
+
         # Attach key info to request
         request.unkey_key_id = result.key_id
         request.unkey_meta = result.meta
-        
+
         return self.get_response(request)
 
 # settings.py
@@ -187,39 +178,41 @@ def protected_view(request):
 
 ## Creating and Managing Keys
 
-Here's how to create API keys programmatically:
+Here's how to create API keys programmatically using the v2 SDK:
 
 ```python
 from datetime import datetime, timedelta
-from unkey import Unkey
+from unkey_py import Unkey
 import os
 
-unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+    # Create a new API key
+    res = unkey.keys.create_key(request={
+        "api_id": "api_...",
+        "prefix": "sk_live",
+        "external_id": "user_123",  # Link to your user
+        "name": "Production key",
+        "expires": int((datetime.now() + timedelta(days=30)).timestamp() * 1000),
+        "remaining": 1000,
+        "refill": {
+            "amount": 1000,
+            "interval": "monthly",
+        },
+        "ratelimits": [{
+            "name": "requests",
+            "limit": 100,
+            "duration": 60000,  # 100 per minute
+            "auto_apply": True,
+        }],
+        "meta": {
+            "plan": "pro",
+            "customer_id": "cust_123",
+        },
+    })
+    result = res.data
 
-# Create a new API key
-result = unkey.keys.create_key(
-    api_id="api_...",
-    prefix="sk_live",
-    external_id="user_123",  # Link to your user
-    name="Production key",
-    expires=int((datetime.now() + timedelta(days=30)).timestamp() * 1000),
-    remaining=1000,
-    refill={
-        "amount": 1000,
-        "interval": "monthly",
-    },
-    ratelimit={
-        "limit": 100,
-        "duration": 60000,  # 100 per minute
-    },
-    meta={
-        "plan": "pro",
-        "customer_id": "cust_123",
-    },
-)
-
-print(f"Created key: {result.key}")  # Only time you'll see it!
-print(f"Key ID: {result.key_id}")
+    print(f"Created key: {result.key}")  # Only time you'll see it!
+    print(f"Key ID: {result.key_id}")
 ```
 
 <Warning>
@@ -231,53 +224,21 @@ The full API key is only returned once at creation. Store it securely and never 
 Always handle Unkey errors gracefully:
 
 ```python
-from unkey import Unkey
-from unkey.errors import UnkeyError
+from unkey_py import Unkey
 import os
 
-unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
+with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+    try:
+        res = unkey.keys.create_key(request={
+            "api_id": "api_...",
+            "name": "My Key"
+        })
+        result = res.data
+        print(f"Created: {result.key}")
 
-try:
-    result = unkey.keys.create_key(
-        api_id="api_...",
-        name="My Key"
-    )
-    print(f"Created: {result.key}")
-    
-except UnkeyError as e:
-    print(f"API Error: {e.status_code} - {e.message}")
-    # Handle specific errors
-    if e.status_code == 401:
-        print("Invalid root key")
-    elif e.status_code == 400:
-        print("Bad request - check your parameters")
-```
-
-## Async Support
-
-All methods have async variants with `_async` suffix:
-
-```python
-import asyncio
-import os
-from unkey import Unkey
-
-async def main():
-    async with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as unkey:
-        # Verify key asynchronously
-        result = await unkey.keys.verify_key_async(key="sk_live_...")
-        
-        if result.valid:
-            print("Key is valid!")
-            
-        # Create key asynchronously
-        new_key = await unkey.keys.create_key_async(
-            api_id="api_...",
-            prefix="sk_live",
-        )
-        print(f"Created: {new_key.key}")
-
-asyncio.run(main())
+    except Exception as e:
+        print(f"API Error: {e}")
+        # Handle specific errors based on exception type
 ```
 
 ## What's next?
