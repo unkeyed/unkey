@@ -1,4 +1,153 @@
-@tailwind base;
+@plugin 'tailwindcss-animate';
+@plugin '@tailwindcss/typography';
+@plugin '@tailwindcss/aspect-ratio';
+@plugin '@tailwindcss/container-queries';
+
+@source '../app/**/*.{ts,tsx}';
+@source '../components/**/*.{ts,tsx}';
+@source '../content/**/*.{md,mdx}';
+@source '../mdx-components.{ts,tsx}';
+@source '../node_modules/fumadocs-ui/dist/**/*.js';
+@source '../../../../internal/ui/src/**/*.tsx';
+@source '../../../../internal/icons/src/**/*.tsx';
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --text-*: initial;
+  --text-xxs: 10px;
+  --text-xxs--line-height: 16px;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.75rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 2rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2.25rem;
+  --text-3xl: 1.75rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl: 2rem;
+  --text-4xl--line-height: 2.5rem;
+  --text-5xl: 2.5rem;
+  --text-5xl--line-height: 3rem;
+  --text-6xl: 3rem;
+  --text-6xl--line-height: 3.5rem;
+  --text-7xl: 4rem;
+  --text-7xl--line-height: 4.5rem;
+
+  --color-*: initial;
+  --color-current: currentColor;
+  --color-transparent: transparent;
+  --color-white: hsl(var(--white));
+  --color-black: hsl(var(--black));
+  --color-gray-50: #fafaf9;
+  --color-gray-100: #f5f5f4;
+  --color-gray-200: #e7e5e4;
+  --color-gray-300: #d6d3d1;
+  --color-gray-400: #a8a29e;
+  --color-gray-500: #78716c;
+  --color-gray-600: #57534e;
+  --color-gray-700: #44403c;
+  --color-gray-800: #292524;
+  --color-gray-900: #1c1917;
+  --color-gray-950: #0c0a09;
+  --color-background: hsl(var(--background));
+  --color-background-subtle: hsl(var(--background-subtle));
+  --color-brand: hsl(var(--brand));
+  --color-brand-foreground: hsl(var(--brand-foreground));
+  --color-warn: hsl(var(--warn));
+  --color-warn-foreground: hsl(var(--warn-foreground));
+  --color-alert: hsl(var(--alert));
+  --color-alert-foreground: hsl(var(--alert-foreground));
+  --color-success: hsl(var(--success));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-content: hsl(var(--content));
+  --color-content-subtle: hsl(var(--content-subtle));
+  --color-content-warn: hsl(var(--content-warn));
+  --color-content-alert: hsl(var(--content-alert));
+  --color-border: hsl(var(--border));
+  --color-ring: hsl(var(--ring));
+
+  /* Shadcn/ui semantic colors */
+  --color-foreground: hsl(var(--content));
+  --color-muted: hsl(var(--gray-3));
+  --color-muted-foreground: hsl(var(--gray-11));
+  --color-accent: hsl(var(--accent-3));
+  --color-accent-foreground: hsl(var(--accent-12));
+  --color-card: hsl(var(--background));
+  --color-card-foreground: hsl(var(--content));
+  --color-popover: hsl(var(--background));
+  --color-popover-foreground: hsl(var(--content));
+  --color-input: hsl(var(--border));
+  --color-destructive: hsl(var(--error-9));
+  --color-destructive-foreground: hsl(var(--error-12));
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes shiny-text {
+    0%,
+    90%,
+    100% {
+      background-position: calc(-100% - var(--shiny-width)) 0;
+    }
+    30%,
+    60% {
+      background-position: calc(100% + var(--shiny-width)) 0;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  /* Sonner toast styling */
+  [data-sonner-toast] {
+    background-color: hsl(var(--background)) !important;
+    border-color: hsl(var(--border)) !important;
+    color: hsl(var(--content)) !important;
+  }
+
+  
+
+ 
+}
 
 @layer base {
   :root {
