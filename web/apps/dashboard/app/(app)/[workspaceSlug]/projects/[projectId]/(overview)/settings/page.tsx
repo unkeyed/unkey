@@ -2,6 +2,7 @@
 
 import { CircleHalfDottedClock } from "@unkey/icons";
 import { DockerfileSettings } from "./components/basic-settings/dockerfile-settings";
+import { PortSettings } from "./components/basic-settings/port-settings";
 import { GitHubSettings } from "./components/basic-settings/github-settings";
 import { RootDirectorySettings } from "./components/basic-settings/root-directory-settings";
 import { Cpu } from "./components/runtime-settings/cpu";
@@ -27,6 +28,7 @@ export default function SettingsPage() {
           <GitHubSettings />
           <RootDirectorySettings />
           <DockerfileSettings />
+          <PortSettings />
         </div>
         <SettingsGroup
           icon={<CircleHalfDottedClock iconSize="md-medium" />}
