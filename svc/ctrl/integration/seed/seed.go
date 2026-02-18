@@ -653,8 +653,8 @@ func (s *Seeder) CreateWorkspaceWithQuota(ctx context.Context, req CreateWorkspa
 			AuditLogsRetentionDays: req.AuditLogsRetentionDays,
 			LogsRetentionDays:      req.LogsRetentionDays,
 			Team:                   req.Team,
-			RatelimitApiLimit:         sql.NullInt32{}, //nolint:exhaustruct
-			RatelimitApiDuration:      sql.NullInt32{}, //nolint:exhaustruct
+			RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
+			RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
 		})
 		require.NoError(s.t, err)
 	}
