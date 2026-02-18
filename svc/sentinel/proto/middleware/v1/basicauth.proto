@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// BasicAuth validates HTTP Basic credentials (RFC 7617) and produces a
+// [Principal] on success.
+//
+// This policy exists for integrating with systems that only support HTTP
+// Basic authentication — legacy services, webhook senders that require
+// Basic auth for delivery verification, and simple internal APIs where
+// issuing API keys or configuring JWT infrastructure is unnecessary overhead.
+// For new APIs, [KeyAuth] or [JWTAuth] are almost always better choices
+// because they support richer metadata, rotation, and per-key controls.
+//
+// On successful validation, BasicAuth produces a [Principal] with type
+// PRINCIPAL_TYPE_BASIC. The subject is set to the authenticated username,
+// and claims is empty because the HTTP Basic protocol carries no additional
+// metadata beyond the username/password pair.
+//
+// Credentials are configured as a static list with BCrypt-hashed passwords.
+// Sentinel never stores or accepts plaintext passwords in configuration.
+// The static list means credential changes require a config update and
+// redeployment, which is acceptable for the use cases this policy targets
+// but would be impractical for large user bases (use JWTAuth for those).
+message BasicAuth {
+  // The list of valid username/password_hash pairs. Sentinel checks the
+  // request's Basic credentials against each entry until a match is found
+  // or the list is exhausted. Order does not affect security, but placing
+  // the most commonly used credentials first may improve average-case
+  // performance for large lists.
+  repeated BasicAuthCredential credentials = 1;
+}
+
+// BasicAuthCredential represents a single valid username and password
+// combination. The password is stored as a BCrypt hash to ensure that
+// configuration files and proto serializations never contain plaintext
+// secrets. Operators generate the hash offline (e.g., via htpasswd or
+// bcrypt CLI tools) and paste the hash into the configuration.
+message BasicAuthCredential {
+  // The expected username, matched exactly (case-sensitive).
+  string username = 1;
+
+  // BCrypt hash of the password. Must be a valid BCrypt hash string
+  // (starting with "$2a$", "$2b$", or "$2y$"). Sentinel verifies the
+  // request's password against this hash using constant-time comparison.
+  // Plaintext passwords are never stored in configuration.
+  string password_hash = 2;
+}
