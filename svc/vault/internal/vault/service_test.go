@@ -23,7 +23,7 @@ func setupTestService(t *testing.T) *Service {
 
 	service, err := New(Config{
 		Storage:     memoryStorage,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: bearerToken,
 	})
 	require.NoError(t, err)

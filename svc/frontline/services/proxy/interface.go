@@ -25,8 +25,8 @@ type Service interface {
 
 // Config holds configuration for the proxy service.
 type Config struct {
-	// FrontlineID is the current frontline instance ID
-	FrontlineID string
+	// InstanceID is the current frontline instance ID
+	InstanceID string
 
 	// Region is the current frontline region
 	Region string
