@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -112,6 +113,19 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, req WorkspaceRate
 			Remaining:   uint64(resp.Remaining),
 			ResetAt:     resp.Reset.UnixMilli(),
 		})
+	}
+
+	// Set standard rate limit headers (IETF draft-ietf-httpapi-ratelimit-headers)
+	if req.Session != nil {
+		resetSeconds := max(int64(time.Until(resp.Reset).Seconds()), 0)
+
+		req.Session.AddHeader("RateLimit-Limit", strconv.FormatInt(resp.Limit, 10))
+		req.Session.AddHeader("RateLimit-Remaining", strconv.FormatInt(resp.Remaining, 10))
+		req.Session.AddHeader("RateLimit-Reset", strconv.FormatInt(resetSeconds, 10))
+
+		if !resp.Success {
+			req.Session.AddHeader("Retry-After", strconv.FormatInt(resetSeconds, 10))
+		}
 	}
 
 	if !resp.Success {
