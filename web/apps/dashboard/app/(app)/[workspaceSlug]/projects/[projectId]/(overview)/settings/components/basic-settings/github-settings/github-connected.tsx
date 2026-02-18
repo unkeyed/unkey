@@ -1,8 +1,7 @@
-import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { Button, InfoTooltip, toast } from "@unkey/ui";
-import { GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
 import { SelectedConfig } from "../../shared/selected-config";
+import { GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
 
 export const GitHubConnected = ({
   projectId,
@@ -57,11 +56,7 @@ export const GitHubConnected = ({
         <ManageGitHubAppLink
           installUrl={installUrl}
           variant="outline"
-          text={
-            <span >Manage
-              GitHub
-            </span>
-          }
+          text={<span>Manage GitHub</span>}
         />
       </div>
     </div>

@@ -1,10 +1,10 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeSlash, Nodes2, Plus, Trash } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, toast } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import {
   type Control,
@@ -325,13 +325,13 @@ const EnvVarRow = ({
   return (
     <div className="flex items-start gap-2">
       <FormInput
-        className="flex-1 [&_input]:h-9  [&_input]:font-mono"
+        className="flex-1 [&_input]:h-9 [&_input]:font-mono"
         placeholder="MY_VAR"
         error={keyError}
         {...register(`envVars.${index}.key`)}
       />
       <FormInput
-        className="flex-1 [&_input]:h-9  [&_input]:font-mono"
+        className="flex-1 [&_input]:h-9 [&_input]:font-mono"
         placeholder={isPreviouslyAdded && isSecret ? "sensitive" : "value"}
         type={inputType}
         rightIcon={eyeButton}
@@ -356,7 +356,10 @@ const EnvVarRow = ({
           type="button"
           variant="ghost"
           size="sm"
-          className={`absolute left-0 w-7 px-0 justify-center text-error-11 hover:text-error-11 transition-opacity duration-150 ${isOnly ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+          className={cn(
+            "absolute left-0 w-7 px-0 justify-center text-error-11 hover:text-error-11 transition-opacity duration-150",
+            isOnly ? "opacity-0 pointer-events-none" : "opacity-100",
+          )}
           onClick={onRemove}
         >
           <Trash iconSize="sm-regular" />
@@ -365,7 +368,11 @@ const EnvVarRow = ({
           type="button"
           variant="ghost"
           size="sm"
-          className={`absolute left-0 w-7 px-0 justify-center transition-all duration-150 ${isOnly ? "translate-x-0" : "translate-x-9"} ${isLast ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+          className={cn(
+            "absolute left-0 w-7 px-0 justify-center transition-all duration-150",
+            isOnly ? "translate-x-0" : "translate-x-9",
+            isLast ? "opacity-100" : "opacity-0 pointer-events-none",
+          )}
           onClick={onAdd}
         >
           <Plus iconSize="sm-regular" />

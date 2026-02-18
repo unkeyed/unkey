@@ -1,5 +1,5 @@
+import { cn } from "@/lib/utils";
 import { Button, SettingCard, type SettingCardBorder } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
 import { SelectedConfig } from "./selected-config";
 
