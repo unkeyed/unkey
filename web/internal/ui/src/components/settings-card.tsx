@@ -80,10 +80,10 @@ function SettingCard({
   const borderClass = inGroup
     ? {}
     : {
-        "border border-grayA-4": border !== "none",
-        "border-t-0": border === "bottom",
-        "border-b-0": border === "top",
-      };
+      "border border-grayA-4": border !== "none",
+      "border-t-0": border === "bottom",
+      "border-b-0": border === "top",
+    };
 
   const expandedBottomRadius =
     !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
@@ -135,8 +135,9 @@ function SettingCard({
           {shouldShowChevron && (
             <ChevronRight
               className={cn(
-                "text-gray-10 group-hover:text-gray-11 transition-all duration-300 ease-out flex-shrink-0",
+                "text-gray-10 transition-all duration-300 ease-out flex-shrink-0",
                 isExpanded && "rotate-90",
+                effectiveChevronState !== "disabled" && "group-hover:text-gray-11",
                 effectiveChevronState === "disabled" && "opacity-40 cursor-not-allowed",
               )}
               iconSize="sm-medium"

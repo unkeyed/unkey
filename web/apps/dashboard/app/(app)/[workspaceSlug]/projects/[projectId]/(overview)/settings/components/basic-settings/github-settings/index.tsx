@@ -49,7 +49,7 @@ export const GitHubSettings = () => {
     // No-app means user haven't connected an app to unkey yet
     case "no-app":
       return (
-        <GitHubSettingCard chevronState="interactive">
+        <GitHubSettingCard chevronState="disabled">
           <ManageGitHubAppLink
             installUrl={connectionState.installUrl}
             variant="outline"

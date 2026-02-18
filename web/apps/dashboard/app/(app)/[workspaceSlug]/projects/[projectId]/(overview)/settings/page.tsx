@@ -15,6 +15,7 @@ import { Memory } from "./components/runtime-settings/memory";
 import { Regions } from "./components/runtime-settings/regions";
 
 import { Command } from "./components/advanced-settings/command";
+import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { EnvVars } from "./components/advanced-settings/env-vars";
 
 import { SettingsGroup } from "./components/shared/settings-group";
@@ -57,6 +58,7 @@ export default function SettingsPage() {
           <SettingCardGroup>
             <Command />
             <EnvVars />
+            <CustomDomains />
           </SettingCardGroup>
         </SettingsGroup>
       </div>
