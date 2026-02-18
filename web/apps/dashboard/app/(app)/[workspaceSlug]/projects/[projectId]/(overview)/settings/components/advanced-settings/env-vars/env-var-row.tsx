@@ -76,11 +76,7 @@ export const EnvVarRow = ({
               <SelectTrigger
                 className={cn("h-9", environmentError && !isPreviouslyAdded && "border-error-9")}
                 wrapperClassName="w-[120px]"
-                rightIcon={
-                  isPreviouslyAdded ? undefined : (
-                    <ChevronDown className="absolute right-3 size-3 opacity-70" />
-                  )
-                }
+                rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
               >
                 <SelectValue placeholder="Env" />
               </SelectTrigger>
