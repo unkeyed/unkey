@@ -53,10 +53,17 @@ export const LoadMoreFooter = ({
           animation: "slideInFromBottom 0.3s ease-out",
         }}
       >
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={handleOpen}
-          className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 transition-all duration-200 hover:shadow-xl hover:scale-105 group"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleOpen();
+            }
+          }}
+          className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 transition-all duration-200 hover:shadow-xl hover:scale-105 group cursor-pointer"
           title={`${buttonText} • ${totalVisible} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
@@ -72,11 +79,12 @@ export const LoadMoreFooter = ({
               variant="ghost"
               className="[&_svg]:size-[14px] transition-all duration-200 rounded-sm hover:bg-gray-3 transform hover:scale-110"
               title="Maximize"
+              onClick={handleOpen}
             >
               <ArrowsToAllDirections iconSize="sm-regular" />
             </Button>
           </div>
-        </button>
+        </div>
       </div>
     );
   }

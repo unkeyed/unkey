@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "1.1.0",
+    "@tailwindcss/postcss": "^4.2.0",
     "@unkey/icons": "workspace:^",
     "@unkey/ui": "workspace:^",
     "fumadocs-core": "14.4.0",
@@ -27,8 +28,7 @@
     "react-dom": "18.3.1",
     "react-element-to-jsx-string": "15.0.0",
     "tailwind-merge": "2.5.4",
-    "@tailwindcss/postcss": "^4.1.18",
-    "tailwindcss": "4.1.18",
+    "tailwindcss": "4.2.0",
     "zod": "4.3.5"
   },
   "devDependencies": {
