@@ -1,4 +1,4 @@
-import { Button, SettingCard, SettingCardBorder } from "@unkey/ui";
+import { Button, SettingCard, type SettingCardBorder } from "@unkey/ui";
 import type React from "react";
 import { SelectedConfig } from "./selected-config";
 

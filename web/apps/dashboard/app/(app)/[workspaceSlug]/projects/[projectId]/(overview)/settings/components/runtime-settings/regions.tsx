@@ -99,7 +99,9 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
         });
       } else {
         toast.error("Failed to update regions", {
-          description: err.message || "An unexpected error occurred. Please try again or contact support@unkey.com",
+          description:
+            err.message ||
+            "An unexpected error occurred. Please try again or contact support@unkey.com",
           action: {
             label: "Contact Support",
             onClick: () => window.open("mailto:support@unkey.com", "_blank"),

@@ -104,8 +104,8 @@ export const Scaling = () => {
             </span>
           </div>
           <SettingDescription>
-            Minimum and maximum number of instances across all regions. Autoscaler stays within
-            this range.
+            Minimum and maximum number of instances across all regions. Autoscaler stays within this
+            range.
           </SettingDescription>
         </div>
         <div className="flex flex-col">

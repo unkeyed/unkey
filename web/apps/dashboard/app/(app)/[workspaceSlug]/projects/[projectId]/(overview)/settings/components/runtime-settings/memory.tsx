@@ -1,7 +1,7 @@
 "use client";
 
-import { formatMemory } from "@/lib/utils/deployment-formatters";
 import { trpc } from "@/lib/trpc/client";
+import { formatMemory } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ScanCode } from "@unkey/icons";
 import { Slider, toast } from "@unkey/ui";
@@ -84,7 +84,9 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
         });
       } else {
         toast.error("Failed to update memory", {
-          description: err.message || "An unexpected error occurred. Please try again or contact support@unkey.com",
+          description:
+            err.message ||
+            "An unexpected error occurred. Please try again or contact support@unkey.com",
           action: {
             label: "Contact Support",
             onClick: () => window.open("mailto:support@unkey.com", "_blank"),
@@ -147,12 +149,14 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
             <span className="font-medium text-gray-12">{formatMemory(currentMemory)}</span>
           </span>
         </div>
-        <SettingDescription>Increase memory for applications with large datasets or caching needs. Changes apply on next deploy.</SettingDescription>
+        <SettingDescription>
+          Increase memory for applications with large datasets or caching needs. Changes apply on
+          next deploy.
+        </SettingDescription>
       </div>
     </FormSettingCard>
   );
 };
-
 
 function valueToIndex(mib: number): number {
   const idx = MEMORY_OPTIONS.findIndex((o) => o.value === mib);
@@ -169,5 +173,3 @@ function parseMemoryDisplay(mib: number): [string, string] {
   }
   return [`${mib}`, "MiB"];
 }
-
-

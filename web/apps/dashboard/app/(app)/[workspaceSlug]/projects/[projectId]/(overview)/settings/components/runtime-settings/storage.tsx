@@ -100,7 +100,9 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
             <span className="font-medium text-gray-12">{formatMemory(currentStorage)}</span>
           </span>
         </div>
-        <SettingDescription>Temporary disk for logs, caches, and scratch data. Changes apply on next deploy.</SettingDescription>
+        <SettingDescription>
+          Temporary disk for logs, caches, and scratch data. Changes apply on next deploy.
+        </SettingDescription>
       </div>
     </FormSettingCard>
   );

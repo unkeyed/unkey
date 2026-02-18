@@ -3,7 +3,17 @@
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Heart } from "@unkey/icons";
-import { Badge, FormDescription, FormInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@unkey/ui";
+import {
+  Badge,
+  FormDescription,
+  FormInput,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  toast,
+} from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -18,11 +28,13 @@ const INTERVAL_REGEX = /^\d+[smh]$/;
 // TODO: MAX_CHECKS = 3 and array schema for multi-check when API supports
 const healthcheckSchema = z.object({
   method: z.enum(["GET", "POST"]),
-  path: z.string()
+  path: z
+    .string()
     .min(1, "Path is required")
     .startsWith("/", "Path must start with /")
     .regex(/^\/[\w\-./]*$/, "Invalid path characters"),
-  interval: z.string()
+  interval: z
+    .string()
     .min(1, "Interval is required")
     .regex(INTERVAL_REGEX, "Use format like 15s, 2m, or 1h"),
 });
@@ -101,7 +113,9 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
         });
       } else {
         toast.error("Failed to update healthcheck", {
-          description: err.message || "An unexpected error occurred. Please try again or contact support@unkey.com",
+          description:
+            err.message ||
+            "An unexpected error occurred. Please try again or contact support@unkey.com",
           action: {
             label: "Contact Support",
             onClick: () => window.open("mailto:support@unkey.com", "_blank"),
@@ -114,14 +128,17 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
   const onSubmit = async (values: HealthcheckFormValues) => {
     await updateRuntime.mutateAsync({
       environmentId,
-      healthcheck: values.path.trim() === "" ? null : {
-        method: values.method,
-        path: values.path.trim(),
-        intervalSeconds: intervalToSeconds(values.interval),
-        timeoutSeconds: 5,
-        failureThreshold: 3,
-        initialDelaySeconds: 0,
-      },
+      healthcheck:
+        values.path.trim() === ""
+          ? null
+          : {
+              method: values.method,
+              path: values.path.trim(),
+              intervalSeconds: intervalToSeconds(values.interval),
+              timeoutSeconds: 5,
+              failureThreshold: 3,
+              initialDelaySeconds: 0,
+            },
     });
   };
 

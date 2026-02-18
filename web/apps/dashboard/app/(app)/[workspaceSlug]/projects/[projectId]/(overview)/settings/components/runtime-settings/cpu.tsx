@@ -1,7 +1,7 @@
 "use client";
 
-import { formatCpu } from "@/lib/utils/deployment-formatters";
 import { trpc } from "@/lib/trpc/client";
+import { formatCpu } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Bolt } from "@unkey/icons";
 import { Slider, toast } from "@unkey/ui";
@@ -84,7 +84,9 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
         });
       } else {
         toast.error("Failed to update CPU", {
-          description: err.message || "An unexpected error occurred. Please try again or contact support@unkey.com",
+          description:
+            err.message ||
+            "An unexpected error occurred. Please try again or contact support@unkey.com",
           action: {
             label: "Contact Support",
             onClick: () => window.open("mailto:support@unkey.com", "_blank"),
@@ -137,8 +139,7 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
             }}
             className="flex-1 max-w-[480px]"
             rangeStyle={{
-              background:
-                "linear-gradient(to right, hsla(var(--infoA-4)), hsla(var(--infoA-12)))",
+              background: "linear-gradient(to right, hsla(var(--infoA-4)), hsla(var(--infoA-12)))",
               backgroundSize: `${currentIndex > 0 ? 100 / (currentIndex / (CPU_OPTIONS.length - 1)) : 100}% 100%`,
               backgroundRepeat: "no-repeat",
             }}
@@ -147,12 +148,13 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
             <span className="font-medium text-gray-12">{formatCpu(currentCpu)}</span>
           </span>
         </div>
-        <SettingDescription>Higher CPU improves compute-heavy workloads. Changes apply on next deploy.</SettingDescription>
+        <SettingDescription>
+          Higher CPU improves compute-heavy workloads. Changes apply on next deploy.
+        </SettingDescription>
       </div>
     </FormSettingCard>
   );
 };
-
 
 function valueToIndex(millicores: number): number {
   const idx = CPU_OPTIONS.findIndex((o) => o.value === millicores);

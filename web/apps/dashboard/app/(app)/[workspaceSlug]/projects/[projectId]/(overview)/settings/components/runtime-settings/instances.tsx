@@ -89,7 +89,9 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
         });
       } else {
         toast.error("Failed to update instances", {
-          description: err.message || "An unexpected error occurred. Please try again or contact support@unkey.com",
+          description:
+            err.message ||
+            "An unexpected error occurred. Please try again or contact support@unkey.com",
           action: {
             label: "Contact Support",
             onClick: () => window.open("mailto:support@unkey.com", "_blank"),
@@ -164,7 +166,10 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
             </span>
           </span>
         </div>
-        <SettingDescription>More instances improve availability and handle higher traffic. Changes apply on next deploy.</SettingDescription>
+        <SettingDescription>
+          More instances improve availability and handle higher traffic. Changes apply on next
+          deploy.
+        </SettingDescription>
       </div>
     </FormSettingCard>
   );
