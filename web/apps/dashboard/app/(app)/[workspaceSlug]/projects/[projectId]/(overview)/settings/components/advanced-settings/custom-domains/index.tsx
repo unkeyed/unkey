@@ -1,10 +1,10 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, Gear, Trash } from "@unkey/icons";
+import { ChevronDown, Link4 } from "@unkey/icons";
 import {
-  Button,
   FormInput,
   Select,
   SelectContent,
@@ -15,6 +15,7 @@ import {
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
+import { CustomDomainRow } from "./custom-domain-row";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
 export const CustomDomains = () => {
@@ -34,8 +35,8 @@ export const CustomDomains = () => {
 };
 
 type CustomDomainSettingsProps = {
-  environments: Array<{ id: string; slug: string }>;
-  customDomains: Array<{ id: string; domain: string; environmentId: string }>;
+  environments: { id: string; slug: string }[];
+  customDomains: CustomDomain[];
   projectId: string;
   defaultEnvironmentId: string;
 };
@@ -104,7 +105,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
 
   return (
     <FormSettingCard
-      icon={<Gear className="text-gray-12" iconSize="xl-medium" />}
+      icon={<Link4 className="text-gray-12" iconSize="xl-medium" />}
       title="Custom Domains"
       description="Serve your deployment from your own domain name"
       displayValue={displayValue()}
@@ -112,7 +113,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       canSave={isValid && !isSubmitting}
       isSaving={isSubmitting}
     >
-      <div className="flex flex-col gap-3 w-[480px]">
+      <div className="flex flex-col gap-3 w-full">
         <div className="flex items-center gap-3">
           <span className="text-[13px] text-gray-11 w-[140px]">Environment</span>
           <span className="flex-1 text-[13px] text-gray-11">Domain</span>
@@ -152,29 +153,14 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
         </div>
 
         {customDomains.length > 0 && (
-          <div className="flex flex-col gap-1 mt-1">
-            {customDomains.map((d) => {
-              const envSlug = environments.find((e) => e.id === d.environmentId)?.slug;
-              return (
-                <div key={d.id} className="flex items-center gap-2 py-1">
-                  <span className="flex-1 text-[13px] font-mono text-gray-12">{d.domain}</span>
-                  {envSlug && (
-                    <span className="text-[11px] text-gray-11 bg-gray-3 px-1.5 py-0.5 rounded font-mono">
-                      {envSlug}
-                    </span>
-                  )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="px-1.5 text-error-11 hover:text-error-11"
-                    onClick={() => collection.customDomains.delete(d.id)}
-                  >
-                    <Trash iconSize="sm-regular" />
-                  </Button>
-                </div>
-              );
-            })}
+          <div className="border border-gray-4 rounded-lg overflow-hidden mt-1 dark:bg-black bg-white hover:bg-grayA-2">
+            {customDomains.map((d) => (
+              <CustomDomainRow
+                key={d.id}
+                domain={d}
+                environmentSlug={environments.find((e) => e.id === d.environmentId)?.slug}
+              />
+            ))}
           </div>
         )}
       </div>
