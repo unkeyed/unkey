@@ -44,7 +44,7 @@ export function useDecryptedValues(variables: EnvVariable[]) {
       .finally(() => {
         setIsDecrypting(false);
       });
-  }, [variableFingerprint, decryptMutation]);
+  }, [variableFingerprint]);
 
   return { decryptedValues, isDecrypting };
 }
