@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// KeyAuth authenticates requests using Unkey API keys. This is the primary
+// authentication mechanism for sentinel because API key management is Unkey's
+// core product. When a request arrives, sentinel extracts the key from the
+// configured location, verifies it against the specified Unkey key space, and
+// on success produces a [Principal] with type PRINCIPAL_TYPE_API_KEY.
+//
+// The verification call to Unkey returns rich metadata about the key: its
+// owner identity, associated permissions, remaining quota, rate limit state,
+// and custom metadata. This information flows into the [Principal] and is
+// available to downstream policies. For example, a RateLimit policy can
+// throttle by the key's owner rather than by IP, and the permission_query
+// field lets you enforce Unkey RBAC permissions at the gateway without a
+// separate policy.
+//
+// KeyAuth pairs naturally with Unkey's key lifecycle features. Keys created
+// with expiration dates, remaining usage counts, or rate limits are enforced
+// at the gateway level without any application code. This turns sentinel
+// into a full API management layer for Unkey customers.
+message KeyAuth {
+  // The Unkey key space (API) ID to authenticate against. Each key space
+  // contains a set of API keys with shared configuration. This determines
+  // which keys are valid for this policy.
+  string key_space_id = 1;
+
+  // Ordered list of locations to extract the API key from. Sentinel tries
+  // each location in order and uses the first one that yields a non-empty
+  // value. This allows APIs to support multiple key delivery mechanisms
+  // simultaneously (e.g., Bearer token for programmatic clients and a query
+  // parameter for browser-based debugging).
+  //
+  // If empty, defaults to extracting from the Authorization header as a
+  // Bearer token, which is the most common convention for API authentication.
+  repeated KeyLocation locations = 2;
+
+  // When true, requests that do not contain a key in any of the configured
+  // locations are allowed through without authentication. No [Principal] is
+  // produced for anonymous requests. This enables mixed-auth endpoints where
+  // unauthenticated users get a restricted view and authenticated users get
+  // full access — the application checks for the presence of identity headers
+  // to decide.
+  bool allow_anonymous = 3;
+
+  // Optional permission query evaluated against the key's permissions
+  // returned by Unkey's verify API. Uses the same query language as
+  // pkg/rbac.ParseQuery: AND and OR operators with parenthesized grouping,
+  // where AND has higher precedence than OR.
+  //
+  // Permission names may contain alphanumeric characters, dots, underscores,
+  // hyphens, colons, asterisks, and forward slashes. Asterisks are literal
+  // characters, not wildcards.
+  //
+  // Examples:
+  //
+  //   "api.keys.create"
+  //   "api.keys.read AND api.keys.update"
+  //   "billing.read OR billing.admin"
+  //   "(api.keys.read OR api.keys.list) AND billing.read"
+  //
+  // When set, sentinel rejects the request with 403 if the key lacks the
+  // required permissions. When empty, no permission check is performed.
+  //
+  // Limits: maximum 1000 characters, maximum 100 permission terms.
+  string permission_query = 5;
+}
+
+// KeyLocation specifies where in the HTTP request to look for an API key.
+// Multiple locations can be configured on a [KeyAuth] policy to support
+// different client conventions. Sentinel tries each location in order and
+// uses the first one that yields a non-empty value.
+message KeyLocation {
+  oneof location {
+    // Extract from the standard Authorization: Bearer <token> header. This
+    // is the most common API key delivery mechanism and the default when no
+    // locations are configured.
+    BearerTokenLocation bearer = 1;
+    // Extract from a custom request header. Useful for APIs that use
+    // non-standard headers like X-API-Key or X-Auth-Token.
+    HeaderKeyLocation header = 2;
+    // Extract from a URL query parameter. Useful for webhook callbacks or
+    // situations where headers cannot be set, but less secure since query
+    // parameters appear in server logs and browser history.
+    QueryParamKeyLocation query_param = 3;
+  }
+}
+
+// BearerTokenLocation extracts the API key from the Authorization header
+// using the Bearer scheme (RFC 6750). Sentinel parses the header value,
+// strips the "Bearer " prefix, and uses the remainder as the API key.
+message BearerTokenLocation {}
+
+// HeaderKeyLocation extracts the API key from a named request header. This
+// supports APIs that use custom authentication headers instead of the
+// standard Authorization header.
+message HeaderKeyLocation {
+  // The header name to read, e.g. "X-API-Key". Matched case-insensitively
+  // per HTTP semantics.
+  string name = 1;
+  // If set, this prefix is stripped from the header value before the
+  // remainder is used as the API key. For example, with name "Authorization"
+  // and strip_prefix "ApiKey ", a header value "ApiKey sk_live_abc123"
+  // yields key "sk_live_abc123".
+  string strip_prefix = 2;
+}
+
+// QueryParamKeyLocation extracts the API key from a URL query parameter.
+message QueryParamKeyLocation {
+  // The query parameter name, e.g. "api_key" or "token".
+  string name = 1;
+}
+
+

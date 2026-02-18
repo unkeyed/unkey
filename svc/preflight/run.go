@@ -23,11 +23,13 @@ func Run(ctx context.Context, cfg Config) error {
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	if cfg.Observability.Logging != nil {
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
-	})
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 
 	r := runner.New()
 	defer r.Recover()
@@ -55,11 +57,11 @@ func Run(ctx context.Context, cfg Config) error {
 	reg := registry.New(registry.Config{
 		Clientset:          clientset,
 		Credentials:        credentialsManager,
-		InsecureRegistries: cfg.InsecureRegistries,
-		RegistryAliases:    cfg.RegistryAliases,
+		InsecureRegistries: cfg.Registry.InsecureRegistries,
+		RegistryAliases:    cfg.Registry.Aliases,
 	})
 
-	tlsConfig, err := tls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)
+	tlsConfig, err := tls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
 	if err != nil {
 		return fmt.Errorf("failed to load TLS certificates: %w", err)
 	}
@@ -78,8 +80,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Registry:                reg,
 		Clientset:               clientset,
 		Credentials:             credentialsManager,
-		InjectImage:             cfg.InjectImage,
-		InjectImagePullPolicy:   cfg.InjectImagePullPolicy,
+		InjectImage:             cfg.Inject.Image,
+		InjectImagePullPolicy:   cfg.Inject.ImagePullPolicy,
 		DefaultProviderEndpoint: cfg.KraneEndpoint,
 	})
 

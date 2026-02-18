@@ -9,7 +9,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/preflight",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/assert",
+        "//pkg/config",
         "//pkg/logger",
         "//pkg/runner",
         "//pkg/tls",

@@ -54,23 +54,10 @@
 //
 // Basic krane agent setup:
 //
-//	cfg := krane.Config{
-//		InstanceID:    "krane-node-001",
-//		Region:        "us-west-2",
-//		RegistryURL:   "registry.depot.dev",
-//		RegistryUsername: "x-token",
-//		RegistryPassword: "depot-token",
-//		RPCPort:       8080,
-//		PrometheusPort: 9090,
-//		VaultMasterKeys: []string{"master-key-1"},
-//		VaultS3: krane.S3Config{
-//			URL:             "https://s3.amazonaws.com",
-//			Bucket:          "krane-vault",
-//			AccessKeyID:     "access-key",
-//			AccessKeySecret: "secret-key",
-//		},
-//	}
-//	err := krane.Run(context.Background(), cfg)
+//	cfg, err := config.Load[krane.Config]("/etc/unkey/krane.toml")
+//	if err != nil { ... }
+//	cfg.Clock = clock.New()
+//	err = krane.Run(context.Background(), cfg)
 //
 // The agent will:
 //  1. Initialize Kubernetes client using in-cluster configuration
