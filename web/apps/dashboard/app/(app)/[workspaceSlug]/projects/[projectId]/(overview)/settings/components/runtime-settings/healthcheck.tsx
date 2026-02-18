@@ -150,7 +150,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
       canSave={isValid && !isSubmitting && hasChanges}
       isSaving={updateRuntime.isLoading || isSubmitting}
     >
-      <div className="flex flex-col gap-3 w-[480px]">
+      <div className="flex flex-col gap-3 w-[520px]">
         {/* TODO: multi-check when API supports
         {fields.map((field, index) => (
           <div key={field.id} className="flex items-end gap-3">

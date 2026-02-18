@@ -44,12 +44,14 @@ export const FormSettingCard = ({
       contentWidth="w-full lg:w-[320px] justify-end"
       expandable={
         <form
-          className={cn("px-4 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-xl", className)}
+          className={cn("flex flex-col bg-grayA-2 rounded-b-xl", className)}
           ref={ref}
           onSubmit={onSubmit}
         >
-          {children}
-          <div className="flex justify-end">
+          <div className="px-4 pt-4 pb-2 flex flex-col gap-3 overflow-y-auto max-h-[500px]">
+            {children}
+          </div>
+          <div className="px-4 pt-2 pb-4 flex justify-end">
             <Button
               type="submit"
               variant="primary"
