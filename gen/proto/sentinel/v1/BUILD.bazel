@@ -9,6 +9,7 @@ go_library(
         "keyauth.pb.go",
         "match.pb.go",
         "middleware.pb.go",
+        "oneof_interfaces.go",
         "openapi.pb.go",
         "principal.pb.go",
         "ratelimit.pb.go",

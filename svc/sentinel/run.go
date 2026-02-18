@@ -30,23 +30,25 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	if cfg.Observability.Logging != nil {
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
-	})
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 
 	clk := clock.New()
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "sentinel",
 			Version:         version.Version,
 			InstanceID:      cfg.SentinelID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -67,15 +69,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	if cfg.PrometheusPort > 0 {
+	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
 
-		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort))
 		if listenErr != nil {
-			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.Observability.Metrics.PrometheusPort, listenErr)
 		}
 
 		r.DeferCtx(prom.Shutdown)
@@ -89,8 +91,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -98,9 +100,9 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(database.Close)
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
-	if cfg.ClickhouseURL != "" {
+	if cfg.ClickHouse.URL != "" {
 		ch, err = clickhouse.New(clickhouse.Config{
-			URL: cfg.ClickhouseURL,
+			URL: cfg.ClickHouse.URL,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
@@ -110,7 +112,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize gossip-based cache invalidation
 	var broadcaster clustering.Broadcaster
-	if cfg.GossipEnabled {
+	if cfg.Gossip != nil {
 		logger.Info("Initializing gossip cluster for cache invalidation",
 			"region", cfg.Region,
 			"instanceID", cfg.SentinelID,
@@ -118,15 +120,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 		mux := cluster.NewMessageMux()
 
-		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
-		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
 			Region:      cfg.Region,
 			NodeID:      cfg.SentinelID,
-			BindAddr:    cfg.GossipBindAddr,
-			BindPort:    cfg.GossipLANPort,
-			WANBindPort: cfg.GossipWANPort,
+			BindAddr:    cfg.Gossip.BindAddr,
+			BindPort:    cfg.Gossip.LANPort,
+			WANBindPort: cfg.Gossip.WANPort,
 			LANSeeds:    lanSeeds,
 			WANSeeds:    wanSeeds,
 			SecretKey:   nil, // Sentinel gossip is locked down via CiliumNetworkPolicy

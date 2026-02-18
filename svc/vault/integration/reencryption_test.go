@@ -44,7 +44,7 @@ func TestReEncrypt(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: bearer,
 	})
 	require.NoError(t, err)

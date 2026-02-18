@@ -16,6 +16,7 @@ go_library(
         "//pkg/cache/clustering",
         "//pkg/clock",
         "//pkg/cluster",
+        "//pkg/config",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/otel",

@@ -1,112 +1,76 @@
 package frontline
 
-import "time"
+import (
+	"fmt"
 
+	"github.com/unkeyed/unkey/pkg/config"
+)
+
+// Config holds the complete configuration for the frontline server. It is
+// designed to be loaded from a TOML file using [config.Load]:
+//
+//	cfg, err := config.Load[frontline.Config]("/etc/unkey/frontline.toml")
+//
+// InstanceID and Image are runtime-only fields set programmatically after
+// loading and tagged toml:"-".
 type Config struct {
-	// FrontlineID is the unique identifier for this instance of the Frontline server
-	FrontlineID string
+	// InstanceID is the unique identifier for this instance of the frontline
+	// server.
+	InstanceID string `toml:"instance_id"`
 
-	// Image specifies the container image identifier including repository and tag
-	Image string
+	// Image is the container image identifier including repository and tag.
+	// Set at runtime; not read from the config file.
+	Image string `toml:"-"`
 
-	// HttpPort defines the HTTP port for the Gate server to listen on (default: 7070)
-	HttpPort int
+	// HttpPort is the TCP port the HTTP challenge server binds to.
+	HttpPort int `toml:"http_port" config:"default=7070,min=1,max=65535"`
 
-	// HttpsPort defines the HTTPS port for the Gate server to listen on (default: 7443)
-	HttpsPort int
+	// HttpsPort is the TCP port the HTTPS frontline server binds to.
+	HttpsPort int `toml:"https_port" config:"default=7443,min=1,max=65535"`
 
 	// Region identifies the geographic region where this node is deployed.
-	// Used for observability, latency optimization, and compliance requirements.
-	// Must match the region identifier used by the underlying cloud platform
-	// and control plane configuration.
-	Region string
+	// Used for observability, latency optimization, and cross-region routing.
+	Region string `toml:"region" config:"required"`
 
-	// EnableTLS specifies whether TLS should be enabled for the Frontline server
-	EnableTLS bool
+	// ApexDomain is the apex domain for region routing. Cross-region requests
+	// are forwarded to frontline.{region}.{ApexDomain}.
+	ApexDomain string `toml:"apex_domain" config:"default=unkey.cloud"`
 
-	// TLSCertFile is the path to a static TLS certificate file (for dev mode)
-	// When set along with TLSKeyFile, frontline uses file-based TLS instead of dynamic certs
-	TLSCertFile string
+	// MaxHops is the maximum number of frontline hops allowed before rejecting
+	// the request. Prevents infinite routing loops.
+	MaxHops int `toml:"max_hops" config:"default=10"`
 
-	// TLSKeyFile is the path to a static TLS key file (for dev mode)
-	// When set along with TLSCertFile, frontline uses file-based TLS instead of dynamic certs
-	TLSKeyFile string
+	// CtrlAddr is the address of the control plane service.
+	CtrlAddr string `toml:"ctrl_addr" config:"default=localhost:8080"`
 
-	// ApexDomain is the apex domain for region routing (e.g., unkey.cloud)
-	// Cross-region requests are forwarded to frontline.{region}.{ApexDomain}
-	// Example: frontline.us-east-1.aws.unkey.cloud
-	ApexDomain string
+	// PrometheusPort starts a Prometheus /metrics HTTP endpoint on the
+	// specified port. Set to 0 to disable.
+	PrometheusPort int `toml:"prometheus_port"`
 
-	// MaxHops is the maximum number of frontline hops allowed before rejecting the request
-	// This prevents infinite routing loops. Default: 3
-	MaxHops int
+	// TLS provides filesystem paths for HTTPS certificate and key.
+	// When nil (section omitted), TLS is disabled.
+	// See [config.TLSFiles].
+	TLS *config.TLSFiles `toml:"tls"`
 
-	// -- Control Plane Configuration ---
+	// Database configures MySQL connections. See [config.DatabaseConfig].
+	Database config.DatabaseConfig `toml:"database"`
 
-	// CtrlAddr is the address of the control plane (e.g., control.unkey.com)
-	CtrlAddr string
+	Observability config.Observability `toml:"observability"`
 
-	// --- Database configuration ---
+	// Vault configures the encryption/decryption service. See [config.VaultConfig].
+	Vault config.VaultConfig `toml:"vault"`
 
-	// DatabasePrimary is the primary database connection string for read and write operations
-	DatabasePrimary string
-
-	// DatabaseReadonlyReplica is an optional read-replica database connection string for read operations
-	DatabaseReadonlyReplica string
-
-	// --- OpenTelemetry configuration ---
-
-	// OtelEnabled specifies whether OpenTelemetry tracing is enabled
-	OtelEnabled bool
-
-	// OtelTraceSamplingRate specifies the sampling rate for OpenTelemetry traces (0.0 - 1.0)
-	OtelTraceSamplingRate float64
-
-	// PrometheusPort specifies the port for Prometheus metrics
-	PrometheusPort int
-
-	// --- Vault Configuration ---
-
-	// VaultURL is the URL of the remote vault service (e.g., http://vault:8080)
-	VaultURL string
-
-	// VaultToken is the authentication token for the vault service
-	VaultToken string
-
-	// --- Gossip cluster configuration ---
-
-	// GossipEnabled controls whether gossip-based cache invalidation is active
-	GossipEnabled bool
-
-	// GossipBindAddr is the address to bind gossip listeners on (default "0.0.0.0")
-	GossipBindAddr string
-
-	// GossipLANPort is the LAN memberlist port (default 7946)
-	GossipLANPort int
-
-	// GossipWANPort is the WAN memberlist port for bridges (default 7947)
-	GossipWANPort int
-
-	// GossipLANSeeds are addresses of existing LAN cluster members (e.g. k8s headless service DNS)
-	GossipLANSeeds []string
-
-	// GossipWANSeeds are addresses of cross-region bridges
-	GossipWANSeeds []string
-
-	// GossipSecretKey is a base64-encoded shared secret for AES-256 encryption of gossip traffic.
-	// When set, nodes must share this key to join and communicate.
-	// Generate with: openssl rand -base64 32
-	GossipSecretKey string
-
-	// --- Logging sampler configuration ---
-
-	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
-	LogSampleRate float64
-
-	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
-	LogSlowThreshold time.Duration
+	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
+	// When nil (section omitted), gossip is disabled and invalidation is local-only.
+	Gossip *config.GossipConfig `toml:"gossip"`
 }
 
-func (c Config) Validate() error {
+// Validate checks cross-field constraints that cannot be expressed through
+// struct tags alone. It implements [config.Validator] so that [config.Load]
+// calls it automatically after tag-level validation.
+func (c *Config) Validate() error {
+	if c.TLS != nil && (c.TLS.CertFile == "") != (c.TLS.KeyFile == "") {
+		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided together")
+	}
 	return nil
 }
