@@ -178,7 +178,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				Username: "unkey",
 				Password: "password",
 			},
-			Gossip: nil,
+			Gossip:         nil,
+			DashboardToken: "",
 		}
 
 		// Start API server in goroutine

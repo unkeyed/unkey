@@ -19,6 +19,7 @@ type InvalidationRegistry struct {
 // NewInvalidationRegistry creates an empty registry.
 func NewInvalidationRegistry() *InvalidationRegistry {
 	return &InvalidationRegistry{
+		mu:       sync.RWMutex{},
 		handlers: make(map[string]func(ctx context.Context, keys []string) error),
 	}
 }

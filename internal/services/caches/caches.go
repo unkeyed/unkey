@@ -1,6 +1,7 @@
 package caches
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -43,6 +44,15 @@ type Caches struct {
 	// dispatcher handles routing of invalidation events to all caches in this process.
 	// This is not exported as it's an internal implementation detail.
 	dispatcher *clustering.InvalidationDispatcher
+
+	// registry maps cache resource names to invalidation handlers, used by the
+	// internal cache invalidation endpoint.
+	registry *middleware.InvalidationRegistry
+}
+
+// Invalidate removes the given keys from the named cache.
+func (c *Caches) Invalidate(ctx context.Context, cacheName string, keys []string) error {
+	return c.registry.Invalidate(ctx, cacheName, keys)
 }
 
 // Close shuts down the caches and cleans up resources.
@@ -175,6 +185,8 @@ func New(config Config) (Caches, error) {
 		}()
 	}
 
+	registry := middleware.NewInvalidationRegistry()
+
 	ratelimitNamespace, err := createCache(
 		cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
 			Fresh:    time.Minute,
@@ -261,12 +273,13 @@ func New(config Config) (Caches, error) {
 
 	initialized = true
 	return Caches{
-		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
-		LiveApiByID:           middleware.WithTracing(liveApiByID),
-		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
-		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
-		KeyAuthToApiRow:       middleware.WithTracing(keyAuthToApiRow),
-		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
+		RatelimitNamespace:    middleware.WithInvalidation(middleware.WithTracing(ratelimitNamespace), "ratelimit_namespace", registry, cache.ScopedKeyFromString),
+		LiveApiByID:           middleware.WithInvalidation(middleware.WithTracing(liveApiByID), "live_api_by_id", registry, cache.ScopedKeyFromString),
+		VerificationKeyByHash: middleware.WithInvalidation(middleware.WithTracing(verificationKeyByHash), "verification_key_by_hash", registry, middleware.StringKeyParser),
+		ClickhouseSetting:     middleware.WithInvalidation(middleware.WithTracing(clickhouseSetting), "clickhouse_setting", registry, middleware.StringKeyParser),
+		KeyAuthToApiRow:       middleware.WithInvalidation(middleware.WithTracing(keyAuthToApiRow), "key_auth_to_api_row", registry, cache.ScopedKeyFromString),
+		ApiToKeyAuthRow:       middleware.WithInvalidation(middleware.WithTracing(apiToKeyAuthRow), "api_to_key_auth_row", registry, cache.ScopedKeyFromString),
 		dispatcher:            dispatcher,
+		registry:              registry,
 	}, nil
 }
