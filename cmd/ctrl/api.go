@@ -6,6 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/pkg/uid"
 	ctrlapi "github.com/unkeyed/unkey/svc/ctrl/api"
 )
 
@@ -34,6 +35,8 @@ func apiAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("unable to load config: %w", err)
 	}
+
+	cfg.InstanceID = uid.New(uid.IdentityPrefix)
 
 	return ctrlapi.Run(ctx, cfg)
 }

@@ -45,7 +45,7 @@ type GitHubConfig struct {
 type Config struct {
 	// InstanceID is the unique identifier for this control plane instance.
 	// Used for logging, tracing, and cluster coordination.
-	InstanceID string `toml:"instance_id"`
+	InstanceID string `toml:"-"`
 
 	// Region is the geographic region where this control plane instance runs.
 	// Used for logging, tracing, and region-aware routing decisions.

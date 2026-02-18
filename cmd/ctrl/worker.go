@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/worker"
 )
 
@@ -36,6 +37,8 @@ func workerAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("unable to load config: %w", err)
 	}
+
+	cfg.InstanceID = uid.New(uid.IdentityPrefix)
 
 	// Normalize CNAME domain: trim whitespace and trailing dot
 	cfg.CnameDomain = strings.TrimSuffix(strings.TrimSpace(cfg.CnameDomain), ".")

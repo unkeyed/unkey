@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane"
 )
 
@@ -36,6 +37,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unable to load config: %w", err)
 	}
 
+	cfg.InstanceID = uid.New(uid.IdentityPrefix)
 	cfg.Clock = clock.New()
 
 	return krane.Run(ctx, cfg)

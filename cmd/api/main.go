@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/tls"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api"
 )
 
@@ -46,6 +47,7 @@ func action(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	cfg.Clock = clock.New()
+	cfg.InstanceID = uid.New(uid.IdentityPrefix)
 
 	return api.Run(ctx, cfg)
 }

@@ -32,7 +32,8 @@ type RegistryConfig struct {
 // The Clock field is runtime-only and cannot be set through a config file.
 type Config struct {
 	// InstanceID is the unique identifier for this krane agent instance.
-	InstanceID string `toml:"instance_id"`
+	// Gets populated automatically
+	InstanceID string `toml:"-"`
 
 	// Region identifies the geographic region where this node is deployed.
 	Region string `toml:"region" config:"required,nonempty"`

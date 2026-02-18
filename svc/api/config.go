@@ -46,7 +46,7 @@ type Config struct {
 	// InstanceID identifies this particular API server instance. Used in log
 	// attribution, Kafka consumer group membership, and cache invalidation
 	// messages so that a node can ignore its own broadcasts.
-	InstanceID string `toml:"instance_id"`
+	InstanceID string `toml:"-"`
 
 	// Platform identifies the cloud platform where this node runs
 	// (e.g. "aws", "gcp", "hetzner", "kubernetes"). Appears in structured
