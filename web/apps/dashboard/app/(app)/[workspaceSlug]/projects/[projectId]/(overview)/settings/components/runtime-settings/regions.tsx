@@ -38,10 +38,6 @@ export const Regions = () => {
     (settingsData?.runtimeSettings?.regionConfig as Record<string, number>) ?? {};
   const defaultRegions = Object.keys(regionConfig);
 
-  if (!environmentId) {
-    return null;
-  }
-
   return (
     <RegionsForm
       environmentId={environmentId}

@@ -29,7 +29,6 @@ const DEFAULT_VALUES: ScalingFormValues = {
 
 export const Scaling = () => {
   const {
-    handleSubmit,
     setValue,
     formState: { isValid },
     control,
@@ -47,10 +46,6 @@ export const Scaling = () => {
     currentMin !== DEFAULT_VALUES.minInstances ||
     currentMax !== DEFAULT_VALUES.maxInstances ||
     currentCpuThreshold !== DEFAULT_VALUES.cpuThreshold;
-
-  const onSubmit = (_values: ScalingFormValues) => {
-    // no-op: backend not wired yet
-  };
 
   return (
     <FormSettingCard

@@ -41,19 +41,6 @@ const healthcheckSchema = z.object({
 
 type HealthcheckFormValues = z.infer<typeof healthcheckSchema>;
 
-function intervalToSeconds(interval: string): number {
-  const num = Number.parseInt(interval, 10);
-  if (interval.endsWith("h")) return num * 3600;
-  if (interval.endsWith("m")) return num * 60;
-  return num;
-}
-
-function secondsToInterval(seconds: number): string {
-  if (seconds % 3600 === 0) return `${seconds / 3600}h`;
-  if (seconds % 60 === 0) return `${seconds / 60}m`;
-  return `${seconds}s`;
-}
-
 export const Healthcheck = () => {
   const { environments } = useProjectData();
   const environmentId = environments[0]?.id;
@@ -93,6 +80,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
     defaultValues,
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: we gucci
   useEffect(() => {
     reset(defaultValues);
   }, [defaultValues.method, defaultValues.path, defaultValues.interval, reset]);
@@ -132,13 +120,13 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
         values.path.trim() === ""
           ? null
           : {
-              method: values.method,
-              path: values.path.trim(),
-              intervalSeconds: intervalToSeconds(values.interval),
-              timeoutSeconds: 5,
-              failureThreshold: 3,
-              initialDelaySeconds: 0,
-            },
+            method: values.method,
+            path: values.path.trim(),
+            intervalSeconds: intervalToSeconds(values.interval),
+            timeoutSeconds: 5,
+            failureThreshold: 3,
+            initialDelaySeconds: 0,
+          },
     });
   };
 
@@ -202,7 +190,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
           <FormInput
             label="Path"
             placeholder="/health"
-            className="flex-1 [&_input]:h-9"
+            className="flex-1 [&_input]:h-9 [&_input]:font-mono"
             variant={errors.path ? "error" : "default"}
             {...register("path")}
           />
@@ -215,14 +203,12 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
           />
         </div>
       </div>
-      <div className="mt-1">
-        <FormDescription
-          description="Defines the endpoint and frequency used to check if your service is running. Changes apply on next deploy."
-          error={errors.method?.message ?? errors.path?.message ?? errors.interval?.message}
-          descriptionId="healthcheck-description"
-          errorId="healthcheck-error"
-        />
-      </div>
+      <FormDescription
+        description="Defines the endpoint and frequency used to check if your service is running. Changes apply on next deploy."
+        error={errors.method?.message ?? errors.path?.message ?? errors.interval?.message}
+        descriptionId="healthcheck-description"
+        errorId="healthcheck-error"
+      />
     </FormSettingCard>
   );
 };
@@ -253,3 +239,24 @@ const MethodBadge: React.FC<{ method: string }> = ({ method }) => (
     {method}
   </Badge>
 );
+
+function intervalToSeconds(interval: string): number {
+  const num = Number.parseInt(interval, 10);
+  if (interval.endsWith("h")) {
+    return num * 3600;
+  }
+  if (interval.endsWith("m")) {
+    return num * 60;
+  }
+  return num;
+}
+
+function secondsToInterval(seconds: number): string {
+  if (seconds % 3600 === 0) {
+    return `${seconds / 3600}h`;
+  }
+  if (seconds % 60 === 0) {
+    return `${seconds / 60}m`;
+  }
+  return `${seconds}s`;
+}

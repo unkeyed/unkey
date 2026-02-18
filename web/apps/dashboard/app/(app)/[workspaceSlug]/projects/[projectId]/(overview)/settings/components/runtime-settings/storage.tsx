@@ -3,7 +3,7 @@
 import { formatMemory } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Harddrive } from "@unkey/icons";
-import { Slider, toast } from "@unkey/ui";
+import { Slider } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { FormSettingCard } from "../shared/form-setting-card";
@@ -37,7 +37,6 @@ type StorageFormProps = {
 
 const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
   const {
-    handleSubmit,
     setValue,
     formState: { isValid },
     control,
@@ -48,11 +47,6 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
   });
 
   const currentStorage = useWatch({ control, name: "storage" });
-
-  const onSubmit = async (_values: StorageFormValues) => {
-    // Backend storage field not yet implemented
-    toast.info("Storage settings are not yet available");
-  };
 
   const hasChanges = currentStorage !== defaultStorage;
   const currentIndex = valueToIndex(currentStorage);

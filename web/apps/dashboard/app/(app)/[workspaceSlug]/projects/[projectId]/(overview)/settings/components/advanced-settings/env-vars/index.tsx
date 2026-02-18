@@ -1,10 +1,11 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeSlash, Nodes2, Plus, Trash } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, toast } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   type Control,
   Controller,
@@ -13,23 +14,88 @@ import {
   useForm,
   useWatch,
 } from "react-hook-form";
+import { useProjectData } from "../../../../data-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
 import { EMPTY_ROW, type EnvVarsFormValues, envVarsSchema } from "./schema";
 import { useDropZone } from "./use-drop-zone";
 
-export const EnvVars = () => {
-  const defaultValues: EnvVarsFormValues = {
-    envVars: [{ ...EMPTY_ROW }],
-  };
+const toTrpcType = (secret: boolean) => (secret ? "writeonly" : "recoverable");
 
-  return <EnvVarsForm defaultValues={defaultValues} />;
+export const EnvVars = () => {
+  const { projectId, environments } = useProjectData();
+  const environmentId = environments[0]?.id;
+  const envSlug = environments[0]?.slug;
+
+  const { data } = trpc.deploy.envVar.list.useQuery({ projectId }, { enabled: Boolean(projectId) });
+
+  const envData = envSlug ? data?.[envSlug] : undefined;
+
+  const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
+  const [decryptedValues, setDecryptedValues] = useState<Record<string, string>>({});
+  const [isDecrypting, setIsDecrypting] = useState(false);
+
+  useEffect(() => {
+    if (!envData) {
+      return;
+    }
+    const recoverableVars = envData.variables.filter((v) => v.type === "recoverable");
+    if (recoverableVars.length === 0) {
+      return;
+    }
+
+    setIsDecrypting(true);
+    Promise.all(
+      recoverableVars.map((v) =>
+        decryptMutation.mutateAsync({ envVarId: v.id }).then((r) => [v.id, r.value] as const),
+      ),
+    )
+      .then((entries) => {
+        setDecryptedValues(Object.fromEntries(entries));
+        setIsDecrypting(false);
+      })
+      .catch(() => setIsDecrypting(false));
+    // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation is stable
+  }, [envData]);
+
+  const defaultValues = useMemo<EnvVarsFormValues>(() => {
+    if (!envData || envData.variables.length === 0) {
+      return { envVars: [{ ...EMPTY_ROW }] };
+    }
+    return {
+      envVars: envData.variables.map((v) => ({
+        id: v.id,
+        key: v.key,
+        value: v.type === "writeonly" ? "" : (decryptedValues[v.id] ?? ""),
+        secret: v.type === "writeonly",
+      })),
+    };
+  }, [envData, decryptedValues]);
+
+  return (
+    <EnvVarsForm
+      defaultValues={defaultValues}
+      environmentId={environmentId}
+      projectId={projectId}
+      isDecrypting={isDecrypting}
+    />
+  );
 };
 
 type EnvVarsFormProps = {
   defaultValues: EnvVarsFormValues;
+  environmentId: string | undefined;
+  projectId: string;
+  isDecrypting: boolean;
 };
 
-const EnvVarsForm: React.FC<EnvVarsFormProps> = ({ defaultValues }) => {
+const EnvVarsForm: React.FC<EnvVarsFormProps> = ({
+  defaultValues,
+  environmentId,
+  projectId,
+  isDecrypting,
+}) => {
+  const utils = trpc.useUtils();
+
   const {
     register,
     handleSubmit,
@@ -46,7 +112,7 @@ const EnvVarsForm: React.FC<EnvVarsFormProps> = ({ defaultValues }) => {
 
   useEffect(() => {
     reset(defaultValues);
-  }, [reset]);
+  }, [reset, defaultValues]);
 
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
 
@@ -54,10 +120,89 @@ const EnvVarsForm: React.FC<EnvVarsFormProps> = ({ defaultValues }) => {
 
   const hasChanges = JSON.stringify(currentEnvVars) !== JSON.stringify(defaultValues.envVars);
 
+  const createMutation = trpc.deploy.envVar.create.useMutation();
+  const updateMutation = trpc.deploy.envVar.update.useMutation();
+  const deleteMutation = trpc.deploy.envVar.delete.useMutation();
+
+  const isSaving =
+    createMutation.isLoading ||
+    updateMutation.isLoading ||
+    deleteMutation.isLoading ||
+    isSubmitting;
+
   const onSubmit = async (values: EnvVarsFormValues) => {
-    // TODO: wire to trpc.deploy.environmentSettings.updateRuntime
-    console.log("env vars:", values.envVars);
-    toast.success("Environment variables saved");
+    if (!environmentId) {
+      return;
+    }
+
+    const originalVars = defaultValues.envVars.filter((v) => v.id);
+    const originalIds = new Set(originalVars.map((v) => v.id as string));
+    const originalMap = new Map(originalVars.map((v) => [v.id as string, v]));
+
+    const currentIds = new Set(values.envVars.filter((v) => v.id).map((v) => v.id as string));
+
+    const toDelete = [...originalIds].filter((id) => !currentIds.has(id));
+
+    const toCreate = values.envVars.filter((v) => !v.id && v.key !== "" && v.value !== "");
+
+    const toUpdate = values.envVars.filter((v) => {
+      if (!v.id) {
+        return false;
+      }
+      const original = originalMap.get(v.id);
+      if (!original) {
+        return false;
+      }
+      if (v.value === "") {
+        return false;
+      }
+      return v.key !== original.key || v.value !== original.value || v.secret !== original.secret;
+    });
+
+    try {
+      await Promise.all([
+        ...toDelete.map(async (id) => {
+          const key = originalMap.get(id)?.key ?? id;
+          try {
+            return await deleteMutation.mutateAsync({ envVarId: id });
+          } catch (err) {
+            throw new Error(`"${key}": ${err instanceof Error ? err.message : "Failed to delete"}`);
+          }
+        }),
+        ...(toCreate.length > 0
+          ? [
+            createMutation.mutateAsync({
+              environmentId,
+              variables: toCreate.map((v) => ({
+                key: v.key,
+                value: v.value,
+                type: toTrpcType(v.secret),
+              })),
+            }),
+          ]
+          : []),
+        ...toUpdate.map((v) =>
+          updateMutation.mutateAsync({
+            envVarId: v.id as string,
+            key: v.key,
+            value: v.value,
+            type: toTrpcType(v.secret),
+          }).catch((err) => {
+            throw new Error(`"${v.key}": ${err instanceof Error ? err.message : "Failed to update"}`);
+          }),
+        ),
+      ]);
+
+      utils.deploy.envVar.list.invalidate({ projectId });
+      toast.success("Environment variables saved");
+    } catch (err) {
+      toast.error("Failed to save environment variables", {
+        description:
+          err instanceof Error
+            ? err.message
+            : "An unexpected error occurred. Please try again or contact support@unkey.com",
+      });
+    }
   };
 
   const displayValue = (() => {
@@ -78,8 +223,8 @@ const EnvVarsForm: React.FC<EnvVarsFormProps> = ({ defaultValues }) => {
       description="Set environment variables available at runtime. Changes apply on next deploy."
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={isSubmitting}
+      canSave={isValid && !isSaving && !isDecrypting && hasChanges && Boolean(environmentId)}
+      isSaving={isSaving}
       ref={ref}
       className={cn("relative", isDragging && "bg-primary/5")}
     >
@@ -98,7 +243,7 @@ const EnvVarsForm: React.FC<EnvVarsFormProps> = ({ defaultValues }) => {
         <div className="flex items-center gap-2">
           <span className="flex-1 text-[13px] text-gray-11">Key</span>
           <span className="flex-1 text-[13px] text-gray-11">Value</span>
-          <span className="w-9 text-center text-[13px] text-gray-11">Secret</span>
+          <span className="w-9 text-center text-[13px] text-gray-11">Sensitive</span>
           <div className="w-16 shrink-0" />
         </div>
 
@@ -117,6 +262,7 @@ const EnvVarsForm: React.FC<EnvVarsFormProps> = ({ defaultValues }) => {
               isOnly={isOnly}
               keyError={keyError}
               isPreviouslyAdded={isPreviouslyAdded}
+              isSecret={currentEnvVars[index]?.secret ?? false}
               control={control}
               register={register}
               onAdd={() => append({ ...EMPTY_ROW })}
@@ -135,28 +281,30 @@ type EnvVarRowProps = {
   isOnly: boolean;
   keyError: string | undefined;
   isPreviouslyAdded: boolean;
+  isSecret: boolean;
   control: Control<EnvVarsFormValues>;
   register: UseFormRegister<EnvVarsFormValues>;
   onAdd: () => void;
   onRemove: () => void;
 };
 
-const EnvVarRow: React.FC<EnvVarRowProps> = ({
+const EnvVarRow = ({
   index,
   isLast,
   isOnly,
   keyError,
   isPreviouslyAdded,
+  isSecret,
   control,
   register,
   onAdd,
   onRemove,
-}) => {
+}: EnvVarRowProps) => {
   const [isVisible, setIsVisible] = useState(false);
 
   const inputType = isPreviouslyAdded ? (isVisible ? "text" : "password") : "text";
 
-  const eyeButton = isPreviouslyAdded ? (
+  const eyeButton = isPreviouslyAdded && !isSecret ? (
     <button
       type="button"
       className="text-gray-9 hover:text-gray-11 transition-colors"
@@ -170,14 +318,14 @@ const EnvVarRow: React.FC<EnvVarRowProps> = ({
   return (
     <div className="flex items-start gap-2">
       <FormInput
-        className="flex-1 [&_input]:h-9 font-mono"
+        className="flex-1 [&_input]:h-9  [&_input]:font-mono"
         placeholder="MY_VAR"
         error={keyError}
         {...register(`envVars.${index}.key`)}
       />
       <FormInput
-        className="flex-1 [&_input]:h-9 font-mono"
-        placeholder="value"
+        className="flex-1 [&_input]:h-9  [&_input]:font-mono"
+        placeholder={isPreviouslyAdded && isSecret ? "sensitive" : "value"}
         type={inputType}
         rightIcon={eyeButton}
         {...register(`envVars.${index}.value`)}
@@ -188,6 +336,7 @@ const EnvVarRow: React.FC<EnvVarRowProps> = ({
           name={`envVars.${index}.secret`}
           render={({ field }) => (
             <FormCheckbox
+              disabled={isPreviouslyAdded && isSecret}
               className="bg-white data-[state=checked]:bg-white data-[state=unchecked]:bg-white rounded"
               checked={field.value}
               onCheckedChange={field.onChange}

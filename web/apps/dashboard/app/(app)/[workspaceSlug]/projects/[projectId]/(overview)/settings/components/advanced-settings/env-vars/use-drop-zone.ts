@@ -8,10 +8,14 @@ const parseEnvText = (text: string): EnvVarsFormValues["envVars"] => {
   return lines
     .map((line) => {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) return null;
+      if (!trimmed || trimmed.startsWith("#")) {
+        return null;
+      }
 
       const eqIndex = trimmed.indexOf("=");
-      if (eqIndex === -1) return null;
+      if (eqIndex === -1) {
+        return null;
+      }
 
       const key = trimmed.slice(0, eqIndex).trim();
       let value = trimmed.slice(eqIndex + 1).trim();
@@ -23,7 +27,9 @@ const parseEnvText = (text: string): EnvVarsFormValues["envVars"] => {
         value = value.slice(1, -1);
       }
 
-      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) return null;
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+        return null;
+      }
 
       return { key, value, secret: false };
     })
@@ -36,11 +42,15 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
 
   useEffect(() => {
     const dropZone = ref.current;
-    if (!dropZone) return;
+    if (!dropZone) {
+      return;
+    }
 
     const handlePaste = async (e: ClipboardEvent) => {
       const clipboardData = e.clipboardData;
-      if (!clipboardData) return;
+      if (!clipboardData) {
+        return;
+      }
 
       const files = clipboardData.files;
       if (files.length > 0) {
@@ -60,7 +70,7 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
       }
 
       const text = clipboardData.getData("text/plain");
-      if (text && text.includes("\n") && text.includes("=")) {
+      if (text?.includes("\n") && text?.includes("=")) {
         e.preventDefault();
         const parsed = parseEnvText(text);
         if (parsed.length > 0) {
@@ -97,7 +107,9 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
       setIsDragging(false);
 
       const files = e.dataTransfer?.files;
-      if (!files || files.length === 0) return;
+      if (!files || files.length === 0) {
+        return;
+      }
 
       const file = files[0];
       if (file.name.endsWith(".env") || file.type === "text/plain" || file.type === "") {

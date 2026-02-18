@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const envVarEntrySchema = z.object({
+  id: z.string().optional(),
   key: z
     .string()
     .min(1, "Key is required")

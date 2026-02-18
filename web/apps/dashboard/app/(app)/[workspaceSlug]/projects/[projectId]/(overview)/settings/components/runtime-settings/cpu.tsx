@@ -166,9 +166,17 @@ function indexToValue(index: number): number {
 }
 
 function parseCpuDisplay(millicores: number): [string, string] {
-  if (millicores === 256) return ["1/4", "vCPU"];
-  if (millicores === 512) return ["1/2", "vCPU"];
-  if (millicores === 768) return ["3/4", "vCPU"];
-  if (millicores >= 1024 && millicores % 1024 === 0) return [`${millicores / 1024}`, "vCPU"];
+  if (millicores === 256) {
+    return ["1/4", "vCPU"];
+  }
+  if (millicores === 512) {
+    return ["1/2", "vCPU"];
+  }
+  if (millicores === 768) {
+    return ["3/4", "vCPU"];
+  }
+  if (millicores >= 1024 && millicores % 1024 === 0) {
+    return [`${millicores / 1024}`, "vCPU"];
+  }
   return [`${millicores}m`, "vCPU"];
 }
