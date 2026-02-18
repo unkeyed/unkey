@@ -2,7 +2,6 @@ package frontline
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -25,7 +24,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	pkgtls "github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
@@ -235,40 +233,9 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create proxy service: %w", err)
 	}
 
-	// Create TLS config - either from static files (dev mode) or dynamic certificates (production)
-	var tlsConfig *pkgtls.Config
-
-	if certManager != nil {
-		// Production mode: dynamic certificates from database/vault
-		//nolint:exhaustruct
-		tlsConfig = &tls.Config{
-			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				return certManager.GetCertificate(context.Background(), hello.ServerName)
-			},
-			MinVersion: tls.VersionTLS12,
-			// Enable session resumption for faster subsequent connections
-			// Session tickets allow clients to skip the full TLS handshake
-			SessionTicketsDisabled: false,
-			// Let Go's TLS implementation choose optimal cipher suites
-			// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
-			PreferServerCipherSuites: false,
-		}
-		logger.Info("TLS configured with dynamic certificate manager")
-	} else if cfg.TLS != nil && cfg.TLS.CertFile != "" && cfg.TLS.KeyFile != "" {
-		// Dev mode: static file-based certificate
-		fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
-		if tlsErr != nil {
-			return fmt.Errorf("failed to load TLS certificate from files: %w", tlsErr)
-		}
-		tlsConfig = fileTLSConfig
-		logger.Info("TLS configured with static certificate files",
-			"certFile", cfg.TLS.CertFile,
-			"keyFile", cfg.TLS.KeyFile)
-	} else {
-		logger.Error("TLS NOT configured, HTTPS server will serve plaintext HTTP",
-			"certManagerInitialized", certManager != nil,
-			"tlsConfigProvided", cfg.TLS != nil,
-		)
+	tlsConfig, err := buildTlsConfig(cfg, certManager)
+	if err != nil {
+		return fmt.Errorf("unable to build tls config: %w", err)
 	}
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
@@ -281,7 +248,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Start HTTPS frontline server (main proxy server)
-	if cfg.HttpsPort > 0 {
+	if cfg.HttpPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
 			TLS:                tlsConfig,
 			ReadTimeout:        0,
@@ -299,7 +266,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// Register all frontline routes on HTTPS server
 		routes.Register(httpsSrv, svcs)
 
-		httpsListener, httpsListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpsPort))
+		httpsListener, httpsListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 		if httpsListenErr != nil {
 			return fmt.Errorf("unable to create HTTPS listener: %w", httpsListenErr)
 		}
@@ -316,11 +283,11 @@ func Run(ctx context.Context, cfg Config) error {
 			return nil
 		})
 	} else {
-		logger.Warn("HTTPS server not configured, skipping", "httpsPort", cfg.HttpsPort)
+		logger.Warn("HTTPS server not configured, skipping", "httpsPort", cfg.HttpPort)
 	}
 
 	// Start HTTP challenge server (ACME only for Let's Encrypt)
-	if cfg.HttpPort > 0 {
+	if cfg.ChallengePort > 0 {
 		httpSrv, httpErr := zen.New(zen.Config{
 			TLS:                nil,
 			Flags:              nil,
@@ -338,7 +305,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// Register only ACME challenge routes on HTTP server
 		routes.RegisterChallengeServer(httpSrv, svcs)
 
-		httpListener, httpListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
+		httpListener, httpListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.ChallengePort))
 		if httpListenErr != nil {
 			return fmt.Errorf("unable to create HTTP listener: %w", httpListenErr)
 		}
@@ -352,7 +319,7 @@ func Run(ctx context.Context, cfg Config) error {
 			return nil
 		})
 	} else {
-		logger.Warn("HTTP challenge server not configured, ACME HTTP-01 challenges will not work", "httpPort", cfg.HttpPort)
+		logger.Warn("HTTP challenge server not configured, ACME HTTP-01 challenges will not work", "challengePort", cfg.ChallengePort)
 	}
 
 	logger.Info("Frontline server initialized", "region", cfg.Region, "apexDomain", cfg.ApexDomain)
