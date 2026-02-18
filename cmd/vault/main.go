@@ -6,6 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault"
 )
 
@@ -30,6 +31,8 @@ func action(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("unable to load config: %w", err)
 	}
+
+	cfg.InstanceID = uid.New(uid.InstancePrefix)
 
 	return vault.Run(ctx, cfg)
 }

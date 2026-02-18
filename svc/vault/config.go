@@ -39,9 +39,9 @@ type S3Config struct {
 // Environment variables are expanded in file values using ${VAR}
 // syntax before parsing.
 type Config struct {
-	// InstanceID identifies this particular vault instance. Used in log
-	// attribution and observability labels.
-	InstanceID string `toml:"instance_id" config:"required,nonempty"`
+	// InstanceID identifies this particular vault instance.
+	// This is not configured in our config file but generated on startup.
+	InstanceID string `toml:"-"`
 
 	// HttpPort is the TCP port the vault server binds to.
 	HttpPort int `toml:"http_port" config:"default=8060,min=1,max=65535"`

@@ -81,14 +81,12 @@ func loadMasterKeys(masterKey string, previousMasterKey *string) (*vaultv1.KeyEn
 	if masterKey == "" {
 		return nil, nil, fmt.Errorf("no master key provided")
 	}
-	encryptionKey := &vaultv1.KeyEncryptionKey{} // nolint:exhaustruct
 	decryptionKeys := make(map[string]*vaultv1.KeyEncryptionKey)
 
 	kek, err := parseMasterKey(masterKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse master key: %w", err)
 	}
-	encryptionKey = kek
 	decryptionKeys[kek.GetId()] = kek
 
 	if previousMasterKey != nil && *previousMasterKey != "" {
@@ -99,7 +97,7 @@ func loadMasterKeys(masterKey string, previousMasterKey *string) (*vaultv1.KeyEn
 		decryptionKeys[oldKek.GetId()] = oldKek
 	}
 
-	return encryptionKey, decryptionKeys, nil
+	return kek, decryptionKeys, nil
 }
 
 func parseMasterKey(masterKey string) (*vaultv1.KeyEncryptionKey, error) {
