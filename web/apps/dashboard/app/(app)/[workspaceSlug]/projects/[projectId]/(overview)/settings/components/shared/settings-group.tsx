@@ -23,7 +23,7 @@ export const SettingsGroup = ({
       <div className="flex items-center justify-between mb-4 px-2">
         <div className="flex items-center gap-2.5">
           <div className="text-gray-9">{icon}</div>
-          <span className="font-medium text-gray-12 text-[13px] leading-4">{title}</span>
+          <span className="font-medium text-gray-12 text-sm leading-4">{title}</span>
         </div>
         <button
           type="button"

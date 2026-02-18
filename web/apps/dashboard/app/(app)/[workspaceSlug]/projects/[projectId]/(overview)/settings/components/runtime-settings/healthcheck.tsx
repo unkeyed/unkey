@@ -2,7 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, Heart } from "@unkey/icons";
+import { ChevronDown, HeartPulse } from "@unkey/icons";
 import {
   Badge,
   FormDescription,
@@ -149,7 +149,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
 
   return (
     <FormSettingCard
-      icon={<Heart className="text-gray-12" iconSize="xl-medium" />}
+      icon={<HeartPulse className="text-gray-12" iconSize="xl-medium" />}
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
       displayValue={

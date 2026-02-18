@@ -1,4 +1,5 @@
 import { Button, SettingCard, type SettingCardBorder } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
 import { SelectedConfig } from "./selected-config";
 
@@ -15,6 +16,9 @@ type EditableSettingCardProps = {
 
   canSave: boolean;
   isSaving: boolean;
+
+  ref?: React.Ref<HTMLFormElement>;
+  className?: string;
 };
 
 export const FormSettingCard = ({
@@ -27,6 +31,8 @@ export const FormSettingCard = ({
   children,
   canSave,
   isSaving,
+  ref,
+  className,
 }: EditableSettingCardProps) => {
   return (
     <SettingCard
@@ -37,7 +43,11 @@ export const FormSettingCard = ({
       border={border}
       contentWidth="w-full lg:w-[320px] justify-end"
       expandable={
-        <form className="px-4 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-xl" onSubmit={onSubmit}>
+        <form
+          className={cn("px-4 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-xl", className)}
+          ref={ref}
+          onSubmit={onSubmit}
+        >
           {children}
           <div className="flex justify-end">
             <Button

@@ -15,6 +15,7 @@ import { Memory } from "./components/runtime-settings/memory";
 import { Regions } from "./components/runtime-settings/regions";
 
 import { Command } from "./components/advanced-settings/command";
+import { EnvVars } from "./components/advanced-settings/env-vars";
 
 import { SettingsGroup } from "./components/shared/settings-group";
 
@@ -55,6 +56,7 @@ export default function SettingsPage() {
         <SettingsGroup icon={<Gear iconSize="md-medium" />} title="Advanced configurations">
           <SettingCardGroup>
             <Command />
+            <EnvVars />
           </SettingCardGroup>
         </SettingsGroup>
       </div>

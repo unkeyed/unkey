@@ -100,7 +100,7 @@ function SettingCard({
     <div className={cn(getBorderRadiusClass(), borderClass, expandedBottomRadius)}>
       <div
         className={cn(
-          "px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row",
+          "px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row group",
           isInteractive && "cursor-pointer",
           className,
         )}
@@ -121,8 +121,8 @@ function SettingCard({
               {icon}
             </div>
           )}
-          <div className="flex flex-col gap-2 text-sm w-fit">
-            <div className="font-medium text-gray-12 text-sm leading-4 tracking-normal">
+          <div className="flex flex-col gap-1 text-sm w-fit">
+            <div className="font-medium text-gray-12 text-[13px] leading-4 tracking-normal">
               {title}
             </div>
             <div className="font-normal text-gray-9 text-xs leading-4 tracking-normal">
@@ -135,7 +135,7 @@ function SettingCard({
           {shouldShowChevron && (
             <ChevronRight
               className={cn(
-                "text-gray-10 transition-transform duration-300 ease-out flex-shrink-0",
+                "text-gray-10 group-hover:text-gray-11 transition-all duration-300 ease-out flex-shrink-0",
                 isExpanded && "rotate-90",
                 effectiveChevronState === "disabled" && "opacity-40 cursor-not-allowed",
               )}

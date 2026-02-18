@@ -96,8 +96,8 @@ const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand
     >
       <FormTextarea
         label="Command"
-        placeholder="npm start"
-        className="w-[480px]"
+        placeholder="~ npm start"
+        className="w-[480px] [&_textarea]:font-mono"
         description="
         Overrides the default container startup command. Arguments are split on whitespace. Leave
         empty to use the image's default command."
