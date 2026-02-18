@@ -10,7 +10,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
 import { useProjectData } from "../../../data-provider";
-import { EditableSettingCard } from "../shared/editable-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 
 const instancesSchema = z.object({
@@ -109,9 +109,10 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
   const hasChanges = currentInstances !== defaultInstances;
 
   return (
-    <EditableSettingCard
+    <FormSettingCard
       icon={<Connections3 className="text-gray-12" iconSize="xl-medium" />}
       title="Instances"
+      border="middle"
       description="Number of instances running in each region"
       displayValue={
         <div className="space-x-1">
@@ -126,46 +127,46 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
       isSaving={updateRuntime.isLoading || isSubmitting}
     >
       <div className="flex flex-col">
-          <span className="text-gray-11 text-[13px]">Instances per region</span>
-          <div className="flex items-center gap-3">
-            <Slider
-              min={1}
-              max={10}
-              step={1}
-              value={[currentInstances]}
-              onValueChange={([value]) => {
-                if (value !== undefined) {
-                  setValue("instances", value, { shouldValidate: true });
-                }
-              }}
-              className="flex-1 max-w-[480px]"
-              rangeStyle={{
-                background:
-                  "linear-gradient(to right, hsla(var(--featureA-4)), hsla(var(--featureA-12)))",
-                backgroundSize: `${currentInstances > 1 ? 100 / ((currentInstances - 1) / 9) : 100}% 100%`,
-                backgroundRepeat: "no-repeat",
-              }}
-            />
-            <div className="flex items-center gap-1.5">
-              {selectedRegions.map((r) => (
-                <RegionFlag
-                  key={r}
-                  flagCode={mapRegionToFlag(r)}
-                  size="xs"
-                  shape="circle"
-                  className="[&_img]:size-3"
-                />
-              ))}
-            </div>
-            <span className="text-[13px]">
-              <span className="font-medium text-gray-12">{currentInstances}</span>{" "}
-              <span className="text-gray-11 font-normal">
-                instance{currentInstances !== 1 ? "s" : ""}
-              </span>
-            </span>
+        <span className="text-gray-11 text-[13px]">Instances per region</span>
+        <div className="flex items-center gap-3">
+          <Slider
+            min={1}
+            max={10}
+            step={1}
+            value={[currentInstances]}
+            onValueChange={([value]) => {
+              if (value !== undefined) {
+                setValue("instances", value, { shouldValidate: true });
+              }
+            }}
+            className="flex-1 max-w-[480px]"
+            rangeStyle={{
+              background:
+                "linear-gradient(to right, hsla(var(--featureA-4)), hsla(var(--featureA-12)))",
+              backgroundSize: `${currentInstances > 1 ? 100 / ((currentInstances - 1) / 9) : 100}% 100%`,
+              backgroundRepeat: "no-repeat",
+            }}
+          />
+          <div className="flex items-center gap-1.5">
+            {selectedRegions.map((r) => (
+              <RegionFlag
+                key={r}
+                flagCode={mapRegionToFlag(r)}
+                size="xs"
+                shape="circle"
+                className="[&_img]:size-3"
+              />
+            ))}
           </div>
-          <SettingDescription>More instances improve availability and handle higher traffic. Changes apply on next deploy.</SettingDescription>
+          <span className="text-[13px]">
+            <span className="font-medium text-gray-12">{currentInstances}</span>{" "}
+            <span className="text-gray-11 font-normal">
+              instance{currentInstances !== 1 ? "s" : ""}
+            </span>
+          </span>
         </div>
-    </EditableSettingCard>
+        <SettingDescription>More instances improve availability and handle higher traffic. Changes apply on next deploy.</SettingDescription>
+      </div>
+    </FormSettingCard>
   );
 };

@@ -5,7 +5,7 @@ import { ChevronDown, Heart, Plus, Trash } from "@unkey/icons";
 import { Badge, FormDescription, FormInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { type FieldErrors, Controller, useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
-import { EditableSettingCard } from "../shared/editable-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const;
 
@@ -48,7 +48,7 @@ export const Healthcheck = () => {
   const { fields, append, remove } = useFieldArray({ control, name: "checks" });
 
   return (
-    <EditableSettingCard
+    <FormSettingCard
       icon={<Heart className="text-gray-12" iconSize="xl-medium" />}
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
@@ -64,85 +64,85 @@ export const Healthcheck = () => {
       isSaving={false}
     >
       <div className="flex flex-col gap-3 w-[480px]">
-          {fields.map((field, index) => (
-            <div key={field.id} className="flex items-end gap-3">
-              <div className="flex flex-col">
-                {index === 0 && (
-                  <label className="text-gray-11 text-[13px] leading-5 mb-1.5">Method</label>
+        {fields.map((field, index) => (
+          <div key={field.id} className="flex items-end gap-3">
+            <div className="flex flex-col">
+              {index === 0 && (
+                <label className="text-gray-11 text-[13px] leading-5 mb-1.5">Method</label>
+              )}
+              <Controller
+                control={control}
+                name={`checks.${index}.method`}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      className="h-9"
+                      variant={errors.checks?.[index]?.method ? "error" : "default"}
+                      rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                    >
+                      <SelectValue>
+                        <MethodBadge method={field.value} />
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HTTP_METHODS.map((method) => (
+                        <SelectItem key={method} value={method}>
+                          <MethodBadge method={method} />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
-                <Controller
-                  control={control}
-                  name={`checks.${index}.method`}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger
-                        className="h-9"
-                        variant={errors.checks?.[index]?.method ? "error" : "default"}
-                        rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
-                      >
-                        <SelectValue>
-                          <MethodBadge method={field.value} />
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {HTTP_METHODS.map((method) => (
-                          <SelectItem key={method} value={method}>
-                            <MethodBadge method={method} />
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-              <FormInput
-                label={index === 0 ? "Path" : undefined}
-                placeholder="/health"
-                className="flex-1 [&_input]:h-9"
-                variant={errors.checks?.[index]?.path ? "error" : "default"}
-                {...register(`checks.${index}.path`)}
               />
-              <FormInput
-                label={index === 0 ? "Interval" : undefined}
-                className="[&_input]:h-9"
-                placeholder="30s"
-                variant={errors.checks?.[index]?.interval ? "error" : "default"}
-                {...register(`checks.${index}.interval`)}
-              />
-              <div className="flex gap-1 h-9 items-center w-[60px] shrink-0 justify-start">
-                {fields.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    className="p-1.5 rounded-md text-gray-11 hover:text-gray-12 hover:bg-gray-3 transition-colors"
-                  >
-                    <Trash iconSize="sm-regular" />
-                  </button>
-                )}
-                {index === fields.length - 1 && fields.length < MAX_CHECKS ? (
-                  <button
-                    type="button"
-                    onClick={() => append({ method: "GET", path: "/health", interval: "30s" })}
-                    className="p-1.5 rounded-md text-gray-11 hover:text-gray-12 hover:bg-gray-3 transition-colors"
-                  >
-                    <Plus iconSize="sm-regular" />
-                  </button>
-                ) : (
-                  <div className="w-[30px] shrink-0" />
-                )}
-              </div>
             </div>
-          ))}
-        </div>
-        <div className="mt-1">
-          <FormDescription
-            description="Defines the endpoint and frequency used to check if your service is running. Changes apply on next deploy."
-            error={getFirstCheckError(errors)}
-            descriptionId="healthcheck-description"
-            errorId="healthcheck-error"
-          />
-        </div>
-    </EditableSettingCard>
+            <FormInput
+              label={index === 0 ? "Path" : undefined}
+              placeholder="/health"
+              className="flex-1 [&_input]:h-9"
+              variant={errors.checks?.[index]?.path ? "error" : "default"}
+              {...register(`checks.${index}.path`)}
+            />
+            <FormInput
+              label={index === 0 ? "Interval" : undefined}
+              className="[&_input]:h-9"
+              placeholder="30s"
+              variant={errors.checks?.[index]?.interval ? "error" : "default"}
+              {...register(`checks.${index}.interval`)}
+            />
+            <div className="flex gap-1 h-9 items-center w-[60px] shrink-0 justify-start">
+              {fields.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  className="p-1.5 rounded-md text-gray-11 hover:text-gray-12 hover:bg-gray-3 transition-colors"
+                >
+                  <Trash iconSize="sm-regular" />
+                </button>
+              )}
+              {index === fields.length - 1 && fields.length < MAX_CHECKS ? (
+                <button
+                  type="button"
+                  onClick={() => append({ method: "GET", path: "/health", interval: "30s" })}
+                  className="p-1.5 rounded-md text-gray-11 hover:text-gray-12 hover:bg-gray-3 transition-colors"
+                >
+                  <Plus iconSize="sm-regular" />
+                </button>
+              ) : (
+                <div className="w-[30px] shrink-0" />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-1">
+        <FormDescription
+          description="Defines the endpoint and frequency used to check if your service is running. Changes apply on next deploy."
+          error={getFirstCheckError(errors)}
+          descriptionId="healthcheck-description"
+          errorId="healthcheck-error"
+        />
+      </div>
+    </FormSettingCard>
   );
 };
 

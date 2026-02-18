@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
-import { EditableSettingCard } from "../shared/editable-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 
 const CPU_OPTIONS = [
@@ -105,7 +105,7 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
   const currentIndex = valueToIndex(currentCpu);
 
   return (
-    <EditableSettingCard
+    <FormSettingCard
       icon={<Bolt className="text-gray-12" iconSize="xl-medium" />}
       title="CPU"
       description="CPU allocation for each instance"
@@ -123,33 +123,33 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
       isSaving={updateRuntime.isLoading || isSubmitting}
     >
       <div className="flex flex-col">
-          <span className="text-gray-11 text-[13px]">CPU per instance</span>
-          <div className="flex items-center gap-3">
-            <Slider
-              min={0}
-              max={CPU_OPTIONS.length - 1}
-              step={1}
-              value={[currentIndex]}
-              onValueChange={([value]) => {
-                if (value !== undefined) {
-                  setValue("cpu", indexToValue(value), { shouldValidate: true });
-                }
-              }}
-              className="flex-1 max-w-[480px]"
-              rangeStyle={{
-                background:
-                  "linear-gradient(to right, hsla(var(--infoA-4)), hsla(var(--infoA-12)))",
-                backgroundSize: `${currentIndex > 0 ? 100 / (currentIndex / (CPU_OPTIONS.length - 1)) : 100}% 100%`,
-                backgroundRepeat: "no-repeat",
-              }}
-            />
-            <span className="text-[13px]">
-              <span className="font-medium text-gray-12">{formatCpu(currentCpu)}</span>
-            </span>
-          </div>
-          <SettingDescription>Higher CPU improves compute-heavy workloads. Changes apply on next deploy.</SettingDescription>
+        <span className="text-gray-11 text-[13px]">CPU per instance</span>
+        <div className="flex items-center gap-3">
+          <Slider
+            min={0}
+            max={CPU_OPTIONS.length - 1}
+            step={1}
+            value={[currentIndex]}
+            onValueChange={([value]) => {
+              if (value !== undefined) {
+                setValue("cpu", indexToValue(value), { shouldValidate: true });
+              }
+            }}
+            className="flex-1 max-w-[480px]"
+            rangeStyle={{
+              background:
+                "linear-gradient(to right, hsla(var(--infoA-4)), hsla(var(--infoA-12)))",
+              backgroundSize: `${currentIndex > 0 ? 100 / (currentIndex / (CPU_OPTIONS.length - 1)) : 100}% 100%`,
+              backgroundRepeat: "no-repeat",
+            }}
+          />
+          <span className="text-[13px]">
+            <span className="font-medium text-gray-12">{formatCpu(currentCpu)}</span>
+          </span>
         </div>
-    </EditableSettingCard>
+        <SettingDescription>Higher CPU improves compute-heavy workloads. Changes apply on next deploy.</SettingDescription>
+      </div>
+    </FormSettingCard>
   );
 };
 

@@ -5,7 +5,7 @@ import { FormInput, toast } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
-import { EditableSettingCard } from "../shared/editable-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 
 const dockerfileSchema = z.object({
   dockerfile: z.string().min(1, "Dockerfile path is required"),
@@ -76,7 +76,7 @@ const DockerfileForm = ({
   };
 
   return (
-    <EditableSettingCard
+    <FormSettingCard
       icon={<FileSettings className="text-gray-12" iconSize="xl-medium" />}
       title="Dockerfile"
       border="bottom"
@@ -87,15 +87,15 @@ const DockerfileForm = ({
       isSaving={updateBuild.isLoading || isSubmitting}
     >
       <FormInput
-          required
-          className="w-[480px]"
-          label="Dockerfile path"
-          description="Dockerfile location used for docker build. Changes apply on next deploy."
-          placeholder="Dockerfile"
-          error={errors.dockerfile?.message}
-          variant={errors.dockerfile ? "error" : "default"}
-          {...register("dockerfile")}
-        />
-    </EditableSettingCard>
+        required
+        className="w-[480px]"
+        label="Dockerfile path"
+        description="Dockerfile location used for docker build. Changes apply on next deploy."
+        placeholder="Dockerfile"
+        error={errors.dockerfile?.message}
+        variant={errors.dockerfile ? "error" : "default"}
+        {...register("dockerfile")}
+      />
+    </FormSettingCard>
   );
 };

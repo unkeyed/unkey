@@ -1,4 +1,4 @@
-import { Button, SettingCard } from "@unkey/ui";
+import { Button, SettingCard, SettingCardBorder } from "@unkey/ui";
 import type React from "react";
 import { SelectedConfig } from "./selected-config";
 
@@ -6,7 +6,7 @@ type EditableSettingCardProps = {
   icon: React.ReactNode;
   title: string;
   description: string;
-  border?: "top" | "bottom" | "both" | "none" | "default";
+  border?: SettingCardBorder;
 
   displayValue: React.ReactNode;
 
@@ -17,7 +17,7 @@ type EditableSettingCardProps = {
   isSaving: boolean;
 };
 
-export const EditableSettingCard = ({
+export const FormSettingCard = ({
   icon,
   title,
   description,

@@ -6,7 +6,7 @@ import { Harddrive } from "@unkey/icons";
 import { Slider, toast } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { EditableSettingCard } from "../shared/editable-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 
 const STORAGE_OPTIONS = [
@@ -58,7 +58,7 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
   const currentIndex = valueToIndex(currentStorage);
 
   return (
-    <EditableSettingCard
+    <FormSettingCard
       icon={<Harddrive className="text-gray-12" iconSize="xl-medium" />}
       title="Storage"
       description="Ephemeral disk space per instance"
@@ -76,33 +76,33 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
       isSaving={false}
     >
       <div className="flex flex-col">
-          <span className="text-gray-11 text-[13px]">Storage per instance</span>
-          <div className="flex items-center gap-3">
-            <Slider
-              min={0}
-              max={STORAGE_OPTIONS.length - 1}
-              step={1}
-              value={[currentIndex]}
-              onValueChange={([value]) => {
-                if (value !== undefined) {
-                  setValue("storage", indexToValue(value), { shouldValidate: true });
-                }
-              }}
-              className="flex-1 max-w-[480px]"
-              rangeStyle={{
-                background:
-                  "linear-gradient(to right, hsla(var(--successA-4)), hsla(var(--successA-12)))",
-                backgroundSize: `${currentIndex > 0 ? 100 / (currentIndex / (STORAGE_OPTIONS.length - 1)) : 100}% 100%`,
-                backgroundRepeat: "no-repeat",
-              }}
-            />
-            <span className="text-[13px]">
-              <span className="font-medium text-gray-12">{formatMemory(currentStorage)}</span>
-            </span>
-          </div>
-          <SettingDescription>Temporary disk for logs, caches, and scratch data. Changes apply on next deploy.</SettingDescription>
+        <span className="text-gray-11 text-[13px]">Storage per instance</span>
+        <div className="flex items-center gap-3">
+          <Slider
+            min={0}
+            max={STORAGE_OPTIONS.length - 1}
+            step={1}
+            value={[currentIndex]}
+            onValueChange={([value]) => {
+              if (value !== undefined) {
+                setValue("storage", indexToValue(value), { shouldValidate: true });
+              }
+            }}
+            className="flex-1 max-w-[480px]"
+            rangeStyle={{
+              background:
+                "linear-gradient(to right, hsla(var(--successA-4)), hsla(var(--successA-12)))",
+              backgroundSize: `${currentIndex > 0 ? 100 / (currentIndex / (STORAGE_OPTIONS.length - 1)) : 100}% 100%`,
+              backgroundRepeat: "no-repeat",
+            }}
+          />
+          <span className="text-[13px]">
+            <span className="font-medium text-gray-12">{formatMemory(currentStorage)}</span>
+          </span>
         </div>
-    </EditableSettingCard>
+        <SettingDescription>Temporary disk for logs, caches, and scratch data. Changes apply on next deploy.</SettingDescription>
+      </div>
+    </FormSettingCard>
   );
 };
 

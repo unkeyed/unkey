@@ -12,7 +12,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
 import { useProjectData } from "../../../data-provider";
-import { EditableSettingCard } from "../shared/editable-setting-card";
+import { FormSettingCard } from "../shared/form-setting-card";
 
 const regionsSchema = z.object({
   regions: z.array(z.string()).min(1, "Select at least one region"),
@@ -174,7 +174,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
   }));
 
   return (
-    <EditableSettingCard
+    <FormSettingCard
       icon={<Location2 className="text-gray-12" iconSize="xl-medium" />}
       title="Regions"
       description="Geographic regions where your project will run"
@@ -185,50 +185,50 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       isSaving={updateRuntime.isLoading || isSubmitting}
     >
       <FormCombobox
-          label="Regions"
-          description="Traffic is routed to the nearest selected region. Changes apply on next deploy."
-          optional
-          className="w-[480px]"
-          options={comboboxOptions}
-          value=""
-          onSelect={addRegion}
-          placeholder={
-            currentRegions.length === 0 ? (
-              <span className="text-grayA-8 w-full text-left">Select a region</span>
-            ) : (
-              <div className="w-full flex flex-wrap gap-1.5 py-0.5">
-                {currentRegions.map((r) => (
-                  <span
-                    key={r}
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
-                  >
-                    <RegionFlag
-                      flagCode={mapRegionToFlag(r)}
-                      size="xs"
-                      shape="circle"
-                      className="[&_img]:size-3"
-                    />
-                    {r}
-                    {currentRegions.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeRegion(r);
-                        }}
-                        className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
-                      >
-                        <XMark iconSize="sm-regular" />
-                      </button>
-                    )}
-                  </span>
-                ))}
-              </div>
-            )
-          }
-          searchPlaceholder="Search regions..."
-          emptyMessage={<div className="mt-2">No regions available.</div>}
-        />
-    </EditableSettingCard>
+        label="Regions"
+        description="Traffic is routed to the nearest selected region. Changes apply on next deploy."
+        optional
+        className="w-[480px]"
+        options={comboboxOptions}
+        value=""
+        onSelect={addRegion}
+        placeholder={
+          currentRegions.length === 0 ? (
+            <span className="text-grayA-8 w-full text-left">Select a region</span>
+          ) : (
+            <div className="w-full flex flex-wrap gap-1.5 py-0.5">
+              {currentRegions.map((r) => (
+                <span
+                  key={r}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
+                >
+                  <RegionFlag
+                    flagCode={mapRegionToFlag(r)}
+                    size="xs"
+                    shape="circle"
+                    className="[&_img]:size-3"
+                  />
+                  {r}
+                  {currentRegions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeRegion(r);
+                      }}
+                      className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
+                    >
+                      <XMark iconSize="sm-regular" />
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+          )
+        }
+        searchPlaceholder="Search regions..."
+        emptyMessage={<div className="mt-2">No regions available.</div>}
+      />
+    </FormSettingCard>
   );
 };
