@@ -88,7 +88,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
   const currentPath = useWatch({ control, name: "path" });
   const currentInterval = useWatch({ control, name: "interval" });
 
-  const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
+  const updateHealthcheck = trpc.deploy.environmentSettings.runtime.updateHealthcheck.useMutation({
     onSuccess: () => {
       toast.success("Healthcheck updated", { duration: 5000 });
       utils.deploy.environmentSettings.get.invalidate({ environmentId });
@@ -113,7 +113,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
   });
 
   const onSubmit = async (values: HealthcheckFormValues) => {
-    await updateRuntime.mutateAsync({
+    await updateHealthcheck.mutateAsync({
       environmentId,
       healthcheck:
         values.path.trim() === ""
@@ -148,7 +148,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateRuntime.isLoading || isSubmitting}
+      isSaving={updateHealthcheck.isLoading || isSubmitting}
     >
       <div className="flex flex-col gap-3 w-[520px]">
         {/* TODO: multi-check when API supports

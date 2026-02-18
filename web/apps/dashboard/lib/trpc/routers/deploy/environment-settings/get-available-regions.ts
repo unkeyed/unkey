@@ -1,7 +1,7 @@
 import { workspaceProcedure } from "../../../trpc";
 
 export const getAvailableRegions = workspaceProcedure.query(() => {
-  const regionsEnv = process.env.AVAILABLE_REGIONS ?? "eu-central-1,us-east-1";
+  const regionsEnv = process.env.AVAILABLE_REGIONS ?? "";
   return regionsEnv
     .split(",")
     .map((r) => r.trim())

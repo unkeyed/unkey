@@ -46,35 +46,37 @@ const RootDirectoryForm = ({
 
   const currentDockerContext = useWatch({ control, name: "dockerContext" });
 
-  const updateBuild = trpc.deploy.environmentSettings.updateBuild.useMutation({
-    onSuccess: (_data, variables) => {
-      toast.success("Root directory updated", {
-        description: `Build context set to "${(variables.dockerContext ?? defaultValue) || "."}".`,
-        duration: 5000,
-      });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid root directory", {
-          description: err.message || "Please check your input and try again.",
+  const updateDockerContext = trpc.deploy.environmentSettings.build.updateDockerContext.useMutation(
+    {
+      onSuccess: (_data, variables) => {
+        toast.success("Root directory updated", {
+          description: `Build context set to "${(variables.dockerContext ?? defaultValue) || "."}".`,
+          duration: 5000,
         });
-      } else {
-        toast.error("Failed to update root directory", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
+        utils.deploy.environmentSettings.get.invalidate({ environmentId });
+      },
+      onError: (err) => {
+        if (err.data?.code === "BAD_REQUEST") {
+          toast.error("Invalid root directory", {
+            description: err.message || "Please check your input and try again.",
+          });
+        } else {
+          toast.error("Failed to update root directory", {
+            description:
+              err.message ||
+              "An unexpected error occurred. Please try again or contact support@unkey.com",
+            action: {
+              label: "Contact Support",
+              onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+            },
+          });
+        }
+      },
     },
-  });
+  );
 
   const onSubmit = async (values: z.infer<typeof rootDirectorySchema>) => {
-    await updateBuild.mutateAsync({ environmentId, dockerContext: values.dockerContext });
+    await updateDockerContext.mutateAsync({ environmentId, dockerContext: values.dockerContext });
   };
 
   return (
@@ -85,7 +87,7 @@ const RootDirectoryForm = ({
       displayValue={defaultValue || "."}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && currentDockerContext !== defaultValue}
-      isSaving={updateBuild.isLoading || isSubmitting}
+      isSaving={updateDockerContext.isLoading || isSubmitting}
     >
       <FormInput
         label="Root directory"

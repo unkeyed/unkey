@@ -58,7 +58,7 @@ const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand
   const currentCommand = useWatch({ control, name: "command" });
   const hasChanges = currentCommand !== defaultCommand;
 
-  const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
+  const updateCommand = trpc.deploy.environmentSettings.runtime.updateCommand.useMutation({
     onSuccess: () => {
       toast.success("Command updated");
       utils.deploy.environmentSettings.get.invalidate({ environmentId });
@@ -73,7 +73,7 @@ const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand
   const onSubmit = async (values: CommandFormValues) => {
     const trimmed = values.command.trim();
     const command = trimmed === "" ? [] : trimmed.split(/\s+/).filter(Boolean);
-    await updateRuntime.mutateAsync({ environmentId, command });
+    await updateCommand.mutateAsync({ environmentId, command });
   };
 
   return (
@@ -92,7 +92,7 @@ const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateRuntime.isLoading || isSubmitting}
+      isSaving={updateCommand.isLoading || isSubmitting}
     >
       <FormTextarea
         label="Command"

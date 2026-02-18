@@ -46,7 +46,7 @@ const PortForm = ({
 
   const currentPort = useWatch({ control, name: "port" });
 
-  const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
+  const updatePort = trpc.deploy.environmentSettings.runtime.updatePort.useMutation({
     onSuccess: (_data, variables) => {
       toast.success("Port updated", {
         description: `Port set to ${variables.port ?? defaultValue}.`,
@@ -74,7 +74,7 @@ const PortForm = ({
   });
 
   const onSubmit = async (values: z.infer<typeof portSchema>) => {
-    await updateRuntime.mutateAsync({ environmentId: environmentId ?? "", port: values.port });
+    await updatePort.mutateAsync({ environmentId: environmentId ?? "", port: values.port });
   };
 
   return (
@@ -85,7 +85,7 @@ const PortForm = ({
       displayValue={String(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && currentPort !== defaultValue}
-      isSaving={updateRuntime.isLoading || isSubmitting}
+      isSaving={updatePort.isLoading || isSubmitting}
     >
       <FormInput
         required

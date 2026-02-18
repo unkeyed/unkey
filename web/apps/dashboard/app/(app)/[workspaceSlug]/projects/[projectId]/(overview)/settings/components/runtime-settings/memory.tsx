@@ -69,7 +69,7 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
 
   const currentMemory = useWatch({ control, name: "memory" });
 
-  const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
+  const updateMemory = trpc.deploy.environmentSettings.runtime.updateMemory.useMutation({
     onSuccess: (_data, variables) => {
       toast.success("Memory updated", {
         description: `Memory set to ${formatMemory(variables.memoryMib ?? defaultMemory)}`,
@@ -97,7 +97,7 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
   });
 
   const onSubmit = async (values: MemoryFormValues) => {
-    await updateRuntime.mutateAsync({
+    await updateMemory.mutateAsync({
       environmentId,
       memoryMib: values.memory,
     });
@@ -122,7 +122,7 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
       })()}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateRuntime.isLoading || isSubmitting}
+      isSaving={updateMemory.isLoading || isSubmitting}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Memory per instance</span>

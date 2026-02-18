@@ -80,7 +80,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
 
   const unselectedRegions = availableRegions.filter((r) => !currentRegions.includes(r));
 
-  const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
+  const updateRegions = trpc.deploy.environmentSettings.runtime.updateRegions.useMutation({
     onSuccess: () => {
       toast.success("Regions updated", {
         description: "Deployment regions saved successfully.",
@@ -108,7 +108,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
   });
 
   const onSubmit = async (values: RegionsFormValues) => {
-    await updateRuntime.mutateAsync({
+    await updateRegions.mutateAsync({
       environmentId,
       regions: values.regions,
     });
@@ -179,7 +179,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateRuntime.isLoading || isSubmitting}
+      isSaving={updateRegions.isLoading || isSubmitting}
     >
       <FormCombobox
         label="Regions"
@@ -207,8 +207,8 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
                   />
                   {r}
                   {currentRegions.length > 1 && (
-                    <button
-                      type="button"
+                    //biome-ignore lint/a11y/useKeyWithClickEvents: we can't use button here otherwise we'll nest two buttons
+                    <span
                       onClick={(e) => {
                         e.stopPropagation();
                         removeRegion(r);
@@ -216,7 +216,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
                       className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
                     >
                       <XMark iconSize="sm-regular" />
-                    </button>
+                    </span>
                   )}
                 </span>
               ))}

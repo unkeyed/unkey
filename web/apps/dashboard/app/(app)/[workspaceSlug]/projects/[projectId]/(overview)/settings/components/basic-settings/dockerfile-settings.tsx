@@ -46,7 +46,7 @@ const DockerfileForm = ({
 
   const currentDockerfile = useWatch({ control, name: "dockerfile" });
 
-  const updateBuild = trpc.deploy.environmentSettings.updateBuild.useMutation({
+  const updateDockerfile = trpc.deploy.environmentSettings.build.updateDockerfile.useMutation({
     onSuccess: (_data, variables) => {
       toast.success("Dockerfile updated", {
         description: `Path set to "${variables.dockerfile ?? defaultValue}".`,
@@ -74,7 +74,7 @@ const DockerfileForm = ({
   });
 
   const onSubmit = async (values: z.infer<typeof dockerfileSchema>) => {
-    await updateBuild.mutateAsync({ environmentId, dockerfile: values.dockerfile });
+    await updateDockerfile.mutateAsync({ environmentId, dockerfile: values.dockerfile });
   };
 
   return (
@@ -85,7 +85,7 @@ const DockerfileForm = ({
       displayValue={defaultValue}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && currentDockerfile !== defaultValue}
-      isSaving={updateBuild.isLoading || isSubmitting}
+      isSaving={updateDockerfile.isLoading || isSubmitting}
     >
       <FormInput
         required

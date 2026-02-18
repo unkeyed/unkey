@@ -69,7 +69,7 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
 
   const currentCpu = useWatch({ control, name: "cpu" });
 
-  const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
+  const updateCpu = trpc.deploy.environmentSettings.runtime.updateCpu.useMutation({
     onSuccess: (_data, variables) => {
       toast.success("CPU updated", {
         description: `CPU set to ${formatCpu(variables.cpuMillicores ?? defaultCpu)}`,
@@ -97,7 +97,7 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
   });
 
   const onSubmit = async (values: CpuFormValues) => {
-    await updateRuntime.mutateAsync({
+    await updateCpu.mutateAsync({
       environmentId,
       cpuMillicores: values.cpu,
     });
@@ -122,7 +122,7 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
       })()}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateRuntime.isLoading || isSubmitting}
+      isSaving={updateCpu.isLoading || isSubmitting}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">CPU per instance</span>

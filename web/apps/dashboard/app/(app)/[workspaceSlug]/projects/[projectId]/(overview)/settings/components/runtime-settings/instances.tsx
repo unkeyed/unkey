@@ -73,7 +73,7 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
 
   const currentInstances = useWatch({ control, name: "instances" });
 
-  const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
+  const updateInstances = trpc.deploy.environmentSettings.runtime.updateInstances.useMutation({
     onSuccess: (_data, variables) => {
       const count = variables.replicasPerRegion ?? defaultInstances;
       toast.success("Instances updated", {
@@ -102,7 +102,7 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
   });
 
   const onSubmit = async (values: InstancesFormValues) => {
-    await updateRuntime.mutateAsync({
+    await updateInstances.mutateAsync({
       environmentId,
       replicasPerRegion: values.instances,
     });
@@ -125,7 +125,7 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateRuntime.isLoading || isSubmitting}
+      isSaving={updateInstances.isLoading || isSubmitting}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Instances per region</span>
