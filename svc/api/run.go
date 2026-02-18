@@ -282,18 +282,18 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Initialize CTRL deployment client
+	// Initialize control plane deployment client
 	ctrlDeploymentClient := ctrl.NewConnectDeployServiceClient(
 		ctrlv1connect.NewDeployServiceClient(
 			&http.Client{},
-			cfg.Ctrl.URL,
+			cfg.Control.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.Ctrl.Token),
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
 			})),
 		),
 	)
 
-	logger.Info("CTRL clients initialized", "url", cfg.Ctrl.URL)
+	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
 
 	var pprofUsername, pprofPassword string
 	if cfg.Pprof != nil {

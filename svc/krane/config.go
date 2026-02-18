@@ -46,8 +46,8 @@ type Config struct {
 	// Vault configures the secrets decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
 
-	// Ctrl configures the upstream control plane. See [config.CtrlConfig].
-	Ctrl config.CtrlConfig `toml:"ctrl"`
+	// Control configures the upstream control plane. See [config.ControlConfig].
+	Control config.ControlConfig `toml:"control"`
 
 	Observability config.Observability `toml:"observability"`
 

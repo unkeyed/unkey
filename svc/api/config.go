@@ -101,8 +101,8 @@ type Config struct {
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
 	Gossip *config.GossipConfig `toml:"gossip"`
 
-	// Ctrl configures the deployment management service. See [config.CtrlConfig].
-	Ctrl config.CtrlConfig `toml:"ctrl"`
+	// Control configures the deployment management service. See [config.ControlConfig].
+	Control config.ControlConfig `toml:"control"`
 
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.

@@ -95,14 +95,14 @@ type GossipConfig struct {
 	SecretKey string `toml:"secret_key" config:"required,min=32,max=128"`
 }
 
-// CtrlConfig configures the connection to the CTRL service, which manages
+// ControlConfig configures the connection to the control plane service, which manages
 // deployments and rolling updates across the cluster.
-type CtrlConfig struct {
-	// URL is the CTRL service endpoint.
-	// Example: "http://ctrl-api:7091"
+type ControlConfig struct {
+	// URL is the control plane service endpoint.
+	// Example: "http://control-api:7091"
 	URL string `toml:"url"`
 
-	// Token is the bearer token used to authenticate with the CTRL service.
+	// Token is the bearer token used to authenticate with the control plane service.
 	Token string `toml:"token"`
 }
 

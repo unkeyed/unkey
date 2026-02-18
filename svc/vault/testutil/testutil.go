@@ -56,7 +56,7 @@ func StartTestVault(t *testing.T) *TestVault {
 	// Create vault service
 	v, err := vault.New(vault.Config{
 		Storage:     st,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: token,
 	})
 	require.NoError(t, err)
@@ -99,7 +99,7 @@ func StartTestVaultWithMemory(t *testing.T) *TestVault {
 	// Create vault service
 	v, err := vault.New(vault.Config{
 		Storage:     st,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: token,
 	})
 	require.NoError(t, err)

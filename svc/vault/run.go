@@ -64,9 +64,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 	s3 = storagemiddleware.WithTracing("s3", s3)
 	v, err := vault.New(vault.Config{
-		Storage:     s3,
-		MasterKeys:  cfg.MasterKeys,
-		BearerToken: cfg.BearerToken,
+		Storage:           s3,
+		MasterKey:         cfg.Encryption.MasterKey,
+		PreviousMasterKey: cfg.Encryption.PreviousMasterKey,
+		BearerToken:       cfg.BearerToken,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create vault service: %w", err)

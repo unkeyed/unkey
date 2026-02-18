@@ -170,8 +170,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				URL:   vaultURL,
 				Token: vaultToken,
 			},
-			Ctrl: sharedconfig.CtrlConfig{
-				URL:   "http://ctrl:7091",
+			Control: sharedconfig.ControlConfig{
+				URL:   "http://control:7091",
 				Token: "your-local-dev-key",
 			},
 			Pprof: &sharedconfig.PprofConfig{

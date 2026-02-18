@@ -4,6 +4,16 @@ import (
 	"github.com/unkeyed/unkey/pkg/config"
 )
 
+// EncryptionConfig holds the master keys used for encryption and decryption.
+type EncryptionConfig struct {
+	// MasterKey is the current key used for encrypting new data.
+	MasterKey string `toml:"master_key" config:"required,nonempty"`
+
+	// PreviousMasterKey is an optional old key retained for decrypting
+	// existing data during key rotation.
+	PreviousMasterKey *string `toml:"previous_master_key"`
+}
+
 // S3Config configures the S3-compatible object storage backend used by vault to
 // persist encrypted secrets. All fields are required.
 type S3Config struct {
@@ -43,11 +53,8 @@ type Config struct {
 	// BearerToken is the authentication token for securing vault operations.
 	BearerToken string `toml:"bearer_token" config:"required,nonempty"`
 
-	// MasterKeys holds encryption keys for the vault. The first key is used
-	// for encryption; additional keys are retained for backwards-compatible
-	// decryption. If multiple keys are provided, vault will start a rekey
-	// process to migrate all secrets to the new key.
-	MasterKeys []string `toml:"master_keys" config:"required,nonempty"`
+	// Encryption holds the master keys for encrypting and decrypting data.
+	Encryption EncryptionConfig `toml:"encryption"`
 
 	// S3 configures the S3-compatible storage backend. See [S3Config].
 	S3 S3Config `toml:"s3"`

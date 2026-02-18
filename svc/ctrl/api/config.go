@@ -52,8 +52,8 @@ type Config struct {
 	Region string `toml:"region" config:"required,nonempty"`
 
 	// HttpPort defines the HTTP port for the control plane server.
-	// Default: 7091. Cannot be 0.
-	HttpPort int `toml:"http_port" config:"default=7091,min=1,max=65535"`
+	// Default: 8080. Cannot be 0.
+	HttpPort int `toml:"http_port" config:"default=8080,min=1,max=65535"`
 
 	// PrometheusPort specifies the port for exposing Prometheus metrics.
 	// Set to 0 to disable metrics exposure. When enabled, metrics are served

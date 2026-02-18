@@ -95,8 +95,8 @@ func Run(ctx context.Context, cfg Config) error {
 	r.DeferCtx(shutdownGrafana)
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
-		URL:         cfg.Ctrl.URL,
-		BearerToken: cfg.Ctrl.Token,
+		URL:         cfg.Control.URL,
+		BearerToken: cfg.Control.Token,
 		Region:      cfg.Region,
 	})
 
@@ -197,7 +197,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start server
 	r.Go(func(ctx context.Context) error {
-		logger.Info("Starting ctrl server", "addr", addr, "tls")
+		logger.Info("Starting control server", "addr", addr, "tls")
 
 		err := server.ListenAndServe()
 
