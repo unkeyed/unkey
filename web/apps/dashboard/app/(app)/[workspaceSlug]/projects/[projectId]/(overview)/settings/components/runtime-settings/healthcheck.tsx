@@ -52,7 +52,6 @@ export const Healthcheck = () => {
       icon={<Heart className="text-gray-12" iconSize="xl-medium" />}
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
-      border="bottom"
       displayValue={
         <div className="flex gap-1.5 items-center justify-center">
           <MethodBadge method="GET" />

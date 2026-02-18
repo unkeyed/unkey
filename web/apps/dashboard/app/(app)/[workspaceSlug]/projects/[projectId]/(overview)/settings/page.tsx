@@ -6,6 +6,7 @@ import { GitHubSettings } from "./components/basic-settings/github-settings";
 import { RootDirectorySettings } from "./components/basic-settings/root-directory-settings";
 import { Cpu } from "./components/runtime-settings/cpu";
 import { Instances } from "./components/runtime-settings/instances";
+import { Scaling } from "./components/runtime-settings/scaling";
 import { Memory } from "./components/runtime-settings/memory";
 import { Regions } from "./components/runtime-settings/regions";
 import { Storage } from "./components/runtime-settings/storage";
@@ -24,8 +25,8 @@ export default function SettingsPage() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col w-full">
           <GitHubSettings />
-          <DockerfileSettings />
           <RootDirectorySettings />
+          <DockerfileSettings />
         </div>
         <SettingsGroup
           icon={<CircleHalfDottedClock iconSize="md-medium" />}
@@ -37,6 +38,7 @@ export default function SettingsPage() {
           <Memory />
           <Storage />
           <Healthcheck />
+          <Scaling />
         </SettingsGroup>
       </div>
     </div>

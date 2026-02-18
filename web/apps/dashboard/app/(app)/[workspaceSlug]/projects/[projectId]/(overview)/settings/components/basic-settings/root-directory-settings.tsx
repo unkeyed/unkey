@@ -67,7 +67,6 @@ const RootDirectoryForm = ({
       icon={<FolderLink className="text-gray-12" iconSize="xl-medium" />}
       title="Root directory"
       description="Build context directory. All COPY/ADD commands are relative to this path. (e.g., services/api)"
-      border="bottom"
       displayValue={defaultValue || "."}
       formId="update-root-directory-form"
       canSave={isValid && !isSubmitting && currentDockerContext !== defaultValue}
