@@ -34,6 +34,7 @@ export const EnvVars = () => {
   const [decryptedValues, setDecryptedValues] = useState<Record<string, string>>({});
   const [isDecrypting, setIsDecrypting] = useState(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies:  its already stable
   useEffect(() => {
     if (!envData) {
       return;
@@ -54,7 +55,6 @@ export const EnvVars = () => {
         setIsDecrypting(false);
       })
       .catch(() => setIsDecrypting(false));
-    // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation is stable
   }, [envData]);
 
   const defaultValues = useMemo<EnvVarsFormValues>(() => {
@@ -171,25 +171,29 @@ const EnvVarsForm: React.FC<EnvVarsFormProps> = ({
         }),
         ...(toCreate.length > 0
           ? [
-            createMutation.mutateAsync({
-              environmentId,
-              variables: toCreate.map((v) => ({
-                key: v.key,
-                value: v.value,
-                type: toTrpcType(v.secret),
-              })),
-            }),
-          ]
+              createMutation.mutateAsync({
+                environmentId,
+                variables: toCreate.map((v) => ({
+                  key: v.key,
+                  value: v.value,
+                  type: toTrpcType(v.secret),
+                })),
+              }),
+            ]
           : []),
         ...toUpdate.map((v) =>
-          updateMutation.mutateAsync({
-            envVarId: v.id as string,
-            key: v.key,
-            value: v.value,
-            type: toTrpcType(v.secret),
-          }).catch((err) => {
-            throw new Error(`"${v.key}": ${err instanceof Error ? err.message : "Failed to update"}`);
-          }),
+          updateMutation
+            .mutateAsync({
+              envVarId: v.id as string,
+              key: v.key,
+              value: v.value,
+              type: toTrpcType(v.secret),
+            })
+            .catch((err) => {
+              throw new Error(
+                `"${v.key}": ${err instanceof Error ? err.message : "Failed to update"}`,
+              );
+            }),
         ),
       ]);
 
@@ -304,16 +308,17 @@ const EnvVarRow = ({
 
   const inputType = isPreviouslyAdded ? (isVisible ? "text" : "password") : "text";
 
-  const eyeButton = isPreviouslyAdded && !isSecret ? (
-    <button
-      type="button"
-      className="text-gray-9 hover:text-gray-11 transition-colors"
-      onClick={() => setIsVisible((v) => !v)}
-      tabIndex={-1}
-    >
-      {isVisible ? <EyeSlash iconSize="sm-regular" /> : <Eye iconSize="sm-regular" />}
-    </button>
-  ) : undefined;
+  const eyeButton =
+    isPreviouslyAdded && !isSecret ? (
+      <button
+        type="button"
+        className="text-gray-9 hover:text-gray-11 transition-colors"
+        onClick={() => setIsVisible((v) => !v)}
+        tabIndex={-1}
+      >
+        {isVisible ? <EyeSlash iconSize="sm-regular" /> : <Eye iconSize="sm-regular" />}
+      </button>
+    ) : undefined;
 
   return (
     <div className="flex items-start gap-2">

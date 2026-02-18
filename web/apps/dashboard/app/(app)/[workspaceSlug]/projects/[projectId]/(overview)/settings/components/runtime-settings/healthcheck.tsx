@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, HeartPulse } from "@unkey/icons";
 import {
   Badge,
-  FormDescription,
   FormInput,
   Select,
   SelectContent,
@@ -120,13 +119,13 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
         values.path.trim() === ""
           ? null
           : {
-            method: values.method,
-            path: values.path.trim(),
-            intervalSeconds: intervalToSeconds(values.interval),
-            timeoutSeconds: 5,
-            failureThreshold: 3,
-            initialDelaySeconds: 0,
-          },
+              method: values.method,
+              path: values.path.trim(),
+              intervalSeconds: intervalToSeconds(values.interval),
+              timeoutSeconds: 5,
+              failureThreshold: 3,
+              initialDelaySeconds: 0,
+            },
     });
   };
 
@@ -159,56 +158,51 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
           </div>
         ))}
         */}
-        <div className="flex items-end gap-3">
-          <div className="flex flex-col">
-            <label className="text-gray-11 text-[13px] leading-5 mb-1.5">Method</label>
-            <Controller
-              control={control}
-              name="method"
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger
-                    className="h-9"
-                    variant={errors.method ? "error" : "default"}
-                    rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
-                  >
-                    <SelectValue>
-                      <MethodBadge method={field.value} />
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {HTTP_METHODS.map((method) => (
-                      <SelectItem key={method} value={method}>
-                        <MethodBadge method={method} />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
+        <div className="flex items-center gap-3">
+          <span className="w-20 text-[13px] text-gray-11">Method</span>
+          <span className="flex-1 text-[13px] text-gray-11">Path</span>
+          <span className="flex-1 text-[13px] text-gray-11">Interval</span>
+        </div>
+        <div className="flex items-start gap-3">
+          <Controller
+            control={control}
+            name="method"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger
+                  className="h-9"
+                  wrapperClassName="w-20"
+                  variant={errors.method ? "error" : "default"}
+                  rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                >
+                  <SelectValue>
+                    <MethodBadge method={field.value} />
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {HTTP_METHODS.map((method) => (
+                    <SelectItem key={method} value={method}>
+                      <MethodBadge method={method} />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
           <FormInput
-            label="Path"
             placeholder="/health"
             className="flex-1 [&_input]:h-9 [&_input]:font-mono"
-            variant={errors.path ? "error" : "default"}
+            error={errors.path?.message}
             {...register("path")}
           />
           <FormInput
-            label="Interval"
-            className="[&_input]:h-9"
+            className="flex-1 [&_input]:h-9"
             placeholder="30s"
-            variant={errors.interval ? "error" : "default"}
+            error={errors.interval?.message}
             {...register("interval")}
           />
         </div>
       </div>
-      <FormDescription
-        description="Defines the endpoint and frequency used to check if your service is running. Changes apply on next deploy."
-        error={errors.method?.message ?? errors.path?.message ?? errors.interval?.message}
-        descriptionId="healthcheck-description"
-        errorId="healthcheck-error"
-      />
     </FormSettingCard>
   );
 };
@@ -234,7 +228,7 @@ const MethodBadge: React.FC<{ method: string }> = ({ method }) => (
   <Badge
     variant={getMethodVariant(method)}
     size="sm"
-    className="text-[11px] font-medium w-7 h-[18px] flex items-center justify-center"
+    className="text-[11px] font-medium w-10 h-[18px] flex items-center justify-center"
   >
     {method}
   </Badge>

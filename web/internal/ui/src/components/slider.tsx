@@ -26,6 +26,7 @@ const Slider = React.forwardRef<React.ComponentRef<typeof SliderPrimitive.Root>,
         </SliderPrimitive.Track>
         {Array.from({ length: thumbCount }).map((_, i) => (
           <SliderPrimitive.Thumb
+            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
             key={i}
             className="block h-4 w-4 rounded-full border border-grayA-6 bg-gray-2 shadow transition-colors duration-300 hover:border-grayA-8 focus:ring focus:ring-gray-5 focus-visible:outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
           />
