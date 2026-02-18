@@ -60,7 +60,7 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
           const text = await file.text();
           const parsed = parseEnvText(text);
           if (parsed.length > 0) {
-            reset({ envVars: parsed });
+            reset({ envVars: parsed }, { keepDefaultValues: true });
             toast.success(`Imported ${parsed.length} variable(s)`);
           } else {
             toast.error("No valid environment variables found");
@@ -74,7 +74,7 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
         e.preventDefault();
         const parsed = parseEnvText(text);
         if (parsed.length > 0) {
-          reset({ envVars: parsed });
+          reset({ envVars: parsed }, { keepDefaultValues: true });
           toast.success(`Imported ${parsed.length} variable(s)`);
         } else {
           toast.error("No valid environment variables found");
@@ -116,7 +116,7 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>) {
         const text = await file.text();
         const parsed = parseEnvText(text);
         if (parsed.length > 0) {
-          reset({ envVars: parsed });
+          reset({ envVars: parsed }, { keepDefaultValues: true });
           toast.success(`Imported ${parsed.length} variable(s)`);
         } else {
           toast.error("No valid environment variables found");

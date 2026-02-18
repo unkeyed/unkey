@@ -21,7 +21,7 @@ const CPU_OPTIONS = [
   { label: "4 vCPU", value: 4096 },
   { label: "8 vCPU", value: 8192 },
   { label: "16 vCPU", value: 16384 },
-  { label: "32 vCPU", value: 32786 },
+  { label: "32 vCPU", value: 32768 },
 ] as const;
 
 const cpuSchema = z.object({

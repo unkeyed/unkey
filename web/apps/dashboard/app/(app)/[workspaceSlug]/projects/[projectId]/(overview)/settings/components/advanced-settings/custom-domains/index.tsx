@@ -91,7 +91,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
 
   const displayValue = () => {
     if (customDomains.length === 0) {
-      return <span className="text-gray-11">No custom domains</span>;
+      return <span className="text-gray-11">None</span>;
     }
     return (
       <div className="space-x-1">

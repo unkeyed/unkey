@@ -48,7 +48,23 @@ function SettingCard({
 }: SettingCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const innerRef = React.useRef<HTMLDivElement>(null);
+  const [contentHeight, setContentHeight] = React.useState(0);
   const inGroup = React.useContext(SettingCardGroupContext);
+
+  React.useEffect(() => {
+    const inner = innerRef.current;
+    if (!inner) {
+      return;
+    }
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContentHeight(entry.borderBoxSize[0].blockSize);
+      }
+    });
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, []);
 
   // Determine effective chevron state
   const effectiveChevronState: ChevronState =
@@ -150,10 +166,11 @@ function SettingCard({
           ref={contentRef}
           className="overflow-hidden transition-all duration-300 ease-out"
           style={{
-            maxHeight: isExpanded ? `${contentRef.current?.scrollHeight}px` : "0px",
+            maxHeight: isExpanded ? `${contentHeight}px` : "0px",
           }}
         >
           <div
+            ref={innerRef}
             className={cn(
               "border-t border-grayA-4 transition-all duration-300 ease-out",
               isExpanded ? "opacity-100 translate-y-0 delay-75" : "opacity-0 -translate-y-2",
