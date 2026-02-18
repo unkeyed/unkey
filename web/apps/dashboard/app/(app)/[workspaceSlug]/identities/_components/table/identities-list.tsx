@@ -123,7 +123,9 @@ export const IdentitiesList = () => {
               : identity.externalId;
 
           const iconContainer = (
-            <div className={cn("size-5 rounded-sm flex items-center justify-center", "bg-brandA-3")}>
+            <div
+              className={cn("size-5 rounded-sm flex items-center justify-center", "bg-brandA-3")}
+            >
               {isNavigating ? (
                 <div className="text-brandA-11">
                   <Loading size={18} />

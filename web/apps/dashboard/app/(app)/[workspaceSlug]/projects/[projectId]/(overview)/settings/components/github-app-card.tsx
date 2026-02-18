@@ -28,7 +28,7 @@ export const GitHubAppCard: React.FC<Props> = ({ hasInstallations }) => {
         <a
           href={installUrl}
           className={buttonVariants({
-            variant: hasInstallations ? "outline-solid" : "primary",
+            variant: hasInstallations ? "outline" : "primary",
           })}
         >
           <Github className="size-4" />

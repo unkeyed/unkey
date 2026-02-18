@@ -82,7 +82,8 @@
       ".react-email",
       ".content-collections",
       ".source",
-      ".trigger"
+      ".trigger",
+      "**/*.css"
     ]
   },
   "formatter": {
@@ -103,7 +104,8 @@
       "./internal/auth-migrator",
       "./internal/proto/generated/**/*.ts",
       "./apps/dashboard/gen/proto/**/*.ts",
-      "./apps/docs/docs.json"
+      "./apps/docs/docs.json",
+      "**/*.css"
     ]
   },
   "organizeImports": {
@@ -121,6 +123,11 @@
       "./apps/dashboard/gen/proto/**/*.ts",
       "./apps/docs/docs.json"
     ]
+  },
+  "css": {
+    "parser": {
+      "cssModules": true
+    }
   },
   "overrides": [
     {

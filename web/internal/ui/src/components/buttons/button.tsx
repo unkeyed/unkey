@@ -394,7 +394,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               className={cn(
                 keyboardIconVariants({
                   variant:
-                    variant === "primary" ? "primary" : variant === "outline-solid" ? "default" : "ghost",
+                    variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
                 }),
               )}
             >

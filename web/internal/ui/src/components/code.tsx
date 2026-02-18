@@ -51,10 +51,7 @@ function Code({
         {...props}
       />
       <div
-        className={cn(
-          "flex items-center justify-between gap-2 shrink-0 mt-1",
-          buttonsClassName,
-        )}
+        className={cn("flex items-center justify-between gap-2 shrink-0 mt-1", buttonsClassName)}
       >
         {visibleButton}
         {copyButton}

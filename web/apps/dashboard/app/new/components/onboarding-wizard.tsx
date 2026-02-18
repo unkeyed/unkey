@@ -147,10 +147,7 @@ export const OnboardingWizard = ({
               >
                 <div className="flex items-center gap-1">
                   <span className="font-medium text-gray-12 text-xs">Skip step</span>
-                  <ChevronRight
-                    iconSize="sm-regular"
-                    className="text-gray-12 w-3! h-3! shrink-0"
-                  />
+                  <ChevronRight iconSize="sm-regular" className="text-gray-12 w-3! h-3! shrink-0" />
                 </div>
               </Button>
             </div>

@@ -54,11 +54,7 @@ export const FormDescription = ({
               aria-hidden="true"
             />
           ) : (
-            <CircleInfo
-              iconSize="md-medium"
-              className="shrink-0 mt-[3px]"
-              aria-hidden="true"
-            />
+            <CircleInfo iconSize="md-medium" className="shrink-0 mt-[3px]" aria-hidden="true" />
           )}
           <span className="flex-1 text-gray-10">{description}</span>
         </output>

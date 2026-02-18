@@ -42,9 +42,7 @@ export function StatusIndicator({
           <div className="w-1/2 border-r border-grayA-3 relative flex items-center justify-center shrink-0">
             <StatusDot healthStatus={healthStatus} />
           </div>
-          <div className="w-1/2 bg-grayA-2 flex items-center justify-center shrink-0">
-            {icon}
-          </div>
+          <div className="w-1/2 bg-grayA-2 flex items-center justify-center shrink-0">{icon}</div>
         </div>
       </InfoTooltip>
     );
