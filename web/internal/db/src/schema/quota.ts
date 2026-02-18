@@ -48,7 +48,7 @@ export const quotas = mysqlTable("quota", {
   team: boolean("team").notNull().default(false),
 
   /**
-   * ratelimitLimit is the maximum number of API requests allowed per duration window.
+   * ratelimitApiLimit is the maximum number of API requests allowed per duration window.
    * NULL means unlimited (no workspace rate limiting).
    * 0 means zero requests allowed.
    */

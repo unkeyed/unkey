@@ -218,8 +218,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AuditLogsRetentionDays: 30,
 				LogsRetentionDays:      7,
 				Team:                   false,
-				RatelimitLimit:         sql.NullInt32{}, //nolint:exhaustruct
-				RatelimitDuration:      sql.NullInt32{}, //nolint:exhaustruct
+				RatelimitApiLimit:         sql.NullInt32{}, //nolint:exhaustruct
+				RatelimitApiDuration:      sql.NullInt32{}, //nolint:exhaustruct
 			},
 			{
 				WorkspaceID:            rootWorkspaceID,
@@ -227,8 +227,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AuditLogsRetentionDays: 30,
 				LogsRetentionDays:      7,
 				Team:                   false,
-				RatelimitLimit:         sql.NullInt32{}, //nolint:exhaustruct
-				RatelimitDuration:      sql.NullInt32{}, //nolint:exhaustruct
+				RatelimitApiLimit:         sql.NullInt32{}, //nolint:exhaustruct
+				RatelimitApiDuration:      sql.NullInt32{}, //nolint:exhaustruct
 			},
 		})
 		if err != nil {

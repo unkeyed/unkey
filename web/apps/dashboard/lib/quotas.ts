@@ -5,6 +5,6 @@ export const freeTierQuotas: Omit<Quotas, "workspaceId" | "pk"> = {
   logsRetentionDays: 7,
   auditLogsRetentionDays: 30,
   team: false,
-  ratelimitDuration: null,
-  ratelimitLimit: null,
+  ratelimitApiDuration: null,
+  ratelimitApiLimit: null,
 };
