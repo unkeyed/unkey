@@ -28,8 +28,8 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 		AuditLogsRetentionDays: 30,
 		RequestsPerMonth:       1_000_000,
 		Team:                   false,
-		RatelimitApiLimit:         sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitApiDuration:      sql.NullInt32{}, //nolint:exhaustruct
+		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
+		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
 	})
 	require.NoError(t, err)
 

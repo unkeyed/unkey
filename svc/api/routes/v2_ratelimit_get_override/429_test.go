@@ -57,8 +57,8 @@ func TestWorkspaceRateLimit_NullFields_Unlimited(t *testing.T) {
 		AuditLogsRetentionDays: 30,
 		LogsRetentionDays:      30,
 		Team:                   false,
-		RatelimitApiLimit:         sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitApiDuration:      sql.NullInt32{}, //nolint:exhaustruct
+		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
+		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
 	})
 	require.NoError(t, err)
 
@@ -96,8 +96,8 @@ func TestWorkspaceRateLimit_ZeroLimit_Returns429(t *testing.T) {
 		AuditLogsRetentionDays: 30,
 		LogsRetentionDays:      30,
 		Team:                   false,
-		RatelimitApiLimit:         sql.NullInt32{Valid: true, Int32: 0},
-		RatelimitApiDuration:      sql.NullInt32{Valid: true, Int32: 60000},
+		RatelimitApiLimit:      sql.NullInt32{Valid: true, Int32: 0},
+		RatelimitApiDuration:   sql.NullInt32{Valid: true, Int32: 60000},
 	})
 	require.NoError(t, err)
 
@@ -136,8 +136,8 @@ func TestWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
 		AuditLogsRetentionDays: 30,
 		LogsRetentionDays:      30,
 		Team:                   false,
-		RatelimitApiLimit:         sql.NullInt32{Valid: true, Int32: 2},
-		RatelimitApiDuration:      sql.NullInt32{Valid: true, Int32: 60000},
+		RatelimitApiLimit:      sql.NullInt32{Valid: true, Int32: 2},
+		RatelimitApiDuration:   sql.NullInt32{Valid: true, Int32: 60000},
 	})
 	require.NoError(t, err)
 
