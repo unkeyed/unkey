@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+import "middleware/v1/basicauth.proto";
+import "middleware/v1/iprules.proto";
+import "middleware/v1/jwtauth.proto";
+import "middleware/v1/keyauth.proto";
+import "middleware/v1/match.proto";
+import "middleware/v1/openapi.proto";
+import "middleware/v1/ratelimit.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// Middleware is the per-deployment policy configuration for sentinel.
+//
+// Sentinel is Unkey's reverse proxy. Each deployment gets a Middleware
+// configuration that defines which policies apply to incoming requests and in
+// what order. When a request arrives, sentinel evaluates every policy's
+// match conditions against it, collects the matching policies, and executes
+// them sequentially in list order. This gives operators full control over
+// request processing without relying on implicit ordering conventions.
+//
+// A deployment with no policies is a plain pass-through proxy. Adding policies
+// incrementally layers on authentication, authorization, traffic shaping,
+// and validation — all without touching application code.
+message Middleware {
+  // The ordered list of policies for this deployment. Sentinel executes
+  // matching policies in exactly this order, so authn policies should appear
+  // before policies that depend on a [Principal].
+  repeated Policy policies = 1;
+
+  // CIDR ranges of trusted proxies sitting in front of sentinel, used to
+  // derive the real client IP from the X-Forwarded-For header chain.
+  // Sentinel walks X-Forwarded-For right-to-left, skipping entries that
+  // fall within a trusted CIDR, and uses the first untrusted entry as the
+  // client IP. When this list is empty, sentinel uses the direct peer IP
+  // and ignores X-Forwarded-For entirely — this is the safe default that
+  // prevents IP spoofing via forged headers.
+  //
+  // This setting affects all policies that depend on client IP: [IPRules]
+  // for allow/deny decisions and [RateLimit] with a [RemoteIpKey] source.
+  //
+  // Examples: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+  repeated string trusted_proxy_cidrs = 2;
+}
+
+// Policy is a single middleware layer in a deployment's configuration. Each policy
+// combines a match expression (which requests does it apply to?) with a
+// configuration (what does it do?). This separation is what makes the system
+// composable: the same rate limiter config can be scoped to POST /api/*
+// without the rate limiter needing to know anything about path matching.
+//
+// Policies carry a stable id for correlation across logs, metrics, and
+// debugging. The disabled flag allows operators to disable a policy without
+// removing it from config, which is critical for incident response — you can
+// turn off a misbehaving policy and re-enable it once the issue is resolved,
+// without losing the configuration or triggering a full redeploy.
+message Policy {
+  // Stable identifier for this policy, used in log entries, metrics labels,
+  // and error messages. Should be unique within a deployment's Middleware
+  // config. Typically a UUID or a slug like "api-ratelimit".
+  string id = 1;
+
+  // Human-friendly label displayed in the dashboard and audit logs.
+  // Does not affect policy behavior.
+  string name = 2;
+
+  // When false, sentinel skips this policy entirely during evaluation.
+  // This allows operators to toggle policies on and off without modifying
+  // or removing the underlying configuration, which is useful during
+  // incidents, gradual rollouts, and debugging.
+  bool enabled = 3;
+
+  // Match conditions that determine which requests this policy applies to.
+  // All entries must match for the policy to run (implicit AND). An empty
+  // list matches all requests — this is the common case for global policies
+  // like IP allowlists or rate limiting.
+  //
+  // For OR semantics, create separate policies with the same config and
+  // different match lists.
+  repeated MatchExpr match = 4;
+
+  // The policy configuration. Exactly one must be set.
+  oneof config {
+    KeyAuth keyauth = 5;
+    JWTAuth jwtauth = 6;
+    BasicAuth basicauth = 7;
+    RateLimit ratelimit = 8;
+    IPRules ip_rules = 9;
+    OpenApiRequestValidation openapi = 10;
+  }
+}
