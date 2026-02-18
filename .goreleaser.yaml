@@ -8,6 +8,9 @@
 
 version: 2
 
+partial:
+  by: goos
+
 git:
   ignore_tags:
     - "inject/*"
@@ -34,7 +37,7 @@ builds:
       - -X 'github.com/unkeyed/unkey/pkg/version.Version={{.Version}}'
 
 upx:
-  - enabled: false
+  - enabled: true
     ids:
       - unkey
     goos:
@@ -67,15 +70,19 @@ npms:
     repository: "https://github.com/unkeyed/unkey"
     license: "AGPL-3.0-only"
 
-kos:
-  - repositories:
-      - ghcr.io/unkeyed/unkey
+dockers_v2:
+  - ids: [unkey]
+    images:
+      - "ghcr.io/unkeyed/unkey"
     tags:
-      - "v{{.Version}}"
-    bare: true
+      - "v{{ .Version }}"
     platforms:
       - linux/amd64
       - linux/arm64
+    dockerfile: Dockerfile.release
+    labels:
+      "org.opencontainers.image.source": "https://github.com/unkeyed/unkey"
+      "org.opencontainers.image.description": "Unkey API"
 
 changelog:
   use: github
