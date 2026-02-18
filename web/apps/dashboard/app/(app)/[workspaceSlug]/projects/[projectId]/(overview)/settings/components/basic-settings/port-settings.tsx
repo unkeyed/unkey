@@ -8,7 +8,7 @@ import { useProjectData } from "../../../data-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const portSchema = z.object({
-  port: z.number().int().min(1).max(65535),
+  port: z.number().int().min(2000).max(54000),
 });
 
 export const PortSettings = () => {
