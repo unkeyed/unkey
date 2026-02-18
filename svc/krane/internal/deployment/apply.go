@@ -143,7 +143,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 					Labels:       usedLabels,
 				},
 				Spec: corev1.PodSpec{
-					RuntimeClassName:          nil,
+					RuntimeClassName:          ptr.P(runtimeClassGvisor),
 					RestartPolicy:             corev1.RestartPolicyAlways,
 					Tolerations:               []corev1.Toleration{untrustedToleration},
 					TopologySpreadConstraints: deploymentTopologySpread(req.GetDeploymentId()),
