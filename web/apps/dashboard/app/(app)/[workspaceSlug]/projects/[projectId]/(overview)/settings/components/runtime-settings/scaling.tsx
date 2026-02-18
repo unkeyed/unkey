@@ -56,7 +56,6 @@ export const Scaling = () => {
     <FormSettingCard
       icon={<Gauge className="text-gray-12" iconSize="xl-medium" />}
       title="Scaling"
-      border="bottom"
       description="Autoscaling instance range and CPU trigger threshold"
       displayValue={
         <div className="space-x-1">

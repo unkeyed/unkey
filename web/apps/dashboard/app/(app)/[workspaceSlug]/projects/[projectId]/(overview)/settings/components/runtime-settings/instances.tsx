@@ -112,7 +112,6 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
     <FormSettingCard
       icon={<Connections3 className="text-gray-12" iconSize="xl-medium" />}
       title="Instances"
-      border="middle"
       description="Number of instances running in each region"
       displayValue={
         <div className="space-x-1">

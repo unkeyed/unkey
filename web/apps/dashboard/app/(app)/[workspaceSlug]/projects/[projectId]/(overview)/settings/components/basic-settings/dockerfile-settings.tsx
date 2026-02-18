@@ -79,7 +79,6 @@ const DockerfileForm = ({
     <FormSettingCard
       icon={<FileSettings className="text-gray-12" iconSize="xl-medium" />}
       title="Dockerfile"
-      border="bottom"
       description="Dockerfile location used for docker build. (e.g., services/api/Dockerfile)"
       displayValue={defaultValue}
       onSubmit={handleSubmit(onSubmit)}

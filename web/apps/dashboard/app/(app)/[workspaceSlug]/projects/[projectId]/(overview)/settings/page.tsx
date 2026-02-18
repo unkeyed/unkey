@@ -12,6 +12,7 @@ import { Memory } from "./components/runtime-settings/memory";
 import { Regions } from "./components/runtime-settings/regions";
 import { Storage } from "./components/runtime-settings/storage";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
+import { SettingCardGroup } from "@unkey/ui";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 export default function SettingsPage() {
@@ -25,22 +26,28 @@ export default function SettingsPage() {
       </div>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col w-full">
-          <GitHubSettings />
-          <RootDirectorySettings />
-          <DockerfileSettings />
-          <PortSettings />
+          <SettingCardGroup>
+            <GitHubSettings />
+            <RootDirectorySettings />
+            <DockerfileSettings />
+            <PortSettings />
+          </SettingCardGroup>
         </div>
         <SettingsGroup
           icon={<CircleHalfDottedClock iconSize="md-medium" />}
           title="Runtime settings"
         >
-          <Regions />
-          <Instances />
-          <Cpu />
-          <Memory />
-          <Storage />
-          <Healthcheck />
-          <Scaling />
+          <SettingCardGroup>
+            <Regions />
+            <Instances />
+            <Cpu />
+            <Memory />
+            {/* Temporarily disabled */}
+            {/* <Storage /> */}
+            <Healthcheck />
+            {/* Temporarily disabled */}
+            {/* <Scaling /> */}
+          </SettingCardGroup>
         </SettingsGroup>
       </div>
     </div>

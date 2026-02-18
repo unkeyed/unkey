@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
   SettingCard,
+  SettingCardGroup,
   toast,
 } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
@@ -70,7 +71,6 @@ const PortCard: React.FC<Props & { defaultPort: number }> = ({ environmentId, de
       <SettingCard
         title="Port"
         description="The port your application listens on. Changes apply on next deploy."
-        border="top"
         contentWidth="w-full lg:w-[420px]"
       >
         <div className="flex flex-row justify-end items-center w-full gap-x-2">
@@ -142,7 +142,6 @@ const CommandCard: React.FC<Props & { defaultCommand: string }> = ({
       <SettingCard
         title="Command"
         description="The command to start your application. Changes apply on next deploy."
-        border="default"
         contentWidth="w-full lg:w-[420px]"
       >
         <div className="flex flex-row justify-end items-center w-full gap-x-2">
@@ -226,7 +225,6 @@ const HealthcheckCard: React.FC<Props & { defaultMethod: "GET" | "POST"; default
       <SettingCard
         title="Healthcheck"
         description="The healthcheck endpoint for your application. Changes apply on next deploy."
-        border="bottom"
         contentWidth="w-full lg:w-[420px]"
       >
         <div className="flex flex-row justify-end items-center w-full gap-x-2">
@@ -269,7 +267,7 @@ export const RuntimeApplicationSettings: React.FC<Props> = ({ environmentId }) =
   const runtimeSettings = data?.runtimeSettings;
 
   return (
-    <div>
+    <SettingCardGroup>
       <PortCard environmentId={environmentId} defaultPort={runtimeSettings?.port ?? 8080} />
       <CommandCard
         environmentId={environmentId}
@@ -282,6 +280,6 @@ export const RuntimeApplicationSettings: React.FC<Props> = ({ environmentId }) =
         }
         defaultPath={(runtimeSettings?.healthcheck as { path: string } | null)?.path ?? ""}
       />
-    </div>
+    </SettingCardGroup>
   );
 };

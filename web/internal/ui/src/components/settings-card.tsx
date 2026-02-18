@@ -1,21 +1,38 @@
+"use client"
+
 import { ChevronRight } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
 
 export type ChevronState = "hidden" | "interactive" | "disabled";
 
+export type SettingCardBorder = "top" | "middle" | "bottom" | "both" | "none" | "default";
+
 type SettingCardProps = {
   title: string | React.ReactNode;
   description: string | React.ReactNode;
   children?: React.ReactNode;
   className?: string;
-  border?: "top" | "bottom" | "both" | "none" | "default";
+  border?: SettingCardBorder;
   contentWidth?: string;
   icon?: React.ReactNode;
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
   chevronState?: ChevronState;
 };
+
+const SettingCardGroupContext = React.createContext(false);
+
+function SettingCardGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <SettingCardGroupContext.Provider value={true}>
+      <div className="border border-grayA-4 rounded-xl overflow-hidden divide-y divide-grayA-4">
+        {children}
+      </div>
+    </SettingCardGroupContext.Provider>
+  );
+}
+SettingCardGroup.displayName = "SettingCardGroup";
 
 function SettingCard({
   title,
@@ -31,6 +48,7 @@ function SettingCard({
 }: SettingCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const inGroup = React.useContext(SettingCardGroupContext);
 
   // Determine effective chevron state
   const effectiveChevronState: ChevronState =
@@ -40,6 +58,9 @@ function SettingCard({
   const isInteractive = effectiveChevronState === "interactive" && expandable;
 
   const getBorderRadiusClass = () => {
+    if (inGroup) {
+      return "";
+    }
     if (border === "none" || border === "default") {
       return "";
     }
@@ -56,14 +77,18 @@ function SettingCard({
     return "";
   };
 
-  const borderClass = {
-    "border border-grayA-4": border !== "none",
-    "border-t-0": border === "bottom",
-    "border-b-0": border === "top",
-  };
+  const borderClass = inGroup
+    ? {}
+    : {
+      "border border-grayA-4": border !== "none",
+      "border-t-0": border === "bottom",
+      "border-b-0": border === "top",
+    };
 
   const expandedBottomRadius =
-    expandable && isExpanded && (border === "bottom" || border === "both") ? "rounded-b-xl" : "";
+    !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
+      ? "rounded-b-xl"
+      : "";
 
   const handleToggle = () => {
     if (isInteractive) {
@@ -143,4 +168,4 @@ function SettingCard({
 
 SettingCard.displayName = "SettingCard";
 
-export { SettingCard };
+export { SettingCard, SettingCardGroup };

@@ -81,7 +81,6 @@ const PortForm = ({
     <FormSettingCard
       icon={<NumberInput className="text-gray-12" iconSize="xl-medium" />}
       title="Port"
-      border="bottom"
       description="Port your application listens on"
       displayValue={String(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}

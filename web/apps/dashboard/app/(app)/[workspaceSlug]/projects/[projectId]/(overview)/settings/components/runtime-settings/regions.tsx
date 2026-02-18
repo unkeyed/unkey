@@ -178,7 +178,6 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       icon={<Location2 className="text-gray-12" iconSize="xl-medium" />}
       title="Regions"
       description="Geographic regions where your project will run"
-      border="top"
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
