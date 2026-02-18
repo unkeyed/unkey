@@ -479,6 +479,20 @@ CREATE TABLE `deployments` (
 	CONSTRAINT `deployments_build_id_unique` UNIQUE(`build_id`)
 );
 
+CREATE TABLE `deployment_steps` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(128) NOT NULL,
+	`project_id` varchar(128) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`deployment_id` varchar(128) NOT NULL,
+	`step` enum('queued','building','deploying','network') NOT NULL DEFAULT 'queued',
+	`started_at` bigint unsigned NOT NULL,
+	`ended_at` bigint unsigned,
+	`error` varchar(512),
+	CONSTRAINT `deployment_steps_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `unique_step_per_deployment` UNIQUE(`deployment_id`,`step`)
+);
+
 CREATE TABLE `deployment_topology` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(64) NOT NULL,
@@ -682,6 +696,8 @@ CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
+CREATE INDEX `workspace_idx` ON `deployment_steps` (`workspace_id`);
+CREATE INDEX `deployment_idx` ON `deployment_steps` (`deployment_id`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);

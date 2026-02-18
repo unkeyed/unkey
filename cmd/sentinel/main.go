@@ -53,6 +53,19 @@ var Cmd = &cli.Command{
 			cli.Default(0.25), cli.EnvVar("UNKEY_OTEL_TRACE_SAMPLING_RATE")),
 		cli.Int("prometheus-port", "Enable Prometheus /metrics endpoint on specified port. Set to 0 to disable.", cli.EnvVar("UNKEY_PROMETHEUS_PORT")),
 
+		// Gossip Cluster Configuration
+		cli.Bool("gossip-enabled", "Enable gossip-based distributed cache invalidation",
+			cli.Default(false), cli.EnvVar("UNKEY_GOSSIP_ENABLED")),
+		cli.String("gossip-bind-addr", "Address for gossip listeners. Default: 0.0.0.0",
+			cli.Default("0.0.0.0"), cli.EnvVar("UNKEY_GOSSIP_BIND_ADDR")),
+		cli.Int("gossip-lan-port", "LAN memberlist port. Default: 7946",
+			cli.Default(7946), cli.EnvVar("UNKEY_GOSSIP_LAN_PORT")),
+		cli.Int("gossip-wan-port", "WAN memberlist port for bridges. Default: 7947",
+			cli.Default(7947), cli.EnvVar("UNKEY_GOSSIP_WAN_PORT")),
+		cli.StringSlice("gossip-lan-seeds", "LAN seed addresses (e.g. k8s headless service DNS)",
+			cli.EnvVar("UNKEY_GOSSIP_LAN_SEEDS")),
+		cli.StringSlice("gossip-wan-seeds", "Cross-region bridge seed addresses",
+			cli.EnvVar("UNKEY_GOSSIP_WAN_SEEDS")),
 		// Logging Sampler Configuration
 		cli.Float("log-sample-rate", "Baseline probability (0.0-1.0) of emitting log events. Default: 1.0",
 			cli.Default(1.0), cli.EnvVar("UNKEY_LOG_SAMPLE_RATE")),
@@ -82,6 +95,14 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		OtelEnabled:           cmd.Bool("otel"),
 		OtelTraceSamplingRate: cmd.Float("otel-trace-sampling-rate"),
 		PrometheusPort:        cmd.Int("prometheus-port"),
+
+		// Gossip cluster configuration
+		GossipEnabled:  cmd.Bool("gossip-enabled"),
+		GossipBindAddr: cmd.String("gossip-bind-addr"),
+		GossipLANPort:  cmd.Int("gossip-lan-port"),
+		GossipWANPort:  cmd.Int("gossip-wan-port"),
+		GossipLANSeeds: cmd.StringSlice("gossip-lan-seeds"),
+		GossipWANSeeds: cmd.StringSlice("gossip-wan-seeds"),
 
 		// Logging sampler configuration
 		LogSampleRate:    cmd.Float("log-sample-rate"),

@@ -7,8 +7,10 @@ import (
 	"log/slog"
 	"net"
 
+	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -106,15 +108,54 @@ func Run(ctx context.Context, cfg Config) error {
 		r.Defer(ch.Close)
 	}
 
+	// Initialize gossip-based cache invalidation
+	var broadcaster clustering.Broadcaster
+	if cfg.GossipEnabled {
+		logger.Info("Initializing gossip cluster for cache invalidation",
+			"region", cfg.Region,
+			"instanceID", cfg.SentinelID,
+		)
+
+		mux := cluster.NewMessageMux()
+
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
+
+		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Region:      cfg.Region,
+			NodeID:      cfg.SentinelID,
+			BindAddr:    cfg.GossipBindAddr,
+			BindPort:    cfg.GossipLANPort,
+			WANBindPort: cfg.GossipWANPort,
+			LANSeeds:    lanSeeds,
+			WANSeeds:    wanSeeds,
+			SecretKey:   nil, // Sentinel gossip is locked down via CiliumNetworkPolicy
+			OnMessage:   mux.OnMessage,
+		})
+		if clusterErr != nil {
+			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
+				"error", clusterErr,
+			)
+		} else {
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
+			broadcaster = gossipBroadcaster
+			r.Defer(gossipCluster.Close)
+		}
+	}
+
 	routerSvc, err := router.New(router.Config{
 		DB:            database,
 		Clock:         clk,
 		EnvironmentID: cfg.EnvironmentID,
 		Region:        cfg.Region,
+		Broadcaster:   broadcaster,
+		NodeID:        cfg.SentinelID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
 	}
+	r.Defer(routerSvc.Close)
 
 	svcs := &routes.Services{
 		RouterService:      routerSvc,
