@@ -17,7 +17,7 @@ import (
 // same workspace+name are collapsed via singleflight so only one goroutine
 // hits the DB. If another node races and creates it first (duplicate key),
 // Create re-fetches from the DB.
-// An audit log is always written for successful creation.
+// An audit log is written when audit is non-nil.
 func (s *service) Create(ctx context.Context, workspaceID, name string, audit *AuditContext) (db.FindRatelimitNamespace, error) {
 	key := workspaceID + ":" + name
 	return s.createFlight.Do(key, func() (db.FindRatelimitNamespace, error) {
@@ -88,14 +88,17 @@ func (s *service) doCreate(ctx context.Context, workspaceID, name string, audit 
 			}
 		}
 
-		// Warm cache by both name and ID
-		s.cache.Set(ctx, cache.ScopedKey{WorkspaceID: workspaceID, Key: name}, result)
-		s.cache.Set(ctx, cache.ScopedKey{WorkspaceID: workspaceID, Key: id}, result)
-
 		return result, nil
 	})
+	if err != nil {
+		return ns, err
+	}
 
-	return ns, err
+	// Warm cache by both name and ID after the transaction has committed
+	s.cache.Set(ctx, cache.ScopedKey{WorkspaceID: workspaceID, Key: ns.Name}, ns)
+	s.cache.Set(ctx, cache.ScopedKey{WorkspaceID: workspaceID, Key: ns.ID}, ns)
+
+	return ns, nil
 }
 
 // CreateMany bulk-inserts namespaces into the database. Handles duplicate-key
@@ -190,8 +193,8 @@ func (s *service) CreateMany(ctx context.Context, workspaceID string, names []st
 			s.cache.Set(ctx, cache.ScopedKey{WorkspaceID: workspaceID, Key: name}, ns)
 			s.cache.Set(ctx, cache.ScopedKey{WorkspaceID: workspaceID, Key: ns.ID}, ns)
 		} else {
-			// Race: re-fetch from DB
-			ns, fetchErr := s.loadFromDB(ctx, workspaceID, name)
+			// Race: re-fetch from the primary to avoid replica lag
+			ns, fetchErr := s.loadFromDBWith(ctx, s.db.RW(), workspaceID, name)
 			if fetchErr != nil {
 				return nil, fault.Wrap(fetchErr,
 					fault.Code(codes.App.Internal.UnexpectedError.URN()),

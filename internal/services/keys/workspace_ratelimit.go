@@ -62,7 +62,7 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, req WorkspaceRate
 	}
 
 	// 0 = explicitly blocked, no requests allowed
-	if quota.RatelimitLimit.Int32 == 0 {
+	if quota.RatelimitLimit.Int32 == 0 || quota.RatelimitDuration.Int32 == 0 {
 		return fault.New("workspace rate limit exceeded",
 			fault.Code(codes.User.TooManyRequests.WorkspaceRateLimited.URN()),
 			fault.Internal("workspace rate limit is zero"),

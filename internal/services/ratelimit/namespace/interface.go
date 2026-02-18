@@ -35,7 +35,7 @@ type Service interface {
 
 	// Create inserts a new namespace into the database. If another request
 	// races and creates it first (duplicate key), Create re-fetches from the DB.
-	// An audit log is always written.
+	// An audit log is written when audit is non-nil.
 	Create(ctx context.Context, workspaceID, name string, audit *AuditContext) (db.FindRatelimitNamespace, error)
 
 	// CreateMany bulk-inserts namespaces into the database. Handles duplicate-key
