@@ -46,24 +46,26 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	if cfg.Observability.Logging != nil {
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
-	})
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 
 	// Create cached clock with millisecond resolution for efficient time tracking
 	clk := clock.New()
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "frontline",
 			Version:         version.Version,
-			InstanceID:      cfg.FrontlineID,
+			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -71,8 +73,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Configure global logger with base attributes
-	if cfg.FrontlineID != "" {
-		logger.AddBaseAttrs(slog.String("instanceID", cfg.FrontlineID))
+	if cfg.InstanceID != "" {
+		logger.AddBaseAttrs(slog.String("instanceID", cfg.InstanceID))
 	}
 
 	if cfg.Region != "" {
@@ -110,22 +112,22 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var vaultClient vault.VaultServiceClient
-	if cfg.VaultURL != "" {
+	if cfg.Vault.URL != "" {
 		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 			http.DefaultClient,
-			cfg.VaultURL,
+			cfg.Vault.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": "Bearer " + cfg.VaultToken,
+				"Authorization": "Bearer " + cfg.Vault.Token,
 			})),
 		))
-		logger.Info("Vault client initialized", "url", cfg.VaultURL)
+		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	} else {
 		logger.Warn("Vault not configured - TLS certificate decryption will be unavailable")
 	}
 
 	db, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
@@ -134,21 +136,21 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize gossip-based cache invalidation
 	var broadcaster clustering.Broadcaster
-	if cfg.GossipEnabled {
+	if cfg.Gossip != nil {
 		logger.Info("Initializing gossip cluster for cache invalidation",
 			"region", cfg.Region,
-			"instanceID", cfg.FrontlineID,
+			"instanceID", cfg.InstanceID,
 		)
 
 		mux := cluster.NewMessageMux()
 
-		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
-		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
 
 		var secretKey []byte
-		if cfg.GossipSecretKey != "" {
+		if cfg.Gossip.SecretKey != "" {
 			var decodeErr error
-			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.GossipSecretKey)
+			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
 			if decodeErr != nil {
 				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
 			}
@@ -156,10 +158,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
 			Region:      cfg.Region,
-			NodeID:      cfg.FrontlineID,
-			BindAddr:    cfg.GossipBindAddr,
-			BindPort:    cfg.GossipLANPort,
-			WANBindPort: cfg.GossipWANPort,
+			NodeID:      cfg.InstanceID,
+			BindAddr:    cfg.Gossip.BindAddr,
+			BindPort:    cfg.Gossip.LANPort,
+			WANBindPort: cfg.Gossip.WANPort,
 			LANSeeds:    lanSeeds,
 			WANSeeds:    wanSeeds,
 			SecretKey:   secretKey,
@@ -181,7 +183,7 @@ func Run(ctx context.Context, cfg Config) error {
 	cache, err := caches.New(caches.Config{
 		Clock:       clk,
 		Broadcaster: broadcaster,
-		NodeID:      cfg.FrontlineID,
+		NodeID:      cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -212,11 +214,11 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize proxy service with shared transport for connection pooling
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
-		FrontlineID: cfg.FrontlineID,
-		Region:      cfg.Region,
-		ApexDomain:  cfg.ApexDomain,
-		Clock:       clk,
-		MaxHops:     cfg.MaxHops,
+		InstanceID: cfg.InstanceID,
+		Region:     cfg.Region,
+		ApexDomain: cfg.ApexDomain,
+		Clock:      clk,
+		MaxHops:    cfg.MaxHops,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
 	})
 	if err != nil {
@@ -225,17 +227,17 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create TLS config - either from static files (dev mode) or dynamic certificates (production)
 	var tlsConfig *pkgtls.Config
-	if cfg.EnableTLS {
-		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+	if cfg.TLS != nil {
+		if cfg.TLS.CertFile != "" && cfg.TLS.KeyFile != "" {
 			// Dev mode: static file-based certificate
-			fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)
+			fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
 			if tlsErr != nil {
 				return fmt.Errorf("failed to load TLS certificate from files: %w", tlsErr)
 			}
 			tlsConfig = fileTLSConfig
 			logger.Info("TLS configured with static certificate files",
-				"certFile", cfg.TLSCertFile,
-				"keyFile", cfg.TLSKeyFile)
+				"certFile", cfg.TLS.CertFile,
+				"keyFile", cfg.TLS.KeyFile)
 		} else if certManager != nil {
 			// Production mode: dynamic certificates from database/vault
 			//nolint:exhaustruct
