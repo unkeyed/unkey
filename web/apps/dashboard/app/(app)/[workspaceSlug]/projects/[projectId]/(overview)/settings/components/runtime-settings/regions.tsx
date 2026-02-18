@@ -86,10 +86,26 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
 
   const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
     onSuccess: () => {
+      toast.success("Regions updated", {
+        description: "Deployment regions saved successfully.",
+        duration: 5000,
+      });
       utils.deploy.environmentSettings.get.invalidate({ environmentId });
     },
     onError: (err) => {
-      toast.error("Failed to update regions", { description: err.message });
+      if (err.data?.code === "BAD_REQUEST") {
+        toast.error("Invalid regions setting", {
+          description: err.message || "Please check your input and try again.",
+        });
+      } else {
+        toast.error("Failed to update regions", {
+          description: err.message || "An unexpected error occurred. Please try again or contact support@unkey.com",
+          action: {
+            label: "Contact Support",
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+          },
+        });
+      }
     },
   });
 

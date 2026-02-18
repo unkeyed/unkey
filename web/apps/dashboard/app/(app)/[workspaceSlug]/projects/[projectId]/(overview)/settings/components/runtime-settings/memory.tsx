@@ -70,11 +70,27 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
   const currentMemory = useWatch({ control, name: "memory" });
 
   const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      toast.success("Memory updated", {
+        description: `Memory set to ${formatMemory(variables.memoryMib ?? defaultMemory)}`,
+        duration: 5000,
+      });
       utils.deploy.environmentSettings.get.invalidate({ environmentId });
     },
     onError: (err) => {
-      toast.error("Failed to update memory", { description: err.message });
+      if (err.data?.code === "BAD_REQUEST") {
+        toast.error("Invalid memory setting", {
+          description: err.message || "Please check your input and try again.",
+        });
+      } else {
+        toast.error("Failed to update memory", {
+          description: err.message || "An unexpected error occurred. Please try again or contact support@unkey.com",
+          action: {
+            label: "Contact Support",
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+          },
+        });
+      }
     },
   });
 

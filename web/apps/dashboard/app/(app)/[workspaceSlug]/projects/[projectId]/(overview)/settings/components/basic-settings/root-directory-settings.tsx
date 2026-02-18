@@ -47,14 +47,27 @@ const RootDirectoryForm = ({
   const currentDockerContext = useWatch({ control, name: "dockerContext" });
 
   const updateBuild = trpc.deploy.environmentSettings.updateBuild.useMutation({
-    onSuccess: () => {
-      toast.success("Root directory updated");
+    onSuccess: (_data, variables) => {
+      toast.success("Root directory updated", {
+        description: `Build context set to "${(variables.dockerContext ?? defaultValue) || "."}".`,
+        duration: 5000,
+      });
       utils.deploy.environmentSettings.get.invalidate({ environmentId });
     },
     onError: (err) => {
-      toast.error("Failed to update root directory", {
-        description: err.message,
-      });
+      if (err.data?.code === "BAD_REQUEST") {
+        toast.error("Invalid root directory", {
+          description: err.message || "Please check your input and try again.",
+        });
+      } else {
+        toast.error("Failed to update root directory", {
+          description: err.message || "An unexpected error occurred. Please try again or contact support@unkey.com",
+          action: {
+            label: "Contact Support",
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+          },
+        });
+      }
     },
   });
 

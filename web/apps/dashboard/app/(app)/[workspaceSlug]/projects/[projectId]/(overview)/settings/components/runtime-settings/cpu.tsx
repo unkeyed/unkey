@@ -70,11 +70,27 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
   const currentCpu = useWatch({ control, name: "cpu" });
 
   const updateRuntime = trpc.deploy.environmentSettings.updateRuntime.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      toast.success("CPU updated", {
+        description: `CPU set to ${formatCpu(variables.cpuMillicores ?? defaultCpu)}`,
+        duration: 5000,
+      });
       utils.deploy.environmentSettings.get.invalidate({ environmentId });
     },
     onError: (err) => {
-      toast.error("Failed to update CPU", { description: err.message });
+      if (err.data?.code === "BAD_REQUEST") {
+        toast.error("Invalid CPU setting", {
+          description: err.message || "Please check your input and try again.",
+        });
+      } else {
+        toast.error("Failed to update CPU", {
+          description: err.message || "An unexpected error occurred. Please try again or contact support@unkey.com",
+          action: {
+            label: "Contact Support",
+            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+          },
+        });
+      }
     },
   });
 
