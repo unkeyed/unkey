@@ -32,7 +32,7 @@ export const GitHubConnected = ({
         side: "top",
       }}
     >
-      <SelectedConfig label={<RepoNameLabel fullName={repoFullName + "asdasdsadsd"} />} />
+      <SelectedConfig label={<RepoNameLabel fullName={repoFullName} />} />
     </InfoTooltip>
   );
 
