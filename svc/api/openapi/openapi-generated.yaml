@@ -3757,7 +3757,7 @@ paths:
                     description: Query exceeds resource limits (timeout, memory, rows scanned, or result size)
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Query quota exceeded
@@ -3827,7 +3827,7 @@ paths:
                     description: Forbidden
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -3905,7 +3905,7 @@ paths:
                     description: Delete protection is enabled. Disable protection through the dashboard or API configuration, then retry the deletion.
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -3973,7 +3973,7 @@ paths:
                     description: Not Found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4050,7 +4050,7 @@ paths:
                     description: Not Found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4115,7 +4115,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4181,7 +4181,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4296,7 +4296,7 @@ paths:
                     description: Conflict - Identity with this externalId already exists
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4505,7 +4505,7 @@ paths:
                     description: Not Found - Identity with the specified externalId doesn't exist
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4613,7 +4613,7 @@ paths:
                     description: Forbidden - Insufficient permissions (requires `identity.*.read_identity`)
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4718,7 +4718,7 @@ paths:
                     description: Not Found - Identity with the specified ID or externalId doesn't exist
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4792,7 +4792,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4866,7 +4866,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -4941,7 +4941,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5012,7 +5012,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5086,7 +5086,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5151,7 +5151,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5225,7 +5225,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5299,7 +5299,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5390,7 +5390,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5464,7 +5464,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5538,7 +5538,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5613,7 +5613,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5695,7 +5695,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5795,7 +5795,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5864,7 +5864,7 @@ paths:
                     description: Not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6005,7 +6005,7 @@ paths:
                     description: Conflict - permission with that name already exists
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6082,7 +6082,7 @@ paths:
                     description: Conflict - A role with this name already exists
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6154,7 +6154,7 @@ paths:
                     description: Not Found - The specified permission does not exist
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6215,7 +6215,7 @@ paths:
                     description: Forbidden
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6280,7 +6280,7 @@ paths:
                     description: Not Found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6345,7 +6345,7 @@ paths:
                     description: Not Found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6405,7 +6405,7 @@ paths:
                     description: Forbidden
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6471,7 +6471,7 @@ paths:
                     description: Not Found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6570,7 +6570,7 @@ paths:
                     description: Not Found - Override or namespace not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6669,7 +6669,7 @@ paths:
                     description: Not Found - Override or namespace not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6801,7 +6801,7 @@ paths:
                     description: Gone - Namespace has been deleted
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -6889,7 +6889,7 @@ paths:
                     description: Not Found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -7064,7 +7064,7 @@ paths:
                     description: Gone - Namespace has been deleted
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -7167,7 +7167,7 @@ paths:
                     description: Not Found - Namespace not found
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests

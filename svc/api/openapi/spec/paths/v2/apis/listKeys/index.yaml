@@ -65,7 +65,7 @@ post:
     "429":
       description: Too Many Requests
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
     "500":
