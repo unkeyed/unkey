@@ -4396,7 +4396,7 @@ paths:
                     description: Not Found - Identity with the specified externalId doesn't exist
                 "429":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/TooManyRequestsErrorResponse'
                     description: Too Many Requests
@@ -5718,7 +5718,7 @@ paths:
 
                 Use this endpoint on every incoming request to your protected resources. It checks key validity, permissions, rate limits, and usage quotas in a single call.
 
-                **Important**: Always returns HTTP 200. Check the `valid` field in response data to determine if the key is authorized.
+                **Important**: Returns HTTP 200 for all verification outcomes — check the `valid` field in response data to determine if the key is authorized. A 429 may be returned if the workspace exceeds its API rate limit.
 
                 **Common use cases:**
                 - Authenticate API requests before processing
@@ -5928,12 +5928,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: ""
-                "429":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: Too Many Requests
                 "500":
                     content:
                         application/json:
@@ -6698,7 +6692,7 @@ paths:
 
                 Use this for rate limiting beyond API keys - limit users by ID, IPs by address, or any custom identifier. Supports namespace organization, variable costs, and custom overrides.
 
-                **Response Codes**: Rate limit checks return HTTP 200 regardless of whether the limit is exceeded - check the `success` field in the response to determine if the request should be allowed. 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
+                **Response Codes**: Rate limit checks return HTTP 200 regardless of whether the limit is exceeded — check the `success` field in the response to determine if the request should be allowed. A 429 may be returned if the workspace exceeds its API rate limit. Other 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
 
                 **Required Permissions**
 
@@ -6918,7 +6912,7 @@ paths:
 
                 Use this to efficiently check multiple rate limits at once. Each rate limit check is independent and returns its own result with a top-level `passed` indicator showing if all checks succeeded.
 
-                **Response Codes**: Rate limit checks return HTTP 200 regardless of whether limits are exceeded - check the `passed` field to see if all limits passed, or the `success` field in each individual result. 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
+                **Response Codes**: Rate limit checks return HTTP 200 regardless of whether limits are exceeded — check the `passed` field to see if all limits passed, or the `success` field in each individual result. A 429 may be returned if the workspace exceeds its API rate limit. Other 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
 
                 **Required Permissions**
 

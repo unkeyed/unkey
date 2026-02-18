@@ -7,7 +7,7 @@ post:
 
     Use this to efficiently check multiple rate limits at once. Each rate limit check is independent and returns its own result with a top-level `passed` indicator showing if all checks succeeded.
 
-    **Response Codes**: Rate limit checks return HTTP 200 regardless of whether limits are exceeded - check the `passed` field to see if all limits passed, or the `success` field in each individual result. 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
+    **Response Codes**: Rate limit checks return HTTP 200 regardless of whether limits are exceeded — check the `passed` field to see if all limits passed, or the `success` field in each individual result. A 429 may be returned if the workspace exceeds its API rate limit. Other 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
 
     **Required Permissions**
 

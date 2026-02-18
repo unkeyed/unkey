@@ -51,12 +51,6 @@ get:
                     be limited.
                   status: 412
                   type: https://unkey.dev/errors/precondition-failed
-    "429":
-      description: Too Many Requests
-      content:
-        application/json:
-          schema:
-            $ref: "../../../error/TooManyRequestsErrorResponse.yaml"
     "500":
       content:
         application/json:
