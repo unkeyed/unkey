@@ -20,5 +20,9 @@ func (g *Group[T]) Do(key string, fn func() (T, error)) (T, error) {
 		var zero T
 		return zero, err
 	}
+	if v == nil {
+		var zero T
+		return zero, nil
+	}
 	return v.(T), nil
 }
