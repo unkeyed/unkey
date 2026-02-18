@@ -14,7 +14,7 @@ type Observability struct {
 type MetricsConfig struct {
 	// PrometheusPort is the TCP port where Prometheus-compatible metrics are served.
 	// Set to 0 to disable metrics exposure.
-	PrometheusPort int
+	PrometheusPort int `toml:"prometheus_port"`
 }
 
 // TracingConfig controls OpenTelemetry tracing and metrics export.
