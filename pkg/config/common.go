@@ -100,10 +100,10 @@ type GossipConfig struct {
 type ControlConfig struct {
 	// URL is the control plane service endpoint.
 	// Example: "http://control-api:7091"
-	URL string `toml:"url"`
+	URL string `toml:"url" config:"required"`
 
 	// Token is the bearer token used to authenticate with the control plane service.
-	Token string `toml:"token"`
+	Token string `toml:"token" config:"required"`
 }
 
 // PprofConfig controls the Go pprof profiling endpoints served at /debug/pprof/*.
@@ -113,8 +113,8 @@ type PprofConfig struct {
 	// Username is the Basic Auth username for pprof endpoints. When both
 	// Username and Password are empty, pprof endpoints are served without
 	// authentication — only appropriate in development environments.
-	Username string `toml:"username"`
+	Username string `toml:"username" config:"required"`
 
 	// Password is the Basic Auth password for pprof endpoints.
-	Password string `toml:"password"`
+	Password string `toml:"password" config:"required"`
 }

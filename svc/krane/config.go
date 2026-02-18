@@ -10,13 +10,13 @@ import (
 // default registry configured on the cluster is used.
 type RegistryConfig struct {
 	// URL is the container registry endpoint (e.g. "registry.depot.dev").
-	URL string `toml:"url"`
+	URL string `toml:"url" config:"required"`
 
 	// Username is the registry authentication username (e.g. "x-token").
-	Username string `toml:"username"`
+	Username string `toml:"username" config:"required"`
 
 	// Password is the registry authentication password or token.
-	Password string `toml:"password"`
+	Password string `toml:"password" config:"required"`
 }
 
 // Config holds the complete configuration for the krane agent. It is designed
