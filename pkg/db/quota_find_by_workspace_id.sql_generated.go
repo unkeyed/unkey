@@ -10,14 +10,14 @@ import (
 )
 
 const findQuotaByWorkspaceID = `-- name: FindQuotaByWorkspaceID :one
-SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_limit, ratelimit_duration
+SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration
 FROM ` + "`" + `quota` + "`" + `
 WHERE workspace_id = ?
 `
 
 // FindQuotaByWorkspaceID
 //
-//	SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_limit, ratelimit_duration
+//	SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration
 //	FROM `quota`
 //	WHERE workspace_id = ?
 func (q *Queries) FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error) {
@@ -30,8 +30,8 @@ func (q *Queries) FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspace
 		&i.LogsRetentionDays,
 		&i.AuditLogsRetentionDays,
 		&i.Team,
-		&i.RatelimitLimit,
-		&i.RatelimitDuration,
+		&i.RatelimitApiLimit,
+		&i.RatelimitApiDuration,
 	)
 	return i, err
 }

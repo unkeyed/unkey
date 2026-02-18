@@ -263,15 +263,14 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		DB:                        db,
-		KeyCache:                  caches.VerificationKeyByHash,
-		QuotaCache:                caches.WorkspaceQuota,
-		RateLimiter:               rlSvc,
-		RBAC:                      rbac.New(),
-		Clickhouse:                ch,
-		Region:                    cfg.Region,
-		UsageLimiter:              ulSvc,
-		RatelimitNamespaceService: namespaceSvc,
+		DB:           db,
+		KeyCache:     caches.VerificationKeyByHash,
+		QuotaCache:   caches.WorkspaceQuota,
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		Clickhouse:   ch,
+		Region:       cfg.Region,
+		UsageLimiter: ulSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)

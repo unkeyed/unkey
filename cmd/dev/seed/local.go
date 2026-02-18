@@ -42,15 +42,14 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:                        database,
-		RateLimiter:               nil,
-		RBAC:                      nil,
-		Clickhouse:                nil,
-		Region:                    "local",
-		UsageLimiter:              nil,
-		KeyCache:                  nil,
-		QuotaCache:                nil,
-		RatelimitNamespaceService: nil,
+		DB:           database,
+		RateLimiter:  nil,
+		RBAC:         nil,
+		Clickhouse:   nil,
+		Region:       "local",
+		UsageLimiter: nil,
+		KeyCache:     nil,
+		QuotaCache:   nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)

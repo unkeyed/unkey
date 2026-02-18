@@ -12,7 +12,7 @@ import (
 const findClickhouseWorkspaceSettingsByWorkspaceID = `-- name: FindClickhouseWorkspaceSettingsByWorkspaceID :one
 SELECT
     c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_limit, q.ratelimit_duration
+    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration
 FROM ` + "`" + `clickhouse_workspace_settings` + "`" + ` c
 JOIN ` + "`" + `quota` + "`" + ` q ON c.workspace_id = q.workspace_id
 WHERE c.workspace_id = ?
@@ -27,7 +27,7 @@ type FindClickhouseWorkspaceSettingsByWorkspaceIDRow struct {
 //
 //	SELECT
 //	    c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-//	    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_limit, q.ratelimit_duration
+//	    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration
 //	FROM `clickhouse_workspace_settings` c
 //	JOIN `quota` q ON c.workspace_id = q.workspace_id
 //	WHERE c.workspace_id = ?
@@ -53,8 +53,8 @@ func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Conte
 		&i.Quotas.LogsRetentionDays,
 		&i.Quotas.AuditLogsRetentionDays,
 		&i.Quotas.Team,
-		&i.Quotas.RatelimitLimit,
-		&i.Quotas.RatelimitDuration,
+		&i.Quotas.RatelimitApiLimit,
+		&i.Quotas.RatelimitApiDuration,
 	)
 	return i, err
 }

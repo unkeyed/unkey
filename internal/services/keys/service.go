@@ -2,7 +2,6 @@ package keys
 
 import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
-	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -19,9 +18,8 @@ type Config struct {
 	Region       string                // Geographic region identifier
 	UsageLimiter usagelimiter.Service  // Redis Counter for usage limiting
 
-	KeyCache                  cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
-	QuotaCache                cache.Cache[string, db.Quotas]        // Cache for workspace quota lookups
-	RatelimitNamespaceService namespace.Service                     // Ratelimit namespace service for workspace rate limiting
+	KeyCache   cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
+	QuotaCache cache.Cache[string, db.Quotas]        // Cache for workspace quota lookups
 }
 
 type service struct {
@@ -37,24 +35,20 @@ type service struct {
 
 	// workspace_id -> quota (for workspace rate limiting)
 	quotaCache cache.Cache[string, db.Quotas]
-
-	// ratelimitNamespaceService provides namespace lookup/creation for workspace rate limiting
-	ratelimitNamespaceService namespace.Service
 }
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
 
 	return &service{
-		db:                        config.DB,
-		rbac:                      config.RBAC,
-		rateLimiter:               config.RateLimiter,
-		usageLimiter:              config.UsageLimiter,
-		clickhouse:                config.Clickhouse,
-		region:                    config.Region,
-		keyCache:                  config.KeyCache,
-		quotaCache:                config.QuotaCache,
-		ratelimitNamespaceService: config.RatelimitNamespaceService,
+		db:           config.DB,
+		rbac:         config.RBAC,
+		rateLimiter:  config.RateLimiter,
+		usageLimiter: config.UsageLimiter,
+		clickhouse:   config.Clickhouse,
+		region:       config.Region,
+		keyCache:     config.KeyCache,
+		quotaCache:   config.QuotaCache,
 	}, nil
 }
 

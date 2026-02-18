@@ -9,12 +9,12 @@ import (
 )
 
 // bulkUpsertQuota is the base query for bulk insert
-const bulkUpsertQuota = `INSERT INTO quota ( workspace_id, requests_per_month, audit_logs_retention_days, logs_retention_days, team, ratelimit_limit, ratelimit_duration ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertQuota = `INSERT INTO quota ( workspace_id, requests_per_month, audit_logs_retention_days, logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration ) VALUES %s ON DUPLICATE KEY UPDATE
     requests_per_month = VALUES(requests_per_month),
     audit_logs_retention_days = VALUES(audit_logs_retention_days),
     logs_retention_days = VALUES(logs_retention_days),
-    ratelimit_limit = VALUES(ratelimit_limit),
-    ratelimit_duration = VALUES(ratelimit_duration)`
+    ratelimit_api_limit = VALUES(ratelimit_api_limit),
+    ratelimit_api_duration = VALUES(ratelimit_api_duration)`
 
 // UpsertQuota performs bulk insert in a single query
 func (q *BulkQueries) UpsertQuota(ctx context.Context, db DBTX, args []UpsertQuotaParams) error {
@@ -39,8 +39,8 @@ func (q *BulkQueries) UpsertQuota(ctx context.Context, db DBTX, args []UpsertQuo
 		allArgs = append(allArgs, arg.AuditLogsRetentionDays)
 		allArgs = append(allArgs, arg.LogsRetentionDays)
 		allArgs = append(allArgs, arg.Team)
-		allArgs = append(allArgs, arg.RatelimitLimit)
-		allArgs = append(allArgs, arg.RatelimitDuration)
+		allArgs = append(allArgs, arg.RatelimitApiLimit)
+		allArgs = append(allArgs, arg.RatelimitApiDuration)
 	}
 
 	// Execute the bulk insert
