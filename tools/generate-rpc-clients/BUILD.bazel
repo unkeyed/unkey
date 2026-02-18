@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "generate-rpc-clients_lib",
+    srcs = [
+        "extract.go",
+        "main.go",
+        "template.go",
+        "types.go",
+    ],
+    embedsrcs = ["wrapper.go.tmpl"],
+    importpath = "github.com/unkeyed/unkey/tools/generate-rpc-clients",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "generate-rpc-clients",
+    embed = [":generate-rpc-clients_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "generate-rpc-clients_test",
+    srcs = [
+        "extract_test.go",
+        "template_test.go",
+    ],
+    embed = [":generate-rpc-clients_lib"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

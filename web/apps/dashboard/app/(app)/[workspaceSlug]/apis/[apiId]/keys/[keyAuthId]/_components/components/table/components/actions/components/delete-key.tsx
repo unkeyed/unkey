@@ -118,8 +118,7 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
               </div>
               <div className="text-error-12 text-[13px] leading-6">
                 <span className="font-medium">Warning:</span> deleting this key will remove all
-                associated data and metadata. This action cannot be undone. Any verification,
-                tracking, and historical usage tied to this key will be permanently lost.
+                associated data and metadata. This action cannot be undone.
               </div>
             </div>
             <Controller
@@ -133,7 +132,7 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
                   size="lg"
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  label="I understand this will permanently delete the key and all its associated data"
+                  label="I understand this will permanently delete the key and its associated metadata"
                   error={errors.confirmDeletion?.message}
                 />
               )}
@@ -147,7 +146,7 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
         onConfirm={performKeyDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm key deletion"
-        description="This action is irreversible. All data associated with this key will be permanently deleted."
+        description="This action is irreversible. Metadata and ratelimits associated with this key will be permanently deleted."
         confirmButtonText="Delete key"
         cancelButtonText="Cancel"
         variant="danger"

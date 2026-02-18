@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "cache",
-    srcs = ["invalidation.pb.go"],
+    srcs = [
+        "invalidation.pb.go",
+        "oneof_interfaces.go",
+    ],
     importpath = "github.com/unkeyed/unkey/gen/proto/cache/v1",
     visibility = ["//visibility:public"],
     deps = [

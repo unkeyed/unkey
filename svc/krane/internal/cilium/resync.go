@@ -43,9 +43,9 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					continue
 				}
 
-				res, err := c.cluster.GetDesiredCiliumNetworkPolicyState(ctx, connect.NewRequest(&ctrlv1.GetDesiredCiliumNetworkPolicyStateRequest{
+				res, err := c.cluster.GetDesiredCiliumNetworkPolicyState(ctx, &ctrlv1.GetDesiredCiliumNetworkPolicyStateRequest{
 					CiliumNetworkPolicyId: policyID,
-				}))
+				})
 				if err != nil {
 					if connect.CodeOf(err) == connect.CodeNotFound {
 						if err := c.DeleteCiliumNetworkPolicy(ctx, &ctrlv1.DeleteCiliumNetworkPolicy{
@@ -61,13 +61,13 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 					continue
 				}
 
-				switch res.Msg.GetState().(type) {
+				switch res.GetState().(type) {
 				case *ctrlv1.CiliumNetworkPolicyState_Apply:
-					if err := c.ApplyCiliumNetworkPolicy(ctx, res.Msg.GetApply()); err != nil {
+					if err := c.ApplyCiliumNetworkPolicy(ctx, res.GetApply()); err != nil {
 						logger.Error("unable to apply cilium network policy", "error", err.Error(), "policy_id", policyID)
 					}
 				case *ctrlv1.CiliumNetworkPolicyState_Delete:
-					if err := c.DeleteCiliumNetworkPolicy(ctx, res.Msg.GetDelete()); err != nil {
+					if err := c.DeleteCiliumNetworkPolicy(ctx, res.GetDelete()); err != nil {
 						logger.Error("unable to delete cilium network policy", "error", err.Error(), "policy_id", policyID)
 					}
 				}

@@ -7,11 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
@@ -32,12 +31,12 @@ type Resources struct {
 type Seeder struct {
 	t         *testing.T
 	DB        db.Database
-	Vault     vaultv1connect.VaultServiceClient
+	Vault     vault.VaultServiceClient
 	Resources Resources
 }
 
 // New creates a new Seeder instance
-func New(t *testing.T, database db.Database, vault vaultv1connect.VaultServiceClient) *Seeder {
+func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Seeder {
 	return &Seeder{
 		t:         t,
 		DB:        database,
@@ -428,17 +427,17 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	}
 
 	if req.Recoverable && s.Vault != nil {
-		encryption, encryptErr := s.Vault.Encrypt(ctx, connect.NewRequest(&vaultv1.EncryptRequest{
+		encryption, encryptErr := s.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: req.WorkspaceID,
 			Data:    key,
-		}))
+		})
 		require.NoError(s.t, encryptErr)
 		err = db.Query.InsertKeyEncryption(ctx, s.DB.RW(), db.InsertKeyEncryptionParams{
 			WorkspaceID:     req.WorkspaceID,
 			KeyID:           keyID,
 			CreatedAt:       time.Now().UnixMilli(),
-			Encrypted:       encryption.Msg.GetEncrypted(),
-			EncryptionKeyID: encryption.Msg.GetKeyId(),
+			Encrypted:       encryption.GetEncrypted(),
+			EncryptionKeyID: encryption.GetKeyId(),
 		})
 		require.NoError(s.t, err)
 	}

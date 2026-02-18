@@ -25,8 +25,8 @@ type Service interface {
 
 // Config holds configuration for the proxy service.
 type Config struct {
-	// FrontlineID is the current frontline instance ID
-	FrontlineID string
+	// InstanceID is the current frontline instance ID
+	InstanceID string
 
 	// Region is the current frontline region
 	Region string
@@ -50,9 +50,6 @@ type Config struct {
 
 	// TLSHandshakeTimeout is the maximum amount of time a TLS handshake will take.
 	TLSHandshakeTimeout time.Duration
-
-	// ResponseHeaderTimeout is the maximum amount of time to wait for response headers.
-	ResponseHeaderTimeout time.Duration
 
 	// Transport allows passing a shared HTTP transport for connection pooling
 	// If nil, a new transport will be created with the other config values

@@ -55,13 +55,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "ctrl",
 			Version:         pkgversion.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -75,10 +75,6 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("version", pkgversion.Version),
 	))
 
-	if cfg.TLSConfig != nil {
-		logger.Info("TLS is enabled, server will use HTTPS")
-	}
-
 	r := runner.New()
 	defer r.Recover()
 
@@ -86,8 +82,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize database
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: "",
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -163,11 +159,11 @@ func Run(ctx context.Context, cfg Config) error {
 		CnameDomain:  cfg.CnameDomain,
 	})))
 
-	if cfg.GitHubWebhookSecret != "" {
+	if cfg.GitHub.WebhookSecret != "" {
 		mux.Handle("POST /webhooks/github", &GitHubWebhook{
 			db:            database,
 			restate:       restateClient,
-			webhookSecret: cfg.GitHubWebhookSecret,
+			webhookSecret: cfg.GitHub.WebhookSecret,
 		})
 		logger.Info("GitHub webhook handler registered")
 	} else {
@@ -207,17 +203,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start server
 	r.Go(func(ctx context.Context) error {
-		logger.Info("Starting ctrl server", "addr", addr, "tls", cfg.TLSConfig != nil)
+		logger.Info("Starting ctrl server", "addr", addr)
 
-		var err error
-		if cfg.TLSConfig != nil {
-			server.TLSConfig = cfg.TLSConfig
-			// For TLS, use the regular mux without h2c wrapper
-			server.Handler = mux
-			err = server.ListenAndServeTLS("", "")
-		} else {
-			err = server.ListenAndServe()
-		}
+		err := server.ListenAndServe()
 
 		if err != nil && err != http.ErrServerClosed {
 			return fmt.Errorf("server failed: %w", err)

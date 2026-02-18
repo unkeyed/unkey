@@ -3,17 +3,21 @@ package frontline
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -42,24 +46,26 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	if cfg.Observability.Logging != nil {
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
-	})
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 
 	// Create cached clock with millisecond resolution for efficient time tracking
 	clk := clock.New()
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "frontline",
 			Version:         version.Version,
-			InstanceID:      cfg.FrontlineID,
+			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -67,8 +73,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Configure global logger with base attributes
-	if cfg.FrontlineID != "" {
-		logger.AddBaseAttrs(slog.String("instanceID", cfg.FrontlineID))
+	if cfg.InstanceID != "" {
+		logger.AddBaseAttrs(slog.String("instanceID", cfg.InstanceID))
 	}
 
 	if cfg.Region != "" {
@@ -105,36 +111,84 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 	}
 
-	var vaultClient vaultv1connect.VaultServiceClient
-	if cfg.VaultURL != "" {
-		vaultClient = vaultv1connect.NewVaultServiceClient(
+	var vaultClient vault.VaultServiceClient
+	if cfg.Vault.URL != "" {
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 			http.DefaultClient,
-			cfg.VaultURL,
+			cfg.Vault.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": "Bearer " + cfg.VaultToken,
+				"Authorization": "Bearer " + cfg.Vault.Token,
 			})),
-		)
-		logger.Info("Vault client initialized", "url", cfg.VaultURL)
+		))
+		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	} else {
 		logger.Warn("Vault not configured - TLS certificate decryption will be unavailable")
 	}
 
 	db, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
 	}
 	r.Defer(db.Close)
 
+	// Initialize gossip-based cache invalidation
+	var broadcaster clustering.Broadcaster
+	if cfg.Gossip != nil {
+		logger.Info("Initializing gossip cluster for cache invalidation",
+			"region", cfg.Region,
+			"instanceID", cfg.InstanceID,
+		)
+
+		mux := cluster.NewMessageMux()
+
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
+
+		var secretKey []byte
+		if cfg.Gossip.SecretKey != "" {
+			var decodeErr error
+			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
+			if decodeErr != nil {
+				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
+			}
+		}
+
+		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Region:      cfg.Region,
+			NodeID:      cfg.InstanceID,
+			BindAddr:    cfg.Gossip.BindAddr,
+			BindPort:    cfg.Gossip.LANPort,
+			WANBindPort: cfg.Gossip.WANPort,
+			LANSeeds:    lanSeeds,
+			WANSeeds:    wanSeeds,
+			SecretKey:   secretKey,
+			OnMessage:   mux.OnMessage,
+		})
+		if clusterErr != nil {
+			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
+				"error", clusterErr,
+			)
+		} else {
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
+			broadcaster = gossipBroadcaster
+			r.Defer(gossipCluster.Close)
+		}
+	}
+
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
-		Clock: clk,
+		Clock:       clk,
+		Broadcaster: broadcaster,
+		NodeID:      cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
+	r.Defer(cache.Close)
 
 	// Initialize certificate manager for dynamic TLS
 	var certManager certmanager.Service
@@ -160,11 +214,11 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize proxy service with shared transport for connection pooling
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
-		FrontlineID: cfg.FrontlineID,
-		Region:      cfg.Region,
-		ApexDomain:  cfg.ApexDomain,
-		Clock:       clk,
-		MaxHops:     cfg.MaxHops,
+		InstanceID: cfg.InstanceID,
+		Region:     cfg.Region,
+		ApexDomain: cfg.ApexDomain,
+		Clock:      clk,
+		MaxHops:    cfg.MaxHops,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
 	})
 	if err != nil {
@@ -173,17 +227,17 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create TLS config - either from static files (dev mode) or dynamic certificates (production)
 	var tlsConfig *pkgtls.Config
-	if cfg.EnableTLS {
-		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+	if cfg.TLS != nil {
+		if cfg.TLS.CertFile != "" && cfg.TLS.KeyFile != "" {
 			// Dev mode: static file-based certificate
-			fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)
+			fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
 			if tlsErr != nil {
 				return fmt.Errorf("failed to load TLS certificate from files: %w", tlsErr)
 			}
 			tlsConfig = fileTLSConfig
 			logger.Info("TLS configured with static certificate files",
-				"certFile", cfg.TLSCertFile,
-				"keyFile", cfg.TLSKeyFile)
+				"certFile", cfg.TLS.CertFile,
+				"keyFile", cfg.TLS.KeyFile)
 		} else if certManager != nil {
 			// Production mode: dynamic certificates from database/vault
 			//nolint:exhaustruct
@@ -203,7 +257,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	acmeClient := ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr)
+	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
 	svcs := &routes.Services{
 		Region:        cfg.Region,
 		RouterService: routerSvc,
@@ -215,12 +269,9 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start HTTPS frontline server (main proxy server)
 	if cfg.HttpsPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
-			TLS: tlsConfig,
-			// Use longer timeouts for proxy operations
-			// WriteTimeout must be longer than the transport's ResponseHeaderTimeout (30s)
-			// so that transport timeouts can be caught and handled properly in ErrorHandler
-			ReadTimeout:        30 * time.Second,
-			WriteTimeout:       60 * time.Second,
+			TLS:                tlsConfig,
+			ReadTimeout:        0,
+			WriteTimeout:       0,
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,

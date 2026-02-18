@@ -9,6 +9,7 @@ import {
   text,
   varchar,
 } from "drizzle-orm/mysql-core";
+import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { instances } from "./instances";
 import { projects } from "./projects";
@@ -105,4 +106,5 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
 
   sentinels: many(sentinels),
   instances: many(instances),
+  steps: many(deploymentSteps),
 }));

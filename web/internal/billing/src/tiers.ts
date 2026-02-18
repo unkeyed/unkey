@@ -24,7 +24,7 @@ type TieredPrice = {
    *
    * DO NOT USE FOR BILLING
    *
-   * We're doing floating point operatiuons here, so the result is likely not exact.
+   * We're doing floating point operations here, so the result is likely not exact.
    * Use this only for displaying estimates to the user.
    */
   totalCentsEstimate: number;
