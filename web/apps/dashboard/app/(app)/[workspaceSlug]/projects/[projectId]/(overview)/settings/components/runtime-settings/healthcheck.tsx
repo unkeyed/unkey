@@ -59,12 +59,11 @@ export const Healthcheck = () => {
           <span className="text-gray-11 font-normal">every 30s</span>
         </div>
       }
-      formId="update-healthcheck-form"
+      onSubmit={(e) => e.preventDefault()}
       canSave={false}
       isSaving={false}
     >
-      <form id="update-healthcheck-form">
-        <div className="flex flex-col gap-3 w-[480px]">
+      <div className="flex flex-col gap-3 w-[480px]">
           {fields.map((field, index) => (
             <div key={field.id} className="flex items-end gap-3">
               <div className="flex flex-col">
@@ -143,7 +142,6 @@ export const Healthcheck = () => {
             errorId="healthcheck-error"
           />
         </div>
-      </form>
     </EditableSettingCard>
   );
 };

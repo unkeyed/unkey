@@ -102,12 +102,11 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
           </div>
         );
       })()}
-      formId="update-cpu-form"
+      onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
       isSaving={updateRuntime.isLoading || isSubmitting}
     >
-      <form id="update-cpu-form" onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex flex-col">
+      <div className="flex flex-col">
           <span className="text-gray-11 text-[13px]">CPU per instance</span>
           <div className="flex items-center gap-3">
             <Slider
@@ -134,7 +133,6 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
           </div>
           <SettingDescription>Higher CPU improves compute-heavy workloads. Changes apply on next deploy.</SettingDescription>
         </div>
-      </form>
     </EditableSettingCard>
   );
 };

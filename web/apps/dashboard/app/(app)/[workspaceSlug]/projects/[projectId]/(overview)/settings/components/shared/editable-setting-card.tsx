@@ -10,7 +10,7 @@ type EditableSettingCardProps = {
 
   displayValue: React.ReactNode;
 
-  formId: string;
+  onSubmit: React.FormEventHandler<HTMLFormElement>;
   children: React.ReactNode;
 
   canSave: boolean;
@@ -23,7 +23,7 @@ export const EditableSettingCard = ({
   description,
   border,
   displayValue,
-  formId,
+  onSubmit,
   children,
   canSave,
   isSaving,
@@ -37,12 +37,11 @@ export const EditableSettingCard = ({
       border={border}
       contentWidth="w-full lg:w-[320px] justify-end"
       expandable={
-        <div className="px-4 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-xl">
+        <form className="px-4 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-xl" onSubmit={onSubmit}>
           {children}
           <div className="flex justify-end">
             <Button
               type="submit"
-              form={formId}
               variant="primary"
               className="px-3 py-3"
               size="sm"
@@ -52,7 +51,7 @@ export const EditableSettingCard = ({
               Save
             </Button>
           </div>
-        </div>
+        </form>
       }
     >
       <SelectedConfig label={displayValue} />

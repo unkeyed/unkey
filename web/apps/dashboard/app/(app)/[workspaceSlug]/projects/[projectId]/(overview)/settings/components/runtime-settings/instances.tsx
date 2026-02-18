@@ -104,12 +104,11 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
           </span>
         </div>
       }
-      formId="update-instances-form"
+      onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
       isSaving={updateRuntime.isLoading || isSubmitting}
     >
-      <form id="update-instances-form" onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex flex-col">
+      <div className="flex flex-col">
           <span className="text-gray-11 text-[13px]">Instances per region</span>
           <div className="flex items-center gap-3">
             <Slider
@@ -150,7 +149,6 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
           </div>
           <SettingDescription>More instances improve availability and handle higher traffic. Changes apply on next deploy.</SettingDescription>
         </div>
-      </form>
     </EditableSettingCard>
   );
 };

@@ -69,12 +69,11 @@ const DockerfileForm = ({
       border="bottom"
       description="Dockerfile location used for docker build. (e.g., services/api/Dockerfile)"
       displayValue={defaultValue}
-      formId="update-dockerfile-form"
+      onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && currentDockerfile !== defaultValue}
       isSaving={updateBuild.isLoading || isSubmitting}
     >
-      <form id="update-dockerfile-form" onSubmit={handleSubmit(onSubmit)}>
-        <FormInput
+      <FormInput
           required
           className="w-[480px]"
           label="Dockerfile path"
@@ -84,7 +83,6 @@ const DockerfileForm = ({
           variant={errors.dockerfile ? "error" : "default"}
           {...register("dockerfile")}
         />
-      </form>
     </EditableSettingCard>
   );
 };

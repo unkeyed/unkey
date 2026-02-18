@@ -102,12 +102,11 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
           </div>
         );
       })()}
-      formId="update-memory-form"
+      onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
       isSaving={updateRuntime.isLoading || isSubmitting}
     >
-      <form id="update-memory-form" onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex flex-col">
+      <div className="flex flex-col">
           <span className="text-gray-11 text-[13px]">Memory per instance</span>
           <div className="flex items-center gap-3">
             <Slider
@@ -134,7 +133,6 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
           </div>
           <SettingDescription>Increase memory for applications with large datasets or caching needs. Changes apply on next deploy.</SettingDescription>
         </div>
-      </form>
     </EditableSettingCard>
   );
 };

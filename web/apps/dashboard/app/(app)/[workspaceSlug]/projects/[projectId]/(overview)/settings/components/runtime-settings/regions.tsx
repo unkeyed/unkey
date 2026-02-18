@@ -164,12 +164,11 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       description="Geographic regions where your project will run"
       border="top"
       displayValue={displayValue}
-      formId="update-regions-form"
+      onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
       isSaving={updateRuntime.isLoading || isSubmitting}
     >
-      <form id="update-regions-form" onSubmit={handleSubmit(onSubmit)}>
-        <FormCombobox
+      <FormCombobox
           label="Regions"
           description="Traffic is routed to the nearest selected region. Changes apply on next deploy."
           optional
@@ -214,7 +213,6 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
           searchPlaceholder="Search regions..."
           emptyMessage={<div className="mt-2">No regions available.</div>}
         />
-      </form>
     </EditableSettingCard>
   );
 };

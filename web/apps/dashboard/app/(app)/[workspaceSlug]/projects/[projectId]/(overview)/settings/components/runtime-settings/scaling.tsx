@@ -69,12 +69,11 @@ export const Scaling = () => {
           <span className="text-gray-11 font-normal">CPU</span>
         </div>
       }
-      formId="update-scaling-form"
+      onSubmit={(e) => e.preventDefault()}
       canSave={isValid && hasChanges}
       isSaving={false}
     >
-      <form id="update-scaling-form" onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
           <div className="flex flex-col">
             <span className="text-gray-11 text-[13px]">Autoscale range</span>
             <div className="flex items-center gap-3">
@@ -140,7 +139,6 @@ export const Scaling = () => {
             </SettingDescription>
           </div>
         </div>
-      </form>
     </EditableSettingCard>
   );
 };

@@ -68,12 +68,11 @@ const RootDirectoryForm = ({
       title="Root directory"
       description="Build context directory. All COPY/ADD commands are relative to this path. (e.g., services/api)"
       displayValue={defaultValue || "."}
-      formId="update-root-directory-form"
+      onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && currentDockerContext !== defaultValue}
       isSaving={updateBuild.isLoading || isSubmitting}
     >
-      <form id="update-root-directory-form" onSubmit={handleSubmit(onSubmit)}>
-        <FormInput
+      <FormInput
           label="Root directory"
           required
           className="w-[480px]"
@@ -83,7 +82,6 @@ const RootDirectoryForm = ({
           variant={errors.dockerContext ? "error" : "default"}
           {...register("dockerContext")}
         />
-      </form>
     </EditableSettingCard>
   );
 };

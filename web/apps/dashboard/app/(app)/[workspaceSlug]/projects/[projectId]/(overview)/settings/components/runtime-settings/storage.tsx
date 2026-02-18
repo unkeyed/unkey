@@ -71,12 +71,11 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
           </div>
         );
       })()}
-      formId="update-storage-form"
+      onSubmit={(e) => e.preventDefault()}
       canSave={isValid && hasChanges}
       isSaving={false}
     >
-      <form id="update-storage-form" onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex flex-col">
+      <div className="flex flex-col">
           <span className="text-gray-11 text-[13px]">Storage per instance</span>
           <div className="flex items-center gap-3">
             <Slider
@@ -103,7 +102,6 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
           </div>
           <SettingDescription>Temporary disk for logs, caches, and scratch data. Changes apply on next deploy.</SettingDescription>
         </div>
-      </form>
     </EditableSettingCard>
   );
 };
