@@ -48,12 +48,12 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, req WorkspaceRate
 	}
 
 	// NULL = unlimited, no rate limiting configured
-	if !quota.RatelimitLimit.Valid || !quota.RatelimitDuration.Valid {
+	if !quota.RatelimitApiLimit.Valid || !quota.RatelimitApiDuration.Valid {
 		return nil
 	}
 
-	limit := quota.RatelimitLimit.Int32
-	duration := time.Duration(quota.RatelimitDuration.Int32) * time.Millisecond
+	limit := quota.RatelimitApiLimit.Int32
+	duration := time.Duration(quota.RatelimitApiDuration.Int32) * time.Millisecond
 
 	// 0 = explicitly blocked, no requests allowed
 	if limit == 0 || duration == 0 {

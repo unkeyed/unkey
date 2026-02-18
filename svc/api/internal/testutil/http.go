@@ -463,8 +463,8 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		AuditLogsRetentionDays: config.RetentionDays,
 		RequestsPerMonth:       1_000_000,
 		Team:                   false,
-		RatelimitLimit:         sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitDuration:      sql.NullInt32{}, //nolint:exhaustruct
+		RatelimitApiLimit:         sql.NullInt32{}, //nolint:exhaustruct
+		RatelimitApiDuration:      sql.NullInt32{}, //nolint:exhaustruct
 	})
 	require.NoError(h.t, err)
 
