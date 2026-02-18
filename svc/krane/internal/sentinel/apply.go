@@ -139,6 +139,9 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		ClickHouse: sentinelcfg.ClickHouseConfig{
 			URL: "${UNKEY_CLICKHOUSE_URL}",
 		},
+		Redis: sentinelcfg.RedisConfig{
+			URL: "${UNKEY_REDIS_URL}",
+		},
 		Observability: config.Observability{
 			Logging: &config.LoggingConfig{
 				SampleRate:    1.0,
