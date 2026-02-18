@@ -7,6 +7,48 @@
 # a CiliumNetworkPolicy in the customer namespace, Cilium automatically enables
 # default deny for the selected endpoints. We don't need an explicit deny-all policy.
 ---
+# 1. Allow gossip traffic between API pods
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: api-gossip-lan
+  namespace: unkey
+spec:
+  endpointSelector:
+    matchLabels:
+      app: api
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: api
+      toPorts:
+        - ports:
+            - port: "7946"
+              protocol: TCP
+            - port: "7946"
+              protocol: UDP
+---
+# 1b. Allow gossip traffic between Frontline pods
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: frontline-gossip-lan
+  namespace: unkey
+spec:
+  endpointSelector:
+    matchLabels:
+      app: frontline
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: frontline
+      toPorts:
+        - ports:
+            - port: "7946"
+              protocol: TCP
+            - port: "7946"
+              protocol: UDP
+---
 # 2. Block K8s API server access from customer pods
 # Prevents customer workloads from accessing the Kubernetes API
 apiVersion: cilium.io/v2
@@ -102,6 +144,17 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+    # Gossip between sentinel pods
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: sentinel
+            app.kubernetes.io/component: sentinel
+      toPorts:
+        - ports:
+            - port: "7946"
+              protocol: TCP
+            - port: "7946"
+              protocol: UDP
     # MySQL in unkey namespace
     - toEndpoints:
         - matchLabels:
