@@ -2,7 +2,9 @@ package engine
 
 import (
 	"context"
+	"math"
 	"net/http"
+	"strconv"
 	"time"
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
@@ -99,6 +101,10 @@ func (e *KeyAuthExecutor) Execute(
 		)
 	}
 
+	// Write rate limit headers before checking status so they're present
+	// on both success (2xx) and rate-limited (429) responses.
+	writeRateLimitHeaders(sess.ResponseWriter(), verifier.RatelimitResults, e.clock)
+
 	// Check post-verification status
 	switch verifier.Status {
 	case keys.StatusValid:
@@ -166,4 +172,44 @@ func (e *KeyAuthExecutor) Execute(
 		Type:    sentinelv1.PrincipalType_PRINCIPAL_TYPE_API_KEY,
 		Claims:  claims,
 	}, nil
+}
+
+// writeRateLimitHeaders sets standard rate limit headers on the response.
+// When multiple rate limits exist, it uses the most restrictive one (lowest remaining).
+func writeRateLimitHeaders(w http.ResponseWriter, results map[string]keys.RatelimitConfigAndResult, clk clock.Clock) {
+	if len(results) == 0 {
+		return
+	}
+
+	// Find the most restrictive rate limit (lowest remaining).
+	var mostRestrictive *keys.RatelimitConfigAndResult
+	for _, r := range results {
+		if r.Response == nil {
+			continue
+		}
+
+		if mostRestrictive == nil || r.Response.Remaining < mostRestrictive.Response.Remaining {
+			rCopy := r
+			mostRestrictive = &rCopy
+		}
+	}
+
+	if mostRestrictive == nil {
+		return
+	}
+
+	resp := mostRestrictive.Response
+	h := w.Header()
+	h.Set("X-RateLimit-Limit", strconv.FormatInt(resp.Limit, 10))
+	h.Set("X-RateLimit-Remaining", strconv.FormatInt(resp.Remaining, 10))
+	h.Set("X-RateLimit-Reset", strconv.FormatInt(resp.Reset.Unix(), 10))
+
+	if !resp.Success {
+		retryAfter := math.Ceil(resp.Reset.Sub(clk.Now()).Seconds())
+		if retryAfter < 1 {
+			retryAfter = 1
+		}
+
+		h.Set("Retry-After", strconv.FormatInt(int64(retryAfter), 10))
+	}
 }
