@@ -6,8 +6,8 @@ INSERT INTO apps (
     environment_id,
     name,
     slug,
-    current_deployment_id,
-    is_rolled_back,
+    live_deployment_id,
+    depot_project_id,
     delete_protection,
     created_at,
     updated_at
@@ -18,8 +18,8 @@ INSERT INTO apps (
     sqlc.arg(environment_id),
     sqlc.arg(name),
     sqlc.arg(slug),
-    sqlc.arg(current_deployment_id),
-    sqlc.arg(is_rolled_back),
+    sqlc.arg(live_deployment_id),
+    sqlc.arg(depot_project_id),
     sqlc.arg(delete_protection),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)

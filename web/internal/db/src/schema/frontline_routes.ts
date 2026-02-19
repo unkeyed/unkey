@@ -10,7 +10,7 @@ export const frontlineRoutes = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 128 }).notNull().unique(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull().default(""),
+    appId: varchar("app_id", { length: 64 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
     fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {

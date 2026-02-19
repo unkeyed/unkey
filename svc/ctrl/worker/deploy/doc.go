@@ -25,18 +25,18 @@
 // are running. Once healthy, it generates frontline routes for per-commit,
 // per-branch, and per-environment domains, reassigns sticky routes through
 // RoutingService, marks the deployment ready, and — for non-rolled-back
-// production environments — updates the project's live deployment pointer.
+// production environments — updates the app's live deployment pointer.
 // The previous live deployment is scheduled for standby after 30 minutes via
 // DeploymentService.ScheduleDesiredStateChange.
 //
 // [Workflow.Rollback] switches sticky frontline routes (environment and live)
 // from the current live deployment to a previous one, atomically through
-// RoutingService. It sets the project's isRolledBack flag, which prevents
-// subsequent deploys from automatically claiming the live routes.
+// RoutingService. Because the live pointer now points to an older deployment,
+// subsequent deploys detect the rolled-back state and skip auto-promotion.
 //
-// [Workflow.Promote] reverses a rollback by reassigning sticky routes to a new
-// target deployment and clearing the isRolledBack flag so normal deploy flow
-// resumes.
+// [Workflow.Promote] reassigns sticky routes to a new target deployment and
+// updates the live pointer, restoring normal auto-promote behavior for future
+// deploys.
 //
 // [Workflow.ScaleDownIdlePreviewDeployments] paginates through preview
 // environments and sets any deployment to archived that has been idle (zero

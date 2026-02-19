@@ -13,33 +13,25 @@ import (
 const updateAppDeployments = `-- name: UpdateAppDeployments :exec
 UPDATE apps
 SET
-  current_deployment_id = ?,
-  is_rolled_back = ?,
+  live_deployment_id = ?,
   updated_at = ?
 WHERE id = ?
 `
 
 type UpdateAppDeploymentsParams struct {
-	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
-	IsRolledBack        bool           `db:"is_rolled_back"`
-	UpdatedAt           sql.NullInt64  `db:"updated_at"`
-	ID                  string         `db:"id"`
+	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	ID               string         `db:"id"`
 }
 
 // UpdateAppDeployments
 //
 //	UPDATE apps
 //	SET
-//	  current_deployment_id = ?,
-//	  is_rolled_back = ?,
+//	  live_deployment_id = ?,
 //	  updated_at = ?
 //	WHERE id = ?
 func (q *Queries) UpdateAppDeployments(ctx context.Context, db DBTX, arg UpdateAppDeploymentsParams) error {
-	_, err := db.ExecContext(ctx, updateAppDeployments,
-		arg.CurrentDeploymentID,
-		arg.IsRolledBack,
-		arg.UpdatedAt,
-		arg.ID,
-	)
+	_, err := db.ExecContext(ctx, updateAppDeployments, arg.LiveDeploymentID, arg.UpdatedAt, arg.ID)
 	return err
 }

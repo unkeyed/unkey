@@ -5,10 +5,11 @@ import { createConnectTransport } from "@connectrpc/connect-web";
 // Import service definition that you want to connect to.
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
-import { db } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { apps } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 export const rollback = workspaceProcedure
@@ -49,13 +50,13 @@ export const rollback = workspaceProcedure
         columns: {
           id: true,
           status: true,
+          appId: true,
         },
         with: {
           project: {
             columns: {
               id: true,
               name: true,
-              liveDeploymentId: true,
             },
           },
         },
@@ -74,7 +75,14 @@ export const rollback = workspaceProcedure
           message: `Deployment ${targetDeployment.id} is not ready (status: ${targetDeployment.status})`,
         });
       }
-      if (!targetDeployment.project.liveDeploymentId) {
+
+      // Get liveDeploymentId from the app (moved from projects to apps)
+      const app = await db.query.apps.findFirst({
+        where: and(eq(apps.id, targetDeployment.appId), eq(apps.workspaceId, ctx.workspace.id)),
+        columns: { liveDeploymentId: true },
+      });
+
+      if (!app?.liveDeploymentId) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message: `Project ${targetDeployment.project.name} doesn't have a live deployment to roll back.`,
@@ -83,7 +91,7 @@ export const rollback = workspaceProcedure
 
       await ctrl
         .rollback({
-          sourceDeploymentId: targetDeployment.project.liveDeploymentId,
+          sourceDeploymentId: app.liveDeploymentId,
           targetDeploymentId: targetDeployment.id,
         })
         .catch((err) => {
