@@ -13,6 +13,7 @@ go_library(
         "status.go",
         "validation.go",
         "verifier.go",
+        "workspace_ratelimit.go",
     ],
     importpath = "github.com/unkeyed/unkey/internal/services/keys",
     visibility = ["//:__subpackages__"],
@@ -41,7 +42,7 @@ go_library(
 
 go_test(
     name = "keys_test",
-    size = "small",
+    size = "large",
     srcs = [
         "create_test.go",
         "get_test.go",
