@@ -495,6 +495,27 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
+	// Guard against out-of-order webhook delivery: if the current live deployment
+	// has a newer commit timestamp than this deployment, skip auto-promote.
+	// Only applies when both timestamps are valid (git-sourced deployments).
+	// CLI/docker uploads (Valid == false) skip this guard entirely.
+	if autoPromote && app.LiveDeploymentID.Valid && deployment.GitCommitTimestamp.Valid {
+		liveDeployment, liveErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
+			return db.Query.FindDeploymentById(runCtx, w.db.RO(), app.LiveDeploymentID.String)
+		}, restate.WithName("fetch live deployment for timestamp check"))
+		if liveErr == nil && liveDeployment.GitCommitTimestamp.Valid {
+			if deployment.GitCommitTimestamp.Int64 < liveDeployment.GitCommitTimestamp.Int64 {
+				autoPromote = false
+				logger.Info("skipping auto-promote: deployment commit is older than current live",
+					"deployment_id", deployment.ID,
+					"deployment_timestamp", deployment.GitCommitTimestamp.Int64,
+					"live_deployment_id", liveDeployment.ID,
+					"live_timestamp", liveDeployment.GitCommitTimestamp.Int64,
+				)
+			}
+		}
+	}
+
 	// Fetch sticky routes for this environment
 	stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
 	if autoPromote {
