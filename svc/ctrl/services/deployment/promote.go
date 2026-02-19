@@ -15,13 +15,13 @@ import (
 // This is typically used after a rollback to restore the original deployment, or
 // to switch traffic to a new deployment that was previously in a preview state.
 // The workflow runs synchronously (blocking until complete) and is keyed by
-// project ID to prevent concurrent promotion operations on the same project.
+// app ID to prevent concurrent promotion operations on the same app.
 func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.PromoteRequest]) (*connect.Response[ctrlv1.PromoteResponse], error) {
 	logger.Info("initiating promotion via Restate",
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
 
-	// Get target deployment to determine project ID for keying
+	// Get target deployment to determine app ID for keying
 	targetDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetTargetDeploymentId())
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -34,9 +34,9 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	// Call the Restate workflow using project ID as the key
-	// This ensures only one operation per project can run at a time
-	_, err = s.deploymentClient(targetDeployment.ProjectID).
+	// Call the Restate workflow using app ID as the key
+	// This ensures only one operation per app can run at a time
+	_, err = s.deploymentClient(targetDeployment.AppID).
 		Promote().
 		Request(ctx, &hydrav1.PromoteRequest{
 			TargetDeploymentId: req.Msg.GetTargetDeploymentId(),
