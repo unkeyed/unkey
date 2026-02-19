@@ -113,34 +113,14 @@ export function AppSidebar({
           )}
         </div>
 
-        {/* Resource Heading - only at resource-level */}
-        {showResourceHeading &&
-          context.type === "resource" &&
-          (isCollapsed ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={`/${workspace.slug}/${RESOURCE_TYPE_ROUTES[context.resourceType]}`}
-                    className="flex items-center justify-center p-2 text-gray-11 hover:text-gray-12 hover:bg-gray-3 rounded-md transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>
-                  <p className="text-xs">
-                    Back to All {RESOURCE_TYPE_PLURAL[context.resourceType]}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <ResourceHeading
-              resourceType={context.resourceType}
-              resourceId={context.resourceId}
-              resourceName={fetchedResourceName || context.resourceName}
-            />
-          ))}
+        {/* Resource Heading - only at resource-level, only when expanded */}
+        {showResourceHeading && !isCollapsed && context.type === "resource" && (
+          <ResourceHeading
+            resourceType={context.resourceType}
+            resourceId={context.resourceId}
+            resourceName={fetchedResourceName || context.resourceName}
+          />
+        )}
       </div>
     ),
     [
@@ -153,7 +133,6 @@ export function AppSidebar({
       props.workspace,
       currentProduct,
       fetchedResourceName,
-      workspace.slug,
     ],
   );
 
@@ -167,6 +146,27 @@ export function AppSidebar({
             <SidebarGroup>
               <SidebarMenu className="gap-2">
                 <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
+
+                {/* Back button - only in collapsed state when viewing a resource */}
+                {showResourceHeading && context.type === "resource" && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={`/${workspace.slug}/${RESOURCE_TYPE_ROUTES[context.resourceType]}`}
+                          className="flex items-center justify-center h-10 w-10 text-gray-11 hover:text-gray-12 hover:bg-gray-3 rounded-md transition-colors"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={8}>
+                        <p className="text-xs">
+                          Back to All {RESOURCE_TYPE_PLURAL[context.resourceType]}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </SidebarMenu>
             </SidebarGroup>
           )}
