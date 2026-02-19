@@ -13,6 +13,7 @@ export const deploymentSteps = mysqlTable(
     projectId: varchar("project_id", { length: 128 }).notNull(),
     environmentId: varchar("environment_id", { length: 128 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 128 }).notNull(),
+    appId: varchar("app_id", { length: 64 }).notNull().default(""),
 
     step: mysqlEnum("step", ["queued", "building", "deploying", "network"])
       .notNull()
