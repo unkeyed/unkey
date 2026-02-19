@@ -101,12 +101,12 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 			if err != nil {
 				return err
 			}
-			project, err := db.Query.FindProjectById(txCtx, tx, deployment.ProjectID)
+			appRow, err := db.Query.FindAppById(txCtx, tx, deployment.AppID)
 			if err != nil {
 				return err
 			}
 
-			if project.LiveDeploymentID.Valid && project.LiveDeploymentID.String == deploymentID {
+			if appRow.App.LiveDeploymentID.Valid && appRow.App.LiveDeploymentID.String == deploymentID {
 				return restate.TerminalErrorf("not allowed to modify the current live deployment")
 			}
 

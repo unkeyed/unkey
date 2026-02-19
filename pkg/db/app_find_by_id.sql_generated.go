@@ -10,7 +10,7 @@ import (
 )
 
 const findAppById = `-- name: FindAppById :one
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
 FROM apps
 WHERE id = ?
 `
@@ -21,7 +21,7 @@ type FindAppByIdRow struct {
 
 // FindAppById
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
 //	FROM apps
 //	WHERE id = ?
 func (q *Queries) FindAppById(ctx context.Context, db DBTX, id string) (FindAppByIdRow, error) {
@@ -35,7 +35,6 @@ func (q *Queries) FindAppById(ctx context.Context, db DBTX, id string) (FindAppB
 		&i.App.Name,
 		&i.App.Slug,
 		&i.App.LiveDeploymentID,
-		&i.App.IsRolledBack,
 		&i.App.DepotProjectID,
 		&i.App.DeleteProtection,
 		&i.App.CreatedAt,

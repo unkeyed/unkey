@@ -2,6 +2,7 @@ import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import {
+  apps,
   deployments,
   frontlineRoutes,
   githubRepoConnections,
@@ -14,7 +15,6 @@ type ProjectRow = {
   slug: string;
   repository_full_name: string | null;
   live_deployment_id: string | null;
-  is_rolled_back: boolean;
   git_commit_message: string | null;
   git_branch: string | null;
   git_commit_author_handle: string | null;
@@ -34,8 +34,7 @@ export const listProjects = workspaceProcedure
         ${projects.slug},
         ${projects.updatedAt},
         ${githubRepoConnections.repositoryFullName},
-        ${projects.liveDeploymentId},
-        ${projects.isRolledBack},
+        ${apps.liveDeploymentId},
         ${deployments.gitCommitMessage},
         ${deployments.gitBranch},
         ${deployments.gitCommitAuthorHandle},
@@ -51,8 +50,11 @@ export const listProjects = workspaceProcedure
           LIMIT 1
         ) as latest_deployment_id
       FROM ${projects}
+      LEFT JOIN ${apps}
+        ON ${apps.projectId} = ${projects.id}
+        AND ${apps.slug} = 'default'
       LEFT JOIN ${deployments}
-        ON ${projects.liveDeploymentId} = ${deployments.id}
+        ON ${apps.liveDeploymentId} = ${deployments.id}
         AND ${deployments.workspaceId} = ${ctx.workspace.id}
       LEFT JOIN ${frontlineRoutes}
         ON ${projects.id} = ${frontlineRoutes.projectId}
@@ -73,7 +75,6 @@ export const listProjects = workspaceProcedure
         slug: row.slug,
         repositoryFullName: row.repository_full_name,
         liveDeploymentId: row.live_deployment_id,
-        isRolledBack: row.is_rolled_back,
         commitTitle: row.git_commit_message,
         branch: row.git_branch ?? "main",
         author: row.git_commit_author_handle,

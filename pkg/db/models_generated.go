@@ -534,50 +534,6 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
-type EnvironmentRuntimeSettingsShutdownSignal string
-
-const (
-	EnvironmentRuntimeSettingsShutdownSignalSIGTERM EnvironmentRuntimeSettingsShutdownSignal = "SIGTERM"
-	EnvironmentRuntimeSettingsShutdownSignalSIGINT  EnvironmentRuntimeSettingsShutdownSignal = "SIGINT"
-	EnvironmentRuntimeSettingsShutdownSignalSIGQUIT EnvironmentRuntimeSettingsShutdownSignal = "SIGQUIT"
-	EnvironmentRuntimeSettingsShutdownSignalSIGKILL EnvironmentRuntimeSettingsShutdownSignal = "SIGKILL"
-)
-
-func (e *EnvironmentRuntimeSettingsShutdownSignal) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = EnvironmentRuntimeSettingsShutdownSignal(s)
-	case string:
-		*e = EnvironmentRuntimeSettingsShutdownSignal(s)
-	default:
-		return fmt.Errorf("unsupported scan type for EnvironmentRuntimeSettingsShutdownSignal: %T", src)
-	}
-	return nil
-}
-
-type NullEnvironmentRuntimeSettingsShutdownSignal struct {
-	EnvironmentRuntimeSettingsShutdownSignal EnvironmentRuntimeSettingsShutdownSignal
-	Valid                                    bool // Valid is true if EnvironmentRuntimeSettingsShutdownSignal is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullEnvironmentRuntimeSettingsShutdownSignal) Scan(value interface{}) error {
-	if value == nil {
-		ns.EnvironmentRuntimeSettingsShutdownSignal, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.EnvironmentRuntimeSettingsShutdownSignal.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullEnvironmentRuntimeSettingsShutdownSignal) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.EnvironmentRuntimeSettingsShutdownSignal), nil
-}
-
 type EnvironmentVariablesType string
 
 const (
@@ -1051,7 +1007,6 @@ type App struct {
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
 	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
-	IsRolledBack     bool           `db:"is_rolled_back"`
 	DepotProjectID   sql.NullString `db:"depot_project_id"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
@@ -1302,32 +1257,6 @@ type Environment struct {
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
-type EnvironmentBuildSetting struct {
-	Pk            uint64        `db:"pk"`
-	WorkspaceID   string        `db:"workspace_id"`
-	EnvironmentID string        `db:"environment_id"`
-	Dockerfile    string        `db:"dockerfile"`
-	DockerContext string        `db:"docker_context"`
-	CreatedAt     int64         `db:"created_at"`
-	UpdatedAt     sql.NullInt64 `db:"updated_at"`
-}
-
-type EnvironmentRuntimeSetting struct {
-	Pk             uint64                                   `db:"pk"`
-	WorkspaceID    string                                   `db:"workspace_id"`
-	EnvironmentID  string                                   `db:"environment_id"`
-	Port           int32                                    `db:"port"`
-	CpuMillicores  int32                                    `db:"cpu_millicores"`
-	MemoryMib      int32                                    `db:"memory_mib"`
-	Command        dbtype.StringSlice                       `db:"command"`
-	Healthcheck    dbtype.NullHealthcheck                   `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig                      `db:"region_config"`
-	ShutdownSignal EnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
-	SentinelConfig []byte                                   `db:"sentinel_config"`
-	CreatedAt      int64                                    `db:"created_at"`
-	UpdatedAt      sql.NullInt64                            `db:"updated_at"`
-}
-
 type EnvironmentVariable struct {
 	Pk               uint64                   `db:"pk"`
 	ID               string                   `db:"id"`
@@ -1493,10 +1422,7 @@ type Project struct {
 	WorkspaceID      string         `db:"workspace_id"`
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
-	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
-	IsRolledBack     bool           `db:"is_rolled_back"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
-	DepotProjectID   sql.NullString `db:"depot_project_id"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`

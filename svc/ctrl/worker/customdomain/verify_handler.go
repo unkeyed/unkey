@@ -267,19 +267,21 @@ func (s *Service) onVerificationSuccess(
 	// Create frontline route for traffic routing. If no deployment exists yet,
 	// the route will be assigned when the first deployment happens.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		project, findErr := db.Query.FindProjectById(stepCtx, s.db.RO(), dom.ProjectID)
-		if findErr != nil {
-			return restate.Void{}, fault.Wrap(findErr, fault.Internal("failed to find project for frontline route"))
-		}
-
+		// Look up the live deployment from the project's default app
 		deploymentID := ""
-		if project.LiveDeploymentID.Valid {
-			deploymentID = project.LiveDeploymentID.String
+		appID := ""
+		appRows, appErr := db.Query.ListAppsByProject(stepCtx, s.db.RO(), dom.ProjectID)
+		if appErr == nil && len(appRows) > 0 {
+			appID = appRows[0].App.ID
+			if appRows[0].App.LiveDeploymentID.Valid {
+				deploymentID = appRows[0].App.LiveDeploymentID.String
+			}
 		}
 
 		return restate.Void{}, db.Query.InsertFrontlineRoute(stepCtx, s.db.RW(), db.InsertFrontlineRouteParams{
 			ID:                       uid.New(uid.FrontlineRoutePrefix),
 			ProjectID:                dom.ProjectID,
+			AppID:                    appID,
 			DeploymentID:             deploymentID,
 			EnvironmentID:            dom.EnvironmentID,
 			FullyQualifiedDomainName: dom.Domain,
