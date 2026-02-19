@@ -11,8 +11,34 @@
 @source '../content/**/*.{md,mdx}';
 @source '../mdx-components.{ts,tsx}';
 @source '../../node_modules/fumadocs-ui/dist/**/*.js';
-@source '../../../internal/ui/src/**/*.tsx';
-@source '../../../internal/icons/src/**/*.tsx';
+/* Explicitly scan component for Tailwind */
+@source '../../../internal/ui/src/components/buttons/**/*.tsx';
+@source '../../../internal/ui/src/components/date-time/**/*.tsx';
+@source '../../../internal/ui/src/components/dialog/**/*.tsx';
+@source '../../../internal/ui/src/components/form/**/*.tsx';
+@source '../../../internal/ui/src/components/llm-search/**/*.tsx';
+@source '../../../internal/ui/src/components/logs/**/*.tsx';
+@source '../../../internal/ui/src/components/table/**/*.tsx';
+@source '../../../internal/ui/src/components/alert.tsx';
+@source '../../../internal/ui/src/components/animated-loading-spinner.tsx';
+@source '../../../internal/ui/src/components/badge.tsx';
+@source '../../../internal/ui/src/components/card.tsx';
+@source '../../../internal/ui/src/components/circle-progress.tsx';
+@source '../../../internal/ui/src/components/code.tsx';
+@source '../../../internal/ui/src/components/drawer.tsx';
+@source '../../../internal/ui/src/components/drover.tsx';
+/* @source '../../../internal/ui/src/components/empty.tsx'; Breaks header on home page */
+@source '../../../internal/ui/src/components/id.tsx';
+@source '../../../internal/ui/src/components/info-tooltip.tsx';
+@source '../../../internal/ui/src/components/inline-link.tsx';
+@source '../../../internal/ui/src/components/loading.tsx';
+@source '../../../internal/ui/src/components/separator.tsx';
+@source '../../../internal/ui/src/components/settings-card.tsx';
+@source '../../../internal/ui/src/components/slider.tsx';
+@source '../../../internal/ui/src/components/timestamp-info.tsx';
+@source '../../../internal/ui/src/components/toaster.tsx';
+@source '../../../internal/ui/src/components/tooltip.tsx';
+@source '../../../internal/ui/src/components/visually-hidden.tsx';
 
 @theme {
   --font-sans: var(--font-geist-sans);
@@ -444,6 +470,8 @@
     padding-left: 0.5rem !important;
   }
 }
+
+
 
 code {
   counter-reset: step;
