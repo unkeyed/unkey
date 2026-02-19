@@ -91,6 +91,31 @@
                 "import": "github.com/unkeyed/unkey/pkg/db/types"
               },
               "nullable": true
+            },
+            {
+              "column": "app_runtime_settings.command",
+              "go_type": {
+                "type": "StringSlice",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              }
+            },
+            {
+              "column": "app_runtime_settings.region_config",
+              "go_type": {
+                "type": "RegionConfig",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              }
+            },
+            {
+              "column": "app_runtime_settings.healthcheck",
+              "go_type": {
+                "type": "NullHealthcheck",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              },
+              "nullable": true
             }
           ]
         }

@@ -10,12 +10,12 @@ import (
 )
 
 const findCiliumNetworkPoliciesByDeploymentID = `-- name: FindCiliumNetworkPoliciesByDeploymentID :many
-SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE deployment_id = ?
+SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE deployment_id = ?
 `
 
 // FindCiliumNetworkPoliciesByDeploymentID
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE deployment_id = ?
+//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at FROM cilium_network_policies WHERE deployment_id = ?
 func (q *Queries) FindCiliumNetworkPoliciesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]CiliumNetworkPolicy, error) {
 	rows, err := db.QueryContext(ctx, findCiliumNetworkPoliciesByDeploymentID, deploymentID)
 	if err != nil {
@@ -30,6 +30,7 @@ func (q *Queries) FindCiliumNetworkPoliciesByDeploymentID(ctx context.Context, d
 			&i.ID,
 			&i.WorkspaceID,
 			&i.ProjectID,
+			&i.AppID,
 			&i.EnvironmentID,
 			&i.DeploymentID,
 			&i.K8sName,

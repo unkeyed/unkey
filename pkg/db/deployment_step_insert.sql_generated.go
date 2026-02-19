@@ -13,12 +13,14 @@ const insertDeploymentStep = `-- name: InsertDeploymentStep :exec
 INSERT INTO ` + "`" + `deployment_steps` + "`" + ` (
     workspace_id,
     project_id,
+    app_id,
     environment_id,
     deployment_id,
     step,
     started_at
 )
 VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -31,6 +33,7 @@ VALUES (
 type InsertDeploymentStepParams struct {
 	WorkspaceID   string              `db:"workspace_id"`
 	ProjectID     string              `db:"project_id"`
+	AppID         string              `db:"app_id"`
 	EnvironmentID string              `db:"environment_id"`
 	DeploymentID  string              `db:"deployment_id"`
 	Step          DeploymentStepsStep `db:"step"`
@@ -42,6 +45,7 @@ type InsertDeploymentStepParams struct {
 //	INSERT INTO `deployment_steps` (
 //	    workspace_id,
 //	    project_id,
+//	    app_id,
 //	    environment_id,
 //	    deployment_id,
 //	    step,
@@ -53,12 +57,14 @@ type InsertDeploymentStepParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error {
 	_, err := db.ExecContext(ctx, insertDeploymentStep,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.EnvironmentID,
 		arg.DeploymentID,
 		arg.Step,
