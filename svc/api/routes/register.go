@@ -81,7 +81,7 @@ import (
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
-	withLogging := zen.WithLogging()
+	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withErrorHandling := middleware.WithErrorHandling()
 	withValidation := zen.WithValidation(svc.Validator)

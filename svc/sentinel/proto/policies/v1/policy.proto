@@ -2,48 +2,15 @@ syntax = "proto3";
 
 package sentinel.v1;
 
-import "middleware/v1/basicauth.proto";
-import "middleware/v1/iprules.proto";
-import "middleware/v1/jwtauth.proto";
-import "middleware/v1/keyauth.proto";
-import "middleware/v1/match.proto";
-import "middleware/v1/openapi.proto";
-import "middleware/v1/ratelimit.proto";
+import "policies/v1/basicauth.proto";
+import "policies/v1/iprules.proto";
+import "policies/v1/jwtauth.proto";
+import "policies/v1/keyauth.proto";
+import "policies/v1/match.proto";
+import "policies/v1/openapi.proto";
+import "policies/v1/ratelimit.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
-
-// Middleware is the per-deployment policy configuration for sentinel.
-//
-// Sentinel is Unkey's reverse proxy. Each deployment gets a Middleware
-// configuration that defines which policies apply to incoming requests and in
-// what order. When a request arrives, sentinel evaluates every policy's
-// match conditions against it, collects the matching policies, and executes
-// them sequentially in list order. This gives operators full control over
-// request processing without relying on implicit ordering conventions.
-//
-// A deployment with no policies is a plain pass-through proxy. Adding policies
-// incrementally layers on authentication, authorization, traffic shaping,
-// and validation — all without touching application code.
-message Middleware {
-  // The ordered list of policies for this deployment. Sentinel executes
-  // matching policies in exactly this order, so authn policies should appear
-  // before policies that depend on a [Principal].
-  repeated Policy policies = 1;
-
-  // CIDR ranges of trusted proxies sitting in front of sentinel, used to
-  // derive the real client IP from the X-Forwarded-For header chain.
-  // Sentinel walks X-Forwarded-For right-to-left, skipping entries that
-  // fall within a trusted CIDR, and uses the first untrusted entry as the
-  // client IP. When this list is empty, sentinel uses the direct peer IP
-  // and ignores X-Forwarded-For entirely — this is the safe default that
-  // prevents IP spoofing via forged headers.
-  //
-  // This setting affects all policies that depend on client IP: [IPRules]
-  // for allow/deny decisions and [RateLimit] with a [RemoteIpKey] source.
-  //
-  // Examples: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
-  repeated string trusted_proxy_cidrs = 2;
-}
 
 // Policy is a single middleware layer in a deployment's configuration. Each policy
 // combines a match expression (which requests does it apply to?) with a
