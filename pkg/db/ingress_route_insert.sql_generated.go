@@ -14,6 +14,7 @@ const insertFrontlineRoute = `-- name: InsertFrontlineRoute :exec
 INSERT INTO frontline_routes (
     id,
     project_id,
+    app_id,
     deployment_id,
     environment_id,
     fully_qualified_domain_name,
@@ -29,6 +30,7 @@ VALUES (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
@@ -36,6 +38,7 @@ VALUES (
 type InsertFrontlineRouteParams struct {
 	ID                       string                `db:"id"`
 	ProjectID                string                `db:"project_id"`
+	AppID                    string                `db:"app_id"`
 	DeploymentID             string                `db:"deployment_id"`
 	EnvironmentID            string                `db:"environment_id"`
 	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
@@ -49,6 +52,7 @@ type InsertFrontlineRouteParams struct {
 //	INSERT INTO frontline_routes (
 //	    id,
 //	    project_id,
+//	    app_id,
 //	    deployment_id,
 //	    environment_id,
 //	    fully_qualified_domain_name,
@@ -64,12 +68,14 @@ type InsertFrontlineRouteParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertFrontlineRoute(ctx context.Context, db DBTX, arg InsertFrontlineRouteParams) error {
 	_, err := db.ExecContext(ctx, insertFrontlineRoute,
 		arg.ID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.DeploymentID,
 		arg.EnvironmentID,
 		arg.FullyQualifiedDomainName,
