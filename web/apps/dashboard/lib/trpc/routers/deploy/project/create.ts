@@ -93,7 +93,6 @@ export const createProject = workspaceProcedure
             projectId,
             slug: "production",
             description: "Production",
-            sentinelConfig: "",
             deleteProtection: false,
             createdAt: Date.now(),
             updatedAt: null,
@@ -104,7 +103,6 @@ export const createProject = workspaceProcedure
             projectId,
             slug: "preview",
             description: "Preview",
-            sentinelConfig: "",
             deleteProtection: false,
             createdAt: Date.now(),
             updatedAt: null,
@@ -124,10 +122,12 @@ export const createProject = workspaceProcedure
           {
             workspaceId: ctx.workspace.id,
             environmentId: prodEnvId,
+            sentinelConfig: "{}",
           },
           {
             workspaceId: ctx.workspace.id,
             environmentId: previewEnvId,
+            sentinelConfig: "{}",
           },
         ]);
       });
