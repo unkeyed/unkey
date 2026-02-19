@@ -19,12 +19,8 @@ export const DeploymentLayoutProvider = ({ children }: { children: React.ReactNo
     throw new Error("DeploymentLayoutProvider must be used within a deployment route");
   }
 
-  const { getDeploymentById, isDeploymentsLoading } = useProjectData();
+  const { getDeploymentById } = useProjectData();
   const deployment = getDeploymentById(deploymentId);
-
-  if (isDeploymentsLoading) {
-    return null;
-  }
 
   if (!deployment) {
     throw new Error(`Deployment not found: ${deploymentId}`);
