@@ -2,6 +2,7 @@
 INSERT INTO frontline_routes (
     id,
     project_id,
+    app_id,
     deployment_id,
     environment_id,
     fully_qualified_domain_name,
@@ -12,6 +13,7 @@ INSERT INTO frontline_routes (
 VALUES (
     sqlc.arg(id),
     sqlc.arg(project_id),
+    sqlc.arg(app_id),
     sqlc.arg(deployment_id),
     sqlc.arg(environment_id),
     sqlc.arg(fully_qualified_domain_name),

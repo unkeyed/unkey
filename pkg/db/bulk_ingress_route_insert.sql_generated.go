@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertFrontlineRoute is the base query for bulk insert
-const bulkInsertFrontlineRoute = `INSERT INTO frontline_routes ( id, project_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at ) VALUES %s`
+const bulkInsertFrontlineRoute = `INSERT INTO frontline_routes ( id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at ) VALUES %s`
 
 // InsertFrontlineRoutes performs bulk insert in a single query
 func (q *BulkQueries) InsertFrontlineRoutes(ctx context.Context, db DBTX, args []InsertFrontlineRouteParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertFrontlineRoutes(ctx context.Context, db DBTX, args [
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertFrontlineRoute, strings.Join(valueClauses, ", "))
@@ -31,6 +31,7 @@ func (q *BulkQueries) InsertFrontlineRoutes(ctx context.Context, db DBTX, args [
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.ProjectID)
+		allArgs = append(allArgs, arg.AppID)
 		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.FullyQualifiedDomainName)
