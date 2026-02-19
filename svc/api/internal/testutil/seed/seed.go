@@ -172,9 +172,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		CreatedAt:        project.CreatedAt,
 		UpdatedAt:        project.UpdatedAt,
 		Pk:               0,
-		LiveDeploymentID: sql.NullString{String: "", Valid: false},
-		IsRolledBack:     false,
-		DepotProjectID:   sql.NullString{String: "", Valid: false},
 	}
 }
 
@@ -206,31 +203,8 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	})
 	require.NoError(s.t, err)
 
-	err = db.Query.UpsertEnvironmentRuntimeSettings(ctx, s.DB.RW(), db.UpsertEnvironmentRuntimeSettingsParams{
-		WorkspaceID:    req.WorkspaceID,
-		EnvironmentID:  req.ID,
-		Port:           8080,
-		CpuMillicores:  256,
-		MemoryMib:      256,
-		Command:        dbtype.StringSlice{},
-		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		RegionConfig:   dbtype.RegionConfig{},
-		SentinelConfig: []byte{},
-		ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
-	})
-	require.NoError(s.t, err)
-
-	err = db.Query.UpsertEnvironmentBuildSettings(ctx, s.DB.RW(), db.UpsertEnvironmentBuildSettingsParams{
-		WorkspaceID:   req.WorkspaceID,
-		EnvironmentID: req.ID,
-		Dockerfile:    "Dockerfile",
-		DockerContext: ".",
-		CreatedAt:     now,
-		UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-	})
-	require.NoError(s.t, err)
+	// Environment settings are now app-scoped (app_runtime_settings / app_build_settings).
+	// Seed code should create an app and its settings separately.
 
 	environment, err := db.Query.FindEnvironmentById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)

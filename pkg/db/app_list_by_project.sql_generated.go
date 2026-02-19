@@ -10,7 +10,7 @@ import (
 )
 
 const listAppsByProject = `-- name: ListAppsByProject :many
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
 FROM apps
 WHERE project_id = ?
 ORDER BY created_at ASC
@@ -22,7 +22,7 @@ type ListAppsByProjectRow struct {
 
 // ListAppsByProject
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
 //	FROM apps
 //	WHERE project_id = ?
 //	ORDER BY created_at ASC
@@ -43,7 +43,6 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, projectID stri
 			&i.App.Name,
 			&i.App.Slug,
 			&i.App.LiveDeploymentID,
-			&i.App.IsRolledBack,
 			&i.App.DepotProjectID,
 			&i.App.DeleteProtection,
 			&i.App.CreatedAt,

@@ -9,8 +9,16 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
-import type { Healthcheck } from "./environment_runtime_settings";
 import { environments } from "./environments";
+
+export type Healthcheck = {
+  method: "GET" | "POST";
+  path: string;
+  intervalSeconds: number;
+  timeoutSeconds: number;
+  failureThreshold: number;
+  initialDelaySeconds: number;
+};
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";

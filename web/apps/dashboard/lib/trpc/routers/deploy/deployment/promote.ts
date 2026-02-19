@@ -57,7 +57,6 @@ export const promote = workspaceProcedure
             columns: {
               id: true,
               name: true,
-              liveDeploymentId: true,
             },
           },
         },

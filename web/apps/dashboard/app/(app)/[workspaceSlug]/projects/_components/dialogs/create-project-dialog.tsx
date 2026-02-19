@@ -38,7 +38,6 @@ export const CreateProjectDialog = () => {
         slug: values.slug,
         repositoryFullName: null,
         liveDeploymentId: null,
-        isRolledBack: false,
         id: "will-be-replace-by-server",
         latestDeploymentId: null,
         author: "will-be-replace-by-server",
