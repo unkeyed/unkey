@@ -4,6 +4,15 @@ import { environmentRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
+export type SentinelConfig = {
+  policies: {
+    id: string;
+    name: string;
+    enabled: boolean;
+    keyauth: { keySpaceIds: string[] };
+  }[];
+};
+
 // This is 100% not how we will do it later and is just a shortcut to use keyspace middleware before building the actual UI for it.
 export const updateMiddleware = workspaceProcedure
   .input(
@@ -13,14 +22,7 @@ export const updateMiddleware = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const sentinelConfig: {
-      policies: {
-        id: string;
-        name: string;
-        enabled: boolean;
-        keyauth: { keySpaceIds: string[] };
-      }[];
-    } = {
+    const sentinelConfig: SentinelConfig = {
       policies: [],
     };
     if (input.keyspaceIds.length > 0) {

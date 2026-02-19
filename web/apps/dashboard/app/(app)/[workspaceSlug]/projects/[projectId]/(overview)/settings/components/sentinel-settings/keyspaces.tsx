@@ -34,8 +34,8 @@ export const Keyspaces = () => {
 
   const defaultKeyspaceIds: string[] = [];
   for (const policy of settingsData?.runtimeSettings?.sentinelConfig?.policies ?? []) {
-    if (policy.config.case === "keyauth") {
-      defaultKeyspaceIds.push(...policy.config.value.keySpaceIds);
+    if (policy.keyauth) {
+      defaultKeyspaceIds.push(...policy.keyauth.keySpaceIds);
     }
   }
 
