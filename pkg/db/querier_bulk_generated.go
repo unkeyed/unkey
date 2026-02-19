@@ -9,6 +9,10 @@ type BulkQuerier interface {
 	InsertAcmeChallenges(ctx context.Context, db DBTX, args []InsertAcmeChallengeParams) error
 	InsertAcmeUsers(ctx context.Context, db DBTX, args []InsertAcmeUserParams) error
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
+	UpsertAppBuildSettings(ctx context.Context, db DBTX, args []UpsertAppBuildSettingsParams) error
+	InsertApps(ctx context.Context, db DBTX, args []InsertAppParams) error
+	UpsertAppInternalService(ctx context.Context, db DBTX, args []UpsertAppInternalServiceParams) error
+	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
 	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
 	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error

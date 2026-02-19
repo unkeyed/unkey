@@ -15,6 +15,7 @@ INSERT INTO cilium_network_policies (
     id,
     workspace_id,
     project_id,
+    app_id,
     environment_id,
     deployment_id,
     k8s_name,
@@ -34,6 +35,7 @@ INSERT INTO cilium_network_policies (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
@@ -42,6 +44,7 @@ type InsertCiliumNetworkPolicyParams struct {
 	ID            string          `db:"id"`
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
+	AppID         string          `db:"app_id"`
 	EnvironmentID string          `db:"environment_id"`
 	DeploymentID  string          `db:"deployment_id"`
 	K8sName       string          `db:"k8s_name"`
@@ -58,6 +61,7 @@ type InsertCiliumNetworkPolicyParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
+//	    app_id,
 //	    environment_id,
 //	    deployment_id,
 //	    k8s_name,
@@ -77,6 +81,7 @@ type InsertCiliumNetworkPolicyParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertCiliumNetworkPolicy(ctx context.Context, db DBTX, arg InsertCiliumNetworkPolicyParams) error {
@@ -84,6 +89,7 @@ func (q *Queries) InsertCiliumNetworkPolicy(ctx context.Context, db DBTX, arg In
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.EnvironmentID,
 		arg.DeploymentID,
 		arg.K8sName,

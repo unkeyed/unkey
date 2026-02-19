@@ -25,6 +25,8 @@ const (
 	// Control plane prefixes
 	ProjectPrefix        Prefix = "proj"
 	EnvironmentPrefix    Prefix = "env"
+	AppPrefix            Prefix = "app"
+	AppInternalSvcPrefix Prefix = "ais"
 	DomainPrefix         Prefix = "dom"
 	DeploymentPrefix     Prefix = "d"
 	FrontlineRoutePrefix Prefix = "flr"
