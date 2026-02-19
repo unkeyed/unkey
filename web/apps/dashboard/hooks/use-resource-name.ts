@@ -1,6 +1,8 @@
 "use client";
 
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 
 /**
@@ -12,17 +14,15 @@ export function useResourceName(
 ) {
   // Fetch APIs
   const { data: apiData } = trpc.api.overview.query.useInfiniteQuery(
-    { limit: 100 },
+    { limit: 18 },
     {
       enabled: resourceType === "api" && !!resourceId,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
     },
   );
 
-  // Fetch Projects
-  const { data: projectData } = trpc.project.list.useQuery(undefined, {
-    enabled: resourceType === "project" && !!resourceId,
-  });
+  // Fetch Projects using LiveQuery
+  const { data: projectData } = useLiveQuery((q) => q.from({ project: collection.projects }));
 
   // Fetch Namespaces (ratelimits)
   const { data: namespaceData } = trpc.ratelimit.namespace.list.useQuery(undefined, {
