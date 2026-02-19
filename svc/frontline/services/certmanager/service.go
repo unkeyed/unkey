@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"database/sql"
-	"errors"
+	"fmt"
 	"strings"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -92,7 +92,7 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 	}
 
 	if hit == cache.Null || db.IsNotFound(err) {
-		return nil, errors.New("certificate not found")
+		return nil, fmt.Errorf("certificate not found for [%v]", candidates)
 	}
 
 	return &cert, nil

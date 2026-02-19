@@ -88,11 +88,21 @@ func NewRedis(config RedisConfig) (Counter, error) {
 		return nil, fmt.Errorf("failed to parse redis url: %w", err)
 	}
 
+	// Use aggressive timeouts so requests fail fast when Redis is slow or
+	// unreachable, rather than blocking for the go-redis defaults (5s dial,
+	// 3s read/write). See https://github.com/unkeyed/unkey/issues/4891.
+	opts.DialTimeout = 1 * time.Second
+	opts.ReadTimeout = 500 * time.Millisecond
+	opts.WriteTimeout = 500 * time.Millisecond
+
 	rdb := redis.NewClient(opts)
 	logger.Debug("pinging redis")
 
-	// Test connection
-	_, err = rdb.Ping(context.Background()).Result()
+	// Test connection with a bounded timeout
+	pingCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, err = rdb.Ping(pingCtx).Result()
 	if err != nil {
 		return nil, fmt.Errorf("failed to ping redis: %w", err)
 	}

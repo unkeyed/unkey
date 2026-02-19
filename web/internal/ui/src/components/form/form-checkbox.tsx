@@ -55,15 +55,17 @@ const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
             aria-required={required}
             {...props}
           />
-          <div className="flex flex-col gap-1">
-            <FormLabel
-              label={label}
-              required={required}
-              optional={optional}
-              hasError={Boolean(error)}
-              htmlFor={checkboxId}
-            />
-          </div>
+          {label && (
+            <div className="flex flex-col gap-1">
+              <FormLabel
+                label={label}
+                required={required}
+                optional={optional}
+                hasError={Boolean(error)}
+                htmlFor={checkboxId}
+              />
+            </div>
+          )}
         </div>
         <FormDescription
           description={description}

@@ -2,8 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
-	"html"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -102,7 +101,7 @@ func categorizeErrorTypeFrontline(urn codes.URN, statusCode int, hasError bool) 
 	return "unknown"
 }
 
-func WithObservability(region string) zen.Middleware {
+func WithObservability(region string, renderer errorpage.Renderer) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()
@@ -180,7 +179,25 @@ func WithObservability(region string) zen.Middleware {
 						},
 					})
 				} else {
-					writeErr = s.HTML(pageInfo.Status, renderErrorHTMLFrontline(title, userMessage, string(code.URN())))
+					htmlBody, renderErr := renderer.Render(errorpage.Data{
+						StatusCode: pageInfo.Status,
+						Title:      title,
+						Message:    userMessage,
+						ErrorCode:  string(code.URN()),
+						DocsURL:    code.DocsURL(),
+						RequestID:  s.RequestID(),
+					})
+					if renderErr != nil {
+						logger.Error("failed to render error page", "error", renderErr.Error())
+						writeErr = s.JSON(pageInfo.Status, ErrorResponse{
+							Error: ErrorDetail{
+								Code:    string(code.URN()),
+								Message: userMessage,
+							},
+						})
+					} else {
+						writeErr = s.HTML(pageInfo.Status, htmlBody)
+					}
 				}
 
 				if writeErr != nil {
@@ -255,30 +272,4 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Message: "",
 		}
 	}
-}
-
-func renderErrorHTMLFrontline(title, message, errorCode string) []byte {
-	escapedTitle := html.EscapeString(title)
-	escapedMessage := html.EscapeString(message)
-	escapedErrorCode := html.EscapeString(errorCode)
-
-	return fmt.Appendf(nil, `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>%s</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
-        h1 { color: #333; }
-        p { color: #666; line-height: 1.6; }
-        .error-code { color: #999; font-size: 0.9em; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h1>%s</h1>
-    <p>%s</p>
-    <p class="error-code">Error: %s</p>
-</body>
-</html>`, escapedTitle, escapedTitle, escapedMessage, escapedErrorCode)
 }

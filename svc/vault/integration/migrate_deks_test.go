@@ -43,7 +43,7 @@ func TestMigrateDeks(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
-		MasterKeys:  []string{masterKeyOld},
+		MasterKey:   masterKeyOld,
 		BearerToken: bearerToken,
 	})
 	require.NoError(t, err)
@@ -77,9 +77,10 @@ func TestMigrateDeks(t *testing.T) {
 	require.NoError(t, err)
 
 	v, err = vault.New(vault.Config{
-		Storage:     storage,
-		MasterKeys:  []string{masterKeyNew, masterKeyOld},
-		BearerToken: bearerToken,
+		Storage:           storage,
+		MasterKey:         masterKeyNew,
+		PreviousMasterKey: &masterKeyOld,
+		BearerToken:       bearerToken,
 	})
 	require.NoError(t, err)
 

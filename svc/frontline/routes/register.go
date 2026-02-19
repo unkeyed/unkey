@@ -12,9 +12,9 @@ import (
 
 // Register registers all frontline routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
-	withLogging := zen.WithLogging()
+	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	withPanicRecovery := zen.WithPanicRecovery()
-	withObservability := middleware.WithObservability(svc.Region)
+	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{
@@ -43,7 +43,7 @@ func Register(srv *zen.Server, svc *Services) {
 
 // RegisterChallengeServer registers routes for the HTTP challenge server (Let's Encrypt ACME)
 func RegisterChallengeServer(srv *zen.Server, svc *Services) {
-	withLogging := zen.WithLogging()
+	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 
 	// Health check endpoint
 	srv.RegisterRoute(
@@ -56,7 +56,7 @@ func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 		[]zen.Middleware{
 			zen.WithPanicRecovery(),
 			withLogging,
-			middleware.WithObservability(svc.Region),
+			middleware.WithObservability(svc.Region, svc.ErrorPageRenderer),
 		},
 		&acme.Handler{
 			RouterService: svc.RouterService,
