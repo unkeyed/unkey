@@ -59,7 +59,7 @@ func matchesRequest(req *http.Request, exprs []*sentinelv1.MatchExpr, rc *regexC
 
 func evalMatchExpr(req *http.Request, expr *sentinelv1.MatchExpr, rc *regexCache) (bool, error) {
 	if expr == nil {
-		return true, nil
+		return false, nil
 	}
 	switch e := expr.GetExpr().(type) {
 	case *sentinelv1.MatchExpr_Path:
@@ -73,7 +73,7 @@ func evalMatchExpr(req *http.Request, expr *sentinelv1.MatchExpr, rc *regexCache
 	default:
 		return false, nil
 	}
-}
+
 }
 
 func evalPathMatch(req *http.Request, pm *sentinelv1.PathMatch, rc *regexCache) (bool, error) {
