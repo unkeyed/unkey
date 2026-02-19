@@ -8,7 +8,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
   return (
     <ErrorBoundary
       fallback={(error, reset) => (
-        <TreeElementNode id="error-state" position={{ x: 0, y: 250 }}>
+        <TreeElementNode id="error-state" position={{ x: 0, y: 250 }} size={{ width: 0, height: 0 }}>
           <div className="w-[400px]">
             {/* Background card with glow */}
             <div
