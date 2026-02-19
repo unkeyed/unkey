@@ -40,7 +40,7 @@ func withErrorHandling() Middleware {
 			switch urn {
 			// Not Found errors
 			case codes.UnkeyDataErrorsKeyNotFound:
-				return s.JSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
+				return s.ProblemJSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -54,7 +54,7 @@ func withErrorHandling() Middleware {
 
 			// Request Timeout errors
 			case codes.UserErrorsBadRequestRequestTimeout:
-				return s.JSON(http.StatusRequestTimeout, openapi.BadRequestErrorResponse{
+				return s.ProblemJSON(http.StatusRequestTimeout, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -69,7 +69,7 @@ func withErrorHandling() Middleware {
 
 			// Client Closed Request errors (499 - non-standard but widely used)
 			case codes.UserErrorsBadRequestClientClosedRequest:
-				return s.JSON(499, openapi.BadRequestErrorResponse{
+				return s.ProblemJSON(499, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -84,7 +84,7 @@ func withErrorHandling() Middleware {
 
 			// Request Entity Too Large errors
 			case codes.UserErrorsBadRequestRequestBodyTooLarge:
-				return s.JSON(http.StatusRequestEntityTooLarge, openapi.BadRequestErrorResponse{
+				return s.ProblemJSON(http.StatusRequestEntityTooLarge, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -99,7 +99,7 @@ func withErrorHandling() Middleware {
 
 			// Bad Request errors - Unreadable body
 			case codes.UserErrorsBadRequestRequestBodyUnreadable:
-				return s.JSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
+				return s.ProblemJSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
 					},
@@ -118,7 +118,7 @@ func withErrorHandling() Middleware {
 			}
 
 			// Default: Internal Server Error
-			return s.JSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
+			return s.ProblemJSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
 				Meta: openapi.Meta{
 					RequestId: s.RequestID(),
 				},

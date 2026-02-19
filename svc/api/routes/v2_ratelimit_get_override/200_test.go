@@ -47,8 +47,9 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		Keys:       h.Keys,
-		Namespaces: h.Namespaces,
+		DB:             h.DB,
+		Keys:           h.Keys,
+		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)

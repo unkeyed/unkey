@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -25,10 +27,10 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	Keys       keys.KeyService
-	Auditlogs  auditlogs.AuditLogService
-	Namespaces namespace.Service
+	DB             db.Database
+	Keys           keys.KeyService
+	Auditlogs      auditlogs.AuditLogService
+	NamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
 func (h *Handler) Method() string {
@@ -51,7 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ns, found, err := h.Namespaces.Get(ctx, auth.AuthorizedWorkspaceID, req.Namespace)
+	ns, found, err := h.getNamespace(ctx, auth.AuthorizedWorkspaceID, req.Namespace)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -152,7 +154,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.Namespaces.Invalidate(ctx, auth.AuthorizedWorkspaceID, ns)
+	h.NamespaceCache.Remove(ctx,
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.ID},
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.Name},
+	)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -160,4 +165,34 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: openapi.V2RatelimitDeleteOverrideResponseData{},
 	})
+}
+
+func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string) (db.FindRatelimitNamespace, bool, error) {
+	cacheKey := cache.ScopedKey{WorkspaceID: workspaceID, Key: nameOrID}
+
+	ns, hit, err := h.NamespaceCache.SWR(ctx, cacheKey, func(ctx context.Context) (db.FindRatelimitNamespace, error) {
+		row, dbErr := db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
+			return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+				WorkspaceID: workspaceID,
+				Namespace:   nameOrID,
+			})
+		})
+		if dbErr != nil {
+			return db.FindRatelimitNamespace{}, dbErr //nolint:exhaustruct
+		}
+		return namespace.ParseNamespaceRow(row), nil
+	}, caches.DefaultFindFirstOp)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
+		}
+		return db.FindRatelimitNamespace{}, false, err //nolint:exhaustruct
+	}
+
+	if hit == cache.Null {
+		return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
+	}
+
+	return ns, true, nil
 }

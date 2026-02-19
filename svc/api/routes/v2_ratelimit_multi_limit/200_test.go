@@ -23,10 +23,12 @@ func TestLimitSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Keys:       h.Keys,
-		ClickHouse: h.ClickHouse,
-		Ratelimit:  h.Ratelimit,
-		Namespaces: h.Namespaces,
+		Keys:           h.Keys,
+		ClickHouse:     h.ClickHouse,
+		Ratelimit:      h.Ratelimit,
+		DB:             h.DB,
+		NamespaceCache: h.Caches.RatelimitNamespace,
+		Auditlogs:      h.Auditlogs,
 	}
 
 	h.Register(route)

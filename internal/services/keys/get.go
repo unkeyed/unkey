@@ -63,10 +63,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
 	sess.WorkspaceID = key.AuthorizedWorkspaceID
 
-	if err := s.checkWorkspaceRateLimit(ctx, WorkspaceRateLimitRequest{
-		Session:               sess,
-		AuthorizedWorkspaceID: key.AuthorizedWorkspaceID,
-	}); err != nil {
+	if err := s.checkWorkspaceRateLimit(ctx, sess); err != nil {
 		return nil, log, err
 	}
 

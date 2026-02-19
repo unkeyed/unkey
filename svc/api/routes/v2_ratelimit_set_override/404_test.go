@@ -18,7 +18,7 @@ func TestNamespaceNotFound(t *testing.T) {
 		DB:         h.DB,
 		Keys:       h.Keys,
 		Auditlogs:  h.Auditlogs,
-		Namespaces: h.Namespaces,
+		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
