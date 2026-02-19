@@ -38,6 +38,9 @@ message CreateDeploymentRequest {
   // Container command override (e.g., ["./app", "serve"])
   // If not specified, the container's default entrypoint/cmd is used
   repeated string command = 6;
+
+  // App slug within the project. Defaults to "default" if empty.
+  string app_slug = 7;
 }
 
 message GitCommitInfo {
@@ -67,6 +70,7 @@ message Deployment {
   string workspace_id = 2;
   string project_id = 3;
   string environment_id = 4;
+  string app_id = 21;
 
   // Source information
   string git_commit_sha = 5;
