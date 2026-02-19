@@ -16,7 +16,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withObservability := middleware.WithObservability(svc.EnvironmentID, svc.Region)
 	withSentinelLogging := middleware.WithSentinelLogging(svc.ClickHouse, svc.Clock, svc.SentinelID, svc.Region)
 	withProxyErrorHandling := middleware.WithProxyErrorHandling()
-	withLogging := zen.WithLogging()
+	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withObservability,
@@ -50,6 +50,7 @@ func Register(srv *zen.Server, svc *Services) {
 			SentinelID:         svc.SentinelID,
 			Region:             svc.Region,
 			MaxRequestBodySize: svc.MaxRequestBodySize,
+			Engine:             svc.Engine,
 		},
 	)
 }

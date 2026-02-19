@@ -5,7 +5,6 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
-import { longblob } from "./util/longblob";
 export const environments = mysqlTable(
   "environments",
   {
@@ -17,8 +16,6 @@ export const environments = mysqlTable(
 
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
-
-    sentinelConfig: longblob("sentinel_config").notNull(),
 
     ...deleteProtection,
     ...lifecycleDates,

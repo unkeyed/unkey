@@ -23,6 +23,7 @@ go_library(
         "//pkg/logger",
         "//pkg/timing",
         "//pkg/zen",
+        "//svc/frontline/internal/errorpage",
         "@org_golang_x_net//http2",
     ],
 )

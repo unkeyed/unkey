@@ -1,3 +1,4 @@
+import type { Config } from "@/gen/proto/config/v1/config_pb";
 import { and, db, eq } from "@/lib/db";
 import { environmentBuildSettings, environmentRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -21,5 +22,15 @@ export const getEnvironmentSettings = workspaceProcedure
       }),
     ]);
 
-    return { buildSettings: buildSettings ?? null, runtimeSettings: runtimeSettings ?? null };
+    return {
+      buildSettings: buildSettings ?? null,
+      runtimeSettings: runtimeSettings
+        ? {
+            ...runtimeSettings,
+            sentinelConfig: runtimeSettings.sentinelConfig
+              ? (JSON.parse(Buffer.from(runtimeSettings.sentinelConfig).toString()) as Config)
+              : undefined,
+          }
+        : null,
+    };
   });

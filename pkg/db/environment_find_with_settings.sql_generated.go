@@ -7,25 +7,16 @@ package db
 
 import (
 	"context"
-
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const findEnvironmentWithSettingsByProjectIdAndSlug = `-- name: FindEnvironmentWithSettingsByProjectIdAndSlug :one
 SELECT
-    e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.sentinel_config, e.delete_protection, e.created_at, e.updated_at,
-    bs.dockerfile,
-    bs.docker_context,
-    rs.port,
-    rs.cpu_millicores,
-    rs.memory_mib,
-    rs.command,
-    rs.shutdown_signal,
-    rs.healthcheck,
-    rs.region_config
+    e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
+    ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
+    ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at
 FROM environments e
-INNER JOIN environment_build_settings bs ON bs.environment_id = e.id
-INNER JOIN environment_runtime_settings rs ON rs.environment_id = e.id
+INNER JOIN environment_build_settings ebs ON ebs.environment_id = e.id
+INNER JOIN environment_runtime_settings ers ON ers.environment_id = e.id
 WHERE e.workspace_id = ?
   AND e.project_id = ?
   AND e.slug = ?
@@ -38,34 +29,20 @@ type FindEnvironmentWithSettingsByProjectIdAndSlugParams struct {
 }
 
 type FindEnvironmentWithSettingsByProjectIdAndSlugRow struct {
-	Environment    Environment                              `db:"environment"`
-	Dockerfile     string                                   `db:"dockerfile"`
-	DockerContext  string                                   `db:"docker_context"`
-	Port           int32                                    `db:"port"`
-	CpuMillicores  int32                                    `db:"cpu_millicores"`
-	MemoryMib      int32                                    `db:"memory_mib"`
-	Command        dbtype.StringSlice                       `db:"command"`
-	ShutdownSignal EnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
-	Healthcheck    dbtype.NullHealthcheck                   `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig                      `db:"region_config"`
+	Environment               Environment               `db:"environment"`
+	EnvironmentBuildSetting   EnvironmentBuildSetting   `db:"environment_build_setting"`
+	EnvironmentRuntimeSetting EnvironmentRuntimeSetting `db:"environment_runtime_setting"`
 }
 
 // FindEnvironmentWithSettingsByProjectIdAndSlug
 //
 //	SELECT
-//	    e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.sentinel_config, e.delete_protection, e.created_at, e.updated_at,
-//	    bs.dockerfile,
-//	    bs.docker_context,
-//	    rs.port,
-//	    rs.cpu_millicores,
-//	    rs.memory_mib,
-//	    rs.command,
-//	    rs.shutdown_signal,
-//	    rs.healthcheck,
-//	    rs.region_config
+//	    e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
+//	    ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
+//	    ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at
 //	FROM environments e
-//	INNER JOIN environment_build_settings bs ON bs.environment_id = e.id
-//	INNER JOIN environment_runtime_settings rs ON rs.environment_id = e.id
+//	INNER JOIN environment_build_settings ebs ON ebs.environment_id = e.id
+//	INNER JOIN environment_runtime_settings ers ON ers.environment_id = e.id
 //	WHERE e.workspace_id = ?
 //	  AND e.project_id = ?
 //	  AND e.slug = ?
@@ -79,19 +56,29 @@ func (q *Queries) FindEnvironmentWithSettingsByProjectIdAndSlug(ctx context.Cont
 		&i.Environment.ProjectID,
 		&i.Environment.Slug,
 		&i.Environment.Description,
-		&i.Environment.SentinelConfig,
 		&i.Environment.DeleteProtection,
 		&i.Environment.CreatedAt,
 		&i.Environment.UpdatedAt,
-		&i.Dockerfile,
-		&i.DockerContext,
-		&i.Port,
-		&i.CpuMillicores,
-		&i.MemoryMib,
-		&i.Command,
-		&i.ShutdownSignal,
-		&i.Healthcheck,
-		&i.RegionConfig,
+		&i.EnvironmentBuildSetting.Pk,
+		&i.EnvironmentBuildSetting.WorkspaceID,
+		&i.EnvironmentBuildSetting.EnvironmentID,
+		&i.EnvironmentBuildSetting.Dockerfile,
+		&i.EnvironmentBuildSetting.DockerContext,
+		&i.EnvironmentBuildSetting.CreatedAt,
+		&i.EnvironmentBuildSetting.UpdatedAt,
+		&i.EnvironmentRuntimeSetting.Pk,
+		&i.EnvironmentRuntimeSetting.WorkspaceID,
+		&i.EnvironmentRuntimeSetting.EnvironmentID,
+		&i.EnvironmentRuntimeSetting.Port,
+		&i.EnvironmentRuntimeSetting.CpuMillicores,
+		&i.EnvironmentRuntimeSetting.MemoryMib,
+		&i.EnvironmentRuntimeSetting.Command,
+		&i.EnvironmentRuntimeSetting.Healthcheck,
+		&i.EnvironmentRuntimeSetting.RegionConfig,
+		&i.EnvironmentRuntimeSetting.ShutdownSignal,
+		&i.EnvironmentRuntimeSetting.SentinelConfig,
+		&i.EnvironmentRuntimeSetting.CreatedAt,
+		&i.EnvironmentRuntimeSetting.UpdatedAt,
 	)
 	return i, err
 }

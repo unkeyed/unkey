@@ -16,17 +16,19 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"golang.org/x/net/http2"
 )
 
 type service struct {
-	instanceID   string
-	region       string
-	apexDomain   string
-	clock        clock.Clock
-	transport    *http.Transport
-	h2cTransport *http2.Transport
-	maxHops      int
+	instanceID        string
+	region            string
+	apexDomain        string
+	clock             clock.Clock
+	transport         *http.Transport
+	h2cTransport      *http2.Transport
+	maxHops           int
+	errorPageRenderer errorpage.Renderer
 }
 
 var _ Service = (*service)(nil)
@@ -90,14 +92,20 @@ func New(cfg Config) (*service, error) {
 		},
 	}
 
+	renderer := cfg.ErrorPageRenderer
+	if renderer == nil {
+		renderer = errorpage.NewRenderer()
+	}
+
 	return &service{
-		instanceID:   cfg.InstanceID,
-		region:       cfg.Region,
-		apexDomain:   cfg.ApexDomain,
-		clock:        cfg.Clock,
-		transport:    transport,
-		h2cTransport: h2cTransport,
-		maxHops:      maxHops,
+		instanceID:        cfg.InstanceID,
+		region:            cfg.Region,
+		apexDomain:        cfg.ApexDomain,
+		clock:             cfg.Clock,
+		transport:         transport,
+		h2cTransport:      h2cTransport,
+		maxHops:           maxHops,
+		errorPageRenderer: renderer,
 	}, nil
 }
 

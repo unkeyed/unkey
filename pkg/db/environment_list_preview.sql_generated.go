@@ -10,7 +10,7 @@ import (
 )
 
 const listPreviewEnvironments = `-- name: ListPreviewEnvironments :many
-SELECT pk, id, workspace_id, project_id, slug, description, sentinel_config, delete_protection, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
 FROM environments
 WHERE slug = 'preview'
 AND pk > ?
@@ -25,7 +25,7 @@ type ListPreviewEnvironmentsParams struct {
 
 // ListPreviewEnvironments
 //
-//	SELECT pk, id, workspace_id, project_id, slug, description, sentinel_config, delete_protection, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
 //	FROM environments
 //	WHERE slug = 'preview'
 //	AND pk > ?
@@ -47,7 +47,6 @@ func (q *Queries) ListPreviewEnvironments(ctx context.Context, db DBTX, arg List
 			&i.ProjectID,
 			&i.Slug,
 			&i.Description,
-			&i.SentinelConfig,
 			&i.DeleteProtection,
 			&i.CreatedAt,
 			&i.UpdatedAt,

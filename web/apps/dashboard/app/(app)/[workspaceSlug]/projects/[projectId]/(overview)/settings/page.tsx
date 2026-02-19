@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHalfDottedClock, Gear } from "@unkey/icons";
+import { CircleHalfDottedClock, Gear, StackPerspective2 } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 
 import { DockerfileSettings } from "./components/build-settings/dockerfile-settings";
@@ -18,6 +18,7 @@ import { Command } from "./components/advanced-settings/command";
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { EnvVars } from "./components/advanced-settings/env-vars";
 
+import { Keyspaces } from "./components/sentinel-settings/keyspaces";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 export default function SettingsPage() {
@@ -59,6 +60,14 @@ export default function SettingsPage() {
             <Command />
             <EnvVars />
             <CustomDomains />
+          </SettingCardGroup>
+        </SettingsGroup>
+        <SettingsGroup
+          icon={<StackPerspective2 iconSize="md-medium" />}
+          title="Sentinel configurations"
+        >
+          <SettingCardGroup>
+            <Keyspaces />
           </SettingCardGroup>
         </SettingsGroup>
       </div>
