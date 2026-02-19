@@ -1,68 +1,66 @@
 "use client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import { parseAsString, useQueryState } from "nuqs";
-import { useProjectData } from "../data-provider";
-import { BuildSettings } from "./components/build-settings";
-import { GitHubSettingsClient } from "./components/github-settings-client";
-import { RuntimeApplicationSettings } from "./components/runtime-application-settings";
-import { RuntimeScalingSettings } from "./components/runtime-scaling-settings";
 
-export const dynamic = "force-dynamic";
+import { CircleHalfDottedClock, Gear } from "@unkey/icons";
+import { SettingCardGroup } from "@unkey/ui";
+
+import { DockerfileSettings } from "./components/build-settings/dockerfile-settings";
+import { GitHubSettings } from "./components/build-settings/github-settings";
+import { PortSettings } from "./components/build-settings/port-settings";
+import { RootDirectorySettings } from "./components/build-settings/root-directory-settings";
+
+import { Cpu } from "./components/runtime-settings/cpu";
+import { Healthcheck } from "./components/runtime-settings/healthcheck";
+import { Instances } from "./components/runtime-settings/instances";
+import { Memory } from "./components/runtime-settings/memory";
+import { Regions } from "./components/runtime-settings/regions";
+
+import { Command } from "./components/advanced-settings/command";
+import { CustomDomains } from "./components/advanced-settings/custom-domains";
+import { EnvVars } from "./components/advanced-settings/env-vars";
+
+import { SettingsGroup } from "./components/shared/settings-group";
 
 export default function SettingsPage() {
-  const { environments } = useProjectData();
-  const [environmentId, setEnvironmentId] = useQueryState(
-    "environmentId",
-    parseAsString.withDefault(environments.length > 0 ? environments[0].id : "").withOptions({
-      history: "replace",
-      shallow: true,
-    }),
-  );
-
   return (
-    <div className="py-3 w-full flex items-center justify-center">
-      <div className="w-[900px] flex flex-col justify-center items-center gap-5 mx-6">
-        <div className="w-full text-accent-12 font-semibold text-lg py-6 text-left border-b border-gray-4">
-          Project Settings
+    <div className="w-[900px] flex flex-col justify-center items-center gap-6 mx-auto my-14">
+      <div className="flex flex-col gap-2 items-center">
+        <span className="font-semibold text-gray-12 leading-8 text-lg">Configure deployment</span>
+        <span className="leading-4 text-gray-11 text-[13px]">
+          Review the defaults. Edit anything you'd like to adjust.
+        </span>
+      </div>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col w-full">
+          <SettingCardGroup>
+            <GitHubSettings />
+            <RootDirectorySettings />
+            <DockerfileSettings />
+            <PortSettings />
+          </SettingCardGroup>
         </div>
-        <div className="flex flex-col w-full gap-6">
-          <section>
-            <h2 className="text-accent-12 font-medium text-base mb-3">Source</h2>
-            <GitHubSettingsClient />
-          </section>
-          <div className="w-full border-b border-gray-4" />
-          <div className="w-full">
-            <h2 className="text-accent-12 font-medium text-base mb-3 block">Environment</h2>
-            <Select value={environmentId ?? undefined} onValueChange={setEnvironmentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select environment" />
-              </SelectTrigger>
-              <SelectContent>
-                {environments?.map((env) => (
-                  <SelectItem key={env.id} value={env.id}>
-                    {env.slug}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {environmentId !== null && (
-            <div key={environmentId} className="flex flex-col w-full gap-6">
-              <section>
-                <h3 className="text-accent-12 font-medium text-base mb-3">Build</h3>
-                <BuildSettings environmentId={environmentId} />
-              </section>
-              <section>
-                <h3 className="text-accent-12 font-medium text-base mb-3">Runtime</h3>
-                <RuntimeApplicationSettings environmentId={environmentId} />
-              </section>
-              <section>
-                <h3 className="text-accent-12 font-medium text-base mb-3">Scaling</h3>
-                <RuntimeScalingSettings environmentId={environmentId} />
-              </section>
-            </div>
-          )}
-        </div>
+        <SettingsGroup
+          icon={<CircleHalfDottedClock iconSize="md-medium" />}
+          title="Runtime settings"
+        >
+          <SettingCardGroup>
+            <Regions />
+            <Instances />
+            <Cpu />
+            <Memory />
+            {/* Temporarily disabled */}
+            {/* <Storage /> */}
+            <Healthcheck />
+            {/* Temporarily disabled */}
+            {/* <Scaling /> */}
+          </SettingCardGroup>
+        </SettingsGroup>
+        <SettingsGroup icon={<Gear iconSize="md-medium" />} title="Advanced configurations">
+          <SettingCardGroup>
+            <Command />
+            <EnvVars />
+            <CustomDomains />
+          </SettingCardGroup>
+        </SettingsGroup>
       </div>
     </div>
   );
