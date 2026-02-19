@@ -22,11 +22,13 @@ type Config struct {
 	// Set at runtime; not read from the config file.
 	Image string `toml:"-"`
 
-	// HttpPort is the TCP port the HTTP challenge server binds to.
-	HttpPort int `toml:"http_port" config:"default=7070,min=1,max=65535"`
+	// ChallengePort is the TCP port the HTTP challenge server binds to.
+	// Used for ACME HTTP-01 challenges (Let's Encrypt).
+	ChallengePort int `toml:"challenge_port" config:"default=7070,min=1,max=65535"`
 
-	// HttpsPort is the TCP port the HTTPS frontline server binds to.
-	HttpsPort int `toml:"https_port" config:"default=7443,min=1,max=65535"`
+	// HttpPort is the TCP port the HTTP frontline server binds to.
+	// Serves general traffic over HTTPS by default.
+	HttpPort int `toml:"http_port" config:"default=7443,min=1,max=65535"`
 
 	// Region identifies the geographic region where this node is deployed.
 	// Used for observability, latency optimization, and cross-region routing.
@@ -48,9 +50,9 @@ type Config struct {
 	PrometheusPort int `toml:"prometheus_port"`
 
 	// TLS provides filesystem paths for HTTPS certificate and key.
-	// When nil (section omitted), TLS is disabled.
-	// See [config.TLSFiles].
-	TLS *config.TLSFiles `toml:"tls"`
+	// TLS is enabled by default even if omitted
+	// See [config.TLS].
+	TLS *config.TLS `toml:"tls"`
 
 	// Database configures MySQL connections. See [config.DatabaseConfig].
 	Database config.DatabaseConfig `toml:"database"`
@@ -68,9 +70,12 @@ type Config struct {
 // Validate checks cross-field constraints that cannot be expressed through
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
+//
+// Currently validates that TLS is either fully configured (both cert and key)
+// or explicitly disabled — partial TLS configuration is an error.
 func (c *Config) Validate() error {
-	if c.TLS != nil && (c.TLS.CertFile == "") != (c.TLS.KeyFile == "") {
-		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided together")
+	if c.TLS != nil && !c.TLS.Disabled && (c.TLS.CertFile == "") != (c.TLS.KeyFile == "") {
+		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided together when TLS is not disabled")
 	}
 	return nil
 }

@@ -60,9 +60,13 @@ type VaultConfig struct {
 	Token string `toml:"token"`
 }
 
-// TLSFiles holds paths to PEM-encoded certificate and private key files for TLS.
+// TLS holds paths to PEM-encoded certificate and private key files for TLS.
 // Used for serving HTTPS or mTLS connections.
-type TLSFiles struct {
+// Disabled defaults to false (TLS enabled). Set Disabled = true to explicitly disable TLS.
+type TLS struct {
+	// Disabled when set to true, disables TLS even when certificate sources are available.
+	Disabled bool `toml:"disabled"`
+
 	// CertFile is the path to a PEM-encoded TLS certificate.
 	CertFile string `toml:"cert_file"`
 
