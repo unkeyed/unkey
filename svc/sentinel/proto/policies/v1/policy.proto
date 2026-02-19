@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+import "policies/v1/basicauth.proto";
+import "policies/v1/iprules.proto";
+import "policies/v1/jwtauth.proto";
+import "policies/v1/keyauth.proto";
+import "policies/v1/match.proto";
+import "policies/v1/openapi.proto";
+import "policies/v1/ratelimit.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// Policy is a single middleware layer in a deployment's configuration. Each policy
+// combines a match expression (which requests does it apply to?) with a
+// configuration (what does it do?). This separation is what makes the system
+// composable: the same rate limiter config can be scoped to POST /api/*
+// without the rate limiter needing to know anything about path matching.
+//
+// Policies carry a stable id for correlation across logs, metrics, and
+// debugging. The disabled flag allows operators to disable a policy without
+// removing it from config, which is critical for incident response — you can
+// turn off a misbehaving policy and re-enable it once the issue is resolved,
+// without losing the configuration or triggering a full redeploy.
+message Policy {
+  // Stable identifier for this policy, used in log entries, metrics labels,
+  // and error messages. Should be unique within a deployment's Middleware
+  // config. Typically a UUID or a slug like "api-ratelimit".
+  string id = 1;
+
+  // Human-friendly label displayed in the dashboard and audit logs.
+  // Does not affect policy behavior.
+  string name = 2;
+
+  // When false, sentinel skips this policy entirely during evaluation.
+  // This allows operators to toggle policies on and off without modifying
+  // or removing the underlying configuration, which is useful during
+  // incidents, gradual rollouts, and debugging.
+  bool enabled = 3;
+
+  // Match conditions that determine which requests this policy applies to.
+  // All entries must match for the policy to run (implicit AND). An empty
+  // list matches all requests — this is the common case for global policies
+  // like IP allowlists or rate limiting.
+  //
+  // For OR semantics, create separate policies with the same config and
+  // different match lists.
+  repeated MatchExpr match = 4;
+
+  // The policy configuration. Exactly one must be set.
+  oneof config {
+    KeyAuth keyauth = 5;
+    JWTAuth jwtauth = 6;
+    BasicAuth basicauth = 7;
+    RateLimit ratelimit = 8;
+    IPRules ip_rules = 9;
+    OpenApiRequestValidation openapi = 10;
+  }
+}
