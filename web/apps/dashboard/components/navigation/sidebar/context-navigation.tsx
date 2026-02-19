@@ -1,0 +1,73 @@
+"use client";
+
+import { SidebarGroup, SidebarMenu } from "@/components/ui/sidebar";
+import type { NavigationContext } from "@/hooks/use-navigation-context";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useSelectedLayoutSegments } from "next/navigation";
+import { useMemo } from "react";
+import { NavItems } from "./app-sidebar/components/nav-items";
+import { useApiNavigation } from "./app-sidebar/hooks/use-api-navigation";
+import { useProjectNavigation } from "./app-sidebar/hooks/use-projects-navigation";
+import { useRatelimitNavigation } from "./app-sidebar/hooks/use-ratelimit-navigation";
+import {
+  createApiManagementNavigation,
+  createApiNavigation,
+  createDeployNavigation,
+  createNamespaceNavigation,
+  createProjectNavigation,
+} from "./navigation-configs";
+
+interface ContextNavigationProps {
+  context: NavigationContext;
+}
+
+/**
+ * Context-aware navigation component that renders appropriate navigation items
+ * based on the current context (product-level or resource-level).
+ */
+export function ContextNavigation({ context }: ContextNavigationProps) {
+  const rawSegments = useSelectedLayoutSegments();
+  const workspace = useWorkspaceNavigation();
+
+  // Memoize segments to prevent unnecessary re-renders
+  const segments = useMemo(() => rawSegments ?? [], [rawSegments]);
+
+  // Generate base navigation items based on context
+  const baseNavItems = useMemo(() => {
+    if (context.type === "resource") {
+      // Resource-level navigation
+      switch (context.resourceType) {
+        case "api":
+          return createApiNavigation(context.resourceId, workspace, segments);
+        case "project":
+          return createProjectNavigation(context.resourceId, workspace, segments);
+        case "namespace":
+          return createNamespaceNavigation(context.resourceId, workspace, segments);
+      }
+    }
+
+    // Product-level navigation
+    if (context.product === "deploy") {
+      return createDeployNavigation(segments, workspace);
+    }
+
+    return createApiManagementNavigation(segments, workspace);
+  }, [context, segments, workspace]);
+
+  // Enhance navigation items with dynamic data (APIs, Projects, Namespaces lists)
+  // These hooks only modify items if they find matching base items (e.g., /apis, /projects, /ratelimits)
+  // At resource-level, these won't match anything and will return items unchanged
+  const { enhancedNavItems: withApis } = useApiNavigation(baseNavItems);
+  const { enhancedNavItems: withRatelimits } = useRatelimitNavigation(withApis);
+  const { enhancedNavItems: finalNavItems } = useProjectNavigation(withRatelimits);
+
+  return (
+    <SidebarGroup>
+      <SidebarMenu className="gap-2">
+        {finalNavItems.map((item) => (
+          <NavItems key={item.label as string} item={item} />
+        ))}
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+}
