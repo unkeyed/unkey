@@ -1136,7 +1136,6 @@ type Environment struct {
 	ProjectID        string        `db:"project_id"`
 	Slug             string        `db:"slug"`
 	Description      string        `db:"description"`
-	SentinelConfig   []byte        `db:"sentinel_config"`
 	DeleteProtection sql.NullBool  `db:"delete_protection"`
 	CreatedAt        int64         `db:"created_at"`
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
@@ -1163,7 +1162,7 @@ type EnvironmentRuntimeSetting struct {
 	Healthcheck    dbtype.NullHealthcheck                   `db:"healthcheck"`
 	RegionConfig   dbtype.RegionConfig                      `db:"region_config"`
 	ShutdownSignal EnvironmentRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
-	SentinelConfig sql.NullString                           `db:"sentinel_config"`
+	SentinelConfig []byte                                   `db:"sentinel_config"`
 	CreatedAt      int64                                    `db:"created_at"`
 	UpdatedAt      sql.NullInt64                            `db:"updated_at"`
 }

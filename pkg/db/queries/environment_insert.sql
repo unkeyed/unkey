@@ -6,8 +6,7 @@ INSERT INTO environments (
     slug,
     description,
     created_at,
-    updated_at,
-    sentinel_config
+    updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?
 );

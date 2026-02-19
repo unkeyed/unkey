@@ -293,7 +293,7 @@ type Querier interface {
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
-	//  SELECT pk, id, workspace_id, project_id, slug, description, sentinel_config, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE workspace_id = ?
 	//    AND project_id = ?
@@ -314,7 +314,7 @@ type Querier interface {
 	//FindEnvironmentWithSettingsByProjectIdAndSlug
 	//
 	//  SELECT
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.sentinel_config, e.delete_protection, e.created_at, e.updated_at,
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
 	//      ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
 	//      ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at
 	//  FROM environments e
@@ -1345,10 +1345,9 @@ type Querier interface {
 	//      slug,
 	//      description,
 	//      created_at,
-	//      updated_at,
-	//      sentinel_config
+	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
 	//InsertFrontlineRoute
@@ -2109,7 +2108,7 @@ type Querier interface {
 	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT pk, id, workspace_id, project_id, slug, description, sentinel_config, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE slug = 'preview'
 	//  AND pk > ?
@@ -2629,9 +2628,8 @@ type Querier interface {
 	//      workspace_id,
 	//      project_id,
 	//      slug,
-	//      sentinel_config,
 	//      created_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?)
+	//  ) VALUES (?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
 	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
 	//UpsertEnvironmentBuildSettings
@@ -2661,9 +2659,10 @@ type Querier interface {
 	//      healthcheck,
 	//      region_config,
 	//      shutdown_signal,
+	//      sentinel_config,
 	//      created_at,
 	//      updated_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      port = VALUES(port),
 	//      cpu_millicores = VALUES(cpu_millicores),
@@ -2672,6 +2671,7 @@ type Querier interface {
 	//      healthcheck = VALUES(healthcheck),
 	//      region_config = VALUES(region_config),
 	//      shutdown_signal = VALUES(shutdown_signal),
+	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
 	UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentRuntimeSettingsParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
