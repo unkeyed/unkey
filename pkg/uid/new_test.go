@@ -50,7 +50,7 @@ func TestNew(t *testing.T) {
 
 			// Check that all characters are valid
 			for _, char := range id {
-				if !strings.ContainsRune(defaultAlphabet, char) {
+				if !strings.ContainsRune(dns1035AlphaNum, char) {
 					t.Errorf("New() contains invalid character: %c", char)
 				}
 			}

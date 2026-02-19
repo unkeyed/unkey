@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	sentinelcfg "github.com/unkeyed/unkey/svc/sentinel"
 	appsv1 "k8s.io/api/apps/v1"
@@ -36,9 +37,8 @@ import (
 // ApplySentinel reports the available replica count back to the control plane after
 // applying, so the platform knows when the sentinel is ready to receive traffic.
 func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) error {
+
 	logger.Info("applying sentinel",
-		"namespace", NamespaceSentinel,
-		"name", req.GetK8SName(),
 		"sentinel_id", req.GetSentinelId(),
 	)
 
@@ -47,7 +47,6 @@ func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "Environment ID is required"),
 		assert.NotEmpty(req.GetSentinelId(), "Sentinel ID is required"),
-		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
 		assert.NotEmpty(req.GetImage(), "Image is required"),
 		assert.GreaterOrEqual(req.GetReplicas(), int32(0), "Replicas must be greater than or equal to 0"),
 		assert.Greater(req.GetCpuMillicores(), int64(0), "CPU millicores must be greater than 0"),
@@ -57,31 +56,36 @@ func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
+	name, err := uid.ToDNS1035(req.GetSentinelId())
+	if err != nil {
+		return fmt.Errorf("invalid sentinel id: %w", err)
+	}
+
 	if err := c.ensureNamespaceExists(ctx); err != nil {
 		return err
 	}
 
-	sentinel, err := c.ensureSentinelExists(ctx, req)
+	sentinel, err := c.ensureSentinelExists(ctx, name, req)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.ensureServiceExists(ctx, req, sentinel)
+	_, err = c.ensureServiceExists(ctx, name, req, sentinel)
 	if err != nil {
 		return err
 	}
 
-	err = c.ensurePDBExists(ctx, req, sentinel)
+	err = c.ensurePDBExists(ctx, name, req, sentinel)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.ensureGossipServiceExists(ctx, req)
+	_, err = c.ensureGossipServiceExists(ctx, name, req)
 	if err != nil {
 		return err
 	}
 
-	err = c.ensureGossipCiliumPolicyExists(ctx, req)
+	err = c.ensureGossipCiliumPolicyExists(ctx, name, req)
 	if err != nil {
 		return err
 	}
@@ -96,7 +100,7 @@ func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 	}
 
 	err = c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
-		K8SName:           req.GetK8SName(),
+		Id:                req.GetSentinelId(),
 		AvailableReplicas: sentinel.Status.AvailableReplicas,
 		Health:            health,
 	})
@@ -124,7 +128,7 @@ func (c *Controller) ensureNamespaceExists(ctx context.Context) error {
 // ensureSentinelExists creates or updates the sentinel's Kubernetes Deployment using
 // server-side apply. Returns the resulting Deployment so the caller can extract
 // its UID for setting owner references on related resources.
-func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
+func (c *Controller) ensureSentinelExists(ctx context.Context, name string, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
 
 	configEnv, err := toml.Marshal(sentinelcfg.Config{
 		SentinelID:    sentinel.GetSentinelId(),
@@ -161,7 +165,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      sentinel.GetK8SName(),
+			Name:      name,
 			Namespace: NamespaceSentinel,
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
@@ -285,7 +289,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		return nil, fmt.Errorf("failed to marshal deployment: %w", err)
 	}
 
-	return client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+	return client.Patch(ctx, name, types.ApplyPatchType, patch, metav1.PatchOptions{
 		FieldManager: fieldManagerKrane,
 	})
 }
@@ -294,7 +298,8 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 // addressing for the sentinel's pods. The Service is owned by the Deployment, which
 // means Kubernetes garbage collection will delete the Service when the Deployment
 // is deleted.
-func (c *Controller) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) (*corev1.Service, error) {
+func (c *Controller) ensureServiceExists(ctx context.Context, name string, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) (*corev1.Service, error) {
+
 	client := c.clientSet.CoreV1().Services(NamespaceSentinel)
 
 	desired := &corev1.Service{
@@ -303,7 +308,7 @@ func (c *Controller) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 			Kind:       "Service",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      sentinel.GetK8SName(),
+			Name:      name,
 			Namespace: NamespaceSentinel,
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
@@ -339,7 +344,7 @@ func (c *Controller) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 		return nil, fmt.Errorf("failed to marshal service: %w", err)
 	}
 
-	return client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+	return client.Patch(ctx, name, types.ApplyPatchType, patch, metav1.PatchOptions{
 		FieldManager: fieldManagerKrane,
 	})
 }
@@ -362,7 +367,7 @@ func sentinelTopologySpread(sentinelID string) []corev1.TopologySpreadConstraint
 // ensurePDBExists creates or updates a PodDisruptionBudget for the sentinel.
 // The PDB ensures at least one pod remains available during voluntary disruptions
 // (node drains, rolling updates, etc.). It is owned by the Deployment for automatic cleanup.
-func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) error {
+func (c *Controller) ensurePDBExists(ctx context.Context, name string, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) error {
 	client := c.clientSet.PolicyV1().PodDisruptionBudgets(NamespaceSentinel)
 
 	//nolint:exhaustruct // k8s API types have many optional fields
@@ -372,7 +377,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 			Kind:       "PodDisruptionBudget",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      sentinel.GetK8SName(),
+			Name:      name,
 			Namespace: NamespaceSentinel,
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
@@ -403,7 +408,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 		return fmt.Errorf("failed to marshal pdb: %w", err)
 	}
 
-	_, err = client.Patch(ctx, sentinel.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+	_, err = client.Patch(ctx, name, types.ApplyPatchType, patch, metav1.PatchOptions{
 		FieldManager: fieldManagerKrane,
 	})
 	return err
@@ -413,10 +418,10 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 // discovery. The Service uses clusterIP: None so that DNS resolves to individual pod IPs,
 // allowing memberlist to discover all peers in the environment. The selector matches all
 // sentinel pods in the environment (not just one k8sName) for cross-sentinel peer discovery.
-func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*corev1.Service, error) {
+func (c *Controller) ensureGossipServiceExists(ctx context.Context, name string, sentinel *ctrlv1.ApplySentinel) (*corev1.Service, error) {
 	client := c.clientSet.CoreV1().Services(NamespaceSentinel)
 
-	gossipName := fmt.Sprintf("%s-gossip-lan", sentinel.GetK8SName())
+	gossipName := fmt.Sprintf("%s-gossip-lan", name)
 
 	desired := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -471,8 +476,9 @@ func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ct
 
 // ensureGossipCiliumPolicyExists creates or updates a CiliumNetworkPolicy that allows
 // gossip traffic (TCP+UDP on GossipLANPort) between sentinel pods in the same environment.
-func (c *Controller) ensureGossipCiliumPolicyExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) error {
-	policyName := fmt.Sprintf("%s-gossip-lan", sentinel.GetK8SName())
+func (c *Controller) ensureGossipCiliumPolicyExists(ctx context.Context, name string, sentinel *ctrlv1.ApplySentinel) error {
+
+	policyName := fmt.Sprintf("%s-gossip-lan", name)
 
 	policy := &unstructured.Unstructured{
 		Object: map[string]interface{}{

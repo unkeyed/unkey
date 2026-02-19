@@ -566,7 +566,7 @@ CREATE TABLE `sentinels` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
-	`k8s_name` varchar(64) NOT NULL,
+	`k8s_name` varchar(64),
 	`k8s_address` varchar(255) NOT NULL,
 	`region` varchar(255) NOT NULL,
 	`image` varchar(255) NOT NULL,

@@ -208,8 +208,7 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		DeleteProtection: false,
 	})
 
-	sentinelID := uid.New("sen")
-	k8sName := uid.New("k8s")
+	sentinelID := uid.New(uid.SentinelPrefix)
 
 	desiredState := req.DesiredState
 	if desiredState == "" {
@@ -223,7 +222,7 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		EnvironmentID:     env.ID,
 		ProjectID:         project.ID,
 		K8sAddress:        "http://localhost:8080",
-		K8sName:           k8sName,
+		K8sName:           sql.NullString{Valid: true, String: uid.New("garbage")}, // dummy value until we remove the column
 		Region:            req.Region,
 		Image:             "sentinel:1.0",
 		Health:            db.SentinelsHealthHealthy,

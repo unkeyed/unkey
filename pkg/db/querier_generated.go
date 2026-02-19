@@ -2599,7 +2599,7 @@ type Querier interface {
 	//  available_replicas = ?,
 	//  health = ?,
 	//  updated_at = ?
-	//  WHERE k8s_name = ?
+	//  WHERE id = ?
 	UpdateSentinelAvailableReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateSentinelAvailableReplicasAndHealthParams) error
 	//UpdateWorkspaceEnabled
 	//
