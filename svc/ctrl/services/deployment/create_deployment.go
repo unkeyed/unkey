@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/envresolve"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -28,14 +29,15 @@ const (
 // CreateDeployment creates a new deployment record and initiates an async Restate
 // workflow. The deployment source must be a prebuilt Docker image.
 //
-// The method looks up the project to infer the workspace, validates the
-// environment exists, fetches environment variables, and persists the deployment
-// with status "pending" before triggering the workflow. Git commit metadata is
-// optional but validated when provided: timestamps must be Unix epoch milliseconds
-// and cannot be more than one hour in the future.
+// The method looks up the project and app to infer the workspace, validates the
+// environment exists, fetches app-scoped environment variables with template
+// resolution, and persists the deployment with status "pending" before triggering
+// the workflow. Git commit metadata is optional but validated when provided:
+// timestamps must be Unix epoch milliseconds and cannot be more than one hour
+// in the future.
 //
-// The workflow runs asynchronously keyed by project ID, so only one deployment
-// per project executes at a time. Returns the deployment ID and initial status.
+// The workflow runs asynchronously keyed by app ID, so only one deployment
+// per app executes at a time. Returns the deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
@@ -62,6 +64,36 @@ func (s *Service) CreateDeployment(
 	}
 	workspaceID := project.WorkspaceID
 
+	// Default app_slug to "default" for backwards compatibility
+	appSlug := req.Msg.GetAppSlug()
+	if appSlug == "" {
+		appSlug = "default"
+	}
+
+	// Lookup app with build and runtime settings for this environment
+	appWithSettings, err := db.Query.FindAppWithSettings(ctx, s.db.RO(), db.FindAppWithSettingsParams{
+		ProjectID:     project.ID,
+		Slug:          appSlug,
+		EnvironmentID: req.Msg.GetEnvironmentSlug(), // will be resolved below
+	})
+	// If app not found, fall back to looking up app and environment separately
+	// This handles the case where settings haven't been created yet
+	if err != nil && db.IsNotFound(err) {
+		return nil, connect.NewError(connect.CodeNotFound,
+			fmt.Errorf("app '%s' not found in project '%s' or missing settings for environment '%s'",
+				appSlug, req.Msg.GetProjectId(), req.Msg.GetEnvironmentSlug()))
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to lookup app: %w", err))
+	}
+
+	app := appWithSettings.App
+	appBuildSettings := appWithSettings.AppBuildSetting
+	appRuntimeSettings := appWithSettings.AppRuntimeSetting
+	_ = appBuildSettings // build settings used by the workflow, not here
+
+	// Verify the environment exists
 	envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
 		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
@@ -78,20 +110,79 @@ func (s *Service) CreateDeployment(
 	}
 	env := envSettings.Environment
 
-	// Fetch environment variables and build secrets blob
-	envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
+	// Fetch app-scoped environment variables
+	appEnvVars, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, s.db.RO(), db.FindAppEnvVarsByAppAndEnvParams{
+		AppID:         app.ID,
+		EnvironmentID: env.ID,
+	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to fetch environment variables: %w", err))
+			fmt.Errorf("failed to fetch app environment variables: %w", err))
 	}
 
-	secretsBlob := []byte{}
-	if len(envVars) > 0 {
-		secretsConfig := &ctrlv1.SecretsConfig{
-			Secrets: make(map[string]string, len(envVars)),
+	// Convert to envresolve types
+	appVars := make([]envresolve.AppVar, len(appEnvVars))
+	for i, ev := range appEnvVars {
+		appVars[i] = envresolve.AppVar{Key: ev.Key, Value: ev.Value}
+	}
+
+	// Check if we need to resolve template references
+	needsShared, needsSiblings := false, false
+	for _, v := range appVars {
+		if strings.Contains(v.Value, "${{") {
+			if strings.Contains(v.Value, "shared.") {
+				needsShared = true
+			}
+			// Check for sibling refs (any ${{ that's not shared. and not a bare ref)
+			needsSiblings = true
 		}
-		for _, ev := range envVars {
-			secretsConfig.Secrets[ev.Key] = ev.Value
+	}
+
+	var sharedVars []envresolve.AppVar
+	if needsShared {
+		envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("failed to fetch shared environment variables: %w", err))
+		}
+		sharedVars = make([]envresolve.AppVar, len(envVars))
+		for i, ev := range envVars {
+			sharedVars[i] = envresolve.AppVar{Key: ev.Key, Value: ev.Value}
+		}
+	}
+
+	var siblingVars []envresolve.SiblingVar
+	if needsSiblings {
+		sibVars, err := db.Query.FindSiblingAppVarsByProjectAndEnv(ctx, s.db.RO(), db.FindSiblingAppVarsByProjectAndEnvParams{
+			ProjectID:     project.ID,
+			EnvironmentID: env.ID,
+		})
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("failed to fetch sibling app variables: %w", err))
+		}
+		siblingVars = make([]envresolve.SiblingVar, len(sibVars))
+		for i, sv := range sibVars {
+			siblingVars[i] = envresolve.SiblingVar{
+				AppSlug: sv.AppSlug,
+				Key:     sv.Key,
+				Value:   sv.Value,
+			}
+		}
+	}
+
+	// Resolve templates
+	resolvedVars, err := envresolve.Resolve(appVars, sharedVars, siblingVars)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("failed to resolve environment variable templates: %w", err))
+	}
+
+	// Build secrets blob from resolved vars
+	secretsBlob := []byte{}
+	if len(resolvedVars) > 0 {
+		secretsConfig := &ctrlv1.SecretsConfig{
+			Secrets: resolvedVars,
 		}
 
 		var err error
@@ -148,19 +239,21 @@ func (s *Service) CreateDeployment(
 
 	logger.Info("deployment will use prebuilt image",
 		"deployment_id", deploymentID,
+		"app_id", app.ID,
 		"image", dockerImage)
 
-	// Insert deployment into database, snapshotting settings from environment
+	// Insert deployment into database, snapshotting settings from app
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:                            deploymentID,
 		K8sName:                       uid.DNS1035(12),
 		WorkspaceID:                   workspaceID,
 		ProjectID:                     req.Msg.GetProjectId(),
+		AppID:                         app.ID,
 		EnvironmentID:                 env.ID,
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
-		SentinelConfig:                envSettings.EnvironmentRuntimeSetting.SentinelConfig,
+		SentinelConfig:                appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
-		Command:                       envSettings.EnvironmentRuntimeSetting.Command,
+		Command:                       appRuntimeSettings.Command,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
@@ -170,11 +263,11 @@ func (s *Service) CreateDeployment(
 		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-		CpuMillicores:                 envSettings.EnvironmentRuntimeSetting.CpuMillicores,
-		MemoryMib:                     envSettings.EnvironmentRuntimeSetting.MemoryMib,
-		Port:                          envSettings.EnvironmentRuntimeSetting.Port,
-		ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.EnvironmentRuntimeSetting.ShutdownSignal),
-		Healthcheck:                   envSettings.EnvironmentRuntimeSetting.Healthcheck,
+		CpuMillicores:                 appRuntimeSettings.CpuMillicores,
+		MemoryMib:                     appRuntimeSettings.MemoryMib,
+		Port:                          appRuntimeSettings.Port,
+		ShutdownSignal:                db.DeploymentsShutdownSignal(appRuntimeSettings.ShutdownSignal),
+		Healthcheck:                   appRuntimeSettings.Healthcheck,
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())
@@ -185,6 +278,7 @@ func (s *Service) CreateDeployment(
 		"deployment_id", deploymentID,
 		"workspace_id", workspaceID,
 		"project_id", req.Msg.GetProjectId(),
+		"app_id", app.ID,
 		"environment", env.ID,
 		"docker_image", dockerImage,
 	)
@@ -207,8 +301,8 @@ func (s *Service) CreateDeployment(
 		},
 	}
 
-	// Send deployment request asynchronously (fire-and-forget)
-	invocation, err := s.deploymentClient(project.ID).
+	// Send deployment request asynchronously (fire-and-forget), keyed by app ID
+	invocation, err := s.deploymentClient(app.ID).
 		Deploy().
 		Send(ctx, deployReq)
 	if err != nil {

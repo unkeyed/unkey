@@ -34,9 +34,10 @@ type RegistryConfig struct {
 // between container orchestration (Krane), database updates, domain routing, and sentinel
 // configuration to ensure consistent deployment state.
 //
-// The workflow uses Restate virtual objects keyed by project ID to ensure that only one
-// deployment operation runs per project at any time, preventing race conditions during
-// concurrent deploy/rollback/promote operations.
+// The workflow uses Restate virtual objects keyed by app ID to ensure that only one
+// deployment operation runs per app at any time, preventing race conditions during
+// concurrent deploy/rollback/promote operations while allowing parallel deploys
+// across different apps within the same project.
 type Workflow struct {
 	hydrav1.UnimplementedDeployServiceServer
 	db db.Database
