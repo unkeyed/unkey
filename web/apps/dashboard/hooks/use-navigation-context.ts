@@ -73,22 +73,33 @@ export function useNavigationContext(): NavigationContext {
 
     if (hasWorkspaceSlug && productSegment) {
       // Deploy product segments: projects, domains, environment-variables
+      // Check if the segment STARTS WITH these keywords to handle 404s like /domainsdomains
       // Only detect Deploy if the workspace has the feature enabled
-      if (
-        ["projects", "domains", "environment-variables"].includes(productSegment) &&
-        workspace.betaFeatures?.deployments === true
-      ) {
+      const isDeploySegment =
+        productSegment.startsWith("project") ||
+        productSegment.startsWith("domain") ||
+        productSegment.startsWith("environment-variable");
+
+      if (isDeploySegment && workspace.betaFeatures?.deployments === true) {
         return { type: "product", product: "deploy" };
       }
 
-      // API Management product segments: apis, ratelimits
-      if (["apis", "ratelimits"].includes(productSegment)) {
+      // API Management product segments: apis, ratelimits, authorization, logs, identities
+      // Check if the segment STARTS WITH these keywords to handle 404s
+      const isApiManagementSegment =
+        productSegment.startsWith("api") ||
+        productSegment.startsWith("ratelimit") ||
+        productSegment === "authorization" ||
+        productSegment === "logs" ||
+        productSegment.startsWith("identit");
+
+      if (isApiManagementSegment) {
         return { type: "product", product: "api-management" };
       }
     }
 
-    // For workspace-level routes (settings, audit, logs, identities, authorization)
-    // or routes to products that aren't enabled, use the selected product from state
+    // For workspace-level routes (settings, audit, etc.)
+    // or routes that don't match any product pattern, use the selected product from state
     return { type: "product", product: selectedProduct };
   }, [params, segments, selectedProduct, workspace.betaFeatures?.deployments]);
 }
