@@ -4,9 +4,11 @@ import { SidebarGroup, SidebarMenu } from "@/components/ui/sidebar";
 import type { NavigationContext } from "@/hooks/use-navigation-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useSelectedLayoutSegments } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { NavItems } from "./app-sidebar/components/nav-items";
+import { useApiKeyspace } from "./app-sidebar/hooks/use-api-keyspace";
 import { useApiNavigation } from "./app-sidebar/hooks/use-api-navigation";
+import { useNamespaceName } from "./app-sidebar/hooks/use-namespace-name";
 import { useProjectNavigation } from "./app-sidebar/hooks/use-projects-navigation";
 import { useRatelimitNavigation } from "./app-sidebar/hooks/use-ratelimit-navigation";
 import {
@@ -19,13 +21,14 @@ import {
 
 interface ContextNavigationProps {
   context: NavigationContext;
+  onResourceNameFetched?: (name: string | undefined) => void;
 }
 
 /**
  * Context-aware navigation component that renders appropriate navigation items
  * based on the current context (product-level or resource-level).
  */
-export function ContextNavigation({ context }: ContextNavigationProps) {
+export function ContextNavigation({ context, onResourceNameFetched }: ContextNavigationProps) {
   const rawSegments = useSelectedLayoutSegments();
   const workspace = useWorkspaceNavigation();
 
@@ -38,7 +41,7 @@ export function ContextNavigation({ context }: ContextNavigationProps) {
       // Resource-level navigation
       switch (context.resourceType) {
         case "api":
-          return createApiNavigation(context.resourceId, workspace, segments);
+          return createApiNavigation(context.resourceId, workspace, segments, context.keyAuthId);
         case "project":
           return createProjectNavigation(context.resourceId, workspace, segments);
         case "namespace":
@@ -59,7 +62,36 @@ export function ContextNavigation({ context }: ContextNavigationProps) {
   // At resource-level, these won't match anything and will return items unchanged
   const { enhancedNavItems: withApis } = useApiNavigation(baseNavItems);
   const { enhancedNavItems: withRatelimits } = useRatelimitNavigation(withApis);
-  const { enhancedNavItems: finalNavItems } = useProjectNavigation(withRatelimits);
+  const { enhancedNavItems: withProjects } = useProjectNavigation(withRatelimits);
+
+  // For API resources, enhance with keyspace ID and get API name
+  const apiId =
+    context.type === "resource" && context.resourceType === "api" ? context.resourceId : undefined;
+  const keyAuthId =
+    context.type === "resource" && context.resourceType === "api" ? context.keyAuthId : undefined;
+  const needsKeyspaceFetch = apiId && !keyAuthId;
+  const { enhancedNavItems: finalNavItems, apiName } = useApiKeyspace(
+    withProjects,
+    needsKeyspaceFetch ? apiId : undefined,
+  );
+
+  // For namespace resources, get namespace name
+  const namespaceId =
+    context.type === "resource" && context.resourceType === "namespace"
+      ? context.resourceId
+      : undefined;
+  const namespaceName = useNamespaceName(namespaceId);
+
+  // Notify parent when resource name is fetched
+  useEffect(() => {
+    if (onResourceNameFetched) {
+      if (apiName) {
+        onResourceNameFetched(apiName);
+      } else if (namespaceName) {
+        onResourceNameFetched(namespaceName);
+      }
+    }
+  }, [apiName, namespaceName, onResourceNameFetched]);
 
   return (
     <SidebarGroup>

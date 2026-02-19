@@ -134,8 +134,10 @@ export const WorkspaceSwitcher: React.FC = () => {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="absolute left-0 w-72 lg:w-96 max-sm:left-0 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
+        className="w-72 lg:w-96 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
         align="start"
+        side="top"
+        sideOffset={8}
       >
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
         <DropdownMenuGroup>

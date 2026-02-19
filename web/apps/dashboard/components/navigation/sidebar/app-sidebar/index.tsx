@@ -1,10 +1,10 @@
 "use client";
+import { ContextNavigation } from "@/components/navigation/sidebar/context-navigation";
+import { ProductSwitcher } from "@/components/navigation/sidebar/product-switcher";
+import { ResourceHeading } from "@/components/navigation/sidebar/resource-heading";
 import { WorkspaceSwitcher } from "@/components/navigation/sidebar/team-switcher";
 import { UserButton } from "@/components/navigation/sidebar/user-button";
-import {
-  type NavItem,
-  createWorkspaceNavigation,
-} from "@/components/navigation/sidebar/workspace-navigations";
+import { WorkspaceSection } from "@/components/navigation/sidebar/workspace-section";
 import {
   Sidebar,
   SidebarContent,
@@ -14,28 +14,30 @@ import {
   SidebarMenu,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useNavigationContext } from "@/hooks/use-navigation-context";
 import type { Quotas, Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
-import { useRouter, useSelectedLayoutSegments } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HelpButton } from "../help-button";
 import { UsageBanner } from "../usage-banner";
-import { NavItems } from "./components/nav-items";
+import type { NavItem } from "../workspace-navigations";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
-import { useApiNavigation } from "./hooks/use-api-navigation";
-import { useProjectNavigation } from "./hooks/use-projects-navigation";
-import { useRatelimitNavigation } from "./hooks/use-ratelimit-navigation";
 
 export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   workspace: Workspace & { quotas: Quotas | null };
 }) {
-  const segments = useSelectedLayoutSegments() ?? [];
   const router = useRouter();
-  const workspace = useWorkspaceNavigation();
+  const context = useNavigationContext();
+  const [fetchedResourceName, setFetchedResourceName] = useState<string | undefined>();
+
+  // Callback to receive fetched resource name from ContextNavigation
+  const handleResourceNameFetched = useCallback((name: string | undefined) => {
+    setFetchedResourceName(name);
+  }, []);
 
   // Refresh the router when workspace changes to update sidebar
   useEffect(() => {
@@ -44,18 +46,6 @@ export function AppSidebar({
     }
     router.refresh();
   }, [router, props.workspace.id]);
-
-  // Create base navigation items
-  const baseNavItems = useMemo(
-    () => createWorkspaceNavigation(segments, workspace),
-    [segments, workspace],
-  );
-
-  const { enhancedNavItems: apiAddedNavItems } = useApiNavigation(baseNavItems);
-
-  const { enhancedNavItems: ratelimitAddedNavItems } = useRatelimitNavigation(apiAddedNavItems);
-
-  const { enhancedNavItems: projectAddedNavItems } = useProjectNavigation(ratelimitAddedNavItems);
 
   const toggleNavItem: NavItem = useMemo(
     () => ({
@@ -71,46 +61,100 @@ export function AppSidebar({
   const { state, isMobile, toggleSidebar, openMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
+  // Determine if we should show resource heading
+  const showResourceHeading = context.type === "resource";
+
+  // Determine which product to show in the switcher
+  const currentProduct = useMemo(() => {
+    if (context.type === "product") {
+      return context.product;
+    }
+    // Resource-level: determine product based on resource type
+    if (context.resourceType === "api" || context.resourceType === "namespace") {
+      return "api-management";
+    }
+    if (context.resourceType === "project") {
+      return "deploy";
+    }
+    return "api-management"; // fallback
+  }, [context]);
+
   const headerContent = useMemo(
     () => (
-      <div
-        className={cn(
-          "flex w-full",
-          isCollapsed ? "justify-center" : "items-center justify-between gap-4",
-        )}
-      >
-        <WorkspaceSwitcher />
-        {state !== "collapsed" && !isMobile && (
-          <button type="button" onClick={toggleSidebar}>
-            <SidebarLeftHide className="text-gray-8" iconSize="xl-medium" />
-          </button>
+      <div className="flex flex-col w-full gap-2">
+        {/* Product Switcher - always visible */}
+        <div
+          className={cn(
+            "flex w-full",
+            isCollapsed ? "justify-center" : "items-center justify-between gap-4",
+          )}
+        >
+          <ProductSwitcher workspace={props.workspace} currentProduct={currentProduct} />
+          {state !== "collapsed" && !isMobile && (
+            <button type="button" onClick={toggleSidebar}>
+              <SidebarLeftHide className="text-gray-8" iconSize="xl-medium" />
+            </button>
+          )}
+        </div>
+
+        {/* Resource Heading - only at resource-level, hidden when collapsed */}
+        {showResourceHeading && !isCollapsed && context.type === "resource" && (
+          <ResourceHeading
+            resourceType={context.resourceType}
+            resourceId={context.resourceId}
+            resourceName={fetchedResourceName || context.resourceName}
+          />
         )}
       </div>
     ),
-    [isCollapsed, state, isMobile, toggleSidebar],
+    [
+      isCollapsed,
+      state,
+      isMobile,
+      toggleSidebar,
+      showResourceHeading,
+      context,
+      props.workspace,
+      currentProduct,
+      fetchedResourceName,
+    ],
   );
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader className="px-4 items-center pt-4">{headerContent}</SidebarHeader>
       <SidebarContent className="px-2 flex flex-col justify-between">
-        <SidebarGroup>
-          <SidebarMenu className="gap-2">
-            {state === "collapsed" && (
-              <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
-            )}
+        {/* Context-aware navigation */}
+        <div className="flex flex-col gap-4">
+          {state === "collapsed" && (
+            <SidebarGroup>
+              <SidebarMenu className="gap-2">
+                <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
+              </SidebarMenu>
+            </SidebarGroup>
+          )}
 
-            {projectAddedNavItems.map((item) => (
-              <NavItems key={item.label as string} item={item} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+          <ContextNavigation context={context} onResourceNameFetched={handleResourceNameFetched} />
 
-        <SidebarGroup>
-          <UsageBanner quotas={props.workspace.quotas} />
-        </SidebarGroup>
+          {/* Workspace section with border-top separator */}
+          <div className="border-t border-grayA-4 pt-4">
+            <WorkspaceSection />
+          </div>
+        </div>
+
+        {/* Bottom section: Usage banner */}
+        <div className="flex flex-col gap-2">
+          <SidebarGroup>
+            <UsageBanner quotas={props.workspace.quotas} />
+          </SidebarGroup>
+        </div>
       </SidebarContent>
       <SidebarFooter>
+        {/* Workspace switcher at top of footer */}
+        <div className={cn(isCollapsed ? "flex justify-center" : "")}>
+          <WorkspaceSwitcher />
+        </div>
+
         <div
           className={cn("flex items-center justify-between gap-2", {
             "flex-col-reverse": state === "collapsed",
