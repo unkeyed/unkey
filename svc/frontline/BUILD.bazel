@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "config.go",
         "run.go",
+        "tls.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline",
     visibility = ["//visibility:public"],

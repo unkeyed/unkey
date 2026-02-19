@@ -92,7 +92,7 @@ type Config struct {
 
 	// TLS provides filesystem paths for HTTPS certificate and key.
 	// See [config.TLSFiles].
-	TLS config.TLSFiles `toml:"tls"`
+	TLS config.TLS `toml:"tls"`
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
