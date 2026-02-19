@@ -33,6 +33,14 @@ func buildTlsConfig(cfg Config, certManager certmanager.Service) (*tls.Config, e
 		return nil, nil
 	}
 
+	if cfg.TLS != nil && cfg.TLS.CertFile != "" && cfg.TLS.KeyFile != "" {
+		// Dev mode: static file-based certificate
+		logger.Info("TLS configured with static certificate files",
+			"certFile", cfg.TLS.CertFile,
+			"keyFile", cfg.TLS.KeyFile)
+		return pkgtls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
+	}
+
 	if certManager != nil {
 		// Production mode: dynamic certificates from database/vault
 
@@ -51,13 +59,6 @@ func buildTlsConfig(cfg Config, certManager certmanager.Service) (*tls.Config, e
 			// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
 			PreferServerCipherSuites: false,
 		}, nil
-	}
-	if cfg.TLS != nil && cfg.TLS.CertFile != "" && cfg.TLS.KeyFile != "" {
-		// Dev mode: static file-based certificate
-		logger.Info("TLS configured with static certificate files",
-			"certFile", cfg.TLS.CertFile,
-			"keyFile", cfg.TLS.KeyFile)
-		return pkgtls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
 	}
 
 	return nil, fmt.Errorf("TLS is required but no certificate source configured: " +
