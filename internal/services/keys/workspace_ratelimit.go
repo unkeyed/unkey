@@ -93,4 +93,3 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 
 	return nil
 }
-
