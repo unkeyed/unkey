@@ -1,8 +1,8 @@
-import type { Config } from "@/gen/proto/config/v1/config_pb";
 import { and, db, eq } from "@/lib/db";
 import { environmentBuildSettings, environmentRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
+import type { SentinelConfig } from "./sentinel/update-middleware";
 
 export const getEnvironmentSettings = workspaceProcedure
   .input(z.object({ environmentId: z.string() }))
@@ -28,7 +28,9 @@ export const getEnvironmentSettings = workspaceProcedure
         ? {
             ...runtimeSettings,
             sentinelConfig: runtimeSettings.sentinelConfig
-              ? (JSON.parse(Buffer.from(runtimeSettings.sentinelConfig).toString()) as Config)
+              ? (JSON.parse(
+                  Buffer.from(runtimeSettings.sentinelConfig).toString(),
+                ) as SentinelConfig)
               : undefined,
           }
         : null,
