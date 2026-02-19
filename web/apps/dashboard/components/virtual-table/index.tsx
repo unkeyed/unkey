@@ -390,13 +390,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           </td>
                         ))}
                       </tr>
-                      {isExpanded && renderExpanded && (
-                        <tr key={`expanded-${virtualRow.key}`}>
-                          <td colSpan={columns.length} className="">
-                            {renderExpanded(typedItem)}
-                          </td>
-                        </tr>
-                      )}
+                      {isExpanded && renderExpanded?.(typedItem)}
                     </Fragment>
                   );
                 }
@@ -467,13 +461,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         </td>
                       ))}
                     </tr>
-                    {isExpanded && renderExpanded && (
-                      <tr key={`expanded-${virtualRow.key}`}>
-                        <td colSpan={columns.length} className="p-0">
-                          {renderExpanded(typedItem)}
-                        </td>
-                      </tr>
-                    )}
+                    {isExpanded && renderExpanded && renderExpanded(typedItem)}
                   </Fragment>
                 );
               })}

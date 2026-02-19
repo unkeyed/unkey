@@ -1,7 +1,6 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { Check, ChevronRight, TriangleWarning2, Ufo } from "@unkey/icons";
 import { Badge, Loading } from "@unkey/ui";
 import ms from "ms";
@@ -25,6 +24,7 @@ export function DeploymentProgressSection() {
   const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
     {
       deploymentId,
+      includeStepLogs: true,
     },
     {
       refetchInterval: 1000,
@@ -147,6 +147,7 @@ type StepProps = {
   expanded?: React.ReactNode;
 };
 
+const EASING = "cubic-bezier(.62,.16,.13,1.01)";
 const Step: React.FC<StepProps> = ({
   icon,
   title,
@@ -159,47 +160,64 @@ const Step: React.FC<StepProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="py-4 flex justify-between flex-col overflow-hidden">
-      <div className="px-4 flex w-full justify-between items-center ">
-        <div className="flex gap-5 items-center">
+    <div className="py-4 flex justify-between flex-col">
+      <div className="px-3 flex w-full justify-between items-center">
+        <div className="flex gap-4 items-center">
           {icon}
           <div className="flex flex-col gap-1">
-            <div className=" gap-2 flex items-center">
+            <div className="gap-2 flex items-center">
               <span className="text-gray-12 font-medium text-sm">{title}</span>
-              {status === "completed" ? (
+              <div
+                className="transition-all duration-300"
+                style={{
+                  transitionTimingFunction: EASING,
+                  opacity: status === "completed" ? 1 : 0,
+                  transform: status === "completed" ? "scale(1)" : "scale(0.8)",
+                }}
+              >
                 <Badge variant="success" size="sm">
                   Complete
                 </Badge>
-              ) : null}
+              </div>
             </div>
             <p className="text-gray-10 text-xs">{description}</p>
           </div>
         </div>
-        <div className="items-center flex gap-2">
-          <div className="flex gap-2 items-center">
-            <span className="text-gray-10 text-xs">{duration ? ms(duration) : null}</span>
-            {status === "completed" ? (
-              <Check iconSize="md-thin" className="text-success-11" />
-            ) : status === "started" ? (
-              <Loading />
-            ) : status === "error" ? (
-              <TriangleWarning2 className="text-error-11" />
+        <div className="flex gap-2 items-center">
+          <span className="text-gray-10 text-xs">{duration ? ms(duration) : null}</span>
+          {status === "completed" ? (
+            <Check iconSize="md-medium" className="text-success-11" />
+          ) : status === "started" ? (
+            <Loading />
+          ) : status === "error" ? (
+            <TriangleWarning2 className="text-error-11" />
+          ) : null}
+          <div className="w-4">
+            {expanded ? (
+              <button onClick={() => setIsExpanded(!isExpanded)} type="button">
+                <ChevronRight
+                  iconSize="md-medium"
+                  className="text-gray-10 transition-all duration-300"
+                  style={{
+                    transitionTimingFunction: EASING,
+                    transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                  }}
+                />
+              </button>
             ) : null}
-            <div className="w-4">
-              {expanded ? (
-                <button onClick={() => setIsExpanded(!isExpanded)} type="button">
-                  <ChevronRight
-                    iconSize="md-thin"
-                    className={cn("text-gray-10", { "rotate-90": isExpanded })}
-                  />
-                </button>
-              ) : null}
-            </div>
           </div>
         </div>
       </div>
 
-      <div>{isExpanded ? expanded : null}</div>
+      <div
+        className="grid transition-[grid-template-rows] duration-300"
+        style={{
+          gridTemplateRows: isExpanded && expanded ? "1fr" : "0fr",
+          transitionTimingFunction: EASING,
+        }}
+      >
+        <div className="overflow-hidden">{expanded}</div>
+      </div>
     </div>
   );
 };
