@@ -16,6 +16,7 @@ go_library(
         "//pkg/timing",
         "//pkg/uid",
         "//pkg/zen",
+        "//svc/sentinel/engine",
         "//svc/sentinel/services/router",
     ],
 )

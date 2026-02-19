@@ -23,6 +23,13 @@ func WithProxyErrorHandling() zen.Middleware {
 				return nil
 			}
 
+			// If the error already has a fault code (e.g. from the engine's
+			// auth/rate-limit checks), it's not a proxy error — pass it through
+			// so the observability middleware maps it to the correct status.
+			if _, hasCode := fault.GetCode(err); hasCode {
+				return err
+			}
+
 			tracking, ok := handler.SentinelTrackingFromContext(ctx)
 			if !ok {
 				return err

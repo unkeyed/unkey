@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 )
 
 // Service defines the interface for proxying requests to sentinels or remote NLBs.
@@ -54,4 +55,7 @@ type Config struct {
 	// Transport allows passing a shared HTTP transport for connection pooling
 	// If nil, a new transport will be created with the other config values
 	Transport *http.Transport
+
+	// ErrorPageRenderer renders HTML error pages for sentinel errors.
+	ErrorPageRenderer errorpage.Renderer
 }

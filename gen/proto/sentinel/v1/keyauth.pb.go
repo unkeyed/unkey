@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: middleware/v1/keyauth.proto
+// source: policies/v1/keyauth.proto
 
 package sentinelv1
 
@@ -44,7 +44,7 @@ type KeyAuth struct {
 	// The Unkey key space (API) ID to authenticate against. Each key space
 	// contains a set of API keys with shared configuration. This determines
 	// which keys are valid for this policy.
-	KeySpaceId string `protobuf:"bytes,1,opt,name=key_space_id,json=keySpaceId,proto3" json:"key_space_id,omitempty"`
+	KeySpaceIds []string `protobuf:"bytes,1,rep,name=key_space_ids,json=keySpaceIds,proto3" json:"key_space_ids,omitempty"`
 	// Ordered list of locations to extract the API key from. Sentinel tries
 	// each location in order and uses the first one that yields a non-empty
 	// value. This allows APIs to support multiple key delivery mechanisms
@@ -54,13 +54,6 @@ type KeyAuth struct {
 	// If empty, defaults to extracting from the Authorization header as a
 	// Bearer token, which is the most common convention for API authentication.
 	Locations []*KeyLocation `protobuf:"bytes,2,rep,name=locations,proto3" json:"locations,omitempty"`
-	// When true, requests that do not contain a key in any of the configured
-	// locations are allowed through without authentication. No [Principal] is
-	// produced for anonymous requests. This enables mixed-auth endpoints where
-	// unauthenticated users get a restricted view and authenticated users get
-	// full access — the application checks for the presence of identity headers
-	// to decide.
-	AllowAnonymous bool `protobuf:"varint,3,opt,name=allow_anonymous,json=allowAnonymous,proto3" json:"allow_anonymous,omitempty"`
 	// Optional permission query evaluated against the key's permissions
 	// returned by Unkey's verify API. Uses the same query language as
 	// pkg/rbac.ParseQuery: AND and OR operators with parenthesized grouping,
@@ -81,14 +74,14 @@ type KeyAuth struct {
 	// required permissions. When empty, no permission check is performed.
 	//
 	// Limits: maximum 1000 characters, maximum 100 permission terms.
-	PermissionQuery string `protobuf:"bytes,5,opt,name=permission_query,json=permissionQuery,proto3" json:"permission_query,omitempty"`
+	PermissionQuery *string `protobuf:"bytes,5,opt,name=permission_query,json=permissionQuery,proto3,oneof" json:"permission_query,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *KeyAuth) Reset() {
 	*x = KeyAuth{}
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[0]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -100,7 +93,7 @@ func (x *KeyAuth) String() string {
 func (*KeyAuth) ProtoMessage() {}
 
 func (x *KeyAuth) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[0]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -113,14 +106,14 @@ func (x *KeyAuth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyAuth.ProtoReflect.Descriptor instead.
 func (*KeyAuth) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_keyauth_proto_rawDescGZIP(), []int{0}
+	return file_policies_v1_keyauth_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *KeyAuth) GetKeySpaceId() string {
+func (x *KeyAuth) GetKeySpaceIds() []string {
 	if x != nil {
-		return x.KeySpaceId
+		return x.KeySpaceIds
 	}
-	return ""
+	return nil
 }
 
 func (x *KeyAuth) GetLocations() []*KeyLocation {
@@ -130,16 +123,9 @@ func (x *KeyAuth) GetLocations() []*KeyLocation {
 	return nil
 }
 
-func (x *KeyAuth) GetAllowAnonymous() bool {
-	if x != nil {
-		return x.AllowAnonymous
-	}
-	return false
-}
-
 func (x *KeyAuth) GetPermissionQuery() string {
-	if x != nil {
-		return x.PermissionQuery
+	if x != nil && x.PermissionQuery != nil {
+		return *x.PermissionQuery
 	}
 	return ""
 }
@@ -162,7 +148,7 @@ type KeyLocation struct {
 
 func (x *KeyLocation) Reset() {
 	*x = KeyLocation{}
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[1]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -174,7 +160,7 @@ func (x *KeyLocation) String() string {
 func (*KeyLocation) ProtoMessage() {}
 
 func (x *KeyLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[1]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -187,7 +173,7 @@ func (x *KeyLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyLocation.ProtoReflect.Descriptor instead.
 func (*KeyLocation) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_keyauth_proto_rawDescGZIP(), []int{1}
+	return file_policies_v1_keyauth_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *KeyLocation) GetLocation() isKeyLocation_Location {
@@ -265,7 +251,7 @@ type BearerTokenLocation struct {
 
 func (x *BearerTokenLocation) Reset() {
 	*x = BearerTokenLocation{}
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[2]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -277,7 +263,7 @@ func (x *BearerTokenLocation) String() string {
 func (*BearerTokenLocation) ProtoMessage() {}
 
 func (x *BearerTokenLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[2]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -290,7 +276,7 @@ func (x *BearerTokenLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BearerTokenLocation.ProtoReflect.Descriptor instead.
 func (*BearerTokenLocation) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_keyauth_proto_rawDescGZIP(), []int{2}
+	return file_policies_v1_keyauth_proto_rawDescGZIP(), []int{2}
 }
 
 // HeaderKeyLocation extracts the API key from a named request header. This
@@ -312,7 +298,7 @@ type HeaderKeyLocation struct {
 
 func (x *HeaderKeyLocation) Reset() {
 	*x = HeaderKeyLocation{}
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[3]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -324,7 +310,7 @@ func (x *HeaderKeyLocation) String() string {
 func (*HeaderKeyLocation) ProtoMessage() {}
 
 func (x *HeaderKeyLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[3]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -337,7 +323,7 @@ func (x *HeaderKeyLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeaderKeyLocation.ProtoReflect.Descriptor instead.
 func (*HeaderKeyLocation) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_keyauth_proto_rawDescGZIP(), []int{3}
+	return file_policies_v1_keyauth_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *HeaderKeyLocation) GetName() string {
@@ -365,7 +351,7 @@ type QueryParamKeyLocation struct {
 
 func (x *QueryParamKeyLocation) Reset() {
 	*x = QueryParamKeyLocation{}
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[4]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -377,7 +363,7 @@ func (x *QueryParamKeyLocation) String() string {
 func (*QueryParamKeyLocation) ProtoMessage() {}
 
 func (x *QueryParamKeyLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_keyauth_proto_msgTypes[4]
+	mi := &file_policies_v1_keyauth_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -390,7 +376,7 @@ func (x *QueryParamKeyLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryParamKeyLocation.ProtoReflect.Descriptor instead.
 func (*QueryParamKeyLocation) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_keyauth_proto_rawDescGZIP(), []int{4}
+	return file_policies_v1_keyauth_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *QueryParamKeyLocation) GetName() string {
@@ -400,17 +386,16 @@ func (x *QueryParamKeyLocation) GetName() string {
 	return ""
 }
 
-var File_middleware_v1_keyauth_proto protoreflect.FileDescriptor
+var File_policies_v1_keyauth_proto protoreflect.FileDescriptor
 
-const file_middleware_v1_keyauth_proto_rawDesc = "" +
+const file_policies_v1_keyauth_proto_rawDesc = "" +
 	"\n" +
-	"\x1bmiddleware/v1/keyauth.proto\x12\vsentinel.v1\"\xb7\x01\n" +
-	"\aKeyAuth\x12 \n" +
-	"\fkey_space_id\x18\x01 \x01(\tR\n" +
-	"keySpaceId\x126\n" +
-	"\tlocations\x18\x02 \x03(\v2\x18.sentinel.v1.KeyLocationR\tlocations\x12'\n" +
-	"\x0fallow_anonymous\x18\x03 \x01(\bR\x0eallowAnonymous\x12)\n" +
-	"\x10permission_query\x18\x05 \x01(\tR\x0fpermissionQuery\"\xd6\x01\n" +
+	"\x19policies/v1/keyauth.proto\x12\vsentinel.v1\"\xaa\x01\n" +
+	"\aKeyAuth\x12\"\n" +
+	"\rkey_space_ids\x18\x01 \x03(\tR\vkeySpaceIds\x126\n" +
+	"\tlocations\x18\x02 \x03(\v2\x18.sentinel.v1.KeyLocationR\tlocations\x12.\n" +
+	"\x10permission_query\x18\x05 \x01(\tH\x00R\x0fpermissionQuery\x88\x01\x01B\x13\n" +
+	"\x11_permission_query\"\xd6\x01\n" +
 	"\vKeyLocation\x12:\n" +
 	"\x06bearer\x18\x01 \x01(\v2 .sentinel.v1.BearerTokenLocationH\x00R\x06bearer\x128\n" +
 	"\x06header\x18\x02 \x01(\v2\x1e.sentinel.v1.HeaderKeyLocationH\x00R\x06header\x12E\n" +
@@ -427,26 +412,26 @@ const file_middleware_v1_keyauth_proto_rawDesc = "" +
 	"\x0fcom.sentinel.v1B\fKeyauthProtoP\x01Z9github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1\xa2\x02\x03SXX\xaa\x02\vSentinel.V1\xca\x02\vSentinel\\V1\xe2\x02\x17Sentinel\\V1\\GPBMetadata\xea\x02\fSentinel::V1b\x06proto3"
 
 var (
-	file_middleware_v1_keyauth_proto_rawDescOnce sync.Once
-	file_middleware_v1_keyauth_proto_rawDescData []byte
+	file_policies_v1_keyauth_proto_rawDescOnce sync.Once
+	file_policies_v1_keyauth_proto_rawDescData []byte
 )
 
-func file_middleware_v1_keyauth_proto_rawDescGZIP() []byte {
-	file_middleware_v1_keyauth_proto_rawDescOnce.Do(func() {
-		file_middleware_v1_keyauth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_middleware_v1_keyauth_proto_rawDesc), len(file_middleware_v1_keyauth_proto_rawDesc)))
+func file_policies_v1_keyauth_proto_rawDescGZIP() []byte {
+	file_policies_v1_keyauth_proto_rawDescOnce.Do(func() {
+		file_policies_v1_keyauth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_policies_v1_keyauth_proto_rawDesc), len(file_policies_v1_keyauth_proto_rawDesc)))
 	})
-	return file_middleware_v1_keyauth_proto_rawDescData
+	return file_policies_v1_keyauth_proto_rawDescData
 }
 
-var file_middleware_v1_keyauth_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_middleware_v1_keyauth_proto_goTypes = []any{
+var file_policies_v1_keyauth_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_policies_v1_keyauth_proto_goTypes = []any{
 	(*KeyAuth)(nil),               // 0: sentinel.v1.KeyAuth
 	(*KeyLocation)(nil),           // 1: sentinel.v1.KeyLocation
 	(*BearerTokenLocation)(nil),   // 2: sentinel.v1.BearerTokenLocation
 	(*HeaderKeyLocation)(nil),     // 3: sentinel.v1.HeaderKeyLocation
 	(*QueryParamKeyLocation)(nil), // 4: sentinel.v1.QueryParamKeyLocation
 }
-var file_middleware_v1_keyauth_proto_depIdxs = []int32{
+var file_policies_v1_keyauth_proto_depIdxs = []int32{
 	1, // 0: sentinel.v1.KeyAuth.locations:type_name -> sentinel.v1.KeyLocation
 	2, // 1: sentinel.v1.KeyLocation.bearer:type_name -> sentinel.v1.BearerTokenLocation
 	3, // 2: sentinel.v1.KeyLocation.header:type_name -> sentinel.v1.HeaderKeyLocation
@@ -458,12 +443,13 @@ var file_middleware_v1_keyauth_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_middleware_v1_keyauth_proto_init() }
-func file_middleware_v1_keyauth_proto_init() {
-	if File_middleware_v1_keyauth_proto != nil {
+func init() { file_policies_v1_keyauth_proto_init() }
+func file_policies_v1_keyauth_proto_init() {
+	if File_policies_v1_keyauth_proto != nil {
 		return
 	}
-	file_middleware_v1_keyauth_proto_msgTypes[1].OneofWrappers = []any{
+	file_policies_v1_keyauth_proto_msgTypes[0].OneofWrappers = []any{}
+	file_policies_v1_keyauth_proto_msgTypes[1].OneofWrappers = []any{
 		(*KeyLocation_Bearer)(nil),
 		(*KeyLocation_Header)(nil),
 		(*KeyLocation_QueryParam)(nil),
@@ -472,17 +458,17 @@ func file_middleware_v1_keyauth_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_middleware_v1_keyauth_proto_rawDesc), len(file_middleware_v1_keyauth_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_policies_v1_keyauth_proto_rawDesc), len(file_policies_v1_keyauth_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_middleware_v1_keyauth_proto_goTypes,
-		DependencyIndexes: file_middleware_v1_keyauth_proto_depIdxs,
-		MessageInfos:      file_middleware_v1_keyauth_proto_msgTypes,
+		GoTypes:           file_policies_v1_keyauth_proto_goTypes,
+		DependencyIndexes: file_policies_v1_keyauth_proto_depIdxs,
+		MessageInfos:      file_policies_v1_keyauth_proto_msgTypes,
 	}.Build()
-	File_middleware_v1_keyauth_proto = out.File
-	file_middleware_v1_keyauth_proto_goTypes = nil
-	file_middleware_v1_keyauth_proto_depIdxs = nil
+	File_policies_v1_keyauth_proto = out.File
+	file_policies_v1_keyauth_proto_goTypes = nil
+	file_policies_v1_keyauth_proto_depIdxs = nil
 }

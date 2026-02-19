@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: middleware/v1/match.proto
+// source: policies/v1/match.proto
 
 package sentinelv1
 
@@ -46,7 +46,7 @@ type MatchExpr struct {
 
 func (x *MatchExpr) Reset() {
 	*x = MatchExpr{}
-	mi := &file_middleware_v1_match_proto_msgTypes[0]
+	mi := &file_policies_v1_match_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -58,7 +58,7 @@ func (x *MatchExpr) String() string {
 func (*MatchExpr) ProtoMessage() {}
 
 func (x *MatchExpr) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_match_proto_msgTypes[0]
+	mi := &file_policies_v1_match_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -71,7 +71,7 @@ func (x *MatchExpr) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MatchExpr.ProtoReflect.Descriptor instead.
 func (*MatchExpr) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_match_proto_rawDescGZIP(), []int{0}
+	return file_policies_v1_match_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *MatchExpr) GetExpr() isMatchExpr_Expr {
@@ -171,7 +171,7 @@ type StringMatch struct {
 
 func (x *StringMatch) Reset() {
 	*x = StringMatch{}
-	mi := &file_middleware_v1_match_proto_msgTypes[1]
+	mi := &file_policies_v1_match_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -183,7 +183,7 @@ func (x *StringMatch) String() string {
 func (*StringMatch) ProtoMessage() {}
 
 func (x *StringMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_match_proto_msgTypes[1]
+	mi := &file_policies_v1_match_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -196,7 +196,7 @@ func (x *StringMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StringMatch.ProtoReflect.Descriptor instead.
 func (*StringMatch) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_match_proto_rawDescGZIP(), []int{1}
+	return file_policies_v1_match_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *StringMatch) GetIgnoreCase() bool {
@@ -281,7 +281,7 @@ type PathMatch struct {
 
 func (x *PathMatch) Reset() {
 	*x = PathMatch{}
-	mi := &file_middleware_v1_match_proto_msgTypes[2]
+	mi := &file_policies_v1_match_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -293,7 +293,7 @@ func (x *PathMatch) String() string {
 func (*PathMatch) ProtoMessage() {}
 
 func (x *PathMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_match_proto_msgTypes[2]
+	mi := &file_policies_v1_match_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -306,7 +306,7 @@ func (x *PathMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PathMatch.ProtoReflect.Descriptor instead.
 func (*PathMatch) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_match_proto_rawDescGZIP(), []int{2}
+	return file_policies_v1_match_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *PathMatch) GetPath() *StringMatch {
@@ -331,7 +331,7 @@ type MethodMatch struct {
 
 func (x *MethodMatch) Reset() {
 	*x = MethodMatch{}
-	mi := &file_middleware_v1_match_proto_msgTypes[3]
+	mi := &file_policies_v1_match_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -343,7 +343,7 @@ func (x *MethodMatch) String() string {
 func (*MethodMatch) ProtoMessage() {}
 
 func (x *MethodMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_match_proto_msgTypes[3]
+	mi := &file_policies_v1_match_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -356,7 +356,7 @@ func (x *MethodMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MethodMatch.ProtoReflect.Descriptor instead.
 func (*MethodMatch) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_match_proto_rawDescGZIP(), []int{3}
+	return file_policies_v1_match_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *MethodMatch) GetMethods() []string {
@@ -390,7 +390,7 @@ type HeaderMatch struct {
 
 func (x *HeaderMatch) Reset() {
 	*x = HeaderMatch{}
-	mi := &file_middleware_v1_match_proto_msgTypes[4]
+	mi := &file_policies_v1_match_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +402,7 @@ func (x *HeaderMatch) String() string {
 func (*HeaderMatch) ProtoMessage() {}
 
 func (x *HeaderMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_match_proto_msgTypes[4]
+	mi := &file_policies_v1_match_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,7 +415,7 @@ func (x *HeaderMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeaderMatch.ProtoReflect.Descriptor instead.
 func (*HeaderMatch) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_match_proto_rawDescGZIP(), []int{4}
+	return file_policies_v1_match_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *HeaderMatch) GetName() string {
@@ -495,7 +495,7 @@ type QueryParamMatch struct {
 
 func (x *QueryParamMatch) Reset() {
 	*x = QueryParamMatch{}
-	mi := &file_middleware_v1_match_proto_msgTypes[5]
+	mi := &file_policies_v1_match_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -507,7 +507,7 @@ func (x *QueryParamMatch) String() string {
 func (*QueryParamMatch) ProtoMessage() {}
 
 func (x *QueryParamMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_match_proto_msgTypes[5]
+	mi := &file_policies_v1_match_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,7 +520,7 @@ func (x *QueryParamMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryParamMatch.ProtoReflect.Descriptor instead.
 func (*QueryParamMatch) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_match_proto_rawDescGZIP(), []int{5}
+	return file_policies_v1_match_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *QueryParamMatch) GetName() string {
@@ -575,11 +575,11 @@ func (*QueryParamMatch_Present) isQueryParamMatch_Match() {}
 
 func (*QueryParamMatch_Value) isQueryParamMatch_Match() {}
 
-var File_middleware_v1_match_proto protoreflect.FileDescriptor
+var File_policies_v1_match_proto protoreflect.FileDescriptor
 
-const file_middleware_v1_match_proto_rawDesc = "" +
+const file_policies_v1_match_proto_rawDesc = "" +
 	"\n" +
-	"\x19middleware/v1/match.proto\x12\vsentinel.v1\"\xea\x01\n" +
+	"\x17policies/v1/match.proto\x12\vsentinel.v1\"\xea\x01\n" +
 	"\tMatchExpr\x12,\n" +
 	"\x04path\x18\x01 \x01(\v2\x16.sentinel.v1.PathMatchH\x00R\x04path\x122\n" +
 	"\x06method\x18\x02 \x01(\v2\x18.sentinel.v1.MethodMatchH\x00R\x06method\x122\n" +
@@ -612,19 +612,19 @@ const file_middleware_v1_match_proto_rawDesc = "" +
 	"MatchProtoP\x01Z9github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1\xa2\x02\x03SXX\xaa\x02\vSentinel.V1\xca\x02\vSentinel\\V1\xe2\x02\x17Sentinel\\V1\\GPBMetadata\xea\x02\fSentinel::V1b\x06proto3"
 
 var (
-	file_middleware_v1_match_proto_rawDescOnce sync.Once
-	file_middleware_v1_match_proto_rawDescData []byte
+	file_policies_v1_match_proto_rawDescOnce sync.Once
+	file_policies_v1_match_proto_rawDescData []byte
 )
 
-func file_middleware_v1_match_proto_rawDescGZIP() []byte {
-	file_middleware_v1_match_proto_rawDescOnce.Do(func() {
-		file_middleware_v1_match_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_middleware_v1_match_proto_rawDesc), len(file_middleware_v1_match_proto_rawDesc)))
+func file_policies_v1_match_proto_rawDescGZIP() []byte {
+	file_policies_v1_match_proto_rawDescOnce.Do(func() {
+		file_policies_v1_match_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_policies_v1_match_proto_rawDesc), len(file_policies_v1_match_proto_rawDesc)))
 	})
-	return file_middleware_v1_match_proto_rawDescData
+	return file_policies_v1_match_proto_rawDescData
 }
 
-var file_middleware_v1_match_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_middleware_v1_match_proto_goTypes = []any{
+var file_policies_v1_match_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_policies_v1_match_proto_goTypes = []any{
 	(*MatchExpr)(nil),       // 0: sentinel.v1.MatchExpr
 	(*StringMatch)(nil),     // 1: sentinel.v1.StringMatch
 	(*PathMatch)(nil),       // 2: sentinel.v1.PathMatch
@@ -632,7 +632,7 @@ var file_middleware_v1_match_proto_goTypes = []any{
 	(*HeaderMatch)(nil),     // 4: sentinel.v1.HeaderMatch
 	(*QueryParamMatch)(nil), // 5: sentinel.v1.QueryParamMatch
 }
-var file_middleware_v1_match_proto_depIdxs = []int32{
+var file_policies_v1_match_proto_depIdxs = []int32{
 	2, // 0: sentinel.v1.MatchExpr.path:type_name -> sentinel.v1.PathMatch
 	3, // 1: sentinel.v1.MatchExpr.method:type_name -> sentinel.v1.MethodMatch
 	4, // 2: sentinel.v1.MatchExpr.header:type_name -> sentinel.v1.HeaderMatch
@@ -647,27 +647,27 @@ var file_middleware_v1_match_proto_depIdxs = []int32{
 	0, // [0:7] is the sub-list for field type_name
 }
 
-func init() { file_middleware_v1_match_proto_init() }
-func file_middleware_v1_match_proto_init() {
-	if File_middleware_v1_match_proto != nil {
+func init() { file_policies_v1_match_proto_init() }
+func file_policies_v1_match_proto_init() {
+	if File_policies_v1_match_proto != nil {
 		return
 	}
-	file_middleware_v1_match_proto_msgTypes[0].OneofWrappers = []any{
+	file_policies_v1_match_proto_msgTypes[0].OneofWrappers = []any{
 		(*MatchExpr_Path)(nil),
 		(*MatchExpr_Method)(nil),
 		(*MatchExpr_Header)(nil),
 		(*MatchExpr_QueryParam)(nil),
 	}
-	file_middleware_v1_match_proto_msgTypes[1].OneofWrappers = []any{
+	file_policies_v1_match_proto_msgTypes[1].OneofWrappers = []any{
 		(*StringMatch_Exact)(nil),
 		(*StringMatch_Prefix)(nil),
 		(*StringMatch_Regex)(nil),
 	}
-	file_middleware_v1_match_proto_msgTypes[4].OneofWrappers = []any{
+	file_policies_v1_match_proto_msgTypes[4].OneofWrappers = []any{
 		(*HeaderMatch_Present)(nil),
 		(*HeaderMatch_Value)(nil),
 	}
-	file_middleware_v1_match_proto_msgTypes[5].OneofWrappers = []any{
+	file_policies_v1_match_proto_msgTypes[5].OneofWrappers = []any{
 		(*QueryParamMatch_Present)(nil),
 		(*QueryParamMatch_Value)(nil),
 	}
@@ -675,17 +675,17 @@ func file_middleware_v1_match_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_middleware_v1_match_proto_rawDesc), len(file_middleware_v1_match_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_policies_v1_match_proto_rawDesc), len(file_policies_v1_match_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_middleware_v1_match_proto_goTypes,
-		DependencyIndexes: file_middleware_v1_match_proto_depIdxs,
-		MessageInfos:      file_middleware_v1_match_proto_msgTypes,
+		GoTypes:           file_policies_v1_match_proto_goTypes,
+		DependencyIndexes: file_policies_v1_match_proto_depIdxs,
+		MessageInfos:      file_policies_v1_match_proto_msgTypes,
 	}.Build()
-	File_middleware_v1_match_proto = out.File
-	file_middleware_v1_match_proto_goTypes = nil
-	file_middleware_v1_match_proto_depIdxs = nil
+	File_policies_v1_match_proto = out.File
+	file_policies_v1_match_proto_goTypes = nil
+	file_policies_v1_match_proto_depIdxs = nil
 }

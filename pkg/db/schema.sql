@@ -403,6 +403,7 @@ CREATE TABLE `environment_runtime_settings` (
 	`healthcheck` json,
 	`region_config` json NOT NULL DEFAULT ('{}'),
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
+	`sentinel_config` longblob,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `environment_runtime_settings_pk` PRIMARY KEY(`pk`),

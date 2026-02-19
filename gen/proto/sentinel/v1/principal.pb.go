@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: middleware/v1/principal.proto
+// source: policies/v1/principal.proto
 
 package sentinelv1
 
@@ -62,11 +62,11 @@ func (x PrincipalType) String() string {
 }
 
 func (PrincipalType) Descriptor() protoreflect.EnumDescriptor {
-	return file_middleware_v1_principal_proto_enumTypes[0].Descriptor()
+	return file_policies_v1_principal_proto_enumTypes[0].Descriptor()
 }
 
 func (PrincipalType) Type() protoreflect.EnumType {
-	return &file_middleware_v1_principal_proto_enumTypes[0]
+	return &file_policies_v1_principal_proto_enumTypes[0]
 }
 
 func (x PrincipalType) Number() protoreflect.EnumNumber {
@@ -75,7 +75,7 @@ func (x PrincipalType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PrincipalType.Descriptor instead.
 func (PrincipalType) EnumDescriptor() ([]byte, []int) {
-	return file_middleware_v1_principal_proto_rawDescGZIP(), []int{0}
+	return file_policies_v1_principal_proto_rawDescGZIP(), []int{0}
 }
 
 // Principal is the authenticated entity produced by any authentication policy.
@@ -129,7 +129,7 @@ type Principal struct {
 
 func (x *Principal) Reset() {
 	*x = Principal{}
-	mi := &file_middleware_v1_principal_proto_msgTypes[0]
+	mi := &file_policies_v1_principal_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -141,7 +141,7 @@ func (x *Principal) String() string {
 func (*Principal) ProtoMessage() {}
 
 func (x *Principal) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_principal_proto_msgTypes[0]
+	mi := &file_policies_v1_principal_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -154,7 +154,7 @@ func (x *Principal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Principal.ProtoReflect.Descriptor instead.
 func (*Principal) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_principal_proto_rawDescGZIP(), []int{0}
+	return file_policies_v1_principal_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Principal) GetSubject() string {
@@ -178,11 +178,11 @@ func (x *Principal) GetClaims() map[string]string {
 	return nil
 }
 
-var File_middleware_v1_principal_proto protoreflect.FileDescriptor
+var File_policies_v1_principal_proto protoreflect.FileDescriptor
 
-const file_middleware_v1_principal_proto_rawDesc = "" +
+const file_policies_v1_principal_proto_rawDesc = "" +
 	"\n" +
-	"\x1dmiddleware/v1/principal.proto\x12\vsentinel.v1\"\xcc\x01\n" +
+	"\x1bpolicies/v1/principal.proto\x12\vsentinel.v1\"\xcc\x01\n" +
 	"\tPrincipal\x12\x18\n" +
 	"\asubject\x18\x01 \x01(\tR\asubject\x12.\n" +
 	"\x04type\x18\x02 \x01(\x0e2\x1a.sentinel.v1.PrincipalTypeR\x04type\x12:\n" +
@@ -198,25 +198,25 @@ const file_middleware_v1_principal_proto_rawDesc = "" +
 	"\x0fcom.sentinel.v1B\x0ePrincipalProtoP\x01Z9github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1\xa2\x02\x03SXX\xaa\x02\vSentinel.V1\xca\x02\vSentinel\\V1\xe2\x02\x17Sentinel\\V1\\GPBMetadata\xea\x02\fSentinel::V1b\x06proto3"
 
 var (
-	file_middleware_v1_principal_proto_rawDescOnce sync.Once
-	file_middleware_v1_principal_proto_rawDescData []byte
+	file_policies_v1_principal_proto_rawDescOnce sync.Once
+	file_policies_v1_principal_proto_rawDescData []byte
 )
 
-func file_middleware_v1_principal_proto_rawDescGZIP() []byte {
-	file_middleware_v1_principal_proto_rawDescOnce.Do(func() {
-		file_middleware_v1_principal_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_middleware_v1_principal_proto_rawDesc), len(file_middleware_v1_principal_proto_rawDesc)))
+func file_policies_v1_principal_proto_rawDescGZIP() []byte {
+	file_policies_v1_principal_proto_rawDescOnce.Do(func() {
+		file_policies_v1_principal_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_policies_v1_principal_proto_rawDesc), len(file_policies_v1_principal_proto_rawDesc)))
 	})
-	return file_middleware_v1_principal_proto_rawDescData
+	return file_policies_v1_principal_proto_rawDescData
 }
 
-var file_middleware_v1_principal_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_middleware_v1_principal_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_middleware_v1_principal_proto_goTypes = []any{
+var file_policies_v1_principal_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_policies_v1_principal_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_policies_v1_principal_proto_goTypes = []any{
 	(PrincipalType)(0), // 0: sentinel.v1.PrincipalType
 	(*Principal)(nil),  // 1: sentinel.v1.Principal
 	nil,                // 2: sentinel.v1.Principal.ClaimsEntry
 }
-var file_middleware_v1_principal_proto_depIdxs = []int32{
+var file_policies_v1_principal_proto_depIdxs = []int32{
 	0, // 0: sentinel.v1.Principal.type:type_name -> sentinel.v1.PrincipalType
 	2, // 1: sentinel.v1.Principal.claims:type_name -> sentinel.v1.Principal.ClaimsEntry
 	2, // [2:2] is the sub-list for method output_type
@@ -226,27 +226,27 @@ var file_middleware_v1_principal_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_middleware_v1_principal_proto_init() }
-func file_middleware_v1_principal_proto_init() {
-	if File_middleware_v1_principal_proto != nil {
+func init() { file_policies_v1_principal_proto_init() }
+func file_policies_v1_principal_proto_init() {
+	if File_policies_v1_principal_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_middleware_v1_principal_proto_rawDesc), len(file_middleware_v1_principal_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_policies_v1_principal_proto_rawDesc), len(file_policies_v1_principal_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_middleware_v1_principal_proto_goTypes,
-		DependencyIndexes: file_middleware_v1_principal_proto_depIdxs,
-		EnumInfos:         file_middleware_v1_principal_proto_enumTypes,
-		MessageInfos:      file_middleware_v1_principal_proto_msgTypes,
+		GoTypes:           file_policies_v1_principal_proto_goTypes,
+		DependencyIndexes: file_policies_v1_principal_proto_depIdxs,
+		EnumInfos:         file_policies_v1_principal_proto_enumTypes,
+		MessageInfos:      file_policies_v1_principal_proto_msgTypes,
 	}.Build()
-	File_middleware_v1_principal_proto = out.File
-	file_middleware_v1_principal_proto_goTypes = nil
-	file_middleware_v1_principal_proto_depIdxs = nil
+	File_policies_v1_principal_proto = out.File
+	file_policies_v1_principal_proto_goTypes = nil
+	file_policies_v1_principal_proto_depIdxs = nil
 }

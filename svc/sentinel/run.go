@@ -6,18 +6,26 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"time"
 
+	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
+	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/sentinel/engine"
 	"github.com/unkeyed/unkey/svc/sentinel/routes"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
@@ -159,6 +167,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(routerSvc.Close)
 
+	// Initialize middleware engine for KeyAuth and other sentinel policies.
+	// If Redis is unavailable, sentinel continues without middleware evaluation
+	// (deployments are proxied as pass-through).
+	middlewareEngine := initMiddlewareEngine(cfg, database, ch, clk, r)
+
 	svcs := &routes.Services{
 		RouterService:      routerSvc,
 		Clock:              clk,
@@ -168,6 +181,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:             cfg.Region,
 		ClickHouse:         ch,
 		MaxRequestBodySize: maxRequestBodySize,
+		Engine:             middlewareEngine,
 	}
 
 	srv, err := zen.New(zen.Config{
@@ -205,4 +219,76 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Sentinel server shut down successfully")
 	return nil
+}
+
+// initMiddlewareEngine creates the middleware engine backed by Redis.
+// Returns nil (pass-through mode) when Redis URL is empty or connection fails.
+func initMiddlewareEngine(cfg Config, database db.Database, ch clickhouse.ClickHouse, clk clock.Clock, r *runner.Runner) engine.Evaluator {
+	if cfg.Redis.URL == "" {
+		logger.Info("redis URL not configured, middleware engine disabled")
+		return nil
+	}
+
+	redisCounter, err := counter.NewRedis(counter.RedisConfig{
+		RedisURL: cfg.Redis.URL,
+	})
+	if err != nil {
+		logger.Error("failed to connect to redis, middleware engine disabled", "error", err)
+		return nil
+	}
+	r.Defer(redisCounter.Close)
+
+	rateLimiter, err := ratelimit.New(ratelimit.Config{
+		Clock:   clk,
+		Counter: redisCounter,
+	})
+	if err != nil {
+		logger.Error("failed to create rate limiter, middleware engine disabled", "error", err)
+		return nil
+	}
+	r.Defer(rateLimiter.Close)
+
+	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
+		DB:            database,
+		Counter:       redisCounter,
+		TTL:           60 * time.Second,
+		ReplayWorkers: 8,
+	})
+	if err != nil {
+		logger.Error("failed to create usage limiter, middleware engine disabled", "error", err)
+		return nil
+	}
+	r.Defer(usageLimiter.Close)
+
+	keyCache, err := cache.New[string, db.CachedKeyData](cache.Config[string, db.CachedKeyData]{
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
+		MaxSize:  100_000,
+		Resource: "sentinel_key_cache",
+		Clock:    clk,
+	})
+	if err != nil {
+		logger.Error("failed to create key cache, middleware engine disabled", "error", err)
+		return nil
+	}
+
+	keyService, err := keys.New(keys.Config{
+		DB:           database,
+		RateLimiter:  rateLimiter,
+		RBAC:         rbac.New(),
+		Clickhouse:   ch,
+		Region:       cfg.Region,
+		UsageLimiter: usageLimiter,
+		KeyCache:     keyCache,
+	})
+	if err != nil {
+		logger.Error("failed to create key service, middleware engine disabled", "error", err)
+		return nil
+	}
+
+	logger.Info("middleware engine initialized")
+	return engine.New(engine.Config{
+		KeyService: keyService,
+		Clock:      clk,
+	})
 }

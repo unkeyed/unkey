@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
 	"github.com/unkeyed/unkey/svc/frontline/services/caches"
 	"github.com/unkeyed/unkey/svc/frontline/services/certmanager"
@@ -240,11 +241,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
 	svcs := &routes.Services{
-		Region:        cfg.Region,
-		RouterService: routerSvc,
-		ProxyService:  proxySvc,
-		Clock:         clk,
-		AcmeClient:    acmeClient,
+		Region:            cfg.Region,
+		RouterService:     routerSvc,
+		ProxyService:      proxySvc,
+		Clock:             clk,
+		AcmeClient:        acmeClient,
+		ErrorPageRenderer: errorpage.NewRenderer(),
 	}
 
 	// Start HTTPS frontline server (main proxy server)
