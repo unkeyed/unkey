@@ -105,12 +105,11 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		return nil, fmt.Errorf("failed to switch domains: %w", err)
 	}
 
-	// Update app's live deployment and clear rolled back flag
+	// Update app's live deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
 			ID:               app.ID,
 			LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
-			IsRolledBack:     false,
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {

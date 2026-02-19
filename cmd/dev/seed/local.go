@@ -65,6 +65,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	projectID := uid.New(uid.ProjectPrefix)
 	projectSlug := fmt.Sprintf("%s-api", slug)
 	projectName := fmt.Sprintf("%s API", titleCase)
+	appID := uid.New(uid.AppPrefix)
 	rootWorkspaceID := "ws_unkey"
 	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
 	rootApiID := "api_unkey"
@@ -129,6 +130,22 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create project: %w", err)
 		}
 
+		err = db.Query.InsertApp(ctx, tx, db.InsertAppParams{
+			ID:               appID,
+			WorkspaceID:      workspaceID,
+			ProjectID:        projectID,
+			Name:             projectName,
+			Slug:             "default",
+			LiveDeploymentID: sql.NullString{},
+			DepotProjectID:   sql.NullString{},
+			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
+			CreatedAt:        now,
+			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create default app: %w", err)
+		}
+
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
 			{
 				ID:          previewEnvID,
@@ -153,9 +170,10 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		}
 
 		// Create default runtime settings for each environment
-		err = db.BulkQuery.UpsertEnvironmentRuntimeSettings(ctx, tx, []db.UpsertEnvironmentRuntimeSettingsParams{
+		err = db.BulkQuery.UpsertAppRuntimeSettings(ctx, tx, []db.UpsertAppRuntimeSettingsParams{
 			{
 				WorkspaceID:    workspaceID,
+				AppID:          appID,
 				EnvironmentID:  previewEnvID,
 				Port:           8080,
 				CpuMillicores:  256,
@@ -164,12 +182,13 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				RegionConfig:   dbtype.RegionConfig{},
 				SentinelConfig: []byte{},
-				ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
+				ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
 				CreatedAt:      now,
 				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
 			},
 			{
 				WorkspaceID:    workspaceID,
+				AppID:          appID,
 				EnvironmentID:  productionEnvID,
 				Port:           8080,
 				CpuMillicores:  256,
@@ -178,7 +197,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				RegionConfig:   dbtype.RegionConfig{},
 				SentinelConfig: []byte{},
-				ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
+				ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
 				CreatedAt:      now,
 				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
 			},
@@ -188,9 +207,10 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		}
 
 		// Create default build settings for each environment
-		err = db.BulkQuery.UpsertEnvironmentBuildSettings(ctx, tx, []db.UpsertEnvironmentBuildSettingsParams{
+		err = db.BulkQuery.UpsertAppBuildSettings(ctx, tx, []db.UpsertAppBuildSettingsParams{
 			{
 				WorkspaceID:   workspaceID,
+				AppID:         appID,
 				EnvironmentID: previewEnvID,
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",
@@ -199,6 +219,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			},
 			{
 				WorkspaceID:   workspaceID,
+				AppID:         appID,
 				EnvironmentID: productionEnvID,
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",

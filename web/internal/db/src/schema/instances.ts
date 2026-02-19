@@ -21,7 +21,7 @@ export const instances = mysqlTable(
     deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull().default(""),
+    appId: varchar("app_id", { length: 64 }).notNull(),
 
     region: varchar("region", { length: 64 }).notNull(),
 

@@ -1,6 +1,6 @@
 import { and, db, eq } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { environmentRuntimeSettings } from "@unkey/db/src/schema";
+import { appRuntimeSettings, apps } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
@@ -22,6 +22,14 @@ export const updateMiddleware = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const app = await db.query.apps.findFirst({
+      where: and(eq(apps.workspaceId, ctx.workspace.id)),
+      columns: { id: true },
+    });
+    if (!app) {
+      return;
+    }
+
     const sentinelConfig: SentinelConfig = {
       policies: [],
     };
@@ -57,12 +65,13 @@ export const updateMiddleware = workspaceProcedure
       });
     }
     await db
-      .update(environmentRuntimeSettings)
+      .update(appRuntimeSettings)
       .set({ sentinelConfig: JSON.stringify(sentinelConfig) })
       .where(
         and(
-          eq(environmentRuntimeSettings.workspaceId, ctx.workspace.id),
-          eq(environmentRuntimeSettings.environmentId, input.environmentId),
+          eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
+          eq(appRuntimeSettings.appId, app.id),
+          eq(appRuntimeSettings.environmentId, input.environmentId),
         ),
       );
   });
