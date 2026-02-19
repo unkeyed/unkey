@@ -160,7 +160,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.GitHub.WebhookSecret != "" {
 		mux.Handle("POST /webhooks/github", &GitHubWebhook{
-			db:            database,
 			restate:       restateClient,
 			webhookSecret: cfg.GitHub.WebhookSecret,
 		})
