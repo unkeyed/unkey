@@ -156,7 +156,7 @@
             {{if .ErrorCode}}
             <div class="meta-row">
                 <span class="meta-label">Code</span>
-                <span class="meta-value">{{if .DocsURL}}<a href="{{.DocsURL}}">{{.ErrorCode}}</a>{{else}}{{.ErrorCode}}{{end}}</span>
+                <span class="meta-value">{{if .DocsURL}}<a href="{{.DocsURL}}" target="_blank">{{.ErrorCode}}</a>{{else}}{{.ErrorCode}}{{end}}</span>
             </div>
             {{end}}
         </div>
