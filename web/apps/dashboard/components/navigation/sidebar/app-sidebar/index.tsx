@@ -15,15 +15,30 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useNavigationContext } from "@/hooks/use-navigation-context";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Quotas, Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
+import { ChevronLeft, SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HelpButton } from "../help-button";
 import { UsageBanner } from "../usage-banner";
 import type { NavItem } from "../workspace-navigations";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
+
+const RESOURCE_TYPE_ROUTES: Record<"api" | "project" | "namespace", string> = {
+  api: "apis",
+  project: "projects",
+  namespace: "ratelimits",
+};
+
+const RESOURCE_TYPE_PLURAL: Record<"api" | "project" | "namespace", string> = {
+  api: "APIs",
+  project: "Projects",
+  namespace: "Namespaces",
+};
 
 export function AppSidebar({
   ...props
@@ -32,6 +47,7 @@ export function AppSidebar({
 }) {
   const router = useRouter();
   const context = useNavigationContext();
+  const workspace = useWorkspaceNavigation();
   const [fetchedResourceName, setFetchedResourceName] = useState<string | undefined>();
 
   // Callback to receive fetched resource name from ContextNavigation
@@ -97,14 +113,34 @@ export function AppSidebar({
           )}
         </div>
 
-        {/* Resource Heading - only at resource-level, hidden when collapsed */}
-        {showResourceHeading && !isCollapsed && context.type === "resource" && (
-          <ResourceHeading
-            resourceType={context.resourceType}
-            resourceId={context.resourceId}
-            resourceName={fetchedResourceName || context.resourceName}
-          />
-        )}
+        {/* Resource Heading - only at resource-level */}
+        {showResourceHeading &&
+          context.type === "resource" &&
+          (isCollapsed ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={`/${workspace.slug}/${RESOURCE_TYPE_ROUTES[context.resourceType]}`}
+                    className="flex items-center justify-center p-2 text-gray-11 hover:text-gray-12 hover:bg-gray-3 rounded-md transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>
+                  <p className="text-xs">
+                    Back to All {RESOURCE_TYPE_PLURAL[context.resourceType]}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <ResourceHeading
+              resourceType={context.resourceType}
+              resourceId={context.resourceId}
+              resourceName={fetchedResourceName || context.resourceName}
+            />
+          ))}
       </div>
     ),
     [
@@ -117,6 +153,7 @@ export function AppSidebar({
       props.workspace,
       currentProduct,
       fetchedResourceName,
+      workspace.slug,
     ],
   );
 
