@@ -146,7 +146,6 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
 			ID:               app.ID,
 			LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
-			IsRolledBack:     true,
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {

@@ -58,6 +58,7 @@ type gitBuildParams struct {
 	ContextPath    string
 	DockerfilePath string
 	ProjectID      string
+	AppID          string
 	DeploymentID   string
 	WorkspaceID    string
 }
@@ -83,7 +84,7 @@ func (w *Workflow) buildDockerImageFromGit(
 		"architecture", architecture)
 
 	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
+		return w.getOrCreateDepotProject(runCtx, params.AppID)
 	}, restate.WithName("get or create depot project"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
@@ -300,23 +301,23 @@ func (w *Workflow) buildGitSolverOptions(
 	}
 }
 
-// getOrCreateDepotProject retrieves the Depot project ID for an Unkey project,
+// getOrCreateDepotProject retrieves the Depot project ID for an app,
 // creating one if it doesn't exist.
-func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
-	project, err := db.Query.FindProjectById(ctx, w.db.RO(), unkeyProjectID)
+func (w *Workflow) getOrCreateDepotProject(ctx context.Context, appID string) (string, error) {
+	appRow, err := db.Query.FindAppById(ctx, w.db.RO(), appID)
 	if err != nil {
-		return "", fmt.Errorf("failed to query project: %w", err)
+		return "", fmt.Errorf("failed to query app: %w", err)
 	}
 
-	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
-	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
+	projectName := fmt.Sprintf("unkey-%s", appID)
+	if appRow.App.DepotProjectID.Valid && appRow.App.DepotProjectID.String != "" {
 		logger.Info(
 			"Returning existing depot project",
-			"depot_project_id", project.DepotProjectID,
-			"project_id", unkeyProjectID,
+			"depot_project_id", appRow.App.DepotProjectID,
+			"app_id", appID,
 			"project_name", projectName,
 		)
-		return project.DepotProjectID.String, nil
+		return appRow.App.DepotProjectID.String, nil
 	}
 
 	httpClient := &http.Client{}
@@ -344,13 +345,13 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 	depotProjectID := createResp.Msg.GetProject().GetProjectId()
 
 	now := time.Now().UnixMilli()
-	err = db.Query.UpdateProjectDepotID(ctx, w.db.RW(), db.UpdateProjectDepotIDParams{
+	err = db.Query.UpdateAppDepotID(ctx, w.db.RW(), db.UpdateAppDepotIDParams{
 		DepotProjectID: sql.NullString{
 			String: depotProjectID,
 			Valid:  true,
 		},
 		UpdatedAt: sql.NullInt64{Int64: now, Valid: true},
-		ID:        unkeyProjectID,
+		ID:        appID,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to update depot_project_id: %w", err)
@@ -358,7 +359,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 
 	logger.Info("Created new Depot project",
 		"depot_project_id", depotProjectID,
-		"project_id", unkeyProjectID,
+		"app_id", appID,
 		"project_name", projectName)
 
 	return depotProjectID, nil
