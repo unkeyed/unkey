@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useProductSelection } from "./use-product-selection";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
@@ -14,6 +14,8 @@ export type NavigationContext =
       resourceName?: string;
       keyAuthId?: string; // For API resources, the keyspace/keyAuth ID
     };
+
+const STORAGE_KEY = "selected-product";
 
 /**
  * Hook to detect the current navigation context based on route params and segments.
@@ -31,6 +33,47 @@ export function useNavigationContext(): NavigationContext {
   const { product: selectedProduct } = useProductSelection();
   const workspace = useWorkspaceNavigation();
 
+  // Detect the current product from URL and update localStorage
+  const detectedProduct = useMemo(() => {
+    const hasWorkspaceSlug = segments.length > 0 && segments[0];
+    const productSegment = segments[1];
+
+    if (!hasWorkspaceSlug || !productSegment) {
+      return null;
+    }
+
+    // Deploy product segments: projects, domains, environment-variables
+    const isDeploySegment =
+      productSegment.startsWith("project") ||
+      productSegment.startsWith("domain") ||
+      productSegment.startsWith("environment-variable");
+
+    if (isDeploySegment && workspace.betaFeatures?.deployments === true) {
+      return "deploy";
+    }
+
+    // API Management product segments: apis, ratelimits, authorization, logs, identities
+    const isApiManagementSegment =
+      productSegment.startsWith("api") ||
+      productSegment.startsWith("ratelimit") ||
+      productSegment === "authorization" ||
+      productSegment === "logs" ||
+      productSegment.startsWith("identit");
+
+    if (isApiManagementSegment) {
+      return "api-management";
+    }
+
+    return null;
+  }, [segments, workspace.betaFeatures?.deployments]);
+
+  // Update localStorage when we detect a product from the URL
+  useEffect(() => {
+    if (detectedProduct && typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, detectedProduct);
+    }
+  }, [detectedProduct]);
+
   // Memoize the context to prevent unnecessary re-renders
   return useMemo(() => {
     // Detect resource-level context by checking for resource ID params
@@ -39,7 +82,6 @@ export function useNavigationContext(): NavigationContext {
         type: "resource",
         resourceType: "api",
         resourceId: params.apiId as string,
-        // Resource name not available in URL segments for APIs
         resourceName: undefined,
         keyAuthId: params.keyAuthId as string | undefined,
       };
@@ -50,7 +92,6 @@ export function useNavigationContext(): NavigationContext {
         type: "resource",
         resourceType: "project",
         resourceId: params.projectId as string,
-        // Resource name not available in URL segments for projects
         resourceName: undefined,
       };
     }
@@ -60,46 +101,17 @@ export function useNavigationContext(): NavigationContext {
         type: "resource",
         resourceType: "namespace",
         resourceId: params.namespaceId as string,
-        // Resource name not available in URL segments for namespaces
         resourceName: undefined,
       };
     }
 
-    // Detect product-level context based on route segments
-    // Only detect from URL if we have a workspace slug (segments[0] exists)
-    // and we're in a product-specific route (segments[1] exists)
-    const hasWorkspaceSlug = segments.length > 0 && segments[0];
-    const productSegment = segments[1];
-
-    if (hasWorkspaceSlug && productSegment) {
-      // Deploy product segments: projects, domains, environment-variables
-      // Check if the segment STARTS WITH these keywords to handle 404s like /domainsdomains
-      // Only detect Deploy if the workspace has the feature enabled
-      const isDeploySegment =
-        productSegment.startsWith("project") ||
-        productSegment.startsWith("domain") ||
-        productSegment.startsWith("environment-variable");
-
-      if (isDeploySegment && workspace.betaFeatures?.deployments === true) {
-        return { type: "product", product: "deploy" };
-      }
-
-      // API Management product segments: apis, ratelimits, authorization, logs, identities
-      // Check if the segment STARTS WITH these keywords to handle 404s
-      const isApiManagementSegment =
-        productSegment.startsWith("api") ||
-        productSegment.startsWith("ratelimit") ||
-        productSegment === "authorization" ||
-        productSegment === "logs" ||
-        productSegment.startsWith("identit");
-
-      if (isApiManagementSegment) {
-        return { type: "product", product: "api-management" };
-      }
+    // For product-level routes, use detected product
+    if (detectedProduct) {
+      return { type: "product", product: detectedProduct };
     }
 
     // For workspace-level routes (settings, audit, etc.)
-    // or routes that don't match any product pattern, use the selected product from state
+    // use the selected product from state (which reads from localStorage)
     return { type: "product", product: selectedProduct };
-  }, [params, segments, selectedProduct, workspace.betaFeatures?.deployments]);
+  }, [params, detectedProduct, selectedProduct]);
 }
