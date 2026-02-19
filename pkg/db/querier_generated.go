@@ -399,7 +399,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM github_repo_connections
 	//  WHERE project_id = ?
-	FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (GithubRepoConnection, error)
+	FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (FindGithubRepoConnectionByProjectIdRow, error)
 	//FindIdentities
 	//
 	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -955,7 +955,7 @@ type Querier interface {
 	//FindProjectWithEnvironmentSettingsAndVars
 	//
 	//  SELECT
-	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.live_deployment_id, p.is_rolled_back, p.default_branch, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
+	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.default_branch, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
 	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
 	//      ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
 	//      ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at,
