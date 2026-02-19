@@ -155,11 +155,13 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitLimit.Handler{
-			Keys:       svc.Keys,
-			ClickHouse: svc.ClickHouse,
-			Ratelimit:  svc.Ratelimit,
-			Namespaces: svc.Namespaces,
-			TestMode:   srv.Flags().TestMode,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			ClickHouse:     svc.ClickHouse,
+			Ratelimit:      svc.Ratelimit,
+			NamespaceCache: svc.Caches.RatelimitNamespace,
+			Auditlogs:      svc.Auditlogs,
+			TestMode:       srv.Flags().TestMode,
 		},
 	)
 
@@ -167,11 +169,13 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitMultiLimit.Handler{
-			Keys:       svc.Keys,
-			ClickHouse: svc.ClickHouse,
-			Ratelimit:  svc.Ratelimit,
-			Namespaces: svc.Namespaces,
-			TestMode:   srv.Flags().TestMode,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			ClickHouse:     svc.ClickHouse,
+			Ratelimit:      svc.Ratelimit,
+			NamespaceCache: svc.Caches.RatelimitNamespace,
+			Auditlogs:      svc.Auditlogs,
+			TestMode:       srv.Flags().TestMode,
 		},
 	)
 
@@ -179,10 +183,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitSetOverride.Handler{
-			DB:         svc.Database,
-			Keys:       svc.Keys,
-			Auditlogs:  svc.Auditlogs,
-			Namespaces: svc.Namespaces,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			Auditlogs:      svc.Auditlogs,
+			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 
@@ -190,8 +194,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitGetOverride.Handler{
-			Keys:       svc.Keys,
-			Namespaces: svc.Namespaces,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 
@@ -199,10 +204,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitDeleteOverride.Handler{
-			DB:         svc.Database,
-			Keys:       svc.Keys,
-			Auditlogs:  svc.Auditlogs,
-			Namespaces: svc.Namespaces,
+			DB:             svc.Database,
+			Keys:           svc.Keys,
+			Auditlogs:      svc.Auditlogs,
+			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 

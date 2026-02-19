@@ -2,14 +2,18 @@ package v2RatelimitLimit
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -19,6 +23,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	sf "github.com/unkeyed/unkey/pkg/singleflight"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -30,11 +36,14 @@ type (
 
 // Handler implements zen.Route interface for the v2 ratelimit limit endpoint
 type Handler struct {
-	Keys       keys.KeyService
-	ClickHouse clickhouse.Bufferer
-	Ratelimit  ratelimit.Service
-	Namespaces namespace.Service
-	TestMode   bool
+	DB             db.Database
+	Keys           keys.KeyService
+	ClickHouse     clickhouse.Bufferer
+	Ratelimit      ratelimit.Service
+	NamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
+	Auditlogs      auditlogs.AuditLogService
+	TestMode       bool
+	createFlight   sf.Group[db.FindRatelimitNamespace]
 }
 
 // Method returns the HTTP method this route responds to
@@ -64,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ns, found, err := h.Namespaces.Get(ctx, auth.AuthorizedWorkspaceID, req.Namespace)
+	ns, found, err := h.getNamespace(ctx, auth.AuthorizedWorkspaceID, req.Namespace)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -84,13 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		ns, err = h.Namespaces.Create(ctx, auth.AuthorizedWorkspaceID, req.Namespace, &namespace.AuditContext{
-			ActorID:   auth.Key.ID,
-			ActorName: auth.Key.Name.String,
-			ActorType: auditlog.RootKeyActor,
-			RemoteIP:  s.Location(),
-			UserAgent: s.UserAgent(),
-		})
+		ns, err = h.createNamespace(ctx, s, auth, req.Namespace)
 		if err != nil {
 			return err
 		}
@@ -193,6 +196,119 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Return success response
 	return s.JSON(http.StatusOK, res)
+}
+
+func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string) (db.FindRatelimitNamespace, bool, error) {
+	cacheKey := cache.ScopedKey{WorkspaceID: workspaceID, Key: nameOrID}
+
+	ns, hit, err := h.NamespaceCache.SWR(ctx, cacheKey, func(ctx context.Context) (db.FindRatelimitNamespace, error) {
+		row, dbErr := db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
+			return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+				WorkspaceID: workspaceID,
+				Namespace:   nameOrID,
+			})
+		})
+		if dbErr != nil {
+			return db.FindRatelimitNamespace{}, dbErr //nolint:exhaustruct
+		}
+		return namespace.ParseNamespaceRow(row), nil
+	}, caches.DefaultFindFirstOp)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
+		}
+		return db.FindRatelimitNamespace{}, false, err //nolint:exhaustruct
+	}
+
+	if hit == cache.Null {
+		return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
+	}
+
+	return ns, true, nil
+}
+
+func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, auth *keys.KeyVerifier, name string) (db.FindRatelimitNamespace, error) {
+	key := auth.AuthorizedWorkspaceID + ":" + name
+	return h.createFlight.Do(key, func() (db.FindRatelimitNamespace, error) {
+		ns, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
+			now := time.Now().UnixMilli()
+			id := uid.New(uid.RatelimitNamespacePrefix)
+
+			insertErr := db.Query.InsertRatelimitNamespace(ctx, tx, db.InsertRatelimitNamespaceParams{
+				ID:          id,
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Name:        name,
+				CreatedAt:   now,
+			})
+			if insertErr != nil && !db.IsDuplicateKeyError(insertErr) {
+				return db.FindRatelimitNamespace{}, fault.Wrap(insertErr, //nolint:exhaustruct
+					fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Public("An unexpected error occurred while creating the namespace."),
+				)
+			}
+
+			if db.IsDuplicateKeyError(insertErr) {
+				// Another request created it first — re-fetch using the write connection
+				row, fetchErr := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Namespace:   name,
+				})
+				if fetchErr != nil {
+					return db.FindRatelimitNamespace{}, fetchErr //nolint:exhaustruct
+				}
+				return namespace.ParseNamespaceRow(row), nil
+			}
+
+			result := db.FindRatelimitNamespace{
+				ID:                id,
+				WorkspaceID:       auth.AuthorizedWorkspaceID,
+				Name:              name,
+				CreatedAtM:        now,
+				UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
+				DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},
+				DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
+				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+			}
+
+			auditErr := h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+				{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Event:       auditlog.RatelimitNamespaceCreateEvent,
+					Display:     "Created ratelimit namespace " + name,
+					ActorID:     auth.Key.ID,
+					ActorName:   auth.Key.Name.String,
+					ActorMeta:   map[string]any{},
+					ActorType:   auditlog.RootKeyActor,
+					RemoteIP:    s.Location(),
+					UserAgent:   s.UserAgent(),
+					Resources: []auditlog.AuditLogResource{
+						{
+							ID:          id,
+							Type:        auditlog.RatelimitNamespaceResourceType,
+							Meta:        nil,
+							Name:        name,
+							DisplayName: name,
+						},
+					},
+				},
+			})
+			if auditErr != nil {
+				return result, auditErr
+			}
+
+			return result, nil
+		})
+		if err != nil {
+			return ns, err
+		}
+
+		// Warm cache by both name and ID after the transaction has committed
+		h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.Name}, ns)
+		h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.ID}, ns)
+
+		return ns, nil
+	})
 }
 
 func getLimitAndDuration(req Request, namespace db.FindRatelimitNamespace) (int64, int64, string, error) {

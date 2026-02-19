@@ -22,8 +22,9 @@ func TestWorkspaceRateLimit_NoQuota_FailsOpen(t *testing.T) {
 	rootKey := h.CreateRootKey(ws.ID)
 
 	route := &handler.Handler{
-		Keys:       h.Keys,
-		Namespaces: h.Namespaces,
+		DB:             h.DB,
+		Keys:           h.Keys,
+		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
 
@@ -63,8 +64,9 @@ func TestWorkspaceRateLimit_NullFields_Unlimited(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		Keys:       h.Keys,
-		Namespaces: h.Namespaces,
+		DB:             h.DB,
+		Keys:           h.Keys,
+		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
 
@@ -102,8 +104,9 @@ func TestWorkspaceRateLimit_ZeroLimit_Returns429(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		Keys:       h.Keys,
-		Namespaces: h.Namespaces,
+		DB:             h.DB,
+		Keys:           h.Keys,
+		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
 
@@ -142,8 +145,9 @@ func TestWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		Keys:       h.Keys,
-		Namespaces: h.Namespaces,
+		DB:             h.DB,
+		Keys:           h.Keys,
+		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
 

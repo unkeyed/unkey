@@ -31,9 +31,11 @@ func TestWorkspacePermissions(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		Keys:       h.Keys,
-		Ratelimit:  h.Ratelimit,
-		Namespaces: h.Namespaces,
+		Keys:           h.Keys,
+		Ratelimit:      h.Ratelimit,
+		DB:             h.DB,
+		NamespaceCache: h.Caches.RatelimitNamespace,
+		Auditlogs:      h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -69,9 +71,11 @@ func TestInsufficientPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Keys:       h.Keys,
-		Ratelimit:  h.Ratelimit,
-		Namespaces: h.Namespaces,
+		Keys:           h.Keys,
+		Ratelimit:      h.Ratelimit,
+		DB:             h.DB,
+		NamespaceCache: h.Caches.RatelimitNamespace,
+		Auditlogs:      h.Auditlogs,
 	}
 
 	h.Register(route)

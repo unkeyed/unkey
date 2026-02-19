@@ -9,8 +9,8 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
-	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -27,10 +27,10 @@ type (
 
 // Handler implements zen.Route interface for the v2 ratelimit set override endpoint
 type Handler struct {
-	DB         db.Database
-	Keys       keys.KeyService
-	Auditlogs  auditlogs.AuditLogService
-	Namespaces namespace.Service
+	DB             db.Database
+	Keys           keys.KeyService
+	Auditlogs      auditlogs.AuditLogService
+	NamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
 // Method returns the HTTP method this route responds to
@@ -178,16 +178,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Invalidate cache for this namespace after the transaction commits
-	h.Namespaces.Invalidate(ctx, auth.AuthorizedWorkspaceID, db.FindRatelimitNamespace{
-		ID:                result.namespaceID,
-		WorkspaceID:       auth.AuthorizedWorkspaceID,
-		Name:              result.namespaceName,
-		CreatedAtM:        0,
-		UpdatedAtM:        sql.NullInt64{}, //nolint:exhaustruct
-		DeletedAtM:        sql.NullInt64{}, //nolint:exhaustruct
-		DirectOverrides:   nil,
-		WildcardOverrides: nil,
-	})
+	h.NamespaceCache.Remove(ctx,
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.namespaceID},
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.namespaceName},
+	)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
