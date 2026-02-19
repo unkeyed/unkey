@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Key2, Page2, Tag } from "@unkey/icons";
+import { CopyButton } from "@unkey/ui";
 
 export const AssignedItemsCell = ({
   totalCount,
@@ -76,13 +77,18 @@ export const AssignedItemsCell = ({
     return (
       <div className="flex flex-col gap-1 py-2 max-w-[200px] animate-in fade-in slide-in-from-top-2 duration-300">
         <div
-          className={cn(itemClassName, "animate-in fade-in slide-in-from-left-2")}
+          className={cn(itemClassName, "animate-in fade-in slide-in-from-left-2", "group")}
           style={{ animationDelay: "50ms" }}
         >
           {getIcon()}
           <div className="text-grayA-11 text-xs max-w-[150px] truncate" title={value}>
             {value}
           </div>
+          <CopyButton
+            value={value}
+            variant="ghost"
+            className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity"
+          />
         </div>
       </div>
     );
