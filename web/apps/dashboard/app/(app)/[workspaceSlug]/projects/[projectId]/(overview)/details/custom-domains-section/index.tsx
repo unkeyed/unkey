@@ -5,8 +5,8 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import { EmptySection } from "../../components/empty-section";
 import { useProjectData } from "../../data-provider";
+import { CustomDomainRow } from "../../settings/components/advanced-settings/custom-domains/custom-domain-row";
 import { AddCustomDomain } from "./add-custom-domain";
-import { CustomDomainRow, CustomDomainRowSkeleton } from "./custom-domain-row";
 
 type CustomDomainsSectionProps = {
   environments: Array<{ id: string; slug: string }>;
@@ -83,5 +83,17 @@ function EmptyState({ onAdd, hasEnvironments }: { onAdd: () => void; hasEnvironm
         </Button>
       )}
     </EmptySection>
+  );
+}
+
+export function CustomDomainRowSkeleton() {
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-4 last:border-b-0">
+      <div className="flex items-center gap-3">
+        <div className="w-4 h-4 bg-gray-4 rounded animate-pulse" />
+        <div className="w-32 h-4 bg-gray-4 rounded animate-pulse" />
+      </div>
+      <div className="w-16 h-5 bg-gray-4 rounded animate-pulse" />
+    </div>
   );
 }

@@ -33,5 +33,6 @@ export * from "./components/tabs";
 export * from "./components/separator";
 export * from "./components/toaster";
 export * from "./components/visually-hidden";
+export * from "./components/slider";
 export * from "./hooks/use-mobile";
 export * from "../css";

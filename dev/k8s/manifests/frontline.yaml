@@ -7,13 +7,12 @@ metadata:
 data:
   unkey.toml: |
     region = "local.dev"
-    http_port = 7070
-    https_port = 7443
+    challenge_port = 7070
+    http_port = 7443
     apex_domain = "unkey.local"
     ctrl_addr = "http://ctrl-api:7091"
 
     [tls]
-    enabled = true
     cert_file = "/certs/unkey.local.crt"
     key_file = "/certs/unkey.local.key"
 
