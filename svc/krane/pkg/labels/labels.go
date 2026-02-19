@@ -10,6 +10,7 @@ import (
 const (
 	LabelKeyWorkspaceID     = "unkey.com/workspace.id"
 	LabelKeyProjectID       = "unkey.com/project.id"
+	LabelKeyAppID           = "unkey.com/app.id"
 	LabelKeyEnvironmentID   = "unkey.com/environment.id"
 	LabelKeyDeploymentID    = "unkey.com/deployment.id"
 	LabelKeyBuildID         = "unkey.com/build.id"
@@ -54,6 +55,16 @@ func (l Labels) Namespace(namespace string) Labels {
 // for method chaining.
 func (l Labels) WorkspaceID(id string) Labels {
 	l[LabelKeyWorkspaceID] = id
+	return l
+}
+
+// AppID adds app ID label to the label set.
+//
+// This method sets the "unkey.com/app.id" label for identifying
+// the app that owns the resource. Returns the same Labels
+// instance for method chaining.
+func (l Labels) AppID(id string) Labels {
+	l[LabelKeyAppID] = id
 	return l
 }
 
@@ -217,6 +228,16 @@ func GetDeploymentID(l map[string]string) (string, bool) {
 // whether the label was found.
 func GetEnvironmentID(l map[string]string) (string, bool) {
 	v, ok := l[LabelKeyEnvironmentID]
+	return v, ok
+}
+
+// GetAppID extracts app ID from Kubernetes label map.
+//
+// This helper function retrieves the "unkey.com/app.id" label from
+// a Kubernetes resource's labels. Returns ID and a boolean indicating
+// whether the label was found.
+func GetAppID(l map[string]string) (string, bool) {
+	v, ok := l[LabelKeyAppID]
 	return v, ok
 }
 
