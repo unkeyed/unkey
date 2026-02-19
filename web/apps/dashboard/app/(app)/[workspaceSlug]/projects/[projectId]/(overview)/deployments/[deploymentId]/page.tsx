@@ -32,7 +32,6 @@ export default function DeploymentOverview() {
   return (
     <ProjectContentWrapper centered>
       <DeploymentInfoSection />
-
       <DeploymentDomainsSection />
       <DeploymentNetworkSection />
     </ProjectContentWrapper>
