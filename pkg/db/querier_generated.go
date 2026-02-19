@@ -301,7 +301,7 @@ type Querier interface {
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
 	//FindEnvironmentRuntimeSettingsByEnvironmentId
 	//
-	//  SELECT pk, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, created_at, updated_at
+	//  SELECT pk, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, sentinel_config, created_at, updated_at
 	//  FROM environment_runtime_settings
 	//  WHERE environment_id = ?
 	FindEnvironmentRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentRuntimeSetting, error)
@@ -315,18 +315,11 @@ type Querier interface {
 	//
 	//  SELECT
 	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.sentinel_config, e.delete_protection, e.created_at, e.updated_at,
-	//      bs.dockerfile,
-	//      bs.docker_context,
-	//      rs.port,
-	//      rs.cpu_millicores,
-	//      rs.memory_mib,
-	//      rs.command,
-	//      rs.shutdown_signal,
-	//      rs.healthcheck,
-	//      rs.region_config
+	//      ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
+	//      ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at
 	//  FROM environments e
-	//  INNER JOIN environment_build_settings bs ON bs.environment_id = e.id
-	//  INNER JOIN environment_runtime_settings rs ON rs.environment_id = e.id
+	//  INNER JOIN environment_build_settings ebs ON ebs.environment_id = e.id
+	//  INNER JOIN environment_runtime_settings ers ON ers.environment_id = e.id
 	//  WHERE e.workspace_id = ?
 	//    AND e.project_id = ?
 	//    AND e.slug = ?

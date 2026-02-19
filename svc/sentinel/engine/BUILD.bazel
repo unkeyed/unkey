@@ -1,0 +1,54 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "engine",
+    srcs = [
+        "engine.go",
+        "keyauth.go",
+        "keyextract.go",
+        "match.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/sentinel/engine",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/sentinel/v1:sentinel",
+        "//internal/services/keys",
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/hash",
+        "//pkg/rbac",
+        "//pkg/zen",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "engine_test",
+    srcs = [
+        "engine_test.go",
+        "integration_test.go",
+        "keyextract_test.go",
+        "match_test.go",
+    ],
+    embed = [":engine"],
+    deps = [
+        "//gen/proto/sentinel/v1:sentinel",
+        "//internal/services/keys",
+        "//internal/services/ratelimit",
+        "//internal/services/usagelimiter",
+        "//pkg/cache",
+        "//pkg/clickhouse",
+        "//pkg/clock",
+        "//pkg/counter",
+        "//pkg/db",
+        "//pkg/dockertest",
+        "//pkg/hash",
+        "//pkg/rbac",
+        "//pkg/uid",
+        "//pkg/zen",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

@@ -15,6 +15,15 @@ type ClickHouseConfig struct {
 	URL string `toml:"url"`
 }
 
+// RedisConfig configures the Redis connection used for rate limiting
+// and usage limiting in sentinel middleware policies.
+type RedisConfig struct {
+	// URL is the Redis connection string.
+	// Example: "redis://default:password@redis:6379"
+	// When empty, the middleware engine (KeyAuth, rate limiting) is disabled.
+	URL string `toml:"url"`
+}
+
 // Config holds the complete configuration for the Sentinel server. It is
 // designed to be loaded from a TOML file using [config.Load]:
 //
@@ -52,6 +61,10 @@ type Config struct {
 
 	// ClickHouse configures analytics storage. See [ClickHouseConfig].
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
+
+	// Redis configures the Redis connection for rate limiting and usage limiting.
+	// Required when sentinel middleware policies use KeyAuth with auto-applied rate limits.
+	Redis RedisConfig `toml:"redis"`
 
 	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
