@@ -150,6 +150,15 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	//DeploymentExistsByCommitShaAppAndEnv
+	//
+	//  SELECT EXISTS(
+	//      SELECT 1 FROM deployments
+	//      WHERE git_commit_sha = ?
+	//        AND app_id = ?
+	//        AND environment_id = ?
+	//  ) AS `exists`
+	DeploymentExistsByCommitShaAppAndEnv(ctx context.Context, db DBTX, arg DeploymentExistsByCommitShaAppAndEnvParams) (bool, error)
 	//EndDeploymentStep
 	//
 	//  UPDATE `deployment_steps`

@@ -75,9 +75,11 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("GitHub webhook signature verified", "event", event)
 
+	deliveryID := r.Header.Get("X-GitHub-Delivery")
+
 	switch event {
 	case "push":
-		s.handlePush(r.Context(), w, body)
+		s.handlePush(r.Context(), w, body, deliveryID)
 	case "installation":
 		logger.Info("Installation event received")
 		w.WriteHeader(http.StatusOK)
@@ -91,7 +93,7 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // handlePush processes push events by creating a deployment record and
 // starting the deploy workflow. Maps branches to environments: the project's
 // default branch deploys to production, all others to preview.
-func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, body []byte) {
+func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, body []byte, deliveryID string) {
 	var payload pushPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
 		logger.Error("failed to parse push payload", "error", err)
@@ -220,6 +222,29 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			}
 		}
 
+		// Deduplicate: skip if a deployment already exists for this commit + app + env
+		if payload.After != "" {
+			exists, existsErr := db.Query.DeploymentExistsByCommitShaAppAndEnv(ctx, s.db.RO(), db.DeploymentExistsByCommitShaAppAndEnvParams{
+				GitCommitSha:  sql.NullString{String: payload.After, Valid: true},
+				AppID:         app.ID,
+				EnvironmentID: env.ID,
+			})
+			if existsErr != nil {
+				logger.Error("failed to check for existing deployment", "error", existsErr, "delivery_id", deliveryID)
+				http.Error(w, "failed to check for existing deployment", http.StatusInternalServerError)
+				return
+			}
+			if exists {
+				logger.Info("skipping duplicate deployment",
+					"delivery_id", deliveryID,
+					"commit_sha", payload.After,
+					"app_id", app.ID,
+					"environment_id", env.ID,
+				)
+				continue
+			}
+		}
+
 		// Create deployment record
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		now := time.Now().UnixMilli()
@@ -259,6 +284,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 
 		logger.Info("Created deployment record",
 			"deployment_id", deploymentID,
+			"delivery_id", deliveryID,
 			"project_id", project.ID,
 			"repository", payload.Repository.FullName,
 			"commit_sha", payload.After,
@@ -289,6 +315,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		logger.Info("Deployment workflow started",
 			"invocation_id", invocation.Id,
 			"deployment_id", deploymentID,
+			"delivery_id", deliveryID,
 			"project_id", project.ID,
 			"repository", payload.Repository.FullName,
 			"commit_sha", payload.After,

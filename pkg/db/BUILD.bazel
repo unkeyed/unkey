@@ -117,6 +117,7 @@ go_library(
         "custom_types.go",
         "database.go",
         "deployment_delete_instances.sql_generated.go",
+        "deployment_exists_by_sha_app_env.sql_generated.go",
         "deployment_find_by_id.sql_generated.go",
         "deployment_find_by_k8s_name.sql_generated.go",
         "deployment_find_latest_ready_by_app_and_env.sql_generated.go",
