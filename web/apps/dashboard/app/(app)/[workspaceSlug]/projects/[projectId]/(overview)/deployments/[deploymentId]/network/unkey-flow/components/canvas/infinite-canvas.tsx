@@ -71,7 +71,8 @@ export function InfiniteCanvas({
     const rect = svg.getBoundingClientRect();
     setCanvas((prev) => ({
       ...prev,
-      offset: { x: rect.width / 2, y: rect.height / 6 },
+      // Anchor the origin toward the top of the element; increase the divisor to move it higher.
+      offset: { x: rect.width / 2, y: rect.height / 12 },
     }));
   }, []);
 
