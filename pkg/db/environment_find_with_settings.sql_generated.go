@@ -11,7 +11,7 @@ import (
 
 const findEnvironmentWithSettingsByProjectIdAndSlug = `-- name: FindEnvironmentWithSettingsByProjectIdAndSlug :one
 SELECT
-    e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.sentinel_config, e.delete_protection, e.created_at, e.updated_at,
+    e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
     ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
     ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at
 FROM environments e
@@ -37,7 +37,7 @@ type FindEnvironmentWithSettingsByProjectIdAndSlugRow struct {
 // FindEnvironmentWithSettingsByProjectIdAndSlug
 //
 //	SELECT
-//	    e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.sentinel_config, e.delete_protection, e.created_at, e.updated_at,
+//	    e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
 //	    ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
 //	    ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at
 //	FROM environments e
@@ -56,7 +56,6 @@ func (q *Queries) FindEnvironmentWithSettingsByProjectIdAndSlug(ctx context.Cont
 		&i.Environment.ProjectID,
 		&i.Environment.Slug,
 		&i.Environment.Description,
-		&i.Environment.SentinelConfig,
 		&i.Environment.DeleteProtection,
 		&i.Environment.CreatedAt,
 		&i.Environment.UpdatedAt,
