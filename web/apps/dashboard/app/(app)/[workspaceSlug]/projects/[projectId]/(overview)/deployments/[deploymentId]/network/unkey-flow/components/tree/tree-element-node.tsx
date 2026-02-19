@@ -1,6 +1,6 @@
+import { cn } from "@unkey/ui/src/lib/utils";
 import type { PropsWithChildren } from "react";
 import type { Point } from "../../layout-engine";
-import { cn } from "@unkey/ui/src/lib/utils";
 
 type TreeElementNodeProps = PropsWithChildren<{
   id: string;
@@ -26,7 +26,12 @@ export function TreeElementNode({ id, position, size, children }: TreeElementNod
       height={height}
       overflow="visible"
     >
-      <div className={cn("w-full h-full flex items-center justify-center pointer-events-none", isSafari ? "safari-fo-fix" : "")}>
+      <div
+        className={cn(
+          "w-full h-full flex items-center justify-center pointer-events-none",
+          isSafari ? "safari-fo-fix" : "",
+        )}
+      >
         <div data-node-id={id} className="pointer-events-auto">
           {children}
         </div>

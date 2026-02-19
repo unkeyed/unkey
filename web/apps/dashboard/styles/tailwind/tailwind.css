@@ -185,8 +185,13 @@ code .line::before {
 
 /* Replace animate-pulse (opacity-based) with a background-color pulse */
 @keyframes safari-pulse {
-  0%, 100% { background-color: hsla(var(--grayA-3)); }
-  50% { background-color: hsla(var(--grayA-2)); }
+  0%,
+  100% {
+    background-color: hsla(var(--grayA-3));
+  }
+  50% {
+    background-color: hsla(var(--grayA-2));
+  }
 }
 
 .safari-fo-fix .animate-pulse {
