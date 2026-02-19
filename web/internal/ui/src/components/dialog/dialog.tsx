@@ -74,6 +74,11 @@ const DialogContent = React.forwardRef<
             className,
           )}
           onKeyDown={(e) => {
+            // Allow keyboard navigation for nested interactive elements
+            if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter") {
+              // Let these events propagate to nested components like Combobox
+              return;
+            }
             // Prevent Tab key from closing the dialog
             if (e.key === "Tab") {
               e.stopPropagation();
@@ -105,6 +110,13 @@ const DialogContent = React.forwardRef<
           onInteractOutside={(e) => {
             // Also prevent interact outside events when preventOutsideClose is true
             if (preventOutsideClose) {
+              e.preventDefault();
+              return;
+            }
+
+            // Allow interactions with nested popovers/portals (e.g., Combobox dropdowns)
+            const target = e.target as HTMLElement;
+            if (target.closest('[role="listbox"]') || target.closest("[cmdk-root]")) {
               e.preventDefault();
             }
           }}
