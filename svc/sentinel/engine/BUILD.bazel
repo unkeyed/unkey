@@ -17,7 +17,6 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/hash",
-        "//pkg/logger",
         "//pkg/rbac",
         "//pkg/zen",
         "@org_golang_google_protobuf//encoding/protojson",

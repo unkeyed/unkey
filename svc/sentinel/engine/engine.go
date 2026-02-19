@@ -7,7 +7,8 @@ import (
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -24,7 +25,7 @@ type Config struct {
 
 // Evaluator evaluates sentinel middleware policies against incoming requests.
 type Evaluator interface {
-	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, mw *sentinelv1.Middleware) (Result, error)
+	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, mw []*sentinelv1.Policy) (Result, error)
 }
 
 // Engine implements Evaluator.
@@ -54,25 +55,25 @@ func New(cfg Config) *Engine {
 // ParseMiddleware performs lenient deserialization of sentinel_config bytes into
 // a Middleware proto. Returns nil for empty, legacy empty-object, or malformed data
 // to allow plain pass-through proxying.
-func ParseMiddleware(raw []byte) *sentinelv1.Middleware {
+func ParseMiddleware(raw []byte) ([]*sentinelv1.Policy, error) {
 	if len(raw) == 0 || string(raw) == "{}" {
-		return nil
+		return nil, nil
 	}
 
-	mw := &sentinelv1.Middleware{}
-	if err := protojson.Unmarshal(raw, mw); err != nil {
-		logger.Warn("failed to unmarshal sentinel middleware config, treating as pass-through",
-			"error", err.Error(),
+	cfg := &sentinelv1.Config{}
+	if err := protojson.Unmarshal(raw, cfg); err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
+			fault.Internal("unable to unmarshal sentinel policies"),
+			fault.Public("The policy datastructure is invalid"),
 		)
-
-		return nil
 	}
 
-	if len(mw.GetPolicies()) == 0 {
-		return nil
+	if len(cfg.GetPolicies()) == 0 {
+		return nil, nil
 	}
 
-	return mw
+	return cfg.GetPolicies(), nil
 }
 
 // Evaluate processes all middleware policies against the incoming request.
@@ -82,11 +83,11 @@ func (e *Engine) Evaluate(
 	ctx context.Context,
 	sess *zen.Session,
 	req *http.Request,
-	mw *sentinelv1.Middleware,
+	policies []*sentinelv1.Policy,
 ) (Result, error) {
 	var result Result
 
-	for _, policy := range mw.GetPolicies() {
+	for _, policy := range policies {
 		if !policy.GetEnabled() {
 			continue
 		}

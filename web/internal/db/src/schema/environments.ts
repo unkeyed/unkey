@@ -18,6 +18,8 @@ export const environments = mysqlTable(
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
 
+    // @deprecated
+    // use environment_runtime_settings.sentinel_config instead
     sentinelConfig: longblob("sentinel_config").notNull(),
 
     ...deleteProtection,

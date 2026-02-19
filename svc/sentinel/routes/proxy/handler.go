@@ -71,7 +71,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	req.Header.Del(engine.PrincipalHeader)
 
 	// Evaluate sentinel middleware policies
-	mw := engine.ParseMiddleware(deployment.SentinelConfig)
+	mw, err := engine.ParseMiddleware(deployment.SentinelConfig)
+	if err != nil {
+		return err
+	}
 	if mw != nil && h.Engine != nil {
 		result, evalErr := h.Engine.Evaluate(ctx, sess, req, mw)
 		if evalErr != nil {

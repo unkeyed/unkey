@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+import "policies/v1/policy.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// Config defines the middleware pipeline for a sentinel deployment. Each
+// policy in the list is evaluated in order, forming a chain of request
+// processing stages like authentication, rate limiting, and request validation.
+message Config {
+  // Policies are the middleware layers to apply to incoming requests, in
+  // evaluation order. Each [Policy] combines a match expression (which
+  // requests it applies to) with a configuration (what it does). Policies
+  // are evaluated sequentially; if any policy rejects the request, the
+  // chain short-circuits and returns an error to the client.
+  repeated Policy policies = 1;
+}

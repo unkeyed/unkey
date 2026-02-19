@@ -26,7 +26,7 @@ message KeyAuth {
   // The Unkey key space (API) ID to authenticate against. Each key space
   // contains a set of API keys with shared configuration. This determines
   // which keys are valid for this policy.
-  string key_space_id = 1;
+  repeated string key_space_ids = 1;
 
   // Ordered list of locations to extract the API key from. Sentinel tries
   // each location in order and uses the first one that yields a non-empty
@@ -37,14 +37,6 @@ message KeyAuth {
   // If empty, defaults to extracting from the Authorization header as a
   // Bearer token, which is the most common convention for API authentication.
   repeated KeyLocation locations = 2;
-
-  // When true, requests that do not contain a key in any of the configured
-  // locations are allowed through without authentication. No [Principal] is
-  // produced for anonymous requests. This enables mixed-auth endpoints where
-  // unauthenticated users get a restricted view and authenticated users get
-  // full access — the application checks for the presence of identity headers
-  // to decide.
-  bool allow_anonymous = 3;
 
   // Optional permission query evaluated against the key's permissions
   // returned by Unkey's verify API. Uses the same query language as
@@ -66,7 +58,7 @@ message KeyAuth {
   // required permissions. When empty, no permission check is performed.
   //
   // Limits: maximum 1000 characters, maximum 100 permission terms.
-  string permission_query = 5;
+  optional string permission_query = 5;
 }
 
 // KeyLocation specifies where in the HTTP request to look for an API key.
@@ -113,5 +105,3 @@ message QueryParamKeyLocation {
   // The query parameter name, e.g. "api_key" or "token".
   string name = 1;
 }
-
-

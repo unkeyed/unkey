@@ -225,6 +225,14 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 									Optional: ptr.P(true),
 								},
 							},
+							{
+								SecretRef: &corev1.SecretEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "redis",
+									},
+									Optional: ptr.P(true),
+								},
+							},
 						},
 
 						Env: []corev1.EnvVar{

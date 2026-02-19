@@ -2,9 +2,11 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
@@ -33,9 +35,6 @@ func (e *KeyAuthExecutor) Execute(
 ) (*sentinelv1.Principal, error) {
 	rawKey := extractKey(req, cfg.GetLocations())
 	if rawKey == "" {
-		if cfg.GetAllowAnonymous() {
-			return nil, nil
-		}
 
 		return nil, fault.New("missing API key",
 			fault.Code(codes.Sentinel.Auth.MissingCredentials.URN()),
@@ -64,11 +63,19 @@ func (e *KeyAuthExecutor) Execute(
 		)
 	}
 
+	allowedKeyspace := false
+	for _, allowedKeyspaceID := range cfg.GetKeySpaceIds() {
+		if verifier.Key.KeyAuthID == allowedKeyspaceID {
+			allowedKeyspace = true
+			break
+		}
+	}
+
 	// Verify the key belongs to the expected key space
-	if cfg.GetKeySpaceId() != "" && verifier.Key.KeyAuthID != cfg.GetKeySpaceId() {
+	if !allowedKeyspace {
 		return nil, fault.New("key does not belong to expected key space",
 			fault.Code(codes.Sentinel.Auth.InvalidKey.URN()),
-			fault.Internal("key belongs to key space "+verifier.Key.KeyAuthID+", expected "+cfg.GetKeySpaceId()),
+			fault.Internal(fmt.Sprintf("key belongs to key space %s, expected one of %s", verifier.Key.KeyAuthID, strings.Join(cfg.GetKeySpaceIds(), ","))),
 			fault.Public("Authentication failed. The provided API key is invalid."),
 		)
 	}

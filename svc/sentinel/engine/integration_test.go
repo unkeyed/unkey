@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
@@ -292,28 +291,25 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+s.RawKey)
 	sess := newSession(t, req)
 
-	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
-		Policies: []*sentinelv1.Policy{
-			{
-				Id:      "auth",
-				Enabled: true,
-				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{KeySpaceId: s.KeySpaceID},
-				},
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &sentinelv1.Policy_Keyauth{
+				Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, mw)
+	result, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.NoError(t, err)
 	require.NotNil(t, result.Principal)
 
 	// Subject falls back to key ID when no external ID is set
-	assert.Equal(t, s.KeyID, result.Principal.Subject)
-	assert.Equal(t, sentinelv1.PrincipalType_PRINCIPAL_TYPE_API_KEY, result.Principal.Type)
-	assert.Equal(t, s.KeyID, result.Principal.Claims["key_id"])
-	assert.Equal(t, s.WorkspaceID, result.Principal.Claims["workspace_id"])
+	require.Equal(t, s.KeyID, result.Principal.Subject)
+	require.Equal(t, sentinelv1.PrincipalType_PRINCIPAL_TYPE_API_KEY, result.Principal.Type)
+	require.Equal(t, s.KeyID, result.Principal.Claims["key_id"])
+	require.Equal(t, s.WorkspaceID, result.Principal.Claims["workspace_id"])
 }
 
 func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
@@ -326,27 +322,24 @@ func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+s.RawKey)
 	sess := newSession(t, req)
 
-	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
-		Policies: []*sentinelv1.Policy{
-			{
-				Id:      "auth",
-				Enabled: true,
-				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{KeySpaceId: s.KeySpaceID},
-				},
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &sentinelv1.Policy_Keyauth{
+				Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, mw)
+	result, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.NoError(t, err)
 	require.NotNil(t, result.Principal)
 
 	// Subject should be the external ID from the identity
-	assert.NotEqual(t, s.KeyID, result.Principal.Subject)
-	assert.NotEmpty(t, result.Principal.Claims["identity_id"])
-	assert.NotEmpty(t, result.Principal.Claims["external_id"])
+	require.NotEqual(t, s.KeyID, result.Principal.Subject)
+	require.NotEmpty(t, result.Principal.Claims["identity_id"])
+	require.NotEmpty(t, result.Principal.Claims["external_id"])
 }
 
 func TestKeyAuth_MissingKey_Reject(t *testing.T) {
@@ -358,55 +351,21 @@ func TestKeyAuth_MissingKey_Reject(t *testing.T) {
 	// No Authorization header
 	sess := newSession(t, req)
 
-	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
-		Policies: []*sentinelv1.Policy{
-			{
-				Id:      "auth",
-				Enabled: true,
-				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{
-						KeySpaceId:     s.KeySpaceID,
-						AllowAnonymous: false,
-					},
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &sentinelv1.Policy_Keyauth{
+				Keyauth: &sentinelv1.KeyAuth{
+					KeySpaceIds: []string{s.KeySpaceID},
 				},
 			},
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, mw)
+	_, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "missing API key")
-}
-
-func TestKeyAuth_MissingKey_AllowAnonymous(t *testing.T) {
-	h := newTestHarness(t)
-	ctx := context.Background()
-	s := h.seed(ctx)
-
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	// No Authorization header
-	sess := newSession(t, req)
-
-	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
-		Policies: []*sentinelv1.Policy{
-			{
-				Id:      "auth",
-				Enabled: true,
-				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{
-						KeySpaceId:     s.KeySpaceID,
-						AllowAnonymous: true,
-					},
-				},
-			},
-		},
-	}
-
-	result, err := h.engine.Evaluate(ctx, sess, req, mw)
-	require.NoError(t, err)
-	assert.Nil(t, result.Principal)
+	require.Contains(t, err.Error(), "missing API key")
 }
 
 func TestKeyAuth_InvalidKey_NotFound(t *testing.T) {
@@ -419,19 +378,17 @@ func TestKeyAuth_InvalidKey_NotFound(t *testing.T) {
 	sess := newSession(t, req)
 
 	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
-		Policies: []*sentinelv1.Policy{
-			{
-				Id:      "auth",
-				Enabled: true,
-				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{KeySpaceId: s.KeySpaceID},
-				},
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &sentinelv1.Policy_Keyauth{
+				Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, mw)
+	_, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.Error(t, err)
 }
 
@@ -445,20 +402,17 @@ func TestKeyAuth_InvalidKey_Disabled(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+disabled.RawKey)
 	sess := newSession(t, req)
 
-	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
-		Policies: []*sentinelv1.Policy{
-			{
-				Id:      "auth",
-				Enabled: true,
-				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{KeySpaceId: base.KeySpaceID},
-				},
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &sentinelv1.Policy_Keyauth{
+				Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{base.KeySpaceID}},
 			},
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, mw)
+	_, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.Error(t, err)
 }
 
@@ -471,22 +425,91 @@ func TestKeyAuth_WrongKeySpace(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+s.RawKey)
 	sess := newSession(t, req)
 
-	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
-		Policies: []*sentinelv1.Policy{
-			{
-				Id:      "auth",
-				Enabled: true,
-				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{KeySpaceId: "ks_wrong_space"},
-				},
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &sentinelv1.Policy_Keyauth{
+				Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{"ks_wrong_space"}},
 			},
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, mw)
+	_, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "key does not belong to expected key space")
+	require.Contains(t, err.Error(), "key does not belong to expected key space")
+}
+
+func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	s1 := h.seed(ctx)
+	s2 := h.seed(ctx)
+
+	t.Run("key from first keyspace accepted", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s1.RawKey)
+		sess := newSession(t, req)
+
+		policies := []*sentinelv1.Policy{
+			{
+				Id:      "auth",
+				Enabled: true,
+				Config: &sentinelv1.Policy_Keyauth{
+					Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{s1.KeySpaceID, s2.KeySpaceID}},
+				},
+			},
+		}
+
+		result, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.NoError(t, err)
+		require.NotNil(t, result.Principal)
+		require.Equal(t, s1.KeyID, result.Principal.Subject)
+	})
+
+	t.Run("key from second keyspace accepted", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s2.RawKey)
+		sess := newSession(t, req)
+
+		policies := []*sentinelv1.Policy{
+			{
+				Id:      "auth",
+				Enabled: true,
+				Config: &sentinelv1.Policy_Keyauth{
+					Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{s1.KeySpaceID, s2.KeySpaceID}},
+				},
+			},
+		}
+
+		result, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.NoError(t, err)
+		require.NotNil(t, result.Principal)
+		require.Equal(t, s2.KeyID, result.Principal.Subject)
+	})
+
+	t.Run("key not in any listed keyspace rejected", func(t *testing.T) {
+		s3 := h.seed(ctx)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s3.RawKey)
+		sess := newSession(t, req)
+
+		policies := []*sentinelv1.Policy{
+			{
+				Id:      "auth",
+				Enabled: true,
+				Config: &sentinelv1.Policy_Keyauth{
+					Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{s1.KeySpaceID, s2.KeySpaceID}},
+				},
+			},
+		}
+
+		_, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "key does not belong to expected key space")
+	})
 }
 
 // --- Engine Evaluate integration tests ---
@@ -500,22 +523,19 @@ func TestEvaluate_DisabledPoliciesSkipped(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+s.RawKey)
 	sess := newSession(t, req)
 
-	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
-		Policies: []*sentinelv1.Policy{
-			{
-				Id:      "disabled",
-				Enabled: false,
-				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{KeySpaceId: s.KeySpaceID},
-				},
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "disabled",
+			Enabled: false,
+			Config: &sentinelv1.Policy_Keyauth{
+				Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, mw)
+	result, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.NoError(t, err)
-	assert.Nil(t, result.Principal)
+	require.Nil(t, result.Principal)
 }
 
 func TestEvaluate_MatchFiltering(t *testing.T) {
@@ -528,25 +548,22 @@ func TestEvaluate_MatchFiltering(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+s.RawKey)
 	sess := newSession(t, req)
 
-	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
-		Policies: []*sentinelv1.Policy{
-			{
-				Id:      "api-auth",
-				Enabled: true,
-				Match: []*sentinelv1.MatchExpr{
-					{Expr: &sentinelv1.MatchExpr_Path{Path: &sentinelv1.PathMatch{
-						Path: &sentinelv1.StringMatch{Match: &sentinelv1.StringMatch_Prefix{Prefix: "/api"}},
-					}}},
-				},
-				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{KeySpaceId: s.KeySpaceID},
-				},
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "api-auth",
+			Enabled: true,
+			Match: []*sentinelv1.MatchExpr{
+				{Expr: &sentinelv1.MatchExpr_Path{Path: &sentinelv1.PathMatch{
+					Path: &sentinelv1.StringMatch{Match: &sentinelv1.StringMatch_Prefix{Prefix: "/api"}},
+				}}},
+			},
+			Config: &sentinelv1.Policy_Keyauth{
+				Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
 		},
 	}
 
-	result, err := h.engine.Evaluate(ctx, sess, req, mw)
+	result, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.NoError(t, err)
-	assert.Nil(t, result.Principal)
+	require.Nil(t, result.Principal)
 }

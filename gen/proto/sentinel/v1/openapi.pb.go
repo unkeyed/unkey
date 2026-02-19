@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: middleware/v1/openapi.proto
+// source: policies/v1/openapi.proto
 
 package sentinelv1
 
@@ -55,7 +55,7 @@ type OpenApiRequestValidation struct {
 
 func (x *OpenApiRequestValidation) Reset() {
 	*x = OpenApiRequestValidation{}
-	mi := &file_middleware_v1_openapi_proto_msgTypes[0]
+	mi := &file_policies_v1_openapi_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -67,7 +67,7 @@ func (x *OpenApiRequestValidation) String() string {
 func (*OpenApiRequestValidation) ProtoMessage() {}
 
 func (x *OpenApiRequestValidation) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_openapi_proto_msgTypes[0]
+	mi := &file_policies_v1_openapi_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -80,7 +80,7 @@ func (x *OpenApiRequestValidation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenApiRequestValidation.ProtoReflect.Descriptor instead.
 func (*OpenApiRequestValidation) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_openapi_proto_rawDescGZIP(), []int{0}
+	return file_policies_v1_openapi_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *OpenApiRequestValidation) GetSpecYaml() []byte {
@@ -90,32 +90,32 @@ func (x *OpenApiRequestValidation) GetSpecYaml() []byte {
 	return nil
 }
 
-var File_middleware_v1_openapi_proto protoreflect.FileDescriptor
+var File_policies_v1_openapi_proto protoreflect.FileDescriptor
 
-const file_middleware_v1_openapi_proto_rawDesc = "" +
+const file_policies_v1_openapi_proto_rawDesc = "" +
 	"\n" +
-	"\x1bmiddleware/v1/openapi.proto\x12\vsentinel.v1\"7\n" +
+	"\x19policies/v1/openapi.proto\x12\vsentinel.v1\"7\n" +
 	"\x18OpenApiRequestValidation\x12\x1b\n" +
 	"\tspec_yaml\x18\x01 \x01(\fR\bspecYamlB\xa7\x01\n" +
 	"\x0fcom.sentinel.v1B\fOpenapiProtoP\x01Z9github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1\xa2\x02\x03SXX\xaa\x02\vSentinel.V1\xca\x02\vSentinel\\V1\xe2\x02\x17Sentinel\\V1\\GPBMetadata\xea\x02\fSentinel::V1b\x06proto3"
 
 var (
-	file_middleware_v1_openapi_proto_rawDescOnce sync.Once
-	file_middleware_v1_openapi_proto_rawDescData []byte
+	file_policies_v1_openapi_proto_rawDescOnce sync.Once
+	file_policies_v1_openapi_proto_rawDescData []byte
 )
 
-func file_middleware_v1_openapi_proto_rawDescGZIP() []byte {
-	file_middleware_v1_openapi_proto_rawDescOnce.Do(func() {
-		file_middleware_v1_openapi_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_middleware_v1_openapi_proto_rawDesc), len(file_middleware_v1_openapi_proto_rawDesc)))
+func file_policies_v1_openapi_proto_rawDescGZIP() []byte {
+	file_policies_v1_openapi_proto_rawDescOnce.Do(func() {
+		file_policies_v1_openapi_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_policies_v1_openapi_proto_rawDesc), len(file_policies_v1_openapi_proto_rawDesc)))
 	})
-	return file_middleware_v1_openapi_proto_rawDescData
+	return file_policies_v1_openapi_proto_rawDescData
 }
 
-var file_middleware_v1_openapi_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_middleware_v1_openapi_proto_goTypes = []any{
+var file_policies_v1_openapi_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_policies_v1_openapi_proto_goTypes = []any{
 	(*OpenApiRequestValidation)(nil), // 0: sentinel.v1.OpenApiRequestValidation
 }
-var file_middleware_v1_openapi_proto_depIdxs = []int32{
+var file_policies_v1_openapi_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -123,26 +123,26 @@ var file_middleware_v1_openapi_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_middleware_v1_openapi_proto_init() }
-func file_middleware_v1_openapi_proto_init() {
-	if File_middleware_v1_openapi_proto != nil {
+func init() { file_policies_v1_openapi_proto_init() }
+func file_policies_v1_openapi_proto_init() {
+	if File_policies_v1_openapi_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_middleware_v1_openapi_proto_rawDesc), len(file_middleware_v1_openapi_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_policies_v1_openapi_proto_rawDesc), len(file_policies_v1_openapi_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_middleware_v1_openapi_proto_goTypes,
-		DependencyIndexes: file_middleware_v1_openapi_proto_depIdxs,
-		MessageInfos:      file_middleware_v1_openapi_proto_msgTypes,
+		GoTypes:           file_policies_v1_openapi_proto_goTypes,
+		DependencyIndexes: file_policies_v1_openapi_proto_depIdxs,
+		MessageInfos:      file_policies_v1_openapi_proto_msgTypes,
 	}.Build()
-	File_middleware_v1_openapi_proto = out.File
-	file_middleware_v1_openapi_proto_goTypes = nil
-	file_middleware_v1_openapi_proto_depIdxs = nil
+	File_policies_v1_openapi_proto = out.File
+	file_policies_v1_openapi_proto_goTypes = nil
+	file_policies_v1_openapi_proto_depIdxs = nil
 }

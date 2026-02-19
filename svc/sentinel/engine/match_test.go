@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 )
@@ -15,7 +14,7 @@ func TestMatchesRequest_EmptyList(t *testing.T) {
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api"}, Header: http.Header{}}
 	matched, err := matchesRequest(req, nil, newRegexCache())
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestMatchesRequest_PathExact(t *testing.T) {
@@ -32,7 +31,7 @@ func TestMatchesRequest_PathExact(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestMatchesRequest_PathExactMismatch(t *testing.T) {
@@ -49,7 +48,7 @@ func TestMatchesRequest_PathExactMismatch(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.False(t, matched)
+	require.False(t, matched)
 }
 
 func TestMatchesRequest_PathPrefix(t *testing.T) {
@@ -66,7 +65,7 @@ func TestMatchesRequest_PathPrefix(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestMatchesRequest_PathRegex(t *testing.T) {
@@ -83,7 +82,7 @@ func TestMatchesRequest_PathRegex(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestMatchesRequest_PathCaseInsensitive(t *testing.T) {
@@ -103,7 +102,7 @@ func TestMatchesRequest_PathCaseInsensitive(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestMatchesRequest_MethodMatch(t *testing.T) {
@@ -135,7 +134,7 @@ func TestMatchesRequest_MethodMatch(t *testing.T) {
 
 			matched, err := matchesRequest(req, exprs, rc)
 			require.NoError(t, err)
-			assert.Equal(t, tt.expected, matched)
+			require.Equal(t, tt.expected, matched)
 		})
 	}
 }
@@ -157,7 +156,7 @@ func TestMatchesRequest_HeaderPresent(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestMatchesRequest_HeaderNotPresent(t *testing.T) {
@@ -176,7 +175,7 @@ func TestMatchesRequest_HeaderNotPresent(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.False(t, matched)
+	require.False(t, matched)
 }
 
 func TestMatchesRequest_HeaderValue(t *testing.T) {
@@ -198,7 +197,7 @@ func TestMatchesRequest_HeaderValue(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestMatchesRequest_QueryParamPresent(t *testing.T) {
@@ -221,7 +220,7 @@ func TestMatchesRequest_QueryParamPresent(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestMatchesRequest_QueryParamValue(t *testing.T) {
@@ -246,7 +245,7 @@ func TestMatchesRequest_QueryParamValue(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestMatchesRequest_ANDSemantics(t *testing.T) {
@@ -266,7 +265,7 @@ func TestMatchesRequest_ANDSemantics(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.False(t, matched)
+	require.False(t, matched)
 }
 
 func TestMatchesRequest_ANDSemanticsAllMatch(t *testing.T) {
@@ -285,7 +284,7 @@ func TestMatchesRequest_ANDSemanticsAllMatch(t *testing.T) {
 
 	matched, err := matchesRequest(req, exprs, rc)
 	require.NoError(t, err)
-	assert.True(t, matched)
+	require.True(t, matched)
 }
 
 func TestRegexCache(t *testing.T) {
@@ -294,12 +293,12 @@ func TestRegexCache(t *testing.T) {
 
 	re1, err := rc.get(`^/api/v\d+$`)
 	require.NoError(t, err)
-	assert.True(t, re1.MatchString("/api/v1"))
+	require.True(t, re1.MatchString("/api/v1"))
 
 	// Second call should return cached regex
 	re2, err := rc.get(`^/api/v\d+$`)
 	require.NoError(t, err)
-	assert.Equal(t, re1, re2)
+	require.Equal(t, re1, re2)
 }
 
 func TestRegexCache_InvalidPattern(t *testing.T) {
@@ -307,5 +306,5 @@ func TestRegexCache_InvalidPattern(t *testing.T) {
 	rc := newRegexCache()
 
 	_, err := rc.get(`[invalid`)
-	assert.Error(t, err)
+	require.Error(t, err)
 }

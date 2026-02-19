@@ -17,8 +17,8 @@ type regexCache struct {
 }
 
 func newRegexCache() *regexCache {
-	//nolint:exhaustruct
 	return &regexCache{
+		mu:    sync.RWMutex{},
 		cache: make(map[string]*regexp.Regexp),
 	}
 }

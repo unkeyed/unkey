@@ -3,7 +3,6 @@ package engine
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -11,46 +10,58 @@ import (
 
 func TestParseMiddleware_Nil(t *testing.T) {
 	t.Parallel()
-	assert.Nil(t, ParseMiddleware(nil))
+	policies, err := ParseMiddleware(nil)
+	require.Nil(t, err)
+	require.Nil(t, policies)
+
 }
 
 func TestParseMiddleware_Empty(t *testing.T) {
 	t.Parallel()
-	assert.Nil(t, ParseMiddleware([]byte{}))
+	policies, err := ParseMiddleware([]byte{})
+	require.Nil(t, err)
+	require.Nil(t, policies)
 }
 
 func TestParseMiddleware_EmptyJSON(t *testing.T) {
 	t.Parallel()
-	assert.Nil(t, ParseMiddleware([]byte("{}")))
+	policies, err := ParseMiddleware([]byte("{}"))
+	require.Nil(t, err)
+	require.Nil(t, policies)
 }
 
 func TestParseMiddleware_InvalidProto(t *testing.T) {
 	t.Parallel()
-	assert.Nil(t, ParseMiddleware([]byte("not a valid protobuf")))
+	policies, err := ParseMiddleware([]byte("not a valid protobuf"))
+	require.Error(t, err)
+	require.Nil(t, policies)
 }
 
 func TestParseMiddleware_NoPolicies(t *testing.T) {
 	t.Parallel()
 	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
+	mw := &sentinelv1.Config{
 		Policies: nil,
 	}
 	raw, err := protojson.Marshal(mw)
 	require.NoError(t, err)
-	assert.Nil(t, ParseMiddleware(raw))
+
+	policies, err := ParseMiddleware(raw)
+	require.Nil(t, err)
+	require.Nil(t, policies)
 }
 
 func TestParseMiddleware_WithPolicies(t *testing.T) {
 	t.Parallel()
 	//nolint:exhaustruct
-	mw := &sentinelv1.Middleware{
+	mw := &sentinelv1.Config{
 		Policies: []*sentinelv1.Policy{
 			{
 				Id:      "p1",
 				Name:    "key auth",
 				Enabled: true,
 				Config: &sentinelv1.Policy_Keyauth{
-					Keyauth: &sentinelv1.KeyAuth{KeySpaceId: "ks_123"},
+					Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{"ks_123"}},
 				},
 			},
 		},
@@ -58,10 +69,11 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 	raw, err := protojson.Marshal(mw)
 	require.NoError(t, err)
 
-	result := ParseMiddleware(raw)
-	require.NotNil(t, result)
-	assert.Len(t, result.GetPolicies(), 1)
-	assert.Equal(t, "p1", result.GetPolicies()[0].GetId())
+	policies, err := ParseMiddleware(raw)
+	require.NoError(t, err)
+	require.NotNil(t, policies)
+	require.Len(t, policies, 1)
+	require.Equal(t, "p1", policies[0].GetId())
 }
 
 func TestSerializePrincipal(t *testing.T) {
@@ -83,8 +95,8 @@ func TestSerializePrincipal(t *testing.T) {
 	var roundTripped sentinelv1.Principal
 	err = protojson.Unmarshal([]byte(s), &roundTripped)
 	require.NoError(t, err)
-	assert.Equal(t, "user_123", roundTripped.GetSubject())
-	assert.Equal(t, sentinelv1.PrincipalType_PRINCIPAL_TYPE_API_KEY, roundTripped.GetType())
-	assert.Equal(t, "key_abc", roundTripped.GetClaims()["key_id"])
-	assert.Equal(t, "ws_456", roundTripped.GetClaims()["workspace_id"])
+	require.Equal(t, "user_123", roundTripped.GetSubject())
+	require.Equal(t, sentinelv1.PrincipalType_PRINCIPAL_TYPE_API_KEY, roundTripped.GetType())
+	require.Equal(t, "key_abc", roundTripped.GetClaims()["key_id"])
+	require.Equal(t, "ws_456", roundTripped.GetClaims()["workspace_id"])
 }
