@@ -17,11 +17,11 @@ import (
 // current live deployment to a new target deployment. It reverses a previous
 // rollback and allows normal deployment flow to resume.
 //
-// The workflow validates that the target deployment is ready, the project has a
+// The workflow validates that the target deployment is ready, the app has a
 // live deployment, the target is not already the live deployment, and there are
 // sticky domains to promote.
 //
-// After switching domains atomically through the routing service, the project's live
+// After switching domains atomically through the routing service, the app's live
 // deployment pointer is updated and the rolled back flag is cleared, allowing future
 // deployments to automatically take over sticky domains. Any pending scheduled
 // state changes on the promoted deployment are cleared (so it won't be spun down),
@@ -43,25 +43,29 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		return nil, fmt.Errorf("failed to get target deployment: %w", err)
 	}
 
-	// Get project
-	project, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindProjectByIdRow, error) {
-		return db.Query.FindProjectById(stepCtx, w.db.RO(), targetDeployment.ProjectID)
-	}, restate.WithName("finding project"))
+	// Get app from deployment's app_id
+	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
+		row, err := db.Query.FindAppById(stepCtx, w.db.RO(), targetDeployment.AppID)
+		if err != nil {
+			return db.App{}, err
+		}
+		return row.App, nil
+	}, restate.WithName("finding app"))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("project not found: %s", targetDeployment.ProjectID), 404)
+			return nil, restate.TerminalError(fmt.Errorf("app not found: %s", targetDeployment.AppID), 404)
 		}
-		return nil, fmt.Errorf("failed to get project: %w", err)
+		return nil, fmt.Errorf("failed to get app: %w", err)
 	}
 
 	// Validate preconditions
 	if targetDeployment.Status != db.DeploymentsStatusReady {
 		return nil, restate.TerminalError(fmt.Errorf("deployment status must be ready, got: %s", targetDeployment.Status), 400)
 	}
-	if !project.LiveDeploymentID.Valid {
-		return nil, restate.TerminalError(fmt.Errorf("project has no live deployment"), 400)
+	if !app.LiveDeploymentID.Valid {
+		return nil, restate.TerminalError(fmt.Errorf("app has no live deployment"), 400)
 	}
-	if targetDeployment.ID == project.LiveDeploymentID.String {
+	if targetDeployment.ID == app.LiveDeploymentID.String {
 		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400)
 	}
 
@@ -91,8 +95,8 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		routeIDs = append(routeIDs, route.ID)
 	}
 
-	// Call RoutingService to switch routes atomically
-	routingClient := hydrav1.NewRoutingServiceClient(ctx, project.ID)
+	// Call RoutingService to switch routes atomically, keyed by app ID
+	routingClient := hydrav1.NewRoutingServiceClient(ctx, app.ID)
 	_, err = routingClient.AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      targetDeployment.ID,
 		FrontlineRouteIds: routeIDs,
@@ -101,20 +105,20 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		return nil, fmt.Errorf("failed to switch domains: %w", err)
 	}
 
-	// Update project's live deployment and clear rolled back flag
+	// Update app's live deployment and clear rolled back flag
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		err = db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
-			ID:               project.ID,
+		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
+			ID:               app.ID,
 			LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 			IsRolledBack:     false,
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("failed to update project's live deployment id: %w", err)
+			return restate.Void{}, fmt.Errorf("failed to update app's live deployment id: %w", err)
 		}
-		logger.Info("updated project live deployment", "project_id", project.ID, "live_deployment_id", targetDeployment.ID)
+		logger.Info("updated app live deployment", "app_id", app.ID, "live_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
-	}, restate.WithName("updating project live deployment"))
+	}, restate.WithName("updating app live deployment"))
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +130,7 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	}
 
 	// schedule old deployment to be spun down
-	hydrav1.NewDeploymentServiceClient(ctx, project.LiveDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
+	hydrav1.NewDeploymentServiceClient(ctx, app.LiveDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 		State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
 		DelayMillis: (30 * time.Minute).Milliseconds(),
 	})

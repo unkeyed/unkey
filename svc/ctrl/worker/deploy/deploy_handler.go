@@ -47,8 +47,8 @@ const (
 //
 // Domain routing is configured through frontline routes. Sticky routes
 // (environment, and live for non-rolled-back production) are reassigned to the
-// new deployment. For production deployments, the project's live deployment
-// pointer is updated unless the project is in a rolled-back state. After a
+// new deployment. For production deployments, the app's live deployment
+// pointer is updated unless the app is in a rolled-back state. After a
 // successful deploy, the previous live deployment is scheduled for standby after
 // 30 minutes via DeploymentService.ScheduleDesiredStateChange.
 //
@@ -129,6 +129,18 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
+	// Load the app from the deployment's app_id
+	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
+		row, err := db.Query.FindAppById(runCtx, w.db.RO(), deployment.AppID)
+		if err != nil {
+			return db.App{}, err
+		}
+		return row.App, nil
+	}, restate.WithName("finding app"))
+	if err != nil {
+		return nil, err
+	}
+
 	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
 		return db.Query.FindEnvironmentById(runCtx, w.db.RW(), deployment.EnvironmentID)
 	}, restate.WithName("finding environment"))
@@ -205,18 +217,25 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-	// Read region config from runtime settings to determine per-region replica counts.
+	// Read region config from app runtime settings to determine per-region replica counts.
 	// If regionConfig is empty, deploy to all available regions with 1 replica each (default).
 	// If regionConfig has entries, only deploy to those regions with the specified counts.
 	regionConfig := map[string]int{}
-	runtimeSettings, runtimeSettingsErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.EnvironmentRuntimeSetting, error) {
-		return db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(runCtx, w.db.RO(), deployment.EnvironmentID)
-	}, restate.WithName("find runtime settings for region config"))
+	appRuntimeSettings, runtimeSettingsErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.AppRuntimeSetting, error) {
+		row, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(runCtx, w.db.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID:         app.ID,
+			EnvironmentID: deployment.EnvironmentID,
+		})
+		if err != nil {
+			return db.AppRuntimeSetting{}, err
+		}
+		return row.AppRuntimeSetting, nil
+	}, restate.WithName("find app runtime settings for region config"))
 	if runtimeSettingsErr != nil {
-		return nil, fmt.Errorf("failed to find runtime settings for environment %s: %w", deployment.EnvironmentID, runtimeSettingsErr)
+		return nil, fmt.Errorf("failed to find app runtime settings for app %s environment %s: %w", app.ID, deployment.EnvironmentID, runtimeSettingsErr)
 	}
-	if len(runtimeSettings.RegionConfig) > 0 {
-		for region, count := range runtimeSettings.RegionConfig {
+	if len(appRuntimeSettings.RegionConfig) > 0 {
+		for region, count := range appRuntimeSettings.RegionConfig {
 			regionConfig[region] = count
 		}
 	}
@@ -331,6 +350,28 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err := w.ensureCiliumNetworkPolicy(ctx, workspace, project, environment, topologies, deployment); err != nil {
 		return nil, err
 	}
+
+	// Upsert inter-app K8s ClusterIP Service records for DNS-based inter-app communication.
+	for _, topology := range topologies {
+		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return db.Query.UpsertAppInternalService(runCtx, w.db.RW(), db.UpsertAppInternalServiceParams{
+				ID:             uid.New(uid.AppInternalSvcPrefix),
+				WorkspaceID:    workspace.ID,
+				AppID:          app.ID,
+				EnvironmentID:  environment.ID,
+				Region:         topology.Region,
+				K8sServiceName: app.Slug,
+				K8sNamespace:   workspace.K8sNamespace.String,
+				Port:           deployment.Port,
+				CreatedAt:      time.Now().UnixMilli(),
+				UpdatedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			})
+		}, restate.WithName(fmt.Sprintf("upsert app internal service in %s", topology.Region)))
+		if err != nil {
+			return nil, fmt.Errorf("failed to upsert app internal service: %w", err)
+		}
+	}
+
 	logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
 
 	readygates := make([]restate.Future, len(topologies))
@@ -386,6 +427,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
+		app.Slug,
 		environment.Slug,
 		deployment.GitCommitSha.String,
 		deployment.GitBranch.String,
@@ -405,7 +447,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 						err = db.Query.InsertFrontlineRoute(runCtx, tx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
 							ProjectID:                project.ID,
-							AppID:                    deployment.AppID,
+							AppID:                    app.ID,
 							DeploymentID:             deployment.ID,
 							EnvironmentID:            deployment.EnvironmentID,
 							FullyQualifiedDomainName: domain.domain,
@@ -432,7 +474,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 	// Fetch sticky routes for this environment
 	stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
-	if !project.IsRolledBack && environment.Slug == "production" {
+	if !app.IsRolledBack && environment.Slug == "production" {
 		// Only reassign live routes when not rolled back - rollbacks keep live routes on the previous deployment
 		stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
 	}
@@ -451,7 +493,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		existingRouteIDs = append(existingRouteIDs, route.ID)
 	}
 
-	_, err = hydrav1.NewRoutingServiceClient(ctx, project.ID).
+	// Key routing service by app ID for per-app serialization
+	_, err = hydrav1.NewRoutingServiceClient(ctx, app.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
 		FrontlineRouteIds: existingRouteIDs,
@@ -468,20 +511,20 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-	if !project.IsRolledBack && environment.Slug == "production" {
+	if !app.IsRolledBack && environment.Slug == "production" {
 		// Atomically read the current live deployment and swap it to the new one.
 		// This prevents a race where two concurrent deploys both capture the same
 		// previousLiveDeploymentID and one of them never gets scheduled for standby.
 		previousLiveDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 			return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
-				currentProject, findErr := db.Query.FindProjectById(txCtx, tx, deployment.ProjectID)
+				currentApp, findErr := db.Query.FindAppById(txCtx, tx, app.ID)
 				if findErr != nil {
 					return sql.NullString{}, findErr
 				}
 
-				updateErr := db.Query.UpdateProjectDeployments(txCtx, tx, db.UpdateProjectDeploymentsParams{
+				updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
 					IsRolledBack:     false,
-					ID:               deployment.ProjectID,
+					ID:               app.ID,
 					LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
 					UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
@@ -489,9 +532,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					return sql.NullString{}, updateErr
 				}
 
-				return currentProject.LiveDeploymentID, nil
+				return currentApp.App.LiveDeploymentID, nil
 			})
-		}, restate.WithName("swapping project live deployment"))
+		}, restate.WithName("swapping app live deployment"))
 		if err != nil {
 			return nil, err
 		}
@@ -513,6 +556,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 	logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
+		"app_id", app.ID,
 		"status", "succeeded",
 		"domains", len(allDomains),
 	)

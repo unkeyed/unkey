@@ -18,9 +18,10 @@ type Service struct {
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeployService
-// keyed by the given project ID to ensure only one operation per project runs at a time.
-func (s *Service) deploymentClient(projectID string) hydrav1.DeployServiceIngressClient {
-	return hydrav1.NewDeployServiceIngressClient(s.restate, projectID)
+// keyed by the given app ID to ensure only one operation per app runs at a time.
+// This allows concurrent deployments across different apps within the same project.
+func (s *Service) deploymentClient(appID string) hydrav1.DeployServiceIngressClient {
+	return hydrav1.NewDeployServiceIngressClient(s.restate, appID)
 }
 
 // Config holds the configuration for creating a new [Service].
