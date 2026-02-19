@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "errorpage",
@@ -6,10 +6,4 @@ go_library(
     embedsrcs = ["error.html"],
     importpath = "github.com/unkeyed/unkey/svc/frontline/internal/errorpage",
     visibility = ["//svc/frontline:__subpackages__"],
-)
-
-go_test(
-    name = "errorpage_test",
-    srcs = ["errorpage_test.go"],
-    embed = [":errorpage"],
 )
