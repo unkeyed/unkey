@@ -461,7 +461,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         </td>
                       ))}
                     </tr>
-                    {isExpanded && renderExpanded && renderExpanded(typedItem)}
+                    {isExpanded && renderExpanded?.(typedItem)}
                   </Fragment>
                 );
               })}
