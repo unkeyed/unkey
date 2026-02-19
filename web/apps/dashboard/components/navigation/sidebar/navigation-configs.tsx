@@ -120,28 +120,57 @@ export function createDeployNavigation(segments: string[], workspace: Workspace)
 
 /**
  * Specific API Navigation (resource-level)
+ * The Keys link requires a keyAuthId (keyspace ID).
+ * - If keyAuthId is provided (we're on a keys page), use it directly
+ * - Otherwise, add a placeholder that useApiKeyspace hook will enhance by fetching the API data
  */
 export function createApiNavigation(
   apiId: string,
   workspace: Workspace,
   segments: string[],
+  keyAuthId?: string,
 ): NavItem[] {
   const basePath = `/${workspace.slug}/apis/${apiId}`;
 
-  return [
-    {
+  const navItems: NavItem[] = [];
+
+  // Add Requests link
+  navItems.push({
+    icon: InputSearch,
+    href: `${basePath}/requests`,
+    label: "Requests",
+    active: segments.includes("requests"),
+  });
+
+  // Add Keys link
+  if (keyAuthId) {
+    // We have the keyAuthId from URL params, use it directly
+    navItems.push({
       icon: Key,
-      href: `${basePath}/keys`,
+      href: `${basePath}/keys/${keyAuthId}`,
       label: "Keys",
       active: segments.includes("keys"),
-    },
-    {
-      icon: Gear,
-      href: `${basePath}/settings`,
-      label: "Settings",
-      active: segments.includes("settings") && segments.includes("apis"),
-    },
-  ];
+    });
+  } else {
+    // Add placeholder that will be enhanced by useApiKeyspace hook
+    // The hook will fetch the API data and update this with the correct keyAuthId
+    navItems.push({
+      icon: Key,
+      href: `${basePath}`, // Temporary href, will be updated by hook
+      label: "Keys",
+      active: segments.includes("keys"),
+      disabled: true, // Mark as disabled until hook updates it
+    });
+  }
+
+  navItems.push({
+    icon: Gear,
+    href: `${basePath}/settings`,
+    label: "Settings",
+    active: segments.includes("settings") && segments.includes("apis"),
+  });
+
+  return navItems;
 }
 
 /**
