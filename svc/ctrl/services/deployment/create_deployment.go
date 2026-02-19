@@ -91,7 +91,7 @@ func (s *Service) CreateDeployment(
 	_ = appBuildSettings // build settings used by the workflow, not here
 
 	// Verify the environment exists
-	envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
+	env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
 		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
 		Slug:        req.Msg.GetEnvironmentSlug(),
@@ -105,7 +105,6 @@ func (s *Service) CreateDeployment(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup environment: %w", err))
 	}
-	env := envSettings.Environment
 
 	// Fetch app-scoped environment variables
 	appEnvVars, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, s.db.RO(), db.FindAppEnvVarsByAppAndEnvParams{

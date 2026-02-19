@@ -18,11 +18,8 @@ SELECT
     slug,
     default_branch,
     delete_protection,
-    live_deployment_id,
-    is_rolled_back,
     created_at,
-    updated_at,
-    depot_project_id
+    updated_at
 FROM projects
 WHERE id = ?
 `
@@ -34,11 +31,8 @@ type FindProjectByIdRow struct {
 	Slug             string         `db:"slug"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
-	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
-	IsRolledBack     bool           `db:"is_rolled_back"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
-	DepotProjectID   sql.NullString `db:"depot_project_id"`
 }
 
 // FindProjectById
@@ -50,11 +44,8 @@ type FindProjectByIdRow struct {
 //	    slug,
 //	    default_branch,
 //	    delete_protection,
-//	    live_deployment_id,
-//	    is_rolled_back,
 //	    created_at,
-//	    updated_at,
-//	    depot_project_id
+//	    updated_at
 //	FROM projects
 //	WHERE id = ?
 func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error) {
@@ -67,11 +58,8 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Find
 		&i.Slug,
 		&i.DefaultBranch,
 		&i.DeleteProtection,
-		&i.LiveDeploymentID,
-		&i.IsRolledBack,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.DepotProjectID,
 	)
 	return i, err
 }

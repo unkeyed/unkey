@@ -1,5 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import {
   type RuntimeLogsResponseSchema,
   runtimeLogsRequestSchema,
@@ -7,6 +7,7 @@ import {
 } from "@/lib/schemas/runtime-logs.schema";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { apps, deployments } from "@unkey/db/src/schema";
 import { transformFilters } from "./utils";
 
 export const queryRuntimeLogs = workspaceProcedure
@@ -38,19 +39,37 @@ export const queryRuntimeLogs = workspaceProcedure
       where: (table, { and, eq }) =>
         and(eq(table.id, input.projectId), eq(table.workspaceId, workspace.id)),
       columns: { id: true },
-      with: {
-        activeDeployment: {
-          columns: {
-            environmentId: true,
-          },
-        },
-      },
     });
 
-    if (!project?.activeDeployment?.environmentId) {
+    if (!project) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Project not found or access denied",
+      });
+    }
+
+    // Get the live deployment's environmentId from the default app
+    const app = await db.query.apps.findFirst({
+      where: and(eq(apps.projectId, project.id), eq(apps.workspaceId, workspace.id)),
+      columns: { liveDeploymentId: true },
+    });
+
+    let activeEnvironmentId: string | null = null;
+    if (app?.liveDeploymentId) {
+      const liveDeployment = await db.query.deployments.findFirst({
+        where: and(
+          eq(deployments.id, app.liveDeploymentId),
+          eq(deployments.workspaceId, workspace.id),
+        ),
+        columns: { environmentId: true },
+      });
+      activeEnvironmentId = liveDeployment?.environmentId ?? null;
+    }
+
+    if (!activeEnvironmentId && !input.environmentId) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "No active deployment found for this project",
       });
     }
 
@@ -60,7 +79,7 @@ export const queryRuntimeLogs = workspaceProcedure
       workspaceId: workspace.id,
       projectId: project.id,
       deploymentId: input.deploymentId ?? null,
-      environmentId: input.environmentId ?? project.activeDeployment?.environmentId,
+      environmentId: input.environmentId ?? activeEnvironmentId!,
     });
 
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);
