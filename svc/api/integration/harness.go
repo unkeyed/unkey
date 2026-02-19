@@ -162,7 +162,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 					PrometheusPort: 0,
 				},
 			},
-			TLS: sharedconfig.TLSFiles{
+			TLS: sharedconfig.TLS{
+				Disabled: true,
 				CertFile: "",
 				KeyFile:  "",
 			},
