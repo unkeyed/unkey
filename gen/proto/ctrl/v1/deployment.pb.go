@@ -147,7 +147,9 @@ type CreateDeploymentRequest struct {
 	KeyspaceId *string `protobuf:"bytes,8,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
 	// Container command override (e.g., ["./app", "serve"])
 	// If not specified, the container's default entrypoint/cmd is used
-	Command       []string `protobuf:"bytes,9,rep,name=command,proto3" json:"command,omitempty"`
+	Command []string `protobuf:"bytes,9,rep,name=command,proto3" json:"command,omitempty"`
+	// App slug within the project. Defaults to "default" if empty.
+	AppSlug       string `protobuf:"bytes,10,opt,name=app_slug,json=appSlug,proto3" json:"app_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -229,6 +231,13 @@ func (x *CreateDeploymentRequest) GetCommand() []string {
 		return x.Command
 	}
 	return nil
+}
+
+func (x *CreateDeploymentRequest) GetAppSlug() string {
+	if x != nil {
+		return x.AppSlug
+	}
+	return ""
 }
 
 type GitCommitInfo struct {
@@ -453,6 +462,7 @@ type Deployment struct {
 	WorkspaceId   string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	ProjectId     string                 `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	EnvironmentId string                 `protobuf:"bytes,4,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	AppId         string                 `protobuf:"bytes,21,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	// Source information
 	GitCommitSha string `protobuf:"bytes,5,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"`
 	GitBranch    string `protobuf:"bytes,6,opt,name=git_branch,json=gitBranch,proto3" json:"git_branch,omitempty"`
@@ -537,6 +547,13 @@ func (x *Deployment) GetProjectId() string {
 func (x *Deployment) GetEnvironmentId() string {
 	if x != nil {
 		return x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *Deployment) GetAppId() string {
+	if x != nil {
+		return x.AppId
 	}
 	return ""
 }
@@ -1039,7 +1056,7 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xbf\x02\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xda\x02\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
@@ -1050,7 +1067,9 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"git_commit\x18\a \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12$\n" +
 	"\vkeyspace_id\x18\b \x01(\tH\x01R\n" +
 	"keyspaceId\x88\x01\x01\x12\x18\n" +
-	"\acommand\x18\t \x03(\tR\acommandB\r\n" +
+	"\acommand\x18\t \x03(\tR\acommand\x12\x19\n" +
+	"\bapp_slug\x18\n" +
+	" \x01(\tR\aappSlugB\r\n" +
 	"\v_git_commitB\x0e\n" +
 	"\f_keyspace_idJ\x04\b\x01\x10\x02\"\xc4\x01\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
@@ -1068,14 +1087,15 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x15GetDeploymentResponse\x123\n" +
 	"\n" +
 	"deployment\x18\x01 \x01(\v2\x13.ctrl.v1.DeploymentR\n" +
-	"deployment\"\xa5\a\n" +
+	"deployment\"\xbc\a\n" +
 	"\n" +
 	"Deployment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x03 \x01(\tR\tprojectId\x12%\n" +
-	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\x12$\n" +
+	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\x12\x15\n" +
+	"\x06app_id\x18\x15 \x01(\tR\x05appId\x12$\n" +
 	"\x0egit_commit_sha\x18\x05 \x01(\tR\fgitCommitSha\x12\x1d\n" +
 	"\n" +
 	"git_branch\x18\x06 \x01(\tR\tgitBranch\x121\n" +
