@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
+	handler "github.com/unkeyed/unkey/svc/sentinel/routes/proxy"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -244,6 +245,12 @@ func WithObservability(environmentID, region string) zen.Middleware {
 
 				pageInfo := getErrorPageInfo(urn)
 				statusCode = pageInfo.Status
+
+				// Ensure tracking has the resolved status for CH logging,
+				// in case WithProxyErrorHandling didn't set it (e.g. auth errors).
+				if tracking, ok := handler.SentinelTrackingFromContext(ctx); ok && tracking.ResponseStatus == 0 {
+					tracking.ResponseStatus = int32(statusCode)
+				}
 
 				errorType = categorizeErrorType(urn, statusCode, hasError)
 

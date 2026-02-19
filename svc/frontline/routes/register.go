@@ -14,7 +14,7 @@ import (
 func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	withPanicRecovery := zen.WithPanicRecovery()
-	withObservability := middleware.WithObservability(svc.Region)
+	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
 	withTimeout := zen.WithTimeout(5 * time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{
@@ -56,7 +56,7 @@ func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 		[]zen.Middleware{
 			zen.WithPanicRecovery(),
 			withLogging,
-			middleware.WithObservability(svc.Region),
+			middleware.WithObservability(svc.Region, svc.ErrorPageRenderer),
 		},
 		&acme.Handler{
 			RouterService: svc.RouterService,
