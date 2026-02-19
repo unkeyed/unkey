@@ -49,7 +49,7 @@ export const environmentRuntimeSettings = mysqlTable(
       .notNull()
       .default("SIGTERM"),
 
-    sentinelConfig: longblob("sentinel_config"),
+    sentinelConfig: longblob("sentinel_config").notNull(),
 
     ...lifecycleDates,
   },

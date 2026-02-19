@@ -174,22 +174,17 @@ type CreateEnvironmentRequest struct {
 }
 
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
-	sentinelConfig := []byte("{}")
-	if len(req.SentinelConfig) > 0 {
-		sentinelConfig = req.SentinelConfig
-	}
 
 	now := time.Now().UnixMilli()
 
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
-		ID:             req.ID,
-		WorkspaceID:    req.WorkspaceID,
-		ProjectID:      req.ProjectID,
-		Slug:           req.Slug,
-		Description:    req.Description,
-		SentinelConfig: sentinelConfig,
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Int64: 0, Valid: false},
+		ID:          req.ID,
+		WorkspaceID: req.WorkspaceID,
+		ProjectID:   req.ProjectID,
+		Slug:        req.Slug,
+		Description: req.Description,
+		CreatedAt:   now,
+		UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 	})
 	require.NoError(s.t, err)
 
@@ -202,6 +197,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Command:        dbtype.StringSlice{},
 		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		RegionConfig:   dbtype.RegionConfig{},
+		SentinelConfig: []byte{},
 		ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
 		CreatedAt:      now,
 		UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
@@ -228,7 +224,6 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		ProjectID:        environment.ProjectID,
 		Slug:             environment.Slug,
 		Description:      req.Description,
-		SentinelConfig:   sentinelConfig,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},

@@ -194,7 +194,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			WorkspaceID:                   project.WorkspaceID,
 			ProjectID:                     project.ID,
 			EnvironmentID:                 env.ID,
-			SentinelConfig:                []byte(envSettings.EnvironmentRuntimeSetting.SentinelConfig.String),
+			SentinelConfig:                envSettings.EnvironmentRuntimeSetting.SentinelConfig,
 			EncryptedEnvironmentVariables: secretsBlob,
 			Command:                       envSettings.EnvironmentRuntimeSetting.Command,
 			Status:                        db.DeploymentsStatusPending,
