@@ -1,12 +1,15 @@
 "use client";
 import { collection } from "@/lib/collections";
-import { retryDomainVerification } from "@/lib/collections/deploy/custom-domains";
+import {
+  type CustomDomain,
+  type VerificationStatus,
+  retryDomainVerification,
+} from "@/lib/collections/deploy/custom-domains";
 import { cn } from "@/lib/utils";
 import {
   CircleCheck,
   CircleInfo,
   Clock,
-  Link4,
   Refresh3,
   Trash,
   TriangleWarning,
@@ -22,11 +25,11 @@ import {
   TooltipTrigger,
 } from "@unkey/ui";
 import { useRef, useState } from "react";
-import { useProjectData } from "../../data-provider";
-import type { CustomDomain, VerificationStatus } from "./types";
+import { useProjectData } from "../../../../data-provider";
 
 type CustomDomainRowProps = {
   domain: CustomDomain;
+  environmentSlug?: string;
 };
 
 const statusConfig: Record<
@@ -55,7 +58,7 @@ const statusConfig: Record<
   },
 };
 
-export function CustomDomainRow({ domain }: CustomDomainRowProps) {
+export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProps) {
   const { projectId } = useProjectData();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -77,21 +80,25 @@ export function CustomDomainRow({ domain }: CustomDomainRowProps) {
   };
 
   return (
-    <div className="border-b border-gray-4 last:border-b-0 group hover:bg-gray-2 transition-colors">
+    <div className="border-b border-gray-4 last:border-b-0 group hover:bg-grayA-3 transition-colors">
       <div className="flex items-center justify-between px-4 py-3 h-12">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Link4 className="text-gray-9 !size-[14px] flex-shrink-0" />
           <a
             href={`https://${domain.domain}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-content font-medium hover:underline truncate"
+            className="text-[13px] text-gray-12 font-medium hover:underline truncate"
           >
             {domain.domain}
           </a>
+          {environmentSlug && (
+            <span className="text-[11px] text-gray-11 bg-gray-3 px-1.5 py-0.5 rounded font-mono flex-shrink-0">
+              {environmentSlug}
+            </span>
+          )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Badge variant={status.color} className="gap-1">
             {status.icon}
             {status.label}
@@ -122,15 +129,15 @@ export function CustomDomainRow({ domain }: CustomDomainRowProps) {
               <TooltipContent className="max-w-xs">{domain.verificationError}</TooltipContent>
             </Tooltip>
           )}
-
           <Button
-            ref={deleteButtonRef}
-            size="icon"
-            variant="outline"
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-7 px-0 justify-center text-error-11 hover:text-error-11 transition-opacity duration-150"
             onClick={() => setIsConfirmOpen(true)}
-            className="size-7 text-gray-9 hover:text-error-9"
+            ref={deleteButtonRef}
           >
-            <Trash className="!size-[14px]" />
+            <Trash iconSize="sm-regular" />
           </Button>
 
           {deleteButtonRef.current && (
@@ -180,7 +187,7 @@ function DnsRecordTable({
   const txtRecordValue = `unkey-domain-verify=${verificationToken}`;
 
   return (
-    <div className="px-4 pb-3 space-y-4">
+    <div className="px-4 pb-3 space-y-3">
       <p className="text-xs text-gray-9">Add both DNS records below at your domain provider.</p>
 
       {/* TXT Record (Ownership Verification) */}
@@ -193,7 +200,7 @@ function DnsRecordTable({
           />
         </div>
         <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
-          <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
+          <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-grayA-3 px-3 py-1.5 text-gray-9 font-medium">
             <span>Type</span>
             <span>Name</span>
             <span>Value</span>
@@ -230,7 +237,7 @@ function DnsRecordTable({
           />
         </div>
         <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
-          <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-gray-3 px-3 py-1.5 text-gray-9 font-medium">
+          <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-grayA-3 px-3 py-1.5 text-gray-9 font-medium">
             <span>Type</span>
             <span>Name</span>
             <span>Value</span>
@@ -266,17 +273,5 @@ function StatusIndicator({ verified, label }: { verified: boolean; label: string
       {verified ? <CircleCheck className="!size-3" /> : <Clock className="!size-3" />}
       {label}
     </Badge>
-  );
-}
-
-export function CustomDomainRowSkeleton() {
-  return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-4 last:border-b-0">
-      <div className="flex items-center gap-3">
-        <div className="w-4 h-4 bg-gray-4 rounded animate-pulse" />
-        <div className="w-32 h-4 bg-gray-4 rounded animate-pulse" />
-      </div>
-      <div className="w-16 h-5 bg-gray-4 rounded animate-pulse" />
-    </div>
   );
 }
