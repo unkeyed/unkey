@@ -110,6 +110,7 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
 			ID:               app.ID,
 			LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+			IsRolledBack:     false,
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {

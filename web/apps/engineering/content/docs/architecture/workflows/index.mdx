@@ -47,7 +47,7 @@ Services call each other using:
 
 Orchestrates the full deployment lifecycle. `Deploy` validates the deployment record, builds a container image (from Git via Depot or a pre-built Docker image), provisions containers across regions with per-region versioning, polls for instance health in parallel, generates frontline routes (per-commit, per-branch, per-environment), reassigns sticky routes through RoutingService, and updates the project's live deployment pointer. The previous live deployment is scheduled for standby after 30 minutes via DeploymentService.
 
-`Rollback` switches sticky frontline routes from the current live deployment to a previous one. The rolled-back state is derived by comparing the app's live deployment pointer to the latest ready deployment — if they differ, the app is considered rolled back and future deploys will not automatically claim live routes. `Promote` reverses a rollback by updating the live deployment pointer to the target deployment.
+`Rollback` switches sticky frontline routes from the current live deployment to a previous one and sets the app's `is_rolled_back` flag to true. While rolled back, future deploys will not automatically claim live routes. `Promote` reverses a rollback by updating the live deployment pointer to the target deployment and clearing the `is_rolled_back` flag.
 
 `ScaleDownIdlePreviewDeployments` is called by a cron to archive preview deployments with zero traffic in the last 6 hours.
 
