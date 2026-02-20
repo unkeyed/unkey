@@ -272,6 +272,14 @@ func (s *Service) onVerificationSuccess(
 			return restate.Void{}, fault.Wrap(findErr, fault.Internal("failed to find project for frontline route"))
 		}
 
+		appRow, appErr := db.Query.FindAppByProjectAndSlug(stepCtx, s.db.RO(), db.FindAppByProjectAndSlugParams{
+			ProjectID: dom.ProjectID,
+			Slug:      "default",
+		})
+		if appErr != nil {
+			return restate.Void{}, fault.Wrap(appErr, fault.Internal("failed to find default app for frontline route"))
+		}
+
 		deploymentID := ""
 		if project.LiveDeploymentID.Valid {
 			deploymentID = project.LiveDeploymentID.String
@@ -280,6 +288,7 @@ func (s *Service) onVerificationSuccess(
 		return restate.Void{}, db.Query.InsertFrontlineRoute(stepCtx, s.db.RW(), db.InsertFrontlineRouteParams{
 			ID:                       uid.New(uid.FrontlineRoutePrefix),
 			ProjectID:                dom.ProjectID,
+			AppID:                    appRow.App.ID,
 			DeploymentID:             deploymentID,
 			EnvironmentID:            dom.EnvironmentID,
 			FullyQualifiedDomainName: dom.Domain,

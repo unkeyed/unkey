@@ -234,6 +234,7 @@ type CreateDeploymentRequest struct {
 	ID            string
 	WorkspaceID   string
 	ProjectID     string
+	AppID         string
 	EnvironmentID string
 	Status        db.DeploymentsStatus
 	CreatedAt     int64
@@ -256,6 +257,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		K8sName:                       uid.New("k8s"),
 		WorkspaceID:                   req.WorkspaceID,
 		ProjectID:                     req.ProjectID,
+		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
 		GitCommitSha:                  sql.NullString{String: "", Valid: false},
 		GitBranch:                     sql.NullString{String: "", Valid: false},
