@@ -15,6 +15,7 @@ type ProjectRow = {
   slug: string;
   repository_full_name: string | null;
   live_deployment_id: string | null;
+  is_rolled_back: boolean;
   git_commit_message: string | null;
   git_branch: string | null;
   git_commit_author_handle: string | null;
@@ -35,6 +36,7 @@ export const listProjects = workspaceProcedure
         ${projects.updatedAt},
         ${githubRepoConnections.repositoryFullName},
         ${apps.liveDeploymentId},
+        ${apps.isRolledBack},
         ${deployments.gitCommitMessage},
         ${deployments.gitBranch},
         ${deployments.gitCommitAuthorHandle},
@@ -75,6 +77,7 @@ export const listProjects = workspaceProcedure
         slug: row.slug,
         repositoryFullName: row.repository_full_name,
         liveDeploymentId: row.live_deployment_id,
+        isRolledBack: row.is_rolled_back,
         commitTitle: row.git_commit_message,
         branch: row.git_branch ?? "main",
         author: row.git_commit_author_handle,

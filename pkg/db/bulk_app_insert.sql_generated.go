@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertApp is the base query for bulk insert
-const bulkInsertApp = `INSERT INTO apps ( id, workspace_id, project_id, name, slug, live_deployment_id, depot_project_id, delete_protection, created_at, updated_at ) VALUES %s`
+const bulkInsertApp = `INSERT INTO apps ( id, workspace_id, project_id, name, slug, live_deployment_id, is_rolled_back, depot_project_id, delete_protection, created_at, updated_at ) VALUES %s`
 
 // InsertApps performs bulk insert in a single query
 func (q *BulkQueries) InsertApps(ctx context.Context, db DBTX, args []InsertAppParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertApps(ctx context.Context, db DBTX, args []InsertAppP
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertApp, strings.Join(valueClauses, ", "))
@@ -35,6 +35,7 @@ func (q *BulkQueries) InsertApps(ctx context.Context, db DBTX, args []InsertAppP
 		allArgs = append(allArgs, arg.Name)
 		allArgs = append(allArgs, arg.Slug)
 		allArgs = append(allArgs, arg.LiveDeploymentID)
+		allArgs = append(allArgs, arg.IsRolledBack)
 		allArgs = append(allArgs, arg.DepotProjectID)
 		allArgs = append(allArgs, arg.DeleteProtection)
 		allArgs = append(allArgs, arg.CreatedAt)
