@@ -47,7 +47,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
         )}
       >
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <Avatar className="size-5 rounded-full border border-grayA-6">
+          <Avatar className="size-6 rounded-full border border-grayA-6">
             {user?.avatarUrl ? (
               <AvatarImage src={user.avatarUrl} alt="Profile picture" className="rounded-full" />
             ) : null}

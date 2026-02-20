@@ -98,16 +98,18 @@ export const WorkspaceSwitcher: React.FC = () => {
       <DropdownMenuTrigger
         className={cn(
           "flex items-center bg-base-12 overflow-hidden rounded-lg bg-background border-gray-6 border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content",
-          isCollapsed ? "justify-center w-10 h-8 p-0" : "justify-between w-full h-8 gap-2 px-2",
+          isCollapsed
+            ? "justify-center w-10 h-8 p-0"
+            : "justify-between w-full max-w-[180px] h-8 gap-2 px-2",
         )}
       >
         <div
           className={cn(
-            "flex items-center gap-2 overflow-hidden whitespace-nowrap",
+            "flex items-center gap-2 overflow-hidden whitespace-nowrap min-w-0",
             isCollapsed ? "justify-center" : "",
           )}
         >
-          <Avatar className="w-5 h-5 rounded border border-grayA-6">
+          <Avatar className="w-5 h-5 rounded border border-grayA-6 shrink-0">
             <AvatarFallback className="text-gray-700 bg-gray-100 border border-gray-500 rounded">
               {workspace?.name.slice(0, 1).toUpperCase()}
             </AvatarFallback>
@@ -122,7 +124,7 @@ export const WorkspaceSwitcher: React.FC = () => {
               className="text-xs font-medium py-2"
               asChild={true}
             >
-              <span className="overflow-hidden text-sm font-medium text-ellipsis">
+              <span className="overflow-hidden text-sm font-medium text-ellipsis min-w-0">
                 {workspace?.name}
               </span>
             </InfoTooltip>
