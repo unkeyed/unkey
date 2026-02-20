@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/envresolve"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -120,69 +119,13 @@ func (s *Service) CreateDeployment(
 			fmt.Errorf("failed to fetch app environment variables: %w", err))
 	}
 
-	// Convert to envresolve types
-	appVars := make([]envresolve.AppVar, len(appEnvVars))
-	for i, ev := range appEnvVars {
-		appVars[i] = envresolve.AppVar{Key: ev.Key, Value: ev.Value}
-	}
-
-	// Check if we need to resolve template references
-	needsShared, needsSiblings := false, false
-	for _, v := range appVars {
-		if strings.Contains(v.Value, "${{") {
-			if strings.Contains(v.Value, "shared.") {
-				needsShared = true
-			}
-			// Check for sibling refs (any ${{ that's not shared. and not a bare ref)
-			needsSiblings = true
-		}
-	}
-
-	var sharedVars []envresolve.AppVar
-	if needsShared {
-		envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("failed to fetch shared environment variables: %w", err))
-		}
-		sharedVars = make([]envresolve.AppVar, len(envVars))
-		for i, ev := range envVars {
-			sharedVars[i] = envresolve.AppVar{Key: ev.Key, Value: ev.Value}
-		}
-	}
-
-	var siblingVars []envresolve.SiblingVar
-	if needsSiblings {
-		sibVars, err := db.Query.FindSiblingAppVarsByProjectAndEnv(ctx, s.db.RO(), db.FindSiblingAppVarsByProjectAndEnvParams{
-			ProjectID:     project.ID,
-			EnvironmentID: env.ID,
-		})
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("failed to fetch sibling app variables: %w", err))
-		}
-		siblingVars = make([]envresolve.SiblingVar, len(sibVars))
-		for i, sv := range sibVars {
-			siblingVars[i] = envresolve.SiblingVar{
-				AppSlug: sv.AppSlug,
-				Key:     sv.Key,
-				Value:   sv.Value,
-			}
-		}
-	}
-
-	// Resolve templates
-	resolvedVars, err := envresolve.Resolve(appVars, sharedVars, siblingVars)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("failed to resolve environment variable templates: %w", err))
-	}
-
-	// Build secrets blob from resolved vars
 	secretsBlob := []byte{}
-	if len(resolvedVars) > 0 {
+	if len(appEnvVars) > 0 {
 		secretsConfig := &ctrlv1.SecretsConfig{
-			Secrets: resolvedVars,
+			Secrets: make(map[string]string, len(appEnvVars)),
+		}
+		for _, ev := range appEnvVars {
+			secretsConfig.Secrets[ev.Key] = ev.Value
 		}
 
 		var err error
