@@ -66,7 +66,7 @@ export const UserButton: React.FC<UserButtonProps> = ({
           ) : null}
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="start">
+      <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="end">
         {user?.email && (
           <>
             <DropdownMenuLabel className="font-normal">

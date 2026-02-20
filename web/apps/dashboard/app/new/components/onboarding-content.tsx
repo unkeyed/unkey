@@ -25,6 +25,11 @@ export function OnboardingContent() {
 
   return (
     <div className="h-screen flex flex-col items-center pt-6 overflow-hidden relative">
+      {/* User button in top right */}
+      <div className="absolute top-4 right-4">
+        <UserButton />
+      </div>
+
       {/* Unkey Logo */}
       <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
       {/* Spacer */}
@@ -58,9 +63,6 @@ export function OnboardingContent() {
             setCurrentStepIndex={handleStepChange}
           />
         </div>
-      </div>
-      <div className="absolute bottom-4 left-4">
-        <UserButton />
       </div>
       <div className="absolute bottom-4 right-4">
         <HelpButton />
