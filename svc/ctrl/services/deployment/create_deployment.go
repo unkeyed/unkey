@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/envresolve"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -118,45 +117,13 @@ func (s *Service) CreateDeployment(
 			fmt.Errorf("failed to fetch app environment variables: %w", err))
 	}
 
-	// Convert to envresolve types
-	appVars := make([]envresolve.AppVar, len(appEnvVars))
-	for i, ev := range appEnvVars {
-		appVars[i] = envresolve.AppVar{Key: ev.Key, Value: ev.Value}
-	}
-
-	// Resolve shared env var templates (${{ shared.KEY }})
-	var sharedVars []envresolve.AppVar
-	needsShared := false
-	for _, v := range appVars {
-		if strings.Contains(v.Value, "${{") && strings.Contains(v.Value, "shared.") {
-			needsShared = true
-			break
-		}
-	}
-	if needsShared {
-		envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("failed to fetch shared environment variables: %w", err))
-		}
-		sharedVars = make([]envresolve.AppVar, len(envVars))
-		for i, ev := range envVars {
-			sharedVars[i] = envresolve.AppVar{Key: ev.Key, Value: ev.Value}
-		}
-	}
-
-	// Resolve templates (sibling app refs not yet supported)
-	resolvedVars, err := envresolve.Resolve(appVars, sharedVars, nil)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("failed to resolve environment variable templates: %w", err))
-	}
-
-	// Build secrets blob from resolved vars
 	secretsBlob := []byte{}
-	if len(resolvedVars) > 0 {
+	if len(appEnvVars) > 0 {
 		secretsConfig := &ctrlv1.SecretsConfig{
-			Secrets: resolvedVars,
+			Secrets: make(map[string]string, len(appEnvVars)),
+		}
+		for _, ev := range appEnvVars {
+			secretsConfig.Secrets[ev.Key] = ev.Value
 		}
 
 		var err error
