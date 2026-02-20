@@ -18,6 +18,7 @@ go_library(
         "//pkg/assert",
         "//pkg/batch",
         "//pkg/cache",
+        "//pkg/cache/clustering/metrics",
         "//pkg/cluster",
         "//pkg/logger",
     ],
