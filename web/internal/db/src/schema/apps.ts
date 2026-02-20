@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { githubRepoConnections } from "./github_app";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -40,5 +41,9 @@ export const appsRelations = relations(apps, ({ one }) => ({
   project: one(projects, {
     fields: [apps.projectId],
     references: [projects.id],
+  }),
+  githubRepoConnection: one(githubRepoConnections, {
+    fields: [apps.id],
+    references: [githubRepoConnections.appId],
   }),
 }));
