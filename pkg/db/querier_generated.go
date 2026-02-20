@@ -1102,14 +1102,6 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels WHERE environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error)
-	//FindSiblingAppVarsByProjectAndEnv
-	//
-	//  SELECT a.slug AS app_slug, aev.`key`, aev.value
-	//  FROM app_environment_variables aev
-	//  INNER JOIN apps a ON a.id = aev.app_id
-	//  WHERE a.project_id = ?
-	//    AND aev.environment_id = ?
-	FindSiblingAppVarsByProjectAndEnv(ctx context.Context, db DBTX, arg FindSiblingAppVarsByProjectAndEnvParams) ([]FindSiblingAppVarsByProjectAndEnvRow, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -1984,13 +1976,6 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
-	//ListEnvironmentsByProject
-	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
-	//  FROM environments
-	//  WHERE project_id = ?
-	//  ORDER BY created_at ASC
-	ListEnvironmentsByProject(ctx context.Context, db DBTX, projectID string) ([]ListEnvironmentsByProjectRow, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
@@ -2343,14 +2328,6 @@ type Querier interface {
 	//  ORDER BY version ASC
 	//  LIMIT ?
 	ListSentinelsByRegion(ctx context.Context, db DBTX, arg ListSentinelsByRegionParams) ([]Sentinel, error)
-	//ListSiblingAppsInEnvironment
-	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
-	//  FROM apps
-	//  WHERE project_id = ?
-	//    AND id != ?
-	//  ORDER BY created_at ASC
-	ListSiblingAppsInEnvironment(ctx context.Context, db DBTX, arg ListSiblingAppsInEnvironmentParams) ([]ListSiblingAppsInEnvironmentRow, error)
 	//ListWorkspaces
 	//
 	//  SELECT
