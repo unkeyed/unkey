@@ -6,7 +6,6 @@
     "api",
     "analytics",
     "clickhouse",
-    "clickhouse-proxy",
     "cluster-service",
     "ctrl",
     "deploy",
