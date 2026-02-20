@@ -3,7 +3,6 @@ import { ContextNavigation } from "@/components/navigation/sidebar/context-navig
 import { ProductSwitcher } from "@/components/navigation/sidebar/product-switcher";
 import { ResourceHeading } from "@/components/navigation/sidebar/resource-heading";
 import { WorkspaceSwitcher } from "@/components/navigation/sidebar/team-switcher";
-import { UserButton } from "@/components/navigation/sidebar/user-button";
 import { WorkspaceSection } from "@/components/navigation/sidebar/workspace-section";
 import {
   Sidebar,
@@ -25,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HelpButton } from "../help-button";
 import { UsageBanner } from "../usage-banner";
+import { UserButton } from "../user-button";
 import type { NavItem } from "../workspace-navigations";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
 
@@ -74,7 +74,7 @@ export function AppSidebar({
     [],
   );
 
-  const { state, isMobile, toggleSidebar, openMobile } = useSidebar();
+  const { state, isMobile, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
 
   // Determine if we should show resource heading
@@ -187,24 +187,17 @@ export function AppSidebar({
         </div>
       </SidebarContent>
       <SidebarFooter>
-        {/* Workspace switcher at top of footer */}
-        <div className={cn(isCollapsed ? "flex justify-center" : "")}>
-          <WorkspaceSwitcher />
-        </div>
-
+        {/* Workspace switcher with help button and user button */}
         <div
-          className={cn("flex items-center justify-between gap-2", {
-            "flex-col-reverse": state === "collapsed",
-            "flex-row": state === "expanded",
-          })}
+          className={cn("flex items-center gap-2", isCollapsed ? "flex-col" : "justify-between")}
         >
-          <UserButton
-            isCollapsed={(state === "collapsed" || isMobile) && !(isMobile && openMobile)}
-            isMobile={isMobile}
-            isMobileSidebarOpen={openMobile}
-          />
-
-          <HelpButton />
+          <div className={cn(isCollapsed ? "flex justify-center" : "")}>
+            <WorkspaceSwitcher />
+          </div>
+          <div className="flex items-center gap-2">
+            <HelpButton />
+            <UserButton />
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>
