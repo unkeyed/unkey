@@ -22,7 +22,7 @@ export const CurrentPlanCard = ({ currentProduct, onChangePlan }: CurrentPlanCar
       description={<div className="min-w-[300px]">Your active subscription plan</div>}
       border="both"
       className="w-full min-w-[200px]"
-      contentWidth="w-full"
+      contentWidth="w-full lg:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
         <div className="flex-1 shrink">

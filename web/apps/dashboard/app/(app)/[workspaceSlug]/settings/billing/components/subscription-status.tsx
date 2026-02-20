@@ -17,7 +17,8 @@ export const SubscriptionStatus: React.FC<{
         title="Payment Required"
         description="There is a problem with your payment. Please resolve it."
         border="both"
-        className="border-error-7 bg-error-3"
+        className="border-error-7 bg-error-3 w-full"
+        contentWidth="w-full lg:w-[320px]"
       >
         <div className="flex justify-end w-full">
           <Button
