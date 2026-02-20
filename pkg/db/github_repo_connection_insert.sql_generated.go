@@ -13,6 +13,7 @@ import (
 const insertGithubRepoConnection = `-- name: InsertGithubRepoConnection :exec
 INSERT INTO github_repo_connections (
     project_id,
+    app_id,
     installation_id,
     repository_id,
     repository_full_name,
@@ -25,12 +26,14 @@ VALUES (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
 
 type InsertGithubRepoConnectionParams struct {
 	ProjectID          string        `db:"project_id"`
+	AppID              string        `db:"app_id"`
 	InstallationID     int64         `db:"installation_id"`
 	RepositoryID       int64         `db:"repository_id"`
 	RepositoryFullName string        `db:"repository_full_name"`
@@ -42,6 +45,7 @@ type InsertGithubRepoConnectionParams struct {
 //
 //	INSERT INTO github_repo_connections (
 //	    project_id,
+//	    app_id,
 //	    installation_id,
 //	    repository_id,
 //	    repository_full_name,
@@ -54,11 +58,13 @@ type InsertGithubRepoConnectionParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertGithubRepoConnection(ctx context.Context, db DBTX, arg InsertGithubRepoConnectionParams) error {
 	_, err := db.ExecContext(ctx, insertGithubRepoConnection,
 		arg.ProjectID,
+		arg.AppID,
 		arg.InstallationID,
 		arg.RepositoryID,
 		arg.RepositoryFullName,
