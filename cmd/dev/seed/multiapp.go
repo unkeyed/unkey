@@ -168,6 +168,33 @@ func seedMultiApp(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create build settings: %w", err)
 		}
 
+		// GitHub repo connections: one per app, pointing at a test mono-repo
+		err = db.Query.InsertGithubRepoConnection(ctx, tx, db.InsertGithubRepoConnectionParams{
+			ProjectID:          projectID,
+			AppID:              apiAppID,
+			InstallationID:     1,
+			RepositoryID:       1,
+			RepositoryFullName: "Flo4604/mono-repo-test",
+			CreatedAt:          now,
+			UpdatedAt:          sql.NullInt64{Valid: false, Int64: 0},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create github repo connection for api app: %w", err)
+		}
+
+		err = db.Query.InsertGithubRepoConnection(ctx, tx, db.InsertGithubRepoConnectionParams{
+			ProjectID:          projectID,
+			AppID:              workerAppID,
+			InstallationID:     1,
+			RepositoryID:       1,
+			RepositoryFullName: "Flo4604/mono-repo-test",
+			CreatedAt:          now,
+			UpdatedAt:          sql.NullInt64{Valid: false, Int64: 0},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create github repo connection for worker app: %w", err)
+		}
+
 		// Runtime settings: both apps on port 8080, 256 CPU/mem
 		err = db.BulkQuery.UpsertAppRuntimeSettings(ctx, tx, []db.UpsertAppRuntimeSettingsParams{
 			// API app — preview + production
