@@ -133,6 +133,21 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			return
 		}
 
+		// Look up default app
+		appRow, appErr := db.Query.FindAppByProjectAndSlug(ctx, s.db.RO(), db.FindAppByProjectAndSlugParams{
+			ProjectID: project.ID,
+			Slug:      "default",
+		})
+		if appErr != nil {
+			if db.IsNotFound(appErr) {
+				logger.Info("No default app found for project", "projectId", project.ID)
+				continue
+			}
+			logger.Error("failed to find default app", "error", appErr, "projectId", project.ID)
+			http.Error(w, "failed to find default app", http.StatusInternalServerError)
+			return
+		}
+
 		defaultBranch := "main"
 		if project.DefaultBranch.Valid && project.DefaultBranch.String != "" {
 			defaultBranch = project.DefaultBranch.String
@@ -191,6 +206,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			K8sName:                       uid.DNS1035(12),
 			WorkspaceID:                   project.WorkspaceID,
 			ProjectID:                     project.ID,
+			AppID:                         appRow.App.ID,
 			EnvironmentID:                 env.ID,
 			SentinelConfig:                envSettings.EnvironmentRuntimeSetting.SentinelConfig,
 			EncryptedEnvironmentVariables: secretsBlob,

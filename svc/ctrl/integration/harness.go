@@ -115,6 +115,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		K8sName:                       k8sName,
 		WorkspaceID:                   workspaceID,
 		ProjectID:                     project.ID,
+		AppID:                         "",
 		EnvironmentID:                 env.ID,
 		GitCommitSha:                  sql.NullString{Valid: false},
 		GitBranch:                     sql.NullString{Valid: false},
