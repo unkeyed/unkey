@@ -12,11 +12,10 @@ var (
 	// Example usage:
 	//   metrics.CircuitBreakerRequests.WithLabelValues("my_circuit_breaker", "open").Inc()
 	CircuitBreakerRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   "unkey",
-		Subsystem:   "circuitbreaker",
-		Name:        "requests_total",
-		Help:        "Tracks the number of requests made to the circuitbreaker by state.",
-		ConstLabels: constLabels,
+		Namespace: "unkey",
+		Subsystem: "circuitbreaker",
+		Name:      "requests_total",
+		Help:      "Tracks the number of requests made to the circuitbreaker by state.",
 	}, []string{"service", "action"})
 
 	// CircuitBreakerErrorsTotal tracks the total number of circuit breaker errors,
@@ -25,10 +24,9 @@ var (
 	// Example usage:
 	//   metrics.CircuitBreakerErrorsTotal.WithLabelValues("database", "timeout").Inc()
 	CircuitBreakerErrorsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   "unkey",
-		Subsystem:   "circuitbreaker",
-		Name:        "errors_total",
-		Help:        "Total number of circuit breaker errors by service and action.",
-		ConstLabels: constLabels,
+		Namespace: "unkey",
+		Subsystem: "circuitbreaker",
+		Name:      "errors_total",
+		Help:      "Total number of circuit breaker errors by service and action.",
 	}, []string{"service", "action"})
 )

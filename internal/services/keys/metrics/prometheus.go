@@ -19,11 +19,10 @@ var (
 	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()
 	KeyVerificationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "key",
-			Name:        "verifications_total",
-			Help:        "Total number of Key verifications processed.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "key",
+			Name:      "verifications_total",
+			Help:      "Total number of Key verifications processed.",
 		},
 		[]string{"type", "code"},
 	)
@@ -37,11 +36,10 @@ var (
 	//   metrics.KeyVerificationErrorsTotal.WithLabelValues("root_key").Inc()
 	KeyVerificationErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "key",
-			Name:        "verification_errors_total",
-			Help:        "Total number of key verification errors",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "key",
+			Name:      "verification_errors_total",
+			Help:      "Total number of key verification errors",
 		},
 		[]string{"type"},
 	)

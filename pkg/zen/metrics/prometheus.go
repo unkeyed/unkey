@@ -57,12 +57,11 @@ var (
 	//   defer timer.ObserveDuration()
 	HTTPRequestLatency = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "unkey",
-			Subsystem:   "http",
-			Name:        "request_latency_seconds",
-			Help:        "Histogram of HTTP request latencies in seconds.",
-			Buckets:     latencyBuckets,
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "http",
+			Name:      "request_latency_seconds",
+			Help:      "Histogram of HTTP request latencies in seconds.",
+			Buckets:   latencyBuckets,
 		},
 		[]string{"method", "path", "status"},
 	)
@@ -74,11 +73,10 @@ var (
 	//   metrics.HTTPRequestTotal.WithLabelValues("GET", "/users", "200").Inc()
 	HTTPRequestTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "http",
-			Name:        "requests_total",
-			Help:        "Total number of HTTP requests processed.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "http",
+			Name:      "requests_total",
+			Help:      "Total number of HTTP requests processed.",
 		},
 		[]string{"method", "path", "status"},
 	)
@@ -90,11 +88,10 @@ var (
 	//   metrics.HTTPRequestErrorTotal.WithLabelValues("POST", "/api/keys", "500").Inc()
 	HTTPRequestErrorTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "http",
-			Name:        "requests_errors_total",
-			Help:        "Total number of HTTP request errors.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "http",
+			Name:      "requests_errors_total",
+			Help:      "Total number of HTTP request errors.",
 		},
 		[]string{"method", "path", "status"},
 	)
@@ -107,12 +104,11 @@ var (
 	//   metrics.HTTPRequestBodySize.WithLabelValues("POST", "/api/upload", "200").Observe(float64(bodySize))
 	HTTPRequestBodySize = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "unkey",
-			Subsystem:   "http",
-			Name:        "request_body_size_bytes",
-			Help:        "Histogram of HTTP request body sizes in bytes.",
-			Buckets:     bodySizeBuckets,
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "http",
+			Name:      "request_body_size_bytes",
+			Help:      "Histogram of HTTP request body sizes in bytes.",
+			Buckets:   bodySizeBuckets,
 		},
 		[]string{"method", "path", "status"},
 	)

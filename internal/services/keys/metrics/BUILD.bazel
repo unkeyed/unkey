@@ -2,12 +2,9 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "metrics",
-    srcs = [
-        "doc.go",
-        "panic.go",
-    ],
-    importpath = "github.com/unkeyed/unkey/pkg/prometheus/metrics",
-    visibility = ["//visibility:public"],
+    srcs = ["prometheus.go"],
+    importpath = "github.com/unkeyed/unkey/internal/services/keys/metrics",
+    visibility = ["//:__subpackages__"],
     deps = [
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promauto",

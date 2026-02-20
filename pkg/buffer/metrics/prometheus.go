@@ -23,11 +23,10 @@ var (
 	//   metrics.BufferInserts.WithLabelValues(b.String(), "buffered").Inc()
 	BufferState = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "buffer",
-			Name:        "state_total",
-			Help:        "Number of buffer inserts by name and state",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "buffer",
+			Name:      "state_total",
+			Help:      "Number of buffer inserts by name and state",
 		},
 		[]string{"name", "state"},
 	)
@@ -39,11 +38,10 @@ var (
 	// 	 metrics.BufferSize.WithLabelValues(b.String(), "true").Set(float64(capacity)/float64(maxCapacity))
 	BufferSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "unkey",
-			Subsystem:   "buffer",
-			Name:        "size_percentage",
-			Help:        "Percentage of buffered fill capacity between 0.0 and 1.0",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "buffer",
+			Name:      "size_percentage",
+			Help:      "Percentage of buffered fill capacity between 0.0 and 1.0",
 		},
 		[]string{"name", "drop"},
 	)
@@ -55,11 +53,10 @@ var (
 	//   metrics.BufferErrorsTotal.WithLabelValues("batch_writer", "write_failed").Inc()
 	BufferErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "buffer",
-			Name:        "errors_total",
-			Help:        "Total number of buffer operation errors by name and state.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "buffer",
+			Name:      "errors_total",
+			Help:      "Total number of buffer operation errors by name and state.",
 		},
 		[]string{"name", "state"},
 	)

@@ -12,6 +12,26 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+var latencyBuckets = []float64{
+	0.001, // 1ms
+	0.002, // 2ms
+	0.005, // 5ms
+	0.01,  // 10ms
+	0.02,  // 20ms
+	0.05,  // 50ms
+	0.1,   // 100ms
+	0.2,   // 200ms
+	0.3,   // 300ms
+	0.4,   // 400ms
+	0.5,   // 500ms
+	0.75,  // 750ms
+	1.0,   // 1s
+	2.0,   // 2s
+	3.0,   // 3s
+	5.0,   // 5s
+	10.0,  // 10s
+}
+
 var (
 	// ---------------------------------------------------------------------------
 	// Control Plane Connectivity
@@ -27,11 +47,10 @@ var (
 	//   metrics.KraneControlPlaneReconnectsTotal.WithLabelValues("deployments").Inc()
 	KraneControlPlaneReconnectsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "controlplane_reconnects_total",
-			Help:        "Total number of control plane stream reconnection attempts.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "controlplane_reconnects_total",
+			Help:      "Total number of control plane stream reconnection attempts.",
 		},
 		[]string{"controller"},
 	)
@@ -48,11 +67,10 @@ var (
 	//   metrics.KraneControlPlaneRPCRequestsTotal.WithLabelValues("deployments", "ReportDeploymentStatus", "success").Inc()
 	KraneControlPlaneRPCRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "controlplane_rpc_requests_total",
-			Help:        "Total number of outbound RPC requests to the control plane.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "controlplane_rpc_requests_total",
+			Help:      "Total number of outbound RPC requests to the control plane.",
 		},
 		[]string{"controller", "method", "result"},
 	)
@@ -71,12 +89,11 @@ var (
 	//   defer timer.ObserveDuration()
 	KraneControlPlaneRPCDurationSeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "controlplane_rpc_duration_seconds",
-			Help:        "Histogram of outbound RPC latencies to the control plane in seconds.",
-			Buckets:     latencyBuckets,
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "controlplane_rpc_duration_seconds",
+			Help:      "Histogram of outbound RPC latencies to the control plane in seconds.",
+			Buckets:   latencyBuckets,
 		},
 		[]string{"controller", "method"},
 	)
@@ -98,11 +115,10 @@ var (
 	//   metrics.KraneK8sRequestsTotal.WithLabelValues("deployments", "patch", "replicaset", "success").Inc()
 	KraneK8sRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "k8s_requests_total",
-			Help:        "Total number of Kubernetes API requests.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "k8s_requests_total",
+			Help:      "Total number of Kubernetes API requests.",
 		},
 		[]string{"controller", "verb", "resource", "result"},
 	)
@@ -122,12 +138,11 @@ var (
 	//   defer timer.ObserveDuration()
 	KraneK8sDurationSeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "k8s_duration_seconds",
-			Help:        "Histogram of Kubernetes API request latencies in seconds.",
-			Buckets:     latencyBuckets,
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "k8s_duration_seconds",
+			Help:      "Histogram of Kubernetes API request latencies in seconds.",
+			Buckets:   latencyBuckets,
 		},
 		[]string{"controller", "verb", "resource"},
 	)
@@ -149,11 +164,10 @@ var (
 	//   metrics.KraneReconcileOperationsTotal.WithLabelValues("deployments", "apply", "success", "ws_123").Inc()
 	KraneReconcileOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "reconcile_operations_total",
-			Help:        "Total number of reconciliation operations (apply/delete).",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "reconcile_operations_total",
+			Help:      "Total number of reconciliation operations (apply/delete).",
 		},
 		[]string{"controller", "operation", "result", "workspace_id"},
 	)
@@ -172,12 +186,11 @@ var (
 	//   defer timer.ObserveDuration()
 	KraneReconcileDurationSeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "reconcile_duration_seconds",
-			Help:        "Histogram of reconciliation operation latencies in seconds.",
-			Buckets:     latencyBuckets,
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "reconcile_duration_seconds",
+			Help:      "Histogram of reconciliation operation latencies in seconds.",
+			Buckets:   latencyBuckets,
 		},
 		[]string{"controller", "operation"},
 	)
@@ -197,11 +210,10 @@ var (
 	//   metrics.KraneResyncCorrectionsTotal.WithLabelValues("deployments").Inc()
 	KraneResyncCorrectionsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "resync_corrections_total",
-			Help:        "Total number of corrections made by the resync loop (indicates missed streaming events).",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "resync_corrections_total",
+			Help:      "Total number of corrections made by the resync loop (indicates missed streaming events).",
 		},
 		[]string{"controller"},
 	)
@@ -219,12 +231,11 @@ var (
 	//   defer timer.ObserveDuration()
 	KraneResyncDurationSeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "resync_duration_seconds",
-			Help:        "Histogram of resync loop iteration durations in seconds.",
-			Buckets:     latencyBuckets,
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "resync_duration_seconds",
+			Help:      "Histogram of resync loop iteration durations in seconds.",
+			Buckets:   latencyBuckets,
 		},
 		[]string{"controller"},
 	)
@@ -243,11 +254,10 @@ var (
 	//   metrics.KraneSecretsRequestsTotal.WithLabelValues("success").Inc()
 	KraneSecretsRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "secrets_requests_total",
-			Help:        "Total number of secrets decryption requests.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "secrets_requests_total",
+			Help:      "Total number of secrets decryption requests.",
 		},
 		[]string{"result"},
 	)
@@ -262,11 +272,10 @@ var (
 	//   metrics.KraneSecretsErrorsTotal.WithLabelValues("unauthenticated").Inc()
 	KraneSecretsErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "secrets_errors_total",
-			Help:        "Total number of secrets service errors by type.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "secrets_errors_total",
+			Help:      "Total number of secrets service errors by type.",
 		},
 		[]string{"type"},
 	)
@@ -279,12 +288,11 @@ var (
 	//   defer timer.ObserveDuration()
 	KraneSecretsDurationSeconds = promauto.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "secrets_duration_seconds",
-			Help:        "Histogram of secrets decryption request latencies in seconds.",
-			Buckets:     latencyBuckets,
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "secrets_duration_seconds",
+			Help:      "Histogram of secrets decryption request latencies in seconds.",
+			Buckets:   latencyBuckets,
 		},
 	)
 
@@ -303,11 +311,10 @@ var (
 	//   metrics.KraneRPCServerRequestsTotal.WithLabelValues("DecryptSecretsBlob", "ok").Inc()
 	KraneRPCServerRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "rpc_server_requests_total",
-			Help:        "Total number of inbound RPC requests to krane server.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "rpc_server_requests_total",
+			Help:      "Total number of inbound RPC requests to krane server.",
 		},
 		[]string{"method", "code"},
 	)
@@ -325,12 +332,11 @@ var (
 	//   defer timer.ObserveDuration()
 	KraneRPCServerDurationSeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "unkey",
-			Subsystem:   "krane",
-			Name:        "rpc_server_duration_seconds",
-			Help:        "Histogram of inbound RPC request latencies in seconds.",
-			Buckets:     latencyBuckets,
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "rpc_server_duration_seconds",
+			Help:      "Histogram of inbound RPC request latencies in seconds.",
+			Buckets:   latencyBuckets,
 		},
 		[]string{"method"},
 	)
