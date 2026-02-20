@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { useCallback, useRef } from "react";
