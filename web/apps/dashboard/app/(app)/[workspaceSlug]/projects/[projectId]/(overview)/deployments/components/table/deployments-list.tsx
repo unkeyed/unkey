@@ -86,7 +86,11 @@ export const DeploymentsList = () => {
                     </div>
                     {isLive ? (
                       <div className="flex-shrink-0">
-                        <EnvStatusBadge variant="live" text="Live" />
+                        {project?.isRolledBack ? (
+                          <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
+                        ) : (
+                          <EnvStatusBadge variant="live" text="Live" />
+                        )}
                       </div>
                     ) : null}
                   </div>
@@ -284,7 +288,7 @@ export const DeploymentsList = () => {
       }}
       keyExtractor={(deployment) => deployment.id}
       rowClassName={(deployment) =>
-        getRowClassName(deployment)
+        getRowClassName(deployment, liveDeploymentId ?? null, project?.isRolledBack ?? false)
       }
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
