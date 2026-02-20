@@ -1366,6 +1366,7 @@ type GithubAppInstallation struct {
 type GithubRepoConnection struct {
 	Pk                 uint64        `db:"pk"`
 	ProjectID          string        `db:"project_id"`
+	AppID              string        `db:"app_id"`
 	InstallationID     int64         `db:"installation_id"`
 	RepositoryID       int64         `db:"repository_id"`
 	RepositoryFullName string        `db:"repository_full_name"`
