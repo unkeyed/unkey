@@ -5,7 +5,7 @@ import type React from "react";
 
 export const FreeTierAlert: React.FC = () => {
   return (
-    <Empty className="border border-gray-4 rounded-xl">
+    <Empty className="border border-gray-4 rounded-xl w-full">
       <Empty.Title>You are on the Free tier.</Empty.Title>
       <Empty.Description>
         The Free tier includes 150k requests of free usage.
