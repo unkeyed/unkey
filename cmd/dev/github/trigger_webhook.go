@@ -64,6 +64,7 @@ var triggerWebhookCmd = &cli.Command{
 	Flags: []cli.Flag{
 		// Required
 		cli.String("project-id", "Unkey project ID", cli.Required()),
+		cli.String("app-id", "Unkey app ID", cli.Required()),
 		cli.String("repository", "Full repository name (e.g., owner/repo)", cli.Required()),
 		cli.String("commit-sha", "Git commit SHA to deploy", cli.Required()),
 
@@ -78,6 +79,7 @@ var triggerWebhookCmd = &cli.Command{
 
 func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	projectID := cmd.RequireString("project-id")
+	appID := cmd.RequireString("app-id")
 	repository := cmd.RequireString("repository")
 	commitSHA := cmd.RequireString("commit-sha")
 	branch := cmd.String("branch")
@@ -114,10 +116,11 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 
 	fmt.Printf("Repository: %s (id: %d)\n", repository, repositoryID)
 	fmt.Printf("Project: %s\n", projectID)
+	fmt.Printf("App: %s\n", appID)
 
 	// Ensure github_repo_connection exists
 	fmt.Println("Ensuring GitHub connection exists in database...")
-	if err := svc.ensureGithubConnection(ctx, projectID, installationID, repositoryID, repository); err != nil {
+	if err := svc.ensureGithubConnection(ctx, projectID, appID, installationID, repositoryID, repository); err != nil {
 		return fmt.Errorf("failed to create GitHub connection: %w", err)
 	}
 	fmt.Println("✔ GitHub connection ready")
@@ -217,10 +220,11 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	}
 }
 
-func (s *Service) ensureGithubConnection(ctx context.Context, projectID string, installationID, repositoryID int64, repository string) error {
+func (s *Service) ensureGithubConnection(ctx context.Context, projectID, appID string, installationID, repositoryID int64, repository string) error {
 	// Try to insert, ignore if already exists
 	err := db.Query.InsertGithubRepoConnection(ctx, s.db.RW(), db.InsertGithubRepoConnectionParams{
 		ProjectID:          projectID,
+		AppID:              appID,
 		InstallationID:     installationID,
 		RepositoryID:       repositoryID,
 		RepositoryFullName: repository,
