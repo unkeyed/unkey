@@ -17,7 +17,8 @@ import (
 //
 // DeployService orchestrates the lifecycle of application deployments as
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash.
+// any step after a crash. Workflows are keyed by app_id to allow concurrent
+// deployments across different apps within the same project.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -161,7 +162,8 @@ func (c *deployServiceIngressClient) ScaleDownIdlePreviewDeployments() ingress.R
 //
 // DeployService orchestrates the lifecycle of application deployments as
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash.
+// any step after a crash. Workflows are keyed by app_id to allow concurrent
+// deployments across different apps within the same project.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote

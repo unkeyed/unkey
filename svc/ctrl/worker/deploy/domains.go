@@ -24,23 +24,25 @@ type newDomain struct {
 
 // buildDomains generates the list of domains that should be assigned to a deployment.
 //
-// The function creates three types of domains:
+// The function creates three or four types of domains:
 //
-// 1. Per-commit domain: `<project>-git-<sha>-<workspace>.<apex>`
+// 1. Per-commit domain: `<app>-<project>-git-<sha>-<workspace>.<apex>`
 //   - Never reassigned, provides stable URL for specific commit
 //   - For CLI uploads, adds random suffix to prevent collisions
 //
-// 2. Per-branch domain: `<project>-git-<branch>-<workspace>.<apex>`
+// 2. Per-branch domain: `<app>-<project>-git-<branch>-<workspace>.<apex>`
 //   - Sticky to branch, always points to latest deployment of that branch
 //   - Branch name is sluggified for URL safety
 //
-// 3. Per-environment domain: `<project>-<environment>-<workspace>.<apex>`
+// 3. Per-environment domain: `<app>-<project>-<environment>-<workspace>.<apex>`
 //   - Sticky to environment, points to latest deployment in that environment
 //   - Can be rolled back to previous deployment
 //
-// The sticky behavior ensures branch and environment domains automatically update to point
-// to new deployments, while commit domains remain immutable.
-func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchName, apex string, source ctrlv1.SourceType) []newDomain {
+// 4. Per-live domain (production only): `<app>-<project>-<workspace>.<apex>`
+//   - Sticky to live, points to the active production deployment
+//
+// All domains include the app slug in the prefix: `<app>-<project>-...`
+func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, branchName, apex string, source ctrlv1.SourceType) []newDomain {
 	// Deploying via CLI often sends the same git sha, and we want to make them unique,
 	// to prevent changes from overwriting each other.
 	randomSuffix := ""
@@ -48,6 +50,8 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 		//nolint: gosec
 		randomSuffix = fmt.Sprintf("-%d", 1000+rand.IntN(9000))
 	}
+
+	prefix := fmt.Sprintf("%s-%s", appSlug, projectSlug)
 
 	var domains []newDomain
 
@@ -59,7 +63,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 		short += randomSuffix
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, short, workspaceSlug, apex),
+				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, short, workspaceSlug, apex),
 				//nolint: exhaustruct
 				sticky: db.FrontlineRoutesStickyNone,
 			},
@@ -70,7 +74,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 		domains = append(
 			domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, sluggify(branchName), workspaceSlug, apex),
+				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, sluggify(branchName), workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyBranch,
 			},
 		)
@@ -79,7 +83,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 	domains = append(
 		domains,
 		newDomain{
-			domain: fmt.Sprintf("%s-%s-%s.%s", projectSlug, environmentSlug, workspaceSlug, apex),
+			domain: fmt.Sprintf("%s-%s-%s.%s", prefix, environmentSlug, workspaceSlug, apex),
 			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
@@ -87,7 +91,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-%s.%s", projectSlug, workspaceSlug, apex),
+				domain: fmt.Sprintf("%s-%s.%s", prefix, workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyLive,
 			})
 	}
