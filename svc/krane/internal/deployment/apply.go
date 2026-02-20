@@ -66,6 +66,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	usedLabels := labels.New().
 		WorkspaceID(req.GetWorkspaceId()).
 		ProjectID(req.GetProjectId()).
+		AppID(req.GetAppId()).
 		EnvironmentID(req.GetEnvironmentId()).
 		DeploymentID(req.GetDeploymentId()).
 		BuildID(req.GetBuildId()).

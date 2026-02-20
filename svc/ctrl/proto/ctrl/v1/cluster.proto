@@ -308,6 +308,10 @@ message ApplyDeployment {
   // healthcheck is a JSON-encoded Healthcheck struct for configuring liveness/readiness probes.
   // If empty, no probes are configured.
   optional bytes healthcheck = 17;
+
+  // app_id identifies the app within the project.
+  // Used for pod labels so Vector can extract it into runtime logs.
+  string app_id = 18;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
