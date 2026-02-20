@@ -43,7 +43,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				logger.Info("No project found for repo connection", "projectId", repo.ProjectID)
 				continue
 			}
-			return nil, err
+			logger.Error("failed to find project for repo connection", "projectId", repo.ProjectID, "error", err)
+			continue
 		}
 
 		defaultBranch := "main"
@@ -64,17 +65,16 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			})
 		}, restate.WithName("find environment"))
 		if err != nil {
-			return nil, err
+			logger.Error("failed to find environment for repo connection", "projectId", repo.ProjectID, "appId", repo.AppID, "envSlug", envSlug, "error", err)
+			continue
 		}
 
-		appRow, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppByProjectAndSlugRow, error) {
-			return db.Query.FindAppByProjectAndSlug(runCtx, s.db.RO(), db.FindAppByProjectAndSlugParams{
-				ProjectID: project.ID,
-				Slug:      "default",
-			})
-		}, restate.WithName("find default app"))
+		appRow, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppByIdRow, error) {
+			return db.Query.FindAppById(runCtx, s.db.RO(), repo.AppID)
+		}, restate.WithName("find app"))
 		if err != nil {
-			return nil, err
+			logger.Error("failed to find app for repo connection", "appId", repo.AppID, "error", err)
+			continue
 		}
 		app := appRow.App
 
@@ -85,7 +85,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			})
 		}, restate.WithName("find runtime settings"))
 		if err != nil {
-			return nil, err
+			logger.Error("failed to find runtime settings", "appId", app.ID, "envId", env.ID, "error", err)
+			continue
 		}
 		runtimeSettings := runtimeRow.AppRuntimeSetting
 
@@ -96,7 +97,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			})
 		}, restate.WithName("find build settings"))
 		if err != nil {
-			return nil, err
+			logger.Error("failed to find build settings", "appId", app.ID, "envId", env.ID, "error", err)
+			continue
 		}
 		buildSettings := buildRow.AppBuildSetting
 
@@ -107,7 +109,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			})
 		}, restate.WithName("find env vars"))
 		if err != nil {
-			return nil, err
+			logger.Error("failed to find env vars", "appId", app.ID, "envId", env.ID, "error", err)
+			continue
 		}
 
 		secretsBlob := []byte{}
@@ -120,7 +123,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			}
 			secretsBlob, err = protojson.Marshal(secretsConfig)
 			if err != nil {
-				return nil, restate.TerminalError(err)
+				logger.Error("failed to marshal secrets config", "appId", app.ID, "error", err)
+				continue
 			}
 		}
 
@@ -162,13 +166,15 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			})
 		}, restate.WithName("insert deployment"))
 		if err != nil {
-			return nil, err
+			logger.Error("failed to insert deployment", "appId", app.ID, "error", err)
+			continue
 		}
 
 		logger.Info("Created deployment record",
 			"deployment_id", deploymentID,
 			"delivery_id", req.GetDeliveryId(),
 			"project_id", project.ID,
+			"app_id", app.ID,
 			"repository", req.GetRepositoryFullName(),
 			"commit_sha", req.GetAfter(),
 			"branch", req.GetBranch(),
@@ -194,6 +200,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"deployment_id", deploymentID,
 			"delivery_id", req.GetDeliveryId(),
 			"project_id", project.ID,
+			"app_id", app.ID,
 			"repository", req.GetRepositoryFullName(),
 			"commit_sha", req.GetAfter(),
 		)
