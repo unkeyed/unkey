@@ -35,7 +35,6 @@ export const ROLLED_BACK_STYLES = {
   hover: "hover:text-grayA-11 hover:bg-warning-4",
   badge: {
     default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
-    selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5 border-grayA-3",
   },
   focusRing: "focus:ring-warning-7",
 };

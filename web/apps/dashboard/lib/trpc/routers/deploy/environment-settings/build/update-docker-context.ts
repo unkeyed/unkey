@@ -1,5 +1,5 @@
 import { and, db, eq } from "@/lib/db";
-import { environmentBuildSettings } from "@unkey/db/src/schema";
+import { appBuildSettings, apps } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
@@ -11,13 +11,21 @@ export const updateDockerContext = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const app = await db.query.apps.findFirst({
+      where: and(eq(apps.workspaceId, ctx.workspace.id)),
+      columns: { id: true },
+    });
+    if (!app) {
+      return;
+    }
     await db
-      .update(environmentBuildSettings)
+      .update(appBuildSettings)
       .set({ dockerContext: input.dockerContext })
       .where(
         and(
-          eq(environmentBuildSettings.workspaceId, ctx.workspace.id),
-          eq(environmentBuildSettings.environmentId, input.environmentId),
+          eq(appBuildSettings.workspaceId, ctx.workspace.id),
+          eq(appBuildSettings.appId, app.id),
+          eq(appBuildSettings.environmentId, input.environmentId),
         ),
       );
   });
