@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -89,31 +88,3 @@ func (d *wanDelegate) NotifyMsg(data []byte) {
 	lanQ.QueueBroadcast(newBroadcast(lanBytes))
 	metrics.ClusterRelaysTotal.WithLabelValues("wan_to_lan").Inc()
 }
-
-// wanEventDelegate tracks WAN pool membership changes for metrics.
-// It uses an atomic counter instead of calling NumMembers() because
-// NotifyJoin/NotifyLeave are called while memberlist holds its internal
-// nodeLock, and NumMembers() also acquires that lock.
-type wanEventDelegate struct {
-	count atomic.Int64
-}
-
-var _ memberlist.EventDelegate = (*wanEventDelegate)(nil)
-
-func newWANEventDelegate(_ *gossipCluster) *wanEventDelegate {
-	return &wanEventDelegate{
-		count: atomic.Int64{},
-	}
-}
-
-func (d *wanEventDelegate) NotifyJoin(node *memberlist.Node) {
-	n := d.count.Add(1)
-	metrics.ClusterMembersCount.WithLabelValues("wan").Set(float64(n))
-}
-
-func (d *wanEventDelegate) NotifyLeave(node *memberlist.Node) {
-	n := d.count.Add(-1)
-	metrics.ClusterMembersCount.WithLabelValues("wan").Set(float64(n))
-}
-
-func (d *wanEventDelegate) NotifyUpdate(node *memberlist.Node) {}

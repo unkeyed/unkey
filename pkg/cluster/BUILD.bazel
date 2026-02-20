@@ -20,6 +20,7 @@ go_library(
         "//gen/proto/cluster/v1:cluster",
         "//pkg/cluster/metrics",
         "//pkg/logger",
+        "//pkg/repeat",
         "@com_github_hashicorp_memberlist//:memberlist",
         "@org_golang_google_protobuf//proto",
     ],

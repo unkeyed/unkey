@@ -11,6 +11,7 @@ import (
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/repeat"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -44,6 +45,9 @@ type gossipCluster struct {
 	// where memberlist holds its internal state lock.
 	evalCh chan struct{}
 	done   chan struct{}
+
+	// stopMetrics stops the periodic member count gauge updater.
+	stopMetrics func()
 }
 
 // New creates a new cluster node, starts the LAN memberlist, joins LAN seeds,
@@ -52,16 +56,17 @@ func New(cfg Config) (Cluster, error) {
 	cfg.setDefaults()
 
 	c := &gossipCluster{
-		config:   cfg,
-		mu:       sync.RWMutex{},
-		lan:      nil,
-		lanQueue: nil,
-		wan:      nil,
-		wanQueue: nil,
-		isBridge: false,
-		closing:  atomic.Bool{},
-		evalCh:   make(chan struct{}, 1),
-		done:     make(chan struct{}),
+		config:      cfg,
+		mu:          sync.RWMutex{},
+		lan:         nil,
+		lanQueue:    nil,
+		wan:         nil,
+		wanQueue:    nil,
+		isBridge:    false,
+		closing:     atomic.Bool{},
+		evalCh:      make(chan struct{}, 1),
+		done:        make(chan struct{}),
+		stopMetrics: nil, // set below
 	}
 
 	// Start the async bridge evaluator
@@ -101,6 +106,22 @@ func New(cfg Config) (Cluster, error) {
 			return c.lan
 		}, cfg.LANSeeds, c.triggerEvalBridge)
 	}
+
+	// Periodically update pool member count gauges. This avoids tracking
+	// counts inside memberlist callbacks where internal locks are held.
+	c.stopMetrics = repeat.Every(1*time.Minute, func() {
+		c.mu.RLock()
+		lan := c.lan
+		wan := c.wan
+		c.mu.RUnlock()
+
+		if lan != nil {
+			metrics.ClusterMembersCount.WithLabelValues("lan").Set(float64(lan.NumMembers()))
+		}
+		if wan != nil {
+			metrics.ClusterMembersCount.WithLabelValues("wan").Set(float64(wan.NumMembers()))
+		}
+	})
 
 	// Trigger initial bridge evaluation
 	c.triggerEvalBridge()
@@ -264,6 +285,10 @@ func (c *gossipCluster) Close() error {
 		return nil
 	}
 	close(c.done)
+
+	if c.stopMetrics != nil {
+		c.stopMetrics()
+	}
 
 	// Demote from bridge first (leaves WAN).
 	c.demoteFromBridge()

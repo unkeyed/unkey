@@ -26,7 +26,6 @@ func (c *gossipCluster) evaluateBridge() {
 	}
 
 	members := lan.Members()
-	metrics.ClusterMembersCount.WithLabelValues("lan").Set(float64(len(members)))
 	if len(members) == 0 {
 		return
 	}
@@ -68,7 +67,6 @@ func (c *gossipCluster) promoteToBridge() {
 	wanCfg.SecretKey = c.config.SecretKey
 
 	wanCfg.Delegate = newWANDelegate(c)
-	wanCfg.Events = newWANEventDelegate(c)
 
 	wanList, err := memberlist.Create(wanCfg)
 	if err != nil {
