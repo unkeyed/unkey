@@ -74,7 +74,7 @@ export const PermissionSheet = ({
               onChange={handleSearchChange}
             />
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
             <div className="flex flex-col pt-0 mt-0 gap-1 pb-6">
               {hasNoResults ? (
                 <p className="text-sm text-gray-10 ml-6 py-1.5 mt-1.5">
