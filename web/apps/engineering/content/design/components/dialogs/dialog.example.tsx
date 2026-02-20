@@ -127,7 +127,7 @@ export const DialogExample: React.FC = () => {
       <DialogTrigger asChild>
         <Button variant="outline">Open Custom Dialog</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900">
+      <DialogContent className="max-w-md bg-linear-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900">
         <DialogHeader>
           <DialogTitle className="text-blue-900 dark:text-blue-100">
             Custom Styled Dialog
@@ -265,7 +265,7 @@ export const DialogExample: React.FC = () => {
               <DialogTrigger asChild>
                 <Button variant="outline">Open Custom Dialog</Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900">
+              <DialogContent className="max-w-md bg-linear-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900">
                 <DialogHeader>
                   <DialogTitle className="text-blue-900 dark:text-blue-100">
                     Custom Styled Dialog

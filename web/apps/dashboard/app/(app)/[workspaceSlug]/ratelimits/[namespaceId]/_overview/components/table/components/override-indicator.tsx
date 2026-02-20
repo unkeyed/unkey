@@ -40,7 +40,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           </div>
         }
       >
-        <div className={cn(hasMoreBlocked ? "flex items-center flex-shrink-0" : "invisible")}>
+        <div className={cn(hasMoreBlocked ? "flex items-center shrink-0" : "invisible")}>
           <TriangleWarning2 iconSize="md-medium" />
         </div>
       </InfoTooltip>
@@ -48,7 +48,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
         <div
           className={cn(
             style.badge.default,
-            "rounded p-1",
+            "rounded-sm p-1",
             hasMoreBlocked ? "" : "group-hover:bg-accent-6",
           )}
         >
@@ -85,7 +85,7 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
         <div
           className={cn(
             style.badge.default,
-            "rounded p-1",
+            "rounded-sm p-1",
             "bg-accent-4 text-accent-12 group-hover:bg-accent-5",
           )}
         >

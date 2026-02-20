@@ -96,7 +96,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
 
   return (
     <div className="flex flex-col max-w-sm mx-auto text-left">
-      <h1 className="text-4xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/30">
+      <h1 className="text-4xl text-transparent bg-clip-text bg-linear-to-r from-white to-white/30">
         Security code sent!
       </h1>
       <p className="mt-4 text-sm text-white/40">
@@ -157,7 +157,7 @@ const Slot: React.FC<SlotProps> = (props) => (
       "flex items-center justify-center",
       "transition-all duration-300",
       "group-hover:border-white/50 group-focus-within:border-white/50",
-      "outline outline-0 outline-white",
+      "outline-solid outline-0 outline-white",
       { "outline-1 ": props.isActive },
     )}
   >

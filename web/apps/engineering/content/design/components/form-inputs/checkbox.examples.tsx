@@ -12,7 +12,7 @@ export function CheckboxBasicVariants() {
     <div className="flex flex-wrap items-center gap-4">
       <Checkbox id="primary-default" />
       <Checkbox id="primary-checked" checked />
-      <Checkbox id="primary-focus" className="!ring-4 !ring-gray-6" />
+      <Checkbox id="primary-focus" className="ring-4! ring-gray-6!" />
       <Checkbox id="primary-disabled" disabled />
       <Checkbox id="primary-disabled-checked" disabled checked />
     </div>
@@ -23,7 +23,7 @@ export function CheckboxBasicVariants() {
     <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
       <Checkbox id="primary-dark-default" />
       <Checkbox id="primary-dark-checked" checked />
-      <Checkbox id="primary-dark-focus" className="!ring-4 !ring-gray-6" />
+      <Checkbox id="primary-dark-focus" className="ring-4! ring-gray-6!" />
       <Checkbox id="primary-dark-disabled" disabled />
       <Checkbox id="primary-dark-disabled-checked" disabled checked />
     </div>
@@ -33,10 +33,10 @@ export function CheckboxBasicVariants() {
       <div className="flex flex-col gap-6">
         <div>
           <h4 className="text-sm font-medium mb-2">Light</h4>
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4 w-full">
             <Checkbox id="primary-default" />
             <Checkbox id="primary-checked" checked />
-            <Checkbox id="primary-focus" className="!ring-4 !ring-gray-6" />
+            <Checkbox id="primary-focus" className="ring-4! ring-gray-6!" />
             <Checkbox id="primary-disabled" disabled />
             <Checkbox id="primary-disabled-checked" disabled checked />
           </div>
@@ -47,7 +47,7 @@ export function CheckboxBasicVariants() {
           <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
             <Checkbox id="primary-dark-default" />
             <Checkbox id="primary-dark-checked" checked />
-            <Checkbox id="primary-dark-focus" className="!ring-4 !ring-gray-6" />
+            <Checkbox id="primary-dark-focus" className="ring-4! ring-gray-6!" />
             <Checkbox id="primary-dark-disabled" disabled />
             <Checkbox id="primary-dark-disabled-checked" disabled checked />
           </div>
@@ -69,7 +69,7 @@ export function CheckboxOutlineVariants() {
     <Checkbox
       id="outline-focus"
       variant="outline"
-      className="!ring-4 !ring-gray-6 !border-grayA-12"
+      className="ring-4! ring-gray-6! border-grayA-12!"
     />
     <Checkbox id="outline-disabled" variant="outline" disabled />
     <Checkbox id="outline-disabled-checked" variant="outline" disabled checked />
@@ -83,7 +83,7 @@ export function CheckboxOutlineVariants() {
       <Checkbox
         id="outline-dark-focus"
         variant="outline"
-        className="!ring-4 !ring-gray-6 !border-grayA-12"
+        className="ring-4! ring-gray-6! border-grayA-12!"
       />
       <Checkbox id="outline-dark-disabled" variant="outline" disabled />
       <Checkbox id="outline-dark-disabled-checked" variant="outline" disabled checked />
@@ -100,7 +100,7 @@ export function CheckboxOutlineVariants() {
             <Checkbox
               id="outline-focus"
               variant="outline"
-              className="!ring-4 !ring-gray-6 !border-grayA-12"
+              className="ring-4! ring-gray-6! border-grayA-12!"
             />
             <Checkbox id="outline-disabled" variant="outline" disabled />
             <Checkbox id="outline-disabled-checked" variant="outline" disabled checked />
@@ -115,7 +115,7 @@ export function CheckboxOutlineVariants() {
             <Checkbox
               id="outline-dark-focus"
               variant="outline"
-              className="!ring-4 !ring-gray-6 !border-grayA-12"
+              className="ring-4! ring-gray-6! border-grayA-12!"
             />
             <Checkbox id="outline-dark-disabled" variant="outline" disabled />
             <Checkbox id="outline-dark-disabled-checked" variant="outline" disabled checked />
@@ -135,11 +135,11 @@ export function CheckboxGhostVariants() {
     <div className="flex flex-wrap items-center gap-4">
       <Checkbox id="ghost-default" variant="ghost" />
       <Checkbox id="ghost-checked" variant="ghost" checked />
-      <Checkbox id="ghost-hover" variant="ghost" className="!bg-grayA-2" />
+      <Checkbox id="ghost-hover" variant="ghost" className="bg-grayA-2!" />
       <Checkbox
         id="ghost-focus"
         variant="ghost"
-        className="!ring-4 !ring-gray-6 !border-grayA-12"
+        className="ring-4! ring-gray-6! border-grayA-12!"
       />
       <Checkbox id="ghost-disabled" variant="ghost" disabled />
       <Checkbox id="ghost-disabled-checked" variant="ghost" disabled checked />
@@ -151,11 +151,11 @@ export function CheckboxGhostVariants() {
     <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
       <Checkbox id="ghost-dark-default" variant="ghost" />
       <Checkbox id="ghost-dark-checked" variant="ghost" checked />
-      <Checkbox id="ghost-dark-hover" variant="ghost" className="!bg-grayA-2" />
+      <Checkbox id="ghost-dark-hover" variant="ghost" className="bg-grayA-2!" />
       <Checkbox
         id="ghost-dark-focus"
         variant="ghost"
-        className="!ring-4 !ring-gray-6 !border-grayA-12"
+        className="ring-4! ring-gray-6! border-grayA-12!"
       />
       <Checkbox id="ghost-dark-disabled" variant="ghost" disabled />
       <Checkbox id="ghost-dark-disabled-checked" variant="ghost" disabled checked />
@@ -169,11 +169,11 @@ export function CheckboxGhostVariants() {
           <div className="flex flex-wrap items-center gap-4">
             <Checkbox id="ghost-default" variant="ghost" />
             <Checkbox id="ghost-checked" variant="ghost" checked />
-            <Checkbox id="ghost-hover" variant="ghost" className="!bg-grayA-2" />
+            <Checkbox id="ghost-hover" variant="ghost" className="bg-grayA-2!" />
             <Checkbox
               id="ghost-focus"
               variant="ghost"
-              className="!ring-4 !ring-gray-6 !border-grayA-12"
+              className="ring-4! ring-gray-6! border-grayA-12!"
             />
             <Checkbox id="ghost-disabled" variant="ghost" disabled />
             <Checkbox id="ghost-disabled-checked" variant="ghost" disabled checked />
@@ -185,11 +185,11 @@ export function CheckboxGhostVariants() {
           <div className="bg-black p-4 rounded-md flex flex-wrap items-center gap-4 dark">
             <Checkbox id="ghost-dark-default" variant="ghost" />
             <Checkbox id="ghost-dark-checked" variant="ghost" checked />
-            <Checkbox id="ghost-dark-hover" variant="ghost" className="!bg-grayA-2" />
+            <Checkbox id="ghost-dark-hover" variant="ghost" className="bg-grayA-2!" />
             <Checkbox
               id="ghost-dark-focus"
               variant="ghost"
-              className="!ring-4 !ring-gray-6 !border-grayA-12"
+              className="ring-4! ring-gray-6! border-grayA-12!"
             />
             <Checkbox id="ghost-dark-disabled" variant="ghost" disabled />
             <Checkbox id="ghost-dark-disabled-checked" variant="ghost" disabled checked />
@@ -213,7 +213,7 @@ export function CheckboxDangerPrimary() {
         id="danger-primary-focus"
         variant="primary"
         color="danger"
-        className="!ring-4 !ring-error-6"
+        className="ring-4! ring-error-6!"
       />
       <Checkbox id="danger-primary-disabled" variant="primary" color="danger" disabled />
       <Checkbox
@@ -235,7 +235,7 @@ export function CheckboxDangerPrimary() {
         id="danger-primary-dark-focus"
         variant="primary"
         color="danger"
-        className="!ring-4 !ring-error-6"
+        className="ring-4! ring-error-6!"
       />
       <Checkbox id="danger-primary-dark-disabled" variant="primary" color="danger" disabled />
       <Checkbox
@@ -259,7 +259,7 @@ export function CheckboxDangerPrimary() {
               id="danger-primary-focus"
               variant="primary"
               color="danger"
-              className="!ring-4 !ring-error-6"
+              className="ring-4! ring-error-6!"
             />
             <Checkbox id="danger-primary-disabled" variant="primary" color="danger" disabled />
             <Checkbox
@@ -281,7 +281,7 @@ export function CheckboxDangerPrimary() {
               id="danger-primary-dark-focus"
               variant="primary"
               color="danger"
-              className="!ring-4 !ring-error-6"
+              className="ring-4! ring-error-6!"
             />
             <Checkbox id="danger-primary-dark-disabled" variant="primary" color="danger" disabled />
             <Checkbox
@@ -311,7 +311,7 @@ export function CheckboxDangerOutline() {
         id="danger-outline-focus"
         variant="outline"
         color="danger"
-        className="!ring-4 !ring-error-6 !border-error-9"
+        className="ring-4! ring-error-6! border-error-9!"
       />
       <Checkbox id="danger-outline-disabled" variant="outline" color="danger" disabled />
       <Checkbox
@@ -333,7 +333,7 @@ export function CheckboxDangerOutline() {
         id="danger-outline-dark-focus"
         variant="outline"
         color="danger"
-        className="!ring-4 !ring-error-6 !border-error-9"
+        className="ring-4! ring-error-6! border-error-9!"
       />
       <Checkbox id="danger-outline-dark-disabled" variant="outline" color="danger" disabled />
       <Checkbox
@@ -357,7 +357,7 @@ export function CheckboxDangerOutline() {
               id="danger-outline-focus"
               variant="outline"
               color="danger"
-              className="!ring-4 !ring-error-6 !border-error-9"
+              className="ring-4! ring-error-6! border-error-9!"
             />
             <Checkbox id="danger-outline-disabled" variant="outline" color="danger" disabled />
             <Checkbox
@@ -379,7 +379,7 @@ export function CheckboxDangerOutline() {
               id="danger-outline-dark-focus"
               variant="outline"
               color="danger"
-              className="!ring-4 !ring-error-6 !border-error-9"
+              className="ring-4! ring-error-6! border-error-9!"
             />
             <Checkbox id="danger-outline-dark-disabled" variant="outline" color="danger" disabled />
             <Checkbox
@@ -410,13 +410,13 @@ export function CheckboxDangerGhost() {
           id="danger-ghost-hover"
           variant="ghost"
           color="danger"
-          className="!bg-error-3"
+          className="bg-error-3!"
         />
         <Checkbox
           id="danger-ghost-focus"
           variant="ghost"
           color="danger"
-          className="!ring-4 !ring-error-6 !border-error-9"
+          className="ring-4! ring-error-6! border-error-9!"
         />
         <Checkbox id="danger-ghost-disabled" variant="ghost" color="danger" disabled />
         <Checkbox
@@ -438,13 +438,13 @@ export function CheckboxDangerGhost() {
           id="danger-ghost-dark-hover"
           variant="ghost"
           color="danger"
-          className="!bg-error-3"
+          className="bg-error-3!"
         />
         <Checkbox
           id="danger-ghost-dark-focus"
           variant="ghost"
           color="danger"
-          className="!ring-4 !ring-error-6 !border-error-9"
+          className="ring-4! ring-error-6! border-error-9!"
         />
         <Checkbox id="danger-ghost-dark-disabled" variant="ghost" color="danger" disabled />
         <Checkbox
@@ -469,13 +469,13 @@ export function CheckboxDangerGhost() {
               id="danger-ghost-hover"
               variant="ghost"
               color="danger"
-              className="!bg-error-3"
+              className="bg-error-3!"
             />
             <Checkbox
               id="danger-ghost-focus"
               variant="ghost"
               color="danger"
-              className="!ring-4 !ring-error-6 !border-error-9"
+              className="ring-4! ring-error-6! border-error-9!"
             />
             <Checkbox id="danger-ghost-disabled" variant="ghost" color="danger" disabled />
             <Checkbox
@@ -497,13 +497,13 @@ export function CheckboxDangerGhost() {
               id="danger-ghost-dark-hover"
               variant="ghost"
               color="danger"
-              className="!bg-error-3"
+              className="bg-error-3!"
             />
             <Checkbox
               id="danger-ghost-dark-focus"
               variant="ghost"
               color="danger"
-              className="!ring-4 !ring-error-6 !border-error-9"
+              className="ring-4! ring-error-6! border-error-9!"
             />
             <Checkbox id="danger-ghost-dark-disabled" variant="ghost" color="danger" disabled />
             <Checkbox
@@ -533,7 +533,7 @@ export function CheckboxWarningPrimary() {
         id="warning-primary-focus"
         variant="primary"
         color="warning"
-        className="!ring-4 !ring-warning-6"
+        className="ring-4! ring-warning-6!"
       />
       <Checkbox id="warning-primary-disabled" variant="primary" color="warning" disabled />
       <Checkbox
@@ -555,7 +555,7 @@ export function CheckboxWarningPrimary() {
         id="warning-primary-dark-focus"
         variant="primary"
         color="warning"
-        className="!ring-4 !ring-warning-6"
+        className="ring-4! ring-warning-6!"
       />
       <Checkbox
         id="warning-primary-dark-disabled"
@@ -584,7 +584,7 @@ export function CheckboxWarningPrimary() {
               id="warning-primary-focus"
               variant="primary"
               color="warning"
-              className="!ring-4 !ring-warning-6"
+              className="ring-4! ring-warning-6!"
             />
             <Checkbox id="warning-primary-disabled" variant="primary" color="warning" disabled />
             <Checkbox
@@ -606,7 +606,7 @@ export function CheckboxWarningPrimary() {
               id="warning-primary-dark-focus"
               variant="primary"
               color="warning"
-              className="!ring-4 !ring-warning-6"
+              className="ring-4! ring-warning-6!"
             />
             <Checkbox
               id="warning-primary-dark-disabled"
@@ -641,7 +641,7 @@ export function CheckboxWarningOutline() {
         id="warning-outline-focus"
         variant="outline"
         color="warning"
-        className="!ring-4 !ring-warning-6 !border-warning-9"
+        className="ring-4! ring-warning-6! border-warning-9!"
       />
       <Checkbox id="warning-outline-disabled" variant="outline" color="warning" disabled />
       <Checkbox
@@ -663,7 +663,7 @@ export function CheckboxWarningOutline() {
         id="warning-outline-dark-focus"
         variant="outline"
         color="warning"
-        className="!ring-4 !ring-warning-6 !border-warning-9"
+        className="ring-4! ring-warning-6! border-warning-9!"
       />
       <Checkbox
         id="warning-outline-dark-disabled"
@@ -692,7 +692,7 @@ export function CheckboxWarningOutline() {
               id="warning-outline-focus"
               variant="outline"
               color="warning"
-              className="!ring-4 !ring-warning-6 !border-warning-9"
+              className="ring-4! ring-warning-6! border-warning-9!"
             />
             <Checkbox id="warning-outline-disabled" variant="outline" color="warning" disabled />
             <Checkbox
@@ -714,7 +714,7 @@ export function CheckboxWarningOutline() {
               id="warning-outline-dark-focus"
               variant="outline"
               color="warning"
-              className="!ring-4 !ring-warning-6 !border-warning-9"
+              className="ring-4! ring-warning-6! border-warning-9!"
             />
             <Checkbox
               id="warning-outline-dark-disabled"
@@ -749,13 +749,13 @@ export function CheckboxWarningGhost() {
         id="warning-ghost-hover"
         variant="ghost"
         color="warning"
-        className="!bg-warning-3"
+        className="bg-warning-3!"
       />
       <Checkbox
         id="warning-ghost-focus"
         variant="ghost"
         color="warning"
-        className="!ring-4 !ring-warning-6 !border-warning-9"
+        className="ring-4! ring-warning-6! border-warning-9!"
       />
       <Checkbox id="warning-ghost-disabled" variant="ghost" color="warning" disabled />
       <Checkbox
@@ -777,13 +777,13 @@ export function CheckboxWarningGhost() {
         id="warning-ghost-dark-hover"
         variant="ghost"
         color="warning"
-        className="!bg-warning-3"
+        className="bg-warning-3!"
       />
       <Checkbox
         id="warning-ghost-dark-focus"
         variant="ghost"
         color="warning"
-        className="!ring-4 !ring-warning-6 !border-warning-9"
+        className="ring-4! ring-warning-6! border-warning-9!"
       />
       <Checkbox id="warning-ghost-dark-disabled" variant="ghost" color="warning" disabled />
       <Checkbox
@@ -807,13 +807,13 @@ export function CheckboxWarningGhost() {
               id="warning-ghost-hover"
               variant="ghost"
               color="warning"
-              className="!bg-warning-3"
+              className="bg-warning-3!"
             />
             <Checkbox
               id="warning-ghost-focus"
               variant="ghost"
               color="warning"
-              className="!ring-4 !ring-warning-6 !border-warning-9"
+              className="ring-4! ring-warning-6! border-warning-9!"
             />
             <Checkbox id="warning-ghost-disabled" variant="ghost" color="warning" disabled />
             <Checkbox
@@ -835,13 +835,13 @@ export function CheckboxWarningGhost() {
               id="warning-ghost-dark-hover"
               variant="ghost"
               color="warning"
-              className="!bg-warning-3"
+              className="bg-warning-3!"
             />
             <Checkbox
               id="warning-ghost-dark-focus"
               variant="ghost"
               color="warning"
-              className="!ring-4 !ring-warning-6 !border-warning-9"
+              className="ring-4! ring-warning-6! border-warning-9!"
             />
             <Checkbox id="warning-ghost-dark-disabled" variant="ghost" color="warning" disabled />
             <Checkbox
@@ -871,7 +871,7 @@ export function CheckboxSuccessPrimary() {
         id="success-primary-focus"
         variant="primary"
         color="success"
-        className="!ring-4 !ring-success-6"
+        className="ring-4! ring-success-6!"
       />
       <Checkbox id="success-primary-disabled" variant="primary" color="success" disabled />
       <Checkbox
@@ -893,7 +893,7 @@ export function CheckboxSuccessPrimary() {
         id="success-primary-dark-focus"
         variant="primary"
         color="success"
-        className="!ring-4 !ring-success-6"
+        className="ring-4! ring-success-6!"
       />
       <Checkbox
         id="success-primary-dark-disabled"
@@ -922,7 +922,7 @@ export function CheckboxSuccessPrimary() {
               id="success-primary-focus"
               variant="primary"
               color="success"
-              className="!ring-4 !ring-success-6"
+              className="ring-4! ring-success-6!"
             />
             <Checkbox id="success-primary-disabled" variant="primary" color="success" disabled />
             <Checkbox
@@ -944,7 +944,7 @@ export function CheckboxSuccessPrimary() {
               id="success-primary-dark-focus"
               variant="primary"
               color="success"
-              className="!ring-4 !ring-success-6"
+              className="ring-4! ring-success-6!"
             />
             <Checkbox
               id="success-primary-dark-disabled"
@@ -979,7 +979,7 @@ export function CheckboxSuccessOutline() {
         id="success-outline-focus"
         variant="outline"
         color="success"
-        className="!ring-4 !ring-success-6 !border-success-9"
+        className="ring-4! ring-success-6! border-success-9!"
       />
       <Checkbox id="success-outline-disabled" variant="outline" color="success" disabled />
       <Checkbox
@@ -1001,7 +1001,7 @@ export function CheckboxSuccessOutline() {
         id="success-outline-dark-focus"
         variant="outline"
         color="success"
-        className="!ring-4 !ring-success-6 !border-success-9"
+        className="ring-4! ring-success-6! border-success-9!"
       />
       <Checkbox
         id="success-outline-dark-disabled"
@@ -1030,7 +1030,7 @@ export function CheckboxSuccessOutline() {
               id="success-outline-focus"
               variant="outline"
               color="success"
-              className="!ring-4 !ring-success-6 !border-success-9"
+              className="ring-4! ring-success-6! border-success-9!"
             />
             <Checkbox id="success-outline-disabled" variant="outline" color="success" disabled />
             <Checkbox
@@ -1052,7 +1052,7 @@ export function CheckboxSuccessOutline() {
               id="success-outline-dark-focus"
               variant="outline"
               color="success"
-              className="!ring-4 !ring-success-6 !border-success-9"
+              className="ring-4! ring-success-6! border-success-9!"
             />
             <Checkbox
               id="success-outline-dark-disabled"
@@ -1087,13 +1087,13 @@ export function CheckboxSuccessGhost() {
         id="success-ghost-hover"
         variant="ghost"
         color="success"
-        className="!bg-success-3"
+        className="bg-success-3!"
       />
       <Checkbox
         id="success-ghost-focus"
         variant="ghost"
         color="success"
-        className="!ring-4 !ring-success-6 !border-success-9"
+        className="ring-4! ring-success-6! border-success-9!"
       />
       <Checkbox id="success-ghost-disabled" variant="ghost" color="success" disabled />
       <Checkbox
@@ -1115,13 +1115,13 @@ export function CheckboxSuccessGhost() {
         id="success-ghost-dark-hover"
         variant="ghost"
         color="success"
-        className="!bg-success-3"
+        className="bg-success-3!"
       />
       <Checkbox
         id="success-ghost-dark-focus"
         variant="ghost"
         color="success"
-        className="!ring-4 !ring-success-6 !border-success-9"
+        className="ring-4! ring-success-6! border-success-9!"
       />
       <Checkbox id="success-ghost-dark-disabled" variant="ghost" color="success" disabled />
       <Checkbox
@@ -1145,13 +1145,13 @@ export function CheckboxSuccessGhost() {
               id="success-ghost-hover"
               variant="ghost"
               color="success"
-              className="!bg-success-3"
+              className="bg-success-3!"
             />
             <Checkbox
               id="success-ghost-focus"
               variant="ghost"
               color="success"
-              className="!ring-4 !ring-success-6 !border-success-9"
+              className="ring-4! ring-success-6! border-success-9!"
             />
             <Checkbox id="success-ghost-disabled" variant="ghost" color="success" disabled />
             <Checkbox
@@ -1173,13 +1173,13 @@ export function CheckboxSuccessGhost() {
               id="success-ghost-dark-hover"
               variant="ghost"
               color="success"
-              className="!bg-success-3"
+              className="bg-success-3!"
             />
             <Checkbox
               id="success-ghost-dark-focus"
               variant="ghost"
               color="success"
-              className="!ring-4 !ring-success-6 !border-success-9"
+              className="ring-4! ring-success-6! border-success-9!"
             />
             <Checkbox id="success-ghost-dark-disabled" variant="ghost" color="success" disabled />
             <Checkbox
@@ -1209,7 +1209,7 @@ export function CheckboxInfoPrimary() {
         id="info-primary-focus"
         variant="primary"
         color="info"
-        className="!ring-4 !ring-info-6"
+        className="ring-4! ring-info-6!"
       />
       <Checkbox id="info-primary-disabled" variant="primary" color="info" disabled />
       <Checkbox
@@ -1231,7 +1231,7 @@ export function CheckboxInfoPrimary() {
         id="info-primary-dark-focus"
         variant="primary"
         color="info"
-        className="!ring-4 !ring-info-6"
+        className="ring-4! ring-info-6!"
       />
       <Checkbox id="info-primary-dark-disabled" variant="primary" color="info" disabled />
       <Checkbox
@@ -1255,7 +1255,7 @@ export function CheckboxInfoPrimary() {
               id="info-primary-focus"
               variant="primary"
               color="info"
-              className="!ring-4 !ring-info-6"
+              className="ring-4! ring-info-6!"
             />
             <Checkbox id="info-primary-disabled" variant="primary" color="info" disabled />
             <Checkbox
@@ -1277,7 +1277,7 @@ export function CheckboxInfoPrimary() {
               id="info-primary-dark-focus"
               variant="primary"
               color="info"
-              className="!ring-4 !ring-info-6"
+              className="ring-4! ring-info-6!"
             />
             <Checkbox id="info-primary-dark-disabled" variant="primary" color="info" disabled />
             <Checkbox
@@ -1307,7 +1307,7 @@ export function CheckboxInfoOutline() {
         id="info-outline-focus"
         variant="outline"
         color="info"
-        className="!ring-4 !ring-info-6 !border-info-9"
+        className="ring-4! ring-info-6! border-info-9!"
       />
       <Checkbox id="info-outline-disabled" variant="outline" color="info" disabled />
       <Checkbox
@@ -1329,7 +1329,7 @@ export function CheckboxInfoOutline() {
         id="info-outline-dark-focus"
         variant="outline"
         color="info"
-        className="!ring-4 !ring-info-6 !border-info-9"
+        className="ring-4! ring-info-6! border-info-9!"
       />
       <Checkbox id="info-outline-dark-disabled" variant="outline" color="info" disabled />
       <Checkbox
@@ -1353,7 +1353,7 @@ export function CheckboxInfoOutline() {
               id="info-outline-focus"
               variant="outline"
               color="info"
-              className="!ring-4 !ring-info-6 !border-info-9"
+              className="ring-4! ring-info-6! border-info-9!"
             />
             <Checkbox id="info-outline-disabled" variant="outline" color="info" disabled />
             <Checkbox
@@ -1375,7 +1375,7 @@ export function CheckboxInfoOutline() {
               id="info-outline-dark-focus"
               variant="outline"
               color="info"
-              className="!ring-4 !ring-info-6 !border-info-9"
+              className="ring-4! ring-info-6! border-info-9!"
             />
             <Checkbox id="info-outline-dark-disabled" variant="outline" color="info" disabled />
             <Checkbox
@@ -1401,12 +1401,12 @@ export function CheckboxInfoGhost() {
   <div className="flex flex-wrap items-center gap-4">
     <Checkbox id="info-ghost-default" variant="ghost" color="info" />
     <Checkbox id="info-ghost-checked" variant="ghost" color="info" checked />
-    <Checkbox id="info-ghost-hover" variant="ghost" color="info" className="!bg-info-3" />
+    <Checkbox id="info-ghost-hover" variant="ghost" color="info" className="bg-info-3!" />
     <Checkbox
       id="info-ghost-focus"
       variant="ghost"
       color="info"
-      className="!ring-4 !ring-info-6 !border-info-9"
+      className="ring-4! ring-info-6! border-info-9!"
     />
     <Checkbox id="info-ghost-disabled" variant="ghost" color="info" disabled />
     <Checkbox
@@ -1428,13 +1428,13 @@ export function CheckboxInfoGhost() {
       id="info-ghost-dark-hover"
       variant="ghost"
       color="info"
-      className="!bg-info-3"
+      className="bg-info-3!"
     />
     <Checkbox
       id="info-ghost-dark-focus"
       variant="ghost"
       color="info"
-      className="!ring-4 !ring-info-6 !border-info-9"
+      className="ring-4! ring-info-6! border-info-9!"
     />
     <Checkbox id="info-ghost-dark-disabled" variant="ghost" color="info" disabled />
     <Checkbox
@@ -1454,12 +1454,12 @@ export function CheckboxInfoGhost() {
           <div className="flex flex-wrap items-center gap-4">
             <Checkbox id="info-ghost-default" variant="ghost" color="info" />
             <Checkbox id="info-ghost-checked" variant="ghost" color="info" checked />
-            <Checkbox id="info-ghost-hover" variant="ghost" color="info" className="!bg-info-3" />
+            <Checkbox id="info-ghost-hover" variant="ghost" color="info" className="bg-info-3!" />
             <Checkbox
               id="info-ghost-focus"
               variant="ghost"
               color="info"
-              className="!ring-4 !ring-info-6 !border-info-9"
+              className="ring-4! ring-info-6! border-info-9!"
             />
             <Checkbox id="info-ghost-disabled" variant="ghost" color="info" disabled />
             <Checkbox
@@ -1481,13 +1481,13 @@ export function CheckboxInfoGhost() {
               id="info-ghost-dark-hover"
               variant="ghost"
               color="info"
-              className="!bg-info-3"
+              className="bg-info-3!"
             />
             <Checkbox
               id="info-ghost-dark-focus"
               variant="ghost"
               color="info"
-              className="!ring-4 !ring-info-6 !border-info-9"
+              className="ring-4! ring-info-6! border-info-9!"
             />
             <Checkbox id="info-ghost-dark-disabled" variant="ghost" color="info" disabled />
             <Checkbox

@@ -91,7 +91,7 @@ export function UpdateWorkspaceName() {
             Workspace Name
           </label>
           <FormInput
-            className="w-[21rem]"
+            className="w-84"
             placeholder="Workspace Name"
             minLength={3}
             maxLength={50}

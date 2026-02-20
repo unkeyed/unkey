@@ -165,9 +165,9 @@ export function EnvVarRow({
               loading={isLoading}
             >
               {isRevealed ? (
-                <EyeSlash className="!size-[14px]" iconSize="sm-medium" />
+                <EyeSlash className="size-[14px]!" iconSize="sm-medium" />
               ) : (
-                <Eye className="!size-[14px]" iconSize="sm-medium" />
+                <Eye className="size-[14px]!" iconSize="sm-medium" />
               )}
             </Button>
           )}
@@ -182,7 +182,7 @@ export function EnvVarRow({
           loading={isLoadingForEdit}
           className="size-7 text-gray-9"
         >
-          <PenWriting3 className="!size-[14px]" iconSize="sm-medium" />
+          <PenWriting3 className="size-[14px]!" iconSize="sm-medium" />
         </Button>
         <Button
           size="icon"
@@ -192,7 +192,7 @@ export function EnvVarRow({
           loading={isDeleting}
           className="size-7 text-gray-9"
         >
-          <Trash className="!size-[14px]" iconSize="sm-medium" />
+          <Trash className="size-[14px]!" iconSize="sm-medium" />
         </Button>
       </div>
     </div>

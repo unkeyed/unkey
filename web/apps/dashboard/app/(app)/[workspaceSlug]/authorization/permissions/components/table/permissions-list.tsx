@@ -55,7 +55,7 @@ export const PermissionsList = () => {
           const iconContainer = (
             <div
               className={cn(
-                "size-5 rounded flex items-center justify-center border border-grayA-3 transition-all duration-100",
+                "size-5 rounded-sm flex items-center justify-center border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
                 isSelected && "bg-grayA-5",
               )}

@@ -38,7 +38,7 @@ export function TurnstileChallenge({ email, onSuccess, onError }: TurnstileChall
       <div className="flex justify-center">
         <div className="relative w-[300px] h-[65px]">
           {isWidgetLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-800/90 backdrop-blur-sm rounded border border-gray-600 z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-800/90 backdrop-blur-xs rounded-sm border border-gray-600 z-10">
               <div className="flex items-center space-x-2">
                 <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-white rounded-full" />
                 <span className="text-sm text-gray-300">Loading verification...</span>

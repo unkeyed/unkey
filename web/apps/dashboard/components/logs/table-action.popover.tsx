@@ -120,7 +120,7 @@ export const TableActionPopover = ({
                     className={cn(
                       "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
                       !item.disabled &&
-                        "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none focus:bg-gray-3",
+                        "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
                       item.disabled && "cursor-not-allowed opacity-50",
                       item.className,
                     )}
@@ -139,7 +139,7 @@ export const TableActionPopover = ({
                     <span className="text-[13px] font-medium">{item.label}</span>
                   </button>
                 </div>
-                {item.divider && <div className="h-[1px] bg-grayA-3 w-full my-2" />}
+                {item.divider && <div className="h-px bg-grayA-3 w-full my-2" />}
               </div>
             ))}
           </div>
@@ -180,7 +180,7 @@ export const TableActionPopoverDefaultTrigger = forwardRef<
     <Button
       ref={ref}
       variant="outline"
-      className="size-5 [&_svg]:size-3 rounded"
+      className="size-5 [&_svg]:size-3 rounded-sm"
       onClick={onClick}
       {...buttonProps}
     >

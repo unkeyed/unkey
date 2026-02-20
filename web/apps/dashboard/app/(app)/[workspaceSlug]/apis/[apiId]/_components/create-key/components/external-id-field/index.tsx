@@ -115,7 +115,7 @@ export const ExternalIdField = ({
             <div className="flex items-center gap-2 w-full">
               <div
                 className={cn(
-                  "flex items-center rounded size-5 justify-center flex-shrink-0",
+                  "flex items-center rounded-sm size-5 justify-center shrink-0",
                   "bg-warningA-4",
                   "text-warning-11",
                 )}
@@ -172,7 +172,7 @@ export const ExternalIdField = ({
               <div className="flex gap-2 items-center justify-start">
                 <div
                   className={cn(
-                    "flex items-center rounded size-5 justify-center",
+                    "flex items-center rounded-sm size-5 justify-center",
                     "bg-warningA-4",
                     "text-warning-11",
                     "transition-colors duration-200",
@@ -186,7 +186,7 @@ export const ExternalIdField = ({
               </div>
             </div>
             <div className="w-full">
-              <div className="h-[1px] bg-grayA-3 w-full" />
+              <div className="h-px bg-grayA-3 w-full" />
             </div>
             <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4 text-left">
               You can create a new identity with this{" "}

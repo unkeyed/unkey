@@ -97,7 +97,7 @@ export const WorkspaceSwitcher: React.FC = () => {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex items-center bg-base-12 overflow-hidden rounded-lg bg-background border-gray-6 border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content",
+          "flex items-center bg-base-12 overflow-hidden rounded-lg bg-background border-gray-6 border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-hidden text-content",
           isCollapsed ? "justify-center w-10 h-8 p-0" : "justify-between w-full h-8 gap-2 px-2",
         )}
       >
@@ -107,8 +107,8 @@ export const WorkspaceSwitcher: React.FC = () => {
             isCollapsed ? "justify-center" : "",
           )}
         >
-          <Avatar className="w-5 h-5 rounded border border-grayA-6">
-            <AvatarFallback className="text-gray-700 bg-gray-100 border border-gray-500 rounded">
+          <Avatar className="w-5 h-5 rounded-sm border border-grayA-6">
+            <AvatarFallback className="text-gray-700 bg-gray-100 border border-gray-500 rounded-sm">
               {workspace?.name.slice(0, 1).toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -129,7 +129,7 @@ export const WorkspaceSwitcher: React.FC = () => {
           )}
         </div>
         {!isCollapsed && (
-          <ChevronExpandY className="w-5 h-5 shrink-0 md:block [stroke-width:1px] text-gray-9" />
+          <ChevronExpandY className="w-5 h-5 shrink-0 md:block stroke-[1px] text-gray-9" />
         )}
       </DropdownMenuTrigger>
 
