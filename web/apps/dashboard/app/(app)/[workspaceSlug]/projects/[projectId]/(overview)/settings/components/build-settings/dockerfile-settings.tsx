@@ -5,7 +5,7 @@ import { FileSettings } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../../data-provider";
+import { useEnvironmentId } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const dockerfileSchema = z.object({
@@ -13,14 +13,13 @@ const dockerfileSchema = z.object({
 });
 
 export const DockerfileSettings = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
+  const environmentId = useEnvironmentId();
 
   const { data: settings } = useLiveQuery(
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+        .where(({ s }) => eq(s.environmentId, environmentId)),
     [environmentId],
   );
 
@@ -49,9 +48,6 @@ const DockerfileForm = ({
   const currentDockerfile = useWatch({ control, name: "dockerfile" });
 
   const onSubmit = async (values: z.infer<typeof dockerfileSchema>) => {
-    if (!environmentId) {
-      return;
-    }
     collection.environmentSettings.update(environmentId, (draft) => {
       draft.dockerfile = values.dockerfile;
     });

@@ -5,7 +5,7 @@ import { NumberInput } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../../data-provider";
+import { useEnvironmentId } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const portSchema = z.object({
@@ -13,14 +13,13 @@ const portSchema = z.object({
 });
 
 export const PortSettings = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
+  const environmentId = useEnvironmentId();
 
   const { data: settings } = useLiveQuery(
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+        .where(({ s }) => eq(s.environmentId, environmentId)),
     [environmentId],
   );
 
@@ -32,7 +31,7 @@ const PortForm = ({
   environmentId,
   defaultValue,
 }: {
-  environmentId: string | undefined;
+  environmentId: string;
   defaultValue: number;
 }) => {
   const {
@@ -49,9 +48,6 @@ const PortForm = ({
   const currentPort = useWatch({ control, name: "port" });
 
   const onSubmit = async (values: z.infer<typeof portSchema>) => {
-    if (!environmentId) {
-      return;
-    }
     collection.environmentSettings.update(environmentId, (draft) => {
       draft.port = values.port;
     });

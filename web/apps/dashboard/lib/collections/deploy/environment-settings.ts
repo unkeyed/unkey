@@ -47,7 +47,6 @@ const schema = z.object({
   sentinelConfig: sentinelConfigSchema,
 });
 
-
 /**
  * Environment settings collection - flattened build + runtime settings.
  *

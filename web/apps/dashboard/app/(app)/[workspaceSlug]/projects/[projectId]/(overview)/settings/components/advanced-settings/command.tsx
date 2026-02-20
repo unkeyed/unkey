@@ -8,7 +8,7 @@ import { FormTextarea, InfoTooltip } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../../data-provider";
+import { useEnvironmentId } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const commandSchema = z.object({
@@ -18,21 +18,20 @@ const commandSchema = z.object({
 type CommandFormValues = z.infer<typeof commandSchema>;
 
 export const Command = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
+  const environmentId = useEnvironmentId();
 
   const { data: settings } = useLiveQuery(
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+        .where(({ s }) => eq(s.environmentId, environmentId)),
     [environmentId],
   );
 
   const rawCommand = settings?.[0]?.command;
   const defaultCommand = (rawCommand ?? []).join(" ");
 
-  return <CommandForm environmentId={environmentId ?? ""} defaultCommand={defaultCommand} />;
+  return <CommandForm environmentId={environmentId} defaultCommand={defaultCommand} />;
 };
 
 type CommandFormProps = {

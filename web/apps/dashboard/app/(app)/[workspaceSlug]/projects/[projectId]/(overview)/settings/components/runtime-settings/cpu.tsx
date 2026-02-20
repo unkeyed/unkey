@@ -9,7 +9,7 @@ import { Slider } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../../data-provider";
+import { useEnvironmentId } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 import { indexToValue, valueToIndex } from "../shared/slider-utils";
@@ -32,14 +32,13 @@ const cpuSchema = z.object({
 type CpuFormValues = z.infer<typeof cpuSchema>;
 
 export const Cpu = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
+  const environmentId = useEnvironmentId();
 
   const { data: settings } = useLiveQuery(
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+        .where(({ s }) => eq(s.environmentId, environmentId)),
     [environmentId],
   );
 

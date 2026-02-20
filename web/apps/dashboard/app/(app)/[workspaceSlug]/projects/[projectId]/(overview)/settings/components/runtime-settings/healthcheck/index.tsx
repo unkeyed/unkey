@@ -14,21 +14,20 @@ import {
 } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { useProjectData } from "../../../../data-provider";
+import { useEnvironmentId } from "../../../environment-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
 import { MethodBadge } from "./method-badge";
 import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
 import { intervalToSeconds, secondsToInterval } from "./utils";
 
 export const Healthcheck = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
+  const environmentId = useEnvironmentId();
 
   const { data: settings } = useLiveQuery(
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+        .where(({ s }) => eq(s.environmentId, environmentId)),
     [environmentId],
   );
 
@@ -39,7 +38,7 @@ export const Healthcheck = () => {
     interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
   };
 
-  return <HealthcheckForm environmentId={environmentId ?? ""} defaultValues={defaultValues} />;
+  return <HealthcheckForm environmentId={environmentId} defaultValues={defaultValues} />;
 };
 
 type HealthcheckFormProps = {

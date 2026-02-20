@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
-import { useProjectData } from "../../../data-provider";
+import { useEnvironmentId } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 
@@ -21,14 +21,13 @@ const instancesSchema = z.object({
 type InstancesFormValues = z.infer<typeof instancesSchema>;
 
 export const Instances = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
+  const environmentId = useEnvironmentId();
 
   const { data: settings } = useLiveQuery(
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+        .where(({ s }) => eq(s.environmentId, environmentId)),
     [environmentId],
   );
 
