@@ -33,13 +33,11 @@ export default function SettingsPage() {
           </span>
         </div>
         <div className="flex flex-col gap-6">
-          <div className="flex flex-col w-full">
-            <SettingCardGroup>
-              <GitHub />
-              <RootDirectory />
-              <Dockerfile />
-            </SettingCardGroup>
-          </div>
+          <SettingCardGroup>
+            <GitHub />
+            <RootDirectory />
+            <Dockerfile />
+          </SettingCardGroup>
           <SettingsGroup
             icon={<CircleHalfDottedClock iconSize="md-medium" />}
             title="Runtime settings"

@@ -96,10 +96,10 @@ function SettingCard({
   const borderClass = inGroup
     ? {}
     : {
-        "border border-grayA-4": border !== "none",
-        "border-t-0": border === "bottom",
-        "border-b-0": border === "top",
-      };
+      "border border-grayA-4": border !== "none",
+      "border-t-0": border === "bottom",
+      "border-b-0": border === "top",
+    };
 
   const expandedBottomRadius =
     !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
@@ -107,9 +107,23 @@ function SettingCard({
       : "";
 
   const handleToggle = () => {
-    if (isInteractive) {
-      setIsExpanded(!isExpanded);
-    }
+    if (!isInteractive) return;
+    setIsExpanded((prev) => {
+      if (!prev) {
+        contentRef.current?.addEventListener(
+          "transitionend",
+          () => {
+            const inner = innerRef.current;
+            if (!inner) { return };
+            const overflow = inner.getBoundingClientRect().bottom - window.innerHeight;
+            if (overflow > 0)
+              findScrollParent(inner).scrollBy({ top: overflow + 16, behavior: "smooth" });
+          },
+          { once: true },
+        );
+      }
+      return !prev;
+    });
   };
 
   return (
@@ -182,6 +196,17 @@ function SettingCard({
       )}
     </div>
   );
+}
+
+// Source - https://stackoverflow.com/a/78682259
+// Posted by dgropp
+const scrollStyles = ["scroll", "auto"];
+function findScrollParent(element: HTMLElement | null): HTMLElement | Window {
+  const parent = element?.parentElement;
+  if (!parent) return window;
+  const { overflowY } = getComputedStyle(parent);
+  if (scrollStyles.includes(overflowY)) return parent;
+  return findScrollParent(parent);
 }
 
 SettingCard.displayName = "SettingCard";

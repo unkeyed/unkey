@@ -119,7 +119,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
           <span className="text-[13px] text-gray-11 w-[140px]">Environment</span>
           <span className="flex-1 text-[13px] text-gray-11">Domain</span>
         </div>
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 w-[480px]">
           <Controller
             control={control}
             name="environmentId"

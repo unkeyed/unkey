@@ -80,7 +80,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
   };
 
   return (
-    <div className="border-b border-gray-4 last:border-b-0 group hover:bg-grayA-3 transition-colors">
+    <div className="border-b border-gray-4 last:border-b-0 hover:bg-white group">
       <div className="flex items-center justify-between px-4 py-3 h-12">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <a
