@@ -24,7 +24,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HelpButton } from "../help-button";
 import { UsageBanner } from "../usage-banner";
-import { UserButton } from "../user-button";
 import type { NavItem } from "../workspace-navigations";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
 
@@ -187,18 +186,17 @@ export function AppSidebar({
         </div>
       </SidebarContent>
       <SidebarFooter>
-        {/* Workspace switcher with help button and user button */}
-        <div
-          className={cn("flex items-center gap-2", isCollapsed ? "flex-col" : "justify-between")}
-        >
-          <div className={cn(isCollapsed ? "flex justify-center" : "")}>
-            <WorkspaceSwitcher />
-          </div>
-          <div className="flex items-center gap-2">
+        {/* Workspace switcher with help button - hidden on mobile */}
+        {!isMobile && (
+          <div
+            className={cn("flex items-center gap-2", isCollapsed ? "flex-col" : "justify-between")}
+          >
+            <div className={cn(isCollapsed ? "flex justify-center" : "")}>
+              <WorkspaceSwitcher />
+            </div>
             <HelpButton />
-            <UserButton />
           </div>
-        </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   );
