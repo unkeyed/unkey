@@ -352,27 +352,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-	// Upsert inter-app K8s ClusterIP Service records for DNS-based inter-app communication.
-	for _, topology := range topologies {
-		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Query.UpsertAppInternalService(runCtx, w.db.RW(), db.UpsertAppInternalServiceParams{
-				ID:             uid.New(uid.AppInternalSvcPrefix),
-				WorkspaceID:    workspace.ID,
-				AppID:          app.ID,
-				EnvironmentID:  environment.ID,
-				Region:         topology.Region,
-				K8sServiceName: app.Slug,
-				K8sNamespace:   workspace.K8sNamespace.String,
-				Port:           deployment.Port,
-				CreatedAt:      time.Now().UnixMilli(),
-				UpdatedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-		}, restate.WithName(fmt.Sprintf("upsert app internal service in %s", topology.Region)))
-		if err != nil {
-			return nil, fmt.Errorf("failed to upsert app internal service: %w", err)
-		}
-	}
-
 	logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
 
 	readygates := make([]restate.Future, len(topologies))
