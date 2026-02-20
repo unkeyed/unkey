@@ -1,39 +1,43 @@
 "use client";
 
-import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
+import { collection } from "@/lib/collections";
+import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { eq, useLiveQuery } from "@tanstack/react-db";
+import { type PropsWithChildren, createContext, useContext } from "react";
 import { useProjectData } from "../data-provider";
 
 type EnvironmentContextType = {
-  environmentId: string;
+  settings: EnvironmentSettings;
 };
 
 const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
 
-export const EnvironmentProvider = ({ children }: PropsWithChildren) => {
+export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => {
   const { environments } = useProjectData();
+  const activeEnvId =
+    environments.find((e) => e.slug === "production")?.id ?? environments.at(0)?.id;
 
-  // Later we'll switch this useProjectData with useParams and directly consume environmentId from there.
-  // This provider will make that transition easier
-  const value = useMemo(() => {
-    // Temporary fallback 
-    const env = environments.find((e) => e.slug === "production") ?? environments[0];
-    if (!env) {
-      return null;
-    }
-    return { environmentId: env.id };
-  }, [environments]);
+  const { data } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => eq(s.environmentId, activeEnvId)),
+    [activeEnvId],
+  );
 
-  if (!value) {
+  // Selected envs settings cannot but null because we apply some sane defaults to them
+  const settings = data.at(0);
+  if (!settings) {
     return null;
   }
 
-  return <EnvironmentContext.Provider value={value}>{children}</EnvironmentContext.Provider>;
+  return <EnvironmentContext.Provider value={{ settings }}>{children}</EnvironmentContext.Provider>;
 };
 
-export const useEnvironmentId = (): string => {
+export function useEnvironmentSettings(): EnvironmentContextType {
   const context = useContext(EnvironmentContext);
   if (!context) {
-    throw new Error("useEnvironmentId must be used within EnvironmentProvider");
+    throw new Error("useEnvironmentSettings must be used within EnvironmentProvider");
   }
-  return context.environmentId;
-};
+  return context;
+}

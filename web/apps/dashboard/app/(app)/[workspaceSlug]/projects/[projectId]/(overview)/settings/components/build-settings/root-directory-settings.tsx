@@ -1,39 +1,20 @@
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { FolderLink } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useEnvironmentId } from "../../environment-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const rootDirectorySchema = z.object({
   dockerContext: z.string(),
 });
 
-export const RootDirectorySettings = () => {
-  const environmentId = useEnvironmentId();
+export const RootDirectory = () => {
+  const { settings } = useEnvironmentSettings();
+  const { environmentId, dockerContext: defaultValue } = settings;
 
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
-
-  const defaultValue = settings?.[0]?.dockerContext ?? ".";
-  return <RootDirectoryForm environmentId={environmentId} defaultValue={defaultValue} />;
-};
-
-const RootDirectoryForm = ({
-  environmentId,
-  defaultValue,
-}: {
-  environmentId: string;
-  defaultValue: string;
-}) => {
   const {
     register,
     handleSubmit,

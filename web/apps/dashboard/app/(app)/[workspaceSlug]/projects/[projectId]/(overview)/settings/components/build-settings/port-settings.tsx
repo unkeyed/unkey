@@ -1,39 +1,20 @@
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { NumberInput } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useEnvironmentId } from "../../environment-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const portSchema = z.object({
   port: z.number().int().min(2000).max(54000),
 });
 
-export const PortSettings = () => {
-  const environmentId = useEnvironmentId();
+export const Port = () => {
+  const { settings } = useEnvironmentSettings();
+  const { environmentId, port: defaultValue } = settings;
 
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
-
-  const defaultValue = settings?.[0]?.port ?? 8080;
-  return <PortForm environmentId={environmentId} defaultValue={defaultValue} />;
-};
-
-const PortForm = ({
-  environmentId,
-  defaultValue,
-}: {
-  environmentId: string;
-  defaultValue: number;
-}) => {
   const {
     register,
     handleSubmit,

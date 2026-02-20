@@ -5,12 +5,11 @@ import { FormCombobox } from "@/components/ui/form-combobox";
 import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Key, XMark } from "@unkey/icons";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useEnvironmentId } from "../../environment-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const keyspacesSchema = z.object({
@@ -20,15 +19,8 @@ const keyspacesSchema = z.object({
 type KeyspacesFormValues = z.infer<typeof keyspacesSchema>;
 
 export const Keyspaces = () => {
-  const environmentId = useEnvironmentId();
-
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
+  const { settings } = useEnvironmentSettings();
+  const { environmentId } = settings;
 
   const { data: availableKeyspaces } =
     trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery(undefined, {
@@ -36,7 +28,7 @@ export const Keyspaces = () => {
     });
 
   const defaultKeyspaceIds: string[] = [];
-  for (const policy of settings?.[0]?.sentinelConfig?.policies ?? []) {
+  for (const policy of settings?.sentinelConfig?.policies ?? []) {
     if (policy.keyauth) {
       defaultKeyspaceIds.push(...policy.keyauth.keySpaceIds);
     }

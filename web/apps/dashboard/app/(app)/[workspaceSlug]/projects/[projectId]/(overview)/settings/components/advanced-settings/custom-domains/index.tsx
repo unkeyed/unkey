@@ -14,14 +14,16 @@ import {
 } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
-import { useEnvironmentId } from "../../../environment-provider";
+import { useEnvironmentSettings } from "../../../environment-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
 import { CustomDomainRow } from "./custom-domain-row";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
 export const CustomDomains = () => {
   const { environments, customDomains, projectId } = useProjectData();
-  const defaultEnvironmentId = useEnvironmentId();
+  const {
+    settings: { environmentId: defaultEnvironmentId },
+  } = useEnvironmentSettings();
 
   return (
     <CustomDomainSettings

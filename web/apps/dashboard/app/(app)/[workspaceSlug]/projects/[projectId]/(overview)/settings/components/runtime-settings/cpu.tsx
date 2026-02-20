@@ -3,13 +3,12 @@
 import { collection } from "@/lib/collections";
 import { formatCpu } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Bolt } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useEnvironmentId } from "../../environment-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 import { indexToValue, valueToIndex } from "../shared/slider-utils";
@@ -32,27 +31,9 @@ const cpuSchema = z.object({
 type CpuFormValues = z.infer<typeof cpuSchema>;
 
 export const Cpu = () => {
-  const environmentId = useEnvironmentId();
+  const { settings } = useEnvironmentSettings();
+  const { environmentId, cpuMillicores: defaultCpu } = settings;
 
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
-
-  const defaultCpu = settings?.[0]?.cpuMillicores ?? 256;
-
-  return <CpuForm environmentId={environmentId} defaultCpu={defaultCpu} />;
-};
-
-type CpuFormProps = {
-  environmentId: string;
-  defaultCpu: number;
-};
-
-const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
   const {
     handleSubmit,
     setValue,

@@ -3,14 +3,13 @@
 import { collection } from "@/lib/collections";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Connections3 } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
-import { useEnvironmentId } from "../../environment-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 
@@ -21,40 +20,12 @@ const instancesSchema = z.object({
 type InstancesFormValues = z.infer<typeof instancesSchema>;
 
 export const Instances = () => {
-  const environmentId = useEnvironmentId();
+  const { settings } = useEnvironmentSettings();
+  const { environmentId, regionConfig } = settings;
 
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
-
-  const regionConfig = settings?.[0]?.regionConfig ?? {};
   const selectedRegions = Object.keys(regionConfig);
   const defaultInstances = Object.values(regionConfig)[0] ?? 1;
 
-  return (
-    <InstancesForm
-      environmentId={environmentId}
-      defaultInstances={defaultInstances}
-      selectedRegions={selectedRegions}
-    />
-  );
-};
-
-type InstancesFormProps = {
-  environmentId: string;
-  defaultInstances: number;
-  selectedRegions: string[];
-};
-
-const InstancesForm: React.FC<InstancesFormProps> = ({
-  environmentId,
-  defaultInstances,
-  selectedRegions,
-}) => {
   const {
     handleSubmit,
     setValue,

@@ -3,13 +3,12 @@
 import { collection } from "@/lib/collections";
 import { formatMemory } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ScanCode } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useEnvironmentId } from "../../environment-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 import { indexToValue, valueToIndex } from "../shared/slider-utils";
@@ -32,27 +31,9 @@ const memorySchema = z.object({
 type MemoryFormValues = z.infer<typeof memorySchema>;
 
 export const Memory = () => {
-  const environmentId = useEnvironmentId();
+  const { settings } = useEnvironmentSettings();
+  const { memoryMib: defaultMemory, environmentId } = settings;
 
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
-
-  const defaultMemory = settings?.[0]?.memoryMib ?? 256;
-
-  return <MemoryForm environmentId={environmentId} defaultMemory={defaultMemory} />;
-};
-
-type MemoryFormProps = {
-  environmentId: string;
-  defaultMemory: number;
-};
-
-const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory }) => {
   const {
     handleSubmit,
     setValue,

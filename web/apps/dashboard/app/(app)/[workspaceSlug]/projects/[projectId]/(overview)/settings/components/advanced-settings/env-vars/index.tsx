@@ -9,7 +9,7 @@ import { toast } from "@unkey/ui";
 import { useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
-import { useEnvironmentId } from "../../../environment-provider";
+import { useEnvironmentSettings } from "../../../environment-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyRow, envVarsSchema } from "./schema";
@@ -19,7 +19,8 @@ import { computeEnvVarsDiff, groupByEnvironment, toTrpcType } from "./utils";
 
 export const EnvVars = () => {
   const { projectId, environments } = useProjectData();
-  const defaultEnvironmentId = useEnvironmentId();
+  const { settings } = useEnvironmentSettings();
+  const defaultEnvironmentId = settings.environmentId;
 
   const { data: envVarData } = useLiveQuery(
     (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.projectId, projectId)),

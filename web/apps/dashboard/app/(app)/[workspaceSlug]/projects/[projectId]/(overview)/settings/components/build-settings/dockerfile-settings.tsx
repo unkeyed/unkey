@@ -1,39 +1,20 @@
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { FileSettings } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useEnvironmentId } from "../../environment-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const dockerfileSchema = z.object({
   dockerfile: z.string().min(1, "Dockerfile path is required"),
 });
 
-export const DockerfileSettings = () => {
-  const environmentId = useEnvironmentId();
+export const Dockerfile = () => {
+  const { settings } = useEnvironmentSettings();
+  const { environmentId, dockerfile: defaultValue } = settings;
 
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
-
-  const defaultValue = settings?.[0]?.dockerfile ?? "Dockerfile";
-  return <DockerfileForm environmentId={environmentId} defaultValue={defaultValue} />;
-};
-
-const DockerfileForm = ({
-  environmentId,
-  defaultValue,
-}: {
-  environmentId: string;
-  defaultValue: string;
-}) => {
   const {
     register,
     handleSubmit,

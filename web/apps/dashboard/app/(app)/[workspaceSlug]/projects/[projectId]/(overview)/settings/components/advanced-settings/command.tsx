@@ -2,13 +2,12 @@
 
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { SquareTerminal } from "@unkey/icons";
 import { FormTextarea, InfoTooltip } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useEnvironmentId } from "../../environment-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const commandSchema = z.object({
@@ -18,28 +17,10 @@ const commandSchema = z.object({
 type CommandFormValues = z.infer<typeof commandSchema>;
 
 export const Command = () => {
-  const environmentId = useEnvironmentId();
+  const { settings } = useEnvironmentSettings();
+  const { command, environmentId } = settings;
+  const defaultCommand = command.join(" ");
 
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
-
-  const rawCommand = settings?.[0]?.command;
-  const defaultCommand = (rawCommand ?? []).join(" ");
-
-  return <CommandForm environmentId={environmentId} defaultCommand={defaultCommand} />;
-};
-
-type CommandFormProps = {
-  environmentId: string;
-  defaultCommand: string;
-};
-
-const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand }) => {
   const {
     register,
     handleSubmit,

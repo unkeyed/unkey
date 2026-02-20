@@ -3,10 +3,10 @@
 import { CircleHalfDottedClock, Gear, StackPerspective2 } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 
-import { DockerfileSettings } from "./components/build-settings/dockerfile-settings";
-import { GitHubSettings } from "./components/build-settings/github-settings";
-import { PortSettings } from "./components/build-settings/port-settings";
-import { RootDirectorySettings } from "./components/build-settings/root-directory-settings";
+import { Dockerfile } from "./components/build-settings/dockerfile-settings";
+import { GitHub } from "./components/build-settings/github-settings";
+import { Port } from "./components/build-settings/port-settings";
+import { RootDirectory } from "./components/build-settings/root-directory-settings";
 
 import { Cpu } from "./components/runtime-settings/cpu";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
@@ -20,11 +20,11 @@ import { EnvVars } from "./components/advanced-settings/env-vars";
 
 import { Keyspaces } from "./components/sentinel-settings/keyspaces";
 import { SettingsGroup } from "./components/shared/settings-group";
-import { EnvironmentProvider } from "./environment-provider";
+import { EnvironmentSettingsProvider } from "./environment-provider";
 
 export default function SettingsPage() {
   return (
-    <EnvironmentProvider>
+    <EnvironmentSettingsProvider>
       <div className="w-[900px] flex flex-col justify-center items-center gap-6 mx-auto my-14">
         <div className="flex flex-col gap-2 items-center">
           <span className="font-semibold text-gray-12 leading-8 text-lg">Configure deployment</span>
@@ -35,10 +35,9 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col w-full">
             <SettingCardGroup>
-              <GitHubSettings />
-              <RootDirectorySettings />
-              <DockerfileSettings />
-              <PortSettings />
+              <GitHub />
+              <RootDirectory />
+              <Dockerfile />
             </SettingCardGroup>
           </div>
           <SettingsGroup
@@ -53,13 +52,14 @@ export default function SettingsPage() {
               {/* Temporarily disabled */}
               {/* <Storage /> */}
               <Healthcheck />
+              <Port />
+              <Command />
               {/* Temporarily disabled */}
               {/* <Scaling /> */}
             </SettingCardGroup>
           </SettingsGroup>
           <SettingsGroup icon={<Gear iconSize="md-medium" />} title="Advanced configurations">
             <SettingCardGroup>
-              <Command />
               <EnvVars />
               <CustomDomains />
             </SettingCardGroup>
@@ -74,6 +74,6 @@ export default function SettingsPage() {
           </SettingsGroup>
         </div>
       </div>
-    </EnvironmentProvider>
+    </EnvironmentSettingsProvider>
   );
 }

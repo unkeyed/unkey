@@ -6,13 +6,12 @@ import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Location2, XMark } from "@unkey/icons";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
-import { useEnvironmentId } from "../../environment-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const regionsSchema = z.object({
@@ -22,23 +21,14 @@ const regionsSchema = z.object({
 type RegionsFormValues = z.infer<typeof regionsSchema>;
 
 export const Regions = () => {
-  const environmentId = useEnvironmentId();
-
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
+  const { settings } = useEnvironmentSettings();
+  const { environmentId, regionConfig } = settings;
+  const defaultRegions = Object.keys(regionConfig);
 
   const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
     undefined,
     { enabled: Boolean(environmentId) },
   );
-
-  const regionConfig = settings?.[0]?.regionConfig ?? {};
-  const defaultRegions = Object.keys(regionConfig);
 
   return (
     <RegionsForm

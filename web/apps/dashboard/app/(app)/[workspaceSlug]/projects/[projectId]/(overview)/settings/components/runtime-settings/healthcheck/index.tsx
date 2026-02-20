@@ -2,7 +2,6 @@
 
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown, HeartPulse } from "@unkey/icons";
 import {
   FormInput,
@@ -14,39 +13,22 @@ import {
 } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { useEnvironmentId } from "../../../environment-provider";
+import { useEnvironmentSettings } from "../../../environment-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
 import { MethodBadge } from "./method-badge";
 import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
 import { intervalToSeconds, secondsToInterval } from "./utils";
 
 export const Healthcheck = () => {
-  const environmentId = useEnvironmentId();
+  const { settings } = useEnvironmentSettings();
+  const { healthcheck, environmentId } = settings;
 
-  const { data: settings } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, environmentId)),
-    [environmentId],
-  );
-
-  const healthcheck = settings?.[0]?.healthcheck;
   const defaultValues: HealthcheckFormValues = {
     method: healthcheck?.method ?? "GET",
     path: healthcheck?.path ?? "/health",
     interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
   };
 
-  return <HealthcheckForm environmentId={environmentId} defaultValues={defaultValues} />;
-};
-
-type HealthcheckFormProps = {
-  environmentId: string;
-  defaultValues: HealthcheckFormValues;
-};
-
-const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaultValues }) => {
   const {
     handleSubmit,
     control,
