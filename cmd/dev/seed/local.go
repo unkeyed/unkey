@@ -137,6 +137,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			Name:             projectName,
 			Slug:             "default",
 			LiveDeploymentID: sql.NullString{},
+			IsRolledBack:     false,
 			DepotProjectID:   sql.NullString{},
 			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
 			CreatedAt:        now,
