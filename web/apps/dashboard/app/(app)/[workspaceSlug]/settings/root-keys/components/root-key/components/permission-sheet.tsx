@@ -1,6 +1,5 @@
 "use client";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -75,7 +74,7 @@ export const PermissionSheet = ({
               onChange={handleSearchChange}
             />
           </SheetHeader>
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col pt-0 mt-0 gap-1 pb-6">
               {hasNoResults ? (
                 <p className="text-sm text-gray-10 ml-6 py-1.5 mt-1.5">
@@ -112,7 +111,7 @@ export const PermissionSheet = ({
                 </>
               )}
             </div>
-          </ScrollArea>
+          </div>
           {hasNextPage && (
             <div className="flex-shrink-0 bg-background border-t border-gray-4 py-4">
               <div className="flex flex-row justify-center items-center">
