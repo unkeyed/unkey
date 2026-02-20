@@ -8,8 +8,6 @@ go_library(
     deps = [
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
-        "//pkg/codes",
-        "//pkg/fault",
         "//pkg/prometheus/metrics",
         "//pkg/zen",
     ],

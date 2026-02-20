@@ -311,6 +311,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Caches:                     caches,
 		Vault:                      vaultClient,
 		ChproxyToken:               cfg.ClickHouse.ProxyToken,
+		DashboardToken:             cfg.DashboardToken,
 		CtrlDeploymentClient:       ctrlDeploymentClient,
 		PprofEnabled:               cfg.Pprof != nil,
 		PprofUsername:              pprofUsername,

@@ -28,6 +28,9 @@ export const env = () =>
       VAULT_URL: z.url(),
       VAULT_TOKEN: z.string(),
 
+      UNKEY_API_URL: z.url().optional(),
+      UNKEY_API_CACHE_INVALIDATION_TOKEN: z.string().optional(),
+
       CTRL_URL: z.url().optional(),
       CTRL_API_KEY: z.string().optional(),
 
