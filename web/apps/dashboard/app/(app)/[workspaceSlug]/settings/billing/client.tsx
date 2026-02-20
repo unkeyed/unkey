@@ -117,8 +117,8 @@ export const Client: React.FC = () => {
             title="Add payment method"
             border="both"
             description="Before upgrading, you need to add a payment method."
-            className="sm:w-full text-wrap w-full"
-            contentWidth="w-full"
+            className="w-full"
+            contentWidth="w-full lg:w-[320px]"
           >
             <div className="flex justify-end w-full">
               <Button
