@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/circuitbreaker/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
 // CB is the concrete implementation of [CircuitBreaker]. It tracks request

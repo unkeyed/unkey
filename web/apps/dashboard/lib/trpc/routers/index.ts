@@ -58,6 +58,7 @@ import { updateEnvVar } from "./deploy/env-vars/update";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
 import { getEnvironmentSettings } from "./deploy/environment-settings/get";
+import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
 import { updateCommand } from "./deploy/environment-settings/runtime/update-command";
 import { updateCpu } from "./deploy/environment-settings/runtime/update-cpu";
@@ -66,6 +67,7 @@ import { updateInstances } from "./deploy/environment-settings/runtime/update-in
 import { updateMemory } from "./deploy/environment-settings/runtime/update-memory";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
+import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
@@ -404,6 +406,10 @@ export const router = t.router({
     environmentSettings: t.router({
       get: getEnvironmentSettings,
       getAvailableRegions,
+      getAvailableKeyspaces,
+      sentinel: t.router({
+        updateMiddleware,
+      }),
       runtime: t.router({
         updateCpu,
         updateMemory,

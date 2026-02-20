@@ -175,6 +175,15 @@ spec:
               protocol: TCP
             - port: "9000"
               protocol: TCP
+    # Redis in unkey namespace (rate limiting, usage limiting)
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+            app: redis
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
 ---
 # 6. Allow customer pods to reach Krane for secret decryption
 # Customer pods need to call Krane's DecryptSecretsBlob RPC during init (inject container)

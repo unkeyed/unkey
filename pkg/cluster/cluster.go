@@ -9,7 +9,9 @@ import (
 
 	"github.com/hashicorp/memberlist"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
+	"github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/repeat"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -43,6 +45,9 @@ type gossipCluster struct {
 	// where memberlist holds its internal state lock.
 	evalCh chan struct{}
 	done   chan struct{}
+
+	// stopMetrics stops the periodic member count gauge updater.
+	stopMetrics func()
 }
 
 // New creates a new cluster node, starts the LAN memberlist, joins LAN seeds,
@@ -51,16 +56,17 @@ func New(cfg Config) (Cluster, error) {
 	cfg.setDefaults()
 
 	c := &gossipCluster{
-		config:   cfg,
-		mu:       sync.RWMutex{},
-		lan:      nil,
-		lanQueue: nil,
-		wan:      nil,
-		wanQueue: nil,
-		isBridge: false,
-		closing:  atomic.Bool{},
-		evalCh:   make(chan struct{}, 1),
-		done:     make(chan struct{}),
+		config:      cfg,
+		mu:          sync.RWMutex{},
+		lan:         nil,
+		lanQueue:    nil,
+		wan:         nil,
+		wanQueue:    nil,
+		isBridge:    false,
+		closing:     atomic.Bool{},
+		evalCh:      make(chan struct{}, 1),
+		done:        make(chan struct{}),
+		stopMetrics: nil, // set below
 	}
 
 	// Start the async bridge evaluator
@@ -101,6 +107,22 @@ func New(cfg Config) (Cluster, error) {
 		}, cfg.LANSeeds, c.triggerEvalBridge)
 	}
 
+	// Periodically update pool member count gauges. This avoids tracking
+	// counts inside memberlist callbacks where internal locks are held.
+	c.stopMetrics = repeat.Every(1*time.Minute, func() {
+		c.mu.RLock()
+		lan := c.lan
+		wan := c.wan
+		c.mu.RUnlock()
+
+		if lan != nil {
+			metrics.ClusterMembersCount.WithLabelValues("lan").Set(float64(lan.NumMembers()))
+		}
+		if wan != nil {
+			metrics.ClusterMembersCount.WithLabelValues("wan").Set(float64(wan.NumMembers()))
+		}
+	})
+
 	// Trigger initial bridge evaluation
 	c.triggerEvalBridge()
 
@@ -126,6 +148,7 @@ func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlis
 
 		_, err := ml.Join(seeds)
 		if err == nil {
+			metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
 			logger.Info("Joined "+pool+" seeds", "seeds", seeds, "attempt", attempt)
 			if onSuccess != nil {
 				onSuccess()
@@ -133,6 +156,7 @@ func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlis
 			return
 		}
 
+		metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "failure").Inc()
 		logger.Warn("Failed to join "+pool+" seeds, retrying",
 			"error", err,
 			"seeds", seeds,
@@ -149,6 +173,7 @@ func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlis
 		backoff = min(backoff*2, 10*time.Second)
 	}
 
+	metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "exhausted").Inc()
 	logger.Error("Exhausted retries joining "+pool+" seeds",
 		"seeds", seeds,
 		"attempts", maxJoinAttempts,
@@ -197,18 +222,22 @@ func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Payload) er
 		msg.Direction = clusterv1.Direction_DIRECTION_LAN
 		lanBytes, err := proto.Marshal(msg)
 		if err != nil {
+			metrics.ClusterBroadcastErrorsTotal.WithLabelValues("lan").Inc()
 			return fmt.Errorf("failed to marshal LAN message: %w", err)
 		}
 		lanQ.QueueBroadcast(newBroadcast(lanBytes))
+		metrics.ClusterBroadcastsTotal.WithLabelValues("lan").Inc()
 	}
 
 	if isBr && wanQ != nil {
 		msg.Direction = clusterv1.Direction_DIRECTION_WAN
 		wanBytes, err := proto.Marshal(msg)
 		if err != nil {
+			metrics.ClusterBroadcastErrorsTotal.WithLabelValues("wan").Inc()
 			return fmt.Errorf("failed to marshal WAN message: %w", err)
 		}
 		wanQ.QueueBroadcast(newBroadcast(wanBytes))
+		metrics.ClusterBroadcastsTotal.WithLabelValues("wan").Inc()
 	}
 
 	return nil
@@ -256,6 +285,10 @@ func (c *gossipCluster) Close() error {
 		return nil
 	}
 	close(c.done)
+
+	if c.stopMetrics != nil {
+		c.stopMetrics()
+	}
 
 	// Demote from bridge first (leaves WAN).
 	c.demoteFromBridge()

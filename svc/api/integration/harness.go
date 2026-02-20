@@ -150,7 +150,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			ClickHouse: api.ClickHouseConfig{
 				URL:          clickhouseHostDSN,
 				AnalyticsURL: "",
-				ProxyToken:   "",
 			},
 			Observability: sharedconfig.Observability{
 				Tracing: nil,
@@ -162,7 +161,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 					PrometheusPort: 0,
 				},
 			},
-			TLS: sharedconfig.TLSFiles{
+			TLS: sharedconfig.TLS{
+				Disabled: true,
 				CertFile: "",
 				KeyFile:  "",
 			},

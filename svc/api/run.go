@@ -310,7 +310,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:                  auditlogSvc,
 		Caches:                     caches,
 		Vault:                      vaultClient,
-		ChproxyToken:               cfg.ClickHouse.ProxyToken,
 		CtrlDeploymentClient:       ctrlDeploymentClient,
 		PprofEnabled:               cfg.Pprof != nil,
 		PprofUsername:              pprofUsername,
