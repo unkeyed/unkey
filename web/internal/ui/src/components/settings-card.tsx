@@ -107,7 +107,9 @@ function SettingCard({
       : "";
 
   const handleToggle = () => {
-    if (!isInteractive) return;
+    if (!isInteractive) {
+      return;
+    }
     setIsExpanded((prev) => {
       if (!prev) {
         contentRef.current?.addEventListener(
@@ -118,8 +120,9 @@ function SettingCard({
               return;
             }
             const overflow = inner.getBoundingClientRect().bottom - window.innerHeight;
-            if (overflow > 0)
+            if (overflow > 0) {
               findScrollParent(inner).scrollBy({ top: overflow + 16, behavior: "smooth" });
+            }
           },
           { once: true },
         );
@@ -205,9 +208,13 @@ function SettingCard({
 const scrollStyles = ["scroll", "auto"];
 function findScrollParent(element: HTMLElement | null): HTMLElement | Window {
   const parent = element?.parentElement;
-  if (!parent) return window;
+  if (!parent) {
+    return window;
+  }
   const { overflowY } = getComputedStyle(parent);
-  if (scrollStyles.includes(overflowY)) return parent;
+  if (scrollStyles.includes(overflowY)) {
+    return parent;
+  }
   return findScrollParent(parent);
 }
 

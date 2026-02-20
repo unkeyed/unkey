@@ -48,8 +48,8 @@ export const FormSettingCard = ({
           ref={ref}
           onSubmit={(e) => {
             //Without this form will toggle the chevron and collapse the section
-            e.preventDefault()
-            onSubmit(e)
+            e.preventDefault();
+            onSubmit(e);
           }}
         >
           <div className="px-4 pt-4 pb-2 flex flex-col gap-3 overflow-y-auto max-h-[500px]">
