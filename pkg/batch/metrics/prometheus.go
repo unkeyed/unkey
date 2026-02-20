@@ -30,12 +30,11 @@ var (
 	//   metrics.BatchSizeDistribution.WithLabelValues("database_writes", "size_limit").Observe(float64(len(batch)))
 	BatchSizeDistribution = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "unkey",
-			Subsystem:   "batch",
-			Name:        "size_distribution",
-			Help:        "Distribution of batch sizes when flushed",
-			Buckets:     batchSizeBuckets,
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "batch",
+			Name:      "size_distribution",
+			Help:      "Distribution of batch sizes when flushed",
+			Buckets:   batchSizeBuckets,
 		},
 		[]string{"name", "trigger"},
 	)
@@ -58,11 +57,10 @@ var (
 	//   metrics.BatchOperationsTotal.WithLabelValues("log_entries", "time_interval", "error").Inc()
 	BatchOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "batch",
-			Name:        "operations_total",
-			Help:        "Total number of batch flush operations processed",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "batch",
+			Name:      "operations_total",
+			Help:      "Total number of batch flush operations processed",
 		},
 		[]string{"name", "trigger", "status"},
 	)
@@ -76,11 +74,10 @@ var (
 	//   metrics.BatchItemsProcessedTotal.WithLabelValues("database_writes").Add(float64(len(batch)))
 	BatchItemsProcessedTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "batch",
-			Name:        "items_processed_total",
-			Help:        "Total number of items processed through batches",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "batch",
+			Name:      "items_processed_total",
+			Help:      "Total number of items processed through batches",
 		},
 		[]string{"name"},
 	)
@@ -93,11 +90,10 @@ var (
 	//   metrics.BatchItemsProcessedErrorsTotal.WithLabelValues("database_writes").Add(float64(errorCount))
 	BatchItemsProcessedErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "batch",
-			Name:        "items_processed_errors_total",
-			Help:        "Total number of items processed through batches that resulted in an error",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "batch",
+			Name:      "items_processed_errors_total",
+			Help:      "Total number of items processed through batches that resulted in an error",
 		},
 		[]string{"name"},
 	)

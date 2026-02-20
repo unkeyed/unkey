@@ -35,6 +35,7 @@ go_library(
         "//pkg/prometheus/metrics",
         "//pkg/tls",
         "//pkg/uid",
+        "//pkg/zen/metrics",
         "//pkg/zen/validation",
         "//svc/api/openapi",
         "@io_opentelemetry_go_otel//attribute",

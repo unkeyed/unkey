@@ -1,8 +1,3 @@
-/*
-Package metrics provides Prometheus metric collectors for monitoring application performance.
-
-This file contains cache-related metrics for tracking cache efficiency, performance, and resource usage.
-*/
 package metrics
 
 import (
@@ -19,11 +14,10 @@ var (
 	//   metrics.CacheHits.WithLabelValues("user_profile")
 	CacheReads = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "cache",
-			Name:        "reads_total",
-			Help:        "Number of cache reads by resource type and hit status.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "reads_total",
+			Help:      "Number of cache reads by resource type and hit status.",
 		},
 		[]string{"resource", "hit"},
 	)
@@ -36,11 +30,10 @@ var (
 	//   metrics.CacheWrites.WithLabelValues("user_profile").Set(float64(writeCount))
 	CacheWrites = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "unkey",
-			Subsystem:   "cache",
-			Name:        "writes",
-			Help:        "Number of cache writes by resource type.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "writes",
+			Help:      "Number of cache writes by resource type.",
 		},
 		[]string{"resource"},
 	)
@@ -54,11 +47,10 @@ var (
 	//   metrics.CacheDeleted.WithLabelValues("user_profile", "capacity").Set(float64(evictionCount))
 	CacheDeleted = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "cache",
-			Name:        "deleted_total",
-			Help:        "Number of cache entries deleted by resource type and reason.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "deleted_total",
+			Help:      "Number of cache entries deleted by resource type and reason.",
 		},
 		[]string{"resource", "reason"},
 	)
@@ -70,11 +62,10 @@ var (
 	//   metrics.CacheSize.WithLabelValues("user_profile").Set(float64(cacheSize))
 	CacheSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "unkey",
-			Subsystem:   "cache",
-			Name:        "size",
-			Help:        "Current number of entries in the cache by resource type.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "size",
+			Help:      "Current number of entries in the cache by resource type.",
 		},
 		[]string{"resource"},
 	)
@@ -86,11 +77,10 @@ var (
 	//   metrics.CacheCapacity.WithLabelValues("user_profile").Set(float64(cacheCapacity))
 	CacheCapacity = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "unkey",
-			Subsystem:   "cache",
-			Name:        "capacity",
-			Help:        "Maximum capacity of the cache by resource type.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "capacity",
+			Help:      "Maximum capacity of the cache by resource type.",
 		},
 		[]string{"resource"},
 	)
@@ -102,11 +92,10 @@ var (
 	//   metrics.CacheRevalidations.WithLabelValues("user_profile").Inc()
 	CacheRevalidations = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "cache",
-			Name:        "revalidations_total",
-			Help:        "Total number of cache revalidations by resource type.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "revalidations_total",
+			Help:      "Total number of cache revalidations by resource type.",
 		},
 		[]string{"resource"},
 	)
@@ -118,11 +107,10 @@ var (
 	//   metrics.CacheReadsErrorsTotal.WithLabelValues("user_profile").Inc()
 	CacheReadsErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "cache",
-			Name:        "reads_errors_total",
-			Help:        "Total number of cache read errors by resource type.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "reads_errors_total",
+			Help:      "Total number of cache read errors by resource type.",
 		},
 		[]string{"resource"},
 	)
@@ -134,11 +122,10 @@ var (
 	//   metrics.CacheRevalidationsErrorsTotal.WithLabelValues("user_profile").Inc()
 	CacheRevalidationsErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "unkey",
-			Subsystem:   "cache",
-			Name:        "revalidations_errors_total",
-			Help:        "Total number of cache revalidation errors by resource type.",
-			ConstLabels: constLabels,
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "revalidations_errors_total",
+			Help:      "Total number of cache revalidation errors by resource type.",
 		},
 		[]string{"resource"},
 	)
