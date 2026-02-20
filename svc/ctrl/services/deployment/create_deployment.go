@@ -62,6 +62,19 @@ func (s *Service) CreateDeployment(
 	}
 	workspaceID := project.WorkspaceID
 
+	// Look up default app
+	appRow, err := db.Query.FindAppByProjectAndSlug(ctx, s.db.RO(), db.FindAppByProjectAndSlugParams{
+		ProjectID: project.ID,
+		Slug:      "default",
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("default app not found for project: %s", req.Msg.GetProjectId()))
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
 	envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
 		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
@@ -156,6 +169,7 @@ func (s *Service) CreateDeployment(
 		K8sName:                       uid.DNS1035(12),
 		WorkspaceID:                   workspaceID,
 		ProjectID:                     req.Msg.GetProjectId(),
+		AppID:                         appRow.App.ID,
 		EnvironmentID:                 env.ID,
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                envSettings.EnvironmentRuntimeSetting.SentinelConfig,
