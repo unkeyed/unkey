@@ -74,7 +74,7 @@ export const PermissionContentList = ({
     });
   }, []);
   return (
-    <div className="flex flex-col w-full grow-0 max-w-[380px] px-2">
+    <div className="flex flex-col w-full px-2">
       <Collapsible
         open={isRootExpanded}
         onOpenChange={setIsRootExpanded}
