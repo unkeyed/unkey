@@ -1,9 +1,10 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { SquareTerminal } from "@unkey/icons";
-import { FormTextarea, InfoTooltip, toast } from "@unkey/ui";
+import { FormTextarea, InfoTooltip } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -20,12 +21,15 @@ export const Command = () => {
   const { environments } = useProjectData();
   const environmentId = environments[0]?.id;
 
-  const { data: settingsData } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
+  const { data: settings } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+    [environmentId],
   );
 
-  const rawCommand = settingsData?.runtimeSettings?.command as string[] | undefined;
+  const rawCommand = settings?.[0]?.command;
   const defaultCommand = (rawCommand ?? []).join(" ");
 
   return <CommandForm environmentId={environmentId ?? ""} defaultCommand={defaultCommand} />;
@@ -37,8 +41,6 @@ type CommandFormProps = {
 };
 
 const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand }) => {
-  const utils = trpc.useUtils();
-
   const {
     register,
     handleSubmit,
@@ -58,22 +60,12 @@ const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand
   const currentCommand = useWatch({ control, name: "command" });
   const hasChanges = currentCommand !== defaultCommand;
 
-  const updateCommand = trpc.deploy.environmentSettings.runtime.updateCommand.useMutation({
-    onSuccess: () => {
-      toast.success("Command updated");
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      toast.error("Failed to update command", {
-        description: err.message,
-      });
-    },
-  });
-
   const onSubmit = async (values: CommandFormValues) => {
     const trimmed = values.command.trim();
     const command = trimmed === "" ? [] : trimmed.split(/\s+/).filter(Boolean);
-    await updateCommand.mutateAsync({ environmentId, command });
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.command = command;
+    });
   };
 
   return (
@@ -94,7 +86,7 @@ const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateCommand.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <FormTextarea
         label="Command"

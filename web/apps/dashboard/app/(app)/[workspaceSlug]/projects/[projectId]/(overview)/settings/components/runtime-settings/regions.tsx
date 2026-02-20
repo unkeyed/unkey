@@ -2,11 +2,12 @@
 
 import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Location2, XMark } from "@unkey/icons";
-import { toast } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -24,9 +25,12 @@ export const Regions = () => {
   const { environments } = useProjectData();
   const environmentId = environments[0]?.id;
 
-  const { data: settingsData } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
+  const { data: settings } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+    [environmentId],
   );
 
   const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
@@ -34,8 +38,7 @@ export const Regions = () => {
     { enabled: Boolean(environmentId) },
   );
 
-  const regionConfig =
-    (settingsData?.runtimeSettings?.regionConfig as Record<string, number>) ?? {};
+  const regionConfig = settings?.[0]?.regionConfig ?? {};
   const defaultRegions = Object.keys(regionConfig);
 
   return (
@@ -58,8 +61,6 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
   defaultRegions,
   availableRegions,
 }) => {
-  const utils = trpc.useUtils();
-
   const {
     handleSubmit,
     setValue,
@@ -80,37 +81,14 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
 
   const unselectedRegions = availableRegions.filter((r) => !currentRegions.includes(r));
 
-  const updateRegions = trpc.deploy.environmentSettings.runtime.updateRegions.useMutation({
-    onSuccess: () => {
-      toast.success("Regions updated", {
-        description: "Deployment regions saved successfully.",
-        duration: 5000,
-      });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid regions setting", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update regions", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: RegionsFormValues) => {
-    await updateRegions.mutateAsync({
-      environmentId,
-      regions: values.regions,
+    collection.environmentSettings.update(environmentId, (draft) => {
+      const newConfig: Record<string, number> = {};
+      const defaultCount = Object.values(draft.regionConfig)[0] ?? 1;
+      for (const region of values.regions) {
+        newConfig[region] = draft.regionConfig[region] ?? defaultCount;
+      }
+      draft.regionConfig = newConfig;
     });
   };
 
@@ -179,7 +157,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateRegions.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <FormCombobox
         label="Regions"

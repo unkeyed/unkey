@@ -1,10 +1,11 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { formatMemory } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ScanCode } from "@unkey/icons";
-import { Slider, toast } from "@unkey/ui";
+import { Slider } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -34,12 +35,15 @@ export const Memory = () => {
   const { environments } = useProjectData();
   const environmentId = environments[0]?.id;
 
-  const { data: settingsData } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
+  const { data: settings } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+    [environmentId],
   );
 
-  const defaultMemory = settingsData?.runtimeSettings?.memoryMib ?? 256;
+  const defaultMemory = settings?.[0]?.memoryMib ?? 256;
 
   return <MemoryForm environmentId={environmentId} defaultMemory={defaultMemory} />;
 };
@@ -50,8 +54,6 @@ type MemoryFormProps = {
 };
 
 const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory }) => {
-  const utils = trpc.useUtils();
-
   const {
     handleSubmit,
     setValue,
@@ -70,37 +72,9 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
 
   const currentMemory = useWatch({ control, name: "memory" });
 
-  const updateMemory = trpc.deploy.environmentSettings.runtime.updateMemory.useMutation({
-    onSuccess: (_data, variables) => {
-      toast.success("Memory updated", {
-        description: `Memory set to ${formatMemory(variables.memoryMib ?? defaultMemory)}`,
-        duration: 5000,
-      });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid memory setting", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update memory", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: MemoryFormValues) => {
-    await updateMemory.mutateAsync({
-      environmentId,
-      memoryMib: values.memory,
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.memoryMib = values.memory;
     });
   };
 
@@ -123,7 +97,7 @@ const MemoryForm: React.FC<MemoryFormProps> = ({ environmentId, defaultMemory })
       })()}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateMemory.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Memory per instance</span>

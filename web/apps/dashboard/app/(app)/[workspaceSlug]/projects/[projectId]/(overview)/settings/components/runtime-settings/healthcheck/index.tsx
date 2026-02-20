@@ -1,7 +1,8 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown, HeartPulse } from "@unkey/icons";
 import {
   FormInput,
@@ -10,7 +11,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  toast,
 } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -24,12 +24,15 @@ export const Healthcheck = () => {
   const { environments } = useProjectData();
   const environmentId = environments[0]?.id;
 
-  const { data: settingsData } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
+  const { data: settings } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+    [environmentId],
   );
 
-  const healthcheck = settingsData?.runtimeSettings?.healthcheck;
+  const healthcheck = settings?.[0]?.healthcheck;
   const defaultValues: HealthcheckFormValues = {
     method: healthcheck?.method ?? "GET",
     path: healthcheck?.path ?? "/health",
@@ -45,8 +48,6 @@ type HealthcheckFormProps = {
 };
 
 const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaultValues }) => {
-  const utils = trpc.useUtils();
-
   const {
     handleSubmit,
     control,
@@ -68,34 +69,9 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
   const currentPath = useWatch({ control, name: "path" });
   const currentInterval = useWatch({ control, name: "interval" });
 
-  const updateHealthcheck = trpc.deploy.environmentSettings.runtime.updateHealthcheck.useMutation({
-    onSuccess: () => {
-      toast.success("Healthcheck updated", { duration: 5000 });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid healthcheck setting", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update healthcheck", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: HealthcheckFormValues) => {
-    await updateHealthcheck.mutateAsync({
-      environmentId,
-      healthcheck:
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.healthcheck =
         values.path.trim() === ""
           ? null
           : {
@@ -105,7 +81,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
               timeoutSeconds: 5,
               failureThreshold: 3,
               initialDelaySeconds: 0,
-            },
+            };
     });
   };
 
@@ -128,7 +104,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateHealthcheck.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <div className="flex flex-col gap-3 w-[520px]">
         {/* TODO: multi-check when API supports

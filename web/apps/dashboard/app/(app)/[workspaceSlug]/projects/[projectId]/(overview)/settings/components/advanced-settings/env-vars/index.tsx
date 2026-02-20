@@ -1,8 +1,9 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Nodes2 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { useMemo } from "react";
@@ -21,23 +22,22 @@ export const EnvVars = () => {
   const defaultEnvironmentId =
     environments.find((e) => e.slug === "production")?.id ?? environments[0]?.id;
 
-  const { data } = trpc.deploy.envVar.list.useQuery({ projectId }, { enabled: Boolean(projectId) });
+  const { data: envVarData } = useLiveQuery(
+    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.projectId, projectId)),
+    [projectId],
+  );
 
   const allVariables = useMemo(() => {
-    if (!data) {
+    if (!envVarData) {
       return [];
     }
-    return environments.flatMap((env) => {
-      const envData = data[env.slug];
-      if (!envData) {
-        return [];
-      }
-      return envData.variables.map((v) => ({
-        ...v,
-        environmentId: env.id,
-      }));
-    });
-  }, [data, environments]);
+    return envVarData.map((v) => ({
+      id: v.id,
+      key: v.key,
+      type: v.type,
+      environmentId: v.environmentId,
+    }));
+  }, [envVarData]);
 
   const { decryptedValues, isDecrypting } = useDecryptedValues(allVariables);
 
@@ -91,8 +91,6 @@ const EnvVarsForm = ({
   projectId: string;
   isDecrypting: boolean;
 }) => {
-  const utils = trpc.useUtils();
-
   const {
     register,
     handleSubmit,
@@ -108,16 +106,6 @@ const EnvVarsForm = ({
   const { ref, isDragging } = useDropZone(reset, defaultEnvironmentId);
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
 
-  const createMutation = trpc.deploy.envVar.create.useMutation();
-  const updateMutation = trpc.deploy.envVar.update.useMutation();
-  const deleteMutation = trpc.deploy.envVar.delete.useMutation();
-
-  const isSaving =
-    createMutation.isLoading ||
-    updateMutation.isLoading ||
-    deleteMutation.isLoading ||
-    isSubmitting;
-
   const onSubmit = async (values: EnvVarsFormValues) => {
     const { toDelete, toCreate, toUpdate, originalMap } = computeEnvVarsDiff(
       defaultValues.envVars,
@@ -131,38 +119,39 @@ const EnvVarsForm = ({
         ...toDelete.map(async (id) => {
           const key = originalMap.get(id)?.key ?? id;
           try {
-            return await deleteMutation.mutateAsync({ envVarId: id });
+            collection.envVars.delete(id);
           } catch (err) {
             throw new Error(`"${key}": ${err instanceof Error ? err.message : "Failed to delete"}`);
           }
         }),
-        ...[...createsByEnv.entries()].map(([envId, vars]) =>
-          createMutation.mutateAsync({
-            environmentId: envId,
-            variables: vars.map((v) => ({
+        ...[...createsByEnv.entries()].map(async ([envId, vars]) => {
+          for (const v of vars) {
+            collection.envVars.insert({
+              id: crypto.randomUUID(),
+              environmentId: envId,
+              projectId,
               key: v.key,
               value: v.value,
-              type: toTrpcType(v.secret),
-            })),
-          }),
-        ),
-        ...toUpdate.map((v) =>
-          updateMutation
-            .mutateAsync({
-              envVarId: v.id as string,
-              key: v.key,
-              value: v.value,
-              type: toTrpcType(v.secret),
-            })
-            .catch((err) => {
-              throw new Error(
-                `"${v.key}": ${err instanceof Error ? err.message : "Failed to update"}`,
-              );
-            }),
-        ),
+              type: toTrpcType(v.secret) as "recoverable" | "writeonly",
+              description: null,
+            });
+          }
+        }),
+        ...toUpdate.map(async (v) => {
+          try {
+            collection.envVars.update(v.id as string, (draft) => {
+              draft.key = v.key;
+              draft.value = v.value;
+              draft.type = toTrpcType(v.secret) as "recoverable" | "writeonly";
+            });
+          } catch (err) {
+            throw new Error(
+              `"${v.key}": ${err instanceof Error ? err.message : "Failed to update"}`,
+            );
+          }
+        }),
       ]);
 
-      utils.deploy.envVar.list.invalidate({ projectId });
       toast.success("Environment variables saved");
     } catch (err) {
       toast.error("Failed to save environment variables", {
@@ -192,8 +181,8 @@ const EnvVarsForm = ({
       description="Set environment variables available at runtime. Changes apply on next deploy."
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSaving && !isDecrypting && isDirty}
-      isSaving={isSaving}
+      canSave={isValid && !isSubmitting && !isDecrypting && isDirty}
+      isSaving={isSubmitting}
       ref={ref}
       className={cn("relative", isDragging && "bg-primary/5")}
     >

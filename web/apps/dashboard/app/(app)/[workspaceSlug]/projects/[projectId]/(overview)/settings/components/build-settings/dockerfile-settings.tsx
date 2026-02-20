@@ -1,7 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { FileSettings } from "@unkey/icons";
-import { FormInput, toast } from "@unkey/ui";
+import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
@@ -15,12 +16,15 @@ export const DockerfileSettings = () => {
   const { environments } = useProjectData();
   const environmentId = environments[0]?.id;
 
-  const { data } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
+  const { data: settings } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+    [environmentId],
   );
 
-  const defaultValue = data?.buildSettings?.dockerfile ?? "Dockerfile";
+  const defaultValue = settings?.[0]?.dockerfile ?? "Dockerfile";
   return <DockerfileForm environmentId={environmentId} defaultValue={defaultValue} />;
 };
 
@@ -31,8 +35,6 @@ const DockerfileForm = ({
   environmentId: string;
   defaultValue: string;
 }) => {
-  const utils = trpc.useUtils();
-
   const {
     register,
     handleSubmit,
@@ -46,35 +48,13 @@ const DockerfileForm = ({
 
   const currentDockerfile = useWatch({ control, name: "dockerfile" });
 
-  const updateDockerfile = trpc.deploy.environmentSettings.build.updateDockerfile.useMutation({
-    onSuccess: (_data, variables) => {
-      toast.success("Dockerfile updated", {
-        description: `Path set to "${variables.dockerfile ?? defaultValue}".`,
-        duration: 5000,
-      });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid Dockerfile path", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update Dockerfile", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: z.infer<typeof dockerfileSchema>) => {
-    await updateDockerfile.mutateAsync({ environmentId, dockerfile: values.dockerfile });
+    if (!environmentId) {
+      return;
+    }
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.dockerfile = values.dockerfile;
+    });
   };
 
   return (
@@ -85,7 +65,7 @@ const DockerfileForm = ({
       displayValue={defaultValue}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && currentDockerfile !== defaultValue}
-      isSaving={updateDockerfile.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <FormInput
         required

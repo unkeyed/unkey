@@ -1,10 +1,11 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { formatCpu } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Bolt } from "@unkey/icons";
-import { Slider, toast } from "@unkey/ui";
+import { Slider } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -34,12 +35,15 @@ export const Cpu = () => {
   const { environments } = useProjectData();
   const environmentId = environments[0]?.id;
 
-  const { data: settingsData } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
+  const { data: settings } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+    [environmentId],
   );
 
-  const defaultCpu = settingsData?.runtimeSettings?.cpuMillicores ?? 256;
+  const defaultCpu = settings?.[0]?.cpuMillicores ?? 256;
 
   return <CpuForm environmentId={environmentId} defaultCpu={defaultCpu} />;
 };
@@ -50,8 +54,6 @@ type CpuFormProps = {
 };
 
 const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
-  const utils = trpc.useUtils();
-
   const {
     handleSubmit,
     setValue,
@@ -70,37 +72,9 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
 
   const currentCpu = useWatch({ control, name: "cpu" });
 
-  const updateCpu = trpc.deploy.environmentSettings.runtime.updateCpu.useMutation({
-    onSuccess: (_data, variables) => {
-      toast.success("CPU updated", {
-        description: `CPU set to ${formatCpu(variables.cpuMillicores ?? defaultCpu)}`,
-        duration: 5000,
-      });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid CPU setting", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update CPU", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: CpuFormValues) => {
-    await updateCpu.mutateAsync({
-      environmentId,
-      cpuMillicores: values.cpu,
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.cpuMillicores = values.cpu;
     });
   };
 
@@ -123,7 +97,7 @@ const CpuForm: React.FC<CpuFormProps> = ({ environmentId, defaultCpu }) => {
       })()}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateCpu.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">CPU per instance</span>

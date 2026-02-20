@@ -1,7 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { NumberInput } from "@unkey/icons";
-import { FormInput, toast } from "@unkey/ui";
+import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
@@ -15,12 +16,15 @@ export const PortSettings = () => {
   const { environments } = useProjectData();
   const environmentId = environments[0]?.id;
 
-  const { data } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
+  const { data: settings } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => eq(s.environmentId, environmentId ?? "")),
+    [environmentId],
   );
 
-  const defaultValue = data?.runtimeSettings?.port ?? 8080;
+  const defaultValue = settings?.[0]?.port ?? 8080;
   return <PortForm environmentId={environmentId} defaultValue={defaultValue} />;
 };
 
@@ -31,8 +35,6 @@ const PortForm = ({
   environmentId: string | undefined;
   defaultValue: number;
 }) => {
-  const utils = trpc.useUtils();
-
   const {
     register,
     handleSubmit,
@@ -46,35 +48,13 @@ const PortForm = ({
 
   const currentPort = useWatch({ control, name: "port" });
 
-  const updatePort = trpc.deploy.environmentSettings.runtime.updatePort.useMutation({
-    onSuccess: (_data, variables) => {
-      toast.success("Port updated", {
-        description: `Port set to ${variables.port ?? defaultValue}.`,
-        duration: 5000,
-      });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid port", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update port", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: z.infer<typeof portSchema>) => {
-    await updatePort.mutateAsync({ environmentId: environmentId ?? "", port: values.port });
+    if (!environmentId) {
+      return;
+    }
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.port = values.port;
+    });
   };
 
   return (
@@ -85,7 +65,7 @@ const PortForm = ({
       displayValue={String(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && currentPort !== defaultValue}
-      isSaving={updatePort.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <FormInput
         required
