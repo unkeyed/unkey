@@ -1,8 +1,12 @@
 package cluster
 
 import (
+	"sync/atomic"
+	"time"
+
 	"github.com/hashicorp/memberlist"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
+	"github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -40,12 +44,24 @@ func (d *wanDelegate) NotifyMsg(data []byte) {
 
 	var msg clusterv1.ClusterMessage
 	if err := proto.Unmarshal(data, &msg); err != nil {
+		metrics.ClusterMessageUnmarshalErrorsTotal.WithLabelValues("wan").Inc()
 		logger.Warn("Failed to unmarshal WAN cluster message", "error", err)
 		return
 	}
 
+	payloadType := metrics.PayloadTypeName(msg.GetPayload())
+	metrics.ClusterMessagesReceivedTotal.WithLabelValues("wan", "wan", payloadType).Inc()
+
+	if msg.SentAtMs > 0 {
+		latency := time.Since(time.UnixMilli(msg.SentAtMs)).Seconds()
+		if latency >= 0 {
+			metrics.ClusterMessageLatencySeconds.WithLabelValues("wan", msg.SourceRegion).Observe(latency)
+		}
+	}
+
 	// Skip messages that originated in our own region to avoid loops.
 	if msg.SourceRegion == d.cluster.config.Region {
+		metrics.ClusterMessagesSkippedSameRegionTotal.Inc()
 		return
 	}
 
@@ -66,8 +82,38 @@ func (d *wanDelegate) NotifyMsg(data []byte) {
 	msg.Direction = clusterv1.Direction_DIRECTION_WAN
 	lanBytes, err := proto.Marshal(&msg)
 	if err != nil {
+		metrics.ClusterRelayErrorsTotal.WithLabelValues("wan_to_lan").Inc()
 		logger.Warn("Failed to marshal LAN relay message", "error", err)
 		return
 	}
 	lanQ.QueueBroadcast(newBroadcast(lanBytes))
+	metrics.ClusterRelaysTotal.WithLabelValues("wan_to_lan").Inc()
 }
+
+// wanEventDelegate tracks WAN pool membership changes for metrics.
+// It uses an atomic counter instead of calling NumMembers() because
+// NotifyJoin/NotifyLeave are called while memberlist holds its internal
+// nodeLock, and NumMembers() also acquires that lock.
+type wanEventDelegate struct {
+	count atomic.Int64
+}
+
+var _ memberlist.EventDelegate = (*wanEventDelegate)(nil)
+
+func newWANEventDelegate(_ *gossipCluster) *wanEventDelegate {
+	return &wanEventDelegate{
+		count: atomic.Int64{},
+	}
+}
+
+func (d *wanEventDelegate) NotifyJoin(node *memberlist.Node) {
+	n := d.count.Add(1)
+	metrics.ClusterMembersCount.WithLabelValues("wan").Set(float64(n))
+}
+
+func (d *wanEventDelegate) NotifyLeave(node *memberlist.Node) {
+	n := d.count.Add(-1)
+	metrics.ClusterMembersCount.WithLabelValues("wan").Set(float64(n))
+}
+
+func (d *wanEventDelegate) NotifyUpdate(node *memberlist.Node) {}
