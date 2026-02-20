@@ -26,11 +26,14 @@ export const getEnvironmentSettings = workspaceProcedure
       buildSettings: buildSettings ?? null,
       runtimeSettings: runtimeSettings
         ? {
-          ...runtimeSettings,
-          sentinelConfig: runtimeSettings.sentinelConfig?.length
-            ? (JSON.parse(Buffer.from(runtimeSettings.sentinelConfig).toString()) as SentinelConfig)
-            : undefined,
-        }
+            ...runtimeSettings,
+            // Without that length check this will Buffer.from gives "", and JSON.parse("") throws 500.
+            sentinelConfig: runtimeSettings.sentinelConfig?.length
+              ? (JSON.parse(
+                  Buffer.from(runtimeSettings.sentinelConfig).toString(),
+                ) as SentinelConfig)
+              : undefined,
+          }
         : null,
     };
   });
