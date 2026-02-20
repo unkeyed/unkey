@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -150,10 +151,45 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	case *hydrav1.DeployRequest_DockerImage:
 		dockerImage = source.DockerImage.GetImage()
 	case *hydrav1.DeployRequest_Git:
+		commitSHA := source.Git.GetCommitSha()
+
+		// Resolve branch→SHA when commit_sha is empty (e.g. Redeploy RPC passes
+		// only a branch). The API intentionally does not hold GitHub credentials;
+		// the worker resolves via its own GitHub client.
+		if commitSHA == "" && source.Git.GetBranch() != "" {
+			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
+				return w.github.GetBranchHeadCommit(
+					source.Git.GetInstallationId(),
+					source.Git.GetRepository(),
+					source.Git.GetBranch(),
+				)
+			}, restate.WithName("resolve branch head"))
+			if resolveErr != nil {
+				return nil, restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr))
+			}
+			commitSHA = info.SHA
+
+			resolveErr = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return db.Query.UpdateDeploymentGitMetadata(runCtx, w.db.RW(), db.UpdateDeploymentGitMetadataParams{
+					ID:                       deployment.ID,
+					GitCommitSha:             sql.NullString{String: info.SHA, Valid: true},
+					GitBranch:                sql.NullString{String: source.Git.GetBranch(), Valid: true},
+					GitCommitMessage:         sql.NullString{String: info.Message, Valid: info.Message != ""},
+					GitCommitAuthorHandle:    sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""},
+					GitCommitAuthorAvatarUrl: sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""},
+					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
+					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				})
+			}, restate.WithName("update deployment git metadata"))
+			if resolveErr != nil {
+				return nil, fmt.Errorf("failed to update deployment git metadata: %w", resolveErr)
+			}
+		}
+
 		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{
 			InstallationID: source.Git.GetInstallationId(),
 			Repository:     source.Git.GetRepository(),
-			CommitSHA:      source.Git.GetCommitSha(),
+			CommitSHA:      commitSHA,
 			ContextPath:    source.Git.GetContextPath(),
 			DockerfilePath: source.Git.GetDockerfilePath(),
 			ProjectID:      deployment.ProjectID,

@@ -13,3 +13,6 @@ type IsSentinelState_State = isSentinelState_State
 
 // IsDeploymentState_State is the exported form of the protobuf oneof interface isDeploymentState_State.
 type IsDeploymentState_State = isDeploymentState_State
+
+// IsRedeployRequest_Target is the exported form of the protobuf oneof interface isRedeployRequest_Target.
+type IsRedeployRequest_Target = isRedeployRequest_Target

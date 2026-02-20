@@ -62,6 +62,8 @@ message GitSource {
   // Full repository identifier (e.g., "owner/repo").
   string repository = 2;
 
+  // Commit SHA to build. May be empty when branch is set — the worker resolves
+  // the branch HEAD before building.
   string commit_sha = 3;
 
   // Subdirectory within the repository to use as the Docker build context.
@@ -69,6 +71,10 @@ message GitSource {
 
   // Path to the Dockerfile, relative to context_path.
   string dockerfile_path = 5;
+
+  // Branch name used to resolve commit_sha when it is empty. The deploy worker
+  // calls GitHub to look up the HEAD commit of this branch.
+  string branch = 6;
 }
 
 message DeployRequest {

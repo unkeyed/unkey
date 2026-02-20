@@ -17,6 +17,7 @@ type DeployServiceClient interface {
 	GetDeployment(ctx context.Context, req *v1.GetDeploymentRequest) (*v1.GetDeploymentResponse, error)
 	Rollback(ctx context.Context, req *v1.RollbackRequest) (*v1.RollbackResponse, error)
 	Promote(ctx context.Context, req *v1.PromoteRequest) (*v1.PromoteResponse, error)
+	Redeploy(ctx context.Context, req *v1.RedeployRequest) (*v1.RedeployResponse, error)
 }
 
 var _ DeployServiceClient = (*ConnectDeployServiceClient)(nil)
@@ -57,6 +58,14 @@ func (c *ConnectDeployServiceClient) Rollback(ctx context.Context, req *v1.Rollb
 
 func (c *ConnectDeployServiceClient) Promote(ctx context.Context, req *v1.PromoteRequest) (*v1.PromoteResponse, error) {
 	resp, err := c.inner.Promote(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectDeployServiceClient) Redeploy(ctx context.Context, req *v1.RedeployRequest) (*v1.RedeployResponse, error) {
+	resp, err := c.inner.Redeploy(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}

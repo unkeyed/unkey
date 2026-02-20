@@ -7,6 +7,7 @@ go_library(
         "doc.go",
         "get_deployment.go",
         "promote.go",
+        "redeploy.go",
         "rollback.go",
         "service.go",
     ],

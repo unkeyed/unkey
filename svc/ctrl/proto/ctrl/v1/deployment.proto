@@ -131,6 +131,22 @@ message RegionalConfig {
   int32 max_instances = 3;
 }
 
+message RedeployRequest {
+  string project_id = 1;
+  string environment_slug = 2;
+
+  // If omitted, deploys HEAD of project's default branch.
+  oneof target {
+    string commit_sha = 3; // Deploy this exact commit
+    string branch = 4; // Deploy HEAD of this branch
+  }
+}
+
+message RedeployResponse {
+  string deployment_id = 1;
+  DeploymentStatus status = 2;
+}
+
 message RollbackRequest {
   string source_deployment_id = 1;
   string target_deployment_id = 2;
@@ -156,4 +172,9 @@ service DeployService {
 
   // Promote the deployment to the live environment
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
+
+  // Redeploy triggers a new deployment for a project+environment, resolving
+  // the latest commit from GitHub (for git-connected projects) or reusing the
+  // live deployment's Docker image (for non-git projects).
+  rpc Redeploy(RedeployRequest) returns (RedeployResponse) {}
 }

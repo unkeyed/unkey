@@ -366,6 +366,19 @@ type Querier interface {
 	//    AND sticky IN (/*SLICE:sticky*/?)
 	//  ORDER BY created_at ASC
 	FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
+	//FindGithubRepoConnectionByProjectId
+	//
+	//  SELECT
+	//      pk,
+	//      project_id,
+	//      installation_id,
+	//      repository_id,
+	//      repository_full_name,
+	//      created_at,
+	//      updated_at
+	//  FROM github_repo_connections
+	//  WHERE project_id = ?
+	FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (GithubRepoConnection, error)
 	//FindIdentities
 	//
 	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -2429,6 +2442,19 @@ type Querier interface {
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
+	//UpdateDeploymentGitMetadata
+	//
+	//  UPDATE deployments
+	//  SET
+	//      git_commit_sha = ?,
+	//      git_branch = ?,
+	//      git_commit_message = ?,
+	//      git_commit_author_handle = ?,
+	//      git_commit_author_avatar_url = ?,
+	//      git_commit_timestamp = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentGitMetadata(ctx context.Context, db DBTX, arg UpdateDeploymentGitMetadataParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments

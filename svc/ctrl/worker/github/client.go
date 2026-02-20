@@ -161,6 +161,82 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 	return value, nil
 }
 
+// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
+// repository. It uses an installation token to authenticate the request.
+// The repo parameter must be in "owner/repo" format.
+func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error) {
+	token, err := c.GetInstallationToken(installationID)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to get installation token for branch head lookup"))
+	}
+
+	url := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, branch)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to create request"))
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to fetch branch head commit"))
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return CommitInfo{}, fault.New(
+			"failed to fetch branch head commit",
+			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+		)
+	}
+
+	var commit ghCommitResponse
+	if err := json.NewDecoder(resp.Body).Decode(&commit); err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to decode commit response"))
+	}
+
+	message := commit.Commit.Message
+	if idx := strings.Index(message, "\n"); idx != -1 {
+		message = message[:idx]
+	}
+
+	var ts time.Time
+	if commit.Commit.Author.Date != "" {
+		if parsed, parseErr := time.Parse(time.RFC3339, commit.Commit.Author.Date); parseErr == nil {
+			ts = parsed
+		}
+	}
+
+	return CommitInfo{
+		SHA:             commit.SHA,
+		Message:         message,
+		AuthorHandle:    commit.Author.Login,
+		AuthorAvatarURL: commit.Author.AvatarURL,
+		Timestamp:       ts,
+	}, nil
+}
+
+// ghCommitResponse is the subset of GitHub's GET /repos/{owner}/{repo}/commits/{ref}
+// response that we need.
+type ghCommitResponse struct {
+	SHA    string `json:"sha"`
+	Commit struct {
+		Message string `json:"message"`
+		Author  struct {
+			Date string `json:"date"`
+		} `json:"author"`
+	} `json:"commit"`
+	Author struct {
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatar_url"`
+	} `json:"author"`
+}
+
 // VerifyWebhookSignature verifies a GitHub webhook signature using constant-time
 // comparison. The signature should be the value of the X-Hub-Signature-256 header
 // (e.g., "sha256=..."). Returns true only if the signature is valid and matches
