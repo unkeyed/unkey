@@ -96,10 +96,10 @@ function SettingCard({
   const borderClass = inGroup
     ? {}
     : {
-      "border border-grayA-4": border !== "none",
-      "border-t-0": border === "bottom",
-      "border-b-0": border === "top",
-    };
+        "border border-grayA-4": border !== "none",
+        "border-t-0": border === "bottom",
+        "border-b-0": border === "top",
+      };
 
   const expandedBottomRadius =
     !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
@@ -114,7 +114,9 @@ function SettingCard({
           "transitionend",
           () => {
             const inner = innerRef.current;
-            if (!inner) { return };
+            if (!inner) {
+              return;
+            }
             const overflow = inner.getBoundingClientRect().bottom - window.innerHeight;
             if (overflow > 0)
               findScrollParent(inner).scrollBy({ top: overflow + 16, behavior: "smooth" });

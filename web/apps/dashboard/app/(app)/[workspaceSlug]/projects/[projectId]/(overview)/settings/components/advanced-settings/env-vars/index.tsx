@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Nodes2 } from "@unkey/icons";
-import { toast } from "@unkey/ui";
 import { useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
@@ -103,60 +102,38 @@ const EnvVarsForm = ({
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
 
   const onSubmit = async (values: EnvVarsFormValues) => {
-    const { toDelete, toCreate, toUpdate, originalMap } = computeEnvVarsDiff(
+    const { toDelete, toCreate, toUpdate } = computeEnvVarsDiff(
       defaultValues.envVars,
       values.envVars,
     );
 
     const createsByEnv = groupByEnvironment(toCreate);
 
-    try {
-      await Promise.all([
-        ...toDelete.map(async (id) => {
-          const key = originalMap.get(id)?.key ?? id;
-          try {
-            collection.envVars.delete(id);
-          } catch (err) {
-            throw new Error(`"${key}": ${err instanceof Error ? err.message : "Failed to delete"}`);
-          }
-        }),
-        ...[...createsByEnv.entries()].map(async ([envId, vars]) => {
-          for (const v of vars) {
-            collection.envVars.insert({
-              id: crypto.randomUUID(),
-              environmentId: envId,
-              projectId,
-              key: v.key,
-              value: v.value,
-              type: toTrpcType(v.secret) as "recoverable" | "writeonly",
-              description: null,
-            });
-          }
-        }),
-        ...toUpdate.map(async (v) => {
-          try {
-            collection.envVars.update(v.id as string, (draft) => {
-              draft.key = v.key;
-              draft.value = v.value;
-              draft.type = toTrpcType(v.secret) as "recoverable" | "writeonly";
-            });
-          } catch (err) {
-            throw new Error(
-              `"${v.key}": ${err instanceof Error ? err.message : "Failed to update"}`,
-            );
-          }
-        }),
-      ]);
-
-      toast.success("Environment variables saved");
-    } catch (err) {
-      toast.error("Failed to save environment variables", {
-        description:
-          err instanceof Error
-            ? err.message
-            : "An unexpected error occurred. Please try again or contact support@unkey.com",
-      });
-    }
+    await Promise.all([
+      ...toDelete.map(async (id) => {
+        collection.envVars.delete(id);
+      }),
+      ...[...createsByEnv.entries()].map(async ([envId, vars]) => {
+        for (const v of vars) {
+          collection.envVars.insert({
+            id: crypto.randomUUID(),
+            environmentId: envId,
+            projectId,
+            key: v.key,
+            value: v.value,
+            type: toTrpcType(v.secret) as "recoverable" | "writeonly",
+            description: null,
+          });
+        }
+      }),
+      ...toUpdate.map(async (v) => {
+        collection.envVars.update(v.id as string, (draft) => {
+          draft.key = v.key;
+          draft.value = v.value;
+          draft.type = toTrpcType(v.secret) as "recoverable" | "writeonly";
+        });
+      }),
+    ]);
   };
 
   const varCount = defaultValues.envVars.filter((v) => v.key !== "").length;
