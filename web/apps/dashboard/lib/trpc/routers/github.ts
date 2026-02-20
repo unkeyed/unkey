@@ -18,12 +18,19 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
         id: true,
       },
       with: {
-        githubRepoConnection: {
-          columns: {
-            pk: true,
-            repositoryId: true,
-            repositoryFullName: true,
+        apps: {
+          where: (table, { eq }) => eq(table.slug, "default"),
+          columns: { id: true },
+          with: {
+            githubRepoConnection: {
+              columns: {
+                pk: true,
+                repositoryId: true,
+                repositoryFullName: true,
+              },
+            },
           },
+          limit: 1,
         },
         workspace: {
           columns: {
@@ -51,12 +58,15 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
     return null;
   }
 
+  const defaultApp = project.apps[0] ?? null;
+
   return {
-    repoConnection: project.githubRepoConnection
+    appId: defaultApp?.id ?? null,
+    repoConnection: defaultApp?.githubRepoConnection
       ? {
-          pk: project.githubRepoConnection.pk,
-          repositoryId: project.githubRepoConnection.repositoryId,
-          repositoryFullName: project.githubRepoConnection.repositoryFullName,
+          pk: defaultApp.githubRepoConnection.pk,
+          repositoryId: defaultApp.githubRepoConnection.repositoryId,
+          repositoryFullName: defaultApp.githubRepoConnection.repositoryFullName,
         }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
@@ -200,6 +210,7 @@ export const githubRouter = t.router({
       }
 
       return {
+        appId: githubContext.appId,
         installations: githubContext.installations,
         repoConnection: githubContext.repoConnection,
       };
@@ -266,6 +277,7 @@ export const githubRouter = t.router({
     .input(
       z.object({
         projectId: z.string(),
+        appId: z.string(),
         repositoryId: z.number().int(),
         repositoryFullName: z.string(),
         installationId: z.number().int(),
@@ -312,6 +324,7 @@ export const githubRouter = t.router({
         .insert(schema.githubRepoConnections)
         .values({
           projectId: input.projectId,
+          appId: input.appId,
           installationId: input.installationId,
           repositoryId: verifiedRepo.id,
           repositoryFullName: verifiedRepo.full_name,
@@ -339,32 +352,32 @@ export const githubRouter = t.router({
   disconnectRepo: workspaceProcedure
     .input(
       z.object({
-        projectId: z.string(),
+        appId: z.string(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const project = await db.query.projects
+      const app = await db.query.apps
         .findFirst({
           where: (table, { and, eq }) =>
-            and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+            and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
         })
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to load project",
+            message: "Failed to load app",
           });
         });
 
-      if (!project) {
+      if (!app) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Project not found",
+          message: "App not found",
         });
       }
 
       await db
         .delete(schema.githubRepoConnections)
-        .where(eq(schema.githubRepoConnections.projectId, input.projectId))
+        .where(eq(schema.githubRepoConnections.appId, input.appId))
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
