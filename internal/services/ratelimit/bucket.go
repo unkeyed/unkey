@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
 // bucket maintains rate limit state for a specific identifier+limit+duration combination.

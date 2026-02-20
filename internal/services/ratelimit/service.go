@@ -12,7 +12,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
+
+	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
 

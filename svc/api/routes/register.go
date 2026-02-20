@@ -8,10 +8,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
 
-	chproxyMetrics "github.com/unkeyed/unkey/svc/api/routes/chproxy_metrics"
-	chproxyRatelimits "github.com/unkeyed/unkey/svc/api/routes/chproxy_ratelimits"
-	chproxyVerifications "github.com/unkeyed/unkey/svc/api/routes/chproxy_verifications"
-
 	pprofRoute "github.com/unkeyed/unkey/svc/api/routes/pprof"
 
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
@@ -72,12 +68,10 @@ import (
 // The function applies a default middleware stack to most routes: panic recovery,
 // observability (tracing), metrics collection to ClickHouse, structured logging,
 // error handling, a one-minute request timeout, and request validation. Internal
-// endpoints (chproxy, pprof) use reduced middleware stacks appropriate to their
+// endpoints (pprof) use reduced middleware stacks appropriate to their
 // needs.
 //
-// Conditional routes are registered based on [Services] configuration. Chproxy
-// endpoints require a non-empty ChproxyToken, and pprof endpoints require
-// PprofEnabled to be true.
+// Conditional routes are registered based on [Services] configuration.
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
@@ -98,37 +92,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	}
 
 	srv.RegisterRoute(defaultMiddlewares, &v2Liveness.Handler{})
-
-	// ---------------------------------------------------------------------------
-	// chproxy (internal endpoints)
-
-	if svc.ChproxyToken != "" {
-		chproxyMiddlewares := []zen.Middleware{
-			withMetrics,
-			withLogging,
-			withObservability,
-			withPanicRecovery,
-			withErrorHandling,
-		}
-
-		// chproxy/verifications - internal endpoint for key verification events
-		srv.RegisterRoute(chproxyMiddlewares, &chproxyVerifications.Handler{
-			ClickHouse: svc.ClickHouse,
-			Token:      svc.ChproxyToken,
-		})
-
-		// chproxy/metrics - internal endpoint for API request metrics
-		srv.RegisterRoute(chproxyMiddlewares, &chproxyMetrics.Handler{
-			ClickHouse: svc.ClickHouse,
-			Token:      svc.ChproxyToken,
-		})
-
-		// chproxy/ratelimits - internal endpoint for ratelimit events
-		srv.RegisterRoute(chproxyMiddlewares, &chproxyRatelimits.Handler{
-			ClickHouse: svc.ClickHouse,
-			Token:      svc.ChproxyToken,
-		})
-	}
 
 	// ---------------------------------------------------------------------------
 	// pprof (internal profiling endpoints)

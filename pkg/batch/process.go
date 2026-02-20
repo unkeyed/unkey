@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/batch/metrics"
 	"github.com/unkeyed/unkey/pkg/buffer"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
 // BatchProcessor provides a more configurable batching implementation compared to

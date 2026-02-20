@@ -7,7 +7,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
+
+	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
 // replayRequests processes buffered rate limit events by synchronizing them with

@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
 func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, error) {
