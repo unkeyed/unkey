@@ -201,9 +201,6 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
               codeClassName="p-0"
             />
             <div className="mt-6">
-              <div className="mt-4 text-center text-gray-10 text-xs leading-6">
-                All set! You can now create another key or explore the docs to learn more
-              </div>
               <div className="flex gap-3 mt-4 items-center justify-center w-full">
                 <Button
                   variant="outline"

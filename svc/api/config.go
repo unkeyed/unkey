@@ -23,10 +23,6 @@ type ClickHouseConfig struct {
 	// and a [VaultConfig] are configured.
 	// Example: "http://clickhouse:8123/default"
 	AnalyticsURL string `toml:"analytics_url"`
-
-	// ProxyToken is the bearer token for authenticating against ClickHouse proxy
-	// endpoints exposed by the API server itself.
-	ProxyToken string `toml:"proxy_token"`
 }
 
 // Config holds the complete configuration for the API server. It is designed to

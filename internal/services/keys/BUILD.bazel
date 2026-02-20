@@ -18,6 +18,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/services/caches",
+        "//internal/services/keys/metrics",
         "//internal/services/ratelimit",
         "//internal/services/usagelimiter",
         "//pkg/assert",
@@ -31,7 +32,6 @@ go_library(
         "//pkg/hash",
         "//pkg/logger",
         "//pkg/otel/tracing",
-        "//pkg/prometheus/metrics",
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/zen",

@@ -150,7 +150,6 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			ClickHouse: api.ClickHouseConfig{
 				URL:          clickhouseHostDSN,
 				AnalyticsURL: "",
-				ProxyToken:   "",
 			},
 			Observability: sharedconfig.Observability{
 				Tracing: nil,
