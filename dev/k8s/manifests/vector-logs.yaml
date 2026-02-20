@@ -119,6 +119,7 @@ data:
     .project_id = .kubernetes.pod_labels."unkey.com/project.id" || ""
     .environment_id = .kubernetes.pod_labels."unkey.com/environment.id" || ""
     .deployment_id = .kubernetes.pod_labels."unkey.com/deployment.id" || ""
+    .app_id = .kubernetes.pod_labels."unkey.com/app.id" || ""
 
     # Keep k8s metadata
     .k8s_pod_name = .kubernetes.pod_name || ""
