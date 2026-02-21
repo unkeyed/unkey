@@ -1,0 +1,259 @@
+---
+title: 'Python'
+description: 'Protect your Python APIs with Unkey'
+---
+
+This guide shows how to add API key verification to your Python applications using the official Unkey Python SDK (v2).
+
+## Prerequisites
+
+- Python 3.9 or higher
+- An Unkey account (free at [unkey.com](https://unkey.com))
+
+## 1. Install the SDK
+
+<CodeGroup>
+
+```bash pip
+pip install unkey-py
+```
+
+```bash poetry
+poetry add unkey-py
+```
+
+```bash uv
+uv add unkey-py
+```
+
+</CodeGroup>
+
+## 2. Set up your Unkey credentials
+
+1. Create an API in the [Unkey Dashboard](https://app.unkey.com/apis)
+2. Create a root key at [Settings → Root Keys](https://app.unkey.com/settings/root-keys)
+
+Set your root key as an environment variable:
+
+```bash
+export UNKEY_ROOT_KEY="unkey_xxxx"
+```
+
+## 3. FastAPI Integration
+
+Here's how to protect your FastAPI endpoints using the v2 SDK:
+
+```python
+from fastapi import FastAPI, Header, HTTPException
+from unkey_py import Unkey
+import os
+
+app = FastAPI()
+
+@app.get("/api/protected")
+async def protected_route(x_api_key: str = Header(..., alias="X-API-Key")):
+    with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+        res = unkey.keys.verify_key(request={"key": x_api_key})
+        result = res.data
+
+    if not result.valid:
+        raise HTTPException(
+            status_code=401 if result.code == "NOT_FOUND" else 403,
+            detail=f"Unauthorized: {result.code}"
+        )
+
+    return {
+        "message": "Access granted",
+        "key_id": result.key_id,
+        "remaining_credits": result.remaining
+    }
+```
+
+Run your FastAPI app:
+
+```bash
+uvicorn main:app --reload
+```
+
+Test with a valid API key:
+
+```bash
+curl -H "X-API-Key: YOUR_API_KEY" http://localhost:8000/api/protected
+```
+
+## 4. Flask Integration
+
+For Flask applications using the v2 SDK:
+
+```python
+from flask import Flask, request, jsonify
+from unkey_py import Unkey
+import os
+
+app = Flask(__name__)
+
+@app.route("/api/protected")
+def protected_route():
+    api_key = request.headers.get("X-API-Key")
+
+    if not api_key:
+        return jsonify({"error": "Missing API key"}), 401
+
+    with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+        res = unkey.keys.verify_key(request={"key": api_key})
+        result = res.data
+
+    if not result.valid:
+        return jsonify({"error": result.code}), 401
+
+    return jsonify({
+        "message": "Access granted",
+        "key_id": result.key_id,
+        "meta": result.meta
+    })
+
+if __name__ == "__main__":
+    app.run(debug=True)
+```
+
+## 5. Django Integration
+
+For Django, create a custom middleware using the v2 SDK:
+
+```python
+# middleware/unkey_auth.py
+from django.http import JsonResponse
+from django.conf import settings
+from unkey_py import Unkey
+
+class UnkeyAuthMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Skip auth for unprotected paths
+        if request.path.startswith('/admin/'):
+            return self.get_response(request)
+
+        api_key = request.headers.get('X-API-Key')
+
+        if not api_key:
+            return JsonResponse({'error': 'Missing API key'}, status=401)
+
+        with Unkey(bearer_auth=settings.UNKEY_ROOT_KEY) as unkey:
+            res = unkey.keys.verify_key(request={'key': api_key})
+            result = res.data
+
+        if not result.valid:
+            return JsonResponse({'error': result.code}, status=401)
+
+        # Attach key info to request
+        request.unkey_key_id = result.key_id
+        request.unkey_meta = result.meta
+
+        return self.get_response(request)
+
+# settings.py
+import os
+
+MIDDLEWARE = [
+    # ... other middleware
+    'myapp.middleware.unkey_auth.UnkeyAuthMiddleware',
+]
+
+UNKEY_ROOT_KEY = os.environ.get("UNKEY_ROOT_KEY")
+```
+
+Then in your views:
+
+```python
+from django.http import JsonResponse
+
+def protected_view(request):
+    return JsonResponse({
+        "message": "Access granted",
+        "key_id": request.unkey_key_id,
+    })
+```
+
+## Creating and Managing Keys
+
+Here's how to create API keys programmatically using the v2 SDK:
+
+```python
+from datetime import datetime, timedelta
+from unkey_py import Unkey
+import os
+
+with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+    # Create a new API key
+    res = unkey.keys.create_key(request={
+        "api_id": "api_...",
+        "prefix": "sk_live",
+        "external_id": "user_123",  # Link to your user
+        "name": "Production key",
+        "expires": int((datetime.now() + timedelta(days=30)).timestamp() * 1000),
+        "remaining": 1000,
+        "refill": {
+            "amount": 1000,
+            "interval": "monthly",
+        },
+        "ratelimits": [{
+            "name": "requests",
+            "limit": 100,
+            "duration": 60000,  # 100 per minute
+            "auto_apply": True,
+        }],
+        "meta": {
+            "plan": "pro",
+            "customer_id": "cust_123",
+        },
+    })
+    result = res.data
+
+    print(f"Created key: {result.key}")  # Only time you'll see it!
+    print(f"Key ID: {result.key_id}")
+```
+
+<Warning>
+The full API key is only returned once at creation. Store it securely and never show it again.
+</Warning>
+
+## Error Handling
+
+Always handle Unkey errors gracefully:
+
+```python
+from unkey_py import Unkey
+import os
+
+with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+    try:
+        res = unkey.keys.create_key(request={
+            "api_id": "api_...",
+            "name": "My Key"
+        })
+        result = res.data
+        print(f"Created: {result.key}")
+
+    except Exception as e:
+        print(f"API Error: {e}")
+        # Handle specific errors based on exception type
+```
+
+## What's next?
+
+<CardGroup cols={2}>
+  <Card title="Add rate limiting" icon="gauge-high" href="/ratelimiting/introduction">
+    Protect your endpoints from abuse
+  </Card>
+  <Card title="Python SDK Reference" icon="book" href="/libraries/py/overview">
+    Complete Python SDK documentation
+  </Card>
+  <Card title="Authorization" icon="user-shield" href="/apis/features/authorization/introduction">
+    Add roles and permissions
+  </Card>
+  <Card title="Cookbook" icon="utensils" href="/cookbook">
+    More Python recipes and examples
+  </Card>
+</CardGroup>

@@ -6,13 +6,7 @@
     "primary": "#999999"
   },
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity"
-    ]
+    "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
   },
   "favicon": "/unkey.png",
   "fonts": {
@@ -61,11 +55,7 @@
         "groups": [
           {
             "group": "Getting Started",
-            "pages": [
-              "introduction",
-              "quickstart/quickstart",
-              "glossary"
-            ]
+            "pages": ["introduction", "quickstart/quickstart", "glossary"]
           },
           {
             "group": "Framework Guides",
@@ -78,7 +68,9 @@
                   "quickstart/apis/nextjs",
                   "quickstart/apis/express",
                   "quickstart/apis/bun",
-                  "quickstart/apis/hono"
+                  "quickstart/apis/hono",
+                  "quickstart/apis/go",
+                  "quickstart/apis/python"
                 ]
               },
               {
@@ -103,14 +95,39 @@
                 "expanded": false,
                 "group": "Recipes",
                 "pages": [
-                  "cookbook/nextjs-api-routes",
-                  "cookbook/express-middleware",
-                  "cookbook/fastapi-auth",
-                  "cookbook/cloudflare-workers",
-                  "cookbook/per-user-ratelimit",
-                  "cookbook/endpoint-ratelimit",
-                  "cookbook/usage-billing",
-                  "cookbook/tiered-subscriptions"
+                  {
+                    "group": "TypeScript",
+                    "pages": [
+                      "cookbook/nextjs-api-routes",
+                      "cookbook/express-middleware",
+                      "cookbook/cloudflare-workers"
+                    ]
+                  },
+                  {
+                    "group": "Go",
+                    "pages": [
+                      "cookbook/go-stdlib-middleware",
+                      "cookbook/go-gin-middleware",
+                      "cookbook/go-echo-middleware"
+                    ]
+                  },
+                  {
+                    "group": "Python",
+                    "pages": [
+                      "cookbook/fastapi-auth",
+                      "cookbook/python-fastapi-ratelimit",
+                      "cookbook/python-flask-auth"
+                    ]
+                  },
+                  {
+                    "group": "General",
+                    "pages": [
+                      "cookbook/per-user-ratelimit",
+                      "cookbook/endpoint-ratelimit",
+                      "cookbook/usage-billing",
+                      "cookbook/tiered-subscriptions"
+                    ]
+                  }
                 ]
               }
             ]
@@ -180,10 +197,7 @@
           {
             "group": "Audit Logs",
             "icon": "scroll",
-            "pages": [
-              "audit-log/introduction",
-              "audit-log/types"
-            ]
+            "pages": ["audit-log/introduction", "audit-log/types"]
           },
           {
             "group": "Security",
@@ -222,10 +236,7 @@
           {
             "group": "Migrations",
             "icon": "arrows-rotate",
-            "pages": [
-              "migrations/introduction",
-              "migrations/keys"
-            ]
+            "pages": ["migrations/introduction", "migrations/keys"]
           },
           {
             "group": "Errors",
@@ -399,17 +410,11 @@
               },
               {
                 "group": "Go",
-                "pages": [
-                  "libraries/go/overview",
-                  "libraries/go/api"
-                ]
+                "pages": ["libraries/go/overview", "libraries/go/api"]
               },
               {
                 "group": "Python",
-                "pages": [
-                  "libraries/py/overview",
-                  "libraries/py/api"
-                ]
+                "pages": ["libraries/py/overview", "libraries/py/api"]
               }
             ]
           },
@@ -418,9 +423,7 @@
             "pages": [
               {
                 "group": "Nuxt",
-                "pages": [
-                  "libraries/nuxt/overview"
-                ]
+                "pages": ["libraries/nuxt/overview"]
               }
             ]
           }
@@ -485,6 +488,10 @@
     {
       "destination": "/api-reference/v1/migration/index",
       "source": "/api-reference/v1/liveness"
+    },
+    {
+      "destination": "/analytics/overview",
+      "source": "/apis/features/analytics"
     },
     {
       "destination": "/docs/apis/features/authorization/introduction",
