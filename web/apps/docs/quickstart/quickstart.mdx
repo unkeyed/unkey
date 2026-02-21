@@ -187,18 +187,18 @@ func main() {
         panic(err)
     }
 
-    result := res.V2KeysVerifyKeyResponseBody
+    result := res.V2KeysVerifyKeyResponseBody.Data
     
     if !result.Valid {
         code := "unknown"
-        if result.Code != nil {
-            code = *result.Code
+        if result.Code != "" {
+            code = string(result.Code)
         }
         fmt.Println("Denied:", code)
         return
     }
 
-    fmt.Println("Key ID:", result.KeyID)
+    fmt.Println("Key ID:", result.KeyId)
 }
 ```
 
