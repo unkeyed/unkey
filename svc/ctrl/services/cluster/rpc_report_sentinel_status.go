@@ -49,7 +49,7 @@ func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request
 		health = db.SentinelsHealthUnknown
 	}
 	err = db.Query.UpdateSentinelAvailableReplicasAndHealth(ctx, s.db.RW(), db.UpdateSentinelAvailableReplicasAndHealthParams{
-		K8sName:           req.Msg.GetK8SName(),
+		SentinelID:        req.Msg.GetId(),
 		AvailableReplicas: req.Msg.GetAvailableReplicas(),
 		Health:            health,
 		UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

@@ -1412,7 +1412,7 @@ type Sentinel struct {
 	WorkspaceID       string                `db:"workspace_id"`
 	ProjectID         string                `db:"project_id"`
 	EnvironmentID     string                `db:"environment_id"`
-	K8sName           string                `db:"k8s_name"`
+	K8sName           sql.NullString        `db:"k8s_name"`
 	K8sAddress        string                `db:"k8s_address"`
 	Region            string                `db:"region"`
 	Image             string                `db:"image"`
