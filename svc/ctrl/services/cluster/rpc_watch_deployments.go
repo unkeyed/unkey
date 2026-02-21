@@ -108,7 +108,7 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 			Version: row.DeploymentTopology.Version,
 			State: &ctrlv1.DeploymentState_Delete{
 				Delete: &ctrlv1.DeleteDeployment{
-					K8SNamespace: row.K8sNamespace.String,
+					K8SNamespace: row.K8sNamespace,
 					K8SName:      row.Deployment.K8sName,
 				},
 			},
@@ -121,7 +121,7 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 
 		apply := &ctrlv1.ApplyDeployment{
 			DeploymentId:                  row.Deployment.ID,
-			K8SNamespace:                  row.K8sNamespace.String,
+			K8SNamespace:                  row.K8sNamespace,
 			K8SName:                       row.Deployment.K8sName,
 			WorkspaceId:                   row.Deployment.WorkspaceID,
 			ProjectId:                     row.Deployment.ProjectID,

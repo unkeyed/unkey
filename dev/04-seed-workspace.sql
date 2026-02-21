@@ -11,7 +11,8 @@ INSERT INTO workspaces (
   slug,
   created_at_m,
   beta_features,
-  features
+  features,
+  k8s_namespace
 ) VALUES (
   'ws_local_root',
   'user_REPLACE_ME',
@@ -19,7 +20,8 @@ INSERT INTO workspaces (
   'unkey',
   UNIX_TIMESTAMP() * 1000,
   '{}',
-  '{}'
+  '{}',
+  'ws-local-root'
 ) ON DUPLICATE KEY UPDATE created_at_m = UNIX_TIMESTAMP() * 1000;
 
 INSERT INTO quota (
