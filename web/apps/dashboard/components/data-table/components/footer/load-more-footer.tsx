@@ -3,7 +3,7 @@ import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useCallback, useState } from "react";
 
-type LoadMoreFooterProps = {
+interface LoadMoreFooterProps {
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
   totalVisible: number;
@@ -15,9 +15,13 @@ type LoadMoreFooterProps = {
   hide?: boolean;
   countInfoText?: React.ReactNode;
   headerContent?: React.ReactNode;
-};
+}
 
-export const LoadMoreFooter = ({
+/**
+ * Load more footer component with collapsible design
+ * Preserves exact design from virtual-table
+ */
+export function LoadMoreFooter({
   onLoadMore,
   isFetchingNextPage = false,
   totalVisible,
@@ -28,7 +32,7 @@ export const LoadMoreFooter = ({
   countInfoText,
   hide,
   headerContent,
-}: LoadMoreFooterProps) => {
+}: LoadMoreFooterProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   const shouldShow = !!onLoadMore;
@@ -150,4 +154,4 @@ export const LoadMoreFooter = ({
       </div>
     </div>
   );
-};
+}

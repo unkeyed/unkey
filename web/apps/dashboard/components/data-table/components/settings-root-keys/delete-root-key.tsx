@@ -6,7 +6,7 @@ import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import { useDeleteRootKey } from "./hooks/use-delete-root-key";
+import { useDeleteRootKey } from "@/components/data-table/hooks/rootkey/use-delete-root-key";
 import { RootKeyInfo } from "./root-key-info";
 
 const deleteRootKeyFormSchema = z.object({

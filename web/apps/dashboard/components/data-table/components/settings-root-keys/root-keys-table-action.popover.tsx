@@ -2,7 +2,7 @@
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { PenWriting3, Trash } from "@unkey/icons";
-import { DeleteRootKey } from "./components/delete-root-key";
+import { DeleteRootKey } from "@/components/data-table/components/settings-root-keys/delete-root-key";
 
 type RootKeysTableActionsProps = {
   rootKey: RootKey;
