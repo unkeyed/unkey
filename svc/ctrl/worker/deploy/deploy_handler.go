@@ -405,6 +405,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 						err = db.Query.InsertFrontlineRoute(runCtx, tx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
 							ProjectID:                project.ID,
+							AppID:                    deployment.AppID,
 							DeploymentID:             deployment.ID,
 							EnvironmentID:            deployment.EnvironmentID,
 							FullyQualifiedDomainName: domain.domain,

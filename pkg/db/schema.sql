@@ -379,36 +379,6 @@ CREATE TABLE `environment_variables` (
 	CONSTRAINT `environment_id_key` UNIQUE(`environment_id`,`key`)
 );
 
-CREATE TABLE `environment_build_settings` (
-	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`environment_id` varchar(128) NOT NULL,
-	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
-	`docker_context` varchar(500) NOT NULL DEFAULT '.',
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `environment_build_settings_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `env_build_settings_environment_id_idx` UNIQUE(`environment_id`)
-);
-
-CREATE TABLE `environment_runtime_settings` (
-	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`environment_id` varchar(128) NOT NULL,
-	`port` int NOT NULL DEFAULT 8080,
-	`cpu_millicores` int NOT NULL DEFAULT 256,
-	`memory_mib` int NOT NULL DEFAULT 256,
-	`command` json NOT NULL DEFAULT ('[]'),
-	`healthcheck` json,
-	`region_config` json NOT NULL DEFAULT ('{}'),
-	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
-	`sentinel_config` longblob NOT NULL,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `environment_runtime_settings_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `env_runtime_settings_environment_id_idx` UNIQUE(`environment_id`)
-);
-
 CREATE TABLE `clickhouse_workspace_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -433,16 +403,99 @@ CREATE TABLE `projects` (
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
-	`live_deployment_id` varchar(256),
-	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
-	`depot_project_id` varchar(255),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `projects_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `projects_id_unique` UNIQUE(`id`),
 	CONSTRAINT `workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
+);
+
+CREATE TABLE `apps` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(64) NOT NULL,
+	`name` varchar(256) NOT NULL,
+	`slug` varchar(256) NOT NULL,
+	`live_deployment_id` varchar(256),
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
+	`depot_project_id` varchar(255),
+	`delete_protection` boolean DEFAULT false,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `apps_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `apps_id_unique` UNIQUE(`id`),
+	CONSTRAINT `apps_project_slug_idx` UNIQUE(`project_id`,`slug`),
+	CONSTRAINT `apps_workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
+);
+
+CREATE TABLE `app_build_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
+	`docker_context` varchar(500) NOT NULL DEFAULT '.',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `app_build_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `app_build_settings_app_env_idx` UNIQUE(`app_id`,`environment_id`)
+);
+
+CREATE TABLE `app_runtime_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`port` int NOT NULL DEFAULT 8080,
+	`cpu_millicores` int NOT NULL DEFAULT 256,
+	`memory_mib` int NOT NULL DEFAULT 256,
+	`command` json NOT NULL DEFAULT ('[]'),
+	`healthcheck` json,
+	`region_config` json NOT NULL DEFAULT ('{}'),
+	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
+	`sentinel_config` longblob NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `app_runtime_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `app_runtime_settings_app_env_idx` UNIQUE(`app_id`,`environment_id`)
+);
+
+CREATE TABLE `app_environment_variables` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`key` varchar(256) NOT NULL,
+	`value` varchar(4096) NOT NULL,
+	`type` enum('recoverable','writeonly') NOT NULL,
+	`description` varchar(255),
+	`delete_protection` boolean DEFAULT false,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `app_environment_variables_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `app_environment_variables_id_unique` UNIQUE(`id`),
+	CONSTRAINT `app_env_id_key` UNIQUE(`app_id`,`environment_id`,`key`)
+);
+
+CREATE TABLE `app_internal_services` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`region` varchar(64) NOT NULL,
+	`k8s_service_name` varchar(255) NOT NULL,
+	`k8s_namespace` varchar(255) NOT NULL,
+	`port` int NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `app_internal_services_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `app_internal_services_id_unique` UNIQUE(`id`),
+	CONSTRAINT `one_app_svc_per_env_per_region` UNIQUE(`app_id`,`environment_id`,`region`)
 );
 
 CREATE TABLE `deployments` (
@@ -452,6 +505,7 @@ CREATE TABLE `deployments` (
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
 	`image` varchar(256),
 	`build_id` varchar(128),
 	`git_commit_sha` varchar(40),
@@ -485,6 +539,7 @@ CREATE TABLE `deployment_steps` (
 	`project_id` varchar(128) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`deployment_id` varchar(128) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
 	`step` enum('queued','building','deploying','network') NOT NULL DEFAULT 'queued',
 	`started_at` bigint unsigned NOT NULL,
 	`ended_at` bigint unsigned,
@@ -593,6 +648,7 @@ CREATE TABLE `instances` (
 	`deployment_id` varchar(255) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
 	`region` varchar(64) NOT NULL,
 	`k8s_name` varchar(255) NOT NULL,
 	`address` varchar(255) NOT NULL,
@@ -623,6 +679,7 @@ CREATE TABLE `frontline_routes` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
 	`deployment_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
 	`fully_qualified_domain_name` varchar(256) NOT NULL,
@@ -647,13 +704,14 @@ CREATE TABLE `github_app_installations` (
 CREATE TABLE `github_repo_connections` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`project_id` varchar(64) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
 	`installation_id` bigint NOT NULL,
 	`repository_id` bigint NOT NULL,
 	`repository_full_name` varchar(500) NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `github_repo_connections_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `github_repo_connections_project_id_unique` UNIQUE(`project_id`)
+	CONSTRAINT `github_repo_connections_app_id_unique` UNIQUE(`app_id`)
 );
 
 CREATE TABLE `cilium_network_policies` (
@@ -661,6 +719,7 @@ CREATE TABLE `cilium_network_policies` (
 	`id` varchar(64) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
 	`deployment_id` varchar(128) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
@@ -693,6 +752,8 @@ CREATE INDEX `actor_id_idx` ON `audit_log` (`actor_id`);
 CREATE INDEX `time_idx` ON `audit_log` (`time`);
 CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
+CREATE INDEX `apps_workspace_idx` ON `apps` (`workspace_id`);
+CREATE INDEX `apps_project_idx` ON `apps` (`project_id`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);

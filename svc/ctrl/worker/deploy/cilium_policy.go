@@ -111,6 +111,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					ID:            policyID,
 					WorkspaceID:   workspace.ID,
 					ProjectID:     project.ID,
+					AppID:         deployment.AppID,
 					EnvironmentID: environment.ID,
 					DeploymentID:  deployment.ID,
 					K8sName:       spec.k8sName,
