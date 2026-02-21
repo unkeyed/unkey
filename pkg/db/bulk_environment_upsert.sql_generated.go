@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertEnvironment is the base query for bulk insert
-const bulkUpsertEnvironment = `INSERT INTO environments ( id, workspace_id, project_id, slug, sentinel_config, created_at ) VALUES %s ON DUPLICATE KEY UPDATE slug = VALUES(slug)`
+const bulkUpsertEnvironment = `INSERT INTO environments ( id, workspace_id, project_id, slug, created_at ) VALUES %s ON DUPLICATE KEY UPDATE slug = VALUES(slug)`
 
 // UpsertEnvironment performs bulk insert in a single query
 func (q *BulkQueries) UpsertEnvironment(ctx context.Context, db DBTX, args []UpsertEnvironmentParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) UpsertEnvironment(ctx context.Context, db DBTX, args []Ups
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertEnvironment, strings.Join(valueClauses, ", "))
@@ -33,7 +33,6 @@ func (q *BulkQueries) UpsertEnvironment(ctx context.Context, db DBTX, args []Ups
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.Slug)
-		allArgs = append(allArgs, arg.SentinelConfig)
 		allArgs = append(allArgs, arg.CreatedAt)
 	}
 

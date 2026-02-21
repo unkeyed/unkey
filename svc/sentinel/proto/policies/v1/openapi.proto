@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// OpenApiRequestValidation validates incoming HTTP requests against an OpenAPI
+// specification, rejecting requests that do not conform to the schema before
+// they reach the upstream.
+//
+// Request validation at the gateway catches malformed input early — wrong
+// content types, missing required fields, invalid parameter formats — and
+// returns structured error responses without the upstream needing to
+// implement its own validation. This is especially valuable for APIs that
+// are consumed by third-party developers, where clear validation errors
+// significantly improve the developer experience.
+//
+// Sentinel parses the OpenAPI spec once at configuration load time and
+// validates each incoming request's path parameters, query parameters,
+// headers, and request body against the matching operation's schema. Requests
+// that do not match any defined operation are rejected unless the spec
+// includes a catch-all path.
+//
+// Only request validation is performed — response validation is not
+// supported, since it would add latency to every response and is better
+// handled in CI/CD testing pipelines.
+message OpenApiRequestValidation {
+  // The OpenAPI specification as raw YAML bytes. Supports OpenAPI 3.0 and
+  // 3.1. The spec is parsed and compiled once when the policy configuration
+  // is loaded, not on every request. Using bytes rather than a URI keeps
+  // the configuration self-contained and avoids runtime dependencies on
+  // external spec hosting.
+  bytes spec_yaml = 1;
+}

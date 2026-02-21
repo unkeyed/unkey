@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -239,8 +240,11 @@ func (c *ClusterCache[K, V]) Name() string {
 // HandleInvalidation processes a cache invalidation event.
 // Returns true if the event was handled by this cache.
 func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cachev1.CacheInvalidationEvent) bool {
+	actionLabel := metrics.ActionLabel(event)
+
 	// Ignore our own events to avoid loops
 	if event.GetSourceInstance() == c.nodeID {
+		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, actionLabel, "skipped_self").Inc()
 		return false
 	}
 
@@ -252,11 +256,13 @@ func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cach
 	switch event.Action.(type) {
 	case *cachev1.CacheInvalidationEvent_ClearAll:
 		c.localCache.Clear(ctx)
+		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "clear_all", "handled").Inc()
 		return true
 
 	case *cachev1.CacheInvalidationEvent_CacheKey:
 		key, err := c.stringToKey(event.GetCacheKey())
 		if err != nil {
+			metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "key", "error").Inc()
 			logger.Warn(
 				"Failed to convert cache key",
 				"cache", c.cacheName,
@@ -266,9 +272,11 @@ func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cach
 			return false
 		}
 		c.onInvalidation(ctx, key)
+		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "key", "handled").Inc()
 		return true
 
 	default:
+		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "unknown", "error").Inc()
 		logger.Warn("Unknown cache invalidation action", "cache", c.cacheName)
 		return false
 	}

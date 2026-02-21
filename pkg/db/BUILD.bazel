@@ -296,11 +296,11 @@ go_library(
     deps = [
         "//pkg/assert",
         "//pkg/codes",
+        "//pkg/db/metrics",
         "//pkg/db/types",
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/otel/tracing",
-        "//pkg/prometheus/metrics",
         "//pkg/retry",
         "@com_github_go_sql_driver_mysql//:mysql",
         "@io_opentelemetry_go_otel//attribute",

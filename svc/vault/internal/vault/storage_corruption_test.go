@@ -55,7 +55,7 @@ func TestStorageCorruption_CorruptedDEK(t *testing.T) {
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
 		Storage:     corruptibleStore,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: bearerToken,
 	})
 	require.NoError(t, err)
@@ -114,7 +114,7 @@ func TestStorageCorruption_EmptyDEK(t *testing.T) {
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
 		Storage:     corruptibleStore,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: bearerToken,
 	})
 	require.NoError(t, err)
@@ -169,7 +169,7 @@ func TestStorageCorruption_PartialDEK(t *testing.T) {
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
 		Storage:     store,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: bearerToken,
 	})
 	require.NoError(t, err)
@@ -242,7 +242,7 @@ func TestStorageCorruption_BitFlipInDEK(t *testing.T) {
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
 		Storage:     store,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: bearerToken,
 	})
 	require.NoError(t, err)
@@ -329,7 +329,7 @@ func TestStorageCorruption_InvalidProtobufDEK(t *testing.T) {
 	bearerToken := "test-token-" + uid.New("test")
 	service, err := New(Config{
 		Storage:     store,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: bearerToken,
 	})
 	require.NoError(t, err)

@@ -1,47 +1,25 @@
 // Package metrics provides Prometheus metric collectors for monitoring Unkey services.
 //
-// All metrics are registered automatically via [promauto] and use the "unkey" namespace.
-// Metrics include constant labels for region and version to support multi-region deployments.
+// This package centralizes metric definitions to ensure consistent naming and labeling
+// across all services. Metrics are registered automatically via [promauto] with the
+// "unkey" namespace, making them available for scraping without manual registration.
 //
-// # Metric Organization
+// The package intentionally keeps metric definitions simple and focused. Each metric
+// serves a specific observability purpose and includes labels that enable meaningful
+// filtering and aggregation in dashboards and alerts.
 //
-// Metrics are organized by subsystem:
-//   - Batch processing: [BatchSizeDistribution], [BatchOperationsTotal], [BatchItemsProcessedTotal]
-//   - Buffer management: [BufferState], [BufferSize], [BufferErrorsTotal]
-//   - Caching: [CacheReads], [CacheWrites], [CacheSize], [CacheCapacity]
-//   - Circuit breaker: [CircuitBreakerRequests], [CircuitBreakerErrorsTotal]
-//   - ClickHouse proxy: [ChproxyRequestsTotal], [ChproxyRowsTotal], [ChproxyErrorsTotal]
-//   - Database operations: [DatabaseOperationsLatency], [DatabaseOperationsTotal]
-//   - HTTP requests: [HTTPRequestLatency], [HTTPRequestTotal], [HTTPRequestBodySize]
-//   - Key verification: [KeyVerificationsTotal], [KeyVerificationErrorsTotal]
-//   - Krane orchestration: [KraneControlPlaneReconnectsTotal], [KraneReconcileOperationsTotal], [KraneSecretsRequestsTotal]
-//   - Rate limiting: [RatelimitDecision], [RatelimitBuckets], [RatelimitWindows]
-//   - Usage limiting: [UsagelimiterDecisions], [UsagelimiterReplayOperations]
-//   - Internal: [PanicsTotal]
+// # Available Metrics
+//
+// [PanicsTotal] tracks recovered panics from HTTP handlers and background tasks.
+// Use it to monitor application stability and identify code paths that need attention.
 //
 // # Usage
 //
-// Import the package and use the metric collectors directly:
+// Increment the panic counter when recovering from a panic:
 //
-//	import "github.com/unkeyed/unkey/pkg/prometheus/metrics"
+//	metrics.PanicsTotal.WithLabelValues("handlerName", "/api/path").Inc()
 //
-//	// Increment a counter
-//	metrics.HTTPRequestTotal.WithLabelValues("GET", "/v1/keys", "200").Inc()
+// For background tasks, use a descriptive caller name and a synthetic path:
 //
-//	// Observe a latency
-//	timer := prometheus.NewTimer(prometheus.ObserverFunc(func(v float64) {
-//	    metrics.HTTPRequestLatency.WithLabelValues("GET", "/v1/keys", "200").Observe(v)
-//	}))
-//	defer timer.ObserveDuration()
-//
-//	// Set a gauge
-//	metrics.CacheSize.WithLabelValues("api_keys").Set(float64(cacheSize))
-//
-// # Label Conventions
-//
-// Common label patterns used across metrics:
-//   - "status": Operation outcome, typically "success" or "error"
-//   - "resource": Resource type being operated on (e.g., "user_profile", "api_key")
-//   - "replica": Database replica type, "rw" for primary, "ro" for read-only
-//   - "method", "path", "status": HTTP request attributes
+//	metrics.PanicsTotal.WithLabelValues("repeat.Every", "background").Inc()
 package metrics

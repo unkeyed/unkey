@@ -1,19 +1,14 @@
 import { trpc } from "@/lib/trpc/client";
-import { useProjectData } from "../../../../../../data-provider";
 import { useDeployment } from "../../../../layout-provider";
 
 export function useDeploymentSentinelLogsQuery() {
-  const { deploymentId } = useDeployment();
-  const { getDeploymentById, projectId } = useProjectData();
-
-  const deployment = getDeploymentById(deploymentId);
-  const environmentId = deployment?.environmentId ?? "";
+  const { deployment } = useDeployment();
 
   const { data, isLoading, error } = trpc.deploy.sentinelLogs.query.useInfiniteQuery(
     {
-      projectId,
-      deploymentId,
-      environmentId,
+      projectId: deployment.projectId,
+      deploymentId: deployment.id,
+      environmentId: deployment.environmentId,
       limit: 50,
       since: "6h",
       statusCodes: null,
@@ -21,7 +16,6 @@ export function useDeploymentSentinelLogsQuery() {
       paths: null,
     },
     {
-      enabled: Boolean(environmentId) && Boolean(deploymentId),
       refetchInterval: 5000,
       getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
     },

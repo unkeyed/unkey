@@ -15,11 +15,11 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/assert",
+        "//pkg/cache/metrics",
         "//pkg/clock",
         "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
-        "//pkg/prometheus/metrics",
         "//pkg/repeat",
         "//pkg/timing",
         "@com_github_maypok86_otter//:otter",
