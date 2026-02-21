@@ -6,8 +6,8 @@ import { useState } from "react";
 import type { DeploymentNode, HealthStatus } from "../nodes/types";
 
 type GeneratorConfig = {
-  regions: number;
-  instancesPerRegion: { min: number; max: number };
+  sentinels: number;
+  instancesPerSentinel: { min: number; max: number };
   healthDistribution: Record<HealthStatus, number>;
   regionDirection: "vertical" | "horizontal";
   instanceDirection: "vertical" | "horizontal";
@@ -21,78 +21,66 @@ type DevTreeGeneratorProps = {
 
 const PRESETS = {
   small: {
-    label: "Small (3 regions, 1-3 instances)",
+    label: "Small (3 sentinels, 1-3 instances)",
     config: {
-      regions: 3,
-      instancesPerRegion: { min: 1, max: 3 },
+      sentinels: 3,
+      instancesPerSentinel: { min: 1, max: 3 },
       regionDirection: "horizontal" as const,
       instanceDirection: "horizontal" as const,
       healthDistribution: {
         normal: 80,
-        unstable: 10,
-        degraded: 5,
         unhealthy: 5,
-        recovering: 0,
-        health_syncing: 0,
-        unknown: 0,
-        disabled: 0,
+        health_syncing: 5,
+        unknown: 5,
+        disabled: 5,
       },
     },
   },
   medium: {
-    label: "Medium (5 regions, 2-5 instances)",
+    label: "Medium (5 sentinels, 2-5 instances)",
     config: {
-      regions: 5,
-      instancesPerRegion: { min: 2, max: 5 },
+      sentinels: 5,
+      instancesPerSentinel: { min: 2, max: 5 },
       regionDirection: "horizontal" as const,
       instanceDirection: "horizontal" as const,
       healthDistribution: {
         normal: 70,
-        unstable: 15,
-        degraded: 10,
-        unhealthy: 5,
-        recovering: 0,
-        health_syncing: 0,
-        unknown: 0,
-        disabled: 0,
+        unhealthy: 10,
+        health_syncing: 10,
+        unknown: 5,
+        disabled: 5,
       },
     },
   },
   large: {
-    label: "Large (7 regions, 5-10 instances)",
+    label: "Large (7 sentinels, 5-10 instances)",
     config: {
-      regions: 7,
-      instancesPerRegion: { min: 5, max: 10 },
+      sentinels: 7,
+      instancesPerSentinel: { min: 5, max: 10 },
       regionDirection: "horizontal" as const,
       instanceDirection: "horizontal" as const,
       healthDistribution: {
         normal: 60,
-        unstable: 20,
-        degraded: 10,
-        unhealthy: 5,
-        recovering: 3,
-        health_syncing: 2,
-        unknown: 0,
-        disabled: 0,
+        unhealthy: 15,
+        health_syncing: 10,
+        unknown: 10,
+        disabled: 5,
       },
     },
   },
   stress: {
-    label: "Stress Test (7 regions, 15-20 instances)",
+    label: "Stress Test (7 sentinels, 15-20 instances)",
     config: {
-      regions: 7,
-      instancesPerRegion: { min: 15, max: 20 },
+      sentinels: 7,
+      instancesPerSentinel: { min: 15, max: 20 },
       regionDirection: "horizontal" as const,
       instanceDirection: "horizontal" as const,
       healthDistribution: {
         normal: 50,
-        unstable: 20,
-        degraded: 15,
-        unhealthy: 10,
-        recovering: 3,
-        health_syncing: 1,
-        unknown: 1,
-        disabled: 0,
+        unhealthy: 20,
+        health_syncing: 15,
+        unknown: 10,
+        disabled: 5,
       },
     },
   },
@@ -173,18 +161,18 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         <div className="space-y-3 pt-3 border-t border-grayA-4">
           <div className="text-xs font-medium text-gray-11">Custom</div>
 
-          {/* Regions */}
+          {/* Sentinels*/}
           <div className="space-y-1">
-            <div className="text-xs text-gray-11">Regions: {customConfig.regions}</div>
+            <div className="text-xs text-gray-11">Sentinels: {customConfig.sentinels}</div>
             <input
               type="range"
               min="1"
               max="7"
-              value={customConfig.regions}
+              value={customConfig.sentinels}
               onChange={(e) =>
                 setCustomConfig((c) => ({
                   ...c,
-                  regions: Number(e.target.value),
+                  sentinels: Number(e.target.value),
                 }))
               }
               disabled={generateMutation.isLoading}
@@ -197,7 +185,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
             <div className="text-xs text-gray-11">Layout Direction</div>
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-11 w-20">Regions:</span>
+                <span className="text-xs text-gray-11 w-20">Sentinels:</span>
                 <select
                   value={customConfig.regionDirection}
                   onChange={(e) =>
@@ -233,23 +221,23 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
             </div>
           </div>
 
-          {/* Instances per region */}
+          {/* Instances per sentinel */}
           <div className="space-y-1">
             <div className="text-xs text-gray-11">
-              Instances per region: {customConfig.instancesPerRegion.min}-
-              {customConfig.instancesPerRegion.max}
+              Instances per sentinel: {customConfig.instancesPerSentinel.min}-
+              {customConfig.instancesPerSentinel.max}
             </div>
             <div className="flex gap-2">
               <input
                 type="range"
-                min="1"
+                min="0"
                 max="20"
-                value={customConfig.instancesPerRegion.min}
+                value={customConfig.instancesPerSentinel.min}
                 onChange={(e) =>
                   setCustomConfig((c) => ({
                     ...c,
-                    instancesPerRegion: {
-                      ...c.instancesPerRegion,
+                    instancesPerSentinel: {
+                      ...c.instancesPerSentinel,
                       min: Number(e.target.value),
                     },
                   }))
@@ -259,14 +247,14 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
               />
               <input
                 type="range"
-                min="1"
+                min="0"
                 max="20"
-                value={customConfig.instancesPerRegion.max}
+                value={customConfig.instancesPerSentinel.max}
                 onChange={(e) =>
                   setCustomConfig((c) => ({
                     ...c,
-                    instancesPerRegion: {
-                      ...c.instancesPerRegion,
+                    instancesPerSentinel: {
+                      ...c.instancesPerSentinel,
                       max: Number(e.target.value),
                     },
                   }))

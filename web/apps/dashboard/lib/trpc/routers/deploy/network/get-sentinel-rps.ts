@@ -18,6 +18,7 @@ export const getSentinelRps = workspaceProcedure
           and(eq(table.id, input.sentinelId), eq(table.workspaceId, ctx.workspace.id)),
         columns: {
           environmentId: true,
+          projectId: true,
         },
       });
 
@@ -33,7 +34,9 @@ export const getSentinelRps = workspaceProcedure
           and(
             eq(table.environmentId, sentinel.environmentId),
             eq(table.workspaceId, ctx.workspace.id),
+            eq(table.projectId, sentinel.projectId),
           ),
+        orderBy: (table, { desc }) => [desc(table.createdAt)],
         columns: {
           id: true,
           environmentId: true,

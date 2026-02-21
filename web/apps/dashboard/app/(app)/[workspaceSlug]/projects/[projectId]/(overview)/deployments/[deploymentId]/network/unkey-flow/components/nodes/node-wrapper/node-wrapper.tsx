@@ -16,11 +16,11 @@ export function NodeWrapper({ health, children }: NodeWrapperProps) {
   return (
     <div
       className={cn(
-        "relative w-[282px] rounded-[14px]",
+        "w-[282px] rounded-[14px]",
         isDisabled
           ? "grayscale opacity-90 cursor-not-allowed"
           : cn(
-              "hover:scale-[1.001] transition-all duration-200 ease-out cursor-pointer",
+              "transition-shadow duration-200 ease-out cursor-pointer",
               "hover:ring-2 hover:ring-offset-0",
               ring,
               glow,
@@ -30,7 +30,7 @@ export function NodeWrapper({ health, children }: NodeWrapperProps) {
       <HealthBanner healthStatus={health} />
       <div
         className={cn(
-          "relative z-20 w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]",
+          "w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]",
         )}
       >
         {children}

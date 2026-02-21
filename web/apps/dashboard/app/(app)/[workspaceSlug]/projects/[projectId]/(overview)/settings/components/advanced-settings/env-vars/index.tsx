@@ -176,9 +176,7 @@ const EnvVarsForm = ({
 
   const varCount = defaultValues.envVars.filter((v) => v.key !== "").length;
   const displayValue =
-    varCount === 0 ? (
-      <span className="text-gray-11 font-normal">None</span>
-    ) : (
+    varCount === 0 ? null : (
       <div className="space-x-1">
         <span className="font-medium text-gray-12">{varCount}</span>
         <span className="text-gray-11 font-normal">variable{varCount !== 1 ? "s" : ""}</span>

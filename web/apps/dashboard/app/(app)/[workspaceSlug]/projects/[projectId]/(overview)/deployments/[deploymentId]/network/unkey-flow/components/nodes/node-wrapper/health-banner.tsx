@@ -17,7 +17,7 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
   const Icon = config.icon;
 
   return (
-    <div className={`z-10 mx-auto w-[${DEFAULT_NODE_WIDTH}px] -m-[20px]`}>
+    <div className={`mx-auto w-[${DEFAULT_NODE_WIDTH}px] -m-[20px]`}>
       <div
         className={cn(
           "h-12 border rounded-t-[14px]",
@@ -33,28 +33,19 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
           <span className={cn("text-xs font-medium mr-4", config.colors.textColor)}>
             {config.label}
           </span>
-          <div className="flex-1 overflow-hidden relative max-w-[200px]">
+          <div className="flex-1 overflow-hidden max-w-[200px] grid">
             <div
               className={cn(
-                "text-xs",
+                "[grid-area:1/1] text-xs animate-marquee whitespace-nowrap",
                 config.colors.textColor,
-                "animate-marquee whitespace-nowrap",
               )}
             >
               {config.message}
             </div>
-            <div
-              className={cn(
-                "absolute left-0 top-0 bottom-0 w-6 pointer-events-none",
-                config.colors.gradientFromLeft,
-              )}
-            />
-            <div
-              className={cn(
-                "absolute right-0 top-0 bottom-0 w-6 pointer-events-none",
-                config.colors.gradientFromRight,
-              )}
-            />
+            <div className="[grid-area:1/1] flex justify-between pointer-events-none">
+              <div className={cn("w-6 h-full", config.colors.gradientFromLeft)} />
+              <div className={cn("w-6 h-full ml-auto", config.colors.gradientFromRight)} />
+            </div>
           </div>
         </div>
       </div>

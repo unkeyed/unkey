@@ -88,9 +88,7 @@ const CommandForm: React.FC<CommandFormProps> = ({ environmentId, defaultCommand
               {defaultCommand}
             </span>
           </InfoTooltip>
-        ) : (
-          <span className="text-gray-11 font-normal">Default</span>
-        )
+        ) : null
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
