@@ -185,8 +185,12 @@ func main() {
 
         api.GET("/profile", func(c echo.Context) error {
             result := GetUnkeyResult(c)
+            keyID := ""
+            if result.KeyID != nil {
+                keyID = *result.KeyID
+            }
             return c.JSON(http.StatusOK, map[string]any{
-                "key_id":      *result.KeyID,
+                "key_id":      keyID,
                 "permissions": result.Permissions,
                 "roles":       result.Roles,
             })
