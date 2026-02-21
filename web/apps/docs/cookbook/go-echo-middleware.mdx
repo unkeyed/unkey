@@ -276,16 +276,19 @@ func UnkeyAuthWithConfig(config AuthConfig) echo.MiddlewareFunc {
 e.GET("/api/public", func(c echo.Context) error {
     result := GetUnkeyResult(c)
     if result != nil {
+        keyID := ""
+        if result.KeyID != nil {
+            keyID = *result.KeyID
+        }
         return c.JSON(http.StatusOK, map[string]any{
             "message": "Authenticated",
-            "key_id":  *result.KeyID,
+            "key_id":  keyID,
         })
     }
     return c.JSON(http.StatusOK, map[string]string{
         "message": "Anonymous",
     })
 }, UnkeyAuthWithConfig(AuthConfig{Optional: true}))
-```
 
 ## Group-Level Middleware
 
