@@ -230,8 +230,7 @@ export const errorMessages: Record<AuthErrorCode, string> = {
     "Please choose a workspace to continue authentication.",
   [AuthErrorCode.EMAIL_VERIFICATION_REQUIRED]:
     "Email address not verified. Please check your email for a verification code.",
-  [AuthErrorCode.PENDING_SESSION_EXPIRED]:
-    "Pending Authentication has expired. Please sign-in again.",
+  [AuthErrorCode.PENDING_SESSION_EXPIRED]: "Your session has expired. Please sign in again.",
   [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
   [AuthErrorCode.RADAR_BLOCKED]:
     "Unable to complete request due to suspicious activity. Please contact support@unkey.com if you believe this is an error.",

@@ -30,6 +30,7 @@ import {
   type UserData,
   type VerificationResult,
   WORKOS_RADAR_API_URL,
+  errorMessages,
 } from "./types";
 
 type WorkOSErrorCode =
@@ -41,15 +42,6 @@ type WorkOSErrorCode =
   | "expired_code"
   | "invalid_invitation"
   | "missing_required_fields";
-
-type WorkOSError = {
-  errors?: {
-    code: string;
-    message?: string;
-  }[];
-  message: string;
-  code?: string;
-};
 
 type WorkOSAuthError = {
   message: string;
@@ -631,15 +623,31 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return { success: true };
     } catch (error: unknown) {
-      const workosError = error as WorkOSError;
-
-      if (workosError.errors?.some((detail) => detail.code === "email_not_available")) {
+      // Perform structural narrowing before accessing properties
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "errors" in error &&
+        Array.isArray(error.errors) &&
+        error.errors.some((detail: { code?: string }) => detail.code === "email_not_available")
+      ) {
         return this.handleError(new Error(AuthErrorCode.EMAIL_ALREADY_EXISTS));
       }
-      if (workosError.message?.includes("email_required")) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof error.message === "string" &&
+        error.message.includes("email_required")
+      ) {
         return this.handleError(new Error(AuthErrorCode.INVALID_EMAIL));
       }
-      if (workosError.code === "user_creation_error") {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "user_creation_error"
+      ) {
         return this.handleError(new Error(AuthErrorCode.USER_CREATION_FAILED));
       }
       return this.handleError(error as Error);
@@ -857,8 +865,23 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           },
         ],
       };
-    } catch (error) {
-      return this.handleError(error);
+    } catch (error: unknown) {
+      // Handle specific error cases with better messages
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof error.message === "string" &&
+        error.message.includes("does not belong to")
+      ) {
+        return {
+          success: false,
+          code: AuthErrorCode.PENDING_SESSION_EXPIRED,
+          message: errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED],
+        };
+      }
+
+      return this.handleError(error as Error);
     }
   }
 
