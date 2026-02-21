@@ -1,15 +1,15 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Connections3 } from "@unkey/icons";
-import { Slider, toast } from "@unkey/ui";
+import { Slider } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
-import { useProjectData } from "../../../data-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 
@@ -20,40 +20,11 @@ const instancesSchema = z.object({
 type InstancesFormValues = z.infer<typeof instancesSchema>;
 
 export const Instances = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
+  const { settings } = useEnvironmentSettings();
+  const { environmentId, regionConfig } = settings;
 
-  const { data: settingsData } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
-  );
-
-  const regionConfig =
-    (settingsData?.runtimeSettings?.regionConfig as Record<string, number>) ?? {};
   const selectedRegions = Object.keys(regionConfig);
   const defaultInstances = Object.values(regionConfig)[0] ?? 1;
-
-  return (
-    <InstancesForm
-      environmentId={environmentId}
-      defaultInstances={defaultInstances}
-      selectedRegions={selectedRegions}
-    />
-  );
-};
-
-type InstancesFormProps = {
-  environmentId: string;
-  defaultInstances: number;
-  selectedRegions: string[];
-};
-
-const InstancesForm: React.FC<InstancesFormProps> = ({
-  environmentId,
-  defaultInstances,
-  selectedRegions,
-}) => {
-  const utils = trpc.useUtils();
 
   const {
     handleSubmit,
@@ -73,38 +44,13 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
 
   const currentInstances = useWatch({ control, name: "instances" });
 
-  const updateInstances = trpc.deploy.environmentSettings.runtime.updateInstances.useMutation({
-    onSuccess: (_data, variables) => {
-      const count = variables.replicasPerRegion ?? defaultInstances;
-      toast.success("Instances updated", {
-        description: `Set to ${count} instance${count !== 1 ? "s" : ""} per region.`,
-        duration: 5000,
-      });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid instances setting", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update instances", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: InstancesFormValues) => {
-    await updateInstances.mutateAsync({
-      environmentId,
-      replicasPerRegion: values.instances,
+    collection.environmentSettings.update(environmentId, (draft) => {
+      const updated: Record<string, number> = {};
+      for (const region of Object.keys(draft.regionConfig)) {
+        updated[region] = values.instances;
+      }
+      draft.regionConfig = updated;
     });
   };
 
@@ -125,7 +71,7 @@ const InstancesForm: React.FC<InstancesFormProps> = ({
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateInstances.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Instances per region</span>

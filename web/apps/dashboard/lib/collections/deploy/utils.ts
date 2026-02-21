@@ -79,3 +79,75 @@ export function validateProjectIdInQuery(where?: any): void {
     );
   }
 }
+
+/**
+ * Parses environmentId from where expression.
+ * Same pattern as parseProjectIdFromWhere but for environmentId field.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
+export function parseEnvironmentIdFromWhere(where?: any): string | null {
+  if (!where) {
+    return null;
+  }
+
+  // biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
+  function isEnvironmentIdEq(expr: any): string | null {
+    if (expr?.name !== "eq" || expr?.type !== "func" || !Array.isArray(expr?.args)) {
+      return null;
+    }
+
+    const [fieldRef, valueRef] = expr.args;
+
+    if (
+      fieldRef?.type === "ref" &&
+      Array.isArray(fieldRef?.path) &&
+      fieldRef.path.length === 1 &&
+      fieldRef.path[0] === "environmentId"
+    ) {
+      if (valueRef?.type === "val" && typeof valueRef?.value === "string") {
+        return valueRef.value;
+      }
+    }
+
+    return null;
+  }
+
+  const directMatch = isEnvironmentIdEq(where);
+  if (directMatch) {
+    return directMatch;
+  }
+
+  if (where?.name === "and" && where?.type === "func" && Array.isArray(where?.args)) {
+    for (const arg of where.args) {
+      const match = isEnvironmentIdEq(arg);
+      if (match) {
+        return match;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Runtime dev-mode validator for environmentId-filtered collections.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
+export function validateEnvironmentIdInQuery(where?: any): void {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  if (!where) {
+    throw new Error(
+      "Collection requires environmentId filter: .where(({ s }) => eq(s.environmentId, environmentId))",
+    );
+  }
+
+  const environmentId = parseEnvironmentIdFromWhere(where);
+  if (!environmentId) {
+    throw new Error(
+      "Collection requires environmentId as first constraint: .where(({ s }) => eq(s.environmentId, environmentId))",
+    );
+  }
+}
