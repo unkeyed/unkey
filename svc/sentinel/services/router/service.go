@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"time"
@@ -26,8 +27,10 @@ type service struct {
 	environmentID string
 	region        string
 
+	// deploymentID -> deployment
 	deploymentCache cache.Cache[string, db.Deployment]
-	instancesCache  cache.Cache[string, []db.Instance]
+	// deploymentID -> instances
+	instancesCache cache.Cache[string, []db.Instance]
 
 	// dispatcher handles routing of invalidation events to all caches in this service.
 	dispatcher *clustering.InvalidationDispatcher
@@ -137,8 +140,7 @@ func New(cfg Config) (*service, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return &service{
+	s := &service{
 		db:              cfg.DB,
 		clock:           cfg.Clock,
 		environmentID:   cfg.EnvironmentID,
@@ -146,7 +148,42 @@ func New(cfg Config) (*service, error) {
 		deploymentCache: deploymentCache,
 		instancesCache:  instancesCache,
 		dispatcher:      dispatcher,
-	}, nil
+	}
+
+	go s.prewarm(context.Background())
+	return s, nil
+}
+
+func (s *service) prewarm(ctx context.Context) {
+	logger.Info("prewarming cache")
+
+	deployments, err := db.Query.ListDeploymentsByEnvironmentIdAndStatus(ctx, s.db.RO(), db.ListDeploymentsByEnvironmentIdAndStatusParams{
+		EnvironmentID: s.environmentID,
+		Status:        db.DeploymentsStatusReady,
+		CreatedBefore: time.Now().UnixMilli(),
+		UpdatedBefore: sql.NullInt64{Valid: false, Int64: 0},
+	})
+	if err != nil {
+		logger.Error("unable to prewarm deployment cache", "error", err.Error())
+		return
+	}
+
+	for _, d := range deployments {
+		instances, err := db.Query.FindInstancesByDeploymentIdAndRegion(ctx, s.db.RO(), db.FindInstancesByDeploymentIdAndRegionParams{
+			Deploymentid: d.ID,
+			Region:       s.region,
+		})
+		if err != nil {
+			logger.Error("unable to find instances for deployment", "deployment_id", d.ID, "error", err.Error())
+			continue
+		}
+
+		logger.Info("precaching deployment", "deployment_id", d.ID)
+		s.deploymentCache.Set(ctx, d.ID, d)
+		s.instancesCache.Set(ctx, d.ID, instances)
+	}
+
+	logger.Info("deployment and instance cache are warm")
 }
 
 func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
