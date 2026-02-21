@@ -9,11 +9,10 @@ import { DeploymentProgressSection } from "./(overview)/components/sections/depl
 import { useDeployment } from "./layout-provider";
 
 export default function DeploymentOverview() {
-  const { deploymentId } = useDeployment();
-  const { getDeploymentById, refetchDomains } = useProjectData();
-  const deployment = getDeploymentById(deploymentId);
+  const { deployment } = useDeployment();
+  const { refetchDomains } = useProjectData();
 
-  const ready = deployment?.status === "ready";
+  const ready = deployment.status === "ready";
 
   useEffect(() => {
     if (ready) {
@@ -32,7 +31,6 @@ export default function DeploymentOverview() {
   return (
     <ProjectContentWrapper centered>
       <DeploymentInfoSection />
-
       <DeploymentDomainsSection />
       <DeploymentNetworkSection />
     </ProjectContentWrapper>
