@@ -6,7 +6,6 @@ import { shortenId } from "@/lib/shorten-id";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import type { ComponentPropsWithoutRef } from "react";
-import { useProjectData } from "../../../../data-provider";
 import { useDeployment } from "../../layout-provider";
 
 export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.Link> & {
@@ -26,11 +25,10 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
   const params = useParams();
 
   const workspaceSlug = params.workspaceSlug as string;
-  const { projectId } = useProjectData();
-  const { deploymentId } = useDeployment();
+  const { deployment } = useDeployment();
 
   return useMemo(() => {
-    const basePath = `/${workspaceSlug}/projects/${projectId}`;
+    const basePath = `/${workspaceSlug}/projects/${deployment.projectId}`;
     return [
       {
         id: "projects",
@@ -43,7 +41,7 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
       {
         id: "project",
         href: `${basePath}`,
-        children: projectId,
+        children: deployment.projectId,
         shouldRender: true,
         active: false,
         isLast: false,
@@ -58,13 +56,13 @@ export function useDeploymentBreadcrumbConfig(): BreadcrumbItem[] {
       },
       {
         id: "deployment",
-        href: `${basePath}/deployments/${deploymentId}`,
-        children: shortenId(deploymentId),
+        href: `${basePath}/deployments/${deployment.id}`,
+        children: shortenId(deployment.id),
         isIdentifier: true,
         shouldRender: true,
         active: false,
         isLast: false,
       },
     ];
-  }, [workspaceSlug, projectId, deploymentId]);
+  }, [workspaceSlug, deployment.projectId, deployment.id]);
 }
