@@ -52,7 +52,9 @@ message EncryptBulkResponseItem {
   string encrypted = 1;
   string key_id = 2;
 }
-message EncryptBulkResponse { map<string, EncryptBulkResponseItem> items = 1; }
+message EncryptBulkResponse {
+  map<string, EncryptBulkResponseItem> items = 1;
+}
 
 message DecryptBulkRequest {
   string keyring = 1;
