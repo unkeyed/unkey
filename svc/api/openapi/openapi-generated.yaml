@@ -41,27 +41,6 @@ components:
                     items:
                         type: string
                     example: ["abc123"]
-        V2AnalyticsGetVerificationsRequestBody:
-            type: object
-            required:
-                - query
-            properties:
-                query:
-                    type: string
-                    description: |
-                        SQL query to execute against your analytics data.
-                        Only SELECT queries are allowed.
-                    example: "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
-        V2AnalyticsGetVerificationsResponseBody:
-            type: object
-            required:
-                - meta
-                - data
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                data:
-                    $ref: "#/components/schemas/V2AnalyticsGetVerificationsResponseData"
         BadRequestErrorResponse:
             type: object
             required:
@@ -90,6 +69,44 @@ components:
                 - The token format doesn't match expected patterns
 
                 To resolve this error, ensure you're including a valid root key in the Authorization header.
+        InternalServerErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
+
+                When you encounter this error:
+                - The request ID in the response can help Unkey support investigate the issue
+                - The error is likely temporary and retrying may succeed
+                - If the error persists, contact Unkey support with the request ID
+        V2AnalyticsGetVerificationsRequestBody:
+            type: object
+            required:
+                - query
+            properties:
+                query:
+                    type: string
+                    description: |
+                        SQL query to execute against your analytics data.
+                        Only SELECT queries are allowed.
+                    example: "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
+        V2AnalyticsGetVerificationsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2AnalyticsGetVerificationsResponseData"
         ForbiddenErrorResponse:
             type: object
             required:
@@ -160,23 +177,6 @@ components:
                 - Cache results where appropriate to reduce request frequency
                 - Check the error detail message for specific quota information
                 - Contact support if you need a higher quota for your use case
-        InternalServerErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
-
-                When you encounter this error:
-                - The request ID in the response can help Unkey support investigate the issue
-                - The error is likely temporary and retrying may succeed
-                - If the error persists, contact Unkey support with the request ID
         ServiceUnavailableErrorResponse:
             type: object
             required:
@@ -2151,20 +2151,6 @@ components:
                     type: string
             additionalProperties: false
             description: Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-        V2AnalyticsGetVerificationsResponseData:
-            type: array
-            description: Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
-            items:
-                type: object
-                additionalProperties: true
-                description: Dynamic row with fields determined by the query. Can include any combination of fields like time, outcome, count, key_id, etc.
-            example:
-                - outcome: "VALID"
-                  count: 1234
-                  time: 1696118400000
-                - outcome: "RATE_LIMITED"
-                  count: 56
-                  time: 1696118400000
         BadRequestErrorDetails:
             allOf:
                 - $ref: "#/components/schemas/BaseError"
@@ -2231,6 +2217,20 @@ components:
                 - message
             type: object
             description: Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
+        V2AnalyticsGetVerificationsResponseData:
+            type: array
+            description: Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
+            items:
+                type: object
+                additionalProperties: true
+                description: Dynamic row with fields determined by the query. Can include any combination of fields like time, outcome, count, key_id, etc.
+            example:
+                - outcome: "VALID"
+                  count: 1234
+                  time: 1696118400000
+                - outcome: "RATE_LIMITED"
+                  count: 56
+                  time: 1696118400000
         V2ApisCreateApiResponseData:
             type: object
             properties:

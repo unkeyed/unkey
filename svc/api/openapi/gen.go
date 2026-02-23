@@ -106,7 +106,6 @@ type CacheInvalidateRequestBody struct {
 	Keys []string `json:"keys"`
 }
 
-
 // ConflictErrorResponse Error response when the request conflicts with the current state of the resource. This occurs when:
 // - Attempting to create a resource that already exists
 // - Modifying a resource that has been changed by another operation
@@ -2338,7 +2337,6 @@ type VerifyKeyRatelimitData struct {
 
 // InternalCacheInvalidateJSONRequestBody defines body for InternalCacheInvalidate for application/json ContentType.
 type InternalCacheInvalidateJSONRequestBody = CacheInvalidateRequestBody
-
 
 // AnalyticsGetVerificationsJSONRequestBody defines body for AnalyticsGetVerifications for application/json ContentType.
 type AnalyticsGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody

@@ -53,7 +53,6 @@ type Services struct {
 	// When empty, the cache invalidation route is not registered.
 	DashboardToken string
 
-
 	// CtrlDeploymentClient communicates with the control plane for deployment
 	// operations like creating and managing deployments.
 	CtrlDeploymentClient ctrl.DeployServiceClient
