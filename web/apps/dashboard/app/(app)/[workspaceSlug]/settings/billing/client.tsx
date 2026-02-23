@@ -139,7 +139,7 @@ export const Client: React.FC = () => {
             border="both"
             description="Manage Payment methods and see your invoices."
             className="w-full"
-            contentWidth="w-full lg:w-[320px]"
+            contentWidth="w-full"
           >
             <div className="w-full flex h-full items-center justify-end gap-4">
               <Button

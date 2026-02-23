@@ -48,7 +48,7 @@ export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
       }
       border="both"
       className="border-warning-7 bg-warning-2 w-full"
-      contentWidth="w-full lg:w-[320px]"
+      contentWidth="w-full"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
         <Button
