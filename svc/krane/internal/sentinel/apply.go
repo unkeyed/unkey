@@ -143,6 +143,9 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, name string, sent
 		ClickHouse: sentinelcfg.ClickHouseConfig{
 			URL: "${UNKEY_CLICKHOUSE_URL}",
 		},
+		Redis: sentinelcfg.RedisConfig{
+			URL: "${UNKEY_REDIS_URL}",
+		},
 		Observability: config.Observability{
 			Logging: &config.LoggingConfig{
 				SampleRate:    1.0,
@@ -222,6 +225,14 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, name string, sent
 								SecretRef: &corev1.SecretEnvSource{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "otel",
+									},
+									Optional: ptr.P(true),
+								},
+							},
+							{
+								SecretRef: &corev1.SecretEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "redis",
 									},
 									Optional: ptr.P(true),
 								},

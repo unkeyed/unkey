@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: middleware/v1/ratelimit.proto
+// source: policies/v1/ratelimit.proto
 
 package sentinelv1
 
@@ -57,7 +57,7 @@ type RateLimit struct {
 
 func (x *RateLimit) Reset() {
 	*x = RateLimit{}
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[0]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -69,7 +69,7 @@ func (x *RateLimit) String() string {
 func (*RateLimit) ProtoMessage() {}
 
 func (x *RateLimit) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[0]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -82,7 +82,7 @@ func (x *RateLimit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RateLimit.ProtoReflect.Descriptor instead.
 func (*RateLimit) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_ratelimit_proto_rawDescGZIP(), []int{0}
+	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *RateLimit) GetLimit() int64 {
@@ -125,7 +125,7 @@ type RateLimitKey struct {
 
 func (x *RateLimitKey) Reset() {
 	*x = RateLimitKey{}
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[1]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -137,7 +137,7 @@ func (x *RateLimitKey) String() string {
 func (*RateLimitKey) ProtoMessage() {}
 
 func (x *RateLimitKey) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[1]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -150,7 +150,7 @@ func (x *RateLimitKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RateLimitKey.ProtoReflect.Descriptor instead.
 func (*RateLimitKey) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_ratelimit_proto_rawDescGZIP(), []int{1}
+	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RateLimitKey) GetSource() isRateLimitKey_Source {
@@ -273,7 +273,7 @@ type RemoteIpKey struct {
 
 func (x *RemoteIpKey) Reset() {
 	*x = RemoteIpKey{}
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[2]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -285,7 +285,7 @@ func (x *RemoteIpKey) String() string {
 func (*RemoteIpKey) ProtoMessage() {}
 
 func (x *RemoteIpKey) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[2]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -298,7 +298,7 @@ func (x *RemoteIpKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteIpKey.ProtoReflect.Descriptor instead.
 func (*RemoteIpKey) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_ratelimit_proto_rawDescGZIP(), []int{2}
+	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{2}
 }
 
 // HeaderKey derives the rate limit key from a request header value.
@@ -313,7 +313,7 @@ type HeaderKey struct {
 
 func (x *HeaderKey) Reset() {
 	*x = HeaderKey{}
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[3]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -325,7 +325,7 @@ func (x *HeaderKey) String() string {
 func (*HeaderKey) ProtoMessage() {}
 
 func (x *HeaderKey) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[3]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +338,7 @@ func (x *HeaderKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeaderKey.ProtoReflect.Descriptor instead.
 func (*HeaderKey) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_ratelimit_proto_rawDescGZIP(), []int{3}
+	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *HeaderKey) GetName() string {
@@ -360,7 +360,7 @@ type AuthenticatedSubjectKey struct {
 
 func (x *AuthenticatedSubjectKey) Reset() {
 	*x = AuthenticatedSubjectKey{}
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[4]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -372,7 +372,7 @@ func (x *AuthenticatedSubjectKey) String() string {
 func (*AuthenticatedSubjectKey) ProtoMessage() {}
 
 func (x *AuthenticatedSubjectKey) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[4]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -385,7 +385,7 @@ func (x *AuthenticatedSubjectKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticatedSubjectKey.ProtoReflect.Descriptor instead.
 func (*AuthenticatedSubjectKey) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_ratelimit_proto_rawDescGZIP(), []int{4}
+	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{4}
 }
 
 // PathKey derives the rate limit key from the request URL path.
@@ -397,7 +397,7 @@ type PathKey struct {
 
 func (x *PathKey) Reset() {
 	*x = PathKey{}
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[5]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -409,7 +409,7 @@ func (x *PathKey) String() string {
 func (*PathKey) ProtoMessage() {}
 
 func (x *PathKey) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[5]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -422,7 +422,7 @@ func (x *PathKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PathKey.ProtoReflect.Descriptor instead.
 func (*PathKey) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_ratelimit_proto_rawDescGZIP(), []int{5}
+	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{5}
 }
 
 // PrincipalClaimKey derives the rate limit key from a named claim in the
@@ -439,7 +439,7 @@ type PrincipalClaimKey struct {
 
 func (x *PrincipalClaimKey) Reset() {
 	*x = PrincipalClaimKey{}
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[6]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -451,7 +451,7 @@ func (x *PrincipalClaimKey) String() string {
 func (*PrincipalClaimKey) ProtoMessage() {}
 
 func (x *PrincipalClaimKey) ProtoReflect() protoreflect.Message {
-	mi := &file_middleware_v1_ratelimit_proto_msgTypes[6]
+	mi := &file_policies_v1_ratelimit_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -464,7 +464,7 @@ func (x *PrincipalClaimKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrincipalClaimKey.ProtoReflect.Descriptor instead.
 func (*PrincipalClaimKey) Descriptor() ([]byte, []int) {
-	return file_middleware_v1_ratelimit_proto_rawDescGZIP(), []int{6}
+	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PrincipalClaimKey) GetClaimName() string {
@@ -474,11 +474,11 @@ func (x *PrincipalClaimKey) GetClaimName() string {
 	return ""
 }
 
-var File_middleware_v1_ratelimit_proto protoreflect.FileDescriptor
+var File_policies_v1_ratelimit_proto protoreflect.FileDescriptor
 
-const file_middleware_v1_ratelimit_proto_rawDesc = "" +
+const file_policies_v1_ratelimit_proto_rawDesc = "" +
 	"\n" +
-	"\x1dmiddleware/v1/ratelimit.proto\x12\vsentinel.v1\"k\n" +
+	"\x1bpolicies/v1/ratelimit.proto\x12\vsentinel.v1\"k\n" +
 	"\tRateLimit\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x03R\x05limit\x12\x1b\n" +
 	"\twindow_ms\x18\x02 \x01(\x03R\bwindowMs\x12+\n" +
@@ -501,19 +501,19 @@ const file_middleware_v1_ratelimit_proto_rawDesc = "" +
 	"\x0fcom.sentinel.v1B\x0eRatelimitProtoP\x01Z9github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1\xa2\x02\x03SXX\xaa\x02\vSentinel.V1\xca\x02\vSentinel\\V1\xe2\x02\x17Sentinel\\V1\\GPBMetadata\xea\x02\fSentinel::V1b\x06proto3"
 
 var (
-	file_middleware_v1_ratelimit_proto_rawDescOnce sync.Once
-	file_middleware_v1_ratelimit_proto_rawDescData []byte
+	file_policies_v1_ratelimit_proto_rawDescOnce sync.Once
+	file_policies_v1_ratelimit_proto_rawDescData []byte
 )
 
-func file_middleware_v1_ratelimit_proto_rawDescGZIP() []byte {
-	file_middleware_v1_ratelimit_proto_rawDescOnce.Do(func() {
-		file_middleware_v1_ratelimit_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_middleware_v1_ratelimit_proto_rawDesc), len(file_middleware_v1_ratelimit_proto_rawDesc)))
+func file_policies_v1_ratelimit_proto_rawDescGZIP() []byte {
+	file_policies_v1_ratelimit_proto_rawDescOnce.Do(func() {
+		file_policies_v1_ratelimit_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_policies_v1_ratelimit_proto_rawDesc), len(file_policies_v1_ratelimit_proto_rawDesc)))
 	})
-	return file_middleware_v1_ratelimit_proto_rawDescData
+	return file_policies_v1_ratelimit_proto_rawDescData
 }
 
-var file_middleware_v1_ratelimit_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_middleware_v1_ratelimit_proto_goTypes = []any{
+var file_policies_v1_ratelimit_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_policies_v1_ratelimit_proto_goTypes = []any{
 	(*RateLimit)(nil),               // 0: sentinel.v1.RateLimit
 	(*RateLimitKey)(nil),            // 1: sentinel.v1.RateLimitKey
 	(*RemoteIpKey)(nil),             // 2: sentinel.v1.RemoteIpKey
@@ -522,7 +522,7 @@ var file_middleware_v1_ratelimit_proto_goTypes = []any{
 	(*PathKey)(nil),                 // 5: sentinel.v1.PathKey
 	(*PrincipalClaimKey)(nil),       // 6: sentinel.v1.PrincipalClaimKey
 }
-var file_middleware_v1_ratelimit_proto_depIdxs = []int32{
+var file_policies_v1_ratelimit_proto_depIdxs = []int32{
 	1, // 0: sentinel.v1.RateLimit.key:type_name -> sentinel.v1.RateLimitKey
 	2, // 1: sentinel.v1.RateLimitKey.remote_ip:type_name -> sentinel.v1.RemoteIpKey
 	3, // 2: sentinel.v1.RateLimitKey.header:type_name -> sentinel.v1.HeaderKey
@@ -536,12 +536,12 @@ var file_middleware_v1_ratelimit_proto_depIdxs = []int32{
 	0, // [0:6] is the sub-list for field type_name
 }
 
-func init() { file_middleware_v1_ratelimit_proto_init() }
-func file_middleware_v1_ratelimit_proto_init() {
-	if File_middleware_v1_ratelimit_proto != nil {
+func init() { file_policies_v1_ratelimit_proto_init() }
+func file_policies_v1_ratelimit_proto_init() {
+	if File_policies_v1_ratelimit_proto != nil {
 		return
 	}
-	file_middleware_v1_ratelimit_proto_msgTypes[1].OneofWrappers = []any{
+	file_policies_v1_ratelimit_proto_msgTypes[1].OneofWrappers = []any{
 		(*RateLimitKey_RemoteIp)(nil),
 		(*RateLimitKey_Header)(nil),
 		(*RateLimitKey_AuthenticatedSubject)(nil),
@@ -552,17 +552,17 @@ func file_middleware_v1_ratelimit_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_middleware_v1_ratelimit_proto_rawDesc), len(file_middleware_v1_ratelimit_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_policies_v1_ratelimit_proto_rawDesc), len(file_policies_v1_ratelimit_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_middleware_v1_ratelimit_proto_goTypes,
-		DependencyIndexes: file_middleware_v1_ratelimit_proto_depIdxs,
-		MessageInfos:      file_middleware_v1_ratelimit_proto_msgTypes,
+		GoTypes:           file_policies_v1_ratelimit_proto_goTypes,
+		DependencyIndexes: file_policies_v1_ratelimit_proto_depIdxs,
+		MessageInfos:      file_policies_v1_ratelimit_proto_msgTypes,
 	}.Build()
-	File_middleware_v1_ratelimit_proto = out.File
-	file_middleware_v1_ratelimit_proto_goTypes = nil
-	file_middleware_v1_ratelimit_proto_depIdxs = nil
+	File_policies_v1_ratelimit_proto = out.File
+	file_policies_v1_ratelimit_proto_goTypes = nil
+	file_policies_v1_ratelimit_proto_depIdxs = nil
 }

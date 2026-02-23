@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
+import { ChartEmpty, ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
 import { createTimeIntervalFormatter } from "@/components/logs/overview-charts/utils";
 import {
   type ChartConfig,
@@ -39,6 +39,12 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
   }
   if (isLoading) {
     return <ChartLoading variant="simple" animate={false} dataPoints={100} />;
+  }
+
+  // Check if there's any data to display
+  const totalCount = (data ?? []).reduce((acc, item) => acc + (item.total ?? 0), 0);
+  if (totalCount === 0) {
+    return <ChartEmpty variant="simple" message="No data for timeframe" />;
   }
 
   return (
