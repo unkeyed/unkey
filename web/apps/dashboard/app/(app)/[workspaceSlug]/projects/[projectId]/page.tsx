@@ -1,18 +1,16 @@
 "use client";
-import { Cloud, Earth, FolderCloud, Link4, Page2 } from "@unkey/icons";
+import { Cloud, Earth } from "@unkey/icons";
 import { EmptySection } from "./(overview)/components/empty-section";
 import { useProjectData } from "./(overview)/data-provider";
 import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
-import { CustomDomainsSection } from "./(overview)/details/custom-domains-section";
 import { DomainRow, DomainRowSkeleton } from "./(overview)/details/domain-row";
-import { EnvironmentVariablesSection } from "./(overview)/details/env-variables-section";
 import { ActiveDeploymentCard } from "./components/active-deployment-card";
 import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
 
 export default function ProjectDetails() {
-  const { getDomainsForDeployment, isDomainsLoading, getDeploymentById, project, environments } =
+  const { getDomainsForDeployment, isDomainsLoading, getDeploymentById, project } =
     useProjectData();
 
   const liveDeploymentId = project?.liveDeploymentId;
@@ -61,39 +59,6 @@ export default function ProjectDetails() {
               title="No domains found"
               description="Your configured domains will appear here once they're set up and verified."
             />
-          )}
-        </div>
-      </Section>
-      <Section>
-        <SectionHeader
-          icon={<Link4 iconSize="md-regular" className="text-gray-9" />}
-          title="Custom Domains"
-        />
-        <CustomDomainsSection
-          environments={environments.map((env) => ({
-            id: env.id,
-            slug: env.slug,
-          }))}
-        />
-      </Section>
-      <Section>
-        <SectionHeader
-          icon={<FolderCloud iconSize="md-regular" className="text-gray-9" />}
-          title="Environment Variables"
-        />
-        <div>
-          {environments.map((env) => (
-            <EnvironmentVariablesSection
-              key={env.id}
-              icon={<Page2 iconSize="sm-medium" className="text-gray-9" />}
-              title={env.slug}
-              environment={env.slug}
-            />
-          ))}
-          {environments.length === 0 && (
-            <div className="px-4 py-8 text-center text-gray-9 text-sm">
-              No environments configured
-            </div>
           )}
         </div>
       </Section>
