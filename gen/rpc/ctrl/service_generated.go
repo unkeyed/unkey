@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 // CtrlServiceClient wraps ctrlv1connect.CtrlServiceClient with simplified signatures.
@@ -29,6 +30,8 @@ func NewConnectCtrlServiceClient(inner ctrlv1connect.CtrlServiceClient) *Connect
 }
 
 func (c *ConnectCtrlServiceClient) Liveness(ctx context.Context, req *v1.LivenessRequest) (*v1.LivenessResponse, error) {
+	ctx, span := tracing.Start(ctx, "CtrlService.Liveness")
+	defer span.End()
 	resp, err := c.inner.Liveness(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err

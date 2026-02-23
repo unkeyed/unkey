@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 // AcmeServiceClient wraps ctrlv1connect.AcmeServiceClient with simplified signatures.
@@ -29,6 +30,8 @@ func NewConnectAcmeServiceClient(inner ctrlv1connect.AcmeServiceClient) *Connect
 }
 
 func (c *ConnectAcmeServiceClient) VerifyCertificate(ctx context.Context, req *v1.VerifyCertificateRequest) (*v1.VerifyCertificateResponse, error) {
+	ctx, span := tracing.Start(ctx, "AcmeService.VerifyCertificate")
+	defer span.End()
 	resp, err := c.inner.VerifyCertificate(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err

@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 // ClusterServiceClient wraps ctrlv1connect.ClusterServiceClient with simplified signatures.
@@ -44,6 +45,8 @@ func (c *ConnectClusterServiceClient) WatchSentinels(ctx context.Context, req *v
 }
 
 func (c *ConnectClusterServiceClient) GetDesiredSentinelState(ctx context.Context, req *v1.GetDesiredSentinelStateRequest) (*v1.SentinelState, error) {
+	ctx, span := tracing.Start(ctx, "ClusterService.GetDesiredSentinelState")
+	defer span.End()
 	resp, err := c.inner.GetDesiredSentinelState(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
@@ -52,6 +55,8 @@ func (c *ConnectClusterServiceClient) GetDesiredSentinelState(ctx context.Contex
 }
 
 func (c *ConnectClusterServiceClient) ReportSentinelStatus(ctx context.Context, req *v1.ReportSentinelStatusRequest) (*v1.ReportSentinelStatusResponse, error) {
+	ctx, span := tracing.Start(ctx, "ClusterService.ReportSentinelStatus")
+	defer span.End()
 	resp, err := c.inner.ReportSentinelStatus(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
@@ -60,6 +65,8 @@ func (c *ConnectClusterServiceClient) ReportSentinelStatus(ctx context.Context, 
 }
 
 func (c *ConnectClusterServiceClient) GetDesiredDeploymentState(ctx context.Context, req *v1.GetDesiredDeploymentStateRequest) (*v1.DeploymentState, error) {
+	ctx, span := tracing.Start(ctx, "ClusterService.GetDesiredDeploymentState")
+	defer span.End()
 	resp, err := c.inner.GetDesiredDeploymentState(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
@@ -68,6 +75,8 @@ func (c *ConnectClusterServiceClient) GetDesiredDeploymentState(ctx context.Cont
 }
 
 func (c *ConnectClusterServiceClient) ReportDeploymentStatus(ctx context.Context, req *v1.ReportDeploymentStatusRequest) (*v1.ReportDeploymentStatusResponse, error) {
+	ctx, span := tracing.Start(ctx, "ClusterService.ReportDeploymentStatus")
+	defer span.End()
 	resp, err := c.inner.ReportDeploymentStatus(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
@@ -80,6 +89,8 @@ func (c *ConnectClusterServiceClient) WatchCiliumNetworkPolicies(ctx context.Con
 }
 
 func (c *ConnectClusterServiceClient) GetDesiredCiliumNetworkPolicyState(ctx context.Context, req *v1.GetDesiredCiliumNetworkPolicyStateRequest) (*v1.CiliumNetworkPolicyState, error) {
+	ctx, span := tracing.Start(ctx, "ClusterService.GetDesiredCiliumNetworkPolicyState")
+	defer span.End()
 	resp, err := c.inner.GetDesiredCiliumNetworkPolicyState(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err

@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	{{ .ProtoAlias }} "{{ .ProtoImport }}"
 	"{{ .ConnectImport }}"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 {{ range $svc := .Services }}
 // {{ $svc.Name }} wraps {{ $.ConnectPkg }}.{{ $svc.Name }} with simplified signatures.
@@ -40,6 +41,8 @@ func (c *Connect{{ $svc.Name }}) {{ .Name }}(ctx context.Context, req *{{ $.Prot
 }
 {{ else }}
 func (c *Connect{{ $svc.Name }}) {{ .Name }}(ctx context.Context, req *{{ $.ProtoAlias }}.{{ .ReqType }}) (*{{ $.ProtoAlias }}.{{ .RespType }}, error) {
+	ctx, span := tracing.Start(ctx, "{{ $svc.ServiceBaseName }}.{{ .Name }}")
+	defer span.End()
 	resp, err := c.inner.{{ .Name }}(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err

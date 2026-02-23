@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 // CustomDomainServiceClient wraps ctrlv1connect.CustomDomainServiceClient with simplified signatures.
@@ -31,6 +32,8 @@ func NewConnectCustomDomainServiceClient(inner ctrlv1connect.CustomDomainService
 }
 
 func (c *ConnectCustomDomainServiceClient) AddCustomDomain(ctx context.Context, req *v1.AddCustomDomainRequest) (*v1.AddCustomDomainResponse, error) {
+	ctx, span := tracing.Start(ctx, "CustomDomainService.AddCustomDomain")
+	defer span.End()
 	resp, err := c.inner.AddCustomDomain(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
@@ -39,6 +42,8 @@ func (c *ConnectCustomDomainServiceClient) AddCustomDomain(ctx context.Context, 
 }
 
 func (c *ConnectCustomDomainServiceClient) DeleteCustomDomain(ctx context.Context, req *v1.DeleteCustomDomainRequest) (*v1.DeleteCustomDomainResponse, error) {
+	ctx, span := tracing.Start(ctx, "CustomDomainService.DeleteCustomDomain")
+	defer span.End()
 	resp, err := c.inner.DeleteCustomDomain(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
@@ -47,6 +52,8 @@ func (c *ConnectCustomDomainServiceClient) DeleteCustomDomain(ctx context.Contex
 }
 
 func (c *ConnectCustomDomainServiceClient) RetryVerification(ctx context.Context, req *v1.RetryVerificationRequest) (*v1.RetryVerificationResponse, error) {
+	ctx, span := tracing.Start(ctx, "CustomDomainService.RetryVerification")
+	defer span.End()
 	resp, err := c.inner.RetryVerification(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
