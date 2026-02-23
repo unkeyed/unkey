@@ -1,0 +1,56 @@
+---
+title: "Architecture"
+description: "API service components, request flow, and dependencies"
+---
+
+The API service is the primary way users interact with unkey. It exposes an authenticated RPC-style HTTP API for all availble CRUD operations.
+
+## Request handling pipeline
+
+Most endpoints share a standard middleware stack:
+
+- Panic recovery
+- Tracing
+- ClickHouse request metrics
+- Structured logging with request ID
+- Error translation using fault codes and OpenAPI error schemas
+- One-minute timeout
+- Request validation
+
+Routes that serve internal tooling such as pprof use a reduced stack. The liveness and reference endpoints disable ClickHouse logging to avoid analytics noise.
+
+## Core services
+
+The API service composes domain services into handlers registered in <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/routes/register.go" target="_blank">`svc/api/routes/register.go`</a>.
+
+- Key service for authentication, authorization, key verification, and mutations.
+- Rate limit service backed by Redis counters.
+- Usage limiter backed by Redis counters and MySQL for credit tracking.
+- Audit log service for write actions.
+- Caches for key, API, and ratelimit namespace lookups.
+- Analytics connection manager for per-workspace ClickHouse access.
+
+## Data and storage
+
+- MySQL stores control plane data such as keys, APIs, identities, and permissions.
+- Redis stores counters and rate limiting state.
+- ClickHouse stores verification and analytics events.
+
+ClickHouse is optional. When it is not configured, analytics writes become no-ops.
+
+## Cache invalidation
+
+Cache invalidation uses a gossip cluster when configured. Each node subscribes to invalidation messages and broadcasts cache changes. If gossip fails to initialize, the service continues with local-only invalidation.
+
+## Control plane and Vault integration
+
+The API service uses Connect RPC clients to interact with:
+
+- Control plane deployment APIs for deployment operations.
+- Vault for analytics credentials and secret handling.
+
+Clients inject `Authorization: Bearer <token>` headers on every request.
+
+## Reference and schema
+
+The OpenAPI specification is bundled from <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/openapi" target="_blank">`svc/api/openapi`</a> and served at `/openapi.yaml`. The `/reference` route serves the Scalar API reference UI built from the same spec.

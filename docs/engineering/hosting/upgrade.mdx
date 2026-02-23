@@ -1,0 +1,30 @@
+---
+title: "Upgrade"
+description: "Upgrade strategy for hosted Unkey deployments"
+---
+
+## Compatibility
+
+Use the service-specific architecture and configuration guides under `docs/engineering/architecture/services/<service>/` for version notes and config changes.
+
+## Upgrade steps
+
+Follow the steps for your hosting model.
+
+### Unkey-managed
+
+1. Update the target commit in `infra/infra/eks-cluster/promotions/<environment>/<app>.yaml`.
+2. Sync the ArgoCD application.
+
+### Customer-managed
+
+1. Update image tags or values in the chart `values.yaml` or environment override.
+2. Deploy the updated chart.
+
+## Verification and rollback
+
+Verify health endpoints after the upgrade. Roll back by reverting the promotion revision or image tags and re-syncing the deployment.
+
+## Release workflow
+
+For Unkey-managed hosting, releases are driven by the promotion files under `infra/infra/eks-cluster/promotions/<environment>/<app>.yaml`. Update the git `revision` and sync the ArgoCD application to apply the release.

@@ -1,6 +1,0 @@
-{
-  "title": "Runbooks",
-  "description": "Operational runbooks for Unkey infrastructure and services",
-  "icon": "BookOpen",
-  "pages": ["index", "clickhouse-user-provisioning", "services"]
-}

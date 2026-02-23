@@ -1,0 +1,63 @@
+---
+title: "Overview"
+description: "Admission webhook for workload injection"
+---
+
+Preflight is the Kubernetes admission layer for Unkey workloads. It sits between the Kubernetes API server and workload pods to enforce platform requirements during pod creation.
+
+Preflight keeps workload manifests minimal while ensuring every Unkey workload can receive secrets, resolve deployment identity, and pull from private registries.
+
+## Place in the stack
+
+Preflight is part of the Kubernetes workload path for Unkey environments.
+
+- Workload pods are created by the control plane and scheduled by Kubernetes.
+- The Kubernetes API server calls the preflight webhook before pods are persisted.
+- Preflight mutates the pod spec and returns a JSON patch to the API server.
+- The mutated pod runs in the environment namespace alongside sentinel, Krane, and user workloads.
+
+Preflight does not proxy user traffic. It runs only during pod admission and has no request path involvement after the pod starts.
+
+## Responsibilities
+
+Preflight focuses on mutation and credentials at pod admission time.
+
+- Require the deployment label `unkey.com/deployment.id` to enable injection.
+- Inject the init container and in-memory volume that provide the inject binary.
+- Rewrite container entrypoints so `inject` runs before the original command.
+- Add pull secrets for private registry images when needed.
+- Clean up expired pull secrets created by preflight.
+
+## Admission flow
+
+The webhook handles Kubernetes `AdmissionReview` requests for pod creation.
+
+1. The API server posts the pod admission request to `/mutate`.
+2. Preflight parses the pod and checks for the deployment label.
+3. If the label is missing, Preflight allows the pod without mutation.
+4. If the label is present, Preflight returns a JSON patch that injects secrets wiring and registry credentials.
+5. If mutation fails, Preflight rejects the request with an error message.
+
+## Pod mutation details
+
+Mutation is additive and works per container.
+
+- The init container copies `/ko-app/inject` into an `EmptyDir` volume mounted at `/inject-bin`.
+- Each container mounts the same volume read-only and sets `UNKEY_PROVIDER_ENDPOINT`, `UNKEY_DEPLOYMENT_ID`, and `UNKEY_TOKEN_PATH`.
+- The container command is replaced with `/inject-bin/inject`.
+- The original entrypoint and args become `args`, prefixed by `--` to prevent user-controlled flags from altering inject behavior.
+- When a container has no explicit command, Preflight queries the registry for the image config to recover the entrypoint and command.
+
+## Registry credentials
+
+Preflight only creates pull credentials for registries that require them.
+
+- When a Depot token is configured, images from `registry.depot.dev` get on-demand pull tokens using the build ID label.
+- Pull tokens are stored as Kubernetes `Secret` objects with an expiry annotation and are reused while valid.
+- Registry aliases let Preflight rewrite registry hostnames before pulling image metadata.
+- Insecure registry entries let Preflight use HTTP for specific registries.
+- For other registries, Preflight uses the Kubernetes keychain derived from the pod service account and image pull secrets.
+
+## Cleanup loop
+
+Preflight deletes expired registry pull secrets across all namespaces. It filters on the `app.kubernetes.io/managed-by=preflight` label and checks the expiry annotation.

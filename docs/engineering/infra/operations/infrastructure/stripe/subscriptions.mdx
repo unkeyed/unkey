@@ -1,0 +1,119 @@
+---
+title: "Subscriptions"
+description: "How Unkey uses Stripe subscriptions"
+---
+
+Unkey's Stripe integration is designed around calendar month alignment, free tier efficiency, and frictionless upgrades.
+
+## Objectives
+
+1. Calendar month alignment for predictable billing dates
+2. Free tier users do not create Stripe customers or subscriptions
+3. Seamless upgrades with payment method collection upfront
+
+## System overview
+
+The billing system manages tiered pricing, payment methods, subscriptions, and the customer portal. It supports legacy usage-based pricing.
+
+## Key components
+
+### Workspace billing configuration
+
+- `stripeCustomerId`: Stripe customer ID
+- `stripeSubscriptionId`: Stripe subscription ID
+- `tier`: Current plan tier
+- `quotas`: Usage limits
+
+### Tiered products
+
+- Products with increasing request quotas
+- Upgrade and downgrade paths
+- Monthly pricing display
+
+### Stripe integration
+
+- Checkout sessions
+- Subscription management
+- Customer portal access
+
+### Usage tracking
+
+- Usage vs quota
+- Percentage used
+- Combined verification and ratelimit requests
+
+## Stripe environment configuration
+
+Required environment variables:
+
+1. `STRIPE_SECRET_KEY`
+2. `STRIPE_PRODUCT_IDS_PRO` (comma-separated product IDs for Pro tiers)
+
+## Workspace schema
+
+```typescript
+workspaces {
+  id: string
+  orgId: string
+  stripeCustomerId: string | null
+  stripeSubscriptionId: string | null
+  tier: string
+  subscriptions: object | null
+  quotas: {
+    requestsPerMonth: number
+    logsRetentionDays: number
+    auditLogsRetentionDays: number
+    team: boolean
+  }
+}
+```
+
+## User flows
+
+### Adding a payment method
+
+1. User clicks **Add payment method**.
+2. System creates a Stripe Checkout session in setup mode.
+3. User enters payment details.
+4. System associates the payment method with the customer and stores the customer ID.
+
+### Starting a subscription
+
+1. User selects a plan and clicks **Upgrade**.
+2. System creates a customer if needed.
+3. System creates a subscription for the selected product.
+4. Workspace tier and quota update, and an audit log entry is created.
+
+### Changing plans
+
+1. User selects a plan and confirms.
+2. System updates the subscription and prorates charges.
+3. Workspace tier and quota update, and an audit log entry is created.
+
+### Canceling a subscription
+
+1. User clicks **Cancel plan** and confirms.
+2. System cancels the subscription and resets quotas to free tier.
+3. Audit log entry is created.
+
+## Billing portal
+
+Users can access the Stripe Billing Portal to manage payment methods and invoices.
+
+## Legacy plans
+
+Legacy usage-based pricing remains supported for existing users while encouraging migration.
+
+## Implementation notes
+
+### Product metadata
+
+Products include metadata used to set quotas:
+
+- `quota_requests_per_month`
+- `quota_logs_retention_days`
+- `quota_audit_logs_retention_days`
+
+### Usage calculation
+
+Usage is calculated as the combined total of valid key verifications and ratelimits, reset monthly.

@@ -1,0 +1,27 @@
+---
+title: "Accounts"
+description: "Infrastructure accounts and login links"
+---
+
+## Cloud providers
+
+| Service | Description | Login | Auth |
+| --- | --- | --- | --- |
+| AWS | Primary cloud infrastructure | <a href="https://unkey.awsapps.com/start/" target="_blank">unkey.awsapps.com/start</a> | Google OAuth |
+
+## EKS clusters
+
+| Account | Cluster | Description | Region | AWS Console | Argo CD |
+| --- | --- | --- | --- | --- | --- |
+| unkey-sandbox | staging-eu-central-1 | Staging | eu-central-1 | <a href="https://eu-central-1.console.aws.amazon.com/eks/clusters/staging-eu-central-1?region=eu-central-1" target="_blank">View</a> | <a href="https://argocd.eu-central-1.unkey-staging.com/" target="_blank">Dashboard</a> |
+| production001 | production001-us-east-1 | Control plane | us-east-1 | <a href="https://us-east-1.console.aws.amazon.com/eks/clusters/production001-us-east-1?region=us-east-1" target="_blank">View</a> | <a href="https://argocd.us-east-1.unkey.cloud/" target="_blank">Dashboard</a> |
+
+## SaaS services
+
+| Service | Description | Login | Auth |
+| --- | --- | --- | --- |
+| Cloudflare | DNS, CDN, Workers | <a href="https://dash.cloudflare.com/" target="_blank">Dashboard</a> | Google OAuth |
+| Stripe | Payment processing | <a href="https://dashboard.stripe.com/" target="_blank">Dashboard</a> | Google OAuth |
+| PlanetScale | MySQL database | <a href="https://app.planetscale.com/" target="_blank">Dashboard</a> | Google OAuth |
+| Resend | Email delivery | <a href="https://resend.com/overview" target="_blank">Dashboard</a> | Google OAuth |
+| Vercel | Frontend hosting | <a href="https://vercel.com/" target="_blank">Dashboard</a> | Google OAuth |

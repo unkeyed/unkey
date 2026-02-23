@@ -1,0 +1,135 @@
+---
+title: "Configuration"
+description: "Configuration model and required settings for the sentinel service"
+---
+
+import ConfigToml from "/snippets/config-toml.mdx";
+
+## Configuration model
+
+<ConfigToml />
+
+The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/sentinel/config.go" target="_blank">`svc/sentinel/config.go`</a>.
+
+Minimal config example:
+
+```toml
+sentinel_id = "${POD_NAME}"
+workspace_id = "${UNKEY_WORKSPACE_ID}"
+environment_id = "${UNKEY_ENVIRONMENT_ID}"
+region = "us-east-1.aws"
+http_port = 8080
+
+[database]
+primary = "${UNKEY_DATABASE_PRIMARY}"
+readonly_replica = "${UNKEY_DATABASE_REPLICA}"
+
+[clickhouse]
+url = "${UNKEY_CLICKHOUSE_URL}"
+
+[redis]
+url = "${UNKEY_REDIS_URL}"
+```
+
+<ResponseField name="sentinel_id" type="string">
+  Sentinel instance identifier used for logging and tracing.
+</ResponseField>
+
+<ResponseField name="workspace_id" type="string" required>
+  Workspace served by this sentinel.
+</ResponseField>
+
+<ResponseField name="environment_id" type="string" required>
+  Environment served by this sentinel.
+</ResponseField>
+
+<ResponseField name="region" type="string" required>
+  Region identifier. Must match `local.dev`, `us-east-1.aws`, `us-east-2.aws`,
+  `us-west-1.aws`, `us-west-2.aws`, or `eu-central-1.aws`.
+</ResponseField>
+
+<ResponseField name="http_port" type="int" default="8080">
+  HTTP server port. Krane-managed deployments set this to `8040`.
+</ResponseField>
+
+<ResponseField name="database" type="object" required>
+  MySQL configuration.
+  <Expandable title="Fields">
+    <ResponseField name="database.primary" type="string" required>
+      Primary DSN.
+    </ResponseField>
+    <ResponseField name="database.readonly_replica" type="string">
+      Optional read replica DSN.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="clickhouse" type="object">
+  ClickHouse analytics config. When omitted or empty, sentinel uses a no-op
+  analytics backend.
+  <Expandable title="Fields">
+    <ResponseField name="clickhouse.url" type="string">
+      ClickHouse URL.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="redis" type="object">
+  Redis configuration for rate limiting and usage limiting. When omitted or
+  empty, the middleware engine is disabled and requests are proxied as
+  pass-through.
+  <Expandable title="Fields">
+    <ResponseField name="redis.url" type="string">
+      Redis URL.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="gossip" type="object">
+  Gossip-based cache invalidation. When omitted, invalidation is local-only.
+  <Expandable title="Fields">
+    <ResponseField name="gossip.bind_addr" type="string" default="0.0.0.0">
+      Bind address.
+    </ResponseField>
+    <ResponseField name="gossip.lan_port" type="int" default="7946">
+      LAN port.
+    </ResponseField>
+    <ResponseField name="gossip.wan_port" type="int" default="7947">
+      WAN port.
+    </ResponseField>
+    <ResponseField name="gossip.lan_seeds" type="string[]">
+      LAN seed addresses.
+    </ResponseField>
+    <ResponseField name="gossip.wan_seeds" type="string[]">
+      WAN seed addresses.
+    </ResponseField>
+    <ResponseField name="gossip.secret_key" type="string" required>
+      Secret key for gossip encryption. Sentinel sets this to `nil` at runtime
+      because gossip traffic is restricted by CiliumNetworkPolicy.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="observability" type="object">
+  Tracing, logging, and metrics configuration.
+  <Expandable title="Fields">
+    <ResponseField name="observability.tracing.sample_rate" type="float" default="0.25">
+      Trace sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.sample_rate" type="float" default="1.0">
+      Log sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.slow_threshold" type="duration" default="1s">
+      Slow log threshold.
+    </ResponseField>
+    <ResponseField name="observability.metrics.prometheus_port" type="int" default="0">
+      Prometheus port. Set to 0 to disable.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Environment variables
+
+Sentinel configuration is rendered as TOML and injected via the `UNKEY_CONFIG_DATA` environment variable by the krane sentinel controller.
+
+In Kubernetes, deployments also load secrets from the `database`, `otel`, and `redis` secrets in the `sentinel` namespace.

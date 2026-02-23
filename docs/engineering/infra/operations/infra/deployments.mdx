@@ -1,0 +1,31 @@
+---
+title: "Deployments"
+description: "Deployment flow and environment topology for Unkey infrastructure"
+---
+
+Unkey deploys infrastructure with ArgoCD ApplicationSets under `infra/infra/eks-cluster/argocd`. Each ApplicationSet renders a Helm chart from `infra/infra/eks-cluster/helm-chart/<chart>` with an environment and region override file.
+
+## Environments
+
+Clusters are labeled with `environment` and `region`. ApplicationSets use those labels to select promotion files and environment overrides.
+
+Promotion files live under `infra/infra/eks-cluster/promotions/<environment>/<app>.yaml` and set the git `revision` for each app. The repository includes promotions for `staging`, `production001`, and `test001`.
+
+- `staging` promotions point to `main`.
+- `production001` promotions pin a specific commit SHA.
+
+## ArgoCD and Helm
+
+ApplicationSets use matrix generators to combine cluster labels with promotion files. Each appset uses `values.yaml` plus `environments/{environment}-{region}.yaml` for configuration.
+
+Most ApplicationSets use automated sync with pruning and self-heal. The ArgoCD ApplicationSet is manual sync only and disables pruning to avoid self-deletion.
+
+Sync order is controlled with ArgoCD sync waves. `core` uses wave zero, `networking` and `runtime` use wave one, and `observability` uses wave two.
+
+## Rollbacks
+
+Roll back by changing the `revision` in the promotion file for the affected environment and app, then syncing the ArgoCD application. This re-renders the Helm chart from the selected commit.
+
+## Related docs
+
+- [EKS cluster](/infra/operations/infra/eks-cluster)

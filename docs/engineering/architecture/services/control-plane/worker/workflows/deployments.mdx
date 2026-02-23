@@ -1,0 +1,73 @@
+---
+title: "Deployments"
+description: "Deploy, promote, and rollback workflows"
+---
+
+The control plane deployment service creates deployment records and delegates execution to Restate workflows. Workflows are keyed by project ID to serialize operations per project.
+
+Key components:
+
+- Control API deployment service (<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment" target="_blank">`svc/ctrl/services/deployment`</a>).
+- Restate DeployService workflows (<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy" target="_blank">`svc/ctrl/worker/deploy`</a>).
+- Deployment virtual object for serialized state changes (<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment" target="_blank">`svc/ctrl/worker/deployment`</a>).
+
+## Flow: create deployment
+
+```mermaid
+sequenceDiagram
+  actor Client
+  participant CtrlAPI as Control API
+  participant DB as MySQL
+  participant Restate as Restate
+  participant Worker as Control Worker
+
+  Client->>CtrlAPI: CreateDeployment(project_id, docker_image, env)
+  CtrlAPI->>DB: Find project + environment
+  CtrlAPI->>DB: Fetch environment vars
+  CtrlAPI->>DB: Insert deployment (status=pending)
+  CtrlAPI->>Restate: DeployService.Deploy (project key, async)
+  Restate->>Worker: Execute deploy workflow
+  Worker->>DB: Update deployment status
+  Worker->>DB: Insert deployment topologies and routes
+```
+
+## Flow: promote deployment
+
+```mermaid
+sequenceDiagram
+  actor Client
+  participant CtrlAPI as Control API
+  participant Restate as Restate
+  participant Worker as Control Worker
+  participant Routing as Routing Service
+
+  Client->>CtrlAPI: Promote(deployment_id)
+  CtrlAPI->>Restate: DeployService.Promote (project key)
+  Restate->>Worker: Execute promote workflow
+  Worker->>Routing: AssignFrontlineRoutes
+  Worker->>DB: Update live deployment and clear rollback flag
+```
+
+## Flow: rollback deployment
+
+```mermaid
+sequenceDiagram
+  actor Client
+  participant CtrlAPI as Control API
+  participant Restate as Restate
+  participant Worker as Control Worker
+
+  Client->>CtrlAPI: Rollback(deployment_id)
+  CtrlAPI->>Restate: DeployService.Rollback (project key)
+  Restate->>Worker: Execute rollback workflow
+  Worker->>Routing: AssignFrontlineRoutes
+  Worker->>DB: Update live deployment and set rollback flag
+```
+
+## State serialization
+
+Scheduled state changes are serialized via a Restate virtual object keyed by deployment ID in <a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment" target="_blank">`svc/ctrl/worker/deployment`</a>. The object stores a nonce for the most recent transition so older delayed requests no-op.
+
+## Notes
+
+The deployment workflow supports Git sources, but the control API currently requires `docker_image`.

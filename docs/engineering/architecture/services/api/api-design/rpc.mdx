@@ -1,0 +1,52 @@
+---
+title: "RPC-style API"
+description: "Action-oriented API design"
+---
+
+Unkey uses an RPC-style API that focuses on actions rather than resources.
+
+```plaintext
+https://api.unkey.com/v2/{service}.{procedure}
+```
+
+Examples:
+
+- `POST /v2/keys.createKey`
+- `POST /v2/ratelimit.limit`
+
+## HTTP methods
+
+All operations use POST. This keeps request patterns consistent and allows complex request bodies.
+
+## Request format
+
+- Use POST
+- Include `Content-Type: application/json`
+- Include `Authorization` header
+- Send parameters as JSON in the request body
+
+```bash
+curl -X POST "https://api.unkey.com/v2/keys.createKey" \
+  -H "Authorization: Bearer root_1234567890" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_1234",
+    "name": "Production API Key"
+  }'
+```
+
+## Service namespaces
+
+- keys
+- apis
+- ratelimit
+- analytics
+- identities
+- permissions
+
+## Benefits
+
+- Clear intent in endpoint names
+- Natural mapping to code and user intent
+- Better support for complex operations
+- Flexible request structures

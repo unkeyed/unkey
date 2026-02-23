@@ -1,0 +1,103 @@
+---
+title: "EKS cluster"
+description: "Bootstrap, operate, and troubleshoot the Unkey EKS clusters"
+---
+
+## Source of truth
+
+- `infra/infra/eks-cluster/README.md`
+- `infra/infra/eks-cluster/HOWTO-SCHEDULE.md`
+
+## Overview
+
+This page summarizes the EKS cluster layout and links to the operational guides in the repo. The bootstrap and scheduling procedures live in the source files.
+
+## Bootstrap
+
+Cluster bootstrapping runs from the repo scripts under `infra/infra/eks-cluster/scripts` and follows the EKS bootstrap guide.
+
+You must install the CLI tooling used by the scripts:
+
+```bash
+brew install awscli eksctl kubectl helm argocd
+```
+
+Bootstrap in the primary region uses the environment file and setup scripts:
+
+```bash
+source production-env.sh
+./scripts/setup-cluster.sh
+./scripts/setup-global-accelerator.sh
+```
+
+## Scheduling
+
+Unkey schedules workloads using tainted nodegroups. Pods must set matching `nodeSelector` and `tolerations` values.
+
+| Nodegroup | Instance type | Purpose | Taint |
+| --- | --- | --- | --- |
+| `unkey` | c7a.xlarge | Infrastructure, control plane, and Unkey services | `node-class=unkey:NoSchedule` |
+| `untrusted` | c7a.4xlarge | Untrusted customer workloads | `node-class=untrusted:NoSchedule` |
+
+Use these scheduling rules for infrastructure and Unkey services:
+
+```yaml
+spec:
+  nodeSelector:
+    node-class: unkey
+  tolerations:
+    - key: node-class
+      operator: Equal
+      value: unkey
+      effect: NoSchedule
+```
+
+Use these scheduling rules for untrusted workloads:
+
+```yaml
+spec:
+  nodeSelector:
+    node-class: untrusted
+  tolerations:
+    - key: node-class
+      operator: Equal
+      value: untrusted
+      effect: NoSchedule
+```
+
+Only `kube-proxy` and `vpc-cni` run on untrusted nodes. Untrusted workloads do not use persistent volumes or AWS identity.
+
+## Networking and DNS
+
+Frontline traffic uses AWS Global Accelerator with regional NLBs. The Global Accelerator resolver job attaches the NLB to the accelerator during frontline deploys.
+
+Unkey maintains a mix of Route53 and Cloudflare DNS records:
+
+- Create Route53 hosted zones for `production001.aws.unkey.com` and `aws.unkey.cloud`, then delegate NS records from the parent domain.
+- Create Cloudflare A records for `*.unkey.app` using the Global Accelerator static IPs.
+- Run `./scripts/setup-global-accelerator.sh` to create the accelerator and update frontline environment files.
+- External DNS manages `argocd.*`, `grafana.*`, `prometheus.*`, and `frontline.*` records in Route53.
+
+The control service issues TLS certificates for customer subdomains with ACME DNS-01 challenges. These Route53 secrets must exist in AWS Secrets Manager:
+
+| Secret | Description |
+| --- | --- |
+| `unkey/control/UNKEY_ACME_ROUTE53_ACCESS_KEY_ID` | IAM access key with Route53 permissions |
+| `unkey/control/UNKEY_ACME_ROUTE53_SECRET_ACCESS_KEY` | IAM secret key |
+| `unkey/control/UNKEY_ACME_ROUTE53_REGION` | AWS region for Route53 |
+
+## Observability
+
+Observability deploys from the `observability` ApplicationSet and Helm chart in `infra/infra/eks-cluster/helm-chart/observability`. It installs Prometheus, Grafana, and Alertmanager in the `monitoring` namespace. Thanos deploys from the `thanos` ApplicationSet and Helm chart in `infra/infra/eks-cluster/helm-chart/thanos`.
+
+## Troubleshooting
+
+Use the EKS bootstrap guide for full troubleshooting steps. These commands cover the common failures during bootstrap:
+
+```bash
+kubectl get pods -n kube-system | grep eks-pod-identity
+eksctl get podidentityassociation --cluster $CLUSTER --region $REGION
+kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+kubectl get svc frontline-nlb -n frontline -o yaml
+kubectl logs -n frontline -l app.kubernetes.io/component=ga-resolver
+```

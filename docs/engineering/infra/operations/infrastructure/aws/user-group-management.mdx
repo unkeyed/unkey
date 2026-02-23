@@ -1,0 +1,43 @@
+---
+title: "User and group management"
+description: "Manage users and groups in AWS IAM Identity Center"
+---
+
+## SCIM limitations
+
+SCIM provisions users but does not synchronize groups or group membership.
+
+## Current solution
+
+Unkey uses `ssosync` to sync Google Workspace to IAM Identity Center, but it has limitations:
+
+- Workload Identity Federation is unsupported
+- Service account credentials are expected from a file
+- Upstream PRs have stalled
+
+To map Workspace users to IAM Identity Center users, use the script in `unkeyed/infra/contrib`.
+
+## Usage
+
+### Basic usage
+
+```bash
+AWS_PROFILE=unkey-root-admin \
+AWS_REGION=us-east-1 \
+bash unkeyed/infra/contrib/add-aws-user-to-aws-group.sh [username]
+```
+
+`[username]` is the `@unkey.com` user, for example `john.doe@unkey.com`.
+
+### Adding to a specific group
+
+```bash
+AWS_PROFILE=unkey-root-admin \
+AWS_REGION=us-east-1 \
+bash unkeyed/infra/contrib/add-aws-user-to-aws-group.sh john.doe@unkey.com aws-administrators
+```
+
+Available groups:
+
+- `aws-administrators`: full administrative access
+- `aws-users`: non-administrative access

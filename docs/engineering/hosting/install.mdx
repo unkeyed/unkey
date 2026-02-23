@@ -1,0 +1,59 @@
+---
+title: "Install"
+description: "Install Unkey in your environment"
+---
+
+## Prerequisites
+
+You must have a Kubernetes cluster and Helm for customer-managed installs. Unkey-managed installs use the EKS bootstrap and ArgoCD workflows under `infra/infra/eks-cluster`.
+
+If you enable External Secrets, you must install the External Secrets Operator and grant it access to AWS Secrets Manager.
+
+If you enable chart certificate resources (for example, `preflight.certificate.enabled`), you must install cert-manager and configure the referenced issuer.
+
+Most services depend on external systems configured through chart secrets. Review `externalSecrets` in each chart `values.yaml` to confirm what you must supply.
+
+The API chart can deploy Dragonfly (Redis-compatible cache) when `dragonfly.enabled` is true. Other data stores such as MySQL, ClickHouse, and object storage must be provisioned separately.
+
+Restate integration uses Restate Cloud configuration from `infra/infra/eks-cluster/helm-chart/restate/values.yaml`. Set the Restate Cloud environment ID, region, and signing key, and provide `UNKEY_RESTATE_API_KEY` via Secrets Manager.
+
+Observability installs use the chart in `infra/infra/eks-cluster/helm-chart/observability`. If you enable Grafana credentials and incident.io alerting, you must provide the referenced secrets in AWS Secrets Manager.
+
+## Install steps
+
+Follow the steps for your hosting model.
+
+### Unkey-managed
+
+1. Follow the bootstrap steps in `infra/infra/eks-cluster/README.md`.
+2. Apply the ArgoCD ApplicationSets under `infra/infra/eks-cluster/argocd`.
+3. Set app revisions in `infra/infra/eks-cluster/promotions/<environment>/<app>.yaml`.
+
+### Customer-managed
+
+1. Pick the service charts you need under `infra/infra/eks-cluster/helm-chart`.
+2. Configure each chart with `values.yaml`, `environments/<env>.yaml`, and `unkey.toml`.
+3. Provide secrets through External Secrets or your own secret injection.
+4. Deploy the charts with Helm or ArgoCD.
+
+## Verification
+
+Verify service health endpoints after deployment.
+
+- Most services expose `/health/live`, `/health/ready`, and `/health/startup`.
+- Frontline exposes health probes under `/_unkey/internal/health`.
+
+## Service checklists
+
+Use this as a quick dependency and port checklist when you deploy charts.
+
+| Service | Ports | Required dependencies |
+| --- | --- | --- |
+| API | 7070 HTTP, 2112 metrics, 7946/7947 gossip (TCP/UDP) | MySQL, ClickHouse, Vault, Control API token, Dragonfly cache (enabled by default) |
+| Control API | 8080 HTTP, 9090 metrics | MySQL, Restate, GitHub App credentials |
+| Control worker | 9080 Restate ingress, 9090 metrics | MySQL, ClickHouse, Vault, registry credentials, GitHub App credentials, ACME Route53 credentials, heartbeat URLs |
+| Frontline | 7070 HTTP, 7443 HTTPS, 9090 metrics, NLB 80/443 (if enabled) | MySQL, Vault, gossip secret key |
+| Krane | 8080 HTTP, 9090 metrics | registry credentials, Vault token, Control token |
+| Vault | 8060 HTTP | S3-compatible object storage, encryption keys |
+| Preflight | 443 service to 8443 container | Depot token, cert-manager (if TLS enabled) |
+| Sentinel (chart) | no service ports | AWS region for SecretStore, RBAC values for krane |

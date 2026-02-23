@@ -1,0 +1,36 @@
+---
+title: "Anti-patterns"
+description: "Common testing mistakes to avoid"
+---
+
+## Sleeping instead of synchronizing
+
+Do not use `time.Sleep` to wait for async work. Use `require.Eventually` or a test clock.
+
+## Testing implementation details
+
+Verify public behavior, not internal fields. Refactors should not break tests when behavior is unchanged.
+
+## Shared mutable state
+
+Avoid global state between tests. Isolate resources per test or reset state explicitly.
+
+## Ignoring setup errors
+
+Fail fast on setup errors so failures are clear and localized.
+
+## Hardcoded identifiers
+
+Use `pkg/uid` to generate unique IDs so parallel tests do not collide.
+
+## Over-mocking
+
+Prefer real dependencies when feasible. Mocks often assert calls instead of behavior.
+
+## Missing subtests
+
+Use `t.Run` for table cases so failures identify the case.
+
+## Forgetting `t.Helper()`
+
+Helpers that assert must call `t.Helper()` so failures point at the call site.

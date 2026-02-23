@@ -1,0 +1,81 @@
+---
+title: "Overview"
+description: "Control plane worker for workflow execution"
+---
+
+## Purpose
+
+The control plane worker is Unkey's asynchronous control plane execution layer. It owns long-running, stateful workflows that coordinate changes across the control plane and downstream systems. The worker sits between the control API and infrastructure services, taking durable tasks off the request path and ensuring they complete exactly once.
+
+## Source
+
+<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker" target="_blank">`svc/ctrl/worker`</a>
+
+## Place in the stack
+
+The control plane worker is not an API surface. It is a workflow host that acts on state changes initiated by the control API and scheduled jobs.
+
+1. The control API validates requests and persists intent to MySQL.
+2. The control API triggers a Restate workflow on the worker.
+3. The worker coordinates downstream systems, writes new state to MySQL, and emits side effects such as builds, certificate issuance, and routing updates.
+4. Edge components (Frontline, Krane, Sentinel) consume the updated state to apply changes at the data plane.
+
+This separation keeps API handlers short, deterministic, and retry-safe. The worker assumes responsibility for orchestration, retries, and durable state transitions.
+
+## Interfaces
+
+- Restate workflow handlers served by the worker.
+- Health endpoints: `/health/live`, `/health/ready`, and `/health/startup`.
+- Optional Prometheus metrics server.
+
+## Service boundaries
+
+The worker groups multiple Restate services into one process. Each service uses a virtual object key that defines concurrency boundaries and protects against conflicting state mutations.
+
+| Service | Virtual object key | Responsibility |
+| --- | --- | --- |
+| DeployService | `project_id` | Build, deploy, promote, and rollback orchestration for a project. |
+| DeploymentService | `deployment_id` | Serializes desired state changes with nonce-based last-writer-wins. |
+| RoutingService | `project_id` | Atomic reassignment of frontline routes to a deployment. |
+| CustomDomainService | `domain` | Domain ownership verification and post-verify actions. |
+| CertificateService | `domain` | Certificate issuance and renewal with ACME and Vault. |
+| VersioningService | `region` | Monotonic versions per region for edge sync. |
+| ClickhouseUserService | `workspace_id` | ClickHouse user provisioning and quota updates when enabled. |
+| QuotaCheckService | `billing_period` | Periodic quota checks and notifications. |
+| KeyRefillService | `date` | Periodic key usage refills with resumable state. |
+
+## System responsibilities
+
+The worker centralizes orchestration for operations that touch multiple systems or must span minutes:
+
+- Deployment orchestration across regions, including builds, rollout, and routing updates.
+- Domain ownership verification, certificate issuance, and renewal.
+- Version sequencing for edge sync.
+- Background maintenance, such as key refills and quota checks.
+- Optional ClickHouse user provisioning for analytics access.
+
+## Durability model
+
+The worker relies on Restate to make workflows durable and idempotent. Each workflow step is journaled so Restate can replay completed steps and resume from the last successful checkpoint.
+
+- Durable steps isolate side effects and provide exactly-once semantics.
+- Virtual object keys serialize conflicting operations per domain, project, deployment, workspace, or region.
+- Long-running operations use Restate retries and durable sleep for external rate limits.
+- Background jobs persist progress in Restate state for safe resumption.
+
+## Dependencies
+
+- MySQL for control plane state.
+- Restate admin and ingress endpoints.
+- Vault for encryption operations.
+- ClickHouse for analytics and build telemetry (optional).
+- GitHub App credentials for git-based deployments.
+- Route53 credentials for ACME DNS challenges.
+- Depot and registry credentials for builds.
+
+## Related docs
+
+- [Configuration](/architecture/services/control-plane/worker/configuration)
+- [Deployment workflow](/architecture/services/control-plane/worker/workflows/deployments)
+- [Routing workflow](/architecture/services/control-plane/worker/workflows/routing)
+- [Certificate workflow](/architecture/services/control-plane/worker/workflows/certificates)

@@ -1,0 +1,14 @@
+---
+title: "OpenAPI request validation"
+description: "OpenAPI schema validation policy"
+---
+
+OpenAPI request validation rejects requests that do not match an OpenAPI 3.0 or 3.1 specification before they reach the upstream.
+
+## Fields
+
+- `spec_yaml`: OpenAPI specification as raw YAML bytes.
+
+## Implementation status
+
+OpenAPI request validation is defined in the policy schema but is not executed by the sentinel engine yet.

@@ -1,0 +1,23 @@
+---
+title: "Match expressions"
+description: "Request matching used by sentinel policies"
+---
+
+Match expressions define which requests a policy applies to. All expressions in the list must match for the policy to run. An empty list matches all requests.
+
+## Matchers
+
+Sentinel evaluates these matcher types:
+
+- Path
+- Method
+- Header
+- Query parameter
+
+String matching supports exact, prefix, and regex comparisons. Regex evaluation uses Go's RE2 engine, and compiled patterns are cached for reuse.
+
+## Semantics
+
+- Method matching is case-insensitive.
+- Header names are matched case-insensitively and can match any header value.
+- Query parameter names are matched case-sensitively and can match any value.

@@ -1,0 +1,75 @@
+---
+title: "Fuzz tests"
+description: "Finding edge cases with randomized inputs"
+---
+
+## What fuzzing does
+
+Fuzz testing feeds random inputs to your code and watches for crashes, panics, or assertion failures. It finds bugs that humans do not think to test for, such as malformed UTF-8, integer overflows, and nil pointer dereferences.
+
+Go has built-in fuzzing since Go 1.18. You write a fuzz test, provide seed inputs, and the fuzzer mutates those seeds to explore the input space. When it finds a failure, it saves that input so the bug becomes a regression test.
+
+## When to write fuzz tests
+
+Fuzz tests are best for code that processes untrusted input: parsing, encoding, decoding, validation, and cryptographic operations.
+
+They are less useful for business logic with complex preconditions.
+
+## Writing your first fuzz test
+
+```go
+func FuzzParseConfig(f *testing.F) {
+    f.Add(`{"timeout": "30s"}`)
+    f.Add(`{"timeout": "0s", "retries": 0}`)
+    f.Add(`{}`)
+    f.Add(`not json at all`)
+
+    f.Fuzz(func(t *testing.T, input string) {
+        cfg, err := ParseConfig(input)
+        if err != nil {
+            return
+        }
+
+        require.NotNil(t, cfg)
+        require.GreaterOrEqual(t, cfg.Timeout, 0)
+    })
+}
+```
+
+## Skipping invalid inputs
+
+Use `t.Skip()` for inputs that do not meet required preconditions.
+
+```go
+if len(key) != 16 && len(key) != 24 && len(key) != 32 {
+    t.Skip("invalid key size")
+}
+```
+
+## Testing security properties
+
+Use fuzzing to validate tamper detection and authentication guarantees.
+
+## Running fuzz tests
+
+During normal test runs, fuzz tests execute only with their seed corpus:
+
+```bash
+bazel test //pkg/encryption:encryption_test
+```
+
+To fuzz locally:
+
+```bash
+go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
+```
+
+When fuzzing finds a failure, Go saves the input to `testdata/fuzz/<TestName>/` so it becomes part of the seed corpus.
+
+## What to do when fuzzing finds a bug
+
+Write a deterministic unit test for the failing input, then fix the bug. Keep the fuzz corpus in `testdata` to prevent regressions.
+
+## Bazel configuration
+
+Fuzz tests live in regular `go_test` targets and include the fuzz corpus with `data = glob(["testdata/**"])`.
