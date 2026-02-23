@@ -273,12 +273,12 @@ func New(config Config) (Caches, error) {
 
 	initialized = true
 	return Caches{
-		RatelimitNamespace:    middleware.WithInvalidation(middleware.WithTracing(ratelimitNamespace), "ratelimit_namespace", registry, cache.ScopedKeyFromString),
-		LiveApiByID:           middleware.WithInvalidation(middleware.WithTracing(liveApiByID), "live_api_by_id", registry, cache.ScopedKeyFromString),
-		VerificationKeyByHash: middleware.WithInvalidation(middleware.WithTracing(verificationKeyByHash), "verification_key_by_hash", registry, middleware.StringKeyParser),
-		ClickhouseSetting:     middleware.WithInvalidation(middleware.WithTracing(clickhouseSetting), "clickhouse_setting", registry, middleware.StringKeyParser),
-		KeyAuthToApiRow:       middleware.WithInvalidation(middleware.WithTracing(keyAuthToApiRow), "key_auth_to_api_row", registry, cache.ScopedKeyFromString),
-		ApiToKeyAuthRow:       middleware.WithInvalidation(middleware.WithTracing(apiToKeyAuthRow), "api_to_key_auth_row", registry, cache.ScopedKeyFromString),
+		RatelimitNamespace:    middleware.WithInvalidation(middleware.WithTracing(ratelimitNamespace), registry, cache.ScopedKeyFromString),
+		LiveApiByID:           middleware.WithInvalidation(middleware.WithTracing(liveApiByID), registry, cache.ScopedKeyFromString),
+		VerificationKeyByHash: middleware.WithInvalidation(middleware.WithTracing(verificationKeyByHash), registry, middleware.StringKeyParser),
+		ClickhouseSetting:     middleware.WithInvalidation(middleware.WithTracing(clickhouseSetting), registry, middleware.StringKeyParser),
+		KeyAuthToApiRow:       middleware.WithInvalidation(middleware.WithTracing(keyAuthToApiRow), registry, cache.ScopedKeyFromString),
+		ApiToKeyAuthRow:       middleware.WithInvalidation(middleware.WithTracing(apiToKeyAuthRow), registry, cache.ScopedKeyFromString),
 		dispatcher:            dispatcher,
 		registry:              registry,
 	}, nil

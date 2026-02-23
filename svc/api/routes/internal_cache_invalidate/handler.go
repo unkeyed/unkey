@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -40,22 +39,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if req.CacheName == "" {
-		return fault.New("missing cacheName",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("cacheName is required"))
-	}
-
-	if len(req.Keys) == 0 {
-		return fault.New("missing keys",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Public("at least one key is required"))
-	}
-
 	if err := h.Caches.Invalidate(ctx, req.CacheName, req.Keys); err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Public("Failed to invalidate cache"))
+		return fault.Wrap(err, fault.Public("Failed to invalidate cache"))
 	}
 
 	return s.Send(http.StatusOK, nil)

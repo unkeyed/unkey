@@ -49,16 +49,17 @@ func (r *InvalidationRegistry) Invalidate(ctx context.Context, cacheName string,
 // it only registers a side-channel so the cache can be invalidated by
 // name through the registry.
 //
+// The cache name is taken from c.Name() (the Resource field set in cache.Config).
+//
 // parseKey converts the raw string key (from the HTTP request) into the
 // cache's typed key K. For string-keyed caches, use StringKeyParser.
 // For ScopedKey caches, use cache.ParseScopedKey.
 func WithInvalidation[K comparable, V any](
 	c cache.Cache[K, V],
-	name string,
 	registry *InvalidationRegistry,
 	parseKey func(string) (K, error),
 ) cache.Cache[K, V] {
-	registry.register(name, func(ctx context.Context, keys []string) error {
+	registry.register(c.Name(), func(ctx context.Context, keys []string) error {
 		parsed := make([]K, len(keys))
 		for i, s := range keys {
 			k, err := parseKey(s)

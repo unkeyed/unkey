@@ -1,5 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
+import { invalidateKeyByHash } from "@/lib/cache-invalidation";
 import { db, eq, schema } from "@/lib/db";
 import { metadataSchema } from "@/lib/schemas/metadata";
 import { TRPCError } from "@trpc/server";
@@ -101,10 +101,7 @@ export const updateKeyMetadata = workspaceProcedure
         });
       });
 
-    const cacheClient = getCacheInvalidationClient();
-    if (cacheClient) {
-      await cacheClient.invalidateKeyByHash(key.hash).catch(console.error);
-    }
+    await invalidateKeyByHash(key.hash);
 
     return {
       keyId: key.id,

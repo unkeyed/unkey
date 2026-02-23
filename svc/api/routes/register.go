@@ -104,6 +104,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			withObservability,
 			withPanicRecovery,
 			withErrorHandling,
+			withValidation,
 		}
 
 		srv.RegisterRoute(dashboardMiddlewares, &internalCacheInvalidate.Handler{

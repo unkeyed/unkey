@@ -1,6 +1,6 @@
 import { creditsSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
-import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
+import { invalidateKeyByHash } from "@/lib/cache-invalidation";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -119,10 +119,7 @@ export const updateKeyRemaining = workspaceProcedure
         });
       });
     if (keyHash) {
-      const cacheClient = getCacheInvalidationClient();
-      if (cacheClient) {
-        await cacheClient.invalidateKeyByHash(keyHash).catch(console.error);
-      }
+      await invalidateKeyByHash(keyHash);
     }
 
     return { keyId: input.keyId };

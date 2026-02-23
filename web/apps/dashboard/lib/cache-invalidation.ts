@@ -14,7 +14,7 @@ class CacheInvalidationClient {
     this.token = config.token;
   }
 
-  private async invalidate(req: InvalidateRequest): Promise<void> {
+  async invalidate(req: InvalidateRequest): Promise<void> {
     const url = `${this.baseUrl}/_internal/cache.invalidate`;
     const res = await fetch(url, {
       method: "POST",
@@ -30,35 +30,11 @@ class CacheInvalidationClient {
       throw new Error(`cache invalidation failed (${res.status}): ${errorText}`);
     }
   }
-
-  async invalidateKeyByHash(hash: string): Promise<void> {
-    return this.invalidate({
-      cacheName: "verification_key_by_hash",
-      keys: [hash],
-    });
-  }
-
-  async invalidateKeysByHash(hashes: string[]): Promise<void> {
-    if (hashes.length === 0) {
-      return;
-    }
-    return this.invalidate({
-      cacheName: "verification_key_by_hash",
-      keys: hashes,
-    });
-  }
-
-  async invalidateApiById(workspaceId: string, apiId: string): Promise<void> {
-    return this.invalidate({
-      cacheName: "live_api_by_id",
-      keys: [`${workspaceId}:${apiId}`],
-    });
-  }
 }
 
 let cachedClient: CacheInvalidationClient | null | undefined;
 
-export function getCacheInvalidationClient(): CacheInvalidationClient | null {
+function getClient(): CacheInvalidationClient | null {
   if (cachedClient !== undefined) {
     return cachedClient;
   }
@@ -75,4 +51,29 @@ export function getCacheInvalidationClient(): CacheInvalidationClient | null {
   });
 
   return cachedClient;
+}
+
+export async function invalidateKeyByHash(hash: string): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  await client
+    .invalidate({ cacheName: "verification_key_by_hash", keys: [hash] })
+    .catch(console.error);
+}
+
+export async function invalidateKeysByHash(hashes: string[]): Promise<void> {
+  if (hashes.length === 0) return;
+  const client = getClient();
+  if (!client) return;
+  await client
+    .invalidate({ cacheName: "verification_key_by_hash", keys: hashes })
+    .catch(console.error);
+}
+
+export async function invalidateApiById(workspaceId: string, apiId: string): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  await client
+    .invalidate({ cacheName: "live_api_by_id", keys: [`${workspaceId}:${apiId}`] })
+    .catch(console.error);
 }

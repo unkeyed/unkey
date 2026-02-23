@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
-import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
+import { invalidateApiById } from "@/lib/cache-invalidation";
 import { db, eq, schema } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
@@ -124,8 +124,5 @@ export const deleteApi = workspaceProcedure
       });
     }
 
-    const cacheClient = getCacheInvalidationClient();
-    if (cacheClient) {
-      await cacheClient.invalidateApiById(ctx.workspace.id, input.apiId).catch(console.error);
-    }
+    await invalidateApiById(ctx.workspace.id, input.apiId);
   });

@@ -1,6 +1,6 @@
 import { expirationSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
-import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
+import { invalidateKeyByHash } from "@/lib/cache-invalidation";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -93,10 +93,7 @@ export const updateKeyExpiration = workspaceProcedure
         });
       });
 
-    const cacheClient = getCacheInvalidationClient();
-    if (cacheClient) {
-      await cacheClient.invalidateKeyByHash(key.hash).catch(console.error);
-    }
+    await invalidateKeyByHash(key.hash);
 
     return {
       keyId: key.id,

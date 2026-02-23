@@ -37,7 +37,7 @@ post:
           schema:
             $ref: "../../../error/UnauthorizedErrorResponse.yaml"
       description: Missing or invalid bearer token
-    "529":
+    "500":
       content:
         application/json:
           schema:
