@@ -31,15 +31,15 @@ export function DeploymentNetworkView({
   showProjectDetails = false,
   showNodeDetails = false,
 }: DeploymentNetworkViewProps) {
-  const { deploymentId } = useDeployment();
+  const { deployment } = useDeployment();
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
 
   const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery(
     {
-      deploymentId: deploymentId ?? "",
+      deploymentId: deployment.id,
     },
-    { refetchInterval: 2000, enabled: Boolean(deploymentId) },
+    { refetchInterval: 2000 },
   );
 
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;
@@ -47,6 +47,7 @@ export function DeploymentNetworkView({
 
   return (
     <InfiniteCanvas
+      locked
       defaultZoom={1}
       overlay={
         <>
@@ -58,8 +59,7 @@ export function DeploymentNetworkView({
           <LiveIndicator />
           {process.env.NODE_ENV === "development" && (
             <InternalDevTreeGenerator
-              // biome-ignore lint/style/noNonNullAssertion: will be fixed later, when we actually implement tRPC logic
-              deploymentId={deploymentId!}
+              deploymentId={deployment.id}
               onGenerate={setGeneratedTree}
               onReset={() => setGeneratedTree(null)}
             />
@@ -69,9 +69,9 @@ export function DeploymentNetworkView({
     >
       <TreeLayout
         data={currentTree}
-        nodeSpacing={{ x: 10, y: 100 }}
+        nodeSpacing={{ x: 75, y: 100 }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
-        renderNode={(node, parent) => renderDeploymentNode(node, parent, deploymentId ?? undefined)}
+        renderNode={(node, parent) => renderDeploymentNode(node, parent, deployment.id)}
         renderConnection={(path, parent, child) => (
           <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />
         )}

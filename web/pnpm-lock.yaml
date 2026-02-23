@@ -353,7 +353,7 @@ importers:
         specifier: 0.34.3
         version: 0.34.3
     devDependencies:
-      mintlify:
+      mint:
         specifier: 4.2.314
         version: 4.2.314(@radix-ui/react-popover@1.1.15)(@types/node@25.0.10)(@types/react@19.2.4)(react-dom@18.3.1)(typescript@5.9.3)
 
@@ -20110,8 +20110,8 @@ packages:
       minipass: 7.1.2
     dev: true
 
-  /mintlify@4.2.314(@radix-ui/react-popover@1.1.15)(@types/node@25.0.10)(@types/react@19.2.4)(react-dom@18.3.1)(typescript@5.9.3):
-    resolution: {integrity: sha512-G7KSCSkPyNq377ooSSQomggCDWsDoEeG+SyB1K2eKW5sH0SnSKyaCdPYxMLJF05+lGgYGSmPJ3mGqgqQC64/Rg==}
+  /mint@4.2.314(@radix-ui/react-popover@1.1.15)(@types/node@25.0.10)(@types/react@19.2.4)(react-dom@18.3.1)(typescript@5.9.3):
+    resolution: {integrity: sha512-MNNBneM7Pc9yBHUdWh7JLJlpU8OwVcCdt8uRSQSkz6OQv1UAKmwKgrPTRZpMT//HAHxnugu49znNAr7vl+NoLw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     dependencies:

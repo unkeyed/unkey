@@ -119,7 +119,7 @@ func (c *gossipCluster) demoteFromBridge() {
 
 	metrics.ClusterBridgeStatus.Set(0)
 	metrics.ClusterBridgeTransitionsTotal.WithLabelValues("demoted").Inc()
-	metrics.ClusterMembersCount.WithLabelValues("wan").Set(0)
+	metrics.ClusterMembersCount.WithLabelValues("wan", c.config.Region).Set(0)
 
 	// Leave and shutdown outside the lock since Leave can trigger callbacks
 	if wan != nil {

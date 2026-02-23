@@ -143,7 +143,7 @@ export const WorkspaceSwitcher: React.FC = () => {
             {filteredOrgs.map((membership) => (
               <DropdownMenuItem
                 key={membership.id}
-                className="flex items-center justify-between"
+                className="flex items-center justify-between hover:bg-grayA-3"
                 onClick={async () => changeWorkspace.mutateAsync(membership.organization.id)}
               >
                 <span

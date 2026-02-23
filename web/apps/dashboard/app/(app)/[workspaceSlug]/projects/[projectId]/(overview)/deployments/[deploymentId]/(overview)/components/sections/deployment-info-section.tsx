@@ -8,17 +8,13 @@ import { DisabledWrapper } from "../../../../../../components/disabled-wrapper";
 import { InfoChip } from "../../../../../../components/info-chip";
 import { RegionFlags } from "../../../../../../components/region-flags";
 import { Section, SectionHeader } from "../../../../../../components/section";
-import { useProjectData } from "../../../../../data-provider";
 import { useProjectLayout } from "../../../../../layout-provider";
 import { useDeployment } from "../../../layout-provider";
 
 export function DeploymentInfoSection() {
-  const { deploymentId } = useDeployment();
-  const { getDeploymentById } = useProjectData();
+  const { deployment } = useDeployment();
   const { setIsDetailsOpen, isDetailsOpen } = useProjectLayout();
-
-  const deployment = getDeploymentById(deploymentId);
-  const deploymentStatus = deployment?.status;
+  const deploymentStatus = deployment.status;
 
   return (
     <Section>
@@ -27,7 +23,7 @@ export function DeploymentInfoSection() {
         title="Deployment"
       />
       <ActiveDeploymentCard
-        deploymentId={deploymentId}
+        deploymentId={deployment.id}
         trailingContent={
           <div className="flex gap-1.5 items-center">
             <DisabledWrapper
@@ -50,7 +46,7 @@ export function DeploymentInfoSection() {
                 </div>
               </InfoChip>
             </DisabledWrapper>
-            <RegionFlags instances={deployment?.instances ?? []} />
+            <RegionFlags instances={deployment.instances} />
             <InfoTooltip asChild content="Show deployment details">
               <Button
                 variant="ghost"
