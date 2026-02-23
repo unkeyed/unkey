@@ -235,20 +235,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Handle decryption if requested
 	plaintextMap := make(map[string]string)
 	if req.Decrypt != nil && *req.Decrypt {
+		bulkItems := make(map[string]*vaultv1.DecryptBulkRequestItem, len(keyResults))
 		for _, key := range keyResults {
 			if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
-				decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-					Keyring:   key.WorkspaceID,
+				bulkItems[key.ID] = &vaultv1.DecryptBulkRequestItem{
 					Encrypted: key.EncryptedKey.String,
-				})
-				if decryptErr != nil {
-					logger.Error("failed to decrypt key",
-						"keyId", key.ID,
-						"error", decryptErr,
-					)
-					continue
 				}
-				plaintextMap[key.ID] = decrypted.GetPlaintext()
+			}
+		}
+		if len(bulkItems) > 0 {
+			bulkRes, bulkErr := h.Vault.DecryptBulk(ctx, &vaultv1.DecryptBulkRequest{
+				Keyring: auth.AuthorizedWorkspaceID,
+				Items:   bulkItems,
+			})
+			if bulkErr != nil {
+				logger.Error("failed to bulk decrypt keys",
+					"error", bulkErr,
+				)
+			} else {
+				for id, item := range bulkRes.GetItems() {
+					plaintextMap[id] = item.GetPlaintext()
+				}
 			}
 		}
 	}

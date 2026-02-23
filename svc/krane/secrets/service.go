@@ -109,23 +109,28 @@ func (s *Service) DecryptSecretsBlob(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to parse secrets config: %w", err))
 	}
 
-	// Decrypt each secret value individually
-	envVars := make(map[string]string, len(secretsConfig.GetSecrets()))
+	// Decrypt all secret values in a single bulk RPC call
+	bulkItems := make(map[string]*vaultv1.DecryptBulkRequestItem, len(secretsConfig.GetSecrets()))
 	for key, encryptedValue := range secretsConfig.GetSecrets() {
-		decrypted, decryptErr := s.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-			Keyring:   environmentID,
+		bulkItems[key] = &vaultv1.DecryptBulkRequestItem{
 			Encrypted: encryptedValue,
-		})
-		if decryptErr != nil {
-			logger.Error("failed to decrypt env var",
-				"deployment_id", deploymentID,
-				"environment_id", environmentID,
-				"key", key,
-				"error", decryptErr,
-			)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to decrypt env var %s: %w", key, decryptErr))
 		}
-		envVars[key] = decrypted.GetPlaintext()
+	}
+	bulkRes, bulkErr := s.vault.DecryptBulk(ctx, &vaultv1.DecryptBulkRequest{
+		Keyring: environmentID,
+		Items:   bulkItems,
+	})
+	if bulkErr != nil {
+		logger.Error("failed to bulk decrypt env vars",
+			"deployment_id", deploymentID,
+			"environment_id", environmentID,
+			"error", bulkErr,
+		)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to bulk decrypt env vars: %w", bulkErr))
+	}
+	envVars := make(map[string]string, len(bulkRes.GetItems()))
+	for key, item := range bulkRes.GetItems() {
+		envVars[key] = item.GetPlaintext()
 	}
 
 	logger.Info("decrypted secrets blob",
