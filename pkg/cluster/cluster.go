@@ -138,9 +138,8 @@ func New(cfg Config) (Cluster, error) {
 func (c *gossipCluster) maintainMembership(pool string, list func() *memberlist.Memberlist, seeds []string, onJoin func()) {
 	// Initial join with exponential backoff — DNS may not resolve immediately.
 	backoff := 500 * time.Millisecond
-	joined := false
 
-	for !joined {
+	for {
 		select {
 		case <-c.done:
 			return
@@ -156,7 +155,6 @@ func (c *gossipCluster) maintainMembership(pool string, list func() *memberlist.
 		if err == nil {
 			metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
 			logger.Info("Joined "+pool+" seeds", "seeds", seeds)
-			joined = true
 			if onJoin != nil {
 				onJoin()
 			}
