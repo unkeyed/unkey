@@ -1,18 +1,18 @@
 import type { Workspace } from "@/lib/db";
 import {
+  ArrowDottedRotateAnticlockwise,
+  ArrowOppositeDirectionY,
   Cube,
   Earth,
   Fingerprint,
   Gauge,
   Gear,
   Grid,
-  InputSearch,
   Key,
   Layers3,
   Nodes,
   Nodes2,
   ShieldKey,
-  Sparkle3,
 } from "@unkey/icons";
 import { cn } from "../../../lib/utils";
 import type { NavItem } from "./workspace-navigations";
@@ -132,20 +132,20 @@ export function createApiNavigation(
 ): NavItem[] {
   const basePath = `/${workspace.slug}/apis/${apiId}`;
 
-  const navItems: NavItem[] = [];
+  const childItems: NavItem[] = [];
 
-  // Add Requests link
-  navItems.push({
-    icon: InputSearch,
-    href: `${basePath}/requests`,
+  // Add Overview/Requests link - this is the main API page
+  childItems.push({
+    icon: ArrowOppositeDirectionY,
+    href: basePath,
     label: "Requests",
-    active: segments.includes("requests"),
+    active: segments.at(2) === apiId && !segments.at(3),
   });
 
   // Add Keys link
   if (keyAuthId) {
     // We have the keyAuthId from URL params, use it directly
-    navItems.push({
+    childItems.push({
       icon: Key,
       href: `${basePath}/keys/${keyAuthId}`,
       label: "Keys",
@@ -154,7 +154,7 @@ export function createApiNavigation(
   } else {
     // Add placeholder that will be enhanced by useApiKeyspace hook
     // The hook will fetch the API data and update this with the correct keyAuthId
-    navItems.push({
+    childItems.push({
       icon: Key,
       href: `${basePath}`, // Temporary href, will be updated by hook
       label: "Keys",
@@ -163,14 +163,23 @@ export function createApiNavigation(
     });
   }
 
-  navItems.push({
+  childItems.push({
     icon: Gear,
     href: `${basePath}/settings`,
     label: "Settings",
     active: segments.includes("settings") && segments.includes("apis"),
   });
 
-  return navItems;
+  // Return as a single parent item with children
+  return [
+    {
+      icon: Layers3,
+      href: basePath,
+      label: apiId, // Will be replaced with actual API name by hook
+      active: segments.includes(apiId),
+      items: childItems,
+    },
+  ];
 }
 
 /**
@@ -183,7 +192,7 @@ export function createProjectNavigation(
 ): NavItem[] {
   const basePath = `/${workspace.slug}/projects/${projectId}`;
 
-  return [
+  const childItems: NavItem[] = [
     {
       icon: Grid,
       href: basePath,
@@ -203,7 +212,7 @@ export function createProjectNavigation(
       active: segments.includes("logs") && segments.includes("projects"),
     },
     {
-      icon: InputSearch,
+      icon: ArrowOppositeDirectionY,
       href: `${basePath}/requests`,
       label: "Request Logs",
       active: segments.includes("requests"),
@@ -213,6 +222,16 @@ export function createProjectNavigation(
       href: `${basePath}/settings`,
       label: "Settings",
       active: segments.includes("settings") && segments.includes("projects"),
+    },
+  ];
+
+  return [
+    {
+      icon: Cube,
+      href: basePath,
+      label: projectId, // Will be replaced with actual project name
+      active: segments.includes(projectId),
+      items: childItems,
     },
   ];
 }
@@ -227,23 +246,17 @@ export function createNamespaceNavigation(
 ): NavItem[] {
   const basePath = `/${workspace.slug}/ratelimits/${namespaceId}`;
 
-  return [
+  const childItems: NavItem[] = [
     {
-      icon: Grid,
+      icon: ArrowOppositeDirectionY,
       href: basePath,
-      label: "Overview",
+      label: "Requests",
       active: segments.at(2) === namespaceId && !segments.at(3),
     },
     {
       icon: Layers3,
-      href: `${basePath}/overrides`,
-      label: "Overrides",
-      active: segments.includes("overrides"),
-    },
-    {
-      icon: Sparkle3,
       href: `${basePath}/logs`,
-      label: "Analytics",
+      label: "Logs",
       active: segments.includes("logs") && segments.includes("ratelimits"),
     },
     {
@@ -251,6 +264,22 @@ export function createNamespaceNavigation(
       href: `${basePath}/settings`,
       label: "Settings",
       active: segments.includes("settings") && segments.includes("ratelimits"),
+    },
+    {
+      icon: ArrowDottedRotateAnticlockwise,
+      href: `${basePath}/overrides`,
+      label: "Overrides",
+      active: segments.includes("overrides"),
+    },
+  ];
+
+  return [
+    {
+      icon: Gauge,
+      href: basePath,
+      label: namespaceId, // Will be replaced with actual namespace name
+      active: segments.includes(namespaceId),
+      items: childItems,
     },
   ];
 }

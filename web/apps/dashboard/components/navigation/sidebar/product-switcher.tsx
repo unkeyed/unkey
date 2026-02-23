@@ -87,14 +87,9 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
       >
         <Icon className="w-5 h-5 shrink-0 text-gray-11" />
         {!isCollapsed && (
-          <div className="flex flex-col items-start min-w-0 flex-1">
-            <span className="text-sm font-semibold text-gray-12 truncate w-full leading-tight">
-              {currentProduct.name}
-            </span>
-            <span className="text-xs text-gray-11 truncate w-full leading-tight">
-              {currentProduct.description}
-            </span>
-          </div>
+          <span className="text-sm font-semibold text-gray-12 truncate w-full text-left">
+            {currentProduct.name}
+          </span>
         )}
       </div>
       {!isCollapsed && (

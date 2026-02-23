@@ -67,13 +67,8 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
   // For API resources, enhance with keyspace ID and get API name
   const apiId =
     context.type === "resource" && context.resourceType === "api" ? context.resourceId : undefined;
-  const keyAuthId =
-    context.type === "resource" && context.resourceType === "api" ? context.keyAuthId : undefined;
-  const needsKeyspaceFetch = apiId && !keyAuthId;
-  const { enhancedNavItems: finalNavItems, apiName } = useApiKeyspace(
-    withProjects,
-    needsKeyspaceFetch ? apiId : undefined,
-  );
+  // Always fetch API data when we have an apiId to get the name and keyspace
+  const { enhancedNavItems: finalNavItems, apiName } = useApiKeyspace(withProjects, apiId);
 
   // For namespace resources, get namespace name
   const namespaceId =

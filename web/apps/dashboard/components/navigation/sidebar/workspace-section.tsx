@@ -39,7 +39,7 @@ export function WorkspaceSection() {
       {
         icon: Gear,
         href: `${basePath}/settings/general`,
-        label: "Settings",
+        label: "Workspace Settings",
         active: segments.at(1) === "settings",
         items: [
           {

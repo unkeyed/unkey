@@ -36,28 +36,45 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
       return baseNavItems;
     }
 
-    // Find and update the Keys nav item
+    // Find and update the parent API item and its Keys child
     return baseNavItems.map((item) => {
-      if (item.label === "Keys") {
-        // If keyspaceId is null, keep the item disabled (API has no keys yet)
-        if (!api.keyspaceId) {
-          return {
-            ...item,
-            disabled: true,
-            href: `/${workspace.slug}/apis/${apiId}`, // Keep placeholder href
-          };
-        }
+      // Check if this is the API parent item by checking if it has children with Keys
+      const hasKeysChild = item.items?.some((child) => child.label === "Keys");
 
-        // Update with the actual keyspaceId
-        return {
+      if (hasKeysChild && item.items) {
+        // Update the parent label with the actual API name
+        const updatedItem = {
           ...item,
-          href: `/${workspace.slug}/apis/${apiId}/keys/${api.keyspaceId}`,
-          disabled: false,
+          label: api.name,
         };
+
+        // Update the Keys child item
+        updatedItem.items = item.items.map((childItem) => {
+          if (childItem.label === "Keys") {
+            // If keyspaceId is null, keep the item disabled (API has no keys yet)
+            if (!api.keyspaceId) {
+              return {
+                ...childItem,
+                disabled: true,
+                href: `/${workspace.slug}/apis/${apiId}`, // Keep placeholder href
+              };
+            }
+
+            // Update with the actual keyspaceId
+            return {
+              ...childItem,
+              href: `/${workspace.slug}/apis/${apiId}/keys/${api.keyspaceId}`,
+              disabled: false,
+            };
+          }
+          return childItem;
+        });
+
+        return updatedItem;
       }
       return item;
     });
-  }, [baseNavItems, data?.pages, apiId, workspace.slug]);
+  }, [baseNavItems, data, apiId, workspace.slug]);
 
   // Get the API name if available
   const apiName = useMemo(() => {
@@ -66,7 +83,7 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
     }
     const api = data.pages.flatMap((page) => page.apiList).find((a) => a.id === apiId);
     return api?.name;
-  }, [data?.pages, apiId]);
+  }, [data, apiId]);
 
   return {
     enhancedNavItems,
