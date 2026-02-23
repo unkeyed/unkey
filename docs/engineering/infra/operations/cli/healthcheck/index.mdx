@@ -1,0 +1,20 @@
+---
+title: "Healthcheck"
+description: "Perform an HTTP health check against a URL"
+---
+
+This command sends an HTTP GET request to a URL and validates the response. It exits with code 0 on status 200 and code 1 otherwise.
+
+## Command syntax
+
+```bash
+unkey healthcheck <url>
+```
+
+## Examples
+
+```bash
+unkey healthcheck https://api.unkey.dev/health
+unkey healthcheck http://localhost:8080/health
+unkey healthcheck https://example.com/api/status || echo "Service is down"
+```

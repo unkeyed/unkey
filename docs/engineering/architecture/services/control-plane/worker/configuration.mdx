@@ -1,0 +1,178 @@
+---
+title: "Configuration"
+description: "Configuration model and required settings for the control plane worker"
+---
+
+import ConfigToml from "/snippets/config-toml.mdx";
+
+<ConfigToml />
+
+The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/config.go" target="_blank">`svc/ctrl/worker/config.go`</a>.
+
+The control plane worker is configured via a TOML file: `unkey run ctrl worker --config=unkey.toml`.
+
+## Configuration model
+
+The control plane worker loads configuration from a TOML file using `config.Load`. Defaults and validation are applied after parsing.
+
+Runtime-only values (for example `Clock`) cannot be set in the file.
+
+## Required settings
+
+These fields must be set for production deployments.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `cname_domain` | string | Base domain for custom domain CNAME targets. Required.
+| `database` | object | MySQL connection settings. Required.
+| `vault` | object | Vault connection settings. Required.
+| `restate` | object | Restate admin URL and worker HTTP port. Required.
+
+## Optional settings
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `instance_id` | string | - | Instance identifier for logs and tracing.
+| `region` | string | - | Region label for logs and tracing.
+| `observability` | object | - | Observability config (logging, metrics, tracing).
+| `default_domain` | string | `unkey.app` | Used for sentinel bootstrapping.
+| `build_platform` | string | `linux/amd64` | Build platform, format `linux/{arch}`.
+| `sentinel_image` | string | `ghcr.io/unkeyed/unkey:local` | Sentinel image override.
+| `available_regions` | list | - | Regions allowed for deployments.
+| `acme` | object | - | ACME config for cert issuance.
+| `depot` | object | - | Depot.dev config for builds.
+| `registry` | object | - | Registry credentials for builds.
+| `clickhouse` | object | - | ClickHouse connection settings.
+| `github` | object | - | GitHub App config for deploys.
+| `heartbeat` | object | - | Checkly heartbeat URLs.
+| `slack` | object | - | Slack webhook config for quota alerts.
+
+## ACME configuration
+
+ACME settings live under `acme`. Enable Route53 DNS-01 challenges with `acme.route53`.
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `acme.enabled` | boolean | `false` | Enables ACME certificate issuance.
+| `acme.email_domain` | string | `unkey.com` | Used for ACME account email.
+| `acme.route53.enabled` | boolean | `false` | Enables Route53 DNS-01.
+| `acme.route53.access_key_id` | string | - | Required when Route53 is enabled.
+| `acme.route53.secret_access_key` | string | - | Required when Route53 is enabled.
+| `acme.route53.region` | string | `us-east-1` | Route53 region.
+| `acme.route53.hosted_zone_id` | string | - | Optional override for zone discovery.
+
+## Restate configuration
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `restate.admin_url` | string | `http://restate:9070` | Admin API endpoint.
+| `restate.api_key` | string | - | Optional Restate admin auth key.
+| `restate.http_port` | int | `9080` | Worker Restate ingress port.
+| `restate.register_as` | string | - | Optional self-registration URL.
+
+## Build and registry configuration
+
+Builds are enabled when `registry.password` is set. In that case, `registry.url`, `registry.username`, `depot.api_url`, and `depot.project_region` must be set.
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `depot.api_url` | string | - | Depot API endpoint.
+| `depot.project_region` | string | `us-east-1` | Depot storage region.
+| `registry.url` | string | - | Registry endpoint URL.
+| `registry.username` | string | - | Registry username.
+| `registry.password` | string | - | Registry password or token.
+
+## ClickHouse configuration
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `clickhouse.url` | string | ClickHouse connection string.
+| `clickhouse.admin_url` | string | Enables ClickHouse user service when set.
+
+## GitHub configuration
+
+GitHub configuration is optional and can be omitted for local development.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `github.app_id` | int | GitHub App ID.
+| `github.private_key_pem` | string | GitHub App private key.
+| `github.allow_unauthenticated_deployments` | boolean | Only set true for local development.
+
+## Heartbeat and Slack
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `heartbeat.cert_renewal_url` | string | Checkly heartbeat for cert renewals.
+| `heartbeat.quota_check_url` | string | Checkly heartbeat for quota checks.
+| `heartbeat.key_refill_url` | string | Checkly heartbeat for key refills.
+| `slack.quota_check_webhook_url` | string | Slack webhook for quota alerts.
+
+## Example
+
+```toml
+[observability.tracing]
+sample_rate = 0.1
+
+[observability.logging]
+sample_rate = 0.01
+slow_threshold = "2s"
+
+[observability.metrics]
+prometheus_port = 9090
+
+region = "${UNKEY_REGION}"
+instance_id = "${POD_NAME}"
+default_domain = "${UNKEY_DEFAULT_DOMAIN}"
+build_platform = "linux/amd64"
+sentinel_image = "ghcr.io/unkeyed/unkey:v2.0.77"
+available_regions = ["eu-central-1.aws", "us-east-1.aws"]
+cname_domain = "${UNKEY_CNAME_DOMAIN}"
+
+[database]
+primary = "${UNKEY_DATABASE_PRIMARY}"
+
+[vault]
+url = "${UNKEY_VAULT_URL}"
+token = "${UNKEY_VAULT_TOKEN}"
+
+[acme]
+enabled = true
+email_domain = "unkey.com"
+
+[acme.route53]
+enabled = true
+access_key_id = "${UNKEY_ACME_ROUTE53_ACCESS_KEY_ID}"
+secret_access_key = "${UNKEY_ACME_ROUTE53_SECRET_ACCESS_KEY}"
+region = "${UNKEY_ACME_ROUTE53_REGION}"
+
+[restate]
+admin_url = "${UNKEY_RESTATE_ADMIN_URL}"
+http_port = 9080
+register_as = "${UNKEY_RESTATE_REGISTER_AS}"
+
+[depot]
+api_url = "https://api.depot.dev"
+project_region = "us-east-1"
+
+[registry]
+url = "${UNKEY_REGISTRY_URL}"
+username = "${UNKEY_REGISTRY_USERNAME}"
+password = "${UNKEY_REGISTRY_PASSWORD}"
+
+[clickhouse]
+url = "${UNKEY_CLICKHOUSE_URL}"
+admin_url = "${UNKEY_CLICKHOUSE_ADMIN_URL}"
+
+[github]
+app_id = ${UNKEY_GITHUB_APP_ID}
+private_key_pem = "${UNKEY_GITHUB_PRIVATE_KEY_PEM}"
+
+[heartbeat]
+cert_renewal_url = "${UNKEY_CERT_RENEWAL_HEARTBEAT_URL}"
+quota_check_url = "${UNKEY_QUOTA_CHECK_HEARTBEAT_URL}"
+key_refill_url = "${UNKEY_KEY_REFILL_HEARTBEAT_URL}"
+
+[slack]
+quota_check_webhook_url = "${UNKEY_QUOTA_CHECK_SLACK_WEBHOOK_URL}"
+```

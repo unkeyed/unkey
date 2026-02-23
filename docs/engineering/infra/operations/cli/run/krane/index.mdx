@@ -1,0 +1,28 @@
+---
+title: "Krane"
+description: "Run the Kubernetes management service"
+---
+
+Krane is the Kubernetes deployment service for Unkey infrastructure.
+
+## Command syntax
+
+```bash
+unkey run krane [flags]
+```
+
+## Example
+
+```bash
+unkey run krane
+```
+
+## Flags
+
+| Flag | Description | Env | Default |
+| --- | --- | --- | --- |
+| `--http-port` | HTTP port | `UNKEY_HTTP_PORT` | `8080` |
+| `--instance-id` | Instance ID | `UNKEY_INSTANCE_ID` | auto-generated |
+| `--backend` | Backend type (`kubernetes` or `docker`) | `UNKEY_KRANE_BACKEND` | `kubernetes` |
+| `--docker-socket` | Docker socket path | `UNKEY_DOCKER_SOCKET` | `/var/run/docker.sock` |
+| `--deployment-eviction-ttl` | Auto-delete deployments after duration | - | - |

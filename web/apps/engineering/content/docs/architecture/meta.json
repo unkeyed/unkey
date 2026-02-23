@@ -1,7 +1,0 @@
-{
-  "title": "Architecture",
-  "description": "How does Unkey work",
-  "icon": "Pencil",
-  "root": false,
-  "pages": ["index", "pull-based-infra", "services", "workflows"]
-}

@@ -1,0 +1,323 @@
+---
+title: "Documentation"
+description: "Standards for internal documentation and code comments"
+---
+
+## The problem
+
+Documentation serves two masters: the engineer who writes it and the engineer who reads it six months later. Too little documentation leaves readers guessing. Too much buries the signal in noise. The goal is documentation that helps engineers understand and use code correctly. Nothing more, nothing less.
+
+The principles in this guide apply to all languages. The examples are in Go since that is most of the backend, but the philosophy is universal.
+
+## Quick checklist
+
+Before submitting documentation, verify each item.
+
+**Accuracy**
+- [ ] Every claim matches actual code behavior
+- [ ] Return values match what code returns
+- [ ] Error conditions listed are possible and described correctly
+- [ ] Default values match actual defaults
+- [ ] Constraints documented are enforced, and the docs note when and how
+
+**Completeness**
+- [ ] Every exported symbol has a doc comment
+- [ ] Package has a `doc.go` if it has non-trivial behavior
+- [ ] Non-obvious behavior is documented (edge cases, nil handling, concurrency)
+- [ ] The why is explained for design choices that are not self-evident
+
+**Quality**
+- [ ] Doc comments start with the symbol name
+- [ ] Uses prose, not bullet lists, unless items are parallel
+- [ ] Depth matches complexity
+- [ ] Cross-references use bracket syntax: `[TypeName]`, `[FuncName]`
+- [ ] No stale documentation from copy-paste or refactoring
+
+**Verification**
+- [ ] You read the implementation, not just the signature
+- [ ] For value plus error returns, you checked what value returns on failure
+- [ ] For unmarshal operations, you verified whether partial values return
+- [ ] Examples compile and run
+
+## Writing style
+
+Write naturally. Use prose for explanations, not bullet points. Bullet lists are for parallel items or steps. A list of single sentence bullets is often better as a paragraph.
+
+```go
+// Bad: bullet spam
+// This function:
+// - Takes a user ID
+// - Validates the input
+// - Queries the database
+// - Returns the user or an error
+
+// Good: prose
+// GetUser retrieves a user by ID from the database. Returns ErrNotFound
+// if no user exists with that ID.
+```
+
+## Document the why, not the what
+
+The code shows what it does. Documentation should explain why it exists, why it works this way, and what could go wrong.
+
+```go
+// IncrementCounter adds one to the counter.
+func IncrementCounter() { counter++ }
+```
+
+```go
+// IncrementCounter updates the request count for rate limiting.
+// Not safe for concurrent use; caller must hold the mutex.
+func IncrementCounter() { counter++ }
+```
+
+### Documenting design choices
+
+When you choose between reasonable alternatives, explain the reasoning in a sentence.
+
+```go
+// Package retry provides configurable retry logic for transient failures.
+//
+// The package uses functional options rather than a config struct because
+// retry behavior is usually customized one parameter at a time, and options
+// compose better when wrapping retry logic around existing functions.
+package retry
+```
+
+```go
+// Validate checks the request and returns all validation errors at once.
+// We return a slice rather than failing on the first error because API
+// clients can fix multiple issues in a single round trip.
+func Validate(req *Request) []ValidationError
+```
+
+## Public API documentation
+
+Every exported function, type, constant, and variable must be documented. This is the contract with users of the code.
+
+The depth of documentation should match complexity. A simple getter needs one line. A distributed algorithm needs paragraphs.
+
+### Simple functions
+
+```go
+// GetUserID extracts the user ID from the request context.
+// Returns an empty string if no user ID is present.
+func GetUserID(ctx context.Context) string
+
+// Close releases all resources held by the client, including network connections
+// and background goroutines. After calling Close, the client must not be used.
+func (c *Client) Close() error
+
+// SetTimeout updates the request timeout duration for all future requests.
+func (c *Client) SetTimeout(d time.Duration)
+```
+
+### Complex functions
+
+```go
+// Allow determines whether the specified identifier can perform the requested
+// number of operations within the configured rate limit window.
+//
+// This method implements distributed rate limiting with strong consistency
+// guarantees across all nodes in the cluster. It uses a lease-based algorithm
+// to coordinate between nodes and ensure accurate limiting under high concurrency.
+//
+// The identifier should be a stable business identifier (user ID, API key, IP).
+// The cost is typically 1 for single operations, but can be higher for batch
+// requests. Cost must be positive or an error is returned.
+//
+// Returns (true, nil) if allowed, (false, nil) if rate limited, or (false, error)
+// if a system error occurs. Possible errors include ErrInvalidCost for invalid
+// cost values, ErrClusterUnavailable when less than 50% of cluster nodes are
+// reachable, context.DeadlineExceeded on timeout (default 5s), and network
+// errors on storage failures.
+//
+// Safe for concurrent use. If context is cancelled, no rate limit counters
+// are modified.
+func (r *RateLimiter) Allow(ctx context.Context, identifier string, cost int) (bool, error)
+```
+
+### When to include specific details
+
+**Parameters**: Document when the purpose is not obvious from the name and type, or when there are constraints like must be positive.
+
+**Return values**: Explain when return patterns are subtle or when multiple success states exist. For functions that return a value plus an error, document what value returns on failure.
+
+**Error conditions**: List specific errors only when callers need to handle them differently.
+
+**Concurrency**: Document when a function or type is safe or unsafe for concurrent use.
+
+**Performance**: Mention non-obvious characteristics that affect usage decisions.
+
+**Context**: Document context behavior only if it is non-standard.
+
+## What not to document
+
+Do not document implementation details in doc comments. Those belong inside the function. Do not explain that context is used for cancellation or mention O(1) performance unless it is surprising.
+
+## Package documentation
+
+Every significant package should have a `doc.go` file with the package comment and declaration. It should explain what the package does, why it exists, how it fits into the system, key concepts, usage, and cross-references.
+
+### Structure of doc.go
+
+Use `#` headers to organize sections. Include a usage example.
+
+```go
+// Package ratelimit implements distributed rate limiting with lease-based coordination.
+//
+// The package uses a two-phase commit protocol to ensure consistency across
+// multiple nodes in a cluster. Rate limits are enforced through sliding time
+// windows with configurable burst allowances.
+//
+// This implementation was chosen over simpler approaches because it needs
+// strong consistency guarantees for billing and security use cases.
+//
+// # Key Types
+//
+// The main entry point is [RateLimiter], which provides the [RateLimiter.Allow]
+// method for checking rate limits. Configuration is handled through [Config].
+//
+// # Usage
+//
+// Basic rate limiting:
+//
+//     cfg := ratelimit.Config{Window: time.Minute, Limit: 100}
+//     limiter := ratelimit.New(cfg)
+//     allowed, err := limiter.Allow(ctx, "user:123", 1)
+//     if err != nil {
+//         // Handle system error
+//     }
+//     if !allowed {
+//         // Rate limited - reject request
+//     }
+//
+// # Error handling
+//
+// The package distinguishes between rate limiting (expected behavior) and
+// system errors (unexpected failures). See [ErrRateLimited] and [ErrClusterUnavailable].
+package ratelimit
+```
+
+## Internal code
+
+Internal functions have different documentation needs. The audience is teammates maintaining this code. The why matters even more than the what.
+
+```go
+// retryWithBackoff handles retries for failed lease acquisitions.
+//
+// Exponential backoff with jitter spreads retry attempts and reduces system load.
+// Max retry count is limited to prevent infinite loops during outages.
+func (r *RateLimiter) retryWithBackoff(ctx context.Context, fn func() error) error
+```
+
+## Complex algorithm documentation
+
+For complex internal logic, explain the approach and reasoning.
+
+```go
+// distributeTokens implements the token bucket algorithm with cluster coordination.
+//
+// Token bucket is chosen for burst handling, simpler math, and predictable memory use.
+// The algorithm runs in two phases: local calculation, then cluster consensus.
+func (r *RateLimiter) distributeTokens(ctx context.Context, required int64) (granted int64, err error)
+```
+
+## Types and interfaces
+
+Type documentation should explain what the type represents and any constraints or invariants. Interface documentation should focus on the contract and concurrency guarantees.
+
+```go
+// Config holds the configuration for a rate limiter instance.
+//
+// Window and Limit work together to define rate limiting behavior.
+// For example, Window=1m and Limit=100 means 100 operations per minute.
+type Config struct {
+    Window time.Duration
+    Limit  int64
+    ClusterNodes []string
+}
+```
+
+```go
+// Cache provides a generic caching interface with support for distributed invalidation.
+//
+// Implementations must be safe for concurrent use. The cache may return stale data
+// during network partitions to maintain availability, but will converge after recovery.
+type Cache[T any] interface {
+    Get(ctx context.Context, key string) (value T, found bool, err error)
+    Set(ctx context.Context, key string, value T) error
+}
+```
+
+## Error documentation
+
+Document sentinel errors with meaning and conditions.
+
+```go
+var (
+    // ErrRateLimited is returned when an operation exceeds the configured rate limit.
+    ErrRateLimited = errors.New("rate limit exceeded")
+
+    // ErrClusterUnavailable indicates insufficient cluster nodes are reachable.
+    ErrClusterUnavailable = errors.New("insufficient cluster nodes available")
+)
+```
+
+## Constants and variables
+
+Document purpose and reasoning when it is not obvious.
+
+```go
+const (
+    // DefaultWindow is the standard rate limiting window.
+    DefaultWindow = time.Minute
+)
+```
+
+## Examples
+
+Use Go example tests for non-trivial usage patterns. Examples compile and run, so they do not go stale.
+
+## Test documentation
+
+Document test helpers and complex test scenarios so future maintainers understand the purpose.
+
+## Document what not to do
+
+Warn against common mistakes when a misuse would be easy and costly.
+
+## Verify before you document
+
+The most dangerous documentation is confident and wrong. Read the implementation. Document what the code does, not what you think it should do.
+
+Common verification failures include return values on error, partial values from unmarshal, constraint enforcement timing, defaults, and context behavior.
+
+## Common mistakes
+
+Restating the signature adds no value. Documenting irrelevant details creates noise. Missing critical information is dangerous. Stale documentation is worse than no documentation.
+
+## Go conventions
+
+Start doc comments with the name of the thing being documented. Use present tense. Write complete sentences. Use bracket syntax for references, for example `[TypeName]` and `[FuncName]`.
+
+## Deprecation
+
+When deprecating an API, provide a migration path.
+
+```go
+// Deprecated: Use [NewRateLimiterV2] instead. This function will be removed in v2.0.
+//
+// Migration example:
+//
+//     // Old:
+//     limiter := NewRateLimiter(100, time.Minute)
+//
+//     // New:
+//     limiter := NewRateLimiterV2(Config{Limit: 100, Window: time.Minute})
+func NewRateLimiter(limit int, window time.Duration) *RateLimiter
+```
+
+## Keeping documentation alive
+
+Update documentation whenever you change behavior, parameters, or error conditions. When reviewing code, check that documentation still matches implementation.

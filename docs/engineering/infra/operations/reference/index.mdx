@@ -1,0 +1,28 @@
+---
+title: "Reference"
+description: "Cross-service references and shared conventions"
+---
+
+## Glossary
+
+Content pending.
+
+## Configuration schema
+
+Configuration is service-specific. Use the configuration pages under `docs/engineering/architecture/services/<service>/configuration.mdx` and the chart `values.yaml` for each service in `infra/infra/eks-cluster/helm-chart/<chart>`.
+
+## Ports and endpoints
+
+Services that use `pkg/runner.RegisterHealth` expose health probes on the configured HTTP server. The default base path is `/health`, with `/live`, `/ready`, and `/startup` endpoints.
+
+The following services register runner health endpoints:
+
+- API
+- Control API
+- Control worker
+- Krane
+- Preflight
+- Sentinel
+- Vault
+
+Frontline registers runner health on an internal base path: `/_unkey/internal/health`.

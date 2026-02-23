@@ -1,0 +1,158 @@
+---
+title: "Configuration"
+description: "Configure Unkey for your environment"
+---
+
+## Configuration model
+
+Each service chart ships a `unkey.toml` configuration file and renders it into a ConfigMap. The deployments mount it at `/etc/unkey/unkey.toml` and pass `--config /etc/unkey/unkey.toml` to the service binary.
+
+Per-environment overrides live under `infra/infra/eks-cluster/helm-chart/<chart>/environments/<env>.yaml` and merge into `values.yaml`.
+
+## Dependency inventory
+
+Each chart declares required secrets in `values.yaml` under `externalSecrets.aws.sources`. Use that list as the source of truth for the backing systems and credentials you must provide.
+
+Example requirements from the API chart include MySQL, ClickHouse, Vault, and Control secrets:
+
+```yaml
+externalSecrets:
+  aws:
+    sources:
+      - name: unkey/api
+        secrets:
+          - UNKEY_DATABASE_PRIMARY
+          - UNKEY_DATABASE_REPLICA
+          - UNKEY_CLICKHOUSE_URL
+          - UNKEY_CLICKHOUSE_ANALYTICS_URL
+          - UNKEY_VAULT_TOKEN
+          - UNKEY_CTRL_TOKEN
+```
+
+Example requirements from the control worker include registry and ACME credentials:
+
+```yaml
+externalSecrets:
+  aws:
+    sources:
+      - name: unkey/shared
+        secrets:
+          - UNKEY_REGISTRY_URL
+          - UNKEY_REGISTRY_USERNAME
+          - UNKEY_REGISTRY_PASSWORD
+      - name: unkey/control
+        secrets:
+          - UNKEY_ACME_ROUTE53_ACCESS_KEY_ID
+          - UNKEY_ACME_ROUTE53_SECRET_ACCESS_KEY
+          - UNKEY_ACME_ROUTE53_REGION
+```
+
+## Service requirements
+
+Use these lists to confirm required secrets per chart.
+
+### API
+
+- `UNKEY_CLICKHOUSE_URL`
+- `UNKEY_DATABASE_PRIMARY`
+- `UNKEY_DATABASE_REPLICA`
+- `UNKEY_VAULT_TOKEN`
+- `OTEL_EXPORTER_OTLP_HEADERS`
+- `UNKEY_CLICKHOUSE_ANALYTICS_URL`
+- `UNKEY_PPROF_PASSWORD`
+- `UNKEY_CTRL_TOKEN`
+
+### Control API
+
+- `UNKEY_DATABASE_PRIMARY`
+- `UNKEY_AUTH_TOKEN`
+- `UNKEY_RESTATE_API_KEY`
+- `UNKEY_GITHUB_APP_ID`
+- `UNKEY_GITHUB_PRIVATE_KEY_PEM`
+- `UNKEY_GITHUB_APP_WEBHOOK_SECRET`
+
+### Control worker
+
+- `UNKEY_DATABASE_PRIMARY`
+- `UNKEY_CLICKHOUSE_URL`
+- `UNKEY_CLICKHOUSE_ADMIN_URL`
+- `UNKEY_REGISTRY_URL`
+- `UNKEY_REGISTRY_USERNAME`
+- `UNKEY_REGISTRY_PASSWORD`
+- `UNKEY_VAULT_TOKEN`
+- `UNKEY_GITHUB_APP_ID`
+- `UNKEY_GITHUB_PRIVATE_KEY_PEM`
+- `UNKEY_CERT_RENEWAL_HEARTBEAT_URL`
+- `UNKEY_KEY_REFILL_HEARTBEAT_URL`
+- `UNKEY_QUOTA_CHECK_HEARTBEAT_URL`
+- `UNKEY_QUOTA_CHECK_SLACK_WEBHOOK_URL`
+- `UNKEY_ACME_ROUTE53_ACCESS_KEY_ID`
+- `UNKEY_ACME_ROUTE53_SECRET_ACCESS_KEY`
+- `UNKEY_ACME_ROUTE53_REGION`
+
+### Frontline
+
+- `UNKEY_DATABASE_PRIMARY`
+- `UNKEY_DATABASE_REPLICA`
+- `UNKEY_GOSSIP_SECRET_KEY`
+- `UNKEY_VAULT_TOKEN`
+
+### Krane
+
+- `UNKEY_REGISTRY_URL`
+- `UNKEY_REGISTRY_USERNAME`
+- `UNKEY_REGISTRY_PASSWORD`
+- `UNKEY_CTRL_TOKEN`
+- `UNKEY_VAULT_TOKEN`
+
+### Vault
+
+- `UNKEY_VAULT_TOKEN`
+- `UNKEY_ENCRYPTION_MASTER_KEY`
+- `UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY`
+- `UNKEY_S3_URL`
+- `UNKEY_S3_BUCKET`
+- `UNKEY_S3_ACCESS_KEY_ID`
+- `UNKEY_S3_ACCESS_KEY_SECRET`
+
+### Preflight
+
+- `UNKEY_DEPOT_TOKEN`
+
+### Sentinel
+
+Sentinel chart values do not declare External Secrets. Configure the AWS region for SecretStore and RBAC values in `infra/infra/eks-cluster/helm-chart/sentinel/values.yaml`.
+
+### Observability
+
+Observability secrets are configured in `infra/infra/eks-cluster/helm-chart/observability/values.yaml`:
+
+- `unkey/shared`: `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`
+- `unkey/alertmanager-incident-io`: `alert_source_token` (if incident.io is enabled)
+
+## Secrets and credentials
+
+Charts integrate with External Secrets using AWS Secrets Manager when `externalSecrets.enabled` is true. The chart creates a SecretStore and ExternalSecret that sync configured keys into a Kubernetes Secret.
+
+If you disable External Secrets, you must provide equivalent secret values through your own Kubernetes Secret wiring.
+
+## Example configuration
+
+Use `values.yaml` for environment variables and External Secrets configuration:
+
+```yaml
+env:
+  UNKEY_REGION: "us-east-1"
+  UNKEY_CTRL_URL: "https://control.unkey.cloud"
+
+externalSecrets:
+  enabled: true
+  aws:
+    enabled: true
+    region: us-east-1
+    sources:
+      - name: unkey/api
+        secrets:
+          - UNKEY_DATABASE_PRIMARY
+          - UNKEY_DATABASE_REPLICA
+```

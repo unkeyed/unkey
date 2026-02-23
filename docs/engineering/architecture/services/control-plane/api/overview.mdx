@@ -1,0 +1,10 @@
+---
+title: "Overview"
+description: "Control plane API for deployment intent and orchestration"
+---
+
+The control plane is the deployment and orchestration plane for Unkey. It consists of a control API and a worker service that runs workflows for deployments, certificates, routing, and background jobs.
+
+The control API is the system of record for deployment intent and configuration. It accepts changes from the dashboard and internal automation, persists them in MySQL, and kicks off worker workflows when asynchronous work is required.
+
+The worker runs the long-lived workflows that create deployments, manage certificates, assign routes, and coordinate background maintenance. Together they provide a consistent control surface for everything that is not handled on the request path.

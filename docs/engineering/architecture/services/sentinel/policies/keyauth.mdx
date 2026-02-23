@@ -1,0 +1,22 @@
+---
+title: "KeyAuth"
+description: "API key authentication policy"
+---
+
+KeyAuth authenticates requests using Unkey API keys and produces a principal on success. It is the only policy type currently executed by the sentinel engine.
+
+## Fields
+
+- `key_space_ids`: List of key space IDs that the key must belong to.
+- `locations`: Ordered list of key extraction locations.
+- `permission_query`: Optional RBAC query evaluated against key permissions.
+
+## Runtime behavior
+
+Key extraction tries each configured location in order. If no locations are configured, sentinel extracts a Bearer token from the `Authorization` header. The key is hashed and verified through the KeyService, which enforces key status, usage limits, and rate limits.
+
+On success, sentinel writes a `sentinel.v1.Principal` and sets `X-Unkey-Principal`. It also writes `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers when rate limit data is available, even if the request is rejected.
+
+## Implementation status
+
+KeyAuth is implemented in the middleware engine and executed during request processing.

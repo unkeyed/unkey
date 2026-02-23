@@ -1,0 +1,278 @@
+---
+title: "Configuration"
+description: "Configuration model and required settings for the vault service"
+---
+
+import ConfigToml from "/snippets/config-toml.mdx";
+
+<ConfigToml />
+
+## Configuration model
+
+The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/vault/config.go" target="_blank">`svc/vault/config.go`</a>.
+
+Vault loads configuration via `config.Load`, which expands `${VAR}` environment variables before parsing.
+
+Minimal config example:
+
+```toml
+http_port = 8060
+region = "${UNKEY_REGION}"
+instance_id = "${POD_NAME}"
+bearer_token = "${UNKEY_VAULT_TOKEN}"
+
+[encryption]
+master_key = "${UNKEY_ENCRYPTION_MASTER_KEY}"
+
+[s3]
+url = "${UNKEY_S3_URL}"
+bucket = "${UNKEY_S3_BUCKET}"
+access_key_id = "${UNKEY_S3_ACCESS_KEY_ID}"
+access_key_secret = "${UNKEY_S3_ACCESS_KEY_SECRET}"
+```
+
+<ResponseField name="instance_id" type="string">
+  Used for tracing attributes. Set to pod name in Kubernetes. Example: `vault-7d9b8c4f5d-2kq7m`.
+</ResponseField>
+
+<ResponseField name="http_port" type="int" default="8060">
+  Port for HTTP and RPC traffic. Example: `8060`.
+</ResponseField>
+
+<ResponseField name="region" type="string">
+  Included in logs and traces. Example: `us-east-1`.
+</ResponseField>
+
+<ResponseField name="bearer_token" type="string" required>
+  Used for RPC auth. Must be non-empty. Example: `"s3cr3t-token"`.
+</ResponseField>
+
+## Encryption
+
+<ResponseField name="encryption" type="object" required>
+  Encryption key configuration.
+  <Expandable title="Fields">
+    <ResponseField name="encryption.master_key" type="string" required>
+      Base64-encoded KeyEncryptionKey protobuf. Used for new writes. Example:
+      `"CiV2YXVsdC1rZXktMSIsIk9TQjRvYjBqWnU9"`.
+    </ResponseField>
+    <ResponseField name="encryption.previous_master_key" type="string">
+      Optional base64 key used to decrypt existing data during rotation. Example:
+      `"CiV2YXVsdC1rZXktMCIsIk9TQjRvYjBqWnU9"`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+Vault expects `master_key` values to be a base64 encoding of the serialized `KeyEncryptionKey` protobuf. This format is produced by the vault key generation code.
+
+Example:
+
+```toml
+[encryption]
+master_key = "${UNKEY_ENCRYPTION_MASTER_KEY}"
+previous_master_key = "${UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY}"
+```
+
+## S3 storage
+
+<ResponseField name="s3" type="object" required>
+  S3-compatible storage configuration.
+  <Expandable title="Fields">
+    <ResponseField name="s3.url" type="string" required>
+      S3-compatible endpoint URL. Example: `"https://s3.us-east-1.amazonaws.com"`.
+    </ResponseField>
+    <ResponseField name="s3.bucket" type="string" required>
+      Bucket name for encrypted objects. Example: `"unkey-vault"`.
+    </ResponseField>
+    <ResponseField name="s3.access_key_id" type="string" required>
+      Access key ID for storage. Example: `"AKIA..."`.
+    </ResponseField>
+    <ResponseField name="s3.access_key_secret" type="string" required>
+      Access key secret for storage. Example: `"wJalrXUtnFEMI/K7MDENG/bPxRfiCY"`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+Example:
+
+```toml
+[s3]
+url = "${UNKEY_S3_URL}"
+bucket = "${UNKEY_S3_BUCKET}"
+access_key_id = "${UNKEY_S3_ACCESS_KEY_ID}"
+access_key_secret = "${UNKEY_S3_ACCESS_KEY_SECRET}"
+```
+
+Vault initializes the S3 client on startup and creates the bucket if it does not exist.
+
+## Observability
+
+<ResponseField name="observability" type="object">
+  Tracing and logging configuration. Each nested section is optional.
+  <Expandable title="Fields">
+    <ResponseField name="observability.tracing.sample_rate" type="float" default="0.25">
+      Trace sampling rate from 0.0 to 1.0. Example: `0.1`.
+    </ResponseField>
+    <ResponseField name="observability.logging.sample_rate" type="float" default="1.0">
+      Log sampling rate for fast events. Example: `0.01`.
+    </ResponseField>
+    <ResponseField name="observability.logging.slow_threshold" type="duration" default="1s">
+      Slow log threshold. Example: `"2s"`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+Vault accepts `observability.metrics` in the config file, but the vault runtime does not start a Prometheus endpoint.
+
+Example:
+
+```toml
+[observability.tracing]
+sample_rate = 0.1
+
+[observability.logging]
+sample_rate = 0.01
+slow_threshold = "2s"
+```
+
+## Environment variables
+
+The Helm chart provides these variables for the default config template:
+
+<ResponseField name="UNKEY_VAULT_TOKEN" type="env" required>
+  Bearer token for vault RPC auth. Example: `"s3cr3t-token"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_ENCRYPTION_MASTER_KEY" type="env" required>
+  Base64-encoded master key. Example: `"CiV2YXVsdC1rZXktMSIsIk9TQjRvYjBqWnU9"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY" type="env">
+  Optional previous master key for rotation. Example: `"CiV2YXVsdC1rZXktMCIsIk9TQjRvYjBqWnU9"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_S3_URL" type="env" required>
+  S3-compatible endpoint URL. Example: `"https://s3.us-east-1.amazonaws.com"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_S3_BUCKET" type="env" required>
+  Bucket name for encrypted objects. Example: `"unkey-vault"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_S3_ACCESS_KEY_ID" type="env" required>
+  S3 access key ID. Example: `"AKIA..."`.
+</ResponseField>
+
+<ResponseField name="UNKEY_S3_ACCESS_KEY_SECRET" type="env" required>
+  S3 access key secret. Example: `"wJalrXUtnFEMI/K7MDENG/bPxRfiCY"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_REGION" type="env">
+  Region label for observability. Example: `"us-east-1"`.
+</ResponseField>
+
+<ResponseField name="OTEL_EXPORTER_OTLP_ENDPOINT" type="env">
+  OTEL exporter endpoint. Example: `"http://otel-collector.monitoring.svc.cluster.local:4318"`.
+</ResponseField>
+
+<ResponseField name="OTEL_EXPORTER_OTLP_PROTOCOL" type="env">
+  OTEL exporter protocol. Example: `"http/protobuf"`.
+</ResponseField>
+
+## Authentication
+
+Vault requires callers to pass an `Authorization: Bearer <token>` header. The token must match `bearer_token` from the config.
+
+## Key management and rotation
+
+Master keys and bearer tokens are managed manually. When you rotate keys, generate a new master key and update AWS Secrets Manager. Keep the previous master key in `UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY` until all data is re-encrypted.
+
+### Generate a master key
+
+From the repo root, use the Unkey CLI to generate a base64-encoded master key:
+
+```bash
+go run . dev generate-master-key
+```
+
+The command prints the encoded key to stdout. Store the value in AWS Secrets Manager as `UNKEY_ENCRYPTION_MASTER_KEY`.
+
+### Generate a bearer token
+
+Vault accepts any non-empty bearer token. Use a strong random value and store it as `UNKEY_VAULT_TOKEN`:
+
+```bash
+openssl rand -base64 32
+```
+
+High-level flow:
+
+1. Generate a new master key and set it as `UNKEY_ENCRYPTION_MASTER_KEY`.
+2. Move the prior master key to `UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY`.
+3. Update AWS Secrets Manager for `unkey/vault`.
+4. Re-sync the Helm release to roll the vault pods.
+5. Remove `UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY` after re-encryption is complete.
+
+Vault does not expose a DEK re-encryption RPC. Re-encryption requires running the internal `RollDeks` flow, which walks stored DEKs and rewrites them with the current master key.
+
+### Secret sources
+
+The default Helm chart uses External Secrets to source the vault secrets from `unkey/vault` in AWS Secrets Manager:
+
+<ResponseField name="UNKEY_VAULT_TOKEN" type="secret" required>
+  Used for RPC authentication. Example: `"s3cr3t-token"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_ENCRYPTION_MASTER_KEY" type="secret" required>
+  Base64-encoded master key. Example: `"CiV2YXVsdC1rZXktMSIsIk9TQjRvYjBqWnU9"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY" type="secret">
+  Optional key for rotation. Example: `"CiV2YXVsdC1rZXktMCIsIk9TQjRvYjBqWnU9"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_S3_URL" type="secret" required>
+  S3 endpoint. Example: `"https://s3.us-east-1.amazonaws.com"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_S3_BUCKET" type="secret" required>
+  Bucket name. Example: `"unkey-vault"`.
+</ResponseField>
+
+<ResponseField name="UNKEY_S3_ACCESS_KEY_ID" type="secret" required>
+  Access key ID. Example: `"AKIA..."`.
+</ResponseField>
+
+<ResponseField name="UNKEY_S3_ACCESS_KEY_SECRET" type="secret" required>
+  Access key secret. Example: `"wJalrXUtnFEMI/K7MDENG/bPxRfiCY"`.
+</ResponseField>
+
+## Example configuration
+
+```toml
+http_port = 8060
+region = "${UNKEY_REGION}"
+instance_id = "${POD_NAME}"
+bearer_token = "${UNKEY_VAULT_TOKEN}"
+
+[encryption]
+master_key = "${UNKEY_ENCRYPTION_MASTER_KEY}"
+previous_master_key = "${UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY}"
+
+[s3]
+url = "${UNKEY_S3_URL}"
+bucket = "${UNKEY_S3_BUCKET}"
+access_key_id = "${UNKEY_S3_ACCESS_KEY_ID}"
+access_key_secret = "${UNKEY_S3_ACCESS_KEY_SECRET}"
+
+[observability.tracing]
+sample_rate = 0.1
+
+[observability.logging]
+sample_rate = 0.01
+slow_threshold = "2s"
+```
+
+## Related docs
+
+- [Overview](/architecture/services/vault/overview)

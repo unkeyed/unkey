@@ -1,0 +1,35 @@
+---
+title: "Observability"
+description: "Tracing, metrics, and error responses for sentinel"
+---
+
+The observability middleware is responsible for tracing, metrics, structured error responses, and request-level logging.
+
+## Tracing
+
+Sentinel starts a span named `sentinel.proxy` for each request. The span includes request metadata such as host, method, path, environment ID, and region. Errors returned by handlers are recorded on the span.
+
+## Metrics
+
+Sentinel exports Prometheus metrics with the environment ID and region as labels:
+
+- `sentinel_requests_total`
+- `sentinel_request_duration_seconds`
+- `sentinel_active_requests`
+
+Metrics also include the HTTP status code and an error type label that categorizes failures as `none`, `user`, `customer`, or `platform`.
+
+## Error responses
+
+When a handler returns an error, the middleware maps the fault code to an HTTP status and a user-facing message. It writes a JSON response with a consistent shape:
+
+```json
+{
+  "error": {
+    "code": "urn:...",
+    "message": "..."
+  }
+}
+```
+
+The middleware also sets `X-Unkey-Error-Source: sentinel` and ensures the request tracking context has the final response status for ClickHouse logging.

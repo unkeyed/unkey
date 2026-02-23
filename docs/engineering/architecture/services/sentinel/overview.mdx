@@ -1,0 +1,27 @@
+---
+title: "Overview"
+description: "Per-environment gateway for routing and limits"
+---
+
+Sentinel is the per-environment gateway. It routes requests from frontline to the correct deployment and enforces middleware policies before requests reach the workload.
+
+Each environment gets its own sentinel. Frontline forwards traffic based on domain routing, and sentinel uses the deployment ID in the request to select an instance in the same region.
+
+Sentinel runs in a pass-through mode when middleware is disabled, but it still handles routing, logging, and error responses.
+
+## Responsibilities
+
+- Resolve `X-Deployment-Id` to a deployment and running instance.
+- Evaluate middleware policies, such as KeyAuth, before proxying.
+- Forward requests to the selected instance and stream responses back.
+- Record request telemetry to ClickHouse and Prometheus when enabled.
+
+## Related docs
+
+- [Frontline ingress](/architecture/services/frontline/ingress)
+
+## Routing and caching
+
+Sentinel uses the router service to fetch deployment and instance data from MySQL. Deployments and instance lists are cached with stale-while-revalidate semantics to keep routing fast while allowing data to refresh in the background. When gossip is enabled, invalidation events propagate across sentinel nodes so caches stay consistent across the cluster.
+
+Instances are filtered by region and status. If no running instances exist, sentinel returns a service unavailable error. If a deployment belongs to a different environment, sentinel returns a not found error to avoid leaking data across environments.

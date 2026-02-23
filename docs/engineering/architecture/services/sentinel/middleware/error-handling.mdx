@@ -1,0 +1,16 @@
+---
+title: "Proxy error handling"
+description: "Fault mapping for proxy and network errors"
+---
+
+The proxy error handling middleware wraps network and reverse proxy failures into structured fault codes. It only applies to errors that do not already carry a fault code.
+
+## Behavior
+
+When the proxy or transport returns an error, the middleware:
+
+- Sets a response status for ClickHouse tracking if one was not set.
+- Maps network, DNS, timeout, and connection errors to sentinel proxy fault codes.
+- Wraps the error with context about the target instance address.
+
+Client cancellations are mapped to status code 499, timeouts to 504, and other proxy errors to 502.

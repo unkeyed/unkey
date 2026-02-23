@@ -1,0 +1,16 @@
+---
+title: "Security"
+description: "Security considerations for hosted Unkey"
+---
+
+## Access control
+
+Service charts create Kubernetes service accounts and RBAC bindings by default. Review the chart `values.yaml` files to confirm service account names and any annotations you need for your cluster.
+
+## Network boundaries
+
+Ingress and service exposure are chart-driven. Review each chart for ingress and service settings before exposing endpoints to public networks.
+
+## Secrets management
+
+Charts integrate with External Secrets and AWS Secrets Manager when enabled. If you do not use External Secrets, provide equivalent Kubernetes Secrets for the environment variables listed in each chart.

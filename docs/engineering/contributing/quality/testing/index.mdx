@@ -1,0 +1,109 @@
+---
+title: "Testing"
+description: "Testing standards and patterns for Unkey"
+---
+
+## Why we test
+
+Tests exist to give confidence. Confidence to ship changes quickly, confidence that refactoring will not break production, confidence that the system behaves as expected. A test suite with 90 percent coverage that misses critical edge cases is less valuable than one with 60 percent coverage that catches real bugs.
+
+We prioritize quality over quantity. A single well-designed test that validates complex business logic is worth more than a dozen tests that exercise trivial code paths. When writing tests, ask what could go wrong in production that this test would catch.
+
+## What to test
+
+Invest testing effort where bugs would hurt most.
+
+**High value targets:** Business logic with complex conditionals, error handling paths, concurrent code with race potential, security sensitive operations, data transformations that could silently corrupt.
+
+**Lower value targets:** Simple getters and setters, straightforward pass-through functions, code that delegates to well-tested libraries.
+
+**Skip entirely:** Tests that verify the programming language works.
+
+Ask what bug this test would catch that the compiler, a code review, or a more meaningful test would not.
+
+### Testing observability
+
+Do not verify every log line or metric increment. Test metrics that drive alerts or SLOs. Test that error conditions produce the logs operators need for debugging.
+
+```go
+func TestRateLimiter_EmitsRejectionMetric(t *testing.T) {
+    collector := &testMetricCollector{}
+    limiter := NewRateLimiter(Config{Limit: 1}, collector)
+
+    limiter.Allow()
+    limiter.Allow()
+
+    require.Equal(t, 1, collector.Count("rate_limit_rejected_total"))
+}
+```
+
+## Go testing
+
+All Go tests use `github.com/stretchr/testify/require` for assertions.
+
+We build and test with Bazel rather than `go test` directly. Bazel provides hermetic builds, intelligent caching, and precise dependency tracking.
+
+## Test organization
+
+Tests live alongside the code they test. A file `cache.go` has its tests in `cache_test.go` in the same directory.
+
+For integration tests that require substantial setup or external dependencies, create an `integration/` subdirectory when it improves clarity.
+
+Bazel requires each test target to declare a size that determines its timeout and resource allocation. Unit tests should be `small`. Integration tests that spin up containers should be `large`.
+
+```python
+go_test(
+    name = "cache_test",
+    size = "small",
+    srcs = ["cache_test.go"],
+    deps = [":cache", "@com_github_stretchr_testify//require"],
+)
+```
+
+## Writing test helpers
+
+Every helper function must call `t.Helper()` as its first line.
+
+```go
+func createTestWorkspace(t *testing.T) *Workspace {
+    t.Helper()
+    ws, err := db.CreateWorkspace(ctx, "test-workspace")
+    require.NoError(t, err)
+    return ws
+}
+```
+
+## Resource cleanup
+
+Tests that acquire resources must clean them up. Use `t.Cleanup()` instead of `defer`.
+
+```go
+func TestWithDatabase(t *testing.T) {
+    db := setupTestDatabase(t)
+    t.Cleanup(func() {
+        db.Close()
+    })
+}
+```
+
+## Running tests
+
+During development, run tests for the package you are working on:
+
+```bash
+bazel test //pkg/cache:cache_test --test_output=errors
+```
+
+Before pushing, run the full test suite:
+
+```bash
+make test
+```
+
+## What is next
+
+Use these guides for deeper patterns:
+
+- [Unit tests](/contributing/quality/testing/unit-tests)
+- [Integration tests](/contributing/quality/testing/integration-tests)
+- [Anti-patterns](/contributing/quality/testing/anti-patterns)

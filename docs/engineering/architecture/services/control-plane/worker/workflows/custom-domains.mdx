@@ -1,0 +1,68 @@
+---
+title: "Custom domains"
+description: "Custom domain verification and lifecycle"
+---
+
+Custom domains are registered through the control API and verified through Restate workflows. Each domain is keyed by its hostname to prevent duplicate workflows.
+
+Key components:
+
+- Custom domain service (<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/customdomain" target="_blank">`svc/ctrl/services/customdomain`</a>).
+- Restate verification workflow (`hydrav1.CustomDomainService`).
+- Database records for domain state.
+
+## Flow: add custom domain
+
+```mermaid
+sequenceDiagram
+  actor Client
+  participant CtrlAPI as Control API
+  participant DB as MySQL
+  participant Restate as Restate
+
+  Client->>CtrlAPI: AddCustomDomain(domain)
+  CtrlAPI->>DB: Insert custom domain (status=pending, token, target CNAME)
+  CtrlAPI->>Restate: VerifyDomain (domain key)
+  Restate-->>CtrlAPI: invocation_id
+  CtrlAPI->>DB: Store invocation_id
+```
+
+## Flow: retry verification
+
+```mermaid
+sequenceDiagram
+  actor Client
+  participant CtrlAPI as Control API
+  participant DB as MySQL
+  participant Restate as Restate
+
+  Client->>CtrlAPI: RetryVerification(domain)
+  CtrlAPI->>Restate: Cancel existing invocation
+  CtrlAPI->>Restate: VerifyDomain (domain key)
+  CtrlAPI->>DB: Reset verification status + invocation_id
+```
+
+## Flow: delete domain
+
+```mermaid
+sequenceDiagram
+  actor Client
+  participant CtrlAPI as Control API
+  participant DB as MySQL
+  participant Restate as Restate
+
+  Client->>CtrlAPI: DeleteCustomDomain(domain)
+  CtrlAPI->>Restate: Cancel invocation (if active)
+  CtrlAPI->>DB: Delete frontline route
+  CtrlAPI->>DB: Delete ACME challenge
+  CtrlAPI->>DB: Delete custom domain
+```
+
+## Notes
+
+Verification checks run every minute for up to 24 hours. Both checks must pass before the domain is marked verified:
+
+- TXT ownership record at `_unkey.<domain>` with value `unkey-domain-verify=<token>`.
+- CNAME record pointing to the stored target CNAME.
+
+Once verified, the workflow creates an ACME challenge (HTTP-01) and a frontline route. It triggers certificate issuance asynchronously.

@@ -1,0 +1,223 @@
+---
+title: "Configuration"
+description: "Configuration model and required settings for the frontline service"
+---
+
+import ConfigToml from "/snippets/config-toml.mdx";
+
+## Configuration model
+
+<ConfigToml />
+
+The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/frontline/config.go" target="_blank">`svc/frontline/config.go`</a>.
+
+Minimal config example:
+
+```toml
+challenge_port = 7070
+http_port = 7443
+region = "${UNKEY_REGION}.aws"
+instance_id = "${POD_NAME}"
+apex_domain = "${UNKEY_APEX_DOMAIN}"
+max_hops = 10
+ctrl_addr = "${UNKEY_CTRL_ADDR}"
+prometheus_port = 9090
+
+[database]
+primary = "${UNKEY_DATABASE_PRIMARY}"
+readonly_replica = "${UNKEY_DATABASE_REPLICA}"
+
+[vault]
+url = "${UNKEY_VAULT_URL}"
+token = "${UNKEY_VAULT_TOKEN}"
+
+[gossip]
+bind_addr = "0.0.0.0"
+lan_port = 7946
+wan_port = 7947
+secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
+```
+
+<ResponseField name="instance_id" type="string">
+  Instance identifier for logs and tracing.
+</ResponseField>
+
+<ResponseField name="challenge_port" type="int" default="7070">
+  Port for ACME HTTP-01 challenges.
+</ResponseField>
+
+<ResponseField name="http_port" type="int" default="7443">
+  HTTPS listener port.
+</ResponseField>
+
+<ResponseField name="region" type="string" required>
+  Region label for routing.
+</ResponseField>
+
+<ResponseField name="apex_domain" type="string" default="unkey.cloud">
+  Apex domain for regional routing.
+</ResponseField>
+
+<ResponseField name="max_hops" type="int" default="10">
+  Maximum number of routing hops.
+</ResponseField>
+
+<ResponseField name="ctrl_addr" type="string" default="localhost:8080">
+  Control API address.
+</ResponseField>
+
+<ResponseField name="prometheus_port" type="int">
+  Prometheus metrics port. Set to 0 to disable.
+</ResponseField>
+
+<ResponseField name="tls" type="object">
+  TLS settings for HTTPS.
+  <Expandable title="Fields">
+    <ResponseField name="tls.disabled" type="bool">
+      Disable TLS when true.
+    </ResponseField>
+    <ResponseField name="tls.cert_file" type="string">
+      Path to TLS certificate.
+    </ResponseField>
+    <ResponseField name="tls.key_file" type="string">
+      Path to TLS key.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="database" type="object">
+  MySQL configuration.
+  <Expandable title="Fields">
+    <ResponseField name="database.primary" type="string" required>
+      Primary DSN.
+    </ResponseField>
+    <ResponseField name="database.readonly_replica" type="string">
+      Optional read replica DSN.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vault" type="object">
+  Vault connection.
+  <Expandable title="Fields">
+    <ResponseField name="vault.url" type="string">
+      Vault URL.
+    </ResponseField>
+    <ResponseField name="vault.token" type="string">
+      Vault token.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="gossip" type="object">
+  Gossip-based cache invalidation.
+  <Expandable title="Fields">
+    <ResponseField name="gossip.bind_addr" type="string" default="0.0.0.0">
+      Bind address.
+    </ResponseField>
+    <ResponseField name="gossip.lan_port" type="int" default="7946">
+      LAN port.
+    </ResponseField>
+    <ResponseField name="gossip.wan_port" type="int" default="7947">
+      WAN port.
+    </ResponseField>
+    <ResponseField name="gossip.lan_seeds" type="string[]">
+      LAN seed addresses.
+    </ResponseField>
+    <ResponseField name="gossip.wan_seeds" type="string[]">
+      WAN seed addresses.
+    </ResponseField>
+    <ResponseField name="gossip.secret_key" type="string" required>
+      Secret key for gossip encryption.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="observability" type="object">
+  Tracing and logging configuration.
+  <Expandable title="Fields">
+    <ResponseField name="observability.tracing.sample_rate" type="float" default="0.25">
+      Trace sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.sample_rate" type="float" default="1.0">
+      Log sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.slow_threshold" type="duration" default="1s">
+      Slow log threshold.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Environment variables
+
+The Helm chart provides these variables for the default config template:
+
+<ResponseField name="UNKEY_REGION" type="env" required>
+  Region label.
+</ResponseField>
+
+<ResponseField name="UNKEY_APEX_DOMAIN" type="env">
+  Apex domain for routing.
+</ResponseField>
+
+<ResponseField name="UNKEY_CTRL_ADDR" type="env">
+  Control API address.
+</ResponseField>
+
+<ResponseField name="UNKEY_VAULT_URL" type="env">
+  Vault URL.
+</ResponseField>
+
+<ResponseField name="UNKEY_VAULT_TOKEN" type="env">
+  Vault token.
+</ResponseField>
+
+<ResponseField name="UNKEY_DATABASE_PRIMARY" type="env" required>
+  MySQL primary DSN.
+</ResponseField>
+
+<ResponseField name="UNKEY_DATABASE_REPLICA" type="env">
+  MySQL read replica DSN.
+</ResponseField>
+
+<ResponseField name="UNKEY_GOSSIP_SECRET_KEY" type="env" required>
+  Gossip secret key.
+</ResponseField>
+
+## Example configuration
+
+```toml
+challenge_port = 7070
+http_port = 7443
+region = "${UNKEY_REGION}.aws"
+instance_id = "${POD_NAME}"
+apex_domain = "${UNKEY_APEX_DOMAIN}"
+max_hops = 10
+ctrl_addr = "${UNKEY_CTRL_ADDR}"
+prometheus_port = 9090
+
+[database]
+primary = "${UNKEY_DATABASE_PRIMARY}"
+readonly_replica = "${UNKEY_DATABASE_REPLICA}"
+
+[vault]
+url = "${UNKEY_VAULT_URL}"
+token = "${UNKEY_VAULT_TOKEN}"
+
+[gossip]
+bind_addr = "0.0.0.0"
+lan_port = 7946
+wan_port = 7947
+secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
+
+[observability.tracing]
+sample_rate = 0.1
+
+[observability.logging]
+sample_rate = 0.01
+slow_threshold = "2s"
+```
+
+## Related docs
+
+- [Overview](/architecture/services/frontline/overview)
