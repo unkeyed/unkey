@@ -1,0 +1,16 @@
+---
+title: "Principal"
+description: "Authenticated identity produced by policies"
+---
+
+`sentinel.v1.Principal` is the shared identity shape produced by authentication policies. It decouples authentication from downstream enforcement.
+
+## Fields
+
+- `subject`: The authenticated identity string.
+- `type`: The authentication method that produced the principal.
+- `claims`: Arbitrary key-value metadata provided by the auth policy.
+
+## Header propagation
+
+Sentinel serializes the principal to JSON and sets it on `X-Unkey-Principal`. The proxy handler strips any incoming `X-Unkey-Principal` header to prevent spoofing.

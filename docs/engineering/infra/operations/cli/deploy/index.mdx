@@ -1,0 +1,44 @@
+---
+title: "Deploy"
+description: "Deploy a pre-built Docker image to Unkey infrastructure"
+---
+
+Deploy a pre-built Docker image to Unkey infrastructure.
+
+## Deployment process
+
+1. Create a deployment with a pre-built Docker image.
+2. Monitor deployment status until active.
+
+## Command syntax
+
+```bash
+unkey deploy <docker-image> [flags]
+```
+
+## Examples
+
+```bash
+unkey deploy ghcr.io/user/app:v1.0.0 --project-id=proj_123
+unkey deploy myregistry.io/app:latest --project-id=proj_123 --env=production
+unkey deploy ghcr.io/user/app:v1.0.0 --project-id=proj_123 --keyspace-id=ks_abc123
+unkey deploy ghcr.io/user/app:v1.0.0 --project-id=proj_123 --branch=feature-branch
+```
+
+## Arguments
+
+| Argument | Description |
+| --- | --- |
+| `<docker-image>` | Docker image reference to deploy, for example `ghcr.io/user/app:v1.0.0` |
+
+## Flags
+
+| Flag | Description | Env | Default |
+| --- | --- | --- | --- |
+| `--project-id` | Project ID (required) | `UNKEY_PROJECT_ID` | - |
+| `--keyspace-id` | Keyspace ID for API key authentication | `UNKEY_KEYSPACE_ID` | - |
+| `--branch` | Git branch metadata | - | auto-detected or `main` |
+| `--commit` | Git commit SHA metadata | - | auto-detected |
+| `--env` | Environment slug to deploy to | - | `preview` |
+| `--root-key` | Root key for authentication | `UNKEY_ROOT_KEY` | - |
+| `--api-base-url` | API base URL for local testing | `UNKEY_API_BASE_URL` | - |

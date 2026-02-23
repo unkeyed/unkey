@@ -1,0 +1,305 @@
+---
+title: "Configuration"
+description: "Configuration model and required settings for the api service"
+---
+
+import ConfigToml from "/snippets/config-toml.mdx";
+
+## Configuration model
+
+<ConfigToml />
+
+The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/config.go" target="_blank">`svc/api/config.go`</a>.
+
+Minimal config example:
+
+```toml
+instance_id = "${POD_NAME}"
+platform = "aws"
+http_port = 7070
+region = "${UNKEY_REGION}"
+redis_url = "${UNKEY_REDIS_URL}"
+
+[database]
+primary = "${UNKEY_DATABASE_PRIMARY}"
+readonly_replica = "${UNKEY_DATABASE_REPLICA}"
+
+[clickhouse]
+url = "${UNKEY_CLICKHOUSE_URL}"
+analytics_url = "${UNKEY_CLICKHOUSE_ANALYTICS_URL}"
+
+[control]
+url = "${UNKEY_CTRL_URL}"
+token = "${UNKEY_CTRL_TOKEN}"
+
+[vault]
+url = "${UNKEY_VAULT_URL}"
+token = "${UNKEY_VAULT_TOKEN}"
+```
+
+<ResponseField name="instance_id" type="string">
+  Instance identifier for logs and cache invalidation.
+  Example: `"api-7d9b8c4f5d-2kq7m"`.
+</ResponseField>
+
+<ResponseField name="platform" type="string">
+  Platform label for logs and metrics.
+  Example: `"aws"`.
+</ResponseField>
+
+<ResponseField name="image" type="string">
+  Container image identifier logged at startup.
+  Example: `"ghcr.io/unkeyed/unkey:v2.0.77"`.
+</ResponseField>
+
+<ResponseField name="http_port" type="int" default="7070">
+  HTTP server port.
+  Example: `7070`.
+</ResponseField>
+
+<ResponseField name="region" type="string" default="unknown">
+  Region label for logs and analytics.
+  Example: `"us-east-1"`.
+</ResponseField>
+
+<ResponseField name="redis_url" type="string" required>
+  Redis connection string for counters and usage limiting.
+  Example: `"redis://redis:6379"`.
+</ResponseField>
+
+<ResponseField name="test_mode" type="bool" default="false">
+  Enables test-only behaviors. Do not use in production.
+</ResponseField>
+
+<ResponseField name="max_request_body_size" type="int" default="10485760">
+  Maximum request size in bytes.
+</ResponseField>
+
+<ResponseField name="database" type="object" required>
+  MySQL configuration.
+  <Expandable title="Fields">
+    <ResponseField name="database.primary" type="string" required>
+      Primary MySQL DSN.
+    </ResponseField>
+    <ResponseField name="database.readonly_replica" type="string">
+      Optional read replica DSN.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="clickhouse" type="object">
+  ClickHouse configuration.
+  <Expandable title="Fields">
+    <ResponseField name="clickhouse.url" type="string">
+      ClickHouse connection string for shared analytics.
+    </ResponseField>
+    <ResponseField name="clickhouse.analytics_url" type="string">
+      Base URL for workspace-specific analytics connections.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tls" type="object">
+  TLS settings for HTTPS.
+  <Expandable title="Fields">
+    <ResponseField name="tls.disabled" type="bool">
+      Disable TLS when true.
+    </ResponseField>
+    <ResponseField name="tls.cert_file" type="string">
+      Path to TLS certificate.
+    </ResponseField>
+    <ResponseField name="tls.key_file" type="string">
+      Path to TLS key.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vault" type="object">
+  Vault connection.
+  <Expandable title="Fields">
+    <ResponseField name="vault.url" type="string">
+      Vault base URL.
+    </ResponseField>
+    <ResponseField name="vault.token" type="string">
+      Bearer token for Vault.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="gossip" type="object">
+  Gossip-based cache invalidation.
+  <Expandable title="Fields">
+    <ResponseField name="gossip.bind_addr" type="string" default="0.0.0.0">
+      Bind address for gossip.
+    </ResponseField>
+    <ResponseField name="gossip.lan_port" type="int" default="7946">
+      LAN gossip port.
+    </ResponseField>
+    <ResponseField name="gossip.wan_port" type="int" default="7947">
+      WAN gossip port.
+    </ResponseField>
+    <ResponseField name="gossip.lan_seeds" type="string[]">
+      LAN seed addresses.
+    </ResponseField>
+    <ResponseField name="gossip.wan_seeds" type="string[]">
+      WAN seed addresses.
+    </ResponseField>
+    <ResponseField name="gossip.secret_key" type="string" required>
+      Base64-encoded secret key for gossip encryption.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="control" type="object">
+  Control plane connection.
+  <Expandable title="Fields">
+    <ResponseField name="control.url" type="string" required>
+      Control API URL.
+    </ResponseField>
+    <ResponseField name="control.token" type="string" required>
+      Bearer token for control API.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="pprof" type="object">
+  pprof endpoint configuration.
+  <Expandable title="Fields">
+    <ResponseField name="pprof.username" type="string" required>
+      Basic auth username.
+    </ResponseField>
+    <ResponseField name="pprof.password" type="string" required>
+      Basic auth password.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="observability" type="object">
+  Tracing, logging, and metrics configuration.
+  <Expandable title="Fields">
+    <ResponseField name="observability.tracing.sample_rate" type="float" default="0.25">
+      Trace sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.sample_rate" type="float" default="1.0">
+      Log sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.slow_threshold" type="duration" default="1s">
+      Slow log threshold.
+    </ResponseField>
+    <ResponseField name="observability.metrics.prometheus_port" type="int" default="0">
+      Prometheus port for the `/metrics` listener. To disable metrics, omit the `observability.metrics` section.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Environment variables
+
+The Helm chart provides these variables for the default config template:
+
+<ResponseField name="UNKEY_REGION" type="env">
+  Region label for logs and traces.
+</ResponseField>
+
+<ResponseField name="UNKEY_REDIS_URL" type="env" required>
+  Redis URL for counters and usage limiting.
+</ResponseField>
+
+<ResponseField name="UNKEY_DATABASE_PRIMARY" type="env" required>
+  MySQL primary DSN.
+</ResponseField>
+
+<ResponseField name="UNKEY_DATABASE_REPLICA" type="env">
+  MySQL read replica DSN.
+</ResponseField>
+
+<ResponseField name="UNKEY_CLICKHOUSE_URL" type="env">
+  ClickHouse shared URL.
+</ResponseField>
+
+<ResponseField name="UNKEY_CLICKHOUSE_ANALYTICS_URL" type="env">
+  ClickHouse analytics base URL.
+</ResponseField>
+
+
+<ResponseField name="UNKEY_CTRL_URL" type="env" required>
+  Control API URL.
+</ResponseField>
+
+<ResponseField name="UNKEY_CTRL_TOKEN" type="env" required>
+  Control API token.
+</ResponseField>
+
+<ResponseField name="UNKEY_VAULT_URL" type="env">
+  Vault URL.
+</ResponseField>
+
+<ResponseField name="UNKEY_VAULT_TOKEN" type="env">
+  Vault bearer token.
+</ResponseField>
+
+<ResponseField name="UNKEY_PPROF_USERNAME" type="env">
+  pprof username.
+</ResponseField>
+
+<ResponseField name="UNKEY_PPROF_PASSWORD" type="env">
+  pprof password.
+</ResponseField>
+
+<ResponseField name="UNKEY_GOSSIP_WAN_SEEDS" type="env">
+  WAN seed list for gossip.
+</ResponseField>
+
+<ResponseField name="UNKEY_GOSSIP_SECRET_KEY" type="env" required>
+  Gossip secret key.
+</ResponseField>
+
+## Example configuration
+
+```toml
+instance_id = "${POD_NAME}"
+platform = "aws"
+http_port = 7070
+region = "${UNKEY_REGION}"
+redis_url = "${UNKEY_REDIS_URL}"
+
+[observability.tracing]
+sample_rate = 0.1
+
+[observability.logging]
+sample_rate = 0.01
+slow_threshold = "1s"
+
+[observability.metrics]
+prometheus_port = 2112
+
+[database]
+primary = "${UNKEY_DATABASE_PRIMARY}"
+readonly_replica = "${UNKEY_DATABASE_REPLICA}"
+
+[clickhouse]
+url = "${UNKEY_CLICKHOUSE_URL}"
+analytics_url = "${UNKEY_CLICKHOUSE_ANALYTICS_URL}"
+
+[control]
+url = "${UNKEY_CTRL_URL}"
+token = "${UNKEY_CTRL_TOKEN}"
+
+[vault]
+url = "${UNKEY_VAULT_URL}"
+token = "${UNKEY_VAULT_TOKEN}"
+
+[pprof]
+username = "${UNKEY_PPROF_USERNAME}"
+password = "${UNKEY_PPROF_PASSWORD}"
+
+[gossip]
+lan_port = 7946
+wan_port = 7947
+lan_seeds = ["unkey-api-gossip-lan"]
+wan_seeds = ["${UNKEY_GOSSIP_WAN_SEEDS}"]
+secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
+```
+
+## Related docs
+
+- [Overview](/architecture/services/api/overview)

@@ -1,0 +1,88 @@
+---
+title: "Authentication"
+description: "Authenticating with the Unkey API"
+---
+
+Most Unkey API endpoints require authentication using a root key. Root keys provide access to Unkey resources based on assigned permissions.
+
+## Bearer authentication
+
+Use the `Authorization` header:
+
+```bash
+Authorization: Bearer unkey_1234567890
+```
+
+Example:
+
+```bash
+curl -X POST "https://api.unkey.dev/v1/keys.createKey" \
+  -H "Authorization: Bearer unkey_1234567890" \
+  -H "Content-Type: application/json" \
+  -d '{ "apiId": "api_1234" }'
+```
+
+## Security best practices
+
+Never expose your root key in client-side code or public repositories. Use a backend server to proxy requests for frontend applications.
+
+## Root key management
+
+Manage root keys in the Unkey dashboard. Best practices:
+
+1. Use different keys for development, staging, and production.
+2. Rotate keys regularly.
+3. Use clear key names.
+
+## Key permissions system
+
+Permissions are tuples of:
+
+- ResourceType: category of resource (api, ratelimit, rbac, identity)
+- ResourceID: specific resource instance
+- Action: operation to perform
+
+### Available resource types
+
+| Resource type | Description |
+| --- | --- |
+| `api` | API resources such as endpoints and keys |
+| `ratelimit` | Rate limiting resources and configuration |
+| `rbac` | Permission and role management |
+| `identity` | User and identity management |
+
+### Permission examples
+
+Specific permission to manage a single API:
+
+```plaintext
+api.api_1234.read_api
+api.api_1234.update_api
+```
+
+Wildcard permission to manage all rate limit namespaces:
+
+```plaintext
+ratelimit.*.create_namespace
+ratelimit.*.read_namespace
+```
+
+## Authentication errors
+
+If authentication fails, you receive a 401 or 403 response:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123xyz789"
+  },
+  "error": {
+    "title": "Unauthorized",
+    "detail": "The provided root key is invalid or has been revoked",
+    "status": 401,
+    "type": "https://unkey.com/docs/errors/unauthorized"
+  }
+}
+```
+
+Common issues include missing headers, invalid key format, revoked keys, or insufficient permissions.

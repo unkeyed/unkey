@@ -1,0 +1,27 @@
+---
+title: "WorkOS"
+description: "Setting up WorkOS"
+---
+
+Unkey does not require WorkOS, but Unkey uses WorkOS for identity in production. Use these steps for local or preview setups.
+
+<Note>
+This is not a comprehensive production checklist.
+</Note>
+
+## Steps
+
+1. Log in to <a href="https://dashboard.workos.com" target="_blank">WorkOS</a>.
+2. Select the environment, typically `staging` for Unkey employees.
+3. Copy `WORKOS_CLIENT_ID` and `WORKOS_API_KEY` from <a href="https://dashboard.workos.com/get-started" target="_blank">get-started</a>.
+4. Configure `/apps/dashboard/.env`:
+
+```plaintext
+AUTH_PROVIDER="workos"
+NEXT_PUBLIC_WORKOS_REDIRECT_URI="http://localhost:3000/auth/sso-callback"
+WORKOS_COOKIE_PASSWORD=
+WORKOS_CLIENT_ID=
+WORKOS_API_KEY=
+```
+
+Generate a cookie password with `openssl rand -base64 64`.

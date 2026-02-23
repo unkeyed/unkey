@@ -1,0 +1,22 @@
+---
+title: "ClickHouse logging"
+description: "Request logging pipeline for sentinel"
+---
+
+The ClickHouse logging middleware records request and response metadata for proxy traffic. It relies on a shared tracking object that the proxy handler populates during request processing.
+
+## What gets logged
+
+When ClickHouse logging is enabled and a deployment and instance are resolved, sentinel writes a `schema.SentinelRequest` entry that includes:
+
+- Request and response metadata, including headers and bodies.
+- Deployment, instance, environment, and region identifiers.
+- Total, sentinel, and instance latency measurements.
+
+Authorization headers are redacted before the payload is stored.
+
+## When logging is skipped
+
+- The internal health route disables ClickHouse logging explicitly.
+- Requests without deployment or instance data are not logged.
+- Logging is disabled when ClickHouse is configured as a no-op backend.

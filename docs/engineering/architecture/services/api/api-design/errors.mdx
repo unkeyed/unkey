@@ -1,0 +1,100 @@
+---
+title: "Error handling"
+description: "Understanding and working with API errors"
+---
+
+Error responses use the same top-level envelope but return an `error` object instead of `data`:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123xyz789"
+  },
+  "error": {
+    "title": "Validation Error",
+    "detail": "You must provide a valid API ID.",
+    "status": 400,
+    "type": "https://unkey.com/docs/errors/validation-error",
+    "errors": [
+      {
+        "location": "body.apiId",
+        "message": "API not found",
+        "fix": "Provide a valid API ID or create a new API"
+      }
+    ]
+  }
+}
+```
+
+## Error format
+
+The format follows RFC7807 Problem Details inside the Unkey envelope:
+
+- title: short summary
+- detail: human-readable explanation
+- status: HTTP status code
+- type: URI for documentation
+- errors: optional validation details
+
+## Common error types
+
+| Status | Error type | Description |
+| --- | --- | --- |
+| 400 | validation-error | Request body failed validation |
+| 401 | unauthorized | Missing or invalid authorization |
+| 403 | forbidden | Valid authorization but insufficient permissions |
+| 404 | not-found | Resource not found |
+| 409 | conflict | Conflicts with current state |
+| 429 | rate-limited | Rate limit exceeded |
+| 500 | internal-server-error | Unexpected server error |
+
+## Validation errors
+
+For validation errors, Unkey returns:
+
+- location: where the error occurred
+- message: what went wrong
+- fix: suggestion for resolution when available
+
+## Error recovery
+
+Error messages are designed to be actionable. Use the `requestId` when reporting issues.
+
+## Error handling best practices
+
+1. Check status codes first.
+2. Parse the error object for details.
+3. Retry only on 5xx errors when appropriate.
+4. Log the full error response for debugging.
+
+Example handling in JavaScript:
+
+```javascript
+const response = await fetch("https://api.unkey.com/v2/keys.create", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${rootKey}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(keyData)
+});
+
+const data = await response.json();
+
+if (!response.ok) {
+  const { meta, error } = data;
+  console.error(`Error ${error.status}: ${error.title}`, {
+    requestId: meta.requestId,
+    detail: error.detail,
+    docs: error.type
+  });
+
+  if (error.errors) {
+    error.errors.forEach(err => {
+      console.error(`- ${err.location}: ${err.message}`);
+    });
+  }
+
+  throw new Error(`API Error: ${error.detail}`);
+}
+```

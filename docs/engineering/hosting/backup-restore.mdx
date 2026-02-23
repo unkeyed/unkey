@@ -1,0 +1,12 @@
+---
+title: "Backup and restore"
+description: "Backup strategy and recovery steps for hosted Unkey"
+---
+
+## Backup strategy
+
+Backups depend on the data stores you run. Unkey persists data in MySQL and ClickHouse, and Vault stores encrypted material in object storage. Use the native backup tooling for each system.
+
+## Restore procedure
+
+Restore the backing stores first, then restart or re-sync the service deployments so they reconnect with restored data.

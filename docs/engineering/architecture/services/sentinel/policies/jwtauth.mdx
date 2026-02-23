@@ -1,0 +1,22 @@
+---
+title: "JWTAuth"
+description: "JWT authentication policy"
+---
+
+JWTAuth validates Bearer JSON Web Tokens using JWKS or a public key and produces a principal on success. It centralizes token validation at the gateway.
+
+## Fields
+
+- `jwks_uri`, `oidc_issuer`, or `public_key_pem`: Token verification source.
+- `issuer`: Required `iss` claim value.
+- `audiences`: Allowed `aud` values.
+- `algorithms`: Allowed signing algorithms.
+- `subject_claim`: Claim used as the principal subject.
+- `forward_claims`: Claims copied into the principal.
+- `allow_anonymous`: Allow requests without a token.
+- `clock_skew_ms`: Clock skew tolerance for time-based claims.
+- `jwks_cache_ms`: JWKS cache duration.
+
+## Implementation status
+
+JWTAuth is defined in the policy schema but is not executed by the sentinel engine yet.

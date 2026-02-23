@@ -1,0 +1,37 @@
+---
+title: "Integration tests"
+description: "Testing components with real dependencies"
+---
+
+## When to use integration tests
+
+Use integration tests to cover behavior across service boundaries, real databases, caches, and storage. These tests catch failures that mocks miss.
+
+## Container patterns
+
+Use `pkg/dockertest` for isolated, per-test containers. Use shared containers only when startup cost is prohibitive, and ensure data cleanup between tests.
+
+```go
+redisURL := dockertest.Redis(t)
+```
+
+## Test harness
+
+Use `pkg/testutil` when you need a full service graph and seeded data:
+
+```go
+h := testutil.NewHarness(t)
+workspace := h.CreateWorkspace()
+```
+
+## Bazel sizing
+
+Integration tests that start containers must use `size = "large"`. Shared-container tests can use `size = "medium"`.
+
+## Debugging failures
+
+Use verbose output for failing tests:
+
+```bash
+bazel test //pkg/vault/integration:integration_test --test_output=all
+```

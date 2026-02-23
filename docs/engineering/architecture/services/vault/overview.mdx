@@ -1,0 +1,95 @@
+---
+title: "Overview"
+description: "Encryption key service backed by object storage"
+---
+
+Vault is Unkey's centralized encryption service. It owns data encryption keys (DEKs) and lets runtime services encrypt or decrypt sensitive payloads without embedding key material in application code or databases.
+
+The service stores encrypted DEKs in S3-compatible object storage and protects them with a master key encryption key (KEK). Vault is stateless aside from an in-memory cache, so durable key material lives outside the service and is loaded on demand.
+
+## Place in the stack
+
+Vault sits alongside the core control-plane services and is treated as shared infrastructure for encryption. Services call Vault when they need to encrypt secrets or decrypt stored values. This keeps key material out of MySQL, ClickHouse, and service binaries.
+
+Known runtime callers include the API service, frontline, krane, control worker workflows, and internal analytics. Vault is not exposed to end users and is accessed only by internal services over Connect RPC.
+
+## Responsibilities
+
+Vault is responsible for:
+
+- issuing and storing DEKs per keyring
+- encrypting and decrypting payloads with DEKs
+- validating encrypted payload structure before decryption
+- re-encrypting payloads on demand with the latest DEK
+- re-encrypting stored DEKs during master key rotation
+
+## RPC surface
+
+The service uses Connect RPC and exposes these methods:
+
+- `Liveness` returns `ok` and does not require authentication
+- `Encrypt` creates or reuses the latest DEK for a keyring and returns a base64-encoded `Encrypted` payload
+- `Decrypt` validates and decrypts a base64-encoded `Encrypted` payload
+- `ReEncrypt` decrypts a payload, clears the DEK cache, and re-encrypts with the latest DEK for the keyring
+
+`ReEncrypt` ignores the optional `key_id` field in the request and always uses the latest DEK.
+
+`Decrypt` validates the encrypted payload before attempting decryption. It enforces a 12-byte GCM nonce, a ciphertext length of at least 16 bytes, and a non-empty encryption key ID.
+
+## Key model
+
+Vault works with two key types defined in <a href="https://github.com/unkeyed/unkey/blob/main/svc/vault/proto/vault/v1/object.proto" target="_blank">`svc/vault/proto/vault/v1/object.proto`</a>:
+
+- `KeyEncryptionKey` (KEK), the master key used to encrypt DEKs
+- `DataEncryptionKey` (DEK), the per-keyring data key used for payload encryption
+
+Encrypted payloads use AES-256-GCM and are serialized into the `Encrypted` message, which includes the nonce, ciphertext, and the KEK or DEK identifier used for encryption.
+
+## Object layout
+
+Vault stores encrypted DEKs in an S3-compatible object store. Objects use a keyring prefix and the DEK ID.
+
+Object keys:
+
+```
+keyring/<ring_id>/<dek_id>
+keyring/<ring_id>/LATEST
+```
+
+`LATEST` stores the most recent DEK for a keyring and is updated on key creation.
+
+## Object format
+
+Stored object values are serialized `EncryptedDataEncryptionKey` protobuf messages from <a href="https://github.com/unkeyed/unkey/blob/main/svc/vault/proto/vault/v1/object.proto" target="_blank">`svc/vault/proto/vault/v1/object.proto`</a>.
+
+Decoded fields:
+
+- `id` and `created_at` from the DEK
+- `encrypted.algorithm` set to `AES_256_GCM`
+- `encrypted.nonce` and `encrypted.ciphertext` from the KEK encryption
+- `encrypted.encryption_key_id` set to the KEK identifier
+- `encrypted.time` set to the encryption timestamp in Unix milliseconds
+
+## Consistency and caching
+
+Vault reads from storage on cache miss and caches DEKs in memory. The cache keeps fresh entries for one hour, allows stale entries for 24 hours, and stores up to 10,000 DEKs per instance.
+
+If storage is eventually consistent, cache misses can return stale keys. The `LATEST` pointer is the source of truth for the newest DEK, so stale reads can temporarily select older keys.
+
+`ReEncrypt` clears the cache to ensure the latest DEK is fetched after key rotation.
+
+## Key rotation and re-encryption
+
+Vault accepts a current master key and an optional previous master key. Both are used for decryption, while new DEKs are always encrypted with the current master key.
+
+Vault can re-encrypt all stored DEKs by walking object storage and rewriting each `EncryptedDataEncryptionKey` with the current master key. This is implemented by `RollDeks` and `Keyring.RollKeys`, and it is not exposed as an RPC method.
+
+## High availability
+
+Vault is stateless aside from the in-memory cache and uses S3 as the system of record. This allows horizontal scaling with multiple replicas.
+
+HA considerations:
+
+- All replicas must share the same S3 bucket and master key.
+- Cache state is per-pod and can diverge. Cache TTLs bound staleness.
+- If a replica restarts, it repopulates cache on demand from S3.
