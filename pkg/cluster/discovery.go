@@ -14,6 +14,9 @@ func ResolveDNSSeeds(hosts []string, port int) []string {
 	var addrs []string
 
 	for _, host := range hosts {
+		if host == "" {
+			continue
+		}
 		ips, err := net.LookupHost(host)
 		if err != nil {
 			logger.Warn("Failed to resolve seed host", "host", host, "error", err)
