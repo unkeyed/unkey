@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package sentinel.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
+
+// JWTAuth validates Bearer JSON Web Tokens using JWKS (JSON Web Key Sets)
+// and produces a [Principal] on success.
+//
+// Without it, every upstream service must implement
+// its own token validation, duplicating JWKS fetching, signature verification,
+// claim validation, and key rotation logic. JWTAuth centralizes all of this
+// at the proxy layer.
+//
+// On successful validation, JWTAuth produces a [Principal] with type
+// PRINCIPAL_TYPE_JWT. The subject is extracted from a configurable token
+// claim (default "sub"), and selected claims are forwarded into
+// Principal.claims for use by downstream policies. This means a RateLimit
+// policy can throttle per-user or per-organization (via PrincipalClaimKey),
+// all without the upstream parsing the JWT itself.
+//
+// For common identity providers (Auth0, Clerk, Cognito, Okta), use the
+// oidc_issuer field instead of jwks_uri — sentinel auto-discovers the
+// JWKS endpoint via OpenID Connect discovery.
+message JWTAuth {
+  // The source of signing keys for token verification. Exactly one must
+  // be set.
+  oneof jwks_source {
+    // URI pointing to the JWKS endpoint that serves the signing keys, e.g.
+    // "https://example.com/.well-known/jwks.json". Sentinel fetches and
+    // caches these keys, using them to verify token signatures.
+    //
+    // Use this when you know the JWKS endpoint directly.
+    string jwks_uri = 1;
+
+    // OIDC issuer URL. Sentinel appends /.well-known/openid-configuration to
+    // discover the JWKS URI automatically. This is the preferred approach for
+    // OIDC-compliant providers because it also validates that the issuer claim
+    // matches the discovery document.
+    string oidc_issuer = 2;
+
+    // PEM-encoded public key for direct signature verification without a
+    // JWKS endpoint. Useful for self-signed JWTs or simple setups where
+    // key rotation is handled out-of-band and running a JWKS server is
+    // unnecessary overhead. Also eliminates the runtime network dependency
+    // on a JWKS endpoint.
+    //
+    // Must be a PEM-encoded RSA or EC public key (PKIX/X.509 format).
+    bytes public_key_pem = 11;
+  }
+
+  // Required issuer claim (iss). When set, tokens whose iss claim does not
+  // match this value are rejected. This prevents tokens issued by one
+  // provider from being accepted by a policy configured for another,
+  // which is a critical security boundary in multi-tenant systems.
+  string issuer = 3;
+
+  // Required audience claims (aud). The token must contain at least one of
+  // these values in its aud claim. Audience validation prevents tokens
+  // intended for one service from being used at another, which is especially
+  // important when multiple services share the same identity provider.
+  repeated string audiences = 4;
+
+  // Allowed signing algorithms, e.g. ["RS256", "ES256"]. Defaults to
+  // ["RS256"] if empty. Explicitly listing allowed algorithms is a security
+  // best practice that prevents algorithm confusion attacks, where an
+  // attacker crafts a token signed with an unexpected algorithm (like
+  // "none" or HS256 with a public key as the HMAC secret).
+  repeated string algorithms = 5;
+
+  // Which token claim to use as the [Principal] subject. Defaults to "sub"
+  // if empty. Override this when your identity provider uses a non-standard
+  // claim for the primary identity (e.g., "uid" for some Okta
+  // configurations, or "email" when you want email-based identity).
+  string subject_claim = 6;
+
+  // Additional token claims to extract into [Principal].claims. These become
+  // available to downstream policies — for example, forwarding "org_id"
+  // lets a RateLimit policy with a PrincipalClaimKey apply per-organization
+  // limits.
+  repeated string forward_claims = 7;
+
+  // When true, requests without a Bearer token are allowed through without
+  // authentication. No [Principal] is produced for anonymous requests. This
+  // enables endpoints that serve both public and authenticated content,
+  // where the upstream adjusts behavior based on whether identity headers
+  // are present.
+  bool allow_anonymous = 8;
+
+  // Maximum acceptable clock skew in milliseconds for exp (expiration) and
+  // nbf (not before) claim validation. Defaults to 0, meaning no skew
+  // tolerance. In distributed systems where clock synchronization is
+  // imperfect, a small skew tolerance (e.g., 5000ms) prevents valid tokens
+  // from being rejected due to minor clock differences between the token
+  // issuer and sentinel.
+  int64 clock_skew_ms = 9;
+
+  // How long to cache JWKS responses in milliseconds. Defaults to 3600000
+  // (1 hour). Sentinel refetches the JWKS when a token references a key ID
+  // not found in the cache, which handles key rotation gracefully. A longer
+  // cache duration reduces load on the JWKS endpoint but increases the time
+  // before revoked keys are detected.
+  int64 jwks_cache_ms = 10;
+}

@@ -4,33 +4,35 @@ import { ProjectContentWrapper } from "../../../components/project-content-wrapp
 import { useProjectData } from "../../data-provider";
 import { DeploymentDomainsSection } from "./(overview)/components/sections/deployment-domains-section";
 import { DeploymentInfoSection } from "./(overview)/components/sections/deployment-info-section";
-import { DeploymentLogsSection } from "./(overview)/components/sections/deployment-logs-section";
 import { DeploymentNetworkSection } from "./(overview)/components/sections/deployment-network-section";
+import { DeploymentProgressSection } from "./(overview)/components/sections/deployment-progress-section";
 import { useDeployment } from "./layout-provider";
 
 export default function DeploymentOverview() {
-  const { deploymentId } = useDeployment();
-  const { getDeploymentById, refetchDomains } = useProjectData();
-  const deployment = getDeploymentById(deploymentId);
+  const { deployment } = useDeployment();
+  const { refetchDomains } = useProjectData();
+
+  const ready = deployment.status === "ready";
 
   useEffect(() => {
-    if (deployment?.status === "ready") {
+    if (ready) {
       refetchDomains();
     }
-  }, [deployment, refetchDomains]);
+  }, [ready, refetchDomains]);
+
+  if (!ready) {
+    return (
+      <ProjectContentWrapper centered>
+        <DeploymentProgressSection />
+      </ProjectContentWrapper>
+    );
+  }
 
   return (
     <ProjectContentWrapper centered>
       <DeploymentInfoSection />
-
-      {deployment?.status === "ready" ? (
-        <>
-          <DeploymentDomainsSection />
-          <DeploymentNetworkSection />
-        </>
-      ) : (
-        <DeploymentLogsSection />
-      )}
+      <DeploymentDomainsSection />
+      <DeploymentNetworkSection />
     </ProjectContentWrapper>
   );
 }

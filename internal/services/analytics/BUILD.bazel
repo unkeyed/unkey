@@ -11,6 +11,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//gen/proto/vault/v1:vault",
+        "//gen/rpc/vault",
         "//internal/services/caches",
         "//pkg/assert",
         "//pkg/cache",
@@ -19,6 +20,5 @@ go_library(
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
-        "//pkg/vault",
     ],
 )

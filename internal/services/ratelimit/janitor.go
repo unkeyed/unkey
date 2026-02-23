@@ -3,7 +3,7 @@ package ratelimit
 import (
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
 

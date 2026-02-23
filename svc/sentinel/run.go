@@ -6,16 +6,26 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"time"
 
+	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/cluster"
+	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/sentinel/engine"
 	"github.com/unkeyed/unkey/svc/sentinel/routes"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
@@ -28,23 +38,25 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	if cfg.Observability.Logging != nil {
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
-	})
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 
 	clk := clock.New()
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "sentinel",
 			Version:         version.Version,
 			InstanceID:      cfg.SentinelID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -65,15 +77,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	if cfg.PrometheusPort > 0 {
+	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
 
-		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort))
 		if listenErr != nil {
-			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.Observability.Metrics.PrometheusPort, listenErr)
 		}
 
 		r.DeferCtx(prom.Shutdown)
@@ -87,8 +99,8 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -96,9 +108,9 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(database.Close)
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
-	if cfg.ClickhouseURL != "" {
+	if cfg.ClickHouse.URL != "" {
 		ch, err = clickhouse.New(clickhouse.Config{
-			URL: cfg.ClickhouseURL,
+			URL: cfg.ClickHouse.URL,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
@@ -106,15 +118,59 @@ func Run(ctx context.Context, cfg Config) error {
 		r.Defer(ch.Close)
 	}
 
+	// Initialize gossip-based cache invalidation
+	var broadcaster clustering.Broadcaster
+	if cfg.Gossip != nil {
+		logger.Info("Initializing gossip cluster for cache invalidation",
+			"region", cfg.Region,
+			"instanceID", cfg.SentinelID,
+		)
+
+		mux := cluster.NewMessageMux()
+
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
+
+		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Region:      cfg.Region,
+			NodeID:      cfg.SentinelID,
+			BindAddr:    cfg.Gossip.BindAddr,
+			BindPort:    cfg.Gossip.LANPort,
+			WANBindPort: cfg.Gossip.WANPort,
+			LANSeeds:    lanSeeds,
+			WANSeeds:    wanSeeds,
+			SecretKey:   nil, // Sentinel gossip is locked down via CiliumNetworkPolicy
+			OnMessage:   mux.OnMessage,
+		})
+		if clusterErr != nil {
+			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
+				"error", clusterErr,
+			)
+		} else {
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
+			broadcaster = gossipBroadcaster
+			r.Defer(gossipCluster.Close)
+		}
+	}
+
 	routerSvc, err := router.New(router.Config{
 		DB:            database,
 		Clock:         clk,
 		EnvironmentID: cfg.EnvironmentID,
 		Region:        cfg.Region,
+		Broadcaster:   broadcaster,
+		NodeID:        cfg.SentinelID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
 	}
+	r.Defer(routerSvc.Close)
+
+	// Initialize middleware engine for KeyAuth and other sentinel policies.
+	// If Redis is unavailable, sentinel continues without middleware evaluation
+	// (deployments are proxied as pass-through).
+	middlewareEngine := initMiddlewareEngine(cfg, database, ch, clk, r)
 
 	svcs := &routes.Services{
 		RouterService:      routerSvc,
@@ -125,6 +181,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:             cfg.Region,
 		ClickHouse:         ch,
 		MaxRequestBodySize: maxRequestBodySize,
+		Engine:             middlewareEngine,
 	}
 
 	srv, err := zen.New(zen.Config{
@@ -162,4 +219,76 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Sentinel server shut down successfully")
 	return nil
+}
+
+// initMiddlewareEngine creates the middleware engine backed by Redis.
+// Returns nil (pass-through mode) when Redis URL is empty or connection fails.
+func initMiddlewareEngine(cfg Config, database db.Database, ch clickhouse.ClickHouse, clk clock.Clock, r *runner.Runner) engine.Evaluator {
+	if cfg.Redis.URL == "" {
+		logger.Info("redis URL not configured, middleware engine disabled")
+		return nil
+	}
+
+	redisCounter, err := counter.NewRedis(counter.RedisConfig{
+		RedisURL: cfg.Redis.URL,
+	})
+	if err != nil {
+		logger.Error("failed to connect to redis, middleware engine disabled", "error", err)
+		return nil
+	}
+	r.Defer(redisCounter.Close)
+
+	rateLimiter, err := ratelimit.New(ratelimit.Config{
+		Clock:   clk,
+		Counter: redisCounter,
+	})
+	if err != nil {
+		logger.Error("failed to create rate limiter, middleware engine disabled", "error", err)
+		return nil
+	}
+	r.Defer(rateLimiter.Close)
+
+	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
+		DB:            database,
+		Counter:       redisCounter,
+		TTL:           60 * time.Second,
+		ReplayWorkers: 8,
+	})
+	if err != nil {
+		logger.Error("failed to create usage limiter, middleware engine disabled", "error", err)
+		return nil
+	}
+	r.Defer(usageLimiter.Close)
+
+	keyCache, err := cache.New[string, db.CachedKeyData](cache.Config[string, db.CachedKeyData]{
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
+		MaxSize:  100_000,
+		Resource: "sentinel_key_cache",
+		Clock:    clk,
+	})
+	if err != nil {
+		logger.Error("failed to create key cache, middleware engine disabled", "error", err)
+		return nil
+	}
+
+	keyService, err := keys.New(keys.Config{
+		DB:           database,
+		RateLimiter:  rateLimiter,
+		RBAC:         rbac.New(),
+		Clickhouse:   ch,
+		Region:       cfg.Region,
+		UsageLimiter: usageLimiter,
+		KeyCache:     keyCache,
+	})
+	if err != nil {
+		logger.Error("failed to create key service, middleware engine disabled", "error", err)
+		return nil
+	}
+
+	logger.Info("middleware engine initialized")
+	return engine.New(engine.Config{
+		KeyService: keyService,
+		Clock:      clk,
+	})
 }

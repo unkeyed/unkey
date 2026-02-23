@@ -36,6 +36,21 @@ type sentinelInternal struct {
 	InvalidConfiguration Code
 }
 
+// sentinelAuth defines errors related to sentinel authentication and authorization.
+type sentinelAuth struct {
+	// MissingCredentials represents a 401 error - no credentials found in request
+	MissingCredentials Code
+
+	// InvalidKey represents a 401 error - key not found, disabled, or expired
+	InvalidKey Code
+
+	// InsufficientPermissions represents a 403 error - key lacks required permissions
+	InsufficientPermissions Code
+
+	// RateLimited represents a 429 error - rate limit exceeded
+	RateLimited Code
+}
+
 // UnkeySentinelErrors defines all sentinel-related errors in the Unkey system.
 // These errors occur when the sentinel service has issues routing requests to instances.
 type UnkeySentinelErrors struct {
@@ -47,6 +62,9 @@ type UnkeySentinelErrors struct {
 
 	// Internal contains errors related to internal sentinel functionality.
 	Internal sentinelInternal
+
+	// Auth contains errors related to sentinel authentication and authorization.
+	Auth sentinelAuth
 }
 
 // Sentinel contains all predefined sentinel error codes.
@@ -67,5 +85,11 @@ var Sentinel = UnkeySentinelErrors{
 	Internal: sentinelInternal{
 		InternalServerError:  Code{SystemUnkey, CategoryInternalServerError, "internal_server_error"},
 		InvalidConfiguration: Code{SystemUnkey, CategoryInternalServerError, "invalid_configuration"},
+	},
+	Auth: sentinelAuth{
+		MissingCredentials:      Code{SystemSentinel, CategoryUnauthorized, "missing_credentials"},
+		InvalidKey:              Code{SystemSentinel, CategoryUnauthorized, "invalid_key"},
+		InsufficientPermissions: Code{SystemSentinel, CategoryForbidden, "insufficient_permissions"},
+		RateLimited:             Code{SystemSentinel, CategoryRateLimited, "rate_limited"},
 	},
 }

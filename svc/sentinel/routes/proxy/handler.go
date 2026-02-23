@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/sentinel/engine"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
 
@@ -26,6 +27,7 @@ type Handler struct {
 	SentinelID         string
 	Region             string
 	MaxRequestBodySize int64
+	Engine             engine.Evaluator
 }
 
 func (h *Handler) Method() string {
@@ -63,6 +65,30 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	instance, err := h.RouterService.SelectInstance(ctx, deploymentID)
 	if err != nil {
 		return err
+	}
+
+	// Always strip incoming X-Unkey-Principal header to prevent spoofing
+	req.Header.Del(engine.PrincipalHeader)
+
+	// Evaluate sentinel middleware policies
+	mw, err := engine.ParseMiddleware(deployment.SentinelConfig)
+	if err != nil {
+		return err
+	}
+	if mw != nil && h.Engine != nil {
+		result, evalErr := h.Engine.Evaluate(ctx, sess, req, mw)
+		if evalErr != nil {
+			return evalErr
+		}
+
+		if result.Principal != nil {
+			principalJSON, serErr := engine.SerializePrincipal(result.Principal)
+			if serErr != nil {
+				logger.Error("failed to serialize principal", "error", serErr)
+			} else {
+				req.Header.Set(engine.PrincipalHeader, principalJSON)
+			}
+		}
 	}
 
 	var requestBody []byte

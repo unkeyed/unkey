@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
+	sharedconfig "github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -23,7 +24,6 @@ type ApiConfig struct {
 	Nodes         int
 	MysqlDSN      string
 	ClickhouseDSN string
-	KafkaBrokers  []string
 }
 
 // ApiCluster represents a cluster of API containers
@@ -97,17 +97,11 @@ func New(t *testing.T, config Config) *Harness {
 
 	h.Seed.Seed(ctx)
 
-	// For docker DSN, use docker service name
-	clickhouseDockerDSN := "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true&dial_timeout=10s"
-
-	// Create dynamic API container cluster for chaos testing
-	kafkaBrokers := containers.Kafka(t)
-
+	// Create dynamic API container cluster
 	cluster := h.RunAPI(ApiConfig{
 		Nodes:         config.NumNodes,
 		MysqlDSN:      mysqlDockerDSN,
-		ClickhouseDSN: clickhouseDockerDSN,
-		KafkaBrokers:  kafkaBrokers,
+		ClickhouseDSN: clickhouseHostDSN,
 	})
 	h.apiCluster = cluster
 	h.instanceAddrs = cluster.Addrs
@@ -134,41 +128,57 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 
 		// Create API config for this node using host connections
 		mysqlHostCfg := containers.MySQL(h.t)
-		mysqlHostCfg.DBName = "unkey" // Set the database name
+		mysqlHostCfg.DBName = "unkey"
 		clickhouseHostDSN := containers.ClickHouse(h.t)
-		kafkaBrokers := containers.Kafka(h.t)
 		vaultURL, vaultToken := containers.Vault(h.t)
 		apiConfig := api.Config{
-			CacheInvalidationTopic:  "",
-			MaxRequestBodySize:      0,
-			HttpPort:                7070,
-			ChproxyToken:            "",
-			Platform:                "test",
-			Image:                   "test",
-			Listener:                ln,
-			DatabasePrimary:         mysqlHostCfg.FormatDSN(),
-			DatabaseReadonlyReplica: "",
-			ClickhouseURL:           clickhouseHostDSN,
-			ClickhouseAnalyticsURL:  "",
-			RedisUrl:                h.redisUrl,
-			Region:                  "test",
-			InstanceID:              fmt.Sprintf("test-node-%d", i),
-			Clock:                   clock.New(),
-			TestMode:                true,
-			OtelEnabled:             false,
-			OtelTraceSamplingRate:   0.0,
-			PrometheusPort:          0,
-			TLSConfig:               nil,
-			VaultURL:                vaultURL,
-			VaultToken:              vaultToken,
-			KafkaBrokers:            kafkaBrokers, // Use host brokers for test runner connections
-			PprofEnabled:            true,
-			PprofUsername:           "unkey",
-			PprofPassword:           "password",
-			CtrlURL:                 "http://ctrl:7091",
-			CtrlToken:               "your-local-dev-key",
-			LogSampleRate:           1.0,
-			LogSlowThreshold:        time.Second,
+			HttpPort:           7070,
+			Platform:           "test",
+			Image:              "test",
+			Listener:           ln,
+			RedisURL:           h.redisUrl,
+			Region:             "test",
+			InstanceID:         fmt.Sprintf("test-node-%d", i),
+			Clock:              clock.New(),
+			TestMode:           true,
+			TLSConfig:          nil,
+			MaxRequestBodySize: 0,
+			Database: sharedconfig.DatabaseConfig{
+				Primary:         mysqlHostCfg.FormatDSN(),
+				ReadonlyReplica: "",
+			},
+			ClickHouse: api.ClickHouseConfig{
+				URL:          clickhouseHostDSN,
+				AnalyticsURL: "",
+			},
+			Observability: sharedconfig.Observability{
+				Tracing: nil,
+				Logging: &sharedconfig.LoggingConfig{
+					SampleRate:    1.0,
+					SlowThreshold: time.Second,
+				},
+				Metrics: &sharedconfig.MetricsConfig{
+					PrometheusPort: 0,
+				},
+			},
+			TLS: sharedconfig.TLS{
+				Disabled: true,
+				CertFile: "",
+				KeyFile:  "",
+			},
+			Vault: sharedconfig.VaultConfig{
+				URL:   vaultURL,
+				Token: vaultToken,
+			},
+			Control: sharedconfig.ControlConfig{
+				URL:   "http://control:7091",
+				Token: "your-local-dev-key",
+			},
+			Pprof: &sharedconfig.PprofConfig{
+				Username: "unkey",
+				Password: "password",
+			},
+			Gossip: nil,
 		}
 
 		// Start API server in goroutine

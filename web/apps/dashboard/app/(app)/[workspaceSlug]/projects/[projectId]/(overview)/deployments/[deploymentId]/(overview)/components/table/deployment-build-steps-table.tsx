@@ -5,12 +5,14 @@ import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useState } from "react";
 import { BuildStepLogsExpanded } from "./build-step-logs-expanded";
-import { buildStepsColumns } from "./columns/build-steps";
-import { useDeploymentBuildStepsQuery } from "./hooks/use-deployment-build-steps-query";
+import { type BuildStepRow, buildStepsColumns } from "./columns/build-steps";
 import { getBuildStepRowClass } from "./utils/get-build-step-row-class";
 
-export const DeploymentBuildStepsTable = () => {
-  const { steps, isLoading } = useDeploymentBuildStepsQuery();
+type Props = {
+  steps: BuildStepRow[];
+};
+
+export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps }) => {
   const [expandedIds, setExpandedIds] = useState<Set<string | number>>(new Set());
 
   // Enrich steps with expansion state for chevron rendering
@@ -22,13 +24,13 @@ export const DeploymentBuildStepsTable = () => {
   return (
     <VirtualTable
       data={enrichedSteps}
-      isLoading={isLoading}
+      isLoading={steps.length === 0}
       columns={buildStepsColumns}
       keyExtractor={(step) => step.step_id}
       rowClassName={(step) => getBuildStepRowClass(step)}
-      fixedHeight={600}
       expandedIds={expandedIds}
       onExpandedChange={setExpandedIds}
+      fixedHeight={256}
       isExpandable={(step) => step.has_logs}
       renderExpanded={(step) => <BuildStepLogsExpanded step={step} />}
       emptyState={

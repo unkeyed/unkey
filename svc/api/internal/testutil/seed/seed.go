@@ -10,13 +10,13 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/vault"
 )
 
 // Resources contains the baseline entities created during [Seeder.Seed]. These
@@ -34,13 +34,13 @@ type Resources struct {
 type Seeder struct {
 	t         *testing.T
 	DB        db.Database
-	Vault     vault.Client
+	Vault     vault.VaultServiceClient
 	Resources Resources
 }
 
 // New creates a Seeder with the given database and vault service. Call [Seeder.Seed]
 // after creation to populate baseline data.
-func New(t *testing.T, database db.Database, vault vault.Client) *Seeder {
+func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Seeder {
 	return &Seeder{
 		t:         t,
 		DB:        database,
@@ -192,22 +192,17 @@ type CreateEnvironmentRequest struct {
 // CreateEnvironment creates an environment within a project. If SentinelConfig is
 // nil or empty, it defaults to "{}".
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
-	sentinelConfig := []byte("{}")
-	if len(req.SentinelConfig) > 0 {
-		sentinelConfig = req.SentinelConfig
-	}
 
 	now := time.Now().UnixMilli()
 
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
-		ID:             req.ID,
-		WorkspaceID:    req.WorkspaceID,
-		ProjectID:      req.ProjectID,
-		Slug:           req.Slug,
-		Description:    req.Description,
-		SentinelConfig: sentinelConfig,
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Int64: 0, Valid: false},
+		ID:          req.ID,
+		WorkspaceID: req.WorkspaceID,
+		ProjectID:   req.ProjectID,
+		Slug:        req.Slug,
+		Description: req.Description,
+		CreatedAt:   now,
+		UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 	})
 	require.NoError(s.t, err)
 
@@ -220,6 +215,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Command:        dbtype.StringSlice{},
 		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		RegionConfig:   dbtype.RegionConfig{},
+		SentinelConfig: []byte{},
 		ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
 		CreatedAt:      now,
 		UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
@@ -246,7 +242,6 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		ProjectID:        environment.ProjectID,
 		Slug:             environment.Slug,
 		Description:      req.Description,
-		SentinelConfig:   sentinelConfig,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},

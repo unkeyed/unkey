@@ -43,6 +43,7 @@ import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
 import { retryVerification } from "./deploy/custom-domains/retry";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
+import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
@@ -54,9 +55,19 @@ import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
+import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
+import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
 import { getEnvironmentSettings } from "./deploy/environment-settings/get";
-import { updateEnvironmentBuildSettings } from "./deploy/environment-settings/update-build";
-import { updateEnvironmentRuntimeSettings } from "./deploy/environment-settings/update-runtime";
+import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
+import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
+import { updateCommand } from "./deploy/environment-settings/runtime/update-command";
+import { updateCpu } from "./deploy/environment-settings/runtime/update-cpu";
+import { updateHealthcheck } from "./deploy/environment-settings/runtime/update-healthcheck";
+import { updateInstances } from "./deploy/environment-settings/runtime/update-instances";
+import { updateMemory } from "./deploy/environment-settings/runtime/update-memory";
+import { updatePort } from "./deploy/environment-settings/runtime/update-port";
+import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
+import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
@@ -394,8 +405,24 @@ export const router = t.router({
     }),
     environmentSettings: t.router({
       get: getEnvironmentSettings,
-      updateBuild: updateEnvironmentBuildSettings,
-      updateRuntime: updateEnvironmentRuntimeSettings,
+      getAvailableRegions,
+      getAvailableKeyspaces,
+      sentinel: t.router({
+        updateMiddleware,
+      }),
+      runtime: t.router({
+        updateCpu,
+        updateMemory,
+        updatePort,
+        updateCommand,
+        updateHealthcheck,
+        updateRegions,
+        updateInstances,
+      }),
+      build: t.router({
+        updateDockerfile,
+        updateDockerContext,
+      }),
     }),
     environment: t.router({
       list: listEnvironments,
@@ -419,6 +446,7 @@ export const router = t.router({
     deployment: t.router({
       list: listDeployments,
       buildSteps: getDeploymentBuildSteps,
+      steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
       rollback,

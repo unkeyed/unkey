@@ -12,10 +12,12 @@ go_library(
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//gen/proto/vault/v1/vaultv1connect",
+        "//gen/rpc/vault",
         "//pkg/assert",
         "//pkg/cache",
         "//pkg/clickhouse",
         "//pkg/clock",
+        "//pkg/config",
         "//pkg/db",
         "//pkg/healthcheck",
         "//pkg/logger",

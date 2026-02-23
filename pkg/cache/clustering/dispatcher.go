@@ -6,7 +6,7 @@ import (
 
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/eventstream"
+	"github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
 )
 
 // InvalidationHandler is an interface that cluster caches implement
@@ -16,38 +16,37 @@ type InvalidationHandler interface {
 	Name() string
 }
 
-// InvalidationDispatcher routes cache invalidation events from Kafka
-// to the appropriate cache instances within a single process.
+// InvalidationDispatcher routes cache invalidation events from the
+// broadcaster to the appropriate cache instances within a single process.
 //
 // In a distributed system, each process (server) has one dispatcher
-// that consumes invalidation events and routes them to all local caches
+// that receives invalidation events and routes them to all local caches
 // based on the cache name in the event.
 type InvalidationDispatcher struct {
-	mu       sync.RWMutex
-	handlers map[string]InvalidationHandler // keyed by cache name
-	consumer eventstream.Consumer[*cachev1.CacheInvalidationEvent]
+	mu          sync.RWMutex
+	handlers    map[string]InvalidationHandler // keyed by cache name
+	broadcaster Broadcaster
 }
 
 // NewInvalidationDispatcher creates a new dispatcher that routes invalidation
 // events to registered caches.
 //
-// Returns an error if topic is nil - use NewNoopDispatcher() if clustering is disabled.
-func NewInvalidationDispatcher(topic *eventstream.Topic[*cachev1.CacheInvalidationEvent]) (*InvalidationDispatcher, error) {
+// Returns an error if broadcaster is nil - use NewNoopDispatcher() if clustering is disabled.
+func NewInvalidationDispatcher(broadcaster Broadcaster) (*InvalidationDispatcher, error) {
 	err := assert.All(
-		assert.NotNil(topic, "topic is required for InvalidationDispatcher - use NewNoopDispatcher() if clustering is disabled"),
+		assert.NotNil(broadcaster, "broadcaster is required for InvalidationDispatcher - use NewNoopDispatcher() if clustering is disabled"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	d := &InvalidationDispatcher{
-		mu:       sync.RWMutex{},
-		consumer: nil,
-		handlers: make(map[string]InvalidationHandler),
+		mu:          sync.RWMutex{},
+		handlers:    make(map[string]InvalidationHandler),
+		broadcaster: broadcaster,
 	}
 
-	d.consumer = topic.NewConsumer()
-	d.consumer.Consume(context.Background(), d.handleEvent)
+	broadcaster.Subscribe(context.Background(), d.handleEvent)
 
 	return d, nil
 }
@@ -61,6 +60,8 @@ func (d *InvalidationDispatcher) handleEvent(ctx context.Context, event *cachev1
 
 	// If we don't have a handler for this cache, skip it
 	if !exists {
+		actionLabel := metrics.ActionLabel(event)
+		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(event.GetCacheName(), actionLabel, "skipped_unknown").Inc()
 		return nil
 	}
 
@@ -78,8 +79,8 @@ func (d *InvalidationDispatcher) Register(handler InvalidationHandler) {
 
 // Close stops the dispatcher and cleans up resources.
 func (d *InvalidationDispatcher) Close() error {
-	if d.consumer != nil {
-		return d.consumer.Close()
+	if d.broadcaster != nil {
+		return d.broadcaster.Close()
 	}
 	return nil
 }

@@ -2,7 +2,7 @@ package frontline
 
 import (
 	"context"
-	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -12,7 +12,11 @@ import (
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -20,9 +24,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	pkgtls "github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
 	"github.com/unkeyed/unkey/svc/frontline/services/caches"
 	"github.com/unkeyed/unkey/svc/frontline/services/certmanager"
@@ -41,33 +45,38 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	if cfg.Observability.Logging != nil {
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
-	})
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 
 	// Create cached clock with millisecond resolution for efficient time tracking
 	clk := clock.New()
 
 	// Initialize OTEL before creating logger so the logger picks up the OTLP handler
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "frontline",
 			Version:         version.Version,
-			InstanceID:      cfg.FrontlineID,
+			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
 		}
+		logger.Info("Grafana tracing initialized", "sampleRate", cfg.Observability.Tracing.SampleRate)
+	} else {
+		logger.Warn("Tracing not configured, skipping Grafana OTEL initialization")
 	}
 
 	// Configure global logger with base attributes
-	if cfg.FrontlineID != "" {
-		logger.AddBaseAttrs(slog.String("instanceID", cfg.FrontlineID))
+	if cfg.InstanceID != "" {
+		logger.AddBaseAttrs(slog.String("instanceID", cfg.InstanceID))
 	}
 
 	if cfg.Region != "" {
@@ -102,38 +111,90 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			return nil
 		})
+	} else {
+		logger.Warn("Prometheus not configured, skipping metrics server")
 	}
 
-	var vaultClient vaultv1connect.VaultServiceClient
-	if cfg.VaultURL != "" {
-		vaultClient = vaultv1connect.NewVaultServiceClient(
+	var vaultClient vault.VaultServiceClient
+	if cfg.Vault.URL != "" {
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 			http.DefaultClient,
-			cfg.VaultURL,
+			cfg.Vault.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": "Bearer " + cfg.VaultToken,
+				"Authorization": "Bearer " + cfg.Vault.Token,
 			})),
-		)
-		logger.Info("Vault client initialized", "url", cfg.VaultURL)
+		))
+		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	} else {
-		logger.Warn("Vault not configured - TLS certificate decryption will be unavailable")
+		logger.Warn("Vault not configured, dynamic TLS certificate decryption will be unavailable")
 	}
 
 	db, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
 	}
 	r.Defer(db.Close)
 
+	// Initialize gossip-based cache invalidation
+	var broadcaster clustering.Broadcaster
+	if cfg.Gossip != nil {
+		logger.Info("Gossip cluster configured, initializing cache invalidation",
+			"region", cfg.Region,
+			"instanceID", cfg.InstanceID,
+		)
+
+		mux := cluster.NewMessageMux()
+
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
+
+		var secretKey []byte
+		if cfg.Gossip.SecretKey != "" {
+			var decodeErr error
+			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
+			if decodeErr != nil {
+				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
+			}
+		}
+
+		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Region:      cfg.Region,
+			NodeID:      cfg.InstanceID,
+			BindAddr:    cfg.Gossip.BindAddr,
+			BindPort:    cfg.Gossip.LANPort,
+			WANBindPort: cfg.Gossip.WANPort,
+			LANSeeds:    lanSeeds,
+			WANSeeds:    wanSeeds,
+			SecretKey:   secretKey,
+			OnMessage:   mux.OnMessage,
+		})
+		if clusterErr != nil {
+			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
+				"error", clusterErr,
+			)
+		} else {
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
+			broadcaster = gossipBroadcaster
+			r.Defer(gossipCluster.Close)
+		}
+	} else {
+		logger.Warn("Gossip not configured, cache invalidation will be local only")
+	}
+
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
-		Clock: clk,
+		Clock:       clk,
+		Broadcaster: broadcaster,
+		NodeID:      cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
+	r.Defer(cache.Close)
 
 	// Initialize certificate manager for dynamic TLS
 	var certManager certmanager.Service
@@ -143,6 +204,9 @@ func Run(ctx context.Context, cfg Config) error {
 			TLSCertificateCache: cache.TLSCertificates,
 			Vault:               vaultClient,
 		})
+		logger.Info("Certificate manager initialized with vault-backed decryption")
+	} else {
+		logger.Warn("Certificate manager not initialized, vault client is nil")
 	}
 
 	// Initialize router service
@@ -159,60 +223,34 @@ func Run(ctx context.Context, cfg Config) error {
 	// Initialize proxy service with shared transport for connection pooling
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
-		FrontlineID: cfg.FrontlineID,
-		Region:      cfg.Region,
-		ApexDomain:  cfg.ApexDomain,
-		Clock:       clk,
-		MaxHops:     cfg.MaxHops,
+		InstanceID: cfg.InstanceID,
+		Region:     cfg.Region,
+		ApexDomain: cfg.ApexDomain,
+		Clock:      clk,
+		MaxHops:    cfg.MaxHops,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create proxy service: %w", err)
 	}
 
-	// Create TLS config - either from static files (dev mode) or dynamic certificates (production)
-	var tlsConfig *pkgtls.Config
-	if cfg.EnableTLS {
-		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
-			// Dev mode: static file-based certificate
-			fileTLSConfig, tlsErr := pkgtls.NewFromFiles(cfg.TLSCertFile, cfg.TLSKeyFile)
-			if tlsErr != nil {
-				return fmt.Errorf("failed to load TLS certificate from files: %w", tlsErr)
-			}
-			tlsConfig = fileTLSConfig
-			logger.Info("TLS configured with static certificate files",
-				"certFile", cfg.TLSCertFile,
-				"keyFile", cfg.TLSKeyFile)
-		} else if certManager != nil {
-			// Production mode: dynamic certificates from database/vault
-			//nolint:exhaustruct
-			tlsConfig = &tls.Config{
-				GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-					return certManager.GetCertificate(context.Background(), hello.ServerName)
-				},
-				MinVersion: tls.VersionTLS12,
-				// Enable session resumption for faster subsequent connections
-				// Session tickets allow clients to skip the full TLS handshake
-				SessionTicketsDisabled: false,
-				// Let Go's TLS implementation choose optimal cipher suites
-				// This prefers TLS 1.3 when available (1-RTT vs 2-RTT for TLS 1.2)
-				PreferServerCipherSuites: false,
-			}
-			logger.Info("TLS configured with dynamic certificate manager")
-		}
+	tlsConfig, err := buildTlsConfig(cfg, certManager)
+	if err != nil {
+		return fmt.Errorf("unable to build tls config: %w", err)
 	}
 
-	acmeClient := ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr)
+	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
 	svcs := &routes.Services{
-		Region:        cfg.Region,
-		RouterService: routerSvc,
-		ProxyService:  proxySvc,
-		Clock:         clk,
-		AcmeClient:    acmeClient,
+		Region:            cfg.Region,
+		RouterService:     routerSvc,
+		ProxyService:      proxySvc,
+		Clock:             clk,
+		AcmeClient:        acmeClient,
+		ErrorPageRenderer: errorpage.NewRenderer(),
 	}
 
 	// Start HTTPS frontline server (main proxy server)
-	if cfg.HttpsPort > 0 {
+	if cfg.HttpPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
 			TLS:                tlsConfig,
 			ReadTimeout:        0,
@@ -230,23 +268,28 @@ func Run(ctx context.Context, cfg Config) error {
 		// Register all frontline routes on HTTPS server
 		routes.Register(httpsSrv, svcs)
 
-		httpsListener, httpsListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpsPort))
+		httpsListener, httpsListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 		if httpsListenErr != nil {
 			return fmt.Errorf("unable to create HTTPS listener: %w", httpsListenErr)
 		}
 
 		r.Go(func(ctx context.Context) error {
-			logger.Info("HTTPS frontline server started", "addr", httpsListener.Addr().String())
+			logger.Info("HTTPS frontline server started",
+				"addr", httpsListener.Addr().String(),
+				"tlsEnabled", tlsConfig != nil,
+			)
 			serveErr := httpsSrv.Serve(ctx, httpsListener)
 			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
 				return fmt.Errorf("https server error: %w", serveErr)
 			}
 			return nil
 		})
+	} else {
+		logger.Warn("HTTPS server not configured, skipping", "httpsPort", cfg.HttpPort)
 	}
 
 	// Start HTTP challenge server (ACME only for Let's Encrypt)
-	if cfg.HttpPort > 0 {
+	if cfg.ChallengePort > 0 {
 		httpSrv, httpErr := zen.New(zen.Config{
 			TLS:                nil,
 			Flags:              nil,
@@ -264,7 +307,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// Register only ACME challenge routes on HTTP server
 		routes.RegisterChallengeServer(httpSrv, svcs)
 
-		httpListener, httpListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
+		httpListener, httpListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.ChallengePort))
 		if httpListenErr != nil {
 			return fmt.Errorf("unable to create HTTP listener: %w", httpListenErr)
 		}
@@ -277,6 +320,8 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			return nil
 		})
+	} else {
+		logger.Warn("HTTP challenge server not configured, ACME HTTP-01 challenges will not work", "challengePort", cfg.ChallengePort)
 	}
 
 	logger.Info("Frontline server initialized", "region", cfg.Region, "apexDomain", cfg.ApexDomain)

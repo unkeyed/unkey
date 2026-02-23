@@ -14,7 +14,7 @@ import (
 // The proxyStartTime pointer will be set by the caller when Director is invoked
 func (s *service) makeSentinelDirector(sess *zen.Session, deploymentID string, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
-		req.Header.Set(HeaderFrontlineID, s.frontlineID)
+		req.Header.Set(HeaderFrontlineID, s.instanceID)
 		req.Header.Set(HeaderRegion, s.region)
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
@@ -37,7 +37,7 @@ func (s *service) makeSentinelDirector(sess *zen.Session, deploymentID string, s
 // makeRegionDirector creates a Director function for forwarding to a remote region
 func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
-		req.Header.Set(HeaderFrontlineID, s.frontlineID)
+		req.Header.Set(HeaderFrontlineID, s.instanceID)
 		req.Header.Set(HeaderRegion, s.region)
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
@@ -55,7 +55,7 @@ func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) fun
 		req.Header.Set("Host", sess.Request().Host)
 
 		// Add parent tracking to trace the forwarding chain, might be useful for debugging
-		req.Header.Set(HeaderParentFrontlineID, s.frontlineID)
+		req.Header.Set(HeaderParentFrontlineID, s.instanceID)
 		req.Header.Set(HeaderParentRequestID, sess.RequestID())
 
 		// Parse and increment hop count to prevent infinite loops
