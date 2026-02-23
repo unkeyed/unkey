@@ -90,12 +90,6 @@ function SignInContent() {
             setError(result.message);
             setIsLoading(false);
             setIsAutoSelecting(false);
-
-            // If session expired, the pending auth was already cleared
-            // Just show the error and let user see org selector
-            if (result.code === AuthErrorCode.PENDING_SESSION_EXPIRED) {
-              // Session expired error already shown, user will see sign-in form
-            }
             return;
           }
           // On success, redirect to the dashboard
