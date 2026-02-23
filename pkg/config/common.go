@@ -94,6 +94,11 @@ type GossipConfig struct {
 	// WANSeeds are addresses of cross-region bridge nodes.
 	WANSeeds []string `toml:"wan_seeds"`
 
+	// WANAdvertiseAddr is the address advertised to remote WAN bridges.
+	// Set this to the region's NLB hostname so cross-region bridges route
+	// through the NLB instead of trying to reach pod IPs directly.
+	WANAdvertiseAddr string `toml:"wan_advertise_addr"`
+
 	// SecretKey is a base64-encoded AES-256 key for encrypting gossip traffic.
 	// All cluster nodes must share this key. Generate with: openssl rand -base64 32
 	SecretKey string `toml:"secret_key" config:"required,min=32,max=128"`
