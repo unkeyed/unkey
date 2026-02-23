@@ -32,14 +32,15 @@ type Service struct {
 var _ vaultv1connect.VaultServiceHandler = (*Service)(nil)
 
 type Config struct {
-	Storage     storage.Storage
-	MasterKeys  []string
-	BearerToken string
+	Storage           storage.Storage
+	MasterKey         string
+	PreviousMasterKey *string
+	BearerToken       string
 }
 
 func New(cfg Config) (*Service, error) {
 
-	encryptionKey, decryptionKeys, err := loadMasterKeys(cfg.MasterKeys)
+	encryptionKey, decryptionKeys, err := loadMasterKeys(cfg.MasterKey, cfg.PreviousMasterKey)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load master keys: %w", err)
 
@@ -76,31 +77,39 @@ func New(cfg Config) (*Service, error) {
 	}, nil
 }
 
-func loadMasterKeys(masterKeys []string) (*vaultv1.KeyEncryptionKey, map[string]*vaultv1.KeyEncryptionKey, error) {
-	if len(masterKeys) == 0 {
-		return nil, nil, fmt.Errorf("no master keys provided")
+func loadMasterKeys(masterKey string, previousMasterKey *string) (*vaultv1.KeyEncryptionKey, map[string]*vaultv1.KeyEncryptionKey, error) {
+	if masterKey == "" {
+		return nil, nil, fmt.Errorf("no master key provided")
 	}
-	encryptionKey := &vaultv1.KeyEncryptionKey{} // nolint:exhaustruct
 	decryptionKeys := make(map[string]*vaultv1.KeyEncryptionKey)
 
-	for i, mk := range masterKeys {
-		kek := &vaultv1.KeyEncryptionKey{} // nolint:exhaustruct
-		b, err := base64.StdEncoding.DecodeString(mk)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to decode master key: %w", err)
-		}
-
-		err = proto.Unmarshal(b, kek)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to unmarshal master key: %w", err)
-		}
-
-		decryptionKeys[kek.GetId()] = kek
-		if i == 0 {
-			// this way, the first key in the list is used for encryption
-			encryptionKey = kek
-		}
-
+	kek, err := parseMasterKey(masterKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse master key: %w", err)
 	}
-	return encryptionKey, decryptionKeys, nil
+	decryptionKeys[kek.GetId()] = kek
+
+	if previousMasterKey != nil && *previousMasterKey != "" {
+		oldKek, err := parseMasterKey(*previousMasterKey)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse previous master key: %w", err)
+		}
+		decryptionKeys[oldKek.GetId()] = oldKek
+	}
+
+	return kek, decryptionKeys, nil
+}
+
+func parseMasterKey(masterKey string) (*vaultv1.KeyEncryptionKey, error) {
+	kek := &vaultv1.KeyEncryptionKey{} // nolint:exhaustruct
+	b, err := base64.StdEncoding.DecodeString(masterKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode master key: %w", err)
+	}
+
+	err = proto.Unmarshal(b, kek)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal master key: %w", err)
+	}
+	return kek, nil
 }

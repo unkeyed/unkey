@@ -7,14 +7,15 @@ import type {
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { mapRegionToFlag } from "./utils";
 
 const healthStatusSchema = z.enum(["normal", "unhealthy", "health_syncing", "unknown", "disabled"]);
 
 const generatorConfigSchema = z.object({
-  regions: z.number().min(1).max(7),
-  instancesPerRegion: z.object({
-    min: z.number().min(1).max(20),
-    max: z.number().min(1).max(20),
+  sentinels: z.number().min(1).max(7),
+  instancesPerSentinel: z.object({
+    min: z.number().min(0).max(20),
+    max: z.number().min(0).max(20),
   }),
   healthDistribution: z.record(healthStatusSchema, z.number().min(0).max(100)).optional(),
   regionDirection: z.enum(["vertical", "horizontal"]).optional(),
@@ -42,15 +43,6 @@ export const generateDeploymentTree = workspaceProcedure
         "sa-east-1",
       ] as const;
 
-      const flags: Record<string, SentinelNode["metadata"]["flagCode"]> = {
-        "us-east-1": "us",
-        "eu-central-1": "de",
-        "ap-southeast-2": "au",
-        "ap-northeast-1": "jp",
-        "ap-south-1": "in",
-        "sa-east-1": "br",
-      };
-
       const getRandomHealth = (): HealthStatus => {
         if (input.healthDistribution) {
           const rand = Math.random() * 100;
@@ -68,7 +60,7 @@ export const generateDeploymentTree = workspaceProcedure
       const getRandomInt = (min: number, max: number) =>
         Math.floor(Math.random() * (max - min + 1)) + min;
 
-      const selectedRegions = regions.slice(0, input.regions);
+      const selectedRegions = regions.slice(0, input.sentinels);
 
       const tree: DeploymentNode = {
         id: "internet",
@@ -77,8 +69,8 @@ export const generateDeploymentTree = workspaceProcedure
         metadata: { type: "origin" },
         children: selectedRegions.map((regionId): SentinelNode => {
           const instanceCount = getRandomInt(
-            input.instancesPerRegion.min,
-            input.instancesPerRegion.max,
+            input.instancesPerSentinel.min,
+            input.instancesPerSentinel.max,
           );
           const totalInstances = getRandomInt(20, 40);
           const regionHealth = getRandomHealth();
@@ -89,14 +81,12 @@ export const generateDeploymentTree = workspaceProcedure
             direction: input.instanceDirection ?? "horizontal",
             metadata: {
               type: "sentinel",
-              flagCode: flags[regionId],
+              flagCode: mapRegionToFlag(regionId),
               instances: totalInstances,
               replicas: 2,
-              rps: getRandomInt(1000, 5000),
-              cpu: getRandomInt(30, 80),
-              memory: getRandomInt(40, 85),
-              storage: getRandomInt(512, 1024),
-              latency: `${(Math.random() * 5 + 1).toFixed(1)}ms`,
+              cpu: getRandomInt(200, 2000),
+              memory: getRandomInt(256, 2048),
+              latency: "—",
               health: regionHealth,
             },
             children: Array.from({ length: instanceCount }, (_, i): InstanceNode => {
@@ -109,10 +99,9 @@ export const generateDeploymentTree = workspaceProcedure
                   type: "instance",
                   description: "Instance replica",
                   replicas: 2,
-                  rps: getRandomInt(100, 500),
-                  cpu: getRandomInt(20, 70),
-                  memory: getRandomInt(30, 75),
-                  latency: `${(Math.random() * 8 + 2).toFixed(1)}ms`,
+                  cpu: getRandomInt(100, 1000),
+                  memory: getRandomInt(128, 1024),
+                  latency: "—",
                   health: getRandomHealth(),
                 },
               };

@@ -1,133 +1,136 @@
 package api
 
 import (
+	"fmt"
 	"net"
-	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/tls"
 )
 
-const (
-	// DefaultCacheInvalidationTopic is the default Kafka topic name for cache invalidation events
-	DefaultCacheInvalidationTopic = "cache-invalidations"
-)
+// ClickHouseConfig configures connections to ClickHouse for analytics storage.
+// All fields are optional; when URL is empty, a no-op analytics backend is used.
+type ClickHouseConfig struct {
+	// URL is the ClickHouse connection string for the shared analytics cluster.
+	// When empty, analytics writes are silently discarded.
+	// Example: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+	URL string `toml:"url"`
 
-type Config struct {
-	// InstanceID is the unique identifier for this instance of the API server
-	InstanceID string
-
-	// Platform identifies the cloud platform where the node is running (e.g., aws, gcp, hetzner)
-	Platform string
-
-	// Image specifies the container image identifier including repository and tag
-	Image string
-
-	// HttpPort defines the HTTP port for the API server to listen on (default: 7070)
-	// Used in production deployments. Ignored if Listener is provided.
-	HttpPort int
-
-	// Listener defines a pre-created network listener for the HTTP server
-	// If provided, the server will use this listener instead of creating one from HttpPort
-	// This is intended for testing scenarios where ephemeral ports are needed to avoid conflicts
-	Listener net.Listener
-
-	// Region identifies the geographic region where this node is deployed
-	Region string
-
-	// RedisUrl is the Redis database connection string
-	RedisUrl string
-
-	// Enable TestMode
-	TestMode bool
-
-	// --- ClickHouse configuration ---
-
-	// ClickhouseURL is the ClickHouse database connection string
-	ClickhouseURL string
-
-	// ClickhouseAnalyticsURL is the base URL for workspace-specific analytics connections
-	// Workspace credentials are injected programmatically at connection time
-	// Examples: "http://clickhouse:8123/default", "clickhouse://clickhouse:9000/default"
-	ClickhouseAnalyticsURL string
-
-	// --- Database configuration ---
-
-	// DatabasePrimary is the primary database connection string for read and write operations
-	DatabasePrimary string
-
-	// DatabaseReadonlyReplica is an optional read-replica database connection string for read operations
-	DatabaseReadonlyReplica string
-
-	// --- OpenTelemetry configuration ---
-
-	// Enable sending otel data to the  collector endpoint for metrics, traces, and logs
-	OtelEnabled           bool
-	OtelTraceSamplingRate float64
-
-	PrometheusPort int
-	Clock          clock.Clock
-
-	// --- TLS configuration ---
-
-	// TLSConfig provides HTTPS support when set
-	TLSConfig *tls.Config
-
-	// Vault Configuration
-	VaultURL   string
-	VaultToken string
-
-	// --- Kafka configuration ---
-
-	// KafkaBrokers is the list of Kafka broker addresses
-	KafkaBrokers []string
-
-	// CacheInvalidationTopic is the Kafka topic name for cache invalidation events
-	// If empty, defaults to DefaultCacheInvalidationTopic
-	CacheInvalidationTopic string
-
-	// --- ClickHouse proxy configuration ---
-
-	// ChproxyToken is the authentication token for ClickHouse proxy endpoints
-	ChproxyToken string
-
-	// --- CTRL service configuration ---
-
-	// CtrlURL is the CTRL service connection URL
-	CtrlURL string
-
-	// CtrlToken is the Bearer token for CTRL service authentication
-	CtrlToken string
-
-	// --- pprof configuration ---
-
-	// PprofEnabled controls whether the pprof profiling endpoints are available
-	PprofEnabled bool
-
-	// PprofUsername is the username for pprof Basic Auth
-	// If empty along with PprofPassword, pprof endpoints will be accessible without authentication
-	PprofUsername string
-
-	// PprofPassword is the password for pprof Basic Auth
-	// If empty along with PprofUsername, pprof endpoints will be accessible without authentication
-	PprofPassword string
-
-	// MaxRequestBodySize sets the maximum allowed request body size in bytes.
-	// If 0 or negative, no limit is enforced. Default is 0 (no limit).
-	// This helps prevent DoS attacks from excessively large request bodies.
-	MaxRequestBodySize int64
-
-	// --- Logging sampler configuration ---
-
-	// LogSampleRate is the baseline probability (0.0-1.0) of emitting log events.
-	LogSampleRate float64
-
-	// LogSlowThreshold defines what duration qualifies as "slow" for sampling.
-	LogSlowThreshold time.Duration
+	// AnalyticsURL is the base URL for workspace-specific analytics connections.
+	// Unlike URL, this endpoint receives per-workspace credentials injected at
+	// connection time by the analytics service. Only used when both this field
+	// and a [VaultConfig] are configured.
+	// Example: "http://clickhouse:8123/default"
+	AnalyticsURL string `toml:"analytics_url"`
 }
 
-func (c Config) Validate() error {
-	// TLS configuration is validated when it's created from files
-	// Other validations may be added here in the future
+// Config holds the complete configuration for the API server. It is designed to
+// be loaded from a TOML file using [config.Load]:
+//
+//	cfg, err := config.Load[api.Config]("/etc/unkey/api.toml")
+//
+// Environment variables are expanded in file values using ${VAR}
+// syntax before parsing. Struct tag defaults are applied to
+// any field left at its zero value after parsing, and validation runs
+// automatically via [Config.Validate].
+//
+// Three fields — Listener, Clock, and TLSConfig — are runtime-only and cannot
+// be set through a config file. They are tagged toml:"-" and must be set
+// programmatically after loading.
+type Config struct {
+	// InstanceID identifies this particular API server instance. Used in log
+	// attribution, Kafka consumer group membership, and cache invalidation
+	// messages so that a node can ignore its own broadcasts.
+	InstanceID string `toml:"instance_id"`
+
+	// Platform identifies the cloud platform where this node runs
+	// (e.g. "aws", "gcp", "hetzner", "kubernetes"). Appears in structured
+	// logs and metrics labels for filtering by infrastructure.
+	Platform string `toml:"platform"`
+
+	// Image is the container image identifier (e.g. "unkey/api:v1.2.3").
+	// Logged at startup for correlating deployments with behavior changes.
+	Image string `toml:"image"`
+
+	// HttpPort is the TCP port the API server binds to. Ignored when Listener
+	// is set, which is the case in test harnesses that use ephemeral ports.
+	HttpPort int `toml:"http_port" config:"default=7070,min=1,max=65535"`
+
+	// Region is the geographic region identifier (e.g. "us-east-1", "eu-west-1").
+	// Included in structured logs and used by the key service when recording
+	// which region served a verification request.
+	Region string `toml:"region" config:"default=unknown"`
+
+	// RedisURL is the connection string for the Redis instance backing
+	// distributed rate limiting counters and usage tracking.
+	// Example: "redis://redis:6379"
+	RedisURL string `toml:"redis_url" config:"required,nonempty"`
+
+	// TestMode relaxes certain security checks and trusts client-supplied
+	// headers that would normally be rejected. This exists for integration
+	// tests that need to inject specific request metadata.
+	// Do not enable in production.
+	TestMode bool `toml:"test_mode" config:"default=false"`
+
+	Observability config.Observability `toml:"observability"`
+
+	// MaxRequestBodySize caps incoming request bodies at this many bytes.
+	// The zen server rejects requests exceeding this limit with a 413 status.
+	// Set to 0 or negative to disable the limit. Defaults to 10 MiB.
+	MaxRequestBodySize int64 `toml:"max_request_body_size" config:"default=10485760"`
+
+	// Database configures MySQL connections. See [config.DatabaseConfig].
+	Database config.DatabaseConfig `toml:"database"`
+
+	// ClickHouse configures analytics storage. See [ClickHouseConfig].
+	ClickHouse ClickHouseConfig `toml:"clickhouse"`
+
+	// TLS provides filesystem paths for HTTPS certificate and key.
+	// See [config.TLSFiles].
+	TLS config.TLS `toml:"tls"`
+
+	// Vault configures the encryption/decryption service. See [config.VaultConfig].
+	Vault config.VaultConfig `toml:"vault"`
+
+	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
+	// When nil (section omitted), gossip is disabled and invalidation is local-only.
+	Gossip *config.GossipConfig `toml:"gossip"`
+
+	// Control configures the deployment management service. See [config.ControlConfig].
+	Control config.ControlConfig `toml:"control"`
+
+	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
+	// When nil (section omitted), pprof endpoints are not registered.
+	Pprof *config.PprofConfig `toml:"pprof"`
+
+	// Listener is a pre-created [net.Listener] for the HTTP server. When set,
+	// the server uses this listener instead of binding to HttpPort. This is
+	// intended for tests that need ephemeral ports to avoid conflicts.
+	Listener net.Listener `toml:"-"`
+
+	// Clock provides time operations and is injected for testability. Production
+	// callers set this to [clock.New]; tests can substitute a fake clock to
+	// control time progression.
+	Clock clock.Clock `toml:"-"`
+
+	// TLSConfig is the resolved [tls.Config] built from [TLSFiles.CertFile]
+	// and [TLSFiles.KeyFile] at startup. This field is populated by the CLI
+	// entrypoint after loading the config file and must not be set in TOML.
+	TLSConfig *tls.Config `toml:"-"`
+}
+
+// Validate checks cross-field constraints that cannot be expressed through
+// struct tags alone. It implements [config.Validator] so that [config.Load]
+// calls it automatically after tag-level validation.
+//
+// Currently validates that TLS certificate and key paths are either both
+// provided or both absent — setting only one is an error.
+func (c *Config) Validate() error {
+	certFile := c.TLS.CertFile
+	keyFile := c.TLS.KeyFile
+	if (certFile == "") != (keyFile == "") {
+		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided to enable HTTPS")
+	}
 	return nil
 }

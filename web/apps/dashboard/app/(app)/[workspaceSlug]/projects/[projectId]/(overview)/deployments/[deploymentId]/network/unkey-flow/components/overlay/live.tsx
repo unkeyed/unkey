@@ -11,7 +11,7 @@ export const LiveIndicator = () => {
         position={{ align: "center", side: "top", sideOffset: 5 }}
       >
         <div className="bg-base-12 flex items-center justify-between gap-2 cursor-pointer">
-          <StatusDot healthStatus="health_syncing" variant="relative" />
+          <StatusDot healthStatus="health_syncing" />
           <span className="text-accent-12 font-medium text-[13px]">Live</span>
         </div>
       </InfoTooltip>

@@ -150,6 +150,12 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	//EndDeploymentStep
+	//
+	//  UPDATE `deployment_steps`
+	//  SET ended_at = ?, error = ?
+	//  WHERE deployment_id = ? AND step = ?
+	EndDeploymentStep(ctx context.Context, db DBTX, arg EndDeploymentStepParams) error
 	//FindAcmeChallengeByToken
 	//
 	//  SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
@@ -287,7 +293,7 @@ type Querier interface {
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
-	//  SELECT pk, id, workspace_id, project_id, slug, description, sentinel_config, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE workspace_id = ?
 	//    AND project_id = ?
@@ -295,7 +301,7 @@ type Querier interface {
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
 	//FindEnvironmentRuntimeSettingsByEnvironmentId
 	//
-	//  SELECT pk, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, created_at, updated_at
+	//  SELECT pk, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, sentinel_config, created_at, updated_at
 	//  FROM environment_runtime_settings
 	//  WHERE environment_id = ?
 	FindEnvironmentRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentRuntimeSetting, error)
@@ -308,19 +314,12 @@ type Querier interface {
 	//FindEnvironmentWithSettingsByProjectIdAndSlug
 	//
 	//  SELECT
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.sentinel_config, e.delete_protection, e.created_at, e.updated_at,
-	//      bs.dockerfile,
-	//      bs.docker_context,
-	//      rs.port,
-	//      rs.cpu_millicores,
-	//      rs.memory_mib,
-	//      rs.command,
-	//      rs.shutdown_signal,
-	//      rs.healthcheck,
-	//      rs.region_config
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
+	//      ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
+	//      ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at
 	//  FROM environments e
-	//  INNER JOIN environment_build_settings bs ON bs.environment_id = e.id
-	//  INNER JOIN environment_runtime_settings rs ON rs.environment_id = e.id
+	//  INNER JOIN environment_build_settings ebs ON ebs.environment_id = e.id
+	//  INNER JOIN environment_runtime_settings ers ON ers.environment_id = e.id
 	//  WHERE e.workspace_id = ?
 	//    AND e.project_id = ?
 	//    AND e.slug = ?
@@ -1298,6 +1297,25 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error
+	//InsertDeploymentStep
+	//
+	//  INSERT INTO `deployment_steps` (
+	//      workspace_id,
+	//      project_id,
+	//      environment_id,
+	//      deployment_id,
+	//      step,
+	//      started_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
 	//InsertDeploymentTopology
 	//
 	//  INSERT INTO `deployment_topology` (
@@ -1327,10 +1345,9 @@ type Querier interface {
 	//      slug,
 	//      description,
 	//      created_at,
-	//      updated_at,
-	//      sentinel_config
+	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
 	//InsertFrontlineRoute
@@ -2091,7 +2108,7 @@ type Querier interface {
 	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT pk, id, workspace_id, project_id, slug, description, sentinel_config, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE slug = 'preview'
 	//  AND pk > ?
@@ -2412,13 +2429,6 @@ type Querier interface {
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
-	//UpdateDeploymentTopologyDesiredStatus updates the desired_status and version of a topology entry.
-	// A new version is required so that WatchDeployments picks up the change.
-	//
-	//  UPDATE `deployment_topology`
-	//  SET desired_status = ?, version = ?, updated_at = ?
-	//  WHERE deployment_id = ? AND region = ?
-	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
@@ -2437,6 +2447,13 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, db DBTX, arg UpdateDeploymentStatusParams) error
+	// UpdateDeploymentTopologyDesiredStatus updates the desired_status and version of a topology entry.
+	// A new version is required so that WatchDeployments picks up the change.
+	//
+	//  UPDATE `deployment_topology`
+	//  SET desired_status = ?, version = ?, updated_at = ?
+	//  WHERE deployment_id = ? AND region = ?
+	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateFrontlineRouteDeploymentId
 	//
 	//  UPDATE frontline_routes
@@ -2611,9 +2628,8 @@ type Querier interface {
 	//      workspace_id,
 	//      project_id,
 	//      slug,
-	//      sentinel_config,
 	//      created_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?)
+	//  ) VALUES (?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
 	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
 	//UpsertEnvironmentBuildSettings
@@ -2643,9 +2659,10 @@ type Querier interface {
 	//      healthcheck,
 	//      region_config,
 	//      shutdown_signal,
+	//      sentinel_config,
 	//      created_at,
 	//      updated_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      port = VALUES(port),
 	//      cpu_millicores = VALUES(cpu_millicores),
@@ -2654,6 +2671,7 @@ type Querier interface {
 	//      healthcheck = VALUES(healthcheck),
 	//      region_config = VALUES(region_config),
 	//      shutdown_signal = VALUES(shutdown_signal),
+	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
 	UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentRuntimeSettingsParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.

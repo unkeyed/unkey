@@ -353,7 +353,7 @@ importers:
         specifier: 0.34.3
         version: 0.34.3
     devDependencies:
-      mintlify:
+      mint:
         specifier: 4.2.314
         version: 4.2.314(@radix-ui/react-popover@1.1.15)(@types/node@25.0.10)(@types/react@19.2.4)(react-dom@18.3.1)(typescript@5.9.3)
 
@@ -480,7 +480,7 @@ importers:
     devDependencies:
       checkly:
         specifier: latest
-        version: 6.9.8(@types/node@25.0.10)(typescript@5.5.3)
+        version: 6.9.3(@types/node@25.0.10)(typescript@5.5.3)
       ts-node:
         specifier: 10.9.1
         version: 10.9.1(@types/node@25.0.10)(typescript@5.5.3)
@@ -794,6 +794,9 @@ importers:
       '@radix-ui/react-separator':
         specifier: 1.1.8
         version: 1.1.8(@types/react-dom@19.2.3)(@types/react@19.2.4)(react-dom@19.2.3)(react@19.2.3)
+      '@radix-ui/react-slider':
+        specifier: ^1.3.6
+        version: 1.3.6(@types/react-dom@19.2.3)(@types/react@19.2.4)(react-dom@19.2.3)(react@19.2.3)
       '@radix-ui/react-slot':
         specifier: 1.2.4
         version: 1.2.4(@types/react@19.2.4)(react@19.2.3)
@@ -8728,6 +8731,36 @@ packages:
       react-dom: 19.2.3(react@19.2.3)
     dev: false
 
+  /@radix-ui/react-slider@1.3.6(@types/react-dom@19.2.3)(@types/react@19.2.4)(react-dom@19.2.3)(react@19.2.3):
+    resolution: {integrity: sha512-JPYb1GuM1bxfjMRlNLE+BcmBC8onfCi60Blk7OBqi2MLTFdS+8401U4uFjnwkOr49BLmXxLC6JHkvAsx5OJvHw==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+    dependencies:
+      '@radix-ui/number': 1.1.1
+      '@radix-ui/primitive': 1.1.3
+      '@radix-ui/react-collection': 1.1.7(@types/react-dom@19.2.3)(@types/react@19.2.4)(react-dom@19.2.3)(react@19.2.3)
+      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.4)(react@19.2.3)
+      '@radix-ui/react-context': 1.1.2(@types/react@19.2.4)(react@19.2.3)
+      '@radix-ui/react-direction': 1.1.1(@types/react@19.2.4)(react@19.2.3)
+      '@radix-ui/react-primitive': 2.1.3(@types/react-dom@19.2.3)(@types/react@19.2.4)(react-dom@19.2.3)(react@19.2.3)
+      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.4)(react@19.2.3)
+      '@radix-ui/react-use-layout-effect': 1.1.1(@types/react@19.2.4)(react@19.2.3)
+      '@radix-ui/react-use-previous': 1.1.1(@types/react@19.2.4)(react@19.2.3)
+      '@radix-ui/react-use-size': 1.1.1(@types/react@19.2.4)(react@19.2.3)
+      '@types/react': 19.2.4
+      '@types/react-dom': 19.2.3(@types/react@19.2.4)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+    dev: false
+
   /@radix-ui/react-slot@1.0.2(@types/react@19.2.4)(react@19.2.4):
     resolution: {integrity: sha512-YeTpuq4deV+6DusvVUW4ivBgnkHwECUu0BiN43L5UCDFgdhsRUWAghhTF5MbvNTPzmiFOx90asDSUjWuCNapwg==}
     peerDependencies:
@@ -11203,6 +11236,12 @@ packages:
     dependencies:
       '@types/estree': 1.0.8
 
+  /@types/archiver@6.0.3:
+    resolution: {integrity: sha512-a6wUll6k3zX6qs5KlxIggs1P1JcYJaTCx2gnlr+f0S1yd2DoaEwoIK10HmBaLnZwWneBz+JBm0dwcZu0zECBcQ==}
+    dependencies:
+      '@types/readdir-glob': 1.1.5
+    dev: true
+
   /@types/aria-query@5.0.4:
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}
     dev: true
@@ -11673,6 +11712,12 @@ packages:
 
   /@types/readable-stream@4.0.23:
     resolution: {integrity: sha512-wwXrtQvbMHxCbBgjHaMGEmImFTQxxpfMOR/ZoQnXxB1woqkUbdLGFDgauo00Py9IudiaqSeiBiulSV9i6XIPig==}
+    dependencies:
+      '@types/node': 25.0.10
+    dev: true
+
+  /@types/readdir-glob@1.1.5:
+    resolution: {integrity: sha512-raiuEPUYqXu+nvtY2Pe8s8FEmZ3x5yAH4VkLdihcPdalvsHltomrRC9BzuStrJ9yk06470hS0Crw0f1pXqD+Hg==}
     dependencies:
       '@types/node': 25.0.10
     dev: true
@@ -13558,8 +13603,8 @@ packages:
     engines: {node: '>= 16'}
     dev: true
 
-  /checkly@6.9.8(@types/node@25.0.10)(typescript@5.5.3):
-    resolution: {integrity: sha512-7CzBfjp7kVx9Rh+K6a8DLUSsIT84yV8uicZYRjxbGsETdpnawYOopt5RkfxCV73eClECAJoGIHlRrMt9dDSb5A==}
+  /checkly@6.9.3(@types/node@25.0.10)(typescript@5.5.3):
+    resolution: {integrity: sha512-bHK7wD0vvtMKspmicVvLqqGavd7MoGwNzUIQmAX8Dbt5AHuquOsOsna6BnR8xUX/b/+Q9KWiBiZ+YIhrQQ5Plg==}
     engines: {node: ^18.19.0 || >=20.5.0}
     hasBin: true
     peerDependencies:
@@ -13573,6 +13618,7 @@ packages:
       '@oclif/plugin-not-found': 3.2.74(@types/node@25.0.10)
       '@oclif/plugin-plugins': 5.4.56
       '@oclif/plugin-warn-if-update-available': 3.1.55
+      '@types/archiver': 6.0.3
       '@typescript-eslint/typescript-estree': 8.53.1(typescript@5.5.3)
       acorn: 8.15.0
       acorn-walk: 8.3.4
@@ -19785,8 +19831,8 @@ packages:
       minipass: 7.1.2
     dev: true
 
-  /mintlify@4.2.314(@radix-ui/react-popover@1.1.15)(@types/node@25.0.10)(@types/react@19.2.4)(react-dom@18.3.1)(typescript@5.9.3):
-    resolution: {integrity: sha512-G7KSCSkPyNq377ooSSQomggCDWsDoEeG+SyB1K2eKW5sH0SnSKyaCdPYxMLJF05+lGgYGSmPJ3mGqgqQC64/Rg==}
+  /mint@4.2.314(@radix-ui/react-popover@1.1.15)(@types/node@25.0.10)(@types/react@19.2.4)(react-dom@18.3.1)(typescript@5.9.3):
+    resolution: {integrity: sha512-MNNBneM7Pc9yBHUdWh7JLJlpU8OwVcCdt8uRSQSkz6OQv1UAKmwKgrPTRZpMT//HAHxnugu49znNAr7vl+NoLw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     dependencies:

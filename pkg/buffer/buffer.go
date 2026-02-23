@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
+	"github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
 

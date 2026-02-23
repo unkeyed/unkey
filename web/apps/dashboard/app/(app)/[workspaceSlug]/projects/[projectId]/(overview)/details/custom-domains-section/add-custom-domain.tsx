@@ -1,5 +1,5 @@
 "use client";
-import { collection } from "@/lib/collections";
+import { type CustomDomain, collection } from "@/lib/collections";
 import { cn } from "@/lib/utils";
 import {
   Button,
@@ -12,7 +12,6 @@ import {
 } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { useProjectData } from "../../data-provider";
-import type { CustomDomain } from "./types";
 
 // Basic domain validation regex
 const DOMAIN_REGEX = /^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}$/;

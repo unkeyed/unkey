@@ -354,7 +354,6 @@ CREATE TABLE `environments` (
 	`project_id` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`description` varchar(255) NOT NULL DEFAULT '',
-	`sentinel_config` longblob NOT NULL,
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -403,6 +402,7 @@ CREATE TABLE `environment_runtime_settings` (
 	`healthcheck` json,
 	`region_config` json NOT NULL DEFAULT ('{}'),
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
+	`sentinel_config` longblob NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `environment_runtime_settings_pk` PRIMARY KEY(`pk`),
@@ -477,6 +477,20 @@ CREATE TABLE `deployments` (
 	CONSTRAINT `deployments_id_unique` UNIQUE(`id`),
 	CONSTRAINT `deployments_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `deployments_build_id_unique` UNIQUE(`build_id`)
+);
+
+CREATE TABLE `deployment_steps` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(128) NOT NULL,
+	`project_id` varchar(128) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`deployment_id` varchar(128) NOT NULL,
+	`step` enum('queued','building','deploying','network') NOT NULL DEFAULT 'queued',
+	`started_at` bigint unsigned NOT NULL,
+	`ended_at` bigint unsigned,
+	`error` varchar(512),
+	CONSTRAINT `deployment_steps_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `unique_step_per_deployment` UNIQUE(`deployment_id`,`step`)
 );
 
 CREATE TABLE `deployment_topology` (
@@ -682,6 +696,8 @@ CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
+CREATE INDEX `workspace_idx` ON `deployment_steps` (`workspace_id`);
+CREATE INDEX `deployment_idx` ON `deployment_steps` (`deployment_id`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);

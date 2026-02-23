@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "errorpage",
+    srcs = [
+        "doc.go",
+        "errorpage.go",
+        "interface.go",
+    ],
+    embedsrcs = ["error.go.tmpl"],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/internal/errorpage",
+    visibility = ["//svc/frontline:__subpackages__"],
+)

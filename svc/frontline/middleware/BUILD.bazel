@@ -11,6 +11,7 @@ go_library(
         "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/zen",
+        "//svc/frontline/internal/errorpage",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promauto",
         "@io_opentelemetry_go_otel//attribute",

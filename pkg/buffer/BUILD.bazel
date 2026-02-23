@@ -9,7 +9,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/buffer",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/prometheus/metrics",
+        "//pkg/buffer/metrics",
         "//pkg/repeat",
     ],
 )
