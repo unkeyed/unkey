@@ -21,7 +21,7 @@ func TestDecryptBulk_Roundtrip(t *testing.T) {
 	}
 
 	// Encrypt each individually first
-	encrypted := make(map[string]*vaultv1.DecryptBulkRequestItem, len(plaintexts))
+	encrypted := make(map[string]string, len(plaintexts))
 	for id, data := range plaintexts {
 		encReq := connect.NewRequest(&vaultv1.EncryptRequest{
 			Keyring: "test-keyring",
@@ -31,9 +31,7 @@ func TestDecryptBulk_Roundtrip(t *testing.T) {
 
 		encRes, err := service.Encrypt(ctx, encReq)
 		require.NoError(t, err)
-		encrypted[id] = &vaultv1.DecryptBulkRequestItem{
-			Encrypted: encRes.Msg.GetEncrypted(),
-		}
+		encrypted[id] = encRes.Msg.GetEncrypted()
 	}
 
 	// Decrypt in bulk
@@ -49,9 +47,9 @@ func TestDecryptBulk_Roundtrip(t *testing.T) {
 
 	// Verify all plaintexts match
 	for id, expected := range plaintexts {
-		item, ok := decRes.Msg.GetItems()[id]
+		actual, ok := decRes.Msg.GetItems()[id]
 		require.True(t, ok, "missing response key: %s", id)
-		require.Equal(t, expected, item.GetPlaintext())
+		require.Equal(t, expected, actual)
 	}
 }
 
@@ -61,7 +59,7 @@ func TestDecryptBulk_EmptyItems(t *testing.T) {
 
 	req := connect.NewRequest(&vaultv1.DecryptBulkRequest{
 		Keyring: "test-keyring",
-		Items:   map[string]*vaultv1.DecryptBulkRequestItem{},
+		Items:   map[string]string{},
 	})
 	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
@@ -77,9 +75,9 @@ func TestDecryptBulk_ResponseKeysMatchRequestKeys(t *testing.T) {
 	// Encrypt via bulk
 	encReq := connect.NewRequest(&vaultv1.EncryptBulkRequest{
 		Keyring: "test-keyring",
-		Items: map[string]*vaultv1.EncryptBulkRequestItem{
-			"alpha": {Data: "data-a"},
-			"beta":  {Data: "data-b"},
+		Items: map[string]string{
+			"alpha": "data-a",
+			"beta":  "data-b",
 		},
 	})
 	encReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
@@ -88,11 +86,9 @@ func TestDecryptBulk_ResponseKeysMatchRequestKeys(t *testing.T) {
 	require.NoError(t, err)
 
 	// Build decrypt request with same keys
-	decItems := make(map[string]*vaultv1.DecryptBulkRequestItem, len(encRes.Msg.GetItems()))
+	decItems := make(map[string]string, len(encRes.Msg.GetItems()))
 	for id, item := range encRes.Msg.GetItems() {
-		decItems[id] = &vaultv1.DecryptBulkRequestItem{
-			Encrypted: item.GetEncrypted(),
-		}
+		decItems[id] = item.GetEncrypted()
 	}
 
 	decReq := connect.NewRequest(&vaultv1.DecryptBulkRequest{
@@ -118,9 +114,7 @@ func TestDecryptBulk_WithoutAuth(t *testing.T) {
 
 	req := connect.NewRequest(&vaultv1.DecryptBulkRequest{
 		Keyring: "test-keyring",
-		Items: map[string]*vaultv1.DecryptBulkRequestItem{
-			"key-1": {Encrypted: "some-data"},
-		},
+		Items:   map[string]string{"key-1": "some-data"},
 	})
 
 	_, err := service.DecryptBulk(ctx, req)
@@ -134,9 +128,7 @@ func TestDecryptBulk_WithInvalidAuth(t *testing.T) {
 
 	req := connect.NewRequest(&vaultv1.DecryptBulkRequest{
 		Keyring: "test-keyring",
-		Items: map[string]*vaultv1.DecryptBulkRequestItem{
-			"key-1": {Encrypted: "some-data"},
-		},
+		Items:   map[string]string{"key-1": "some-data"},
 	})
 	req.Header().Set("Authorization", "Bearer wrong-token")
 
@@ -151,9 +143,7 @@ func TestDecryptBulk_WithInvalidScheme(t *testing.T) {
 
 	req := connect.NewRequest(&vaultv1.DecryptBulkRequest{
 		Keyring: "test-keyring",
-		Items: map[string]*vaultv1.DecryptBulkRequestItem{
-			"key-1": {Encrypted: "some-data"},
-		},
+		Items:   map[string]string{"key-1": "some-data"},
 	})
 	req.Header().Set("Authorization", "Basic test-token")
 

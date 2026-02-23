@@ -235,12 +235,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Handle decryption if requested
 	plaintextMap := make(map[string]string)
 	if req.Decrypt != nil && *req.Decrypt {
-		bulkItems := make(map[string]*vaultv1.DecryptBulkRequestItem, len(keyResults))
+		bulkItems := make(map[string]string, len(keyResults))
 		for _, key := range keyResults {
 			if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
-				bulkItems[key.ID] = &vaultv1.DecryptBulkRequestItem{
-					Encrypted: key.EncryptedKey.String,
-				}
+				bulkItems[key.ID] = key.EncryptedKey.String
 			}
 		}
 		if len(bulkItems) > 0 {
@@ -253,8 +251,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					"error", bulkErr,
 				)
 			} else {
-				for id, item := range bulkRes.GetItems() {
-					plaintextMap[id] = item.GetPlaintext()
+				for id, plaintext := range bulkRes.GetItems() {
+					plaintextMap[id] = plaintext
 				}
 			}
 		}

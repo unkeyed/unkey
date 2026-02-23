@@ -26,10 +26,10 @@ func (s *Service) EncryptBulk(
 	)
 
 	responseItems := make(map[string]*vaultv1.EncryptBulkResponseItem, len(req.Msg.GetItems()))
-	for id, item := range req.Msg.GetItems() {
+	for id, data := range req.Msg.GetItems() {
 		res, err := s.encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: req.Msg.GetKeyring(),
-			Data:    item.GetData(),
+			Data:    data,
 		})
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to encrypt item %s: %w", id, err))

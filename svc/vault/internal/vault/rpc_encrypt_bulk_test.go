@@ -14,10 +14,10 @@ func TestEncryptBulk_Roundtrip(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 
-	items := map[string]*vaultv1.EncryptBulkRequestItem{
-		"key-1": {Data: "secret one"},
-		"key-2": {Data: "secret two"},
-		"key-3": {Data: "secret three"},
+	items := map[string]string{
+		"key-1": "secret one",
+		"key-2": "secret two",
+		"key-3": "secret three",
 	}
 
 	encReq := connect.NewRequest(&vaultv1.EncryptBulkRequest{
@@ -48,7 +48,7 @@ func TestEncryptBulk_Roundtrip(t *testing.T) {
 
 		decRes, err := service.Decrypt(ctx, decReq)
 		require.NoError(t, err)
-		require.Equal(t, original.GetData(), decRes.Msg.GetPlaintext())
+		require.Equal(t, original, decRes.Msg.GetPlaintext())
 	}
 }
 
@@ -58,7 +58,7 @@ func TestEncryptBulk_EmptyItems(t *testing.T) {
 
 	req := connect.NewRequest(&vaultv1.EncryptBulkRequest{
 		Keyring: "test-keyring",
-		Items:   map[string]*vaultv1.EncryptBulkRequestItem{},
+		Items:   map[string]string{},
 	})
 	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
@@ -73,9 +73,7 @@ func TestEncryptBulk_WithoutAuth(t *testing.T) {
 
 	req := connect.NewRequest(&vaultv1.EncryptBulkRequest{
 		Keyring: "test-keyring",
-		Items: map[string]*vaultv1.EncryptBulkRequestItem{
-			"key-1": {Data: "secret"},
-		},
+		Items:   map[string]string{"key-1": "secret"},
 	})
 
 	_, err := service.EncryptBulk(ctx, req)
@@ -89,9 +87,7 @@ func TestEncryptBulk_WithInvalidAuth(t *testing.T) {
 
 	req := connect.NewRequest(&vaultv1.EncryptBulkRequest{
 		Keyring: "test-keyring",
-		Items: map[string]*vaultv1.EncryptBulkRequestItem{
-			"key-1": {Data: "secret"},
-		},
+		Items:   map[string]string{"key-1": "secret"},
 	})
 	req.Header().Set("Authorization", "Bearer wrong-token")
 
@@ -106,9 +102,7 @@ func TestEncryptBulk_WithInvalidScheme(t *testing.T) {
 
 	req := connect.NewRequest(&vaultv1.EncryptBulkRequest{
 		Keyring: "test-keyring",
-		Items: map[string]*vaultv1.EncryptBulkRequestItem{
-			"key-1": {Data: "secret"},
-		},
+		Items:   map[string]string{"key-1": "secret"},
 	})
 	req.Header().Set("Authorization", "Basic test-token")
 

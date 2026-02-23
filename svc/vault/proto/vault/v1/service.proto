@@ -43,10 +43,10 @@ message ReEncryptResponse {
 message ReEncryptDEKsRequest {}
 message ReEncryptDEKsResponse {}
 
-message EncryptBulkRequestItem { string data = 1; }
 message EncryptBulkRequest {
   string keyring = 1;
-  map<string, EncryptBulkRequestItem> items = 2;
+  // map of caller-provided ID to plaintext data
+  map<string, string> items = 2;
 }
 message EncryptBulkResponseItem {
   string encrypted = 1;
@@ -54,13 +54,15 @@ message EncryptBulkResponseItem {
 }
 message EncryptBulkResponse { map<string, EncryptBulkResponseItem> items = 1; }
 
-message DecryptBulkRequestItem { string encrypted = 1; }
 message DecryptBulkRequest {
   string keyring = 1;
-  map<string, DecryptBulkRequestItem> items = 2;
+  // map of caller-provided ID to encrypted ciphertext
+  map<string, string> items = 2;
 }
-message DecryptBulkResponseItem { string plaintext = 1; }
-message DecryptBulkResponse { map<string, DecryptBulkResponseItem> items = 1; }
+message DecryptBulkResponse {
+  // map of caller-provided ID to plaintext
+  map<string, string> items = 1;
+}
 
 service VaultService {
   rpc Liveness(LivenessRequest) returns (LivenessResponse) {}

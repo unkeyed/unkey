@@ -25,18 +25,16 @@ func (s *Service) DecryptBulk(
 		attribute.Int("count", len(req.Msg.GetItems())),
 	)
 
-	responseItems := make(map[string]*vaultv1.DecryptBulkResponseItem, len(req.Msg.GetItems()))
-	for id, item := range req.Msg.GetItems() {
+	responseItems := make(map[string]string, len(req.Msg.GetItems()))
+	for id, encrypted := range req.Msg.GetItems() {
 		res, err := s.decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   req.Msg.GetKeyring(),
-			Encrypted: item.GetEncrypted(),
+			Encrypted: encrypted,
 		})
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to decrypt item %s: %w", id, err))
 		}
-		responseItems[id] = &vaultv1.DecryptBulkResponseItem{
-			Plaintext: res.GetPlaintext(),
-		}
+		responseItems[id] = res.GetPlaintext()
 	}
 
 	return connect.NewResponse(&vaultv1.DecryptBulkResponse{

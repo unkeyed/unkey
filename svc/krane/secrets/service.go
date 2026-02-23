@@ -110,15 +110,9 @@ func (s *Service) DecryptSecretsBlob(
 	}
 
 	// Decrypt all secret values in a single bulk RPC call
-	bulkItems := make(map[string]*vaultv1.DecryptBulkRequestItem, len(secretsConfig.GetSecrets()))
-	for key, encryptedValue := range secretsConfig.GetSecrets() {
-		bulkItems[key] = &vaultv1.DecryptBulkRequestItem{
-			Encrypted: encryptedValue,
-		}
-	}
 	bulkRes, bulkErr := s.vault.DecryptBulk(ctx, &vaultv1.DecryptBulkRequest{
 		Keyring: environmentID,
-		Items:   bulkItems,
+		Items:   secretsConfig.GetSecrets(),
 	})
 	if bulkErr != nil {
 		logger.Error("failed to bulk decrypt env vars",
@@ -128,10 +122,7 @@ func (s *Service) DecryptSecretsBlob(
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to bulk decrypt env vars: %w", bulkErr))
 	}
-	envVars := make(map[string]string, len(bulkRes.GetItems()))
-	for key, item := range bulkRes.GetItems() {
-		envVars[key] = item.GetPlaintext()
-	}
+	envVars := bulkRes.GetItems()
 
 	logger.Info("decrypted secrets blob",
 		"deployment_id", deploymentID,
