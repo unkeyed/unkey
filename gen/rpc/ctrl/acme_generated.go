@@ -34,6 +34,9 @@ func (c *ConnectAcmeServiceClient) VerifyCertificate(ctx context.Context, req *v
 	defer span.End()
 	resp, err := c.inner.VerifyCertificate(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

@@ -37,6 +37,9 @@ func (c *ConnectVaultServiceClient) Liveness(ctx context.Context, req *v1.Livene
 	defer span.End()
 	resp, err := c.inner.Liveness(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -47,6 +50,9 @@ func (c *ConnectVaultServiceClient) Encrypt(ctx context.Context, req *v1.Encrypt
 	defer span.End()
 	resp, err := c.inner.Encrypt(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -57,6 +63,9 @@ func (c *ConnectVaultServiceClient) Decrypt(ctx context.Context, req *v1.Decrypt
 	defer span.End()
 	resp, err := c.inner.Decrypt(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -67,6 +76,9 @@ func (c *ConnectVaultServiceClient) ReEncrypt(ctx context.Context, req *v1.ReEnc
 	defer span.End()
 	resp, err := c.inner.ReEncrypt(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

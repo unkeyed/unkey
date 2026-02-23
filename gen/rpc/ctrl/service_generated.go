@@ -34,6 +34,9 @@ func (c *ConnectCtrlServiceClient) Liveness(ctx context.Context, req *v1.Livenes
 	defer span.End()
 	resp, err := c.inner.Liveness(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

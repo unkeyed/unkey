@@ -34,6 +34,9 @@ func (c *ConnectSecretsServiceClient) DecryptSecretsBlob(ctx context.Context, re
 	defer span.End()
 	resp, err := c.inner.DecryptSecretsBlob(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

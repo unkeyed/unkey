@@ -49,6 +49,9 @@ func (c *ConnectClusterServiceClient) GetDesiredSentinelState(ctx context.Contex
 	defer span.End()
 	resp, err := c.inner.GetDesiredSentinelState(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -59,6 +62,9 @@ func (c *ConnectClusterServiceClient) ReportSentinelStatus(ctx context.Context, 
 	defer span.End()
 	resp, err := c.inner.ReportSentinelStatus(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -69,6 +75,9 @@ func (c *ConnectClusterServiceClient) GetDesiredDeploymentState(ctx context.Cont
 	defer span.End()
 	resp, err := c.inner.GetDesiredDeploymentState(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -79,6 +88,9 @@ func (c *ConnectClusterServiceClient) ReportDeploymentStatus(ctx context.Context
 	defer span.End()
 	resp, err := c.inner.ReportDeploymentStatus(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -93,6 +105,9 @@ func (c *ConnectClusterServiceClient) GetDesiredCiliumNetworkPolicyState(ctx con
 	defer span.End()
 	resp, err := c.inner.GetDesiredCiliumNetworkPolicyState(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

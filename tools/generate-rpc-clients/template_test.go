@@ -56,6 +56,11 @@ func TestTemplateOutput_Unary(t *testing.T) {
 		require.Contains(t, output, `tracing.Start(ctx, "TestService.GetItem")`)
 		require.Contains(t, output, "defer span.End()")
 	})
+	t.Run("records error on span but skips not-found", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, "tracing.RecordError(span, err)")
+		require.Contains(t, output, "connect.CodeOf(err) != connect.CodeNotFound")
+	})
 }
 
 func TestTemplateOutput_ServerStream(t *testing.T) {

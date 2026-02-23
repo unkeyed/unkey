@@ -36,6 +36,9 @@ func (c *ConnectCustomDomainServiceClient) AddCustomDomain(ctx context.Context, 
 	defer span.End()
 	resp, err := c.inner.AddCustomDomain(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -46,6 +49,9 @@ func (c *ConnectCustomDomainServiceClient) DeleteCustomDomain(ctx context.Contex
 	defer span.End()
 	resp, err := c.inner.DeleteCustomDomain(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -56,6 +62,9 @@ func (c *ConnectCustomDomainServiceClient) RetryVerification(ctx context.Context
 	defer span.End()
 	resp, err := c.inner.RetryVerification(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

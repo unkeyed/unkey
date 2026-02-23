@@ -37,6 +37,9 @@ func (c *ConnectDeployServiceClient) CreateDeployment(ctx context.Context, req *
 	defer span.End()
 	resp, err := c.inner.CreateDeployment(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -47,6 +50,9 @@ func (c *ConnectDeployServiceClient) GetDeployment(ctx context.Context, req *v1.
 	defer span.End()
 	resp, err := c.inner.GetDeployment(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -57,6 +63,9 @@ func (c *ConnectDeployServiceClient) Rollback(ctx context.Context, req *v1.Rollb
 	defer span.End()
 	resp, err := c.inner.Rollback(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
@@ -67,6 +76,9 @@ func (c *ConnectDeployServiceClient) Promote(ctx context.Context, req *v1.Promot
 	defer span.End()
 	resp, err := c.inner.Promote(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
