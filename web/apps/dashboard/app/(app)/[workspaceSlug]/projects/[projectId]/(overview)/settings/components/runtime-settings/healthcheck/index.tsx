@@ -28,6 +28,7 @@ export const Healthcheck = () => {
     path: healthcheck?.path ?? "/health",
     interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
   };
+  const hasPreviousData = Boolean(healthcheck);
 
   const {
     handleSubmit,
