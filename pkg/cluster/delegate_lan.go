@@ -58,7 +58,7 @@ func (d *lanDelegate) NotifyMsg(data []byte) {
 	if msg.SentAtMs > 0 {
 		latency := time.Since(time.UnixMilli(msg.SentAtMs)).Seconds()
 		if latency >= 0 {
-			metrics.ClusterMessageLatencySeconds.WithLabelValues(direction, msg.SourceRegion).Observe(latency)
+			metrics.ClusterMessageLatencySeconds.WithLabelValues(direction, msg.SourceRegion, d.cluster.config.Region).Observe(latency)
 		}
 	}
 
