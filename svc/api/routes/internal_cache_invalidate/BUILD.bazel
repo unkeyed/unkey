@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "internal_cache_invalidate",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/internal_cache_invalidate",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/caches",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/zen",
+    ],
+)

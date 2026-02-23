@@ -8,7 +8,6 @@ go_library(
         "custom_domain.pb.go",
         "deployment.pb.go",
         "environment.pb.go",
-        "oneof_interfaces.go",
         "openapi.pb.go",
         "secrets.pb.go",
         "service.pb.go",

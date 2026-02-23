@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
 
+	internalCacheInvalidate "github.com/unkeyed/unkey/svc/api/routes/internal_cache_invalidate"
+
 	pprofRoute "github.com/unkeyed/unkey/svc/api/routes/pprof"
 
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
@@ -92,6 +94,23 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	}
 
 	srv.RegisterRoute(defaultMiddlewares, &v2Liveness.Handler{})
+
+	// ---------------------------------------------------------------------------
+	// dashboard cache invalidation (internal endpoint)
+
+	if svc.DashboardToken != "" {
+		dashboardMiddlewares := []zen.Middleware{
+			withLogging,
+			withObservability,
+			withPanicRecovery,
+			withErrorHandling,
+		}
+
+		srv.RegisterRoute(dashboardMiddlewares, &internalCacheInvalidate.Handler{
+			Caches: svc.Caches,
+			Token:  svc.DashboardToken,
+		})
+	}
 
 	// ---------------------------------------------------------------------------
 	// pprof (internal profiling endpoints)

@@ -217,6 +217,11 @@ paths:
   /v2/permissions.deletePermission:
     $ref: "./spec/paths/v2/permissions/deletePermission/index.yaml"
 
+  # Cache Invalidation (Internal)
+  /_internal/cache.invalidate:
+    $ref: "./spec/paths/internal/cache_invalidate/index.yaml"
+
+
 components:
   securitySchemes:
     rootKey:

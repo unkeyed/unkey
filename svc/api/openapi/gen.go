@@ -95,6 +95,18 @@ type BaseError struct {
 	Type string `json:"type"`
 }
 
+// CacheInvalidateRequestBody defines model for CacheInvalidateRequestBody.
+type CacheInvalidateRequestBody struct {
+	// CacheName The name of the cache to invalidate entries from. Must match a registered cache resource name.
+	CacheName string `json:"cacheName"`
+
+	// Keys The cache keys to invalidate. For string-keyed caches (verification_key_by_hash,
+	// clickhouse_setting), pass the raw key values. For scoped-key caches (live_api_by_id,
+	// ratelimit_namespace, etc.), pass keys in "workspaceId:resourceId" format.
+	Keys []string `json:"keys"`
+}
+
+
 // ConflictErrorResponse Error response when the request conflicts with the current state of the resource. This occurs when:
 // - Attempting to create a resource that already exists
 // - Modifying a resource that has been changed by another operation
@@ -2323,6 +2335,10 @@ type VerifyKeyRatelimitData struct {
 	// Reset Rate limit reset duration in milliseconds.
 	Reset int64 `json:"reset"`
 }
+
+// InternalCacheInvalidateJSONRequestBody defines body for InternalCacheInvalidate for application/json ContentType.
+type InternalCacheInvalidateJSONRequestBody = CacheInvalidateRequestBody
+
 
 // AnalyticsGetVerificationsJSONRequestBody defines body for AnalyticsGetVerifications for application/json ContentType.
 type AnalyticsGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody

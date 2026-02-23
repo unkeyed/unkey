@@ -10,7 +10,7 @@ import (
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 )
 
-func TestBridgeElection_SmallestNameWins(t *testing.T) {
+func TestAmbassadorElection_SmallestNameWins(t *testing.T) {
 	t.Run("smallest name wins", func(t *testing.T) {
 		names := []string{
 			"node-3",
@@ -18,7 +18,7 @@ func TestBridgeElection_SmallestNameWins(t *testing.T) {
 			"node-2",
 		}
 
-		// Find smallest (same logic as evaluateBridge)
+		// Find smallest (same logic as evaluateAmbassador)
 		smallest := names[0]
 		for _, name := range names[1:] {
 			if name < smallest {

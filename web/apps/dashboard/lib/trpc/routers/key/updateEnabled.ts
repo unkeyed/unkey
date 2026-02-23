@@ -1,4 +1,5 @@
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
+import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -113,6 +114,11 @@ export const updateKeysEnabled = workspaceProcedure
         message:
           "We were unable to update enabled status on these keys. Please try again or contact support@unkey.com",
       });
+    }
+
+    const cacheClient = getCacheInvalidationClient();
+    if (cacheClient) {
+      await cacheClient.invalidateKeysByHash(keys.map((k) => k.hash)).catch(console.error);
     }
 
     return {

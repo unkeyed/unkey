@@ -49,6 +49,11 @@ type Services struct {
 	// Vault provides encrypted storage for sensitive key material.
 	Vault vault.VaultServiceClient
 
+	// DashboardToken authenticates requests to the internal cache invalidation endpoint.
+	// When empty, the cache invalidation route is not registered.
+	DashboardToken string
+
+
 	// CtrlDeploymentClient communicates with the control plane for deployment
 	// operations like creating and managing deployments.
 	CtrlDeploymentClient ctrl.DeployServiceClient

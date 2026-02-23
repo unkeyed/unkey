@@ -1,4 +1,5 @@
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
+import { getCacheInvalidationClient } from "@/lib/cache-invalidation";
 import { type Key, db, eq, schema } from "@/lib/db";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import { TRPCError } from "@trpc/server";
@@ -41,11 +42,18 @@ export const updateKeyRatelimit = workspaceProcedure
       });
     }
 
-    return updateRatelimitV2(input, key, {
+    const result = await updateRatelimitV2(input, key, {
       audit: ctx.audit,
       userId: ctx.user.id,
       workspaceId: ctx.workspace.id,
     });
+
+    const cacheClient = getCacheInvalidationClient();
+    if (cacheClient) {
+      await cacheClient.invalidateKeyByHash(key.hash).catch(console.error);
+    }
+
+    return result;
   });
 
 const updateRatelimitV2 = async (

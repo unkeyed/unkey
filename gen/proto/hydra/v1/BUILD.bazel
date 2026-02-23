@@ -15,7 +15,6 @@ go_library(
         "deployment_restate.pb.go",
         "key_refill.pb.go",
         "key_refill_restate.pb.go",
-        "oneof_interfaces.go",
         "quota_check.pb.go",
         "quota_check_restate.pb.go",
         "routing.pb.go",
