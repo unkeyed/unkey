@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"io"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -63,7 +62,10 @@ func (c *gossipCluster) promoteToBridge() {
 	wanCfg.BindAddr = c.config.BindAddr
 	wanCfg.BindPort = c.config.WANBindPort
 	wanCfg.AdvertisePort = c.config.WANBindPort
-	wanCfg.LogOutput = io.Discard
+	if c.config.WANAdvertiseAddr != "" {
+		wanCfg.AdvertiseAddr = c.config.WANAdvertiseAddr
+	}
+	wanCfg.LogOutput = newLogWriter("wan")
 	wanCfg.SecretKey = c.config.SecretKey
 
 	wanCfg.Delegate = newWANDelegate(c)
@@ -88,9 +90,9 @@ func (c *gossipCluster) promoteToBridge() {
 	metrics.ClusterBridgeStatus.Set(1)
 	metrics.ClusterBridgeTransitionsTotal.WithLabelValues("promoted").Inc()
 
-	// Join WAN seeds outside the lock with retries
+	// Start background reconnection loop for WAN seeds.
 	if len(seeds) > 0 {
-		go c.joinSeeds("WAN", func() *memberlist.Memberlist {
+		go c.maintainMembership("WAN", func() *memberlist.Memberlist {
 			c.mu.RLock()
 			defer c.mu.RUnlock()
 			return c.wan

@@ -21,6 +21,12 @@ type Config struct {
 	// In production, set explicitly (e.g. 7947).
 	WANBindPort int
 
+	// WANAdvertiseAddr is the address that this bridge advertises to other WAN members.
+	// In cross-region setups where bridges communicate through NLBs, this should be
+	// set to the region's NLB hostname so remote bridges route through the NLB
+	// instead of trying to reach the pod IP directly.
+	WANAdvertiseAddr string
+
 	// LANSeeds are addresses of existing LAN cluster members to join (e.g. k8s headless service).
 	LANSeeds []string
 
