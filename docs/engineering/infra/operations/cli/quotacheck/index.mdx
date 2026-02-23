@@ -1,0 +1,31 @@
+---
+title: "Quotacheck"
+description: "Check for exceeded quotas"
+---
+
+Check for exceeded quotas and optionally send Slack notifications.
+
+This command monitors quota usage by querying ClickHouse and comparing usage against limits in the primary database.
+
+## Command syntax
+
+```bash
+unkey quotacheck [flags]
+```
+
+## Examples
+
+```bash
+unkey quotacheck --clickhouse-url clickhouse://localhost:9000 --database-dsn mysql://user:pass@localhost/db
+unkey quotacheck --clickhouse-url clickhouse://localhost:9000 \
+  --database-dsn mysql://user:pass@localhost/db \
+  --slack-webhook-url https://hooks.slack.com/services/...
+```
+
+## Flags
+
+| Flag | Description | Env | Default |
+| --- | --- | --- | --- |
+| `--clickhouse-url` | ClickHouse URL (required) | `CLICKHOUSE_URL` | - |
+| `--database-dsn` | Primary database DSN (required) | `DATABASE_DSN` | - |
+| `--slack-webhook-url` | Slack webhook URL | `SLACK_WEBHOOK_URL` | - |

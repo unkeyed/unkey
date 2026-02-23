@@ -1,0 +1,23 @@
+---
+title: "Authentication"
+description: "RPC authentication and bearer token handling"
+---
+
+## Bearer authentication
+
+Vault requires an `Authorization: Bearer <token>` header on Encrypt, Decrypt, and ReEncrypt RPCs. The token must match `bearer_token` from the service config. Missing or invalid tokens return Unauthenticated. Liveness does not require authentication.
+
+The token is compared using constant-time equality to avoid timing leaks.
+
+## Token rotation
+
+Vault does not manage token rotation. You must update the token in AWS Secrets Manager and roll the deployment.
+
+Runtime callers that embed the bearer token:
+
+- API service (<a href="https://github.com/unkeyed/unkey/blob/main/svc/api/run.go" target="_blank">`svc/api/run.go`</a>)
+- Frontline service and certificate manager (<a href="https://github.com/unkeyed/unkey/blob/main/svc/frontline/run.go" target="_blank">`svc/frontline/run.go`</a>, <a href="https://github.com/unkeyed/unkey/blob/main/svc/frontline/services/certmanager/service.go" target="_blank">`svc/frontline/services/certmanager/service.go`</a>)
+- Krane service and secrets service (<a href="https://github.com/unkeyed/unkey/blob/main/svc/krane/run.go" target="_blank">`svc/krane/run.go`</a>, <a href="https://github.com/unkeyed/unkey/blob/main/svc/krane/secrets/service.go" target="_blank">`svc/krane/secrets/service.go`</a>)
+- Control plane worker and workflows (<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/run.go" target="_blank">`svc/ctrl/worker/run.go`</a>, <a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/service.go" target="_blank">`svc/ctrl/worker/deploy/service.go`</a>, <a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/certificate/service.go" target="_blank">`svc/ctrl/worker/certificate/service.go`</a>, <a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/clickhouseuser/service.go" target="_blank">`svc/ctrl/worker/clickhouseuser/service.go`</a>)
+- Control ACME user service (<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/acme/user.go" target="_blank">`svc/ctrl/services/acme/user.go`</a>)
+- Analytics connection manager (<a href="https://github.com/unkeyed/unkey/blob/main/internal/services/analytics/service.go" target="_blank">`internal/services/analytics/service.go`</a>)

@@ -2,18 +2,21 @@ package cluster
 
 import (
 	"fmt"
-	"io"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/memberlist"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
+	"github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/repeat"
 	"google.golang.org/protobuf/proto"
 )
 
-const maxJoinAttempts = 10
+// reconnectInterval is how often the background loop checks whether
+// the node is isolated and needs to re-join seeds.
+const reconnectInterval = 30 * time.Second
 
 // Cluster is the public interface for gossip-based cluster membership.
 type Cluster interface {
@@ -43,6 +46,9 @@ type gossipCluster struct {
 	// where memberlist holds its internal state lock.
 	evalCh chan struct{}
 	done   chan struct{}
+
+	// stopMetrics stops the periodic member count gauge updater.
+	stopMetrics func()
 }
 
 // New creates a new cluster node, starts the LAN memberlist, joins LAN seeds,
@@ -51,16 +57,17 @@ func New(cfg Config) (Cluster, error) {
 	cfg.setDefaults()
 
 	c := &gossipCluster{
-		config:   cfg,
-		mu:       sync.RWMutex{},
-		lan:      nil,
-		lanQueue: nil,
-		wan:      nil,
-		wanQueue: nil,
-		isBridge: false,
-		closing:  atomic.Bool{},
-		evalCh:   make(chan struct{}, 1),
-		done:     make(chan struct{}),
+		config:      cfg,
+		mu:          sync.RWMutex{},
+		lan:         nil,
+		lanQueue:    nil,
+		wan:         nil,
+		wanQueue:    nil,
+		isBridge:    false,
+		closing:     atomic.Bool{},
+		evalCh:      make(chan struct{}, 1),
+		done:        make(chan struct{}),
+		stopMetrics: nil, // set below
 	}
 
 	// Start the async bridge evaluator
@@ -72,7 +79,7 @@ func New(cfg Config) (Cluster, error) {
 	lanCfg.BindAddr = cfg.BindAddr
 	lanCfg.BindPort = cfg.BindPort
 	lanCfg.AdvertisePort = cfg.BindPort
-	lanCfg.LogOutput = io.Discard
+	lanCfg.LogOutput = newLogWriter("lan")
 	lanCfg.SecretKey = cfg.SecretKey
 	lanCfg.Delegate = newLANDelegate(c)
 	lanCfg.Events = newLANEventDelegate(c)
@@ -91,15 +98,32 @@ func New(cfg Config) (Cluster, error) {
 	}
 	c.mu.Unlock()
 
-	// Join LAN seeds with retries — the headless service DNS may not be
-	// resolvable immediately at pod startup.
+	// Start background reconnection loop for LAN seeds. This handles both
+	// initial join (DNS may not be ready at startup) and reconnection after
+	// network partitions or rolling restarts of other nodes.
 	if len(cfg.LANSeeds) > 0 {
-		go c.joinSeeds("LAN", func() *memberlist.Memberlist {
+		go c.maintainMembership("LAN", func() *memberlist.Memberlist {
 			c.mu.RLock()
 			defer c.mu.RUnlock()
 			return c.lan
 		}, cfg.LANSeeds, c.triggerEvalBridge)
 	}
+
+	// Periodically update pool member count gauges. This avoids tracking
+	// counts inside memberlist callbacks where internal locks are held.
+	c.stopMetrics = repeat.Every(1*time.Minute, func() {
+		c.mu.RLock()
+		lan := c.lan
+		wan := c.wan
+		c.mu.RUnlock()
+
+		if lan != nil {
+			metrics.ClusterMembersCount.WithLabelValues("lan", c.config.Region).Set(float64(lan.NumMembers()))
+		}
+		if wan != nil {
+			metrics.ClusterMembersCount.WithLabelValues("wan", c.config.Region).Set(float64(wan.NumMembers()))
+		}
+	})
 
 	// Trigger initial bridge evaluation
 	c.triggerEvalBridge()
@@ -107,12 +131,14 @@ func New(cfg Config) (Cluster, error) {
 	return c, nil
 }
 
-// joinSeeds attempts to join seeds on the given memberlist with exponential backoff.
-// pool is used for logging ("LAN" or "WAN"). onSuccess is called after a successful join.
-func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlist, seeds []string, onSuccess func()) {
+// maintainMembership runs for the lifetime of the cluster and ensures the node
+// stays connected to seeds. It handles initial join (with backoff for DNS
+// readiness) and periodic reconnection if the node becomes isolated.
+func (c *gossipCluster) maintainMembership(pool string, list func() *memberlist.Memberlist, seeds []string, onJoin func()) {
+	// Initial join with exponential backoff — DNS may not resolve immediately.
 	backoff := 500 * time.Millisecond
 
-	for attempt := 1; attempt <= maxJoinAttempts; attempt++ {
+	for {
 		select {
 		case <-c.done:
 			return
@@ -126,17 +152,18 @@ func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlis
 
 		_, err := ml.Join(seeds)
 		if err == nil {
-			logger.Info("Joined "+pool+" seeds", "seeds", seeds, "attempt", attempt)
-			if onSuccess != nil {
-				onSuccess()
+			metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
+			logger.Info("Joined "+pool+" seeds", "seeds", seeds)
+			if onJoin != nil {
+				onJoin()
 			}
-			return
+			break
 		}
 
+		metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "failure").Inc()
 		logger.Warn("Failed to join "+pool+" seeds, retrying",
 			"error", err,
 			"seeds", seeds,
-			"attempt", attempt,
 			"next_backoff", backoff,
 		)
 
@@ -146,13 +173,51 @@ func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlis
 		case <-time.After(backoff):
 		}
 
-		backoff = min(backoff*2, 10*time.Second)
+		backoff = min(backoff*2, reconnectInterval)
 	}
 
-	logger.Error("Exhausted retries joining "+pool+" seeds",
-		"seeds", seeds,
-		"attempts", maxJoinAttempts,
-	)
+	// Background loop — periodically check if we're isolated and re-join.
+	ticker := time.NewTicker(reconnectInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.done:
+			return
+		case <-ticker.C:
+		}
+
+		ml := list()
+		if ml == nil {
+			return
+		}
+
+		// If we have more than just ourselves, we're connected.
+		if ml.NumMembers() > 1 {
+			continue
+		}
+
+		// We're alone — try to rejoin seeds.
+		logger.Warn("Node is isolated, attempting to rejoin "+pool+" seeds",
+			"seeds", seeds,
+		)
+
+		_, err := ml.Join(seeds)
+		if err != nil {
+			metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "failure").Inc()
+			logger.Warn("Failed to rejoin "+pool+" seeds",
+				"error", err,
+				"seeds", seeds,
+			)
+			continue
+		}
+
+		metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
+		logger.Info("Rejoined "+pool+" seeds", "seeds", seeds)
+		if onJoin != nil {
+			onJoin()
+		}
+	}
 }
 
 // triggerEvalBridge sends a non-blocking signal to the bridge evaluator goroutine.
@@ -197,18 +262,22 @@ func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Payload) er
 		msg.Direction = clusterv1.Direction_DIRECTION_LAN
 		lanBytes, err := proto.Marshal(msg)
 		if err != nil {
+			metrics.ClusterBroadcastErrorsTotal.WithLabelValues("lan").Inc()
 			return fmt.Errorf("failed to marshal LAN message: %w", err)
 		}
 		lanQ.QueueBroadcast(newBroadcast(lanBytes))
+		metrics.ClusterBroadcastsTotal.WithLabelValues("lan").Inc()
 	}
 
 	if isBr && wanQ != nil {
 		msg.Direction = clusterv1.Direction_DIRECTION_WAN
 		wanBytes, err := proto.Marshal(msg)
 		if err != nil {
+			metrics.ClusterBroadcastErrorsTotal.WithLabelValues("wan").Inc()
 			return fmt.Errorf("failed to marshal WAN message: %w", err)
 		}
 		wanQ.QueueBroadcast(newBroadcast(wanBytes))
+		metrics.ClusterBroadcastsTotal.WithLabelValues("wan").Inc()
 	}
 
 	return nil
@@ -256,6 +325,10 @@ func (c *gossipCluster) Close() error {
 		return nil
 	}
 	close(c.done)
+
+	if c.stopMetrics != nil {
+		c.stopMetrics()
+	}
 
 	// Demote from bridge first (leaves WAN).
 	c.demoteFromBridge()

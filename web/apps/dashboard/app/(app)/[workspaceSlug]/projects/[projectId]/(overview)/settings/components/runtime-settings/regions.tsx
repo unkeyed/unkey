@@ -100,9 +100,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
     currentRegions.some((r) => !defaultRegions.includes(r));
 
   const displayValue =
-    defaultRegions.length === 0 ? (
-      "No regions selected"
-    ) : defaultRegions.length <= 2 ? (
+    defaultRegions.length === 0 ? null : defaultRegions.length <= 2 ? (
       <span className="flex items-center gap-1.5">
         {defaultRegions.map((r, i) => (
           <span key={r} className="flex items-center gap-1.5">

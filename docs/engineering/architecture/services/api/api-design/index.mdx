@@ -1,0 +1,76 @@
+---
+title: "API design overview"
+description: "Design philosophy for Unkey APIs"
+---
+
+Unkey APIs prioritize developer experience, consistency, and clarity. This document outlines core design decisions and how to work with the API.
+
+## Core principles
+
+- Clear communication: structured responses make success and failure equally informative
+- Practical over purist: pragmatic choices over rigid adherence to a single paradigm
+- Predictable patterns: consistent endpoint behavior
+
+## Response structure
+
+All responses share a consistent envelope:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123xyz789"
+  },
+  "data": {}
+}
+```
+
+Paginated responses include a pagination object:
+
+```json
+{
+  "meta": {
+    "requestId": "req_abc123xyz789",
+    "timestamp": "2023-11-08T15:22:30Z"
+  },
+  "data": [],
+  "pagination": {
+    "cursor": "cursor_xyz123",
+    "hasMore": true
+  }
+}
+```
+
+## Working with the API
+
+### Always use the request ID
+
+Every response includes a unique `requestId`. Include it when debugging or requesting support. You can also search for the request ID in <a href="https://app.unkey.com/logs" target="_blank">logs</a>.
+
+### Handling pagination
+
+1. Make your initial request.
+2. Check `pagination.hasMore`.
+3. Use `pagination.cursor` for the next request.
+
+```js
+const response = await fetch("https://api.unkey.com/v2/keys.listKeys", {
+  method: "POST",
+  headers: { Authorization: `Bearer ${rootKey}` },
+  body: JSON.stringify({ apiId: "api_123" })
+});
+
+if (response.pagination?.hasMore) {
+  await fetch("https://api.unkey.com/v2/keys.listKeys", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${rootKey}` },
+    body: JSON.stringify({
+      apiId: "api_123",
+      cursor: response.pagination.cursor
+    })
+  });
+}
+```
+
+## Versioning
+
+APIs use a major version in the URL, for example `/v2/`. Breaking changes increment the major version.

@@ -77,11 +77,13 @@ export const Healthcheck = () => {
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
       displayValue={
-        <div className="flex gap-1.5 items-center justify-center">
-          <MethodBadge method={defaultValues.method} />
-          <span className="font-medium text-gray-12">{defaultValues.path}</span>
-          <span className="text-gray-11 font-normal">every {defaultValues.interval}</span>
-        </div>
+        hasPreviousData ? (
+          <div className="flex gap-1.5 items-center justify-center">
+            <MethodBadge method={defaultValues.method} />
+            <span className="font-medium text-gray-12">{defaultValues.path}</span>
+            <span className="text-gray-11 font-normal">every {defaultValues.interval}</span>
+          </div>
+        ) : null
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}

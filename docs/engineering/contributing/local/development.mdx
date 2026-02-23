@@ -1,0 +1,156 @@
+---
+title: "Local development"
+description: "Set up, run, and test Unkey locally"
+---
+
+## Prerequisites
+
+- <a href="https://nodejs.org" target="_blank">
+    Node.js
+  </a>
+- <a href="https://go.dev" target="_blank">
+    Go
+  </a>
+- <a href="https://pnpm.io/installation" target="_blank">
+    pnpm
+  </a>
+- <a href="https://www.docker.com/products/docker-desktop" target="_blank">
+    Docker
+  </a>
+- <a href="https://tilt.dev/" target="_blank">
+    Tilt
+  </a>
+- <a href="https://github.com/tilt-dev/ctlptl" target="_blank">
+    ctlptl
+  </a>
+- <a href="https://minikube.sigs.k8s.io" target="_blank">
+    Minikube
+  </a>
+- <a href="https://github.com/FiloSottile/mkcert" target="_blank">
+    mkcert
+  </a>
+
+Some of this can be automatically installed via `make install-brew-tools`
+
+## Initial setup
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/unkeyed/unkey
+cd unkey
+make install
+```
+
+## Configure depot
+
+We use depot as build runner and right now that is not optional.
+
+```bash
+cp ./dev/.env.depot.example ./dev/.env.depot
+# Edit ./dev/.env.depot with your Depot credentials
+```
+
+### Run dev mode
+
+Start the full development setup:
+
+```bash
+make dev
+```
+
+You get:
+
+- Tilt UI at `http://localhost:10350`
+- Various services port-forwarded
+- Dashboard at `http://localhost:3000`
+
+## Local HTTPS with Frontline (optional)
+
+Set up local TLS for `*.unkey.local`:
+
+1. Configure local DNS:
+
+```bash
+./dev/setup-wildcard-dns.sh
+```
+
+2. Start the minikube tunnel in another terminal:
+
+```bash
+make tunnel
+```
+
+3. Open the local domain:
+
+```bash
+open https://app.unkey.local
+```
+
+Tilt generates trusted TLS certificates using mkcert and Frontline terminates TLS on port 443.
+
+## Stop the development environment
+
+```bash
+make down
+```
+
+## Environment configuration
+
+### Local authentication
+
+Set local auth mode in your `.env` file:
+
+```plaintext
+AUTH_PROVIDER="local"
+```
+
+### Optional services
+
+WorkOS authentication:
+
+```plaintext
+AUTH_PROVIDER="workos"
+WORKOS_CLIENT_ID=<your client ID>
+WORKOS_API_KEY=<your API key>
+WORKOS_COOKIE_PASSWORD=<your base64 password>
+```
+
+Stripe billing:
+
+```plaintext
+STRIPE_SECRET_KEY=<your Stripe secret key>
+```
+
+## Seed local data
+
+```bash
+make unkey dev seed local
+```
+
+## Test locally
+
+Run Go tests with Bazel:
+
+```bash
+make test
+```
+
+Run a single Go test:
+
+```bash
+bazel test //pkg/cache:cache_test --test_filter=TestCacheName
+```
+
+Run TypeScript tests with pnpm:
+
+```bash
+pnpm --dir=web test
+```
+
+## Code quality
+
+```bash
+make fmt
+make build
+```

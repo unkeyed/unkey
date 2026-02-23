@@ -1,0 +1,97 @@
+---
+title: "Agent deployment issues"
+description: "Troubleshooting agent service deployment failures and GHCR image issues"
+---
+
+## GHCR image missing, service returns 503
+
+### Symptoms
+
+- Incident.io pages for 5xx alerts
+- API returns 500 errors for specific endpoints
+- Underlying cause: Agent service returns 503
+- Agent service appears down
+
+### Investigation steps
+
+1. Check Axiom logs for encryption errors:
+
+```plaintext
+unable to decrypt, fetch error: <html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+</body>
+</html>
+```
+
+The API receives a 503 from the agent service, which causes the API to return 500 to clients.
+
+2. Log into the AWS Console:
+
+- <a href="https://unkey.awsapps.com/start" target="_blank">AWS SSO Login</a>
+- Account: `unkey-production001`
+- Region: `us-east-1`
+
+3. Check ECS cluster:
+
+- ECS → Clusters → `agent-cluster-ce813cc`
+- Look for running tasks count (zero indicates missing image)
+
+4. Check ECS tasks:
+
+- Review task definitions and recent stopped tasks
+- Look for image pull failures
+
+5. Verify the GHCR image:
+
+- <a href="https://github.com/unkeyed/unkey/pkgs/container/agent" target="_blank">GHCR agent image</a>
+- Confirm the required tag exists
+
+### Resolution
+
+#### Option 1: Rebuild and push a new image
+
+Images are built via GitHub Actions when you push a tag with format `agent/v*`.
+
+```bash
+git clone https://github.com/unkeyed/unkey.git
+cd unkey
+git tag agent/v1.2.4
+git push origin agent/v1.2.4
+```
+
+Monitor builds:
+
+- <a href="https://github.com/unkeyed/unkey/actions" target="_blank">GitHub Actions</a>
+- <a href="https://github.com/unkeyed/unkey/actions/workflows/agent_build_publish.yaml" target="_blank">Agent build workflow</a>
+
+Verify the image was pushed:
+
+- <a href="https://github.com/unkeyed/unkey/pkgs/container/agent" target="_blank">GHCR agent image</a>
+
+#### Option 2: Deploy an existing image
+
+If the image exists in GHCR but AWS is not using it:
+
+1. Clone the infrastructure repository and update the image tag:
+
+```bash
+git clone https://github.com/unkeyed/infra.git
+cd infra/pulumi/projects/agent
+```
+
+Update the image tag in `main.go`.
+
+2. Deploy the update:
+
+```bash
+aws sso login --sso-session unkey
+AWS_PROFILE=unkey-production001-admin pulumi up --stack production001-use1
+```
+
+3. Verify service health:
+
+```bash
+curl https://agent.us-east-1.production001.aws.unkey.com/v1/liveness
+```

@@ -1,0 +1,68 @@
+---
+title: "Architecture"
+description: "Runtime composition and request flow for the control plane API"
+---
+
+The control plane API is the control surface for deployment intent and orchestration in Unkey. It is the system of record for control-plane state, and it triggers asynchronous workflows for operations that cannot complete on the request path.
+
+## Place in the stack
+
+The control plane API sits between the user-facing control surfaces and the execution plane.
+
+- Accepts configuration and deployment intent from internal automation and the dashboard
+- Persists that intent in MySQL as the system of record
+- Invokes Restate workflows that perform long running work
+- Provides control-plane data to services that reconcile desired state
+
+## Responsibilities
+
+The service owns these responsibilities.
+
+- Persist deployment intent, runtime settings, and Git metadata
+- Expose control-plane RPCs for reads, writes, and streaming state
+- Trigger workflows for deployments, certificates, routing, and custom domains
+- Serve ACME challenge state and custom domain configuration
+- Coordinate cluster state and status reporting
+
+## Control-plane data model
+
+The API is the write path for these entities.
+
+- Deployments and their runtime settings
+- Custom domains and ACME challenges
+- Cluster and routing state
+- OpenAPI specs tied to deployments
+
+## Connect RPC surface
+
+The API exposes Connect services over HTTP/2 for control-plane reads, writes, and streaming state used by other services.
+
+- `CtrlService` for core control plane operations
+- `DeployService` for deployment creation and workflow triggers
+- `OpenApiService` for OpenAPI storage and retrieval
+- `AcmeService` for ACME challenges and certificate state
+- `ClusterService` for cluster coordination and status
+- `CustomDomainService` for domain provisioning and routing
+
+## GitHub webhook flow
+
+When `github.webhook_secret` is set, the API exposes `POST /webhooks/github` and verifies the signature before handling events. Push events create a deployment record and start a deploy workflow.
+
+1. Parse the push payload, and ignore forked repositories or non-branch refs.
+2. Look up GitHub repo connections for the installation and repository IDs.
+3. Map the branch to `production` or `preview` based on the project's default branch.
+4. Load environment settings and variables, and encode a secrets config blob.
+5. Insert a deployment record with Git metadata and runtime settings.
+6. Invoke the Restate deploy workflow with a Git source payload.
+
+## Certificate bootstrap
+
+When `default_domain` or `regional_domain` is configured, the API seeds wildcard domain records on startup. This sets up platform owned domains so the certificate workflow can issue and renew them.
+
+- Create a `custom_domains` record under the `unkey_internal` workspace
+- Insert an ACME challenge with status `waiting` so renewal jobs can pick it up
+- Bootstrap `*.{default_domain}` and `*.{region}.{regional_domain}` entries
+
+## Networking and protocols
+
+The API serves Connect RPC over HTTP/2 using h2c. It keeps streaming RPCs open for control-plane watches, and it exposes health endpoints for orchestration.

@@ -70,7 +70,9 @@ export const FormSettingCard = ({
         </form>
       }
     >
-      <SelectedConfig label={displayValue} />
+      <SelectedConfig
+        label={displayValue ?? <span className="text-gray-11 font-normal">None</span>}
+      />
     </SettingCard>
   );
 };

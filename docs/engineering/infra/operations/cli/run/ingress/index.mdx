@@ -1,0 +1,49 @@
+---
+title: "Frontline"
+description: "Run the Frontline server"
+---
+
+## Command syntax
+
+```bash
+unkey run frontline [flags]
+```
+
+## Flags
+
+| Flag | Description | Env | Default |
+| --- | --- | --- | --- |
+| `--http-port` | HTTP port | `UNKEY_HTTP_PORT` | `7070` |
+| `--https-port` | HTTPS port | `UNKEY_HTTPS_PORT` | `7443` |
+| `--tls-enabled` | Enable TLS termination | `UNKEY_TLS_ENABLED` | `true` |
+| `--platform` | Platform identifier | `UNKEY_PLATFORM` | - |
+| `--image` | Container image identifier | `UNKEY_IMAGE` | - |
+| `--region` | Region identifier | `UNKEY_REGION`, `AWS_REGION` | `unknown` |
+| `--frontline-id` | Instance ID | `UNKEY_FRONTLINE_ID` | auto-generated |
+| `--default-cert-domain` | Fallback TLS certificate domain | `UNKEY_DEFAULT_CERT_DOMAIN` | - |
+| `--apex-domain` | Apex domain for routing | `UNKEY_APEX_DOMAIN` | `unkey.cloud` |
+| `--database-primary` | MySQL primary DSN (required) | `UNKEY_DATABASE_PRIMARY` | - |
+| `--database-replica` | MySQL replica DSN | `UNKEY_DATABASE_REPLICA` | - |
+| `--spire-enabled` | Enable SPIRE mTLS | `UNKEY_SPIRE_ENABLED` | `false` |
+| `--spire-socket-path` | SPIFFE socket path | `UNKEY_SPIRE_SOCKET_PATH` | `/run/spire/sockets/agent.sock` |
+| `--otel` | Enable OpenTelemetry | `UNKEY_OTEL` | `false` |
+| `--otel-trace-sampling-rate` | Trace sampling rate | `UNKEY_OTEL_TRACE_SAMPLING_RATE` | `0.25` |
+| `--prometheus-port` | Prometheus metrics port | `UNKEY_PROMETHEUS_PORT` | `0` |
+| `--vault-master-keys` | Vault master keys | `UNKEY_VAULT_MASTER_KEYS` | - |
+| `--vault-s3-url` | S3 endpoint URL | `UNKEY_VAULT_S3_URL` | - |
+| `--vault-s3-bucket` | S3 bucket | `UNKEY_VAULT_S3_BUCKET` | - |
+| `--vault-s3-access-key-id` | S3 access key ID | `UNKEY_VAULT_S3_ACCESS_KEY_ID` | - |
+| `--vault-s3-access-key-secret` | S3 access key secret | `UNKEY_VAULT_S3_ACCESS_KEY_SECRET` | - |
+| `--require-local-cert` | Generate local cert if missing | `UNKEY_REQUIRE_LOCAL_CERT` | `false` |
+
+## Example usage
+
+```bash
+unkey run frontline \
+  --region=us-east-1 \
+  --apex-domain=unkey.cloud \
+  --database-primary="user:pass@db.us-east-1:3306/partition_001?parseTime=true" \
+  --spire-enabled=true \
+  --otel=true \
+  --prometheus-port=9090
+```

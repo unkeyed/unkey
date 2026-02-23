@@ -1,0 +1,10 @@
+---
+title: "Overview"
+description: "Ingress service for TLS termination and routing"
+---
+
+Frontline is the multi-tenant ingress service. It terminates TLS, routes requests to per-environment sentinels, and forwards cross-region traffic when needed.
+
+Frontline is the first Unkey-owned hop for inbound traffic. It owns certificate selection and SNI routing and keeps short-lived routing and certificate caches to avoid round trips on every request.
+
+Routing decisions come from the control plane data stored in MySQL. Frontline uses that data to select the correct sentinel for the target environment and to fail over when a region is unavailable.
