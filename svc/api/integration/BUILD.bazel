@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//pkg/clickhouse",
         "//pkg/clock",
+        "//pkg/config",
         "//pkg/db",
         "//pkg/dockertest",
         "//pkg/testutil/containers",

@@ -158,9 +158,9 @@ func (s *Service) CreateDeployment(
 		ProjectID:                     req.Msg.GetProjectId(),
 		EnvironmentID:                 env.ID,
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
-		SentinelConfig:                env.SentinelConfig,
+		SentinelConfig:                envSettings.EnvironmentRuntimeSetting.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
-		Command:                       envSettings.Command,
+		Command:                       envSettings.EnvironmentRuntimeSetting.Command,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
@@ -170,11 +170,11 @@ func (s *Service) CreateDeployment(
 		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-		CpuMillicores:                 envSettings.CpuMillicores,
-		MemoryMib:                     envSettings.MemoryMib,
-		Port:                          envSettings.Port,
-		ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.ShutdownSignal),
-		Healthcheck:                   envSettings.Healthcheck,
+		CpuMillicores:                 envSettings.EnvironmentRuntimeSetting.CpuMillicores,
+		MemoryMib:                     envSettings.EnvironmentRuntimeSetting.MemoryMib,
+		Port:                          envSettings.EnvironmentRuntimeSetting.Port,
+		ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.EnvironmentRuntimeSetting.ShutdownSignal),
+		Healthcheck:                   envSettings.EnvironmentRuntimeSetting.Healthcheck,
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())

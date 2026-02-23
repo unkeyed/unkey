@@ -46,10 +46,12 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 
-	logger.SetSampler(logger.TailSampler{
-		SlowThreshold: cfg.LogSlowThreshold,
-		SampleRate:    cfg.LogSampleRate,
-	})
+	if cfg.Observability.Logging != nil {
+		logger.SetSampler(logger.TailSampler{
+			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
+			SampleRate:    cfg.Observability.Logging.SampleRate,
+		})
+	}
 	logger.AddBaseAttrs(slog.GroupAttrs("instance",
 		slog.String("id", cfg.InstanceID),
 		slog.String("platform", cfg.Platform),
@@ -68,13 +70,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
-	if cfg.OtelEnabled {
+	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:     "api",
 			Version:         version.Version,
 			InstanceID:      cfg.InstanceID,
 			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.OtelTraceSamplingRate,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -87,8 +89,8 @@ func Run(ctx context.Context, cfg Config) error {
 	r.DeferCtx(shutdownGrafana)
 
 	db, err := db.New(db.Config{
-		PrimaryDSN:  cfg.DatabasePrimary,
-		ReadOnlyDSN: cfg.DatabaseReadonlyReplica,
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -96,15 +98,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.Defer(db.Close)
 
-	if cfg.PrometheusPort > 0 {
+	if cfg.Observability.Metrics != nil {
 		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
 
-		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.PrometheusPort))
+		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort))
 		if listenErr != nil {
-			return fmt.Errorf("unable to listen on port %d: %w", cfg.PrometheusPort, listenErr)
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.Observability.Metrics.PrometheusPort, listenErr)
 		}
 
 		r.DeferCtx(prom.Shutdown)
@@ -118,9 +120,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
-	if cfg.ClickhouseURL != "" {
+	if cfg.ClickHouse.URL != "" {
 		ch, err = clickhouse.New(clickhouse.Config{
-			URL: cfg.ClickhouseURL,
+			URL: cfg.ClickHouse.URL,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
@@ -151,7 +153,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	ctr, err := counter.NewRedis(counter.RedisConfig{
-		RedisURL: cfg.RedisUrl,
+		RedisURL: cfg.RedisURL,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create counter: %w", err)
@@ -178,16 +180,14 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var vaultClient vault.VaultServiceClient
-	if cfg.VaultURL != "" {
-		vaultClient = vault.NewConnectVaultServiceClient(
-			vaultv1connect.NewVaultServiceClient(
-				&http.Client{},
-				cfg.VaultURL,
-				connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", cfg.VaultToken),
-				})),
-			),
-		)
+	if cfg.Vault.URL != "" {
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
+			&http.Client{},
+			cfg.Vault.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Vault.Token),
+			})),
+		))
 	}
 
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{
@@ -199,7 +199,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize gossip-based cache invalidation
 	var broadcaster clustering.Broadcaster
-	if cfg.GossipEnabled {
+	if cfg.Gossip != nil {
 		logger.Info("Initializing gossip cluster for cache invalidation",
 			"region", cfg.Region,
 			"instanceID", cfg.InstanceID,
@@ -207,13 +207,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 		mux := cluster.NewMessageMux()
 
-		lanSeeds := cluster.ResolveDNSSeeds(cfg.GossipLANSeeds, cfg.GossipLANPort)
-		wanSeeds := cluster.ResolveDNSSeeds(cfg.GossipWANSeeds, cfg.GossipWANPort)
+		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
+		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
 
 		var secretKey []byte
-		if cfg.GossipSecretKey != "" {
+		if cfg.Gossip.SecretKey != "" {
 			var decodeErr error
-			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.GossipSecretKey)
+			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
 			if decodeErr != nil {
 				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
 			}
@@ -222,9 +222,9 @@ func Run(ctx context.Context, cfg Config) error {
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
 			Region:      cfg.Region,
 			NodeID:      cfg.InstanceID,
-			BindAddr:    cfg.GossipBindAddr,
-			BindPort:    cfg.GossipLANPort,
-			WANBindPort: cfg.GossipWANPort,
+			BindAddr:    cfg.Gossip.BindAddr,
+			BindPort:    cfg.Gossip.LANPort,
+			WANBindPort: cfg.Gossip.WANPort,
 			LANSeeds:    lanSeeds,
 			WANSeeds:    wanSeeds,
 			SecretKey:   secretKey,
@@ -269,12 +269,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize analytics connection manager
 	analyticsConnMgr := analytics.NewNoopConnectionManager()
-	if cfg.ClickhouseAnalyticsURL != "" && vaultClient != nil {
+	if cfg.ClickHouse.AnalyticsURL != "" && vaultClient != nil {
 		analyticsConnMgr, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 			SettingsCache: caches.ClickhouseSetting,
 			Database:      db,
 			Clock:         clk,
-			BaseURL:       cfg.ClickhouseAnalyticsURL,
+			BaseURL:       cfg.ClickHouse.AnalyticsURL,
 			Vault:         vaultClient,
 		})
 		if err != nil {
@@ -282,18 +282,24 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Initialize CTRL deployment client
+	// Initialize control plane deployment client
 	ctrlDeploymentClient := ctrl.NewConnectDeployServiceClient(
 		ctrlv1connect.NewDeployServiceClient(
 			&http.Client{},
-			cfg.CtrlURL,
+			cfg.Control.URL,
 			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.CtrlToken),
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
 			})),
 		),
 	)
 
-	logger.Info("CTRL clients initialized", "url", cfg.CtrlURL)
+	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
+
+	var pprofUsername, pprofPassword string
+	if cfg.Pprof != nil {
+		pprofUsername = cfg.Pprof.Username
+		pprofPassword = cfg.Pprof.Password
+	}
 
 	routes.Register(srv, &routes.Services{
 		Database:                   db,
@@ -304,11 +310,10 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:                  auditlogSvc,
 		Caches:                     caches,
 		Vault:                      vaultClient,
-		ChproxyToken:               cfg.ChproxyToken,
 		CtrlDeploymentClient:       ctrlDeploymentClient,
-		PprofEnabled:               cfg.PprofEnabled,
-		PprofUsername:              cfg.PprofUsername,
-		PprofPassword:              cfg.PprofPassword,
+		PprofEnabled:               cfg.Pprof != nil,
+		PprofUsername:              pprofUsername,
+		PprofPassword:              pprofPassword,
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
 	},

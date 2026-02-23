@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
+	"github.com/unkeyed/unkey/pkg/zen/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
 

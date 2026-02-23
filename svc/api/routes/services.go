@@ -49,10 +49,6 @@ type Services struct {
 	// Vault provides encrypted storage for sensitive key material.
 	Vault vault.VaultServiceClient
 
-	// ChproxyToken authenticates requests to internal chproxy endpoints.
-	// When empty, chproxy routes are not registered.
-	ChproxyToken string
-
 	// CtrlDeploymentClient communicates with the control plane for deployment
 	// operations like creating and managing deployments.
 	CtrlDeploymentClient ctrl.DeployServiceClient

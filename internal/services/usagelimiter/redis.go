@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/buffer"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
@@ -13,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
 

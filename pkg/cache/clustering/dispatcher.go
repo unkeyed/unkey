@@ -6,6 +6,7 @@ import (
 
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
 )
 
 // InvalidationHandler is an interface that cluster caches implement
@@ -59,6 +60,8 @@ func (d *InvalidationDispatcher) handleEvent(ctx context.Context, event *cachev1
 
 	// If we don't have a handler for this cache, skip it
 	if !exists {
+		actionLabel := metrics.ActionLabel(event)
+		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(event.GetCacheName(), actionLabel, "skipped_unknown").Inc()
 		return nil
 	}
 

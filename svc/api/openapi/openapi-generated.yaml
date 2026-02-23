@@ -21,79 +21,6 @@ components:
             scheme: bearer
             type: http
     schemas:
-        ChproxyMetricsRequestBody:
-            type: array
-            description: Array of API request metric events to be processed
-            items:
-                type: object
-                additionalProperties: true
-        ChproxyMetricsResponseBody:
-            type: object
-            required:
-                - status
-            properties:
-                status:
-                    type: string
-                    description: Processing status
-                    example: "OK"
-        BadRequestErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BadRequestErrorDetails"
-            description: Error response for invalid requests that cannot be processed due to client-side errors. This typically occurs when request parameters are missing, malformed, or fail validation rules. The response includes detailed information about the specific errors in the request, including the location of each error and suggestions for fixing it. When receiving this error, check the 'errors' array in the response for specific validation issues that need to be addressed before retrying.
-        InternalServerErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
-
-                When you encounter this error:
-                - The request ID in the response can help Unkey support investigate the issue
-                - The error is likely temporary and retrying may succeed
-                - If the error persists, contact Unkey support with the request ID
-        ChproxyRatelimitsRequestBody:
-            type: array
-            description: Array of ratelimit events to be processed
-            items:
-                type: object
-                additionalProperties: true
-        ChproxyRatelimitsResponseBody:
-            type: object
-            required:
-                - status
-            properties:
-                status:
-                    type: string
-                    description: Processing status
-                    example: "OK"
-        ChproxyVerificationsRequestBody:
-            type: array
-            description: Array of key verification events to be processed
-            items:
-                type: object
-                additionalProperties: true
-        ChproxyVerificationsResponseBody:
-            type: object
-            required:
-                - status
-            properties:
-                status:
-                    type: string
-                    description: Processing status
-                    example: "OK"
         V2AnalyticsGetVerificationsRequestBody:
             type: object
             required:
@@ -115,6 +42,17 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2AnalyticsGetVerificationsResponseData"
+        BadRequestErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BadRequestErrorDetails"
+            description: Error response for invalid requests that cannot be processed due to client-side errors. This typically occurs when request parameters are missing, malformed, or fail validation rules. The response includes detailed information about the specific errors in the request, including the location of each error and suggestions for fixing it. When receiving this error, check the 'errors' array in the response for specific validation issues that need to be addressed before retrying.
         UnauthorizedErrorResponse:
             type: object
             required:
@@ -202,6 +140,23 @@ components:
                 - Cache results where appropriate to reduce request frequency
                 - Check the error detail message for specific quota information
                 - Contact support if you need a higher quota for your use case
+        InternalServerErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
+
+                When you encounter this error:
+                - The request ID in the response can help Unkey support investigate the issue
+                - The error is likely temporary and retrying may succeed
+                - If the error persists, contact Unkey support with the request ID
         ServiceUnavailableErrorResponse:
             type: object
             required:
@@ -2176,6 +2131,20 @@ components:
                     type: string
             additionalProperties: false
             description: Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+        V2AnalyticsGetVerificationsResponseData:
+            type: array
+            description: Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
+            items:
+                type: object
+                additionalProperties: true
+                description: Dynamic row with fields determined by the query. Can include any combination of fields like time, outcome, count, key_id, etc.
+            example:
+                - outcome: "VALID"
+                  count: 1234
+                  time: 1696118400000
+                - outcome: "RATE_LIMITED"
+                  count: 56
+                  time: 1696118400000
         BadRequestErrorDetails:
             allOf:
                 - $ref: "#/components/schemas/BaseError"
@@ -2242,20 +2211,6 @@ components:
                 - message
             type: object
             description: Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
-        V2AnalyticsGetVerificationsResponseData:
-            type: array
-            description: Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
-            items:
-                type: object
-                additionalProperties: true
-                description: Dynamic row with fields determined by the query. Can include any combination of fields like time, outcome, count, key_id, etc.
-            example:
-                - outcome: "VALID"
-                  count: 1234
-                  time: 1696118400000
-                - outcome: "RATE_LIMITED"
-                  count: 56
-                  time: 1696118400000
         V2ApisCreateApiResponseData:
             type: object
             properties:
@@ -3751,120 +3706,6 @@ info:
     version: 2.0.0
 openapi: 3.1.0
 paths:
-    /_internal/chproxy/metrics:
-        post:
-            description: |-
-                Internal endpoint for batching API request metric events to ClickHouse. This endpoint is used internally by the API to efficiently store request/response data for analytics and should not be used by external clients.
-
-                This endpoint bypasses normal authentication and validation as it's intended for internal use only.
-            operationId: chproxyMetrics
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/ChproxyMetricsRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ChproxyMetricsResponseBody'
-                    description: Events successfully queued for processing
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Invalid request body or malformed events
-                "529":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Service overloaded, unable to process events
-            security: []
-            summary: Internal ClickHouse proxy for API request metrics
-            tags:
-                - chproxy
-            x-excluded: true
-            x-speakeasy-ignore: true
-    /_internal/chproxy/ratelimits:
-        post:
-            description: |-
-                Internal endpoint for batching ratelimit events to ClickHouse. This endpoint is used internally by the API to efficiently store ratelimit data and should not be used by external clients.
-
-                This endpoint bypasses normal authentication and validation as it's intended for internal use only.
-            operationId: chproxyRatelimits
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/ChproxyRatelimitsRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ChproxyRatelimitsResponseBody'
-                    description: Events successfully queued for processing
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Invalid request body or malformed events
-                "529":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Service overloaded, unable to process events
-            security: []
-            summary: Internal ClickHouse proxy for ratelimit events
-            tags:
-                - chproxy
-            x-excluded: true
-            x-speakeasy-ignore: true
-    /_internal/chproxy/verifications:
-        post:
-            description: |-
-                Internal endpoint for batching key verification events to ClickHouse. This endpoint is used internally by the API to efficiently store verification data and should not be used by external clients.
-
-                This endpoint bypasses normal authentication and validation as it's intended for internal use only. External clients should use the standard key verification endpoints instead.
-            operationId: chproxyVerifications
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/ChproxyVerificationsRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ChproxyVerificationsResponseBody'
-                    description: Events successfully queued for processing
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Invalid request body or malformed events
-                "529":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Service overloaded, unable to process events
-            security: []
-            summary: Internal ClickHouse proxy for verification events
-            tags:
-                - chproxy
-            x-excluded: true
-            x-speakeasy-ignore: true
     /v2/analytics.getVerifications:
         post:
             description: |

@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
+	handler "github.com/unkeyed/unkey/svc/sentinel/routes/proxy"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -111,6 +112,28 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 			Message: "The sentinel is misconfigured. Please contact support.",
 		}
 
+	// Sentinel Auth Errors
+	case codes.Sentinel.Auth.MissingCredentials.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Message: "Authentication required. Please provide valid credentials.",
+		}
+	case codes.Sentinel.Auth.InvalidKey.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Message: "The provided API key is invalid, disabled, or expired.",
+		}
+	case codes.Sentinel.Auth.InsufficientPermissions.URN():
+		return errorPageInfo{
+			Status:  http.StatusForbidden,
+			Message: "The API key does not have the required permissions.",
+		}
+	case codes.Sentinel.Auth.RateLimited.URN():
+		return errorPageInfo{
+			Status:  http.StatusTooManyRequests,
+			Message: "Rate limit exceeded. Please try again later.",
+		}
+
 	// User/Client Errors
 	case codes.User.BadRequest.ClientClosedRequest.URN():
 		return errorPageInfo{
@@ -155,6 +178,12 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 
 		case codes.User.BadRequest.ClientClosedRequest.URN(),
 			codes.User.BadRequest.MissingRequiredHeader.URN():
+			return "user"
+
+		case codes.Sentinel.Auth.MissingCredentials.URN(),
+			codes.Sentinel.Auth.InvalidKey.URN(),
+			codes.Sentinel.Auth.InsufficientPermissions.URN(),
+			codes.Sentinel.Auth.RateLimited.URN():
 			return "user"
 		}
 
@@ -216,6 +245,12 @@ func WithObservability(environmentID, region string) zen.Middleware {
 
 				pageInfo := getErrorPageInfo(urn)
 				statusCode = pageInfo.Status
+
+				// Ensure tracking has the resolved status for CH logging,
+				// in case WithProxyErrorHandling didn't set it (e.g. auth errors).
+				if tracking, ok := handler.SentinelTrackingFromContext(ctx); ok && tracking.ResponseStatus == 0 {
+					tracking.ResponseStatus = int32(statusCode)
+				}
 
 				errorType = categorizeErrorType(urn, statusCode, hasError)
 

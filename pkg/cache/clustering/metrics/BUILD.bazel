@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "metrics",
+    srcs = ["prometheus.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/cache/clustering/metrics",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/cache/v1:cache",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promauto",
+    ],
+)

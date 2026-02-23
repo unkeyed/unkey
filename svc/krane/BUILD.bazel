@@ -14,6 +14,7 @@ go_library(
         "//gen/proto/vault/v1/vaultv1connect",
         "//gen/rpc/vault",
         "//pkg/clock",
+        "//pkg/config",
         "//pkg/logger",
         "//pkg/otel",
         "//pkg/prometheus",
