@@ -15,7 +15,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const maxJoinAttempts = 10
+// reconnectInterval is how often the background loop checks whether
+// the node is isolated and needs to re-join seeds.
+const reconnectInterval = 30 * time.Second
 
 // Cluster is the public interface for gossip-based cluster membership.
 type Cluster interface {
@@ -97,10 +99,11 @@ func New(cfg Config) (Cluster, error) {
 	}
 	c.mu.Unlock()
 
-	// Join LAN seeds with retries — the headless service DNS may not be
-	// resolvable immediately at pod startup.
+	// Start background reconnection loop for LAN seeds. This handles both
+	// initial join (DNS may not be ready at startup) and reconnection after
+	// network partitions or rolling restarts of other nodes.
 	if len(cfg.LANSeeds) > 0 {
-		go c.joinSeeds("LAN", func() *memberlist.Memberlist {
+		go c.maintainMembership("LAN", func() *memberlist.Memberlist {
 			c.mu.RLock()
 			defer c.mu.RUnlock()
 			return c.lan
@@ -129,12 +132,15 @@ func New(cfg Config) (Cluster, error) {
 	return c, nil
 }
 
-// joinSeeds attempts to join seeds on the given memberlist with exponential backoff.
-// pool is used for logging ("LAN" or "WAN"). onSuccess is called after a successful join.
-func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlist, seeds []string, onSuccess func()) {
+// maintainMembership runs for the lifetime of the cluster and ensures the node
+// stays connected to seeds. It handles initial join (with backoff for DNS
+// readiness) and periodic reconnection if the node becomes isolated.
+func (c *gossipCluster) maintainMembership(pool string, list func() *memberlist.Memberlist, seeds []string, onJoin func()) {
+	// Initial join with exponential backoff — DNS may not resolve immediately.
 	backoff := 500 * time.Millisecond
+	joined := false
 
-	for attempt := 1; attempt <= maxJoinAttempts; attempt++ {
+	for !joined {
 		select {
 		case <-c.done:
 			return
@@ -149,18 +155,18 @@ func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlis
 		_, err := ml.Join(seeds)
 		if err == nil {
 			metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
-			logger.Info("Joined "+pool+" seeds", "seeds", seeds, "attempt", attempt)
-			if onSuccess != nil {
-				onSuccess()
+			logger.Info("Joined "+pool+" seeds", "seeds", seeds)
+			joined = true
+			if onJoin != nil {
+				onJoin()
 			}
-			return
+			break
 		}
 
 		metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "failure").Inc()
 		logger.Warn("Failed to join "+pool+" seeds, retrying",
 			"error", err,
 			"seeds", seeds,
-			"attempt", attempt,
 			"next_backoff", backoff,
 		)
 
@@ -170,14 +176,51 @@ func (c *gossipCluster) joinSeeds(pool string, list func() *memberlist.Memberlis
 		case <-time.After(backoff):
 		}
 
-		backoff = min(backoff*2, 10*time.Second)
+		backoff = min(backoff*2, reconnectInterval)
 	}
 
-	metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "exhausted").Inc()
-	logger.Error("Exhausted retries joining "+pool+" seeds",
-		"seeds", seeds,
-		"attempts", maxJoinAttempts,
-	)
+	// Background loop — periodically check if we're isolated and re-join.
+	ticker := time.NewTicker(reconnectInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.done:
+			return
+		case <-ticker.C:
+		}
+
+		ml := list()
+		if ml == nil {
+			return
+		}
+
+		// If we have more than just ourselves, we're connected.
+		if ml.NumMembers() > 1 {
+			continue
+		}
+
+		// We're alone — try to rejoin seeds.
+		logger.Warn("Node is isolated, attempting to rejoin "+pool+" seeds",
+			"seeds", seeds,
+		)
+
+		_, err := ml.Join(seeds)
+		if err != nil {
+			metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "failure").Inc()
+			logger.Warn("Failed to rejoin "+pool+" seeds",
+				"error", err,
+				"seeds", seeds,
+			)
+			continue
+		}
+
+		metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
+		logger.Info("Rejoined "+pool+" seeds", "seeds", seeds)
+		if onJoin != nil {
+			onJoin()
+		}
+	}
 }
 
 // triggerEvalBridge sends a non-blocking signal to the bridge evaluator goroutine.
