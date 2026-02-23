@@ -251,9 +251,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					"error", bulkErr,
 				)
 			} else {
-				for id, plaintext := range bulkRes.GetItems() {
-					plaintextMap[id] = plaintext
-				}
+				plaintextMap = bulkRes.GetItems()
 			}
 		}
 	}
