@@ -29,7 +29,7 @@ var (
 			Name:      "members_count",
 			Help:      "Current number of members in the cluster pool.",
 		},
-		[]string{"pool"},
+		[]string{"pool", "region"},
 	)
 
 	// ClusterBridgeStatus indicates whether this node is currently the bridge (1) or not (0).
@@ -91,6 +91,7 @@ var (
 
 	// ClusterMessageLatencySeconds measures end-to-end transport latency (sent_at_ms to now).
 	// direction=lan gives intra-region hop time, direction=wan gives full cross-region delivery time.
+	// source_region is the originating region, destination_region is the receiving region.
 	ClusterMessageLatencySeconds = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
@@ -99,7 +100,7 @@ var (
 			Help:      "End-to-end message transport latency in seconds.",
 			Buckets:   prometheus.DefBuckets,
 		},
-		[]string{"direction", "source_region"},
+		[]string{"direction", "source_region", "destination_region"},
 	)
 
 	// ClusterMessageUnmarshalErrorsTotal counts proto deserialization failures.
