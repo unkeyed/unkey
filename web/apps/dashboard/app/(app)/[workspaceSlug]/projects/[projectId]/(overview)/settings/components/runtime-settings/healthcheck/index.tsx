@@ -36,15 +36,24 @@ export const Healthcheck = () => {
     interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
   };
 
-  return <HealthcheckForm environmentId={environmentId ?? ""} defaultValues={defaultValues} />;
+  return (
+    <HealthcheckForm
+      environmentId={environmentId ?? ""}
+      defaultValues={defaultValues}
+      hasPreviousData={Boolean(healthcheck)}
+    />
+  );
 };
 
-type HealthcheckFormProps = {
+const HealthcheckForm = ({
+  environmentId,
+  defaultValues,
+  hasPreviousData,
+}: {
   environmentId: string;
   defaultValues: HealthcheckFormValues;
-};
-
-const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaultValues }) => {
+  hasPreviousData: boolean;
+}) => {
   const utils = trpc.useUtils();
 
   const {
@@ -120,11 +129,13 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
       displayValue={
-        <div className="flex gap-1.5 items-center justify-center">
-          <MethodBadge method={defaultValues.method} />
-          <span className="font-medium text-gray-12">{defaultValues.path}</span>
-          <span className="text-gray-11 font-normal">every {defaultValues.interval}</span>
-        </div>
+        hasPreviousData ? (
+          <div className="flex gap-1.5 items-center justify-center">
+            <MethodBadge method={defaultValues.method} />
+            <span className="font-medium text-gray-12">{defaultValues.path}</span>
+            <span className="text-gray-11 font-normal">every {defaultValues.interval}</span>
+          </div>
+        ) : null
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}

@@ -25,7 +25,7 @@ export const SkeletonNode = () => {
 
           {/* Status indicators skeleton */}
           <div className="flex gap-2 items-center ml-auto">
-            <div className="w-[30px] h-[40px] rounded-lg bg-grayA-3 animate-pulse" />
+            <div className="w-[30px]" />
             <div className="w-[30px] h-[40px] rounded-lg bg-grayA-3 animate-pulse" />
           </div>
         </div>
