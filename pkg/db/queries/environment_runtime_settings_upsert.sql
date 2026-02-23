@@ -9,9 +9,10 @@ INSERT INTO environment_runtime_settings (
     healthcheck,
     region_config,
     shutdown_signal,
+    sentinel_config,
     created_at,
     updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
@@ -20,4 +21,5 @@ ON DUPLICATE KEY UPDATE
     healthcheck = VALUES(healthcheck),
     region_config = VALUES(region_config),
     shutdown_signal = VALUES(shutdown_signal),
+    sentinel_config = VALUES(sentinel_config),
     updated_at = VALUES(updated_at);

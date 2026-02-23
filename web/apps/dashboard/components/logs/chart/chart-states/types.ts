@@ -56,3 +56,14 @@ export type ChartLoadingProps = {
   animate?: boolean;
   dataPoints?: number;
 };
+
+/**
+ * Props for the ChartEmpty component
+ */
+export type ChartEmptyProps = {
+  variant?: ChartStateVariant;
+  message?: string;
+  labels?: TimeseriesChartLabels;
+  height?: number;
+  className?: string;
+};

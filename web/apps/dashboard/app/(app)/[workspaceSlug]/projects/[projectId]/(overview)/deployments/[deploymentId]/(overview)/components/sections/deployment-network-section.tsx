@@ -14,11 +14,11 @@ import { MetricCard } from "../metrics/metric-card";
 export function DeploymentNetworkSection() {
   const [latencyPercentile, setLatencyPercentile] = useState<keyof typeof PERCENTILE_VALUES>("p50");
 
-  const { deploymentId } = useDeployment();
+  const { deployment } = useDeployment();
 
-  const { currentRps, timeseries: rpsTimeseries } = useDeploymentRps(deploymentId);
+  const { currentRps, timeseries: rpsTimeseries } = useDeploymentRps(deployment.id);
   const { currentLatency, timeseries: latencyTimeseries } = useDeploymentLatency(
-    deploymentId,
+    deployment.id,
     latencyPercentile,
   );
 

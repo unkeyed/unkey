@@ -3,12 +3,12 @@
   "version": "1.1.0",
   "private": true,
   "scripts": {
-    "dev": "mintlify dev"
+    "dev": "mint dev"
   },
   "keywords": [],
   "author": "Andreas Thomas & James Perkins",
   "devDependencies": {
-    "mintlify": "4.2.314"
+    "mint": "4.2.314"
   },
   "dependencies": {
     "sharp": "0.34.3"

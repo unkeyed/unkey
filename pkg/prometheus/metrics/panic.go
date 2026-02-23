@@ -1,8 +1,3 @@
-/*
-Package metrics provides Prometheus metric collectors for monitoring application performance.
-
-This file contains a metric for tracking panics across http handlers.
-*/
 package metrics
 
 import (
@@ -22,10 +17,9 @@ var (
 	// Example usage:
 	//   metrics.PanicsTotal.WithLabelValues("handleVerifyKey", "/v1/keys.verifyKey").Inc()
 	PanicsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   "unkey",
-		Subsystem:   "internal",
-		Name:        "panics_total",
-		Help:        "Total number of panics recovered in HTTP handlers.",
-		ConstLabels: constLabels,
+		Namespace: "unkey",
+		Subsystem: "internal",
+		Name:      "panics_total",
+		Help:      "Total number of panics recovered in HTTP handlers.",
 	}, []string{"caller", "path"})
 )

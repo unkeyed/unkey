@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "config.go",
         "run.go",
+        "tls.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline",
     visibility = ["//visibility:public"],
@@ -16,6 +17,7 @@ go_library(
         "//pkg/cache/clustering",
         "//pkg/clock",
         "//pkg/cluster",
+        "//pkg/config",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/otel",
@@ -26,6 +28,7 @@ go_library(
         "//pkg/tls",
         "//pkg/version",
         "//pkg/zen",
+        "//svc/frontline/internal/errorpage",
         "//svc/frontline/routes",
         "//svc/frontline/services/caches",
         "//svc/frontline/services/certmanager",

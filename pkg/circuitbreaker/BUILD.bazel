@@ -11,9 +11,9 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/circuitbreaker",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/circuitbreaker/metrics",
         "//pkg/clock",
         "//pkg/logger",
-        "//pkg/prometheus/metrics",
     ],
 )
 

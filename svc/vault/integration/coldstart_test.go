@@ -40,7 +40,7 @@ func Test_ColdStart(t *testing.T) {
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
-		MasterKeys:  []string{masterKey},
+		MasterKey:   masterKey,
 		BearerToken: "test-bearer-token",
 	})
 	require.NoError(t, err)

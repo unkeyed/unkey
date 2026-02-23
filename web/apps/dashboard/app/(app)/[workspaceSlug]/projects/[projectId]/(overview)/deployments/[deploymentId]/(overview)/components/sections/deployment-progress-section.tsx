@@ -12,10 +12,10 @@ import { DeploymentBuildStepsTable } from "../table/deployment-build-steps-table
 import { DeploymentInfoSection } from "./deployment-info-section";
 
 export function DeploymentProgressSection() {
-  const { deploymentId } = useDeployment();
+  const { deployment } = useDeployment();
   const steps = trpc.deploy.deployment.steps.useQuery(
     {
-      deploymentId,
+      deploymentId: deployment.id,
     },
     {
       refetchInterval: 1_000,
@@ -24,7 +24,7 @@ export function DeploymentProgressSection() {
 
   const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
     {
-      deploymentId,
+      deploymentId: deployment.id,
     },
     {
       refetchInterval: 1000,

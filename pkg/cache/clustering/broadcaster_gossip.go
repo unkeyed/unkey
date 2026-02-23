@@ -7,6 +7,7 @@ import (
 
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
+	"github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
 	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
@@ -57,7 +58,10 @@ func (b *GossipBroadcaster) Broadcast(_ context.Context, events ...*cachev1.Cach
 		if err := b.cluster.Broadcast(&clusterv1.ClusterMessage_CacheInvalidation{
 			CacheInvalidation: event,
 		}); err != nil {
+			metrics.CacheClusteringBroadcastErrorsTotal.Inc()
 			logger.Error("Failed to broadcast cache invalidation", "error", err)
+		} else {
+			metrics.CacheClusteringInvalidationsSentTotal.WithLabelValues(event.CacheName, metrics.ActionLabel(event)).Inc()
 		}
 	}
 

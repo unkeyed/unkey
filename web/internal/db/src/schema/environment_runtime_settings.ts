@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
 
 export type Healthcheck = {
@@ -47,6 +48,8 @@ export const environmentRuntimeSettings = mysqlTable(
     shutdownSignal: mysqlEnum("shutdown_signal", ["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"])
       .notNull()
       .default("SIGTERM"),
+
+    sentinelConfig: longblob("sentinel_config").notNull(),
 
     ...lifecycleDates,
   },

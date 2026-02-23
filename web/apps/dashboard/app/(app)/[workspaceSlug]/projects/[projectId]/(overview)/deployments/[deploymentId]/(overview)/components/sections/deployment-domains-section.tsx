@@ -8,9 +8,9 @@ import { DomainRow, DomainRowSkeleton } from "../../../../../details/domain-row"
 import { useDeployment } from "../../../layout-provider";
 
 export function DeploymentDomainsSection() {
-  const { deploymentId } = useDeployment();
+  const { deployment } = useDeployment();
   const { getDomainsForDeployment, isDomainsLoading } = useProjectData();
-  const domains = getDomainsForDeployment(deploymentId);
+  const domains = getDomainsForDeployment(deployment.id);
   return (
     <Section>
       <SectionHeader
