@@ -88,9 +88,9 @@ func (c *gossipCluster) promoteToBridge() {
 	metrics.ClusterBridgeStatus.Set(1)
 	metrics.ClusterBridgeTransitionsTotal.WithLabelValues("promoted").Inc()
 
-	// Join WAN seeds outside the lock with retries
+	// Start background reconnection loop for WAN seeds.
 	if len(seeds) > 0 {
-		go c.joinSeeds("WAN", func() *memberlist.Memberlist {
+		go c.maintainMembership("WAN", func() *memberlist.Memberlist {
 			c.mu.RLock()
 			defer c.mu.RUnlock()
 			return c.wan
