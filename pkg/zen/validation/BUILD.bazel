@@ -12,6 +12,7 @@ go_library(
         "//svc/api/openapi",
         "@com_github_pb33f_libopenapi//:libopenapi",
         "@com_github_pb33f_libopenapi_validator//:libopenapi-validator",
+        "@com_github_pb33f_libopenapi_validator//config",
     ],
 )
 
