@@ -116,6 +116,7 @@ export function TreeLayout({
             key={positioned.node.id}
             id={positioned.node.id}
             position={positioned.position}
+            size={NODE_SIZES[positioned.node.metadata.type]}
           >
             {renderNode(positioned.node, parent)}
           </TreeElementNode>

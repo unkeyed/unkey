@@ -47,6 +47,7 @@ export function DeploymentNetworkView({
 
   return (
     <InfiniteCanvas
+      locked
       defaultZoom={1}
       overlay={
         <>
@@ -68,7 +69,7 @@ export function DeploymentNetworkView({
     >
       <TreeLayout
         data={currentTree}
-        nodeSpacing={{ x: 10, y: 100 }}
+        nodeSpacing={{ x: 75, y: 100 }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
         renderNode={(node, parent) => renderDeploymentNode(node, parent, deployment.id)}
         renderConnection={(path, parent, child) => (
