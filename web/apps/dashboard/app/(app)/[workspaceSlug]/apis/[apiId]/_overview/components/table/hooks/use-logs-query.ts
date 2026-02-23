@@ -139,22 +139,24 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     isLoading: isLoadingInitial,
   } = trpc.api.keys.query.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
+    staleTime: 30_000, // 30 seconds instead of infinity to allow refresh
+    refetchOnMount: true, // Refetch on mount to ensure fresh data
     refetchOnWindowFocus: false,
   });
 
-  // Update historical logs effect
+  // Update historical logs effect - runs when data changes
   useEffect(() => {
-    if (initialData) {
-      const newMap = new Map<string, KeysOverviewLog>();
-      initialData.pages.forEach((page) => {
-        page.keysOverviewLogs.forEach((log) => {
-          // Use request_id as the unique key since key_id might not be unique across different requests
-          newMap.set(log.request_id, log);
+    if (initialData?.pages) {
+      setHistoricalLogsMap((prevMap) => {
+        const newMap = new Map<string, KeysOverviewLog>(prevMap);
+        initialData.pages.forEach((page) => {
+          page.keysOverviewLogs.forEach((log) => {
+            // Use request_id as the unique key since key_id might not be unique across different requests
+            newMap.set(log.request_id, log);
+          });
         });
+        return newMap;
       });
-      setHistoricalLogsMap(newMap);
     }
   }, [initialData]);
 
