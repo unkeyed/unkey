@@ -40,29 +40,6 @@ export const SKELETON_TREE: DeploymentNode = {
           label: "s-skeleton-2",
           metadata: { type: "skeleton" },
         },
-        {
-          id: "eu-central-1-s-3-skeleton",
-          label: "s-skeleton-3",
-          metadata: { type: "skeleton" },
-        },
-      ],
-    },
-    {
-      id: "ap-southeast-2-skeleton",
-      label: "ap-southeast-2",
-      direction: "vertical",
-      metadata: { type: "skeleton" },
-      children: [
-        {
-          id: "ap-southeast-2-s-1-skeleton",
-          label: "s-skeleton-1",
-          metadata: { type: "skeleton" },
-        },
-        {
-          id: "ap-southeast-2-s-2-skeleton",
-          label: "s-skeleton-2",
-          metadata: { type: "skeleton" },
-        },
       ],
     },
   ],

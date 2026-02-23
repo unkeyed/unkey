@@ -89,11 +89,8 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     reset({ environmentId: values.environmentId, domain: "" });
   };
 
-  const displayValue = () => {
-    if (customDomains.length === 0) {
-      return <span className="text-gray-11">None</span>;
-    }
-    return (
+  const displayValue =
+    customDomains.length === 0 ? null : (
       <div className="space-x-1">
         <span className="font-medium text-gray-12">{customDomains.length}</span>
         <span className="text-gray-11 font-normal">
@@ -101,14 +98,13 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
         </span>
       </div>
     );
-  };
 
   return (
     <FormSettingCard
       icon={<Link4 className="text-gray-12" iconSize="xl-medium" />}
       title="Custom Domains"
       description="Serve your deployment from your own domain name"
-      displayValue={displayValue()}
+      displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting}
       isSaving={isSubmitting}
