@@ -10,6 +10,7 @@ go_library(
         "delegate_wan.go",
         "discovery.go",
         "doc.go",
+        "log_writer.go",
         "message.go",
         "mux.go",
         "noop.go",
