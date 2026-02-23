@@ -116,10 +116,10 @@ func New(cfg Config) (Cluster, error) {
 		c.mu.RUnlock()
 
 		if lan != nil {
-			metrics.ClusterMembersCount.WithLabelValues("lan").Set(float64(lan.NumMembers()))
+			metrics.ClusterMembersCount.WithLabelValues("lan", c.config.Region).Set(float64(lan.NumMembers()))
 		}
 		if wan != nil {
-			metrics.ClusterMembersCount.WithLabelValues("wan").Set(float64(wan.NumMembers()))
+			metrics.ClusterMembersCount.WithLabelValues("wan", c.config.Region).Set(float64(wan.NumMembers()))
 		}
 	})
 
