@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"io"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -63,7 +62,10 @@ func (c *gossipCluster) promoteToBridge() {
 	wanCfg.BindAddr = c.config.BindAddr
 	wanCfg.BindPort = c.config.WANBindPort
 	wanCfg.AdvertisePort = c.config.WANBindPort
-	wanCfg.LogOutput = io.Discard
+	if c.config.WANAdvertiseAddr != "" {
+		wanCfg.AdvertiseAddr = c.config.WANAdvertiseAddr
+	}
+	wanCfg.LogOutput = newLogWriter("wan")
 	wanCfg.SecretKey = c.config.SecretKey
 
 	wanCfg.Delegate = newWANDelegate(c)
