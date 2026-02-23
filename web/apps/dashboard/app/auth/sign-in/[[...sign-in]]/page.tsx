@@ -1,8 +1,13 @@
 "use client";
 
 import { FadeIn } from "@/components/landing/fade-in";
-import { getCookie } from "@/lib/auth/cookies";
-import { PENDING_SESSION_COOKIE, UNKEY_LAST_ORG_COOKIE } from "@/lib/auth/types";
+import { deleteCookie, getCookie } from "@/lib/auth/cookies";
+import {
+  AuthErrorCode,
+  PENDING_SESSION_COOKIE,
+  UNKEY_LAST_ORG_COOKIE,
+  errorMessages,
+} from "@/lib/auth/types";
 import { ArrowRight } from "@unkey/icons";
 import { Empty, Loading } from "@unkey/ui";
 import Link from "next/link";
@@ -77,6 +82,11 @@ function SignInContent() {
       completeOrgSelection(lastUsedOrgId)
         .then((result) => {
           if (!result.success) {
+            // Auto-selection failed - clear last used workspace to prevent retry loop
+            deleteCookie(UNKEY_LAST_ORG_COOKIE).catch(() => {
+              // Ignore cookie deletion errors
+            });
+
             setError(result.message);
             setIsLoading(false);
             setIsAutoSelecting(false);
@@ -86,6 +96,11 @@ function SignInContent() {
           router.push(result.redirectTo);
         })
         .catch((_err) => {
+          // Clear last used workspace on error
+          deleteCookie(UNKEY_LAST_ORG_COOKIE).catch(() => {
+            // Ignore cookie deletion errors
+          });
+
           setError("Failed to automatically sign in. Please select your workspace.");
           setIsLoading(false);
           setIsAutoSelecting(false);
@@ -150,7 +165,7 @@ function SignInContent() {
     const checkSessionValidity = async () => {
       const pendingSession = await getCookie(PENDING_SESSION_COOKIE);
       if (!pendingSession) {
-        setError("Your session has expired. Please sign in again.");
+        setError(errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED]);
         // Clear the orgs query parameter to reset to sign-in form
         router.push("/auth/sign-in");
       }
@@ -178,14 +193,9 @@ function SignInContent() {
     );
   }
 
-  const handleOrgSelectorClose = () => {
-    // When user closes the org selector, navigate back to clean sign-in page
-    router.push("/auth/sign-in");
-  };
-
   // Only show org selector if we have pending auth and we're not actively auto-selecting
   return hasPendingAuth && !isAutoSelecting ? (
-    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} onClose={handleOrgSelectorClose} />
+    <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} />
   ) : (
     <div className="flex flex-col gap-10">
       {accountNotFound && (
