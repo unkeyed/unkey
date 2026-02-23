@@ -132,15 +132,16 @@ func Run(ctx context.Context, cfg Config) error {
 		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
-			Region:      cfg.Region,
-			NodeID:      cfg.SentinelID,
-			BindAddr:    cfg.Gossip.BindAddr,
-			BindPort:    cfg.Gossip.LANPort,
-			WANBindPort: cfg.Gossip.WANPort,
-			LANSeeds:    lanSeeds,
-			WANSeeds:    wanSeeds,
-			SecretKey:   nil, // Sentinel gossip is locked down via CiliumNetworkPolicy
-			OnMessage:   mux.OnMessage,
+			Region:           cfg.Region,
+			NodeID:           cfg.SentinelID,
+			BindAddr:         cfg.Gossip.BindAddr,
+			BindPort:         cfg.Gossip.LANPort,
+			WANBindPort:      cfg.Gossip.WANPort,
+			WANAdvertiseAddr: cfg.Gossip.WANAdvertiseAddr,
+			LANSeeds:         lanSeeds,
+			WANSeeds:         wanSeeds,
+			SecretKey:        nil, // Sentinel gossip is locked down via CiliumNetworkPolicy
+			OnMessage:        mux.OnMessage,
 		})
 		if clusterErr != nil {
 			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",

@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"fmt"
-	"io"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -80,7 +79,7 @@ func New(cfg Config) (Cluster, error) {
 	lanCfg.BindAddr = cfg.BindAddr
 	lanCfg.BindPort = cfg.BindPort
 	lanCfg.AdvertisePort = cfg.BindPort
-	lanCfg.LogOutput = io.Discard
+	lanCfg.LogOutput = newLogWriter("lan")
 	lanCfg.SecretKey = cfg.SecretKey
 	lanCfg.Delegate = newLANDelegate(c)
 	lanCfg.Events = newLANEventDelegate(c)
