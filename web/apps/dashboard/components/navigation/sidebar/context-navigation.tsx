@@ -102,7 +102,11 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
     <SidebarGroup>
       <SidebarMenu className="gap-2">
         {finalNavItems.map((item) => (
-          <NavItems key={item.label as string} item={item} />
+          <NavItems
+            key={item.label as string}
+            item={item}
+            isResourceLevel={context.type === "resource"}
+          />
         ))}
       </SidebarMenu>
     </SidebarGroup>
