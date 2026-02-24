@@ -32,7 +32,7 @@ export const CancelPlan: React.FC = () => {
       title="Cancel Subscription"
       description="Cancelling your subscription will downgrade your workspace to the free tier."
       border="both"
-      className="border-t w-full"
+      className="w-full"
       contentWidth="w-full lg:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
