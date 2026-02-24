@@ -8,6 +8,7 @@ export type GitHubRepository = {
   private: boolean;
   html_url: string;
   default_branch: string;
+  pushed_at: string | null;
 };
 
 type InstallationAccessToken = {
@@ -105,6 +106,58 @@ export async function getInstallationRepositories(
   }
 
   return allRepositories;
+}
+
+export async function getRepositoryTree(
+  installationId: number,
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<Array<{ path: string; type: string }>> {
+  const { token } = await getInstallationAccessToken(installationId);
+
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data = await response.json();
+  return (data.tree ?? []) as Array<{ path: string; type: string }>;
+}
+
+export async function getRepositoryBranches(
+  installationId: number,
+  owner: string,
+  repo: string,
+): Promise<Array<{ name: string }>> {
+  const { token } = await getInstallationAccessToken(installationId);
+
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    return [];
+  }
+
+  return response.json();
 }
 
 export async function getRepositoryById(

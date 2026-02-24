@@ -3,11 +3,10 @@
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { trpc } from "@/lib/trpc/client";
 import { Empty, toast } from "@unkey/ui";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
 export default function Page() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const installationId = searchParams?.get("installation_id") ?? null;
   const state = searchParams?.get("state") ?? null;
@@ -21,9 +20,8 @@ export default function Page() {
   }, [installationId]);
 
   const mutation = trpc.github.registerInstallation.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("GitHub App installed");
-      router.push(`/${data.workspaceSlug}/projects/${data.projectId}/settings`);
     },
     onError: (error) => {
       toast.error(error.message);

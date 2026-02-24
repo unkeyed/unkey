@@ -80,6 +80,17 @@ const stepConfigs: Record<string, StepConfig> = {
     ),
     showIconRow: true,
   },
+  "select-repo": {
+    title: "Select a repository",
+    subtitle: (
+      <>
+        Choose a repository and a branch containing your project.<br />
+        We’ll automatically detect Dockerfiles.
+      </>
+    ),
+    showIconRow: false,
+  },
+
 };
 
 type OnboardingHeaderProps = {

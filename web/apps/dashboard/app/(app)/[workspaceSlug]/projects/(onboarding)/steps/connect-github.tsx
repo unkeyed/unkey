@@ -35,7 +35,7 @@ export const ConnectGithubStep = ({ projectId }: ConnectGithubStepProps) => {
             disabled={!projectId}
           >
             <Github className="!size-[18px] text-gray-12 shrink-0" />
-            <span className="text-sm text-gray-12 font-medium">Import from GitHub</span>
+            <span className="text-[13px] text-gray-12 font-medium">Import from GitHub</span>
           </Button>
         </a>
       </div>
