@@ -236,7 +236,7 @@ export const PlanSelectionModal = ({
                           {formatNumber(product.quotas.requestsPerMonth)} requests/month
                         </p>
                         {currentProductId === product.id && (
-                          <span className="text-[12px] bg-info-3 text-info-11 px-2 rounded-full mt-[1px]">
+                          <span className="text-[12px] bg-info-3 text-info-11 px-2 rounded-full mt-px">
                             Current
                           </span>
                         )}

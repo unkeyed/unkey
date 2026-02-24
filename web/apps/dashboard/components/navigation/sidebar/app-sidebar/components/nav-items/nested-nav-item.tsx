@@ -230,10 +230,10 @@ export const NestedNavItem = ({
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
           {/* Chevron icon to indicate there are children */}
           {item.items && item.items.length > 0 && (
-            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+            <div className="w-5 h-5 flex items-center justify-center shrink-0">
               <CaretRight
                 className={cn(
-                  "transition-transform duration-200 text-gray-9 !w-[9px] !h-[9px]",
+                  "transition-transform duration-200 text-gray-9 w-[9px]! h-[9px]!",
                   (isSubItem ? isChildrenOpen : isOpen) ? "rotate-90" : "rotate-0",
                 )}
                 iconSize="sm-bold"

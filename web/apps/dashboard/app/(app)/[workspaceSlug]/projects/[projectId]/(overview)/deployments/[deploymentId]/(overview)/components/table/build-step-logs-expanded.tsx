@@ -8,9 +8,9 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
 
   return (
     <div className="py-1 ml-[34px]">
-      <pre className="whitespace-pre-wrap break-words text-xs font-mono leading-relaxed">
+      <pre className="whitespace-pre-wrap wrap-break-word text-xs font-mono leading-relaxed">
         {step.logs.map((log, idx) => (
-          <div key={`${log.time}-${idx}`} className="flex gap-[3.25rem] py-0.5">
+          <div key={`${log.time}-${idx}`} className="flex gap-13 py-0.5">
             <TimestampInfo
               displayType="local_hours_with_millis"
               value={log.time}

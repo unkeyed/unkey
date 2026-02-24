@@ -4,12 +4,12 @@ import { cn } from "@unkey/ui/src/lib/utils";
 export const DeploymentIdColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-[12px]">
     <div className="flex gap-5 items-center w-full">
-      <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3 animate-pulse">
+      <div className="size-5 rounded-sm flex items-center justify-center border border-grayA-3 bg-grayA-3 animate-pulse">
         <Cloud iconSize="sm-regular" className="text-gray-12 opacity-50" />
       </div>
       <div className="w-[200px]">
-        <div className="h-4 w-32 bg-grayA-3 rounded animate-pulse mb-1" />
-        <div className="h-3 w-24 bg-grayA-3 rounded animate-pulse" />
+        <div className="h-4 w-32 bg-grayA-3 rounded-sm animate-pulse mb-1" />
+        <div className="h-3 w-24 bg-grayA-3 rounded-sm animate-pulse" />
       </div>
     </div>
   </div>
@@ -17,14 +17,14 @@ export const DeploymentIdColumnSkeleton = () => (
 
 export const EnvColumnSkeleton = () => (
   <div className="bg-grayA-3 text-xs items-center flex gap-2 p-1.5 rounded-md relative w-fit">
-    <div className="h-3 w-16 bg-grayA-4 rounded" />
+    <div className="h-3 w-16 bg-grayA-4 rounded-sm" />
   </div>
 );
 
 export const StatusColumnSkeleton = () => (
   <div className="bg-grayA-3 items-center flex gap-2 p-1.5 rounded-md w-fit relative">
     <div className="size-4 bg-grayA-4 rounded-full" />
-    <div className="h-3 w-12 bg-grayA-4 rounded" />
+    <div className="h-3 w-12 bg-grayA-4 rounded-sm" />
   </div>
 );
 
@@ -32,8 +32,8 @@ export const InstancesColumnSkeleton = () => (
   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
     <Cube className="text-gray-12 opacity-50" iconSize="sm-regular" />
     <div className="flex gap-0.5">
-      <div className="h-3 w-4 bg-grayA-4 rounded tabular-nums" />
-      <div className="h-3 w-6 bg-grayA-4 rounded" />
+      <div className="h-3 w-4 bg-grayA-4 rounded-sm tabular-nums" />
+      <div className="h-3 w-6 bg-grayA-4 rounded-sm" />
     </div>
   </div>
 );
@@ -42,8 +42,8 @@ export const SizeColumnSkeleton = () => (
   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
     <Cube className="text-gray-12 opacity-50" iconSize="sm-regular" />
     <div className="flex gap-1">
-      <div className="h-3 w-8 bg-grayA-4 rounded" />
-      <div className="h-3 w-8 bg-grayA-4 rounded tabular-nums" />
+      <div className="h-3 w-8 bg-grayA-4 rounded-sm" />
+      <div className="h-3 w-8 bg-grayA-4 rounded-sm tabular-nums" />
     </div>
   </div>
 );
@@ -51,27 +51,27 @@ export const SizeColumnSkeleton = () => (
 export const SourceColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-1.5">
     <div className="flex gap-5 items-center w-full">
-      <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3">
+      <div className="size-5 rounded-sm flex items-center justify-center border border-grayA-3 bg-grayA-3">
         <CodeBranch iconSize="sm-regular" className="text-gray-12 opacity-50" />
       </div>
       <div className="w-[200px]">
         <div className="flex items-center gap-2 mb-1">
-          <div className="h-[13px] w-16 bg-grayA-4 rounded font-mono leading-5" />
+          <div className="h-[13px] w-16 bg-grayA-4 rounded-sm font-mono leading-5" />
         </div>
-        <div className="h-3 w-24 bg-grayA-4 rounded font-mono mt-1" />
+        <div className="h-3 w-24 bg-grayA-4 rounded-sm font-mono mt-1" />
       </div>
     </div>
   </div>
 );
 
 export const CreatedAtColumnSkeleton = () => (
-  <div className="h-4 w-24 bg-grayA-3 rounded font-mono" />
+  <div className="h-4 w-24 bg-grayA-3 rounded-sm font-mono" />
 );
 
 export const AuthorColumnSkeleton = () => (
   <div className="flex items-center gap-2">
     <div className="rounded-full size-5 bg-grayA-3" />
-    <div className="h-3 w-20 bg-grayA-3 rounded font-medium text-xs" />
+    <div className="h-3 w-20 bg-grayA-3 rounded-sm font-medium text-xs" />
   </div>
 );
 
@@ -79,7 +79,7 @@ export const ActionColumnSkeleton = () => (
   <button
     type="button"
     className={cn(
-      "group size-5 p-0 rounded m-0 items-center flex justify-center",
+      "group size-5 p-0 rounded-sm m-0 items-center flex justify-center",
       "border border-gray-6",
     )}
     disabled
@@ -90,7 +90,7 @@ export const ActionColumnSkeleton = () => (
 
 export const DomainListSkeleton = () => (
   <div className="flex items-center gap-2">
-    <div className="h-4 w-36 bg-grayA-3 rounded animate-pulse" />
+    <div className="h-4 w-36 bg-grayA-3 rounded-sm animate-pulse" />
     <div className="rounded-full px-1.5 py-0.5 bg-grayA-3 animate-pulse size-[22px] flex items-center justify-center">
       <div className="size-3 bg-grayA-3 rounded-full animate-pulse" />
     </div>

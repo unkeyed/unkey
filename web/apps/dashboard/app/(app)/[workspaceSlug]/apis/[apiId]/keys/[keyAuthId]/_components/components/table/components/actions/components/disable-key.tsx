@@ -121,7 +121,7 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
           >
             <KeyInfo keyDetails={keyDetails} />
             <div className="py-1 my-2">
-              <div className="h-[1px] bg-grayA-3 w-full" />
+              <div className="h-px bg-grayA-3 w-full" />
             </div>
             <Controller
               name="confirmStatusChange"

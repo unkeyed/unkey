@@ -121,7 +121,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide gap-4 flex flex-col">
             <IdentityInfo identity={identity} />
             <div className="py-1 my-2">
-              <div className="h-[1px] bg-grayA-3 w-full" />
+              <div className="h-px bg-grayA-3 w-full" />
             </div>
             <div className="[&>*:first-child]:p-0">
               <RatelimitSetup entityType="identity" />

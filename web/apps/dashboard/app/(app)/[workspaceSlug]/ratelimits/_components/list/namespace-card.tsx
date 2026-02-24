@@ -60,7 +60,7 @@ export const NamespaceCard = ({ namespace }: Props) => {
                 errorLabel="BLOCKED"
               />
               <div className="flex items-center gap-2 min-w-0 max-w-[40%]">
-                <Clock className="text-accent-11 flex-shrink-0" />
+                <Clock className="text-accent-11 shrink-0" />
                 <div className="text-xs text-accent-9 truncate">
                   {lastRatelimit
                     ? `${ms(Date.now() - lastRatelimit.originalTimestamp, {

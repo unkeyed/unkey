@@ -3,8 +3,8 @@ import { cn } from "@unkey/ui/src/lib/utils";
 export const getButtonStyles = (isActive?: boolean, showLoader?: boolean) => {
   return cn(
     "flex items-center group text-[13px] font-medium text-accent-12 hover:bg-grayA-3 hover:text-accent-12 justify-start active:border focus:ring-2 w-full text-left",
-    "rounded-lg transition-colors focus-visible:ring-1 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed outline-none",
-    "focus:border-grayA-12 focus:ring-gray-6 focus-visible:outline-none focus:ring-offset-0 drop-shadow-button transform-gpu",
+    "rounded-lg transition-colors focus-visible:ring-1 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed outline-hidden",
+    "focus:border-grayA-12 focus:ring-gray-6 focus-visible:outline-hidden focus:ring-offset-0 drop-shadow-button transform-gpu",
     isActive ? "bg-grayA-3 text-accent-12" : "[&_svg]:text-gray-9",
     showLoader ? "bg-grayA-3 [&_svg]:text-accent-12" : "",
   );

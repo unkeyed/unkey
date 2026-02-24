@@ -98,7 +98,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
               render={({ field }) => (
                 <FormTextarea
                   {...field}
-                  className="lg:w-[16rem]"
+                  className="lg:w-64"
                   autoComplete="off"
                   placeholder={"127.0.0.1\n1.1.1.1"}
                   error={errors.ipWhitelist?.message}

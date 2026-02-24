@@ -80,7 +80,7 @@ export const ControlPill = <TFilter extends FilterValue>({
           onKeyDown={handleKeyDown}
           tabIndex={0}
           className={cn(
-            "bg-gray-3 rounded-none rounded-r-md py-[2px] px-2 [&_svg]:stroke-[2px] [&_svg]:size-3 flex items-center border-none h-auto focus:ring-2 focus:ring-offset-1 focus:ring-accent-9 focus:outline-none hover:bg-gray-4 focus:hover:bg-gray-4",
+            "bg-gray-3 rounded-none rounded-r-md py-[2px] px-2 [&_svg]:stroke-[2px] [&_svg]:size-3 flex items-center border-none h-auto focus:ring-2 focus:ring-offset-1 focus:ring-accent-9 focus:outline-hidden hover:bg-gray-4 focus:hover:bg-gray-4",
             isFocused && "bg-gray-4",
           )}
         >

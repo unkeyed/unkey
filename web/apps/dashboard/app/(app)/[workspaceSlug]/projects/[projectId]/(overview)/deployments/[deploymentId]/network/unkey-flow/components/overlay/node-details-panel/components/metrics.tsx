@@ -25,11 +25,11 @@ export const Metrics = ({
       <div className="flex px-4 w-full">
         <div className="flex items-center gap-3 w-full">
           <div className="text-gray-9 text-xs whitespace-nowrap">Runtime metrics</div>
-          <div className="h-0.5 bg-grayA-3 rounded-sm flex-1 min-w-[115px]" />
+          <div className="h-0.5 bg-grayA-3 rounded-xs flex-1 min-w-[115px]" />
           <div className="flex items-center gap-2 shrink-0">
             <Select>
               <SelectTrigger
-                className="rounded-lg !px-2 !py-1.5 text-gray-10 text-xs !min-h-[26px]"
+                className="rounded-lg px-2! py-1.5! text-gray-10 text-xs min-h-[26px]!"
                 rightIcon={<ChevronExpandY className="ml-2 text-gray-10" />}
               >
                 <SelectValue placeholder="24H" />
@@ -42,7 +42,7 @@ export const Metrics = ({
             </Select>
             <Select>
               <SelectTrigger
-                className="rounded-lg !px-2 !py-1.5 text-gray-10 text-xs !min-h-[26px]"
+                className="rounded-lg px-2! py-1.5! text-gray-10 text-xs min-h-[26px]!"
                 rightIcon={<ChevronExpandY className="ml-2 text-gray-10" />}
               >
                 <SelectValue placeholder="PST" />

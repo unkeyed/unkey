@@ -107,7 +107,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
         >
           <IdentityInfo identity={identity} />
           <div className="py-1 my-2">
-            <div className="h-[1px] bg-grayA-3 w-full" />
+            <div className="h-px bg-grayA-3 w-full" />
           </div>
           <MetadataSetup entityType="identity" />
         </DialogContainer>

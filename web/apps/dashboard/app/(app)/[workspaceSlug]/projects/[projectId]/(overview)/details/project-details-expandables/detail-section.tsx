@@ -58,7 +58,7 @@ export function DetailSection({ title, items, disabled, isFirst = false }: Detai
     <div className={`px-4 ${isFirst ? "" : "mt-7"}`}>
       <DisabledWrapper disabled={Boolean(disabled)} tooltipContent={`${title} coming soon`}>
         <div className="flex items-center gap-3">
-          <div className="text-gray-9 text-sm flex-shrink-0">{title}</div>
+          <div className="text-gray-9 text-sm shrink-0">{title}</div>
           <div className="h-px bg-grayA-3 w-full" />
         </div>
         <div className="mt-5" />

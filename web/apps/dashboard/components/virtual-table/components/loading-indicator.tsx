@@ -67,14 +67,12 @@ export const LoadMoreFooter = ({
             <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
               {buttonText}
             </span>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
+            <div
+              className="inline-flex size-6 items-center justify-center rounded-sm transition-all duration-200 hover:bg-gray-3 transform hover:scale-110 [&_svg]:size-[14px]"
               title="Maximize"
             >
               <ArrowsToAllDirections iconSize="sm-regular" />
-            </Button>
+            </div>
           </div>
         </button>
       </div>
@@ -90,7 +88,7 @@ export const LoadMoreFooter = ({
       }}
     >
       <div
-        className={`w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg ${
+        className={`w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-xs mb-5 transition-all duration-200 hover:shadow-lg ${
           shouldShow ? "pointer-events-auto" : "pointer-events-none"
         }`}
         aria-hidden={!shouldShow}
@@ -147,7 +145,7 @@ export const LoadMoreFooter = ({
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
+                  className="[&_svg]:size-[14px] transition-all duration-200 rounded-sm hover:bg-gray-3 transform hover:scale-110"
                   onClick={handleClose}
                   title="Minimize"
                 >

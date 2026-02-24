@@ -90,7 +90,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
           render={({ field }) => (
             <Input
               {...field}
-              className="min-w-[16rem] items-end h-9"
+              className="min-w-64 items-end h-9"
               autoComplete="off"
               type="text"
               onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}

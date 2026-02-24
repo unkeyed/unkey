@@ -44,7 +44,7 @@ export const SearchInput = ({
       onChange={onChange}
       maxLength={LLM_LIMITS_MAX_QUERY_LENGTH}
       placeholder={placeholder}
-      className="truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6 w-full"
+      className="truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-hidden focus:ring-0 focus:outline-hidden placeholder:text-accent-12 selection:bg-gray-6 w-full"
       disabled={isProcessing && searchMode !== "allowTypeDuringSearch"}
       data-testid="search-input"
     />

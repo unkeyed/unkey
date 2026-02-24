@@ -105,7 +105,7 @@ export function ListGroup({
             <div className="flex flex-row items-center justify-start h-6">
               <div className="inline-flex w-full gap-2">
                 <span className="font-mono text-xs font-normal text-gray-9">from</span>
-                <Layers2 className="size-3 mt-[1px]" />
+                <Layers2 className="size-3 mt-px" />
                 <span className="font-mono text-xs font-medium">Logs</span>
               </div>
             </div>
@@ -113,7 +113,7 @@ export function ListGroup({
             {/* Filters */}
             <div className="flex flex-row w-full mt-2">
               {/* Vertical Line on Left */}
-              <div className="flex flex-col ml-[9px] border-l-[1px] border-l-gray-5 w-[1px]" />
+              <div className="flex flex-col ml-[9px] border-l border-l-gray-5 w-px" />
               <div className="flex flex-col gap-2 ml-0 pl-[18px] ">
                 {filterList &&
                   Object.entries(filterList.filters).map(([field, filter]) => (
@@ -148,7 +148,7 @@ export function ListGroup({
             <button
               type="button"
               className={cn(
-                "flex h-7 w-6 ml-[1px]  justify-center items-center text-accent-9 rounded-md",
+                "flex h-7 w-6 ml-px  justify-center items-center text-accent-9 rounded-md",
                 filterList.bookmarked
                   ? "text-info-9 hover:bg-info-3"
                   : "hover:bg-gray-3 hover:text-accent-12",
@@ -165,8 +165,8 @@ export function ListGroup({
       </div>
       <div
         className={cn(
-          "flex flex-row bg-white dark:bg-black h-[1px] mt-[7px] mb-[8px] w-full",
-          index < total - 1 && "border-b-[1px] border-b-gray-3",
+          "flex flex-row bg-white dark:bg-black h-px mt-[7px] mb-[8px] w-full",
+          index < total - 1 && "border-b border-b-gray-3",
         )}
       />
     </div>

@@ -41,11 +41,11 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
             Ratelimits
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
-            <div className="h-6 w-20 bg-grayA-3 rounded animate-pulse transition-all " />
+            <div className="h-6 w-20 bg-grayA-3 rounded-sm animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" noop active>
             <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-              <div className="h-6 w-16 bg-grayA-3 rounded animate-pulse transition-all " />
+              <div className="h-6 w-16 bg-grayA-3 rounded-sm animate-pulse transition-all " />
               <ChevronExpandY className="size-4" />
             </div>
           </Navbar.Breadcrumbs.Link>
@@ -53,9 +53,9 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
         <Navbar.Actions>
           <div className="h-7 w-[146px] bg-grayA-3 rounded-md animate-pulse border border-grayA-4 transition-all " />
           <div className="h-7 bg-grayA-2 border border-gray-6 rounded-md animate-pulse px-3 flex gap-2 items-center justify-center w-[260px] transition-all ">
-            <div className="h-3 w-[260px] bg-grayA-3 rounded" />
+            <div className="h-3 w-[260px] bg-grayA-3 rounded-sm" />
             <div>
-              <TaskUnchecked iconSize="sm-regular" className="!size-4" />
+              <TaskUnchecked iconSize="sm-regular" className="size-4!" />
             </div>
           </div>
         </Navbar.Actions>

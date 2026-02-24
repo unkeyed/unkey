@@ -22,7 +22,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
   };
 
   return (
-    <div className="flex mt-2 h-[40px] flex-row justify-center items-center w-full border-b-[1px] border-gray-6 p-0 m-0 gap-2 shrink-0">
+    <div className="flex mt-2 h-[40px] flex-row justify-center items-center w-full border-b border-gray-6 p-0 m-0 gap-2 shrink-0">
       <Button
         variant="ghost"
         className={cn(
@@ -37,7 +37,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         onFocus={() => handleSelection(0)}
         onBlur={() => handleSelection(0)}
       >
-        <ClockRotateClockwise iconSize="md-medium" className="text-gray-9 py-[1px]" />
+        <ClockRotateClockwise iconSize="md-medium" className="text-gray-9 py-px" />
         <div className="w-full">Recent</div>
         <div
           className={cn(

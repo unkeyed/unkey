@@ -102,7 +102,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
                   <Input
                     placeholder="Namespace name"
                     value={namespaceName ?? ""}
-                    className="min-w-[16rem] items-end h-9"
+                    className="min-w-64 items-end h-9"
                     onChange={(e) => setNamespaceName(e.target.value)}
                   />
                   <Button

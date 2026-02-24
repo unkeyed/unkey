@@ -35,7 +35,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
         aria-live="polite"
       >
         <div className="h-2 w-2 bg-grayA-5 rounded-full animate-pulse" />
-        <div className="h-2 w-20 bg-grayA-5 rounded animate-pulse" />
+        <div className="h-2 w-20 bg-grayA-5 rounded-sm animate-pulse" />
       </div>
     );
   }
@@ -63,7 +63,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
         <div>
           {statuses && statuses.length > 1 && (
             <div className="border-b border-grayA-3">
-              <div className="flex flex-col px-[1px] py-[1px] gap-1 w-[260px] p-1">
+              <div className="flex flex-col px-px py-px gap-1 w-[260px] p-1">
                 <div className="text-accent-12 font-medium text-[13px]">Key status overview</div>
                 <div className="text-accent-10 text-xs ">
                   This key has{" "}
@@ -80,7 +80,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
               key={status.type || i}
             >
               <div className="flex items-start gap-1.5 flex-col w-[260px] p-1">
-                <div className="flex-shrink-0 mt-0.5">
+                <div className="shrink-0 mt-0.5">
                   <StatusBadge
                     primary={{
                       label: status.label,
@@ -91,7 +91,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
                   />
                 </div>
 
-                <div className="text-xs text-accent-11 text-wrap leading-6 flex-grow w-full">
+                <div className="text-xs text-accent-11 text-wrap leading-6 grow w-full">
                   {status.type === "disabled" ? (
                     <div className="flex flex-col gap-2 items-start">
                       <span>

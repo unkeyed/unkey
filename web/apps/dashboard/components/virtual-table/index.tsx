@@ -148,7 +148,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       "w-full",
       isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
       "table-auto xl:table-fixed",
-      config.tableLayout === "fixed" ? "!table-fixed" : "!table-auto",
+      config.tableLayout === "fixed" ? "table-fixed!" : "table-auto!",
     );
 
     const containerClassName = cn(
@@ -285,7 +285,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     >
                       {columns.map((column) => (
                         <td key={column.key} className={cn("pr-4", column.cellClassName)}>
-                          <div className="h-4 bg-accent-3 rounded animate-pulse" />
+                          <div className="h-4 bg-accent-3 rounded-sm animate-pulse" />
                         </td>
                       ))}
                     </tr>
@@ -369,7 +369,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           }
                         }}
                         className={cn(
-                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
+                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
                           config.rowBorders && "border-b border-gray-4",
                           rowClassName?.(typedItem),
                           selectedClassName?.(typedItem, isSelected),
@@ -446,7 +446,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         }
                       }}
                       className={cn(
-                        "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
+                        "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
                         config.rowBorders && "border-b border-gray-4",
                         rowClassName?.(typedItem),
                         selectedClassName?.(typedItem, isSelected),
@@ -537,7 +537,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
     >
       <span>{column.header}</span>
       {sortable && (
-        <span className="flex-shrink-0">
+        <span className="shrink-0">
           <SortIcon direction={direction} />
         </span>
       )}

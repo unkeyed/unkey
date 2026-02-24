@@ -32,7 +32,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   building: {
     icon: Nut,
     label: "Building",
-    bgColor: "bg-gradient-to-r from-infoA-5 to-transparent",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
@@ -40,7 +40,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   deploying: {
     icon: HalfDottedCirclePlay,
     label: "Deploying",
-    bgColor: "bg-gradient-to-r from-infoA-5 to-transparent",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
@@ -48,7 +48,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   network: {
     icon: ArrowDotAntiClockwise,
     label: "Assigning Domains",
-    bgColor: "bg-gradient-to-r from-infoA-5 to-transparent",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
@@ -93,7 +93,7 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
       )}
     >
       {animated && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
+        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
       )}
       <Icon
         iconSize={config.icon === Nut ? "md-bold" : "md-regular"}

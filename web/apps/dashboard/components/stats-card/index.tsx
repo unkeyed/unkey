@@ -29,9 +29,9 @@ export const StatsCard = ({
       <Link href={linkPath} prefetch>
         <div className="p-4 md:p-6 border-t border-gray-6 flex flex-col gap-2">
           <div className="flex justify-between items-center">
-            <div className="flex flex-col flex-grow min-w-0">
+            <div className="flex flex-col grow min-w-0">
               <div className="flex gap-2 md:gap-3 items-center">
-                <span className="flex-shrink-0">{icon}</span>
+                <span className="shrink-0">{icon}</span>
                 <InfoTooltip variant="inverted" position={{ side: "top" }} content={name}>
                   <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
                     {name}
@@ -46,7 +46,7 @@ export const StatsCard = ({
                 </InfoTooltip>
               )}
             </div>
-            {rightContent && <div className="flex-shrink-0">{rightContent}</div>}
+            {rightContent && <div className="shrink-0">{rightContent}</div>}
           </div>
           <div className="flex items-center w-full justify-between gap-3 md:gap-4 mt-2">
             {stats}

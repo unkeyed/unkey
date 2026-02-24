@@ -54,7 +54,7 @@ export const ProjectCard = ({
       />
       {/*Top Section*/}
       <div className="flex gap-4 items-center">
-        <div className="size-10 bg-grayA-3 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20">
+        <div className="size-10 bg-grayA-3 rounded-[10px] flex items-center justify-center shrink-0 shadow-xs shadow-grayA-8/20">
           {isNavigating ? (
             <Loading size={20} className="text-grayA-11" />
           ) : (

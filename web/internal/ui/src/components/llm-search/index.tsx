@@ -137,7 +137,7 @@ const LLMSearch = ({
         )}
       >
         <div className="flex items-center gap-2 w-full flex-1 md:w-80">
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <SearchIcon isProcessing={isProcessing} />
           </div>
 

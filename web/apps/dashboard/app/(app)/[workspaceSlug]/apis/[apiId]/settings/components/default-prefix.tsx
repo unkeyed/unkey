@@ -94,7 +94,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
           render={({ field }) => (
             <Input
               {...field}
-              className="min-w-[16rem] items-end h-9"
+              className="min-w-64 items-end h-9"
               autoComplete="off"
               onBlur={(e) => {
                 if (e.target.value === "") {

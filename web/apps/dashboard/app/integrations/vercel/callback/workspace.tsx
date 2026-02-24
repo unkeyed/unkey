@@ -89,7 +89,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
             {user?.avatarUrl ? (
               <AvatarImage src={user.avatarUrl} alt={user?.fullName ?? "Profile picture"} />
             ) : null}
-            <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded">
+            <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded-sm">
               {(user?.fullName ?? "").slice(0, 1).toUpperCase() ?? "P"}
             </AvatarFallback>
           </Avatar>

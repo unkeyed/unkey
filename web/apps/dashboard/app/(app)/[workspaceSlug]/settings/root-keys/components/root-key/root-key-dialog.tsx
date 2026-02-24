@@ -108,7 +108,7 @@ export const RootKeyDialog = ({
             type="button"
             variant="outline"
             size="lg"
-            className="rounded-lg font-light text-grayA-8 text-[13px] border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
+            className="rounded-lg font-light text-grayA-8 text-[13px] border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
             disabled={isBusy}
             onClick={handleOpenSheet}
           >

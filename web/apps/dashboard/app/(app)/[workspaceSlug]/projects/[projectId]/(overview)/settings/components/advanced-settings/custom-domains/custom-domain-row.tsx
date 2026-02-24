@@ -39,22 +39,22 @@ const statusConfig: Record<
   pending: {
     label: "Pending",
     color: "primary",
-    icon: <Clock className="!size-3" />,
+    icon: <Clock className="size-3!" />,
   },
   verifying: {
     label: "Verifying",
     color: "warning",
-    icon: <Refresh3 className="!size-3 animate-spin" />,
+    icon: <Refresh3 className="size-3! animate-spin" />,
   },
   verified: {
     label: "Verified",
     color: "success",
-    icon: <CircleCheck className="!size-3" />,
+    icon: <CircleCheck className="size-3!" />,
   },
   failed: {
     label: "Failed",
     color: "error",
-    icon: <TriangleWarning className="!size-3" />,
+    icon: <TriangleWarning className="size-3!" />,
   },
 };
 
@@ -114,7 +114,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
                   disabled={isRetrying}
                   className="size-7 text-gray-9 hover:text-gray-11"
                 >
-                  <Refresh3 className={cn("!size-[14px]", isRetrying && "animate-spin")} />
+                  <Refresh3 className={cn("size-[14px]!", isRetrying && "animate-spin")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Retry verification</TooltipContent>
@@ -124,7 +124,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
           {domain.verificationError && (
             <Tooltip>
               <TooltipTrigger>
-                <CircleInfo className="!size-4 text-error-9" />
+                <CircleInfo className="size-4! text-error-9" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">{domain.verificationError}</TooltipContent>
             </Tooltip>
@@ -210,17 +210,17 @@ function DnsRecordTable({
             <span className="text-gray-11 font-medium">TXT</span>
             <span className="flex items-center gap-1.5 min-w-0">
               <code className="text-content font-mono truncate">{txtRecordName}</code>
-              <CopyButton value={txtRecordName} variant="ghost" className="size-5 flex-shrink-0" />
+              <CopyButton value={txtRecordName} variant="ghost" className="size-5 shrink-0" />
             </span>
             <span className="flex items-center gap-1.5 min-w-0">
               <code className="text-content font-mono truncate">{txtRecordValue}</code>
-              <CopyButton value={txtRecordValue} variant="ghost" className="size-5 flex-shrink-0" />
+              <CopyButton value={txtRecordValue} variant="ghost" className="size-5 shrink-0" />
             </span>
             <span className="flex justify-center">
               {ownershipVerified ? (
-                <CircleCheck className="!size-4 text-success-9" />
+                <CircleCheck className="size-4! text-success-9" />
               ) : (
-                <XMark className="!size-4 text-gray-7" />
+                <XMark className="size-4! text-gray-7" />
               )}
             </span>
           </div>
@@ -247,17 +247,17 @@ function DnsRecordTable({
             <span className="text-gray-11 font-medium">CNAME</span>
             <span className="flex items-center gap-1.5 min-w-0">
               <code className="text-content font-mono truncate">{domain}</code>
-              <CopyButton value={domain} variant="ghost" className="size-5 flex-shrink-0" />
+              <CopyButton value={domain} variant="ghost" className="size-5 shrink-0" />
             </span>
             <span className="flex items-center gap-1.5 min-w-0">
               <code className="text-content font-mono truncate">{targetCname}</code>
-              <CopyButton value={targetCname} variant="ghost" className="size-5 flex-shrink-0" />
+              <CopyButton value={targetCname} variant="ghost" className="size-5 shrink-0" />
             </span>
             <span className="flex justify-center">
               {cnameVerified ? (
-                <CircleCheck className="!size-4 text-success-9" />
+                <CircleCheck className="size-4! text-success-9" />
               ) : (
-                <XMark className="!size-4 text-gray-7" />
+                <XMark className="size-4! text-gray-7" />
               )}
             </span>
           </div>
@@ -270,7 +270,7 @@ function DnsRecordTable({
 function StatusIndicator({ verified, label }: { verified: boolean; label: string }) {
   return (
     <Badge variant={verified ? "success" : "secondary"} className="gap-1 text-xs">
-      {verified ? <CircleCheck className="!size-3" /> : <Clock className="!size-3" />}
+      {verified ? <CircleCheck className="size-3!" /> : <Clock className="size-3!" />}
       {label}
     </Badge>
   );

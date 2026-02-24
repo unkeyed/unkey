@@ -40,7 +40,7 @@ const RootKeysTableActions = dynamic(
       <button
         type="button"
         className={cn(
-          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
+          "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded-sm m-0 items-center flex justify-center",
           "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
         )}
       >
@@ -200,7 +200,7 @@ export const RootKeysList = () => {
           const iconContainer = (
             <div
               className={cn(
-                "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
+                "size-5 rounded-sm flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100",
                 "bg-grayA-3",
                 isSelected && "bg-grayA-5",
               )}

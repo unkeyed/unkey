@@ -69,7 +69,7 @@ export const Client: React.FC<Props> = ({
 
   return (
     <div className="container min-h-screen mx-auto mt-8">
-      <div className="flex flex-col flex-1 flex-grow gap-16">
+      <div className="flex flex-col flex-1 grow gap-16">
         <div className="flex flex-col gap-2">
           <Label>Vercel Project</Label>
           <Select
