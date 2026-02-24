@@ -14,15 +14,16 @@ import {
 } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
+import { useEnvironmentSettings } from "../../../environment-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
 import { CustomDomainRow } from "./custom-domain-row";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
 export const CustomDomains = () => {
   const { environments, customDomains, projectId } = useProjectData();
-
-  const defaultEnvironmentId =
-    environments.find((e) => e.slug === "production")?.id ?? environments[0]?.id ?? "";
+  const {
+    settings: { environmentId: defaultEnvironmentId },
+  } = useEnvironmentSettings();
 
   return (
     <CustomDomainSettings
@@ -114,7 +115,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
           <span className="text-[13px] text-gray-11 w-[140px]">Environment</span>
           <span className="flex-1 text-[13px] text-gray-11">Domain</span>
         </div>
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 w-[480px]">
           <Controller
             control={control}
             name="environmentId"
