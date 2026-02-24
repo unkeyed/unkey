@@ -1,0 +1,15 @@
+---
+title: "IP rules"
+description: "CIDR-based allow and deny policy"
+---
+
+IP rules define allow and deny lists for client IP addresses based on CIDR ranges. Deny entries take precedence over allow entries.
+
+## Fields
+
+- `allow`: Allowed CIDR ranges.
+- `deny`: Denied CIDR ranges.
+
+## Implementation status
+
+IP rules are defined in the policy schema but are not executed by the sentinel engine yet.

@@ -1,0 +1,22 @@
+---
+title: "Middleware"
+description: "Request middleware chain used by sentinel"
+---
+
+Sentinel wraps the proxy handler with zen middleware to handle observability, logging, and proxy error mapping. Most middleware is only applied to the proxy route, not internal health checks.
+
+## Middleware order
+
+Sentinel registers middleware in this order for proxy requests:
+
+1. Panic recovery.
+2. Observability and error response formatting.
+3. ClickHouse request logging.
+4. Proxy error handling and categorization.
+5. Access logging.
+
+## Pages
+
+- [Observability](/architecture/services/sentinel/middleware/observability)
+- [ClickHouse logging](/architecture/services/sentinel/middleware/logging)
+- [Proxy error handling](/architecture/services/sentinel/middleware/error-handling)

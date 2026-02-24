@@ -1,0 +1,54 @@
+---
+title: "Unit tests"
+description: "Table-driven patterns and unit test conventions"
+---
+
+## Table-driven tests
+
+Use table-driven tests when cases share setup and assertions. Add `t.Run` so each case is reported by name.
+
+```go
+func TestValidateEmail(t *testing.T) {
+    tests := []struct {
+        name    string
+        email   string
+        wantErr bool
+    }{
+        {name: "valid email", email: "user@example.com", wantErr: false},
+        {name: "missing @", email: "userexample.com", wantErr: true},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            err := ValidateEmail(tt.email)
+            if tt.wantErr {
+                require.Error(t, err)
+                return
+            }
+            require.NoError(t, err)
+        })
+    }
+}
+```
+
+Use individual tests when setup or assertions diverge meaningfully.
+
+## Naming
+
+Name test functions `Test<Type>_<Behavior>` or `Test<Function>_<Scenario>`. Name table cases so failures read like a sentence.
+
+## Parallel execution
+
+Use `t.Parallel()` only when tests do not share mutable state or external resources.
+
+## Helpers and cleanup
+
+Helpers that assert must call `t.Helper()`. Use `t.Cleanup()` for resource cleanup so subtests complete before cleanup runs.
+
+## Test data
+
+Inline small fixtures. Use `testdata/` for larger files and include them in Bazel targets.
+
+## Time-dependent logic
+
+Use `pkg/clock` to control time rather than sleeping.

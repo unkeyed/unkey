@@ -1,0 +1,142 @@
+---
+title: "Configuration"
+description: "Configuration model and required settings for the control plane API"
+---
+
+import ConfigToml from "/snippets/config-toml.mdx";
+
+<ConfigToml />
+
+The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/api/config.go" target="_blank">`svc/ctrl/api/config.go`</a>.
+
+The control plane API is configured via a TOML file: `unkey run ctrl api --config=unkey.toml`.
+
+<ResponseField name="instance_id" type="string">
+  Instance identifier for logs and tracing.
+</ResponseField>
+
+<ResponseField name="region" type="string" required>
+  Region label for routing and observability.
+</ResponseField>
+
+<ResponseField name="http_port" type="int" default="8080">
+  HTTP server port.
+</ResponseField>
+
+<ResponseField name="prometheus_port" type="int">
+  Prometheus metrics port. Set to 0 to disable.
+</ResponseField>
+
+<ResponseField name="auth_token" type="string" required>
+  Bearer token for control API clients.
+</ResponseField>
+
+Known consumers:
+
+- API service
+- Krane service
+
+Rotation is manual today. There is no built-in rotation mechanism.
+
+TODO: Replace with JWT-based auth once `auth.unkey.cloud` is in place.
+
+<ResponseField name="available_regions" type="string[]">
+  Regions available for deployments.
+</ResponseField>
+
+<ResponseField name="default_domain" type="string">
+  Base domain for wildcard certificates.
+</ResponseField>
+
+<ResponseField name="regional_domain" type="string">
+  Base domain for regional routing.
+</ResponseField>
+
+<ResponseField name="cname_domain" type="string">
+  Base domain for custom CNAME targets.
+</ResponseField>
+
+<ResponseField name="database" type="object" required>
+  MySQL configuration.
+  <Expandable title="Fields">
+    <ResponseField name="database.primary" type="string" required>
+      Primary MySQL DSN.
+    </ResponseField>
+    <ResponseField name="database.readonly_replica" type="string">
+      Optional read replica DSN.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="restate" type="object">
+  Restate integration.
+  <Expandable title="Fields">
+    <ResponseField name="restate.url" type="string" default="http://restate:8080">
+      Restate ingress URL.
+    </ResponseField>
+    <ResponseField name="restate.admin_url" type="string" default="http://restate:9070">
+      Restate admin URL.
+    </ResponseField>
+    <ResponseField name="restate.api_key" type="string">
+      Restate API key.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="github" type="object">
+  GitHub webhook configuration.
+  <Expandable title="Fields">
+    <ResponseField name="github.webhook_secret" type="string">
+      Webhook signature secret.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="observability" type="object">
+  Tracing configuration. Logging settings are parsed but not applied by the control API runtime.
+  <Expandable title="Fields">
+    <ResponseField name="observability.tracing.sample_rate" type="float" default="0.25">
+      Trace sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.sample_rate" type="float" default="1.0">
+      Log sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.slow_threshold" type="duration" default="1s">
+      Slow log threshold.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example configuration
+
+Control API:
+
+```toml
+http_port = 8080
+prometheus_port = 9090
+region = "${UNKEY_REGION}"
+instance_id = "${POD_NAME}"
+auth_token = "${UNKEY_AUTH_TOKEN}"
+available_regions = ["eu-central-1.aws", "us-east-1.aws", "us-west-2.aws"]
+default_domain = "${UNKEY_DEFAULT_DOMAIN}"
+regional_domain = "${UNKEY_REGIONAL_DOMAIN}"
+cname_domain = "${UNKEY_CNAME_DOMAIN}"
+
+[database]
+primary = "${UNKEY_DATABASE_PRIMARY}"
+
+[restate]
+url = "${UNKEY_RESTATE_URL}"
+admin_url = "${UNKEY_RESTATE_ADMIN_URL}"
+api_key = "${UNKEY_RESTATE_API_KEY}"
+
+[github]
+webhook_secret = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
+
+[observability.tracing]
+sample_rate = 0.1
+
+[observability.logging]
+sample_rate = 0.01
+slow_threshold = "2s"
+```

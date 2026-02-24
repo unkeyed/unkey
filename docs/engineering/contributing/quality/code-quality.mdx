@@ -1,0 +1,150 @@
+---
+title: "Code quality"
+description: "Design goals and coding standards for Unkey"
+---
+
+This guide captures Unkey's design philosophy and coding standards. It is not about formatting or syntax. Linters handle that. It is about how to think, how to make decisions, and what to value when building software.
+
+Unkey optimizes for safety, performance, and developer experience, in that order. When goals conflict, safety wins. Simplicity is the outcome of iteration, not the first draft.
+
+Unkey has a zero technical debt policy. Do it right the first time. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. The cost of fixing problems grows exponentially over time.
+
+## Simplicity
+
+Simple and elegant systems are easier to design correctly, more efficient in execution, and more reliable. That simplicity requires hard work and discipline.
+
+Simplicity is not the first attempt. It is the hardest revision. It takes thought, multiple passes, and the willingness to throw work away. The goal is to find the idea that solves multiple problems at once.
+
+## Technical debt
+
+Unkey has a zero technical debt policy. Fix problems when they are discovered. Do not allow issues to slip through with a "fix it later" comment.
+
+## Safety
+
+### Assertions
+
+Crash the request, not the system.
+
+When an invariant is violated, return a 500 error immediately. Do not attempt to recover from programmer errors. Assertions downgrade catastrophic correctness bugs into liveness bugs.
+
+Assertions detect programmer errors, not user errors. A user sending invalid input should get a 400. Code reaching an impossible state should return a 500.
+
+```go
+user, err := getUser(ctx, userID)
+if err != nil {
+    return fault.Wrap(err, fault.WithDesc("failed to get user"))
+}
+// This should never happen if getUser worked correctly.
+// If it does, something is deeply wrong. Fail fast.
+err = assert.NotEmpty(user.WorkspaceID)
+if err != nil {
+    return err
+}
+```
+
+Pair assertions. Assert the same property from multiple angles. Validate data before writing to the database and after reading from it. Assert preconditions, postconditions, invariants, and impossible states like default cases in switches or else branches that cannot happen.
+
+### Error handling
+
+All errors must be handled. Never ignore errors. If you think an error cannot happen, assert that assumption explicitly.
+
+```go
+// Never do this
+result, _ := doSomething()
+
+// Always handle or propagate
+result, err := doSomething()
+if err != nil {
+    return fault.Wrap(err, fault.WithDesc("doSomething failed"))
+}
+```
+
+### Scope
+
+Declare variables at the smallest possible scope. Minimize the number of variables in play at any point. This reduces the probability of using the wrong variable and makes code easier to reason about.
+
+Calculate or check variables close to where they are used. Do not introduce variables before they are needed or leave them around when they are not.
+
+## Failure
+
+Unkey builds distributed systems. Networks partition. Disks fail. Processes crash. Memory runs out. Clocks drift. The question is not whether things will fail, but how gracefully they fail.
+
+### Expect failure
+
+Design for failure from the start. Every external call can fail. Every database query can time out. Every message can be lost. Write code that assumes these things will happen.
+
+### Fail gracefully
+
+Contain the blast radius. One bad request should not bring down the system. One slow dependency should not cascade into total unavailability.
+
+Use circuit breakers to stop calling failing dependencies and give them time to recover. Unkey provides `pkg/circuitbreaker` for this.
+
+### Retry with backoff
+
+Transient failures are common. Retry them, but retry intelligently. Unkey provides `pkg/retry` for this.
+
+Use exponential backoff so you do not hammer a struggling service. Add jitter to randomize retry timing and prevent thundering herds. Set budgets to limit total retry time.
+
+### Idempotency
+
+Exactly-once delivery is a myth. Messages arrive zero times, once, or multiple times. Design operations to be safe to retry. Use idempotency keys for operations that must not be duplicated.
+
+### Observability
+
+Instrument critical paths. Log errors with context. Emit metrics for failure rates. Trace requests across service boundaries.
+
+## Developer experience
+
+### Order matters
+
+Order matters for readability even when it does not affect semantics. In Go files, exported functions come before unexported ones. The primary type or function that the file is named after comes first.
+
+### Comments
+
+Comments are sentences. Start with a capital letter and end with a period. Comments explain the reasoning, tradeoffs, and context that future readers need.
+
+For documentation guidance, see [Documentation](/contributing/quality/documentation).
+
+### Function length
+
+Keep functions short. If a function does not fit on a screen, it is probably doing too much. Aim for functions under 50 lines. If a function grows to 200 lines, step back and consider whether it should be broken up.
+
+## Naming
+
+Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier.
+
+```go
+// Bad
+maxLatency
+minLatency
+p99Latency
+
+// Good: qualifiers last, sorted by significance
+latencyMsMax
+latencyMsMin
+latencyMsP99
+timeoutSeconds
+bufferSizeBytes
+```
+
+Do not abbreviate. Use `ctx`, `err`, `req`, `res`, `db`, `id` as the exceptions.
+
+## Dependencies
+
+Unkey integrates with external systems and cannot adopt a zero dependency approach. Every dependency has costs: supply chain risk, maintenance burden, build complexity, and cognitive load.
+
+Prefer the standard library. Prefer single purpose packages. Prefer packages with few transitive dependencies. Avoid adding a dependency when a small local implementation is simpler.
+
+Do not roll your own cryptography. Use official or well-maintained database drivers. Core frameworks like Next.js, Hono, and Drizzle are foundational choices.
+
+## Enforcement
+
+These rules are enforced through tooling and review. Linters, formatters, and CI checks run on every pull request.
+
+Reviewers verify that loops are bounded or justified, timeouts are explicit on external calls, errors are handled, invariants are asserted at boundaries, variable names are clear with units where applicable, and new dependencies are necessary.
+
+Before opening a pull request, ask: did you do the hard thing today, or take a shortcut that creates debt? Would you be confident if this code ran at 10x the current load? Will someone reading this in six months understand why it works this way?
+
+## Acknowledgments
+
+This guide is inspired by <a href="https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md" target="_blank">TigerStyle</a> and adapted for Unkey's Go and TypeScript codebase.

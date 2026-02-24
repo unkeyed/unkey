@@ -220,15 +220,16 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
-			Region:      cfg.Region,
-			NodeID:      cfg.InstanceID,
-			BindAddr:    cfg.Gossip.BindAddr,
-			BindPort:    cfg.Gossip.LANPort,
-			WANBindPort: cfg.Gossip.WANPort,
-			LANSeeds:    lanSeeds,
-			WANSeeds:    wanSeeds,
-			SecretKey:   secretKey,
-			OnMessage:   mux.OnMessage,
+			Region:           cfg.Region,
+			NodeID:           cfg.InstanceID,
+			BindAddr:         cfg.Gossip.BindAddr,
+			BindPort:         cfg.Gossip.LANPort,
+			WANBindPort:      cfg.Gossip.WANPort,
+			WANAdvertiseAddr: cfg.Gossip.WANAdvertiseAddr,
+			LANSeeds:         lanSeeds,
+			WANSeeds:         wanSeeds,
+			SecretKey:        secretKey,
+			OnMessage:        mux.OnMessage,
 		})
 		if clusterErr != nil {
 			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",

@@ -1,0 +1,135 @@
+---
+title: "Configuration"
+description: "Configuration model and required settings for the krane service"
+---
+
+import ConfigToml from "/snippets/config-toml.mdx";
+
+## Configuration model
+
+<ConfigToml />
+
+The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/krane/config.go" target="_blank">`svc/krane/config.go`</a>.
+
+Krane enables the secrets RPC only when `vault.url` is set. Other features run without Vault.
+
+Minimal config example:
+
+```toml
+region = "${UNKEY_REGION}.aws"
+instance_id = "${POD_NAME}"
+rpc_port = 8080
+
+[control]
+url = "${UNKEY_CTRL_URL}"
+token = "${UNKEY_CTRL_TOKEN}"
+
+[vault]
+url = "${UNKEY_VAULT_URL}"
+token = "${UNKEY_VAULT_TOKEN}"
+
+[registry]
+url = "${UNKEY_REGISTRY_URL}"
+username = "${UNKEY_REGISTRY_USERNAME}"
+password = "${UNKEY_REGISTRY_PASSWORD}"
+```
+
+<ResponseField name="instance_id" type="string">
+  Instance identifier for logs and tracing.
+</ResponseField>
+
+<ResponseField name="region" type="string" required>
+  Region label for routing and control plane.
+</ResponseField>
+
+<ResponseField name="rpc_port" type="int" default="8070">
+  RPC server port.
+</ResponseField>
+
+<ResponseField name="registry" type="object">
+  Registry credentials. The krane runtime does not read this config today.
+  <Expandable title="Fields">
+    <ResponseField name="registry.url" type="string">
+      Registry URL.
+    </ResponseField>
+    <ResponseField name="registry.username" type="string">
+      Registry username.
+    </ResponseField>
+    <ResponseField name="registry.password" type="string">
+      Registry password.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vault" type="object">
+  Vault connection for the secrets service.
+  <Expandable title="Fields">
+    <ResponseField name="vault.url" type="string">
+      Vault URL.
+    </ResponseField>
+    <ResponseField name="vault.token" type="string">
+      Vault token.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="control" type="object">
+  Control plane connection.
+  <Expandable title="Fields">
+    <ResponseField name="control.url" type="string" required>
+      Control API URL.
+    </ResponseField>
+    <ResponseField name="control.token" type="string" required>
+      Control API token.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="observability" type="object">
+  Tracing, logging, and metrics configuration.
+  <Expandable title="Fields">
+    <ResponseField name="observability.tracing.sample_rate" type="float" default="0.25">
+      Trace sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.sample_rate" type="float" default="1.0">
+      Log sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.slow_threshold" type="duration" default="1s">
+      Slow log threshold.
+    </ResponseField>
+    <ResponseField name="observability.metrics.prometheus_port" type="int" default="0">
+      Prometheus port. Set to 0 to disable.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example configuration
+
+```toml
+region = "${UNKEY_REGION}.aws"
+instance_id = "${POD_NAME}"
+rpc_port = 8080
+
+[control]
+url = "${UNKEY_CTRL_URL}"
+token = "${UNKEY_CTRL_TOKEN}"
+
+[vault]
+url = "${UNKEY_VAULT_URL}"
+token = "${UNKEY_VAULT_TOKEN}"
+
+[registry]
+url = "${UNKEY_REGISTRY_URL}"
+username = "${UNKEY_REGISTRY_USERNAME}"
+password = "${UNKEY_REGISTRY_PASSWORD}"
+
+[observability.tracing]
+sample_rate = 0.1
+
+[observability.logging]
+sample_rate = 0.01
+slow_threshold = "2s"
+
+[observability.metrics]
+prometheus_port = 9090
+```

@@ -1,0 +1,30 @@
+---
+title: "List"
+description: "List versions with optional filtering"
+---
+
+List all versions for the current project with filters by branch, status, or limit.
+
+## Command syntax
+
+```bash
+unkey version list [flags]
+```
+
+## Examples
+
+```bash
+unkey version list
+unkey version list --branch main
+unkey version list --status active
+unkey version list --limit 5
+unkey version list --branch main --status active --limit 3
+```
+
+## Flags
+
+| Flag | Description | Default |
+| --- | --- | --- |
+| `--branch` | Filter by branch name | - |
+| `--status` | Filter by status | - |
+| `--limit` | Number of versions to show | `10` |

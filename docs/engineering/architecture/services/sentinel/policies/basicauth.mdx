@@ -1,0 +1,18 @@
+---
+title: "BasicAuth"
+description: "HTTP Basic authentication policy"
+---
+
+BasicAuth validates HTTP Basic credentials and produces a principal on success. Credentials are configured as static username and BCrypt password hash pairs.
+
+## Fields
+
+- `credentials`: List of username and password hash pairs.
+
+## Runtime behavior
+
+Sentinel compares the request's Basic credentials against the configured list and produces a principal with type `PRINCIPAL_TYPE_BASIC` when a match succeeds.
+
+## Implementation status
+
+BasicAuth is defined in the policy schema but is not executed by the sentinel engine yet.

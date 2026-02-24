@@ -1,0 +1,24 @@
+---
+title: "RateLimit"
+description: "Gateway rate limiting policy"
+---
+
+RateLimit defines a gateway-level rate limiting policy. It supports multiple key sources, such as client IP, a request header, the authenticated subject, or a principal claim.
+
+## Fields
+
+- `limit`: Maximum number of requests in the window.
+- `window_ms`: Time window in milliseconds.
+- `key`: Rate limit key configuration.
+
+## Key sources
+
+- Remote IP address.
+- Header value.
+- Authenticated subject.
+- Request path.
+- Principal claim.
+
+## Implementation status
+
+RateLimit is defined in the policy schema but is not executed by the sentinel engine yet.

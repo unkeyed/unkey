@@ -1,0 +1,24 @@
+---
+title: "Operations"
+description: "Operational practices for running Unkey in production"
+---
+
+## On-call
+
+Content pending.
+
+## Incident response
+
+Incident alerts route through Alertmanager when observability is enabled. The observability chart can forward alerts to incident.io using the `incidentio` configuration in `infra/infra/eks-cluster/helm-chart/observability/values.yaml`.
+
+## Deployments and rollbacks
+
+Infrastructure deploys through ArgoCD ApplicationSets under `infra/infra/eks-cluster/argocd`. Each ApplicationSet renders a Helm chart from `infra/infra/eks-cluster/helm-chart/<chart>` with environment and region overrides.
+
+Promotion files under `infra/infra/eks-cluster/promotions/<environment>/<app>.yaml` control the git revision used per app. `staging` tracks `main`. `production001` pins a commit SHA.
+
+Roll back by updating the promotion file to a prior revision and syncing the ArgoCD application.
+
+## Maintenance
+
+Content pending.

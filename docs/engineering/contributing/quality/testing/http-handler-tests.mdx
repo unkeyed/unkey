@@ -1,0 +1,82 @@
+---
+title: "HTTP handler tests"
+description: "Testing API endpoints with the test harness"
+---
+
+## Testing the full stack
+
+HTTP handler tests exercise API endpoints from request to response. A single request might authenticate a user, check permissions, validate input, query a database, update a cache, and write an audit log. Testing handlers end to end catches bugs that unit tests miss.
+
+Every handler should have tests for success, validation errors, authentication errors, and authorization errors.
+
+## Anatomy of a handler test
+
+Create a test harness, configure the handler with harness dependencies, register the handler, create credentials, make a request, and verify the response.
+
+```go
+func TestCreateApi_Success(t *testing.T) {
+    h := testutil.NewHarness(t)
+
+    route := &handler.Handler{
+        Logger:    h.Logger,
+        DB:        h.DB,
+        Keys:      h.Keys,
+        Auditlogs: h.Auditlogs,
+    }
+
+    h.Register(route)
+
+    rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_api")
+    headers := http.Header{
+        "Content-Type":  {"application/json"},
+        "Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+    }
+
+    req := handler.Request{Name: "my-new-api"}
+    res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+
+    require.Equal(t, http.StatusOK, res.Status)
+    require.NotEmpty(t, res.Body.ApiID)
+}
+```
+
+## Organizing test files
+
+Organize tests by behavior so the intent is clear. Example directory: <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_apis_create_api/" target="_blank">`svc/api/routes/v2_apis_create_api/`</a>.
+
+Typical files:
+- <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_apis_create_api/handler.go" target="_blank">`svc/api/routes/v2_apis_create_api/handler.go`</a>
+- <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_apis_create_api/success_test.go" target="_blank">`svc/api/routes/v2_apis_create_api/success_test.go`</a>
+- <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_apis_create_api/validation_test.go" target="_blank">`svc/api/routes/v2_apis_create_api/validation_test.go`</a>
+- <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_apis_create_api/auth_test.go" target="_blank">`svc/api/routes/v2_apis_create_api/auth_test.go`</a>
+- <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_apis_create_api/BUILD.bazel" target="_blank">`svc/api/routes/v2_apis_create_api/BUILD.bazel`</a>
+
+## Testing success cases
+
+Test minimal requests, full requests, and any important variations. Verify side effects such as audit log writes when relevant.
+
+## Testing validation errors
+
+Test boundary conditions, missing required fields, and invalid formats. These tests document the API contract.
+
+## Testing authentication
+
+Reject missing headers, malformed tokens, and revoked credentials.
+
+## Testing authorization
+
+Verify that permissions are enforced and cross-workspace access is rejected.
+
+## Helper functions
+
+Extract repeated setup into helpers. If a helper asserts, it must call `t.Helper()`.
+
+## Debugging failed requests
+
+Use the raw response body to inspect failures:
+
+```go
+if res.Status != http.StatusOK {
+    t.Logf("Response body: %s", res.RawBody)
+}
+```

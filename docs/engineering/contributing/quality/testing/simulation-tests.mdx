@@ -1,0 +1,87 @@
+---
+title: "Simulation tests"
+description: "Property-based testing with the simulation framework"
+---
+
+## Beyond example-based testing
+
+Example tests verify specific inputs and outputs. Simulation tests verify invariants across random sequences of operations. This is valuable for stateful systems like caches, rate limiters, and state machines.
+
+Unkey uses `pkg/sim` for simulation testing.
+
+## The mental model
+
+A simulation has state, events, and validators.
+
+- State is the system under test plus any bookkeeping.
+- Events modify state in random order.
+- Validators check invariants after each step.
+
+## A simple example
+
+```go
+type state struct {
+    cache cache.Cache[uint64, uint64]
+    keys  []uint64
+    clk   *clock.TestClock
+}
+
+type setEvent struct{}
+
+func (e *setEvent) Name() string { return "set" }
+
+func (e *setEvent) Run(rng *rand.Rand, s *state) error {
+    key := rng.Uint64()
+    val := rng.Uint64()
+    s.keys = append(s.keys, key)
+    s.cache.Set(context.Background(), key, val)
+    return nil
+}
+```
+
+## Running the simulation
+
+```go
+func TestCacheSimulation(t *testing.T) {
+    seed := sim.NewSeed()
+
+    simulation := sim.New[state](seed,
+        sim.WithState(func(rng *rand.Rand) *state {
+            clk := clock.NewTestClock(time.Now())
+            c, _ := cache.New(cache.Config[uint64, uint64]{
+                Clock:   clk,
+                Fresh:   time.Second,
+                Stale:   time.Minute,
+                MaxSize: rng.IntN(1000) + 1,
+            })
+            return &state{cache: c, keys: []uint64{}, clk: clk}
+        }),
+    )
+
+    simulation = sim.WithValidator(func(s *state) error {
+        if s.cache == nil {
+            return fmt.Errorf("cache should not be nil")
+        }
+        return nil
+    })(simulation)
+
+    err := simulation.Run([]sim.Event[state]{&setEvent{}})
+    require.NoError(t, err)
+}
+```
+
+## Reproducibility
+
+When a simulation fails, save the seed and rerun with `sim.SeedFromString` to reproduce the sequence.
+
+## Writing effective events
+
+Events should be self-contained and valid regardless of current state. If preconditions are not met, return early.
+
+## When to use simulations
+
+Use simulations for caches, rate limiters, and state machines with many valid transitions. Skip them for simple stateless logic.
+
+## Bazel configuration
+
+Simulation tests are regular Go tests and usually `size = "small"`.
