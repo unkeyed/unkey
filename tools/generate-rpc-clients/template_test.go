@@ -30,7 +30,8 @@ func TestTemplateOutput_Unary(t *testing.T) {
 		ProtoImport:   "github.com/example/gen/proto/test/v1",
 		Services: []serviceInfo{
 			{
-				Name: "TestServiceClient",
+				Name:            "TestServiceClient",
+				ServiceBaseName: "TestService",
 				Methods: []methodInfo{
 					{Name: "GetItem", ReqType: "GetItemRequest", RespType: "GetItemResponse", Kind: methodKindUnary},
 				},
@@ -50,6 +51,16 @@ func TestTemplateOutput_Unary(t *testing.T) {
 		output := renderAndValidate(t, data)
 		require.NotContains(t, output, "ServerStreamForClient")
 	})
+	t.Run("starts a tracing span", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, `tracing.Start(ctx, "TestService.GetItem")`)
+		require.Contains(t, output, "defer span.End()")
+	})
+	t.Run("records error on span but skips not-found", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, "tracing.RecordError(span, err)")
+		require.Contains(t, output, "connect.CodeOf(err) != connect.CodeNotFound")
+	})
 }
 
 func TestTemplateOutput_ServerStream(t *testing.T) {
@@ -61,7 +72,8 @@ func TestTemplateOutput_ServerStream(t *testing.T) {
 		ProtoImport:   "github.com/example/gen/proto/test/v1",
 		Services: []serviceInfo{
 			{
-				Name: "WatchServiceClient",
+				Name:            "WatchServiceClient",
+				ServiceBaseName: "WatchService",
 				Methods: []methodInfo{
 					{Name: "WatchEvents", ReqType: "WatchEventsRequest", RespType: "EventState", Kind: methodKindServerStream},
 				},
@@ -81,6 +93,10 @@ func TestTemplateOutput_ServerStream(t *testing.T) {
 		output := renderAndValidate(t, data)
 		require.NotContains(t, output, "resp.Msg")
 	})
+	t.Run("does not contain tracing span", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.NotContains(t, output, "tracing.Start")
+	})
 }
 
 func TestTemplateOutput_Mixed(t *testing.T) {
@@ -92,7 +108,8 @@ func TestTemplateOutput_Mixed(t *testing.T) {
 		ProtoImport:   "github.com/example/gen/proto/test/v1",
 		Services: []serviceInfo{
 			{
-				Name: "MixedServiceClient",
+				Name:            "MixedServiceClient",
+				ServiceBaseName: "MixedService",
 				Methods: []methodInfo{
 					{Name: "WatchItems", ReqType: "WatchItemsRequest", RespType: "ItemState", Kind: methodKindServerStream},
 					{Name: "GetItem", ReqType: "GetItemRequest", RespType: "GetItemResponse", Kind: methodKindUnary},
@@ -112,5 +129,10 @@ func TestTemplateOutput_Mixed(t *testing.T) {
 	t.Run("streaming adapter directly returns inner call", func(t *testing.T) {
 		output := renderAndValidate(t, data)
 		require.Contains(t, output, "return c.inner.WatchItems(ctx, connect.NewRequest(req))")
+	})
+	t.Run("tracing span only on unary method", func(t *testing.T) {
+		output := renderAndValidate(t, data)
+		require.Contains(t, output, `tracing.Start(ctx, "MixedService.GetItem")`)
+		require.NotContains(t, output, `tracing.Start(ctx, "MixedService.WatchItems")`)
 	})
 }

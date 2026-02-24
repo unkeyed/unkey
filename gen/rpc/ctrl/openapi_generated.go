@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 // OpenApiServiceClient wraps ctrlv1connect.OpenApiServiceClient with simplified signatures.
@@ -29,8 +30,13 @@ func NewConnectOpenApiServiceClient(inner ctrlv1connect.OpenApiServiceClient) *C
 }
 
 func (c *ConnectOpenApiServiceClient) GetOpenApiDiff(ctx context.Context, req *v1.GetOpenApiDiffRequest) (*v1.GetOpenApiDiffResponse, error) {
+	ctx, span := tracing.Start(ctx, "OpenApiService.GetOpenApiDiff")
+	defer span.End()
 	resp, err := c.inner.GetOpenApiDiff(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

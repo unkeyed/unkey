@@ -61,7 +61,7 @@ func findServices(f *ast.File, protoAlias string) []serviceInfo {
 
 // extractService extracts unary and server-streaming methods from a ServiceClient interface.
 func extractService(name string, iface *ast.InterfaceType) serviceInfo {
-	svc := serviceInfo{Name: name, Methods: nil}
+	svc := serviceInfo{Name: name, ServiceBaseName: strings.TrimSuffix(name, "Client"), Methods: nil}
 
 	for _, field := range iface.Methods.List {
 		if m, ok := extractMethod(field); ok {

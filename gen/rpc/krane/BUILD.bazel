@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//gen/proto/krane/v1:krane",
         "//gen/proto/krane/v1/kranev1connect",
+        "//pkg/otel/tracing",
         "@com_connectrpc_connect//:connect",
     ],
 )
