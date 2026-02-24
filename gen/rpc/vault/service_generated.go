@@ -16,6 +16,8 @@ type VaultServiceClient interface {
 	Liveness(ctx context.Context, req *v1.LivenessRequest) (*v1.LivenessResponse, error)
 	Encrypt(ctx context.Context, req *v1.EncryptRequest) (*v1.EncryptResponse, error)
 	Decrypt(ctx context.Context, req *v1.DecryptRequest) (*v1.DecryptResponse, error)
+	EncryptBulk(ctx context.Context, req *v1.EncryptBulkRequest) (*v1.EncryptBulkResponse, error)
+	DecryptBulk(ctx context.Context, req *v1.DecryptBulkRequest) (*v1.DecryptBulkResponse, error)
 	ReEncrypt(ctx context.Context, req *v1.ReEncryptRequest) (*v1.ReEncryptResponse, error)
 }
 
@@ -49,6 +51,22 @@ func (c *ConnectVaultServiceClient) Encrypt(ctx context.Context, req *v1.Encrypt
 
 func (c *ConnectVaultServiceClient) Decrypt(ctx context.Context, req *v1.DecryptRequest) (*v1.DecryptResponse, error) {
 	resp, err := c.inner.Decrypt(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectVaultServiceClient) EncryptBulk(ctx context.Context, req *v1.EncryptBulkRequest) (*v1.EncryptBulkResponse, error) {
+	resp, err := c.inner.EncryptBulk(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectVaultServiceClient) DecryptBulk(ctx context.Context, req *v1.DecryptBulkRequest) (*v1.DecryptBulkResponse, error) {
+	resp, err := c.inner.DecryptBulk(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
