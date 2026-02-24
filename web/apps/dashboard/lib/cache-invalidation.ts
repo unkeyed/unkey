@@ -18,9 +18,13 @@ function getClient(): CacheInvalidationClient | null {
 }
 
 async function invalidate(cacheName: string, keys: string[]): Promise<void> {
-  if (keys.length === 0) return;
+  if (keys.length === 0) {
+    return;
+  }
   const client = getClient();
-  if (!client) return;
+  if (!client) {
+    return;
+  }
   await client.invalidate(cacheName, keys).catch(console.error);
 }
 
