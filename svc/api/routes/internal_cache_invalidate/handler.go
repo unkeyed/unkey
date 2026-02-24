@@ -7,16 +7,17 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+)
+
+type (
+	Request  = openapi.CacheInvalidateRequestBody
+	Response = struct{}
 )
 
 type Handler struct {
 	Caches caches.Caches
 	Token  string
-}
-
-type request struct {
-	CacheName string   `json:"cacheName"`
-	Keys      []string `json:"keys"`
 }
 
 func (h *Handler) Method() string {
@@ -34,7 +35,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	req, err := zen.BindBody[request](s)
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
@@ -43,5 +44,5 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err, fault.Public("Failed to invalidate cache"))
 	}
 
-	return s.Send(http.StatusOK, nil)
+	return s.JSON(http.StatusOK, Response{})
 }
