@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"net"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -67,7 +68,7 @@ func (c *gossipCluster) promoteToBridge() {
 	wanCfg.BindPort = c.config.WANBindPort
 	wanCfg.AdvertisePort = c.config.WANBindPort
 	if c.config.WANAdvertiseAddr != "" {
-		wanCfg.AdvertiseAddr = c.config.WANAdvertiseAddr
+		wanCfg.AdvertiseAddr = resolveAdvertiseAddr(c.config.WANAdvertiseAddr)
 	}
 	wanCfg.LogOutput = newLogWriter("wan")
 	wanCfg.SecretKey = c.config.SecretKey
@@ -131,6 +132,32 @@ func (c *gossipCluster) promoteToBridge() {
 			return c.wan
 		}, seeds, nil)
 	}
+}
+
+// resolveAdvertiseAddr resolves a hostname to its first IP address.
+// If the input is already a valid IP, it is returned unchanged.
+// If DNS resolution fails, an empty string is returned so the caller
+// falls back to the bind address rather than passing a raw hostname
+// to memberlist (which would leak the transport).
+//
+// memberlist requires AdvertiseAddr to be a valid IP (it uses net.ParseIP
+// internally). Passing a hostname like an NLB DNS name causes
+// newMemberlist to fail after binding the port, leaking the transport.
+func resolveAdvertiseAddr(addr string) string {
+	if addr == "" {
+		return ""
+	}
+	if net.ParseIP(addr) != nil {
+		return addr
+	}
+	ips, err := net.LookupHost(addr)
+	if err != nil || len(ips) == 0 {
+		logger.Warn("Failed to resolve WAN advertise address",
+			"addr", addr, "error", err)
+		return ""
+	}
+	logger.Info("Resolved WAN advertise address", "hostname", addr, "ip", ips[0])
+	return ips[0]
 }
 
 // demoteFromBridge shuts down the WAN memberlist.
