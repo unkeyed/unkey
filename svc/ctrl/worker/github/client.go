@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -170,9 +171,9 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to get installation token for branch head lookup"))
 	}
 
-	url := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, branch)
+	requestURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to create request"))
 	}

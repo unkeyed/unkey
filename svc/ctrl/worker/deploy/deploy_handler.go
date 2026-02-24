@@ -180,6 +180,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			if resolveErr != nil {
 				return nil, fmt.Errorf("failed to update deployment git metadata: %w", resolveErr)
 			}
+
+			deployment.GitCommitSha = sql.NullString{String: info.SHA, Valid: true}
+			deployment.GitBranch = sql.NullString{String: source.Git.GetBranch(), Valid: true}
 		}
 
 		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{

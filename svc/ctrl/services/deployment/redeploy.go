@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -39,11 +40,11 @@ func (s *Service) Redeploy(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.RedeployRequest],
 ) (*connect.Response[ctrlv1.RedeployResponse], error) {
-	if req.Msg.GetProjectId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("project_id is required"))
-	}
-	if req.Msg.GetEnvironmentSlug() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("environment_slug is required"))
+	if err := assert.All(
+		assert.NotEmpty(req.Msg.GetProjectId()),
+		assert.NotEmpty(req.Msg.GetEnvironmentSlug()),
+	); err != nil {
+		return nil, err
 	}
 
 	// Lookup project, environment, build/runtime settings, and env vars in one query
