@@ -1,0 +1,18 @@
+---
+title: "Policy schema"
+description: "Policy structure and configuration model"
+---
+
+The `sentinel.v1.Policy` message is the unit of middleware configuration for a deployment. Each policy combines match expressions with exactly one policy configuration.
+
+## Fields
+
+- `id`: Stable identifier used for logs, metrics, and troubleshooting.
+- `name`: Human-friendly label.
+- `enabled`: When false, sentinel skips the policy.
+- `match`: List of match expressions. All entries must match for the policy to run.
+- `config`: One of the policy configurations, such as KeyAuth or RateLimit.
+
+## Evaluation model
+
+Policies are evaluated in order. If a policy rejects a request, evaluation stops and sentinel returns a structured error response. Unknown policy types are skipped for forward compatibility.

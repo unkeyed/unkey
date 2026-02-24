@@ -1,0 +1,38 @@
+---
+title: "API"
+description: "Run the Unkey API server"
+---
+
+## Command syntax
+
+```bash
+unkey run api [flags]
+```
+
+## Flags
+
+| Flag | Description | Env | Default |
+| --- | --- | --- | --- |
+| `--http-port` | HTTP port | `UNKEY_HTTP_PORT` | `7070` |
+| `--color` | Enable colored logs | `UNKEY_LOGS_COLOR` | `true` |
+| `--test-mode` | Enable test mode | `UNKEY_TEST_MODE` | `false` |
+| `--platform` | Platform identifier | `UNKEY_PLATFORM` | - |
+| `--image` | Container image identifier | `UNKEY_IMAGE` | - |
+| `--region` | Region identifier | `AWS_REGION` | `unknown` |
+| `--instance-id` | Instance ID | `UNKEY_INSTANCE_ID` | auto-generated |
+| `--database-primary` | MySQL primary DSN (required) | `UNKEY_DATABASE_PRIMARY` | - |
+| `--database-replica` | MySQL replica DSN | `UNKEY_DATABASE_REPLICA` | - |
+| `--redis-url` | Redis URL | `UNKEY_REDIS_URL` | - |
+| `--clickhouse-url` | ClickHouse URL | `UNKEY_CLICKHOUSE_URL` | - |
+| `--otel` | Enable OpenTelemetry | `UNKEY_OTEL` | `false` |
+| `--otel-trace-sampling-rate` | Trace sampling rate | `UNKEY_OTEL_TRACE_SAMPLING_RATE` | `0.25` |
+| `--prometheus-port` | Prometheus metrics port | `UNKEY_PROMETHEUS_PORT` | `0` |
+| `--tls-cert-file` | TLS cert path | `UNKEY_TLS_CERT_FILE` | - |
+| `--tls-key-file` | TLS key path | `UNKEY_TLS_KEY_FILE` | - |
+| `--vault-url` | Vault URL | `UNKEY_VAULT_URL` | - |
+| `--vault-token` | Vault token | `UNKEY_VAULT_TOKEN` | - |
+| `--max-request-body-size` | Max request body size | - | `10485760` |
+
+<Warning>
+`--test-mode` is unsafe and may trust client inputs.
+</Warning>

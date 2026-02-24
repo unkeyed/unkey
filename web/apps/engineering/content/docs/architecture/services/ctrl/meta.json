@@ -1,6 +1,0 @@
-{
-  "title": "Ctrl",
-  "icon": "Pencil",
-  "root": false,
-  "pages": ["index", "build", "pull-based-infra"]
-}

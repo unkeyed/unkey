@@ -1,10 +1,10 @@
 package cluster
 
 import (
-	"io"
 	"time"
 
 	"github.com/hashicorp/memberlist"
+	"github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -62,7 +62,10 @@ func (c *gossipCluster) promoteToBridge() {
 	wanCfg.BindAddr = c.config.BindAddr
 	wanCfg.BindPort = c.config.WANBindPort
 	wanCfg.AdvertisePort = c.config.WANBindPort
-	wanCfg.LogOutput = io.Discard
+	if c.config.WANAdvertiseAddr != "" {
+		wanCfg.AdvertiseAddr = c.config.WANAdvertiseAddr
+	}
+	wanCfg.LogOutput = newLogWriter("wan")
 	wanCfg.SecretKey = c.config.SecretKey
 
 	wanCfg.Delegate = newWANDelegate(c)
@@ -84,9 +87,12 @@ func (c *gossipCluster) promoteToBridge() {
 	seeds := c.config.WANSeeds
 	c.mu.Unlock()
 
-	// Join WAN seeds outside the lock with retries
+	metrics.ClusterBridgeStatus.Set(1)
+	metrics.ClusterBridgeTransitionsTotal.WithLabelValues("promoted").Inc()
+
+	// Start background reconnection loop for WAN seeds.
 	if len(seeds) > 0 {
-		go c.joinSeeds("WAN", func() *memberlist.Memberlist {
+		go c.maintainMembership("WAN", func() *memberlist.Memberlist {
 			c.mu.RLock()
 			defer c.mu.RUnlock()
 			return c.wan
@@ -112,6 +118,10 @@ func (c *gossipCluster) demoteFromBridge() {
 	c.wanQueue = nil
 	c.isBridge = false
 	c.mu.Unlock()
+
+	metrics.ClusterBridgeStatus.Set(0)
+	metrics.ClusterBridgeTransitionsTotal.WithLabelValues("demoted").Inc()
+	metrics.ClusterMembersCount.WithLabelValues("wan", c.config.Region).Set(0)
 
 	// Leave and shutdown outside the lock since Leave can trigger callbacks
 	if wan != nil {

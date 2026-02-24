@@ -3,9 +3,11 @@ package validation
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
+	"github.com/pb33f/libopenapi-validator/config"
 	"github.com/unkeyed/unkey/pkg/ctxutil"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
@@ -31,7 +33,7 @@ func New() (*Validator, error) {
 		return nil, fault.Wrap(err, fault.Internal("failed to create OpenAPI document"))
 	}
 
-	v, errors := validator.NewValidator(document)
+	v, errors := validator.NewValidator(document, config.WithRegexCache(&sync.Map{}))
 	if len(errors) > 0 {
 		messages := make([]fault.Wrapper, len(errors))
 		for i, e := range errors {

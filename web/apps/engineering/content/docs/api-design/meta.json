@@ -1,6 +1,0 @@
-{
-  "title": "API Design",
-  "description": "Intuitive and helpful",
-  "icon": "Code",
-  "pages": ["overview", "auth", "rpc", "errors"]
-}

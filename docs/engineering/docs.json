@@ -1,0 +1,385 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "aspen",
+  "name": "engineering",
+  "colors": {
+    "primary": "#6F4700",
+    "light": "#F1D89B",
+    "dark": "#7A5A1A"
+  },
+  "favicon": "/unkey.png",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Contributing",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "contributing/how-to-contribute",
+              "contributing/local/development",
+              {
+                "group": "Tooling",
+                "pages": ["contributing/tooling/bazel"]
+              }
+            ]
+          },
+          {
+            "group": "Quality",
+            "pages": [
+              "contributing/quality/code-quality",
+              "contributing/quality/documentation",
+              {
+                "group": "Testing",
+                "pages": [
+                  "contributing/quality/testing/index",
+                  "contributing/quality/testing/unit-tests",
+                  "contributing/quality/testing/integration-tests",
+                  "contributing/quality/testing/http-handler-tests",
+                  "contributing/quality/testing/fuzz-tests",
+                  "contributing/quality/testing/simulation-tests",
+                  "contributing/quality/testing/anti-patterns"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Architecture",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["architecture/index"]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              {
+                "group": "API",
+                "pages": [
+                  "architecture/services/api/overview",
+                  "architecture/services/api/configuration",
+                  {
+                    "group": "API design",
+                    "pages": [
+                      "architecture/services/api/api-design/index",
+                      "architecture/services/api/api-design/auth",
+                      "architecture/services/api/api-design/errors",
+                      "architecture/services/api/api-design/rpc"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Control plane",
+                "pages": [
+                  {
+                    "group": "API",
+                    "pages": [
+                      "architecture/services/control-plane/api/overview",
+                      "architecture/services/control-plane/api/architecture",
+                      "architecture/services/control-plane/api/configuration"
+                    ]
+                  },
+                  {
+                    "group": "Worker",
+                    "pages": [
+                      "architecture/services/control-plane/worker/overview",
+                      "architecture/services/control-plane/worker/configuration",
+                      {
+                        "group": "Workflows",
+                        "pages": [
+                          "architecture/services/control-plane/worker/workflows/deployments",
+                          "architecture/services/control-plane/worker/workflows/routing",
+                          "architecture/services/control-plane/worker/workflows/certificates",
+                          "architecture/services/control-plane/worker/workflows/custom-domains",
+                          "architecture/services/control-plane/worker/workflows/github-app"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Frontline",
+                "pages": [
+                  "architecture/services/frontline/overview",
+                  "architecture/services/frontline/ingress",
+                  "architecture/services/frontline/configuration",
+                  "architecture/services/frontline/routing"
+                ]
+              },
+              {
+                "group": "Krane",
+                "pages": [
+                  "architecture/services/krane/overview",
+                  "architecture/services/krane/architecture",
+                  "architecture/services/krane/secrets",
+                  "architecture/services/krane/configuration"
+                ]
+              },
+              {
+                "group": "Preflight",
+                "pages": [
+                  "architecture/services/preflight/overview",
+                  "architecture/services/preflight/configuration"
+                ]
+              },
+              {
+                "group": "Sentinel",
+                "pages": [
+                  "architecture/services/sentinel/overview",
+                  "architecture/services/sentinel/configuration",
+                  {
+                    "group": "Middleware",
+                    "pages": [
+                      "architecture/services/sentinel/middleware/index",
+                      "architecture/services/sentinel/middleware/observability",
+                      "architecture/services/sentinel/middleware/logging",
+                      "architecture/services/sentinel/middleware/error-handling"
+                    ]
+                  },
+                  {
+                    "group": "Policies",
+                    "pages": [
+                      "architecture/services/sentinel/policies/index",
+                      "architecture/services/sentinel/policies/policy",
+                      "architecture/services/sentinel/policies/match-expressions",
+                      "architecture/services/sentinel/policies/principal",
+                      "architecture/services/sentinel/policies/keyauth",
+                      "architecture/services/sentinel/policies/jwtauth",
+                      "architecture/services/sentinel/policies/basicauth",
+                      "architecture/services/sentinel/policies/ratelimit",
+                      "architecture/services/sentinel/policies/ip-rules",
+                      "architecture/services/sentinel/policies/openapi"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Vault",
+                "pages": [
+                  "architecture/services/vault/overview",
+                  "architecture/services/vault/auth",
+                  {
+                    "group": "Configuration",
+                    "root": "architecture/services/vault/configuration",
+                    "pages": ["architecture/services/vault/configuration"]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "group": "RFCs",
+            "pages": [
+              "architecture/rfcs/0000-template",
+              "architecture/rfcs/0001-rbac",
+              "architecture/rfcs/0002-github-secret-scanning",
+              "architecture/rfcs/0003-key-shape",
+              "architecture/rfcs/0004-coss-starter",
+              "architecture/rfcs/0005-analytics-api",
+              "architecture/rfcs/0006-auth-migration",
+              "architecture/rfcs/0007-client-file-structure",
+              "architecture/rfcs/0008-dataplane",
+              "architecture/rfcs/0009-pricing-updates",
+              "architecture/rfcs/0010-split-monos",
+              "architecture/rfcs/0011-unkey-resource-names",
+              "architecture/rfcs/0012-stricter-linter",
+              "architecture/rfcs/0013-custom-domains",
+              "architecture/rfcs/0014-sentinel-middleware"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Infra",
+        "groups": [
+          {
+            "group": "Overview",
+            "root": "infra/index",
+            "expanded": true,
+            "pages": ["infra/index"]
+          },
+          {
+            "group": "Infrastructure",
+            "root": "infra/operations/infra/index",
+            "expanded": true,
+            "pages": [
+              {
+                "group": "Cluster",
+                "root": "infra/operations/infra/index",
+                "pages": [
+                  "infra/operations/infra/index",
+                  "infra/operations/infra/eks-cluster",
+                  "infra/operations/infra/deployments"
+                ]
+              },
+              {
+                "group": "Platform",
+                "root": "infra/operations/infrastructure/index",
+                "pages": [
+                  "infra/operations/infrastructure/index",
+                  "infra/operations/infrastructure/accounts",
+                  {
+                    "group": "AWS",
+                    "root": "infra/operations/infrastructure/aws/index",
+                    "pages": [
+                      "infra/operations/infrastructure/aws/index",
+                      "infra/operations/infrastructure/aws/google-idp",
+                      "infra/operations/infrastructure/aws/user-group-management"
+                    ]
+                  },
+                  {
+                    "group": "Stripe",
+                    "pages": ["infra/operations/infrastructure/stripe/subscriptions"]
+                  },
+                  {
+                    "group": "Development",
+                    "pages": [
+                      "infra/operations/infrastructure/dev/github-app",
+                      "infra/operations/infrastructure/dev/seeding-db-and-clickhouse",
+                      "infra/operations/infrastructure/dev/workos"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Operations",
+            "root": "infra/operations/index",
+            "expanded": true,
+            "pages": ["infra/operations/index"]
+          },
+          {
+            "group": "Runbooks",
+            "root": "infra/operations/runbooks/index",
+            "expanded": true,
+            "pages": [
+              "infra/operations/runbooks/index",
+              "infra/operations/runbooks/clickhouse-user-provisioning",
+              "infra/operations/runbooks/services/agent/deployment-issues"
+            ]
+          },
+          {
+            "group": "CLI",
+            "root": "infra/operations/cli/index",
+            "expanded": true,
+            "pages": [
+              "infra/operations/cli/index",
+              "infra/operations/cli/deploy/index",
+              "infra/operations/cli/healthcheck/index",
+              "infra/operations/cli/quotacheck/index",
+              {
+                "group": "Run",
+                "root": "infra/operations/cli/run/index",
+                "pages": [
+                  "infra/operations/cli/run/index",
+                  "infra/operations/cli/run/api/index",
+                  "infra/operations/cli/run/ctrl/index",
+                  "infra/operations/cli/run/ingress/index",
+                  "infra/operations/cli/run/krane/index"
+                ]
+              },
+              {
+                "group": "Version",
+                "root": "infra/operations/cli/version/index",
+                "pages": [
+                  "infra/operations/cli/version/index",
+                  "infra/operations/cli/version/get/index",
+                  "infra/operations/cli/version/list/index",
+                  "infra/operations/cli/version/rollback/index"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Company",
+            "root": "infra/operations/company/index",
+            "expanded": true,
+            "pages": ["infra/operations/company/index", "infra/operations/company/meetings"]
+          },
+          {
+            "group": "Reference",
+            "root": "infra/operations/reference/index",
+            "expanded": true,
+            "pages": ["infra/operations/reference/index"]
+          }
+        ]
+      },
+      {
+        "tab": "Hosting",
+        "groups": [
+          {
+            "group": "Overview",
+            "root": "hosting/index",
+            "expanded": true,
+            "pages": ["hosting/index"]
+          },
+          {
+            "group": "Install",
+            "root": "hosting/install",
+            "expanded": true,
+            "pages": ["hosting/install"]
+          },
+          {
+            "group": "Configure",
+            "root": "hosting/configuration",
+            "expanded": true,
+            "pages": ["hosting/configuration"]
+          },
+          {
+            "group": "Operate",
+            "root": "hosting/upgrade",
+            "expanded": true,
+            "pages": ["hosting/upgrade", "hosting/scaling", "hosting/backup-restore"]
+          },
+          {
+            "group": "Security",
+            "root": "hosting/security",
+            "expanded": true,
+            "pages": ["hosting/security"]
+          },
+          {
+            "group": "Troubleshooting",
+            "root": "hosting/troubleshooting",
+            "expanded": true,
+            "pages": ["hosting/troubleshooting"]
+          }
+        ]
+      }
+    ]
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs",
+    "codeblocks": {
+      "theme": "kanagawa-wave"
+    }
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "background": {
+    "decoration": "windows"
+  },
+  "logo": {
+    "dark": "/unkey-white.png",
+    "light": "/unkey-black.png"
+  },
+  "navbar": {
+    "links": [
+      {
+        "type": "github",
+        "href": "https://github.com/unkeyed/unkey"
+      }
+    ]
+  },
+  "redirects": [
+    {
+      "source": "/architecture/services/sentinel/policies",
+      "destination": "/architecture/services/sentinel/policies/index"
+    }
+  ]
+}

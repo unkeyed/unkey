@@ -1,0 +1,140 @@
+---
+title: "Configuration"
+description: "Configuration model and required settings for the preflight service"
+---
+
+import ConfigToml from "/snippets/config-toml.mdx";
+
+## Configuration model
+
+<ConfigToml />
+
+The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/preflight/config.go" target="_blank">`svc/preflight/config.go`</a>.
+
+Minimal config example:
+
+```toml
+http_port = 8443
+krane_endpoint = "${UNKEY_KRANE_ENDPOINT}"
+depot_token = "${UNKEY_DEPOT_TOKEN}"
+
+[tls]
+cert_file = "/certs/tls.crt"
+key_file = "/certs/tls.key"
+
+[inject]
+image = "ghcr.io/unkeyed/inject:0.1.1"
+image_pull_policy = "IfNotPresent"
+
+[registry]
+insecure_registries = []
+aliases = []
+```
+
+<ResponseField name="http_port" type="int" default="8443">
+  HTTPS webhook port.
+</ResponseField>
+
+<ResponseField
+  name="krane_endpoint"
+  type="string"
+  default="http://krane.unkey.svc.cluster.local:8070"
+>
+  Krane secrets provider URL.
+</ResponseField>
+
+<ResponseField name="depot_token" type="string">
+  Depot token for on-demand registry credentials.
+</ResponseField>
+
+<ResponseField name="tls" type="object" required>
+  TLS configuration for the webhook server.
+  <Expandable title="Fields">
+    <ResponseField name="tls.cert_file" type="string" required>
+      Path to TLS certificate.
+    </ResponseField>
+    <ResponseField name="tls.key_file" type="string" required>
+      Path to TLS key.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="inject" type="object">
+  Init container injection settings.
+  <Expandable title="Fields">
+    <ResponseField name="inject.image" type="string" default="inject:latest">
+      Inject image.
+    </ResponseField>
+    <ResponseField name="inject.image_pull_policy" type="string" default="IfNotPresent">
+      Image pull policy.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="registry" type="object">
+  Registry configuration.
+  <Expandable title="Fields">
+    <ResponseField name="registry.insecure_registries" type="string[]">
+      Registries to access over HTTP.
+    </ResponseField>
+    <ResponseField name="registry.aliases" type="string[]">
+      Registry alias mappings in `from=to` format.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+There is no standard allowlist for registry aliases or insecure registries today.
+
+<ResponseField name="observability" type="object">
+  Logging configuration. Tracing settings are parsed but not applied by the preflight runtime.
+  <Expandable title="Fields">
+    <ResponseField name="observability.tracing.sample_rate" type="float" default="0.25">
+      Trace sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.sample_rate" type="float" default="1.0">
+      Log sampling rate.
+    </ResponseField>
+    <ResponseField name="observability.logging.slow_threshold" type="duration" default="1s">
+      Slow log threshold.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Environment variables
+
+The Helm chart provides these variables for the default config template:
+
+<ResponseField name="UNKEY_KRANE_ENDPOINT" type="env">
+  Krane endpoint URL.
+</ResponseField>
+
+<ResponseField name="UNKEY_DEPOT_TOKEN" type="env">
+  Depot token for registry credentials.
+</ResponseField>
+
+## Example configuration
+
+```toml
+http_port = 8443
+krane_endpoint = "${UNKEY_KRANE_ENDPOINT}"
+depot_token = "${UNKEY_DEPOT_TOKEN}"
+
+[tls]
+cert_file = "/certs/tls.crt"
+key_file = "/certs/tls.key"
+
+[inject]
+image = "ghcr.io/unkeyed/inject:0.1.1"
+image_pull_policy = "IfNotPresent"
+
+[registry]
+insecure_registries = []
+aliases = []
+
+[observability.tracing]
+sample_rate = 0.1
+
+[observability.logging]
+sample_rate = 0.01
+slow_threshold = "2s"
+```

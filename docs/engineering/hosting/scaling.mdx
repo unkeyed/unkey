@@ -1,0 +1,12 @@
+---
+title: "Scaling"
+description: "Scale hosted Unkey deployments"
+---
+
+## Scale targets
+
+Service deployments scale through Helm chart values. Most charts expose `replicaCount`, `resources`, and optional `autoscaling` settings. Check the `values.yaml` for each service chart.
+
+## Capacity planning
+
+Plan capacity around the backing stores you run for Unkey, including MySQL, ClickHouse, and object storage for Vault. Use service-specific configuration docs to align limits and requests with expected load.

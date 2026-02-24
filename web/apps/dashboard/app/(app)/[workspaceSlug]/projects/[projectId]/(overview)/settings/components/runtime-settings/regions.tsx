@@ -2,16 +2,16 @@
 
 import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Location2, XMark } from "@unkey/icons";
-import { toast } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
-import { useProjectData } from "../../../data-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const regionsSchema = z.object({
@@ -21,22 +21,14 @@ const regionsSchema = z.object({
 type RegionsFormValues = z.infer<typeof regionsSchema>;
 
 export const Regions = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
-
-  const { data: settingsData } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
-  );
+  const { settings } = useEnvironmentSettings();
+  const { environmentId, regionConfig } = settings;
+  const defaultRegions = Object.keys(regionConfig);
 
   const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
     undefined,
     { enabled: Boolean(environmentId) },
   );
-
-  const regionConfig =
-    (settingsData?.runtimeSettings?.regionConfig as Record<string, number>) ?? {};
-  const defaultRegions = Object.keys(regionConfig);
 
   return (
     <RegionsForm
@@ -58,8 +50,6 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
   defaultRegions,
   availableRegions,
 }) => {
-  const utils = trpc.useUtils();
-
   const {
     handleSubmit,
     setValue,
@@ -80,37 +70,14 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
 
   const unselectedRegions = availableRegions.filter((r) => !currentRegions.includes(r));
 
-  const updateRegions = trpc.deploy.environmentSettings.runtime.updateRegions.useMutation({
-    onSuccess: () => {
-      toast.success("Regions updated", {
-        description: "Deployment regions saved successfully.",
-        duration: 5000,
-      });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid regions setting", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update regions", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: RegionsFormValues) => {
-    await updateRegions.mutateAsync({
-      environmentId,
-      regions: values.regions,
+    collection.environmentSettings.update(environmentId, (draft) => {
+      const newConfig: Record<string, number> = {};
+      const defaultCount = Object.values(draft.regionConfig)[0] ?? 1;
+      for (const region of values.regions) {
+        newConfig[region] = draft.regionConfig[region] ?? defaultCount;
+      }
+      draft.regionConfig = newConfig;
     });
   };
 
@@ -133,9 +100,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
     currentRegions.some((r) => !defaultRegions.includes(r));
 
   const displayValue =
-    defaultRegions.length === 0 ? (
-      "No regions selected"
-    ) : defaultRegions.length <= 2 ? (
+    defaultRegions.length === 0 ? null : defaultRegions.length <= 2 ? (
       <span className="flex items-center gap-1.5">
         {defaultRegions.map((r, i) => (
           <span key={r} className="flex items-center gap-1.5">
@@ -179,7 +144,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateRegions.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <FormCombobox
         label="Regions"

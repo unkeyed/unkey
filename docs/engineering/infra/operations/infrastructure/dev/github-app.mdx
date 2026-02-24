@@ -1,0 +1,158 @@
+---
+title: "GitHub App setup"
+description: "Create and configure a GitHub App for local development"
+---
+
+This guide walks through creating a GitHub App for local development. The app enables deployment workflows triggered by push events.
+
+<Note>
+Required if you work on GitHub integration or deployment features locally.
+</Note>
+
+## Prerequisites
+
+GitHub must reach your local control API for webhooks. Use <a href="https://ngrok.com" target="_blank">ngrok</a>:
+
+1. <a href="https://ngrok.com/download" target="_blank">Install ngrok</a>.
+2. Start a tunnel to control API:
+
+```bash
+ngrok http 7091
+```
+
+Copy the HTTPS URL, for example `https://abc123.ngrok-free.app`.
+
+## Overview
+
+The GitHub App supports:
+
+1. Webhooks for push events
+2. API access to fetch repository contents via installation tokens
+
+## Create a new GitHub App
+
+1. Go to <a href="https://github.com/settings/apps/new" target="_blank">GitHub Developer Settings</a>.
+2. For organization-owned apps, use `https://github.com/organizations/<org>/settings/apps/new`.
+
+### Basic information
+
+| Field | Value |
+| --- | --- |
+| GitHub App name | `unkey-dev-<your-name>` |
+| Description | `Unkey local development` |
+| Homepage URL | `http://localhost:3000` |
+
+### Identifying and authorizing users
+
+| Field | Value |
+| --- | --- |
+| Callback URL | Leave empty |
+| Expire user authorization tokens | Disabled |
+| Request user authorization (OAuth) during installation | Disabled |
+| Enable device flow | Disabled |
+
+### Post installation
+
+| Field | Value |
+| --- | --- |
+| Setup URL | `http://localhost:3000/integrations/github/callback` |
+| Redirect on update | Enabled |
+
+### Webhook configuration
+
+| Field | Value |
+| --- | --- |
+| Active | Enabled |
+| Webhook URL | `https://<your-tunnel-url>/webhooks/github` |
+| Webhook secret | `openssl rand -hex 32` |
+
+<Warning>
+Save the webhook secret for `UNKEY_GITHUB_APP_WEBHOOK_SECRET`.
+</Warning>
+
+### Repository permissions
+
+Set these repository permissions:
+
+| Permission | Access | Purpose |
+| --- | --- | --- |
+| Contents | Read-only | Clone repository for builds |
+| Metadata | Read-only | List repositories and repo info |
+
+Leave other repository permissions as **No access**.
+
+### Organization and account permissions
+
+Leave all as **No access**.
+
+### Subscribe to events
+
+Subscribe to **Push**. Optionally keep **Installation** for debugging.
+
+### Installation target
+
+Select **Only on this account** for local development.
+
+### Create the app and generate keys
+
+1. Click **Create GitHub App**.
+2. Generate a private key under **Private keys**.
+3. Note the **App ID** from the **About** section.
+
+<Warning>
+Store the private key securely. You cannot download it again.
+</Warning>
+
+## Environment variables
+
+### Dashboard (`web/apps/dashboard`)
+
+```bash
+NEXT_PUBLIC_GITHUB_APP_NAME="unkey-dev-yourname"
+```
+
+### Control plane (`cmd/ctrl`)
+
+In `/dev/.env.github`:
+
+```bash
+UNKEY_GITHUB_APP_ID=123456
+UNKEY_GITHUB_APP_WEBHOOK_SECRET="your-webhook-secret"
+NEXT_PUBLIC_GITHUB_APP_NAME="unkey-dev-yourname"
+```
+
+Save the private key to `/dev/.github-private-key.pem`.
+
+## Testing the integration
+
+1. Install the app at `https://github.com/apps/<app-name>`.
+2. Check **Recent deliveries** in the app settings.
+3. Push to an installed repo and confirm the webhook is delivered.
+4. Monitor control API logs for webhook processing.
+
+## Troubleshooting
+
+### Webhook signature verification failed
+
+- Verify `UNKEY_GITHUB_APP_WEBHOOK_SECRET` matches the app secret.
+- Check for whitespace or encoding issues.
+
+### No repo connection found
+
+The webhook is received but ignored when a repository is not linked to a project.
+
+### Installation callback fails
+
+- Verify `NEXT_PUBLIC_GITHUB_APP_NAME` matches the app slug.
+- Ensure the **Setup URL** is `http://localhost:3000/integrations/github/callback`.
+- Ensure the dashboard can reach the database.
+
+### Private repository builds fail
+
+- Verify **Contents: Read-only** permission.
+- Verify installation access to the repository.
+- Verify `UNKEY_GITHUB_PRIVATE_KEY_PEM` formatting.
+
+## Architecture reference
+
+See [Workflows](/architecture/workflows) for deployment flow context.

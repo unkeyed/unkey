@@ -1,0 +1,43 @@
+---
+title: "Architecture"
+description: "System architecture and design references"
+---
+
+This section documents system architecture, service workflows, and RFCs. Content is maintained separately from service-level runbooks and configuration guides.
+
+## Service map
+
+```mermaid
+flowchart LR
+  Frontline[Frontline]
+  Sentinel[Sentinel]
+  API[API]
+  Vault[Vault]
+  ControlAPI[Control plane API]
+  ControlWorker[Control plane worker]
+  Krane[Krane]
+  Preflight[Preflight]
+
+  Frontline -->|A| Sentinel
+  Sentinel -->|A| API
+  API -->|B| Vault
+  Frontline -->|B| Vault
+
+  ControlAPI -->|C| ControlWorker
+  ControlWorker -->|C| Krane
+  ControlWorker -->|B| Vault
+
+  Preflight -->|A| Krane
+```
+
+### Legend
+
+- **A**: HTTP or HTTPS request.
+- **B**: RPC or service call.
+- **C**: Asynchronous workflow trigger.
+
+## Sections
+
+- [Services](/architecture/services)
+- [Workflows](/architecture/workflows)
+- [RFCs](/architecture/rfcs)

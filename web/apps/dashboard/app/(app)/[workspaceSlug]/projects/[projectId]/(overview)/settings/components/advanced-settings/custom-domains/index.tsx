@@ -14,15 +14,16 @@ import {
 } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
+import { useEnvironmentSettings } from "../../../environment-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
 import { CustomDomainRow } from "./custom-domain-row";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
 export const CustomDomains = () => {
   const { environments, customDomains, projectId } = useProjectData();
-
-  const defaultEnvironmentId =
-    environments.find((e) => e.slug === "production")?.id ?? environments[0]?.id ?? "";
+  const {
+    settings: { environmentId: defaultEnvironmentId },
+  } = useEnvironmentSettings();
 
   return (
     <CustomDomainSettings
@@ -89,11 +90,8 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     reset({ environmentId: values.environmentId, domain: "" });
   };
 
-  const displayValue = () => {
-    if (customDomains.length === 0) {
-      return <span className="text-gray-11">None</span>;
-    }
-    return (
+  const displayValue =
+    customDomains.length === 0 ? null : (
       <div className="space-x-1">
         <span className="font-medium text-gray-12">{customDomains.length}</span>
         <span className="text-gray-11 font-normal">
@@ -101,14 +99,13 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
         </span>
       </div>
     );
-  };
 
   return (
     <FormSettingCard
       icon={<Link4 className="text-gray-12" iconSize="xl-medium" />}
       title="Custom Domains"
       description="Serve your deployment from your own domain name"
-      displayValue={displayValue()}
+      displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting}
       isSaving={isSubmitting}
@@ -118,7 +115,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
           <span className="text-[13px] text-gray-11 w-[140px]">Environment</span>
           <span className="flex-1 text-[13px] text-gray-11">Domain</span>
         </div>
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 w-[480px]">
           <Controller
             control={control}
             name="environmentId"

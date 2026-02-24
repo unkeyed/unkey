@@ -46,7 +46,11 @@ export const FormSettingCard = ({
         <form
           className={cn("flex flex-col bg-grayA-2 rounded-b-xl", className)}
           ref={ref}
-          onSubmit={onSubmit}
+          onSubmit={(e) => {
+            //Without this form will toggle the chevron and collapse the section
+            e.preventDefault();
+            onSubmit(e);
+          }}
         >
           <div className="px-4 pt-4 pb-2 flex flex-col gap-3 overflow-y-auto max-h-[500px]">
             {children}
@@ -66,7 +70,9 @@ export const FormSettingCard = ({
         </form>
       }
     >
-      <SelectedConfig label={displayValue} />
+      <SelectedConfig
+        label={displayValue ?? <span className="text-gray-11 font-normal">None</span>}
+      />
     </SettingCard>
   );
 };

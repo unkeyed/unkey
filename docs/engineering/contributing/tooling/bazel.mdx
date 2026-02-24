@@ -1,0 +1,74 @@
+---
+title: "Bazel"
+description: "Why Unkey uses Bazel and how to work with it"
+---
+
+## The problem
+
+Integration tests were a bottleneck. Running the full test suite required spinning up Docker images and dependencies, which made tests slow. Change detection was also unreliable, so tests were skipped when they should have run.
+
+We tried to solve this with CI path filters and conditional logic. It became expensive to maintain and still missed cases. Confidence in CI dropped because it was unclear which tests actually ran.
+
+## Why Bazel
+
+Bazel builds a dependency graph across the repo. Every file, package, and test declares its dependencies. When a file changes, Bazel knows exactly which targets are affected.
+
+Bazel also caches build and test results based on exact inputs. If inputs have not changed, Bazel reuses the cached result instead of rebuilding. This applies locally and can be shared through remote caching.
+
+## How this helps
+
+With Bazel, CI change detection is accurate. Go changes run only the tests that depend on them. Documentation or frontend changes do not trigger Go tests.
+
+This reduces feedback time and increases confidence. If Bazel says a test passed, it ran against the current code. If it reused cache, the inputs are identical to a known pass.
+
+## Working with Bazel
+
+Bazel uses `BUILD.bazel` files to define targets and dependencies. Gazelle generates these for Go code. Use the Makefile targets for common operations.
+
+### Running tests
+
+Run the full suite:
+
+```bash
+make test
+```
+
+Run tests for a specific package:
+
+```bash
+bazel test //pkg/cache:cache_test
+```
+
+### Building
+
+Build all Go artifacts:
+
+```bash
+make build
+```
+
+### Keeping BUILD files in sync
+
+When you add Go files or change imports, update BUILD files:
+
+```bash
+make bazel
+```
+
+This runs `bazel mod tidy` and `bazel run //:gazelle`.
+
+After code generation, the generate target also updates BUILD files:
+
+```bash
+make generate
+```
+
+### Installation
+
+If you do not have Bazel installed, the Makefile can install it via Homebrew:
+
+```bash
+make install-brew-tools
+```
+
+This installs bazelisk, which downloads the correct Bazel version for the repo.

@@ -1,13 +1,14 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Nodes2 } from "@unkey/icons";
-import { toast } from "@unkey/ui";
 import { useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
+import { useEnvironmentSettings } from "../../../environment-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyRow, envVarsSchema } from "./schema";
@@ -17,27 +18,25 @@ import { computeEnvVarsDiff, groupByEnvironment, toTrpcType } from "./utils";
 
 export const EnvVars = () => {
   const { projectId, environments } = useProjectData();
+  const { settings } = useEnvironmentSettings();
+  const defaultEnvironmentId = settings.environmentId;
 
-  const defaultEnvironmentId =
-    environments.find((e) => e.slug === "production")?.id ?? environments[0]?.id;
-
-  const { data } = trpc.deploy.envVar.list.useQuery({ projectId }, { enabled: Boolean(projectId) });
+  const { data: envVarData } = useLiveQuery(
+    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.projectId, projectId)),
+    [projectId],
+  );
 
   const allVariables = useMemo(() => {
-    if (!data) {
+    if (!envVarData) {
       return [];
     }
-    return environments.flatMap((env) => {
-      const envData = data[env.slug];
-      if (!envData) {
-        return [];
-      }
-      return envData.variables.map((v) => ({
-        ...v,
-        environmentId: env.id,
-      }));
-    });
-  }, [data, environments]);
+    return envVarData.map((v) => ({
+      id: v.id,
+      key: v.key,
+      type: v.type,
+      environmentId: v.environmentId,
+    }));
+  }, [envVarData]);
 
   const { decryptedValues, isDecrypting } = useDecryptedValues(allVariables);
 
@@ -61,10 +60,6 @@ export const EnvVars = () => {
     const decryptedIds = Object.keys(decryptedValues).sort().join("-") || "none";
     return `${varIds}:${decryptedIds}`;
   }, [allVariables, decryptedValues]);
-
-  if (!defaultEnvironmentId) {
-    return null;
-  }
 
   return (
     <EnvVarsForm
@@ -91,8 +86,6 @@ const EnvVarsForm = ({
   projectId: string;
   isDecrypting: boolean;
 }) => {
-  const utils = trpc.useUtils();
-
   const {
     register,
     handleSubmit,
@@ -108,77 +101,44 @@ const EnvVarsForm = ({
   const { ref, isDragging } = useDropZone(reset, defaultEnvironmentId);
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
 
-  const createMutation = trpc.deploy.envVar.create.useMutation();
-  const updateMutation = trpc.deploy.envVar.update.useMutation();
-  const deleteMutation = trpc.deploy.envVar.delete.useMutation();
-
-  const isSaving =
-    createMutation.isLoading ||
-    updateMutation.isLoading ||
-    deleteMutation.isLoading ||
-    isSubmitting;
-
   const onSubmit = async (values: EnvVarsFormValues) => {
-    const { toDelete, toCreate, toUpdate, originalMap } = computeEnvVarsDiff(
+    const { toDelete, toCreate, toUpdate } = computeEnvVarsDiff(
       defaultValues.envVars,
       values.envVars,
     );
 
     const createsByEnv = groupByEnvironment(toCreate);
 
-    try {
-      await Promise.all([
-        ...toDelete.map(async (id) => {
-          const key = originalMap.get(id)?.key ?? id;
-          try {
-            return await deleteMutation.mutateAsync({ envVarId: id });
-          } catch (err) {
-            throw new Error(`"${key}": ${err instanceof Error ? err.message : "Failed to delete"}`);
-          }
-        }),
-        ...[...createsByEnv.entries()].map(([envId, vars]) =>
-          createMutation.mutateAsync({
+    await Promise.all([
+      ...toDelete.map(async (id) => {
+        collection.envVars.delete(id);
+      }),
+      ...[...createsByEnv.entries()].map(async ([envId, vars]) => {
+        for (const v of vars) {
+          collection.envVars.insert({
+            id: crypto.randomUUID(),
             environmentId: envId,
-            variables: vars.map((v) => ({
-              key: v.key,
-              value: v.value,
-              type: toTrpcType(v.secret),
-            })),
-          }),
-        ),
-        ...toUpdate.map((v) =>
-          updateMutation
-            .mutateAsync({
-              envVarId: v.id as string,
-              key: v.key,
-              value: v.value,
-              type: toTrpcType(v.secret),
-            })
-            .catch((err) => {
-              throw new Error(
-                `"${v.key}": ${err instanceof Error ? err.message : "Failed to update"}`,
-              );
-            }),
-        ),
-      ]);
-
-      utils.deploy.envVar.list.invalidate({ projectId });
-      toast.success("Environment variables saved");
-    } catch (err) {
-      toast.error("Failed to save environment variables", {
-        description:
-          err instanceof Error
-            ? err.message
-            : "An unexpected error occurred. Please try again or contact support@unkey.com",
-      });
-    }
+            projectId,
+            key: v.key,
+            value: v.value,
+            type: toTrpcType(v.secret) as "recoverable" | "writeonly",
+            description: null,
+          });
+        }
+      }),
+      ...toUpdate.map(async (v) => {
+        collection.envVars.update(v.id as string, (draft) => {
+          draft.key = v.key;
+          draft.value = v.value;
+          draft.type = toTrpcType(v.secret) as "recoverable" | "writeonly";
+        });
+      }),
+    ]);
   };
 
   const varCount = defaultValues.envVars.filter((v) => v.key !== "").length;
   const displayValue =
-    varCount === 0 ? (
-      <span className="text-gray-11 font-normal">None</span>
-    ) : (
+    varCount === 0 ? null : (
       <div className="space-x-1">
         <span className="font-medium text-gray-12">{varCount}</span>
         <span className="text-gray-11 font-normal">variable{varCount !== 1 ? "s" : ""}</span>
@@ -192,8 +152,8 @@ const EnvVarsForm = ({
       description="Set environment variables available at runtime. Changes apply on next deploy."
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSaving && !isDecrypting && isDirty}
-      isSaving={isSaving}
+      canSave={isValid && !isSubmitting && !isDecrypting && isDirty}
+      isSaving={isSubmitting}
       ref={ref}
       className={cn("relative", isDragging && "bg-primary/5")}
     >

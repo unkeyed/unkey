@@ -1,0 +1,53 @@
+---
+title: "Troubleshooting"
+description: "Troubleshooting guide for hosted Unkey"
+---
+
+## Common issues
+
+Most issues trace back to missing secrets or invalid configuration. Confirm that your ConfigMaps render the expected `unkey.toml` content and that secrets are present in the pod environment.
+
+### External Secrets not ready
+
+If pods fail to start and the rendered Secret is missing, check the ExternalSecret status and events:
+
+```bash
+kubectl describe externalsecret -n <namespace>
+kubectl describe secretstore -n <namespace>
+```
+
+### TLS certificate not ready
+
+If webhooks or services that require TLS fail to start, verify the Certificate and Issuer resources and review cert-manager events:
+
+```bash
+kubectl describe certificate -n <namespace>
+kubectl describe issuer -n <namespace>
+kubectl describe clusterissuer
+```
+
+### Restate Cloud configuration not applied
+
+If control services cannot reach Restate Cloud, verify the Restate Cloud values and secret are set:
+
+```bash
+kubectl get secret -n <namespace> | grep control
+kubectl describe externalsecret -n <namespace> | grep -i restate
+```
+
+## Logs and diagnostics
+
+Check service logs and health endpoints for readiness failures. If External Secrets is enabled, verify the SecretStore and ExternalSecret resources are in a ready state:
+
+```bash
+kubectl get secretstore -A
+kubectl get externalsecret -A
+```
+
+If a service uses cert-manager certificates, verify the Certificate and Issuer status:
+
+```bash
+kubectl get certificate -A
+kubectl get issuer -A
+kubectl get clusterissuer -A
+```

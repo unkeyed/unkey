@@ -29,6 +29,7 @@ type InfiniteCanvasProps = {
   dotRadius?: number;
   dotClassName?: string;
   showGrid?: boolean;
+  locked?: boolean;
   children: React.ReactNode;
   overlay?: React.ReactNode;
 };
@@ -42,6 +43,7 @@ export function InfiniteCanvas({
   dotRadius = DEFAULT_DOT_RADIUS,
   dotClassName = DEFAULT_DOT_CLASS,
   showGrid = true,
+  locked = false,
   children,
   overlay,
 }: InfiniteCanvasProps) {
@@ -69,7 +71,8 @@ export function InfiniteCanvas({
     const rect = svg.getBoundingClientRect();
     setCanvas((prev) => ({
       ...prev,
-      offset: { x: rect.width / 2, y: rect.height / 6 },
+      // Anchor the origin toward the top of the element; increase the divisor to move it higher.
+      offset: { x: rect.width / 2, y: rect.height / 12 },
     }));
   }, []);
 
@@ -210,6 +213,10 @@ export function InfiniteCanvas({
 
   // Prevent browser's default scroll behavior
   useEffect(() => {
+    if (locked) {
+      return;
+    }
+
     const svg = svgRef.current;
     if (!svg) {
       return;
@@ -221,18 +228,18 @@ export function InfiniteCanvas({
 
     svg.addEventListener("wheel", handleWheelNative, { passive: false });
     return () => svg.removeEventListener("wheel", handleWheelNative);
-  }, []);
+  }, [locked]);
 
   return (
     <div className="relative w-full h-full">
       <svg
         ref={svgRef}
-        className="w-full h-full cursor-grab active:cursor-grabbing dark:bg-black bg-gray-1"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
+        className={`w-full h-full dark:bg-black bg-gray-1 ${locked ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+        onMouseDown={locked ? undefined : handleMouseDown}
+        onMouseMove={locked ? undefined : handleMouseMove}
+        onMouseUp={locked ? undefined : handleMouseUp}
+        onMouseLeave={locked ? undefined : handleMouseUp}
+        onWheel={locked ? undefined : handleWheel}
       >
         <g transform={transform}>
           {showGrid && (

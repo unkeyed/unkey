@@ -1,6 +1,6 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, HeartPulse } from "@unkey/icons";
 import {
@@ -10,42 +10,25 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  toast,
 } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { useProjectData } from "../../../../data-provider";
+import { useEnvironmentSettings } from "../../../environment-provider";
 import { FormSettingCard } from "../../shared/form-setting-card";
 import { MethodBadge } from "./method-badge";
 import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
 import { intervalToSeconds, secondsToInterval } from "./utils";
 
 export const Healthcheck = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
+  const { settings } = useEnvironmentSettings();
+  const { healthcheck, environmentId } = settings;
 
-  const { data: settingsData } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
-  );
-
-  const healthcheck = settingsData?.runtimeSettings?.healthcheck;
   const defaultValues: HealthcheckFormValues = {
     method: healthcheck?.method ?? "GET",
     path: healthcheck?.path ?? "/health",
     interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
   };
-
-  return <HealthcheckForm environmentId={environmentId ?? ""} defaultValues={defaultValues} />;
-};
-
-type HealthcheckFormProps = {
-  environmentId: string;
-  defaultValues: HealthcheckFormValues;
-};
-
-const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaultValues }) => {
-  const utils = trpc.useUtils();
+  const hasPreviousData = Boolean(healthcheck);
 
   const {
     handleSubmit,
@@ -68,34 +51,9 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
   const currentPath = useWatch({ control, name: "path" });
   const currentInterval = useWatch({ control, name: "interval" });
 
-  const updateHealthcheck = trpc.deploy.environmentSettings.runtime.updateHealthcheck.useMutation({
-    onSuccess: () => {
-      toast.success("Healthcheck updated", { duration: 5000 });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid healthcheck setting", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update healthcheck", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: HealthcheckFormValues) => {
-    await updateHealthcheck.mutateAsync({
-      environmentId,
-      healthcheck:
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.healthcheck =
         values.path.trim() === ""
           ? null
           : {
@@ -105,7 +63,7 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
               timeoutSeconds: 5,
               failureThreshold: 3,
               initialDelaySeconds: 0,
-            },
+            };
     });
   };
 
@@ -120,15 +78,17 @@ const HealthcheckForm: React.FC<HealthcheckFormProps> = ({ environmentId, defaul
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
       displayValue={
-        <div className="flex gap-1.5 items-center justify-center">
-          <MethodBadge method={defaultValues.method} />
-          <span className="font-medium text-gray-12">{defaultValues.path}</span>
-          <span className="text-gray-11 font-normal">every {defaultValues.interval}</span>
-        </div>
+        hasPreviousData ? (
+          <div className="flex gap-1.5 items-center justify-center">
+            <MethodBadge method={defaultValues.method} />
+            <span className="font-medium text-gray-12">{defaultValues.path}</span>
+            <span className="text-gray-11 font-normal">every {defaultValues.interval}</span>
+          </div>
+        ) : null
       }
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateHealthcheck.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <div className="flex flex-col gap-3 w-[520px]">
         {/* TODO: multi-check when API supports
