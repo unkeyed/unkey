@@ -76,7 +76,7 @@ func (c *gossipCluster) promoteToBridge() {
 	seeds := c.config.WANSeeds
 	c.mu.Unlock()
 
-	backoff := 500 * time.Millisecond
+	backoff := initialBackoff
 	var wanList *memberlist.Memberlist
 
 	for {
@@ -105,7 +105,7 @@ func (c *gossipCluster) promoteToBridge() {
 	}
 
 	c.mu.Lock()
-	if c.isBridge || c.closing.Load() {
+	if c.closing.Load() {
 		c.mu.Unlock()
 		wanList.Leave(5 * time.Second)  //nolint:errcheck
 		wanList.Shutdown()              //nolint:errcheck
