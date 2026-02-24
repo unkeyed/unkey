@@ -230,6 +230,7 @@ go_library(
         "permission_list_direct_by_key_id.sql_generated.go",
         "project_find_by_id.sql_generated.go",
         "project_find_by_workspace_slug.sql_generated.go",
+        "project_find_with_environment_settings_and_vars.sql_generated.go",
         "project_insert.sql_generated.go",
         "project_update_deployments.sql_generated.go",
         "project_update_depot_id.sql_generated.go",

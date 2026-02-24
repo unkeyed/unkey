@@ -51,38 +51,30 @@ func (s *Service) CreateDeployment(
 			fmt.Errorf("docker_image is required"))
 	}
 
-	// Lookup project and infer workspace from it
-	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
+	// Lookup project, environment, build/runtime settings, and env vars
+	row, err := db.Query.FindProjectWithEnvironmentSettingsAndVars(ctx, s.db.RO(),
+		db.FindProjectWithEnvironmentSettingsAndVarsParams{
+			ProjectID: req.Msg.GetProjectId(),
+			Slug:      req.Msg.GetEnvironmentSlug(),
+		})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
+				fmt.Errorf("project %q or environment %q not found",
+					req.Msg.GetProjectId(), req.Msg.GetEnvironmentSlug()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to lookup project and environment: %w", err))
 	}
+	project := row.Project
 	workspaceID := project.WorkspaceID
+	envSettings := row
+	env := row.Environment
 
-	envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
-		WorkspaceID: workspaceID,
-		ProjectID:   project.ID,
-		Slug:        req.Msg.GetEnvironmentSlug(),
-	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("environment '%s' not found in workspace '%s'",
-					req.Msg.GetEnvironmentSlug(), workspaceID))
-		}
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to lookup environment: %w", err))
-	}
-	env := envSettings.Environment
-
-	// Fetch environment variables and build secrets blob
-	envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
+	envVars, err := db.UnmarshalNullableJSONTo[[]db.EnvVarInfo](row.EnvironmentVariables)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to fetch environment variables: %w", err))
+			fmt.Errorf("failed to unmarshal environment variables: %w", err))
 	}
 
 	secretsBlob := []byte{}
@@ -94,7 +86,6 @@ func (s *Service) CreateDeployment(
 			secretsConfig.Secrets[ev.Key] = ev.Value
 		}
 
-		var err error
 		secretsBlob, err = protojson.Marshal(secretsConfig)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal,

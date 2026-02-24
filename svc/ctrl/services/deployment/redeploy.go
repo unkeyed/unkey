@@ -46,38 +46,29 @@ func (s *Service) Redeploy(
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("environment_slug is required"))
 	}
 
-	// Lookup project and infer workspace from it
-	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
+	// Lookup project, environment, build/runtime settings, and env vars in one query
+	row, err := db.Query.FindProjectWithEnvironmentSettingsAndVars(ctx, s.db.RO(),
+		db.FindProjectWithEnvironmentSettingsAndVarsParams{
+			ProjectID: req.Msg.GetProjectId(),
+			Slug:      req.Msg.GetEnvironmentSlug(),
+		})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
-		}
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	// Look up environment + build/runtime settings
-	envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
-		WorkspaceID: project.WorkspaceID,
-		ProjectID:   project.ID,
-		Slug:        req.Msg.GetEnvironmentSlug(),
-	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("environment '%s' not found for project '%s'",
-					req.Msg.GetEnvironmentSlug(), req.Msg.GetProjectId()))
+				fmt.Errorf("project %q or environment %q not found",
+					req.Msg.GetProjectId(), req.Msg.GetEnvironmentSlug()))
 		}
 		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to lookup environment: %w", err))
+			fmt.Errorf("failed to lookup project and environment: %w", err))
 	}
-	env := envSettings.Environment
+	project := row.Project
+	envSettings := row
+	env := row.Environment
 
-	// Fetch environment variables and build secrets blob
-	envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
+	envVars, err := db.UnmarshalNullableJSONTo[[]db.EnvVarInfo](row.EnvironmentVariables)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to fetch environment variables: %w", err))
+			fmt.Errorf("failed to unmarshal environment variables: %w", err))
 	}
 
 	secretsBlob := []byte{}
@@ -221,7 +212,7 @@ func (s *Service) Redeploy(
 // branch for metadata. When only a branch is provided, commit SHA is left empty
 // for the worker to resolve. When neither is provided, the project's default
 // branch is used.
-func resolveGitTarget(msg *ctrlv1.RedeployRequest, project db.FindProjectByIdRow) (branch string, commitSHA string) {
+func resolveGitTarget(msg *ctrlv1.RedeployRequest, project db.Project) (branch string, commitSHA string) {
 	defaultBranch := project.DefaultBranch.String
 	if defaultBranch == "" {
 		defaultBranch = "main"
@@ -242,7 +233,7 @@ func resolveGitTarget(msg *ctrlv1.RedeployRequest, project db.FindProjectByIdRow
 func buildDockerSource(
 	ctx context.Context,
 	database db.Database,
-	project db.FindProjectByIdRow,
+	project db.Project,
 	deploymentID string,
 ) (dockerSourceInfo, error) {
 	if !project.LiveDeploymentID.Valid || project.LiveDeploymentID.String == "" {
