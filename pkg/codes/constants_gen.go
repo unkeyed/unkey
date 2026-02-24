@@ -151,6 +151,11 @@ const (
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
+	// Cache
+
+	// NotFound indicates the requested cache was not found.
+	UnkeyDataErrorsCacheNotFound URN = "err:unkey:data:cache_not_found"
+
 	// Analytics
 
 	// NotConfigured indicates analytics is not configured for the workspace.

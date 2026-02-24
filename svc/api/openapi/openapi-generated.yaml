@@ -70,6 +70,23 @@ components:
                 - The token format doesn't match expected patterns
 
                 To resolve this error, ensure you're including a valid root key in the Authorization header.
+        NotFoundErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the requested resource cannot be found. This occurs when:
+                - The specified resource ID doesn't exist in your workspace
+                - The resource has been deleted or moved
+                - The resource exists but is not accessible with current permissions
+
+                To resolve this error, verify the resource ID is correct and that you have access to it.
         InternalServerErrorResponse:
             type: object
             required:
@@ -125,23 +142,6 @@ components:
                 - Access to the requested resource is restricted based on workspace settings
 
                 To resolve this error, ensure your root key has the necessary permissions or contact your workspace administrator.
-        NotFoundErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when the requested resource cannot be found. This occurs when:
-                - The specified resource ID doesn't exist in your workspace
-                - The resource has been deleted or moved
-                - The resource exists but is not accessible with current permissions
-
-                To resolve this error, verify the resource ID is correct and that you have access to it.
         UnprocessableEntityErrorResponse:
             type: object
             required:
@@ -3761,6 +3761,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Missing or invalid bearer token
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Cache name not found in registry
                 "500":
                     content:
                         application/json:

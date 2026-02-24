@@ -91,6 +91,12 @@ type dataAuditLog struct {
 	NotFound Code
 }
 
+// dataCache defines errors related to cache operations.
+type dataCache struct {
+	// NotFound indicates the requested cache was not found.
+	NotFound Code
+}
+
 // dataAnalytics defines errors related to analytics operations.
 type dataAnalytics struct {
 	// NotConfigured indicates analytics is not configured for the workspace.
@@ -117,6 +123,7 @@ type UnkeyDataErrors struct {
 	RatelimitOverride  dataRatelimitOverride
 	Identity           dataIdentity
 	AuditLog           dataAuditLog
+	Cache              dataCache
 	Analytics          dataAnalytics
 }
 
@@ -178,6 +185,10 @@ var Data = UnkeyDataErrors{
 
 	AuditLog: dataAuditLog{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "audit_log_not_found"},
+	},
+
+	Cache: dataCache{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "cache_not_found"},
 	},
 
 	Analytics: dataAnalytics{

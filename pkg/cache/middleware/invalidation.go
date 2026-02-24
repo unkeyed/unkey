@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 // InvalidationRegistry maps cache resource names to functions that can remove
@@ -39,7 +41,10 @@ func (r *InvalidationRegistry) Invalidate(ctx context.Context, cacheName string,
 	r.mu.RUnlock()
 
 	if !ok {
-		return fmt.Errorf("unknown cache name: %s", cacheName)
+		return fault.New(fmt.Sprintf("unknown cache name: %s", cacheName),
+			fault.Code(codes.Data.Cache.NotFound.URN()),
+			fault.Public(fmt.Sprintf("Cache %q not found", cacheName)),
+		)
 	}
 	return fn(ctx, keys)
 }

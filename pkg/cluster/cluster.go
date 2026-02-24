@@ -38,13 +38,13 @@ type Cluster interface {
 type gossipCluster struct {
 	config Config
 
-	mu           sync.RWMutex
-	lan          *memberlist.Memberlist
-	lanQueue     *memberlist.TransmitLimitedQueue
-	wan          *memberlist.Memberlist
-	wanQueue     *memberlist.TransmitLimitedQueue
+	mu       sync.RWMutex
+	lan      *memberlist.Memberlist
+	lanQueue *memberlist.TransmitLimitedQueue
+	wan      *memberlist.Memberlist
+	wanQueue *memberlist.TransmitLimitedQueue
 	isBridge bool
-	closing      atomic.Bool
+	closing  atomic.Bool
 
 	// evalCh is used to trigger async bridge evaluation from memberlist
 	// callbacks. This avoids calling Members() inside NotifyJoin/NotifyLeave
@@ -62,17 +62,17 @@ func New(cfg Config) (Cluster, error) {
 	cfg.setDefaults()
 
 	c := &gossipCluster{
-		config:       cfg,
-		mu:           sync.RWMutex{},
-		lan:          nil,
-		lanQueue:     nil,
-		wan:          nil,
-		wanQueue:     nil,
-		isBridge: false,
-		closing:      atomic.Bool{},
-		evalCh:       make(chan struct{}, 1),
-		done:         make(chan struct{}),
-		stopMetrics:  nil, // set below
+		config:      cfg,
+		mu:          sync.RWMutex{},
+		lan:         nil,
+		lanQueue:    nil,
+		wan:         nil,
+		wanQueue:    nil,
+		isBridge:    false,
+		closing:     atomic.Bool{},
+		evalCh:      make(chan struct{}, 1),
+		done:        make(chan struct{}),
+		stopMetrics: nil, // set below
 	}
 
 	// Start the async bridge evaluator

@@ -221,7 +221,6 @@ paths:
   /_internal/cache.invalidate:
     $ref: "./spec/paths/internal/cache_invalidate/index.yaml"
 
-
 components:
   securitySchemes:
     rootKey:

@@ -37,6 +37,12 @@ post:
           schema:
             $ref: "../../../error/UnauthorizedErrorResponse.yaml"
       description: Missing or invalid bearer token
+    "404":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/NotFoundErrorResponse.yaml"
+      description: Cache name not found in registry
     "500":
       content:
         application/json:

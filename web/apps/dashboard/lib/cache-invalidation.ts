@@ -47,8 +47,7 @@ class CacheInvalidationClient {
   }
 }
 
-export const invalidateKeyByHash = (hash: string) =>
-  invalidate("verification_key_by_hash", [hash]);
+export const invalidateKeyByHash = (hash: string) => invalidate("verification_key_by_hash", [hash]);
 
 export const invalidateKeysByHash = (hashes: string[]) =>
   invalidate("verification_key_by_hash", hashes);

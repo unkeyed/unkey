@@ -18,5 +18,5 @@ func TestUnknownCacheName(t *testing.T) {
 		Keys:      []string{"some_key"},
 	})
 
-	require.Equal(t, http.StatusInternalServerError, res.Status)
+	require.Equal(t, http.StatusNotFound, res.Status)
 }
