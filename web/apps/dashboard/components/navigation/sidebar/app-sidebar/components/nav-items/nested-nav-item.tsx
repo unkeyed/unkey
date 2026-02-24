@@ -226,7 +226,11 @@ export const NestedNavItem = ({
               <Icon iconSize="xl-medium" />
             )
           ) : null}
-          <span className="truncate max-w-[180px]">{item.label}</span>
+          {item.loading ? (
+            <div className="h-4 w-24 bg-gray-6 animate-pulse rounded" />
+          ) : (
+            <span className="truncate max-w-[180px]">{item.label}</span>
+          )}
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
           {/* Chevron icon to indicate there are children */}
           {item.items && item.items.length > 0 && (

@@ -9,6 +9,7 @@ import { NavItems } from "./app-sidebar/components/nav-items";
 import { useApiKeyspace } from "./app-sidebar/hooks/use-api-keyspace";
 import { useApiNavigation } from "./app-sidebar/hooks/use-api-navigation";
 import { useNamespaceName } from "./app-sidebar/hooks/use-namespace-name";
+import { useProjectData } from "./app-sidebar/hooks/use-project-data";
 import { useProjectNavigation } from "./app-sidebar/hooks/use-projects-navigation";
 import { useRatelimitNavigation } from "./app-sidebar/hooks/use-ratelimit-navigation";
 import {
@@ -68,7 +69,14 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
   const apiId =
     context.type === "resource" && context.resourceType === "api" ? context.resourceId : undefined;
   // Always fetch API data when we have an apiId to get the name and keyspace
-  const { enhancedNavItems: finalNavItems, apiName } = useApiKeyspace(withProjects, apiId);
+  const { enhancedNavItems: withApiData, apiName } = useApiKeyspace(withProjects, apiId);
+
+  // For project resources, enhance with project name
+  const projectId =
+    context.type === "resource" && context.resourceType === "project"
+      ? context.resourceId
+      : undefined;
+  const { enhancedNavItems: finalNavItems, projectName } = useProjectData(withApiData, projectId);
 
   // For namespace resources, get namespace name
   const namespaceId =
@@ -82,11 +90,13 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
     if (onResourceNameFetched) {
       if (apiName) {
         onResourceNameFetched(apiName);
+      } else if (projectName) {
+        onResourceNameFetched(projectName);
       } else if (namespaceName) {
         onResourceNameFetched(namespaceName);
       }
     }
-  }, [apiName, namespaceName, onResourceNameFetched]);
+  }, [apiName, projectName, namespaceName, onResourceNameFetched]);
 
   return (
     <SidebarGroup>

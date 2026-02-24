@@ -13,7 +13,7 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
   const workspace = useWorkspaceNavigation();
 
   // Fetch all APIs to find the one we need
-  const { data } = trpc.api.overview.query.useInfiniteQuery(
+  const { data, isLoading } = trpc.api.overview.query.useInfiniteQuery(
     {
       limit: 18, // Max allowed by the API
     },
@@ -24,7 +24,25 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
   );
 
   const enhancedNavItems = useMemo(() => {
-    if (!data?.pages || !apiId) {
+    if (!apiId) {
+      return baseNavItems;
+    }
+
+    // If loading, mark the item as loading
+    if (isLoading) {
+      return baseNavItems.map((item) => {
+        const hasKeysChild = item.items?.some((child) => child.label === "Keys");
+        if (hasKeysChild) {
+          return {
+            ...item,
+            loading: true,
+          };
+        }
+        return item;
+      });
+    }
+
+    if (!data?.pages) {
       return baseNavItems;
     }
 
@@ -46,6 +64,7 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
         const updatedItem = {
           ...item,
           label: api.name,
+          loading: false,
         };
 
         // Update the Keys child item
@@ -74,7 +93,7 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
       }
       return item;
     });
-  }, [baseNavItems, data, apiId, workspace.slug]);
+  }, [baseNavItems, data, apiId, workspace.slug, isLoading]);
 
   // Get the API name if available
   const apiName = useMemo(() => {

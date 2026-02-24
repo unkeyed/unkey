@@ -3,7 +3,6 @@ import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
   Cube,
-  Earth,
   Fingerprint,
   Gauge,
   Gear,
@@ -11,22 +10,9 @@ import {
   Key,
   Layers3,
   Nodes,
-  Nodes2,
   ShieldKey,
 } from "@unkey/icons";
-import { cn } from "../../../lib/utils";
 import type { NavItem } from "./workspace-navigations";
-
-const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
-  <div
-    className={cn(
-      "border text-gray-11 border-gray-6 hover:border-gray-8 rounded text-xs px-1 py-0.5 font-mono",
-      className,
-    )}
-  >
-    {label}
-  </div>
-);
 
 /**
  * API Management Product Navigation (product-level)
@@ -101,19 +87,6 @@ export function createDeployNavigation(segments: string[], workspace: Workspace)
       href: `${basePath}/projects`,
       label: "Projects",
       active: segments.at(1) === "projects" && !segments.at(2), // Only active at list level
-      tag: <Tag label="Beta" className="mr-2 group-hover:bg-gray-1" />,
-    },
-    {
-      icon: Earth,
-      href: `${basePath}/domains`,
-      label: "Domains",
-      active: segments.at(1) === "domains",
-    },
-    {
-      icon: Nodes2,
-      href: `${basePath}/environment-variables`,
-      label: "Environment Variables",
-      active: segments.at(1) === "environment-variables",
     },
   ];
 }
@@ -173,7 +146,7 @@ export function createApiNavigation(
   // Return as a single parent item with children
   return [
     {
-      icon: Layers3,
+      icon: Nodes,
       href: basePath,
       label: apiId, // Will be replaced with actual API name by hook
       active: segments.includes(apiId),
@@ -214,8 +187,8 @@ export function createProjectNavigation(
     {
       icon: ArrowOppositeDirectionY,
       href: `${basePath}/requests`,
-      label: "Request Logs",
-      active: segments.includes("requests"),
+      label: "Requests",
+      active: segments.includes("requests") && segments.includes("projects"),
     },
     {
       icon: Gear,

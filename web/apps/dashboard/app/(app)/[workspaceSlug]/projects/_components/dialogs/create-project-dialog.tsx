@@ -1,6 +1,5 @@
 "use client";
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { Navbar } from "@/components/navigation/navbar";
 import { collection } from "@/lib/collections";
 import {
   type CreateProjectRequestSchema,
@@ -45,7 +44,7 @@ export const CreateProjectDialog = () => {
         author: "will-be-replace-by-server",
         authorAvatar: "will-be-replace-by-server",
         branch: "will-be-replace-by-server",
-        commitTimestamp: Date.now(),
+        commitTimestamp: 0,
         commitTitle: "will-be-replace-by-server",
         domain: "will-be-replace-by-server",
         regions: [],
@@ -62,7 +61,6 @@ export const CreateProjectDialog = () => {
         });
       } else {
         console.error("Form submission error:", error);
-        // The collection's onInsert will handle showing error toasts
       }
     }
   };
@@ -87,12 +85,10 @@ export const CreateProjectDialog = () => {
 
   return (
     <>
-      <Navbar.Actions>
-        <NavbarActionButton title="Create new project" onClick={() => setIsModalOpen(true)}>
-          <Plus />
-          Create new project
-        </NavbarActionButton>
-      </Navbar.Actions>
+      <NavbarActionButton title="Create new project" onClick={() => setIsModalOpen(true)}>
+        <Plus />
+        Create new project
+      </NavbarActionButton>
 
       <DialogContainer
         isOpen={isModalOpen}

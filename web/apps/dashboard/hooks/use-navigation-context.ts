@@ -2,7 +2,7 @@
 
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { useProductSelection } from "./use-product-selection";
+import { getCurrentProduct } from "./use-product-selection";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type NavigationContext =
@@ -30,10 +30,9 @@ const STORAGE_KEY = "selected-product";
 export function useNavigationContext(): NavigationContext {
   const segments = useSelectedLayoutSegments();
   const params = useParams();
-  const { product: selectedProduct } = useProductSelection();
   const workspace = useWorkspaceNavigation();
 
-  // Detect the current product from URL and update localStorage
+  // Detect the current product from URL
   const detectedProduct = useMemo(() => {
     const hasWorkspaceSlug = segments.length > 0 && segments[0];
     const productSegment = segments[1];
@@ -67,7 +66,8 @@ export function useNavigationContext(): NavigationContext {
     return null;
   }, [segments, workspace.betaFeatures?.deployments]);
 
-  // Update localStorage when we detect a product from the URL
+  // Update localStorage ONLY when we detect a product from the URL
+  // This ensures we don't change the product context when it's ambiguous
   useEffect(() => {
     if (detectedProduct && typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, detectedProduct);
@@ -105,13 +105,15 @@ export function useNavigationContext(): NavigationContext {
       };
     }
 
-    // For product-level routes, use detected product
+    // For product-level routes, use detected product if available
     if (detectedProduct) {
       return { type: "product", product: detectedProduct };
     }
 
-    // For workspace-level routes (settings, audit, etc.)
-    // use the selected product from state (which reads from localStorage)
-    return { type: "product", product: selectedProduct };
-  }, [params, detectedProduct, selectedProduct]);
+    // For workspace-level routes (settings, audit, etc.) where we can't determine the product,
+    // fall back to the current product selection from localStorage
+    // This ensures we don't change the product context when it's ambiguous
+    const currentProduct = getCurrentProduct();
+    return { type: "product", product: currentProduct };
+  }, [params, detectedProduct]);
 }

@@ -62,3 +62,19 @@ export function useProductSelection() {
     [product, switchProduct],
   );
 }
+
+/**
+ * Get the current product from localStorage without React state.
+ * Used by useNavigationContext to read the current selection.
+ */
+export function getCurrentProduct(): Product {
+  if (typeof window === "undefined") {
+    return DEFAULT_PRODUCT;
+  }
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === "api-management" || saved === "deploy") {
+    return saved;
+  }
+  return DEFAULT_PRODUCT;
+}

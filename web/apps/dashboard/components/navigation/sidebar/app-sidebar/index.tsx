@@ -191,9 +191,7 @@ export function AppSidebar({
           <div
             className={cn("flex items-center gap-2", isCollapsed ? "flex-col" : "justify-between")}
           >
-            <div className={cn(isCollapsed ? "flex justify-center" : "")}>
-              <WorkspaceSwitcher />
-            </div>
+            <WorkspaceSwitcher />
             <HelpButton />
           </div>
         )}
