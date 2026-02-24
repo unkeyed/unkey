@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//gen/proto/vault/v1:vault",
         "//gen/proto/vault/v1/vaultv1connect",
+        "//pkg/otel/tracing",
         "@com_connectrpc_connect//:connect",
     ],
 )
