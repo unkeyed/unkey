@@ -1,7 +1,7 @@
 import { CircleDotted } from "@unkey/icons";
 
 export const RepoListItemSkeleton = () => (
-  <div className="flex px-4 py-5 items-center">
+  <div className="flex px-4 py-5 items-center h-[76px]">
     <div className="size-[26px] grid place-content-center p-[7px] border rounded-lg border-grayA-5 shadow-md mr-11">
       <CircleDotted iconSize="sm-medium" className="text-gray-9 opacity-30" />
     </div>

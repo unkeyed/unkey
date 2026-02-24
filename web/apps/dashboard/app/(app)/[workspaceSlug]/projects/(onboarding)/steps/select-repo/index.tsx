@@ -7,9 +7,9 @@ import { RepoListItem } from "./repo-list-item";
 import { SelectRepoSkeleton } from "./skeleton";
 
 export const SelectRepo = ({
-  projectId,
+  projectId = "",
 }: {
-  projectId: string;
+  projectId?: string;
 }) => {
   const utils = trpc.useUtils();
   const [selectedOwner, setSelectedOwner] = useState("");
@@ -20,6 +20,7 @@ export const SelectRepo = ({
       projectId,
     },
     {
+      enabled: Boolean(projectId),
       refetchOnWindowFocus: false,
     },
   );

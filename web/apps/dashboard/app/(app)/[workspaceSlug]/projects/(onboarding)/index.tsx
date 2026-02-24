@@ -20,7 +20,8 @@ export const Onboarding = () => {
         {/*   <ConnectGithubStep projectId={projectId} /> */}
         {/* </StepWizard.Step> */}
         <StepWizard.Step id="select-repo" label="Connect GitHub">
-          <SelectRepo projectId={projectId ?? ""} />
+          {/* // Clean this up later. ProjectId cannot be null after the first step  */}
+          <SelectRepo projectId={projectId ?? undefined} />
         </StepWizard.Step>
       </StepWizard.Root>
     </div>

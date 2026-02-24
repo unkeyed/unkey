@@ -1,20 +1,65 @@
 import crypto from "node:crypto";
 import { githubAppEnv } from "@/lib/env";
+import { z } from "zod";
 
-export type GitHubRepository = {
-  id: number;
-  name: string;
-  full_name: string;
-  private: boolean;
-  html_url: string;
-  default_branch: string;
-  pushed_at: string | null;
-};
+const gitHubRepositorySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  full_name: z.string(),
+  private: z.boolean(),
+  html_url: z.string(),
+  default_branch: z.string(),
+  pushed_at: z.string().nullable(),
+});
 
-type InstallationAccessToken = {
-  token: string;
-  expires_at: string;
-};
+export type GitHubRepository = z.infer<typeof gitHubRepositorySchema>;
+
+const installationAccessTokenSchema = z.object({
+  token: z.string(),
+  expires_at: z.string(),
+});
+
+const installationRepositoriesSchema = z.object({
+  repositories: z.array(gitHubRepositorySchema),
+});
+
+const repositoryTreeSchema = z.object({
+  tree: z.array(
+    z.object({
+      path: z.string(),
+      type: z.string(),
+    }),
+  ),
+});
+
+const repositoryBranchesSchema = z.array(
+  z.object({
+    name: z.string(),
+  }),
+);
+
+
+const GITHUB_API_HEADERS = {
+  Accept: "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28",
+} as const;
+
+async function fetchGitHubApi(url: string, token: string): Promise<unknown> {
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...GITHUB_API_HEADERS,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`GitHub API error ${response.status}: ${body}`);
+  }
+
+  return response.json();
+}
+
 
 function base64UrlEncode(data: string): string {
   return Buffer.from(data).toString("base64url");
@@ -45,9 +90,10 @@ function generateAppJWT(): string {
   return `${signatureInput}.${signature}`;
 }
 
+
 export async function getInstallationAccessToken(
   installationId: number,
-): Promise<InstallationAccessToken> {
+): Promise<{ token: string; expires_at: string }> {
   const jwt = generateAppJWT();
 
   const response = await fetch(
@@ -56,8 +102,7 @@ export async function getInstallationAccessToken(
       method: "POST",
       headers: {
         Authorization: `Bearer ${jwt}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
+        ...GITHUB_API_HEADERS,
       },
     },
   );
@@ -67,7 +112,7 @@ export async function getInstallationAccessToken(
     throw new Error(`Failed to get installation access token: ${error}`);
   }
 
-  return response.json();
+  return installationAccessTokenSchema.parse(await response.json());
 }
 
 export async function getInstallationRepositories(
@@ -80,23 +125,12 @@ export async function getInstallationRepositories(
   const perPage = 100;
 
   while (true) {
-    const response = await fetch(
-      `https://api.github.com/installation/repositories?per_page=${perPage}&page=${page}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      },
+    const data = installationRepositoriesSchema.parse(
+      await fetchGitHubApi(
+        `https://api.github.com/installation/repositories?per_page=${perPage}&page=${page}`,
+        token,
+      ),
     );
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get repositories: ${error}`);
-    }
-
-    const data = await response.json();
     allRepositories.push(...data.repositories);
 
     if (data.repositories.length < perPage) {
@@ -116,23 +150,14 @@ export async function getRepositoryTree(
 ): Promise<Array<{ path: string; type: string }>> {
   const { token } = await getInstallationAccessToken(installationId);
 
-  const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    },
+  const data = repositoryTreeSchema.parse(
+    await fetchGitHubApi(
+      `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
+      token,
+    ),
   );
 
-  if (!response.ok) {
-    return [];
-  }
-
-  const data = await response.json();
-  return (data.tree ?? []) as Array<{ path: string; type: string }>;
+  return data.tree;
 }
 
 export async function getRepositoryBranches(
@@ -142,22 +167,12 @@ export async function getRepositoryBranches(
 ): Promise<Array<{ name: string }>> {
   const { token } = await getInstallationAccessToken(installationId);
 
-  const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    },
+  return repositoryBranchesSchema.parse(
+    await fetchGitHubApi(
+      `https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`,
+      token,
+    ),
   );
-
-  if (!response.ok) {
-    return [];
-  }
-
-  return response.json();
 }
 
 export async function getRepositoryById(
@@ -169,8 +184,7 @@ export async function getRepositoryById(
   const response = await fetch(`https://api.github.com/repositories/${repositoryId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
+      ...GITHUB_API_HEADERS,
     },
   });
 
@@ -183,5 +197,5 @@ export async function getRepositoryById(
     throw new Error(`Failed to get repository: ${error}`);
   }
 
-  return response.json();
+  return gitHubRepositorySchema.parse(await response.json());
 }
