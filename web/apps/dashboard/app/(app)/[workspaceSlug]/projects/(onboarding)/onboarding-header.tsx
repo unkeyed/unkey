@@ -1,5 +1,5 @@
 "use client";
-import { CloudUp, Harddrive, HeartPulse, Location2, Nodes2 } from "@unkey/icons";
+import { Check, CloudUp, Harddrive, HeartPulse, Location2, Nodes2, XMark } from "@unkey/icons";
 import { useStepWizard } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
@@ -36,8 +36,7 @@ const IconRow = () => (
     className="p-2"
     style={{
       maskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
-      WebkitMaskImage:
-        "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
+      WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
     }}
   >
     <div className="flex gap-6 items-center justify-center text-gray-12">
@@ -89,14 +88,28 @@ export const OnboardingHeader = () => {
   }
 
   return (
-    <div className="flex flex-col items-center">
-      {config.showIconRow && <IconRow />}
-      <div className="mb-5" />
-      <div className="flex flex-col items-center justify-center gap-2">
-        <div className="font-semibold text-lg text-gray-12">{config.title}</div>
-        <div className="text-[13px] text-gray-11 text-center">{config.subtitle}</div>
+    <>
+      <div className="absolute top-2 left-2 right-2 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-gradient-to-r from-successA-4 via-successA-1 to-success-1">
+        <Check iconSize="sm-regular" />
+        <div className="flex items-center gap-1">
+          <span className="font-medium text-[13px] text-success-12">
+            GitHub connected successfully.
+          </span>
+          <span className="text-[13px] text-success-12">
+            You can now select a repository to deploy
+          </span>
+        </div>
+        <XMark iconSize="sm-regular" className="ml-auto" />
       </div>
-      <div className="mb-6" />
-    </div>
+      <div className="flex flex-col items-center">
+        {config.showIconRow && <IconRow />}
+        <div className="mb-5" />
+        <div className="flex flex-col items-center justify-center gap-2">
+          <div className="font-semibold text-lg text-gray-12">{config.title}</div>
+          <div className="text-[13px] text-gray-11 text-center">{config.subtitle}</div>
+        </div>
+        <div className="mb-6" />
+      </div>
+    </>
   );
 };

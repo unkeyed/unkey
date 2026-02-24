@@ -5,7 +5,7 @@ import { ConnectGithubStep } from "./steps/connect-github";
 import { CreateProjectStep } from "./steps/create-project";
 
 export const Onboarding = () => (
-  <div className="flex flex-col items-center justify-center h-screen">
+  <div className="flex flex-col items-center justify-center h-screen relative">
     <StepWizard.Root>
       <OnboardingHeader />
       <StepWizard.Step id="create-project" label="Create project">
