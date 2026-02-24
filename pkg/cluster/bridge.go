@@ -48,6 +48,10 @@ func (c *gossipCluster) evaluateBridge() {
 }
 
 // promoteToBridge creates a WAN memberlist and joins WAN seeds.
+// memberlist.Create is performed outside the lock because it does network I/O
+// and must not block Broadcast/Members/IsBridge. Retries with exponential
+// backoff handle the case where a previous WAN memberlist's socket hasn't been
+// fully released by the OS yet (e.g. after a rapid demote→promote cycle).
 func (c *gossipCluster) promoteToBridge() {
 	c.mu.Lock()
 	if c.isBridge {
@@ -67,13 +71,44 @@ func (c *gossipCluster) promoteToBridge() {
 	}
 	wanCfg.LogOutput = newLogWriter("wan")
 	wanCfg.SecretKey = c.config.SecretKey
-
 	wanCfg.Delegate = newWANDelegate(c)
 
-	wanList, err := memberlist.Create(wanCfg)
-	if err != nil {
+	seeds := c.config.WANSeeds
+	c.mu.Unlock()
+
+	backoff := initialBackoff
+	var wanList *memberlist.Memberlist
+
+	for {
+		if c.closing.Load() {
+			return
+		}
+
+		var err error
+		wanList, err = memberlist.Create(wanCfg)
+		if err == nil {
+			break
+		}
+
+		logger.Warn("Failed to create WAN memberlist, retrying",
+			"error", err,
+			"next_backoff", backoff,
+		)
+
+		select {
+		case <-c.done:
+			return
+		case <-time.After(backoff):
+		}
+
+		backoff = min(backoff*2, reconnectInterval)
+	}
+
+	c.mu.Lock()
+	if c.closing.Load() {
 		c.mu.Unlock()
-		logger.Error("Failed to create WAN memberlist", "error", err)
+		wanList.Leave(5 * time.Second) //nolint:errcheck
+		wanList.Shutdown()             //nolint:errcheck
 		return
 	}
 
@@ -82,9 +117,7 @@ func (c *gossipCluster) promoteToBridge() {
 		NumNodes:       func() int { return wanList.NumMembers() },
 		RetransmitMult: 4,
 	}
-
 	c.isBridge = true
-	seeds := c.config.WANSeeds
 	c.mu.Unlock()
 
 	metrics.ClusterBridgeStatus.Set(1)

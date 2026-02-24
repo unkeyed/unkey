@@ -1,37 +1,19 @@
-import { trpc } from "@/lib/trpc/client";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FolderLink } from "@unkey/icons";
-import { FormInput, toast } from "@unkey/ui";
+import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../../data-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const rootDirectorySchema = z.object({
   dockerContext: z.string(),
 });
 
-export const RootDirectorySettings = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
-
-  const { data } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
-  );
-
-  const defaultValue = data?.buildSettings?.dockerContext ?? ".";
-  return <RootDirectoryForm environmentId={environmentId} defaultValue={defaultValue} />;
-};
-
-const RootDirectoryForm = ({
-  environmentId,
-  defaultValue,
-}: {
-  environmentId: string;
-  defaultValue: string;
-}) => {
-  const utils = trpc.useUtils();
+export const RootDirectory = () => {
+  const { settings } = useEnvironmentSettings();
+  const { environmentId, dockerContext: defaultValue } = settings;
 
   const {
     register,
@@ -46,37 +28,10 @@ const RootDirectoryForm = ({
 
   const currentDockerContext = useWatch({ control, name: "dockerContext" });
 
-  const updateDockerContext = trpc.deploy.environmentSettings.build.updateDockerContext.useMutation(
-    {
-      onSuccess: (_data, variables) => {
-        toast.success("Root directory updated", {
-          description: `Build context set to "${(variables.dockerContext ?? defaultValue) || "."}".`,
-          duration: 5000,
-        });
-        utils.deploy.environmentSettings.get.invalidate({ environmentId });
-      },
-      onError: (err) => {
-        if (err.data?.code === "BAD_REQUEST") {
-          toast.error("Invalid root directory", {
-            description: err.message || "Please check your input and try again.",
-          });
-        } else {
-          toast.error("Failed to update root directory", {
-            description:
-              err.message ||
-              "An unexpected error occurred. Please try again or contact support@unkey.com",
-            action: {
-              label: "Contact Support",
-              onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-            },
-          });
-        }
-      },
-    },
-  );
-
   const onSubmit = async (values: z.infer<typeof rootDirectorySchema>) => {
-    await updateDockerContext.mutateAsync({ environmentId, dockerContext: values.dockerContext });
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.dockerContext = values.dockerContext;
+    });
   };
 
   return (
@@ -87,7 +42,7 @@ const RootDirectoryForm = ({
       displayValue={defaultValue || "."}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && currentDockerContext !== defaultValue}
-      isSaving={updateDockerContext.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <FormInput
         label="Root directory"

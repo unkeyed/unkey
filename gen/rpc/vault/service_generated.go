@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 // VaultServiceClient wraps vaultv1connect.VaultServiceClient with simplified signatures.
@@ -16,6 +17,8 @@ type VaultServiceClient interface {
 	Liveness(ctx context.Context, req *v1.LivenessRequest) (*v1.LivenessResponse, error)
 	Encrypt(ctx context.Context, req *v1.EncryptRequest) (*v1.EncryptResponse, error)
 	Decrypt(ctx context.Context, req *v1.DecryptRequest) (*v1.DecryptResponse, error)
+	EncryptBulk(ctx context.Context, req *v1.EncryptBulkRequest) (*v1.EncryptBulkResponse, error)
+	DecryptBulk(ctx context.Context, req *v1.DecryptBulkRequest) (*v1.DecryptBulkResponse, error)
 	ReEncrypt(ctx context.Context, req *v1.ReEncryptRequest) (*v1.ReEncryptResponse, error)
 }
 
@@ -32,23 +35,54 @@ func NewConnectVaultServiceClient(inner vaultv1connect.VaultServiceClient) *Conn
 }
 
 func (c *ConnectVaultServiceClient) Liveness(ctx context.Context, req *v1.LivenessRequest) (*v1.LivenessResponse, error) {
+	ctx, span := tracing.Start(ctx, "VaultService.Liveness")
+	defer span.End()
 	resp, err := c.inner.Liveness(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
 }
 
 func (c *ConnectVaultServiceClient) Encrypt(ctx context.Context, req *v1.EncryptRequest) (*v1.EncryptResponse, error) {
+	ctx, span := tracing.Start(ctx, "VaultService.Encrypt")
+	defer span.End()
 	resp, err := c.inner.Encrypt(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
 }
 
 func (c *ConnectVaultServiceClient) Decrypt(ctx context.Context, req *v1.DecryptRequest) (*v1.DecryptResponse, error) {
+	ctx, span := tracing.Start(ctx, "VaultService.Decrypt")
+	defer span.End()
 	resp, err := c.inner.Decrypt(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectVaultServiceClient) EncryptBulk(ctx context.Context, req *v1.EncryptBulkRequest) (*v1.EncryptBulkResponse, error) {
+	resp, err := c.inner.EncryptBulk(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectVaultServiceClient) DecryptBulk(ctx context.Context, req *v1.DecryptBulkRequest) (*v1.DecryptBulkResponse, error) {
+	resp, err := c.inner.DecryptBulk(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +90,13 @@ func (c *ConnectVaultServiceClient) Decrypt(ctx context.Context, req *v1.Decrypt
 }
 
 func (c *ConnectVaultServiceClient) ReEncrypt(ctx context.Context, req *v1.ReEncryptRequest) (*v1.ReEncryptResponse, error) {
+	ctx, span := tracing.Start(ctx, "VaultService.ReEncrypt")
+	defer span.End()
 	resp, err := c.inner.ReEncrypt(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

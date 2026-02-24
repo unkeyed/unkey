@@ -1,8 +1,9 @@
 package main
 
 type serviceInfo struct {
-	Name    string // e.g. "VaultServiceClient"
-	Methods []methodInfo
+	Name            string // e.g. "VaultServiceClient"
+	ServiceBaseName string // e.g. "VaultService" (Name without "Client" suffix, used for span names)
+	Methods         []methodInfo
 }
 
 type methodKind string
