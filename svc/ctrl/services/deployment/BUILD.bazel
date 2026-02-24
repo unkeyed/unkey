@@ -17,6 +17,7 @@ go_library(
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/uid",
