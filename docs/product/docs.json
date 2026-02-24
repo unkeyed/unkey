@@ -52,18 +52,23 @@
     "dropdowns": [
       {
         "dropdown": "Documentation",
+        "icon": "book-open",
         "groups": [
           {
             "group": "Getting Started",
-            "pages": ["introduction", "quickstart/quickstart", "glossary"]
+            "pages": [
+              "introduction",
+              "quickstart/quickstart",
+              "glossary"
+            ]
           },
           {
             "group": "Framework Guides",
             "icon": "code",
             "pages": [
               {
-                "expanded": false,
                 "group": "API Key Authentication",
+                "expanded": false,
                 "pages": [
                   "quickstart/apis/nextjs",
                   "quickstart/apis/express",
@@ -74,8 +79,8 @@
                 ]
               },
               {
-                "expanded": false,
                 "group": "Rate Limiting",
+                "expanded": false,
                 "pages": [
                   "quickstart/ratelimiting/nextjs",
                   "quickstart/ratelimiting/express",
@@ -92,8 +97,8 @@
             "pages": [
               "cookbook/index",
               {
-                "expanded": false,
                 "group": "Recipes",
+                "expanded": false,
                 "pages": [
                   {
                     "group": "TypeScript",
@@ -181,8 +186,8 @@
             "pages": [
               "analytics/overview",
               {
-                "expanded": false,
                 "group": "Reference",
+                "expanded": false,
                 "pages": [
                   "analytics/getting-started",
                   "analytics/quick-reference",
@@ -197,7 +202,10 @@
           {
             "group": "Audit Logs",
             "icon": "scroll",
-            "pages": ["audit-log/introduction", "audit-log/types"]
+            "pages": [
+              "audit-log/introduction",
+              "audit-log/types"
+            ]
           },
           {
             "group": "Security",
@@ -205,8 +213,8 @@
             "pages": [
               "security/overview",
               {
-                "expanded": false,
                 "group": "Topics",
+                "expanded": false,
                 "pages": [
                   "security/root-keys",
                   "security/recovering-keys",
@@ -223,8 +231,8 @@
             "pages": [
               "ai-code-gen/overview",
               {
-                "expanded": false,
                 "group": "Tools",
+                "expanded": false,
                 "pages": [
                   "ai-code-gen/cursor",
                   "ai-code-gen/windsurf",
@@ -236,7 +244,10 @@
           {
             "group": "Migrations",
             "icon": "arrows-rotate",
-            "pages": ["migrations/introduction", "migrations/keys"]
+            "pages": [
+              "migrations/introduction",
+              "migrations/keys"
+            ]
           },
           {
             "group": "Errors",
@@ -337,11 +348,11 @@
               }
             ]
           }
-        ],
-        "icon": "book-open"
+        ]
       },
       {
         "dropdown": "API Reference",
+        "icon": "terminal",
         "groups": [
           {
             "group": "api.unkey.com/v2",
@@ -373,11 +384,11 @@
               "api-reference/v1/migration/errors"
             ]
           }
-        ],
-        "icon": "terminal"
+        ]
       },
       {
         "dropdown": "SDKs",
+        "icon": "code",
         "groups": [
           {
             "group": "Official Libraries",
@@ -410,11 +421,17 @@
               },
               {
                 "group": "Go",
-                "pages": ["libraries/go/overview", "libraries/go/api"]
+                "pages": [
+                  "libraries/go/overview",
+                  "libraries/go/api"
+                ]
               },
               {
                 "group": "Python",
-                "pages": ["libraries/py/overview", "libraries/py/api"]
+                "pages": [
+                  "libraries/py/overview",
+                  "libraries/py/api"
+                ]
               }
             ]
           },
@@ -423,12 +440,25 @@
             "pages": [
               {
                 "group": "Nuxt",
-                "pages": ["libraries/nuxt/overview"]
+                "pages": [
+                  "libraries/nuxt/overview"
+                ]
               }
             ]
           }
-        ],
-        "icon": "code"
+        ]
+      },
+      {
+        "dropdown": "Deploy",
+        "groups": [
+          {
+            "group": "Builds",
+            "pages": []
+          }
+        ]
+      },
+      {
+        "dropdown": "Untitled Dropdown"
       }
     ]
   },

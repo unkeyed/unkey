@@ -1,61 +1,59 @@
 ---
-title: What is Unkey?
-description: The API development platform for modern teams
+title: "What is Unkey?"
+description: "The API development platform for modern teams."
 ---
 
 Unkey is the API development platform that handles the infrastructure you'd rather not build yourself: **API key management**, **rate limiting**, and **usage tracking** — all with global performance and zero servers to manage.
 
 <CardGroup cols={3}>
-  <Card title="API Keys" icon="key">
+  <Card icon="key" title="API Keys">
     Issue, verify, and revoke keys with metadata, expiration, and usage limits built in.
   </Card>
-  <Card title="Rate Limiting" icon="gauge-high">
+  <Card icon="gauge-high" title="Rate Limiting">
     Protect any endpoint from abuse — standalone or attached to API keys.
   </Card>
-  <Card title="Usage Tracking" icon="chart-line">
+  <Card icon="chart-line" title="Usage Tracking">
     Know who's using your API, how much, and when — with analytics out of the box.
   </Card>
 </CardGroup>
 
 ## Why Unkey?
 
-Building API infrastructure from scratch means managing databases, Redis clusters, edge caching, and analytics pipelines. Unkey handles all of that so you can focus on your actual product.
+Buildinasdadsasdadg API infrastructure from scratch means managing databases, Redis clusters, edge caching, and analytics pipelines. Unkey handles all of that so you can focus on your actual product.
 
-| DIY Approach | With Unkey |
-|--------------|------------|
-| Set up key storage, hashing, rotation | `unkey.keys.create()` |
-| Deploy Redis for rate limiting | `unkey.ratelimit.limit()` |
-| Build usage tracking & dashboards | Built-in analytics |
-| Manage infrastructure globally | Globally distributed |
+| DIY Approach                          | With Unkey                |
+| ------------------------------------- | ------------------------- |
+| Set up key storage, hashing, rotation | `unkey.keys.create()`     |
+| Deploy Redis for rate limiting        | `unkey.ratelimit.limit()` |
+| Build usage tracking & dashboards     | Built-in analytics        |
+| Manage infrastructure globally        | Globally distributed      |
 
 <Note>
-Unkey never stores your API keys in plain text. We hash them before storage, so even if our database were compromised, your keys stay safe.
+  Unkey never stores your API keys in plain text. We hash them before storage, so even if our database were compromised, your keys stay safe.
 </Note>
 
 ## What can you build?
 
 <AccordionGroup>
-  <Accordion title="Protect a public API" icon="shield-halved">
+  <Accordion icon="shield-halved" title="Protect a public API">
     Issue API keys to your users, verify them on every request, and automatically reject invalid or expired keys.
-    
+
     ```ts
     const { meta, data } = await unkey.keys.verify({ key: "sk_123..." });
     if (!data.valid) return new Response("Unauthorized", { status: 401 });
     ```
   </Accordion>
-  
-  <Accordion title="Rate limit anything" icon="gauge">
+  <Accordion icon="gauge" title="Rate limit anything">
     Limit requests per user, per IP, per endpoint — or any identifier you choose. No Redis required.
-    
+
     ```ts
     const { success } = await limiter.limit(userId);
     if (!success) return new Response("Too many requests", { status: 429 });
     ```
   </Accordion>
-  
-  <Accordion title="Usage-based billing" icon="receipt">
+  <Accordion icon="receipt" title="Usage-based billing">
     Track API usage per customer with credit limits and automatic refills. Perfect for tiered pricing.
-    
+
     ```ts
     // Create a key with 1000 credits/month that refills automatically
     try {
@@ -72,10 +70,9 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
     }
     ```
   </Accordion>
-  
-  <Accordion title="Multi-tenant rate limits" icon="building">
+  <Accordion icon="building" title="Multi-tenant rate limits">
     Use Identities to group keys under users or organizations, sharing rate limits across all their keys.
-    
+
     ```ts
     // All keys for this identity share the same rate limit pool
     try {
@@ -95,18 +92,10 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
 ## Get started
 
 <CardGroup cols={2}>
-  <Card
-    title="Quickstart"
-    icon="rocket"
-    href="/quickstart/quickstart"
-  >
+  <Card icon="rocket" href="/quickstart/quickstart" title="Quickstart">
     Create your first API and verify a key in under 5 minutes.
   </Card>
-  <Card
-    title="Framework guides"
-    icon="code"
-    href="/quickstart/apis/nextjs"
-  >
+  <Card icon="code" href="/quickstart/apis/nextjs" title="Framework guides">
     Step-by-step guides for Next.js, Bun, Express, Hono, and more.
   </Card>
 </CardGroup>
@@ -114,16 +103,16 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
 ## Choose your path
 
 <CardGroup cols={2}>
-  <Card title="I need API key authentication" icon="key" href="/apis/introduction">
+  <Card icon="key" href="/apis/introduction" title="I need API key authentication">
     Issue keys to users, verify on requests, track usage per key.
   </Card>
-  <Card title="I need rate limiting" icon="gauge-high" href="/ratelimiting/introduction">
+  <Card icon="gauge-high" href="/ratelimiting/introduction" title="I need rate limiting">
     Protect endpoints from abuse without managing Redis infrastructure.
   </Card>
-  <Card title="I need both" icon="bolt" href="/quickstart/quickstart">
+  <Card icon="bolt" href="/quickstart/quickstart" title="I need both">
     Start with API keys — rate limiting can be added per-key or standalone.
   </Card>
-  <Card title="I'm migrating from another solution" icon="arrows-rotate" href="/migrations/introduction">
+  <Card icon="arrows-rotate" href="/migrations/introduction" title="I'm migrating from another solution">
     Bring existing keys to Unkey without disrupting your users.
   </Card>
 </CardGroup>
@@ -133,13 +122,13 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
 Questions? Ideas? Just want to hang out with other API builders?
 
 <CardGroup cols={3}>
-  <Card title="Discord" icon="discord" href="https://unkey.com/discord">
+  <Card icon="discord" href="https://unkey.com/discord" title="Discord">
     Chat with the team and community
   </Card>
-  <Card title="GitHub" icon="github" href="https://github.com/unkeyed/unkey">
+  <Card icon="github" href="https://github.com/unkeyed/unkey" title="GitHub">
     Star us, report issues, contribute
   </Card>
-  <Card title="Twitter / X" icon="x-twitter" href="https://x.com/unkeydev">
+  <Card icon="x-twitter" href="https://x.com/unkeydev" title="Twitter / X">
     Follow for updates
   </Card>
 </CardGroup>
