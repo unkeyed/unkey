@@ -15,6 +15,18 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+// dockerSourceInfo holds the Docker image and inherited git metadata from a
+// live deployment, used when redeploying a non-git project.
+type dockerSourceInfo struct {
+	commitSHA       string
+	branch          string
+	commitMessage   string
+	authorHandle    string
+	authorAvatarURL string
+	commitTimestamp int64
+	dockerImage     string
+}
+
 // Redeploy triggers a fresh deployment for a project+environment pair.
 //
 // For git-connected projects the API sends a GitSource with a branch (and
@@ -34,7 +46,7 @@ func (s *Service) Redeploy(
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("environment_slug is required"))
 	}
 
-	// Look up project
+	// Lookup project and infer workspace from it
 	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -61,7 +73,7 @@ func (s *Service) Redeploy(
 	}
 	env := envSettings.Environment
 
-	// Fetch fresh environment variables
+	// Fetch environment variables and build secrets blob
 	envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
@@ -101,14 +113,15 @@ func (s *Service) Redeploy(
 
 	if hasGitConnection {
 		// Determine target branch and optional commit SHA from the request.
-		// Branch resolution (looking up HEAD) happens in the deploy worker,
-		// which already has GitHub credentials.
+		// Branch resolution (looking up HEAD) happens in the deploy worker
 		branch, commitSHA := resolveGitTarget(req.Msg, project)
 		gitBranch = branch
 		gitCommitSha = commitSHA
 
 		deploySource = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
+			KeyAuthId:    nil,
+			Command:      nil,
 			Source: &hydrav1.DeployRequest_Git{
 				Git: &hydrav1.GitSource{
 					InstallationId: repoConn.InstallationID,
@@ -124,7 +137,7 @@ func (s *Service) Redeploy(
 		// Non-git project: reuse the live deployment's Docker image
 		source, dockerErr := buildDockerSource(ctx, s.db, project, deploymentID)
 		if dockerErr != nil {
-			return nil, dockerErr // already a connect.Error
+			return nil, dockerErr
 		}
 		gitCommitSha = source.commitSHA
 		gitBranch = source.branch
@@ -135,6 +148,8 @@ func (s *Service) Redeploy(
 
 		deploySource = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
+			KeyAuthId:    nil,
+			Command:      nil,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{
 					Image: source.dockerImage,
@@ -220,18 +235,6 @@ func resolveGitTarget(msg *ctrlv1.RedeployRequest, project db.FindProjectByIdRow
 	default:
 		return defaultBranch, ""
 	}
-}
-
-// dockerSourceInfo holds the Docker image and inherited git metadata from a
-// live deployment, used when redeploying a non-git project.
-type dockerSourceInfo struct {
-	commitSHA       string
-	branch          string
-	commitMessage   string
-	authorHandle    string
-	authorAvatarURL string
-	commitTimestamp int64
-	dockerImage     string
 }
 
 // buildDockerSource looks up the live deployment's Docker image and carries

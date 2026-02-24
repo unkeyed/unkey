@@ -92,10 +92,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}()
 
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
-
 		var ws db.Workspace
 		err := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-
 			found, err := db.Query.FindWorkspaceByID(txCtx, tx, deployment.WorkspaceID)
 			if err != nil {
 				if db.IsNotFound(err) {
@@ -119,7 +117,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		})
 		return ws, err
 	}, restate.WithName("find workspace"))
-
 	if err != nil {
 		return nil, err
 	}
@@ -154,8 +151,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		commitSHA := source.Git.GetCommitSha()
 
 		// Resolve branch→SHA when commit_sha is empty (e.g. Redeploy RPC passes
-		// only a branch). The API intentionally does not hold GitHub credentials;
-		// the worker resolves via its own GitHub client.
+		// only a branch)
 		if commitSHA == "" && source.Git.GetBranch() != "" {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
 				return w.github.GetBranchHeadCommit(
@@ -372,7 +368,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	readygates := make([]restate.Future, len(topologies))
 	for i, region := range topologies {
 		promise := restate.RunAsync(ctx, func(runCtx restate.RunContext) (bool, error) {
-
 			for {
 				time.Sleep(time.Second)
 
@@ -398,7 +393,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				}
 
 			}
-
 		}, restate.WithName(fmt.Sprintf("wait for instances in %s", region.Region)))
 		readygates[i] = promise
 	}
@@ -454,7 +448,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					return "", err
 				}
 				return found.ID, nil
-
 			})
 		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)))
 		if getFrontlineRouteErr != nil {

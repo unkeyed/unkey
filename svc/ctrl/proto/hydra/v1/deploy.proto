@@ -62,8 +62,7 @@ message GitSource {
   // Full repository identifier (e.g., "owner/repo").
   string repository = 2;
 
-  // Commit SHA to build. May be empty when branch is set — the worker resolves
-  // the branch HEAD before building.
+  // Commit SHA to build.
   string commit_sha = 3;
 
   // Subdirectory within the repository to use as the Docker build context.
