@@ -10,7 +10,11 @@ import { Button, FormInput, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import { OnboardingLinks } from "./onboarding-links";
 
-export const CreateProjectStep = () => {
+type CreateProjectStepProps = {
+  onProjectCreated: (id: string) => void;
+};
+
+export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) => {
   const { next } = useStepWizard();
 
   const {
@@ -47,6 +51,11 @@ export const CreateProjectStep = () => {
         regions: [],
       });
       await tx.isPersisted.promise;
+      // await collection.projects.utils.refetch();
+      const created = collection.projects.toArray.find((p) => p.slug === values.slug);
+      if (created) {
+        onProjectCreated(created.id);
+      }
       next();
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

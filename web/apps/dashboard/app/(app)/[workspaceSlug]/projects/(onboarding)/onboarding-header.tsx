@@ -1,7 +1,9 @@
 "use client";
+import { trpc } from "@/lib/trpc/client";
 import { Check, CloudUp, Harddrive, HeartPulse, Location2, Nodes2, XMark } from "@unkey/icons";
 import { useStepWizard } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useState } from "react";
 
 type IconBoxProps = {
   children?: React.ReactNode;
@@ -80,27 +82,45 @@ const stepConfigs: Record<string, StepConfig> = {
   },
 };
 
-export const OnboardingHeader = () => {
+type OnboardingHeaderProps = {
+  projectId: string | null;
+};
+
+export const OnboardingHeader = ({ projectId }: OnboardingHeaderProps) => {
   const { activeStepId } = useStepWizard();
+  const [isDismissed, setIsDismissed] = useState(false);
   const config = stepConfigs[activeStepId];
+
+  const isGithubStep = activeStepId === "connect-github";
+  const { data } = trpc.github.getInstallations.useQuery(
+    { projectId: projectId ?? "" },
+    { enabled: isGithubStep && Boolean(projectId), staleTime: 0 },
+  );
+  const hasInstallations = (data?.installations?.length ?? 0) > 0;
+  const showBanner = isGithubStep && hasInstallations && !isDismissed;
+
   if (!config) {
     return null;
   }
 
   return (
     <>
-      <div className="absolute top-2 left-2 right-2 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-gradient-to-r from-successA-4 via-successA-1 to-success-1">
-        <Check iconSize="sm-regular" />
-        <div className="flex items-center gap-1">
-          <span className="font-medium text-[13px] text-success-12">
-            GitHub connected successfully.
-          </span>
-          <span className="text-[13px] text-success-12">
-            You can now select a repository to deploy
-          </span>
+      {showBanner && (
+        <div className="absolute top-2 left-2 right-2 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-gradient-to-r from-successA-4 via-successA-1 to-success-1">
+          <Check iconSize="sm-regular" />
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-[13px] text-success-12">
+              GitHub connected successfully.
+            </span>
+            <span className="text-[13px] text-success-12">
+              You can now select a repository to deploy
+            </span>
+          </div>
+          <button type="button" onClick={() => setIsDismissed(true)} className="ml-auto">
+            <XMark iconSize="sm-regular" />
+          </button>
         </div>
-        <XMark iconSize="sm-regular" className="ml-auto" />
-      </div>
+      )}
       <div className="flex flex-col items-center">
         {config.showIconRow && <IconRow />}
         <div className="mb-5" />
