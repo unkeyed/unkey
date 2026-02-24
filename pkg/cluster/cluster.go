@@ -14,9 +14,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// reconnectInterval is how often the background loop checks whether
-// the node is isolated and needs to re-join seeds.
-const reconnectInterval = 30 * time.Second
+const (
+	// initialBackoff is the starting delay for exponential backoff retries.
+	initialBackoff = 500 * time.Millisecond
+
+	// reconnectInterval is how often the background loop checks whether
+	// the node is isolated and needs to re-join seeds.
+	reconnectInterval = 30 * time.Second
+)
 
 // Cluster is the public interface for gossip-based cluster membership.
 type Cluster interface {
@@ -135,8 +140,7 @@ func New(cfg Config) (Cluster, error) {
 // stays connected to seeds. It handles initial join (with backoff for DNS
 // readiness) and periodic reconnection if the node becomes isolated.
 func (c *gossipCluster) maintainMembership(pool string, list func() *memberlist.Memberlist, seeds []string, onJoin func()) {
-	// Initial join with exponential backoff — DNS may not resolve immediately.
-	backoff := 500 * time.Millisecond
+	backoff := initialBackoff
 
 	for {
 		select {
