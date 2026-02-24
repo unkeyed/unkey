@@ -107,8 +107,8 @@ func (c *gossipCluster) promoteToBridge() {
 	c.mu.Lock()
 	if c.closing.Load() {
 		c.mu.Unlock()
-		wanList.Leave(5 * time.Second)  //nolint:errcheck
-		wanList.Shutdown()              //nolint:errcheck
+		wanList.Leave(5 * time.Second) //nolint:errcheck
+		wanList.Shutdown()             //nolint:errcheck
 		return
 	}
 
