@@ -136,7 +136,9 @@ func (c *gossipCluster) promoteToBridge() {
 
 // resolveAdvertiseAddr resolves a hostname to its first IP address.
 // If the input is already a valid IP, it is returned unchanged.
-// If DNS resolution fails, the original value is returned as a fallback.
+// If DNS resolution fails, an empty string is returned so the caller
+// falls back to the bind address rather than passing a raw hostname
+// to memberlist (which would leak the transport).
 //
 // memberlist requires AdvertiseAddr to be a valid IP (it uses net.ParseIP
 // internally). Passing a hostname like an NLB DNS name causes
@@ -150,9 +152,9 @@ func resolveAdvertiseAddr(addr string) string {
 	}
 	ips, err := net.LookupHost(addr)
 	if err != nil || len(ips) == 0 {
-		logger.Warn("Failed to resolve WAN advertise address, using raw value",
+		logger.Warn("Failed to resolve WAN advertise address",
 			"addr", addr, "error", err)
-		return addr
+		return ""
 	}
 	logger.Info("Resolved WAN advertise address", "hostname", addr, "ip", ips[0])
 	return ips[0]
