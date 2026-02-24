@@ -1,13 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useReducer,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useReducer } from "react";
 import { cn } from "../../lib/utils";
 import type {
   StepKind,
@@ -18,12 +12,19 @@ import type {
   WizardState,
 } from "./types";
 
-
 function derivePosition(activeStepIndex: number, totalSteps: number): StepPosition {
-  if (totalSteps === 0 || activeStepIndex < 0) return "empty";
-  if (totalSteps === 1) return "only";
-  if (activeStepIndex === 0) return "first";
-  if (activeStepIndex === totalSteps - 1) return "last";
+  if (totalSteps === 0 || activeStepIndex < 0) {
+    return "empty";
+  }
+  if (totalSteps === 1) {
+    return "only";
+  }
+  if (activeStepIndex === 0) {
+    return "first";
+  }
+  if (activeStepIndex === totalSteps - 1) {
+    return "last";
+  }
   return "middle";
 }
 
@@ -91,7 +92,6 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
   }
 }
 
-
 const StepWizardContext = createContext<StepWizardContextValue | undefined>(undefined);
 
 export const useStepWizard = (): StepWizardContextValue => {
@@ -101,7 +101,6 @@ export const useStepWizard = (): StepWizardContextValue => {
   }
   return context;
 };
-
 
 type StepWizardRootProps = {
   onComplete?: () => void;
@@ -137,10 +136,7 @@ const StepWizardRoot = ({
     (meta: StepMeta) => dispatch({ type: "REGISTER_STEP", meta, defaultStepId }),
     [defaultStepId],
   );
-  const unregisterStep = useCallback(
-    (id: string) => dispatch({ type: "UNREGISTER_STEP", id }),
-    [],
-  );
+  const unregisterStep = useCallback((id: string) => dispatch({ type: "UNREGISTER_STEP", id }), []);
   const back = useCallback(() => dispatch({ type: "GO_BACK" }), []);
   const goTo = useCallback((id: string) => dispatch({ type: "GO_TO", id }), []);
 
@@ -181,7 +177,6 @@ const StepWizardRoot = ({
     </StepWizardContext.Provider>
   );
 };
-
 
 type StepWizardStepProps = {
   id: string;

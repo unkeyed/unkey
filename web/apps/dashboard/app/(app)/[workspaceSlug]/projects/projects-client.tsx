@@ -6,8 +6,6 @@ import { ProjectsList } from "./_components/list";
 import { ProjectsListNavigation } from "./navigation";
 
 export function ProjectsClient() {
-
-
   if (!showWizard) {
     return (
       <div>
@@ -19,7 +17,11 @@ export function ProjectsClient() {
   }
 
   return (
-    <StepWizard.Root onComplete={() => { /* redirect TBD */ }}>
+    <StepWizard.Root
+      onComplete={() => {
+        /* redirect TBD */
+      }}
+    >
       <div className="relative flex-1 min-h-0">
         <StepWizard.Step id="step-1" label="Step 1" kind="optional">
           <div>step-1</div>
