@@ -12,7 +12,7 @@ type GitHubConnectionState =
   | { status: "no-repo"; installUrl: string }
   | { status: "connected"; repoFullName: string; repositoryId: number; installUrl: string };
 
-export const GitHubSettings = () => {
+export const GitHub = () => {
   const { projectId } = useProjectData();
 
   const state = JSON.stringify({ projectId });
