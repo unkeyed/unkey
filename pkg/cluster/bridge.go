@@ -48,14 +48,11 @@ func (c *gossipCluster) evaluateBridge() {
 }
 
 // promoteToBridge creates a WAN memberlist and joins WAN seeds.
-//
 // memberlist.Create is performed outside the lock because it does network I/O
-// (binding a port) and must not block Broadcast/Members/IsBridge. Retries with
-// exponential backoff handle the case where a previous WAN memberlist's socket
-// hasn't been fully released by the OS yet (e.g. after a rapid demote→promote
-// cycle).
+// and must not block Broadcast/Members/IsBridge. Retries with exponential
+// backoff handle the case where a previous WAN memberlist's socket hasn't been
+// fully released by the OS yet (e.g. after a rapid demote→promote cycle).
 func (c *gossipCluster) promoteToBridge() {
-	// Phase 1: check state and capture config under lock.
 	c.mu.Lock()
 	if c.isBridge {
 		c.mu.Unlock()
@@ -79,7 +76,6 @@ func (c *gossipCluster) promoteToBridge() {
 	seeds := c.config.WANSeeds
 	c.mu.Unlock()
 
-	// Phase 2: create memberlist outside lock, retry with exponential backoff.
 	backoff := 500 * time.Millisecond
 	var wanList *memberlist.Memberlist
 
@@ -108,11 +104,9 @@ func (c *gossipCluster) promoteToBridge() {
 		backoff = min(backoff*2, reconnectInterval)
 	}
 
-	// Phase 3: re-check state and commit under lock.
 	c.mu.Lock()
 	if c.isBridge || c.closing.Load() {
 		c.mu.Unlock()
-		// Another goroutine promoted or the node is shutting down; discard.
 		wanList.Leave(5 * time.Second)  //nolint:errcheck
 		wanList.Shutdown()              //nolint:errcheck
 		return
