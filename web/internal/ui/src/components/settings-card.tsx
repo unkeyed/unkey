@@ -113,7 +113,7 @@ function SettingCard({
   };
 
   return (
-    <div className={cn(getBorderRadiusClass(), borderClass, expandedBottomRadius)}>
+    <div className={cn("w-full", getBorderRadiusClass(), borderClass, expandedBottomRadius)}>
       <div
         className={cn(
           "px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row group",

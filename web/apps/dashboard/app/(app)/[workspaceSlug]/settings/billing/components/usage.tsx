@@ -31,7 +31,7 @@ export const Usage: React.FC<{
         description="Valid key verifications and ratelimits."
         border="both"
         className="w-full"
-        contentWidth="w-full"
+        contentWidth="w-full lg:w-[320px]"
       >
         <div className="w-full flex h-full items-center justify-end gap-4">
           <div className="h-5 w-32 bg-gray-4 animate-pulse rounded" />
@@ -48,7 +48,7 @@ export const Usage: React.FC<{
         description="Valid key verifications and ratelimits."
         border="both"
         className="w-full"
-        contentWidth="w-full"
+        contentWidth="w-full lg:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm text-red-11">Failed to load usage: {error.message}</p>
@@ -71,7 +71,7 @@ export const Usage: React.FC<{
         description="Valid key verifications and ratelimits."
         border="both"
         className="w-full"
-        contentWidth="w-full"
+        contentWidth="w-full lg:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm text-gray-11">No usage data available</p>
@@ -99,7 +99,7 @@ export const Usage: React.FC<{
       description="Valid key verifications and ratelimits."
       border="both"
       className="w-full"
-      contentWidth="w-full"
+      contentWidth="w-full lg:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
         <p className="text-sm font-semibold text-gray-12">
