@@ -2,14 +2,14 @@
 
 import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Key, XMark } from "@unkey/icons";
-import { toast } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../../data-provider";
+import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard } from "../shared/form-setting-card";
 
 const keyspacesSchema = z.object({
@@ -19,13 +19,8 @@ const keyspacesSchema = z.object({
 type KeyspacesFormValues = z.infer<typeof keyspacesSchema>;
 
 export const Keyspaces = () => {
-  const { environments } = useProjectData();
-  const environmentId = environments[0]?.id;
-
-  const { data: settingsData } = trpc.deploy.environmentSettings.get.useQuery(
-    { environmentId: environmentId ?? "" },
-    { enabled: Boolean(environmentId) },
-  );
+  const { settings } = useEnvironmentSettings();
+  const { environmentId } = settings;
 
   const { data: availableKeyspaces } =
     trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery(undefined, {
@@ -33,7 +28,7 @@ export const Keyspaces = () => {
     });
 
   const defaultKeyspaceIds: string[] = [];
-  for (const policy of settingsData?.runtimeSettings?.sentinelConfig?.policies ?? []) {
+  for (const policy of settings?.sentinelConfig?.policies ?? []) {
     if (policy.keyauth) {
       defaultKeyspaceIds.push(...policy.keyauth.keySpaceIds);
     }
@@ -59,8 +54,6 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
   defaultKeyspaceIds,
   availableKeyspaces,
 }) => {
-  const utils = trpc.useUtils();
-
   const {
     handleSubmit,
     setValue,
@@ -83,37 +76,21 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
     (r) => !currentKeyspaceIds.includes(r),
   );
 
-  const updateMiddleware = trpc.deploy.environmentSettings.sentinel.updateMiddleware.useMutation({
-    onSuccess: () => {
-      toast.success("Keyspaces updated", {
-        description: "Deployment keyspaces saved successfully.",
-        duration: 5000,
-      });
-      utils.deploy.environmentSettings.get.invalidate({ environmentId });
-    },
-    onError: (err) => {
-      if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid keyspaces setting", {
-          description: err.message || "Please check your input and try again.",
-        });
-      } else {
-        toast.error("Failed to update keyspaces", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
-    },
-  });
-
   const onSubmit = async (values: KeyspacesFormValues) => {
-    await updateMiddleware.mutateAsync({
-      environmentId,
-      keyspaceIds: values.keyspaces,
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.sentinelConfig = {
+        policies:
+          values.keyspaces.length > 0
+            ? [
+                {
+                  id: "keyauth-policy",
+                  name: "API Key Auth",
+                  enabled: true,
+                  keyauth: { keySpaceIds: values.keyspaces },
+                },
+              ]
+            : [],
+      };
     });
   };
 
@@ -177,7 +154,7 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={updateMiddleware.isLoading || isSubmitting}
+      isSaving={isSubmitting}
     >
       <FormCombobox
         label="Keyspaces"

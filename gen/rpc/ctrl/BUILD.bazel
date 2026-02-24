@@ -16,6 +16,7 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//pkg/otel/tracing",
         "@com_connectrpc_connect//:connect",
     ],
 )

@@ -486,6 +486,253 @@ func (*ReEncryptDEKsResponse) Descriptor() ([]byte, []int) {
 	return file_vault_v1_service_proto_rawDescGZIP(), []int{9}
 }
 
+type EncryptBulkRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Keyring string                 `protobuf:"bytes,1,opt,name=keyring,proto3" json:"keyring,omitempty"`
+	// map of caller-provided ID to plaintext data
+	Items         map[string]string `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EncryptBulkRequest) Reset() {
+	*x = EncryptBulkRequest{}
+	mi := &file_vault_v1_service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EncryptBulkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EncryptBulkRequest) ProtoMessage() {}
+
+func (x *EncryptBulkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_vault_v1_service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EncryptBulkRequest.ProtoReflect.Descriptor instead.
+func (*EncryptBulkRequest) Descriptor() ([]byte, []int) {
+	return file_vault_v1_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *EncryptBulkRequest) GetKeyring() string {
+	if x != nil {
+		return x.Keyring
+	}
+	return ""
+}
+
+func (x *EncryptBulkRequest) GetItems() map[string]string {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type EncryptBulkResponseItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Encrypted     string                 `protobuf:"bytes,1,opt,name=encrypted,proto3" json:"encrypted,omitempty"`
+	KeyId         string                 `protobuf:"bytes,2,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EncryptBulkResponseItem) Reset() {
+	*x = EncryptBulkResponseItem{}
+	mi := &file_vault_v1_service_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EncryptBulkResponseItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EncryptBulkResponseItem) ProtoMessage() {}
+
+func (x *EncryptBulkResponseItem) ProtoReflect() protoreflect.Message {
+	mi := &file_vault_v1_service_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EncryptBulkResponseItem.ProtoReflect.Descriptor instead.
+func (*EncryptBulkResponseItem) Descriptor() ([]byte, []int) {
+	return file_vault_v1_service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *EncryptBulkResponseItem) GetEncrypted() string {
+	if x != nil {
+		return x.Encrypted
+	}
+	return ""
+}
+
+func (x *EncryptBulkResponseItem) GetKeyId() string {
+	if x != nil {
+		return x.KeyId
+	}
+	return ""
+}
+
+type EncryptBulkResponse struct {
+	state         protoimpl.MessageState              `protogen:"open.v1"`
+	Items         map[string]*EncryptBulkResponseItem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EncryptBulkResponse) Reset() {
+	*x = EncryptBulkResponse{}
+	mi := &file_vault_v1_service_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EncryptBulkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EncryptBulkResponse) ProtoMessage() {}
+
+func (x *EncryptBulkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_vault_v1_service_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EncryptBulkResponse.ProtoReflect.Descriptor instead.
+func (*EncryptBulkResponse) Descriptor() ([]byte, []int) {
+	return file_vault_v1_service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *EncryptBulkResponse) GetItems() map[string]*EncryptBulkResponseItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type DecryptBulkRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Keyring string                 `protobuf:"bytes,1,opt,name=keyring,proto3" json:"keyring,omitempty"`
+	// map of caller-provided ID to encrypted ciphertext
+	Items         map[string]string `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecryptBulkRequest) Reset() {
+	*x = DecryptBulkRequest{}
+	mi := &file_vault_v1_service_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecryptBulkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecryptBulkRequest) ProtoMessage() {}
+
+func (x *DecryptBulkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_vault_v1_service_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecryptBulkRequest.ProtoReflect.Descriptor instead.
+func (*DecryptBulkRequest) Descriptor() ([]byte, []int) {
+	return file_vault_v1_service_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *DecryptBulkRequest) GetKeyring() string {
+	if x != nil {
+		return x.Keyring
+	}
+	return ""
+}
+
+func (x *DecryptBulkRequest) GetItems() map[string]string {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type DecryptBulkResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// map of caller-provided ID to plaintext
+	Items         map[string]string `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecryptBulkResponse) Reset() {
+	*x = DecryptBulkResponse{}
+	mi := &file_vault_v1_service_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecryptBulkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecryptBulkResponse) ProtoMessage() {}
+
+func (x *DecryptBulkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_vault_v1_service_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecryptBulkResponse.ProtoReflect.Descriptor instead.
+func (*DecryptBulkResponse) Descriptor() ([]byte, []int) {
+	return file_vault_v1_service_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *DecryptBulkResponse) GetItems() map[string]string {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
 var File_vault_v1_service_proto protoreflect.FileDescriptor
 
 const file_vault_v1_service_proto_rawDesc = "" +
@@ -514,11 +761,42 @@ const file_vault_v1_service_proto_rawDesc = "" +
 	"\tencrypted\x18\x01 \x01(\tR\tencrypted\x12\x15\n" +
 	"\x06key_id\x18\x02 \x01(\tR\x05keyId\"\x16\n" +
 	"\x14ReEncryptDEKsRequest\"\x17\n" +
-	"\x15ReEncryptDEKsResponse2\x9f\x02\n" +
+	"\x15ReEncryptDEKsResponse\"\xa7\x01\n" +
+	"\x12EncryptBulkRequest\x12\x18\n" +
+	"\akeyring\x18\x01 \x01(\tR\akeyring\x12=\n" +
+	"\x05items\x18\x02 \x03(\v2'.vault.v1.EncryptBulkRequest.ItemsEntryR\x05items\x1a8\n" +
+	"\n" +
+	"ItemsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"N\n" +
+	"\x17EncryptBulkResponseItem\x12\x1c\n" +
+	"\tencrypted\x18\x01 \x01(\tR\tencrypted\x12\x15\n" +
+	"\x06key_id\x18\x02 \x01(\tR\x05keyId\"\xb2\x01\n" +
+	"\x13EncryptBulkResponse\x12>\n" +
+	"\x05items\x18\x01 \x03(\v2(.vault.v1.EncryptBulkResponse.ItemsEntryR\x05items\x1a[\n" +
+	"\n" +
+	"ItemsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x127\n" +
+	"\x05value\x18\x02 \x01(\v2!.vault.v1.EncryptBulkResponseItemR\x05value:\x028\x01\"\xa7\x01\n" +
+	"\x12DecryptBulkRequest\x12\x18\n" +
+	"\akeyring\x18\x01 \x01(\tR\akeyring\x12=\n" +
+	"\x05items\x18\x02 \x03(\v2'.vault.v1.DecryptBulkRequest.ItemsEntryR\x05items\x1a8\n" +
+	"\n" +
+	"ItemsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8f\x01\n" +
+	"\x13DecryptBulkResponse\x12>\n" +
+	"\x05items\x18\x01 \x03(\v2(.vault.v1.DecryptBulkResponse.ItemsEntryR\x05items\x1a8\n" +
+	"\n" +
+	"ItemsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012\xbb\x03\n" +
 	"\fVaultService\x12C\n" +
 	"\bLiveness\x12\x19.vault.v1.LivenessRequest\x1a\x1a.vault.v1.LivenessResponse\"\x00\x12@\n" +
 	"\aEncrypt\x12\x18.vault.v1.EncryptRequest\x1a\x19.vault.v1.EncryptResponse\"\x00\x12@\n" +
-	"\aDecrypt\x12\x18.vault.v1.DecryptRequest\x1a\x19.vault.v1.DecryptResponse\"\x00\x12F\n" +
+	"\aDecrypt\x12\x18.vault.v1.DecryptRequest\x1a\x19.vault.v1.DecryptResponse\"\x00\x12L\n" +
+	"\vEncryptBulk\x12\x1c.vault.v1.EncryptBulkRequest\x1a\x1d.vault.v1.EncryptBulkResponse\"\x00\x12L\n" +
+	"\vDecryptBulk\x12\x1c.vault.v1.DecryptBulkRequest\x1a\x1d.vault.v1.DecryptBulkResponse\"\x00\x12F\n" +
 	"\tReEncrypt\x12\x1a.vault.v1.ReEncryptRequest\x1a\x1b.vault.v1.ReEncryptResponse\"\x00B\x92\x01\n" +
 	"\fcom.vault.v1B\fServiceProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/vault/v1;vaultv1\xa2\x02\x03VXX\xaa\x02\bVault.V1\xca\x02\bVault\\V1\xe2\x02\x14Vault\\V1\\GPBMetadata\xea\x02\tVault::V1b\x06proto3"
 
@@ -534,33 +812,51 @@ func file_vault_v1_service_proto_rawDescGZIP() []byte {
 	return file_vault_v1_service_proto_rawDescData
 }
 
-var file_vault_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_vault_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_vault_v1_service_proto_goTypes = []any{
-	(*LivenessRequest)(nil),       // 0: vault.v1.LivenessRequest
-	(*LivenessResponse)(nil),      // 1: vault.v1.LivenessResponse
-	(*EncryptRequest)(nil),        // 2: vault.v1.EncryptRequest
-	(*EncryptResponse)(nil),       // 3: vault.v1.EncryptResponse
-	(*DecryptRequest)(nil),        // 4: vault.v1.DecryptRequest
-	(*DecryptResponse)(nil),       // 5: vault.v1.DecryptResponse
-	(*ReEncryptRequest)(nil),      // 6: vault.v1.ReEncryptRequest
-	(*ReEncryptResponse)(nil),     // 7: vault.v1.ReEncryptResponse
-	(*ReEncryptDEKsRequest)(nil),  // 8: vault.v1.ReEncryptDEKsRequest
-	(*ReEncryptDEKsResponse)(nil), // 9: vault.v1.ReEncryptDEKsResponse
+	(*LivenessRequest)(nil),         // 0: vault.v1.LivenessRequest
+	(*LivenessResponse)(nil),        // 1: vault.v1.LivenessResponse
+	(*EncryptRequest)(nil),          // 2: vault.v1.EncryptRequest
+	(*EncryptResponse)(nil),         // 3: vault.v1.EncryptResponse
+	(*DecryptRequest)(nil),          // 4: vault.v1.DecryptRequest
+	(*DecryptResponse)(nil),         // 5: vault.v1.DecryptResponse
+	(*ReEncryptRequest)(nil),        // 6: vault.v1.ReEncryptRequest
+	(*ReEncryptResponse)(nil),       // 7: vault.v1.ReEncryptResponse
+	(*ReEncryptDEKsRequest)(nil),    // 8: vault.v1.ReEncryptDEKsRequest
+	(*ReEncryptDEKsResponse)(nil),   // 9: vault.v1.ReEncryptDEKsResponse
+	(*EncryptBulkRequest)(nil),      // 10: vault.v1.EncryptBulkRequest
+	(*EncryptBulkResponseItem)(nil), // 11: vault.v1.EncryptBulkResponseItem
+	(*EncryptBulkResponse)(nil),     // 12: vault.v1.EncryptBulkResponse
+	(*DecryptBulkRequest)(nil),      // 13: vault.v1.DecryptBulkRequest
+	(*DecryptBulkResponse)(nil),     // 14: vault.v1.DecryptBulkResponse
+	nil,                             // 15: vault.v1.EncryptBulkRequest.ItemsEntry
+	nil,                             // 16: vault.v1.EncryptBulkResponse.ItemsEntry
+	nil,                             // 17: vault.v1.DecryptBulkRequest.ItemsEntry
+	nil,                             // 18: vault.v1.DecryptBulkResponse.ItemsEntry
 }
 var file_vault_v1_service_proto_depIdxs = []int32{
-	0, // 0: vault.v1.VaultService.Liveness:input_type -> vault.v1.LivenessRequest
-	2, // 1: vault.v1.VaultService.Encrypt:input_type -> vault.v1.EncryptRequest
-	4, // 2: vault.v1.VaultService.Decrypt:input_type -> vault.v1.DecryptRequest
-	6, // 3: vault.v1.VaultService.ReEncrypt:input_type -> vault.v1.ReEncryptRequest
-	1, // 4: vault.v1.VaultService.Liveness:output_type -> vault.v1.LivenessResponse
-	3, // 5: vault.v1.VaultService.Encrypt:output_type -> vault.v1.EncryptResponse
-	5, // 6: vault.v1.VaultService.Decrypt:output_type -> vault.v1.DecryptResponse
-	7, // 7: vault.v1.VaultService.ReEncrypt:output_type -> vault.v1.ReEncryptResponse
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	15, // 0: vault.v1.EncryptBulkRequest.items:type_name -> vault.v1.EncryptBulkRequest.ItemsEntry
+	16, // 1: vault.v1.EncryptBulkResponse.items:type_name -> vault.v1.EncryptBulkResponse.ItemsEntry
+	17, // 2: vault.v1.DecryptBulkRequest.items:type_name -> vault.v1.DecryptBulkRequest.ItemsEntry
+	18, // 3: vault.v1.DecryptBulkResponse.items:type_name -> vault.v1.DecryptBulkResponse.ItemsEntry
+	11, // 4: vault.v1.EncryptBulkResponse.ItemsEntry.value:type_name -> vault.v1.EncryptBulkResponseItem
+	0,  // 5: vault.v1.VaultService.Liveness:input_type -> vault.v1.LivenessRequest
+	2,  // 6: vault.v1.VaultService.Encrypt:input_type -> vault.v1.EncryptRequest
+	4,  // 7: vault.v1.VaultService.Decrypt:input_type -> vault.v1.DecryptRequest
+	10, // 8: vault.v1.VaultService.EncryptBulk:input_type -> vault.v1.EncryptBulkRequest
+	13, // 9: vault.v1.VaultService.DecryptBulk:input_type -> vault.v1.DecryptBulkRequest
+	6,  // 10: vault.v1.VaultService.ReEncrypt:input_type -> vault.v1.ReEncryptRequest
+	1,  // 11: vault.v1.VaultService.Liveness:output_type -> vault.v1.LivenessResponse
+	3,  // 12: vault.v1.VaultService.Encrypt:output_type -> vault.v1.EncryptResponse
+	5,  // 13: vault.v1.VaultService.Decrypt:output_type -> vault.v1.DecryptResponse
+	12, // 14: vault.v1.VaultService.EncryptBulk:output_type -> vault.v1.EncryptBulkResponse
+	14, // 15: vault.v1.VaultService.DecryptBulk:output_type -> vault.v1.DecryptBulkResponse
+	7,  // 16: vault.v1.VaultService.ReEncrypt:output_type -> vault.v1.ReEncryptResponse
+	11, // [11:17] is the sub-list for method output_type
+	5,  // [5:11] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_vault_v1_service_proto_init() }
@@ -575,7 +871,7 @@ func file_vault_v1_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_vault_v1_service_proto_rawDesc), len(file_vault_v1_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

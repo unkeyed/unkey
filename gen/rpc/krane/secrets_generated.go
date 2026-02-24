@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/unkeyed/unkey/gen/proto/krane/v1"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 // SecretsServiceClient wraps kranev1connect.SecretsServiceClient with simplified signatures.
@@ -29,8 +30,13 @@ func NewConnectSecretsServiceClient(inner kranev1connect.SecretsServiceClient) *
 }
 
 func (c *ConnectSecretsServiceClient) DecryptSecretsBlob(ctx context.Context, req *v1.DecryptSecretsBlobRequest) (*v1.DecryptSecretsBlobResponse, error) {
+	ctx, span := tracing.Start(ctx, "SecretsService.DecryptSecretsBlob")
+	defer span.End()
 	resp, err := c.inner.DecryptSecretsBlob(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
