@@ -48,7 +48,14 @@ func (c *gossipCluster) evaluateBridge() {
 }
 
 // promoteToBridge creates a WAN memberlist and joins WAN seeds.
+//
+// memberlist.Create is performed outside the lock because it does network I/O
+// (binding a port) and must not block Broadcast/Members/IsBridge. Retries with
+// exponential backoff handle the case where a previous WAN memberlist's socket
+// hasn't been fully released by the OS yet (e.g. after a rapid demote→promote
+// cycle).
 func (c *gossipCluster) promoteToBridge() {
+	// Phase 1: check state and capture config under lock.
 	c.mu.Lock()
 	if c.isBridge {
 		c.mu.Unlock()
@@ -67,13 +74,47 @@ func (c *gossipCluster) promoteToBridge() {
 	}
 	wanCfg.LogOutput = newLogWriter("wan")
 	wanCfg.SecretKey = c.config.SecretKey
-
 	wanCfg.Delegate = newWANDelegate(c)
 
-	wanList, err := memberlist.Create(wanCfg)
-	if err != nil {
+	seeds := c.config.WANSeeds
+	c.mu.Unlock()
+
+	// Phase 2: create memberlist outside lock, retry with exponential backoff.
+	backoff := 500 * time.Millisecond
+	var wanList *memberlist.Memberlist
+
+	for {
+		if c.closing.Load() {
+			return
+		}
+
+		var err error
+		wanList, err = memberlist.Create(wanCfg)
+		if err == nil {
+			break
+		}
+
+		logger.Warn("Failed to create WAN memberlist, retrying",
+			"error", err,
+			"next_backoff", backoff,
+		)
+
+		select {
+		case <-c.done:
+			return
+		case <-time.After(backoff):
+		}
+
+		backoff = min(backoff*2, reconnectInterval)
+	}
+
+	// Phase 3: re-check state and commit under lock.
+	c.mu.Lock()
+	if c.isBridge || c.closing.Load() {
 		c.mu.Unlock()
-		logger.Error("Failed to create WAN memberlist", "error", err)
+		// Another goroutine promoted or the node is shutting down; discard.
+		wanList.Leave(5 * time.Second)  //nolint:errcheck
+		wanList.Shutdown()              //nolint:errcheck
 		return
 	}
 
@@ -82,9 +123,7 @@ func (c *gossipCluster) promoteToBridge() {
 		NumNodes:       func() int { return wanList.NumMembers() },
 		RetransmitMult: 4,
 	}
-
 	c.isBridge = true
-	seeds := c.config.WANSeeds
 	c.mu.Unlock()
 
 	metrics.ClusterBridgeStatus.Set(1)
