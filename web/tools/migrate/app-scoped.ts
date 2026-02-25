@@ -1,4 +1,4 @@
-import { eq, mysqlDrizzle, schema, sql } from "@unkey/db";
+import { mysqlDrizzle, schema, sql } from "@unkey/db";
 import { newId } from "@unkey/id";
 import mysql from "mysql2/promise";
 
@@ -28,18 +28,7 @@ async function main() {
       continue;
     }
 
-    const appId = newId("project").replace("proj_", "app_");
-
-    // Read live_deployment_id, is_rolled_back, depot_project_id from the project row directly
-    // since these columns still exist in production
-    const [row] = await db.execute(
-      sql`SELECT live_deployment_id, is_rolled_back, depot_project_id FROM projects WHERE id = ${project.id}`,
-    );
-    const projectRow = (row as any[])[0] as {
-      live_deployment_id: string | null;
-      is_rolled_back: boolean;
-      depot_project_id: string | null;
-    } | undefined;
+    const appId = newId("app");
 
     await db.insert(schema.apps).values({
       id: appId,
@@ -47,9 +36,9 @@ async function main() {
       projectId: project.id,
       name: "Default",
       slug: "default",
-      liveDeploymentId: projectRow?.live_deployment_id ?? null,
-      isRolledBack: projectRow?.is_rolled_back ?? false,
-      depotProjectId: projectRow?.depot_project_id ?? null,
+      liveDeploymentId: project.liveDeploymentId ?? null,
+      isRolledBack: project.isRolledBack ?? false,
+      depotProjectId: project.depotProjectId ?? null,
       createdAt: Date.now(),
     });
 
