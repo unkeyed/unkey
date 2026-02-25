@@ -147,8 +147,7 @@ type GitSource struct {
 	InstallationId int64 `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
 	// Full repository identifier (e.g., "owner/repo").
 	Repository string `protobuf:"bytes,2,opt,name=repository,proto3" json:"repository,omitempty"`
-	// Commit SHA to build. May be empty when branch is set — the worker resolves
-	// the branch HEAD before building.
+	// Commit SHA to build.
 	CommitSha string `protobuf:"bytes,3,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
 	// Subdirectory within the repository to use as the Docker build context.
 	ContextPath string `protobuf:"bytes,4,opt,name=context_path,json=contextPath,proto3" json:"context_path,omitempty"`

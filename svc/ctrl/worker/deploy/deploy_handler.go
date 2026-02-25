@@ -150,8 +150,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	case *hydrav1.DeployRequest_Git:
 		commitSHA := source.Git.GetCommitSha()
 
-		// Resolve branch→SHA when commit_sha is empty (e.g. Redeploy RPC passes
-		// only a branch)
+		// Resolve branch→SHA when commit_sha is empty (e.g. CreateDeployment with
+		// a GitTarget that specifies only a branch)
 		if commitSHA == "" && source.Git.GetBranch() != "" {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
 				return w.github.GetBranchHeadCommit(

@@ -43,13 +43,12 @@ const (
 	DeployServiceRollbackProcedure = "/ctrl.v1.DeployService/Rollback"
 	// DeployServicePromoteProcedure is the fully-qualified name of the DeployService's Promote RPC.
 	DeployServicePromoteProcedure = "/ctrl.v1.DeployService/Promote"
-	// DeployServiceRedeployProcedure is the fully-qualified name of the DeployService's Redeploy RPC.
-	DeployServiceRedeployProcedure = "/ctrl.v1.DeployService/Redeploy"
 )
 
 // DeployServiceClient is a client for the ctrl.v1.DeployService service.
 type DeployServiceClient interface {
-	// Create a new deployment with a prebuilt docker image
+	// Create a new deployment from a docker image, git source, or by
+	// auto-detecting the appropriate source for the project.
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
@@ -57,10 +56,6 @@ type DeployServiceClient interface {
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 	// Promote the deployment to the live environment
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
-	// Redeploy triggers a new deployment for a project+environment, resolving
-	// the latest commit from GitHub (for git-connected projects) or reusing the
-	// live deployment's Docker image (for non-git projects).
-	Redeploy(context.Context, *connect.Request[v1.RedeployRequest]) (*connect.Response[v1.RedeployResponse], error)
 }
 
 // NewDeployServiceClient constructs a client for the ctrl.v1.DeployService service. By default, it
@@ -98,12 +93,6 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(deployServiceMethods.ByName("Promote")),
 			connect.WithClientOptions(opts...),
 		),
-		redeploy: connect.NewClient[v1.RedeployRequest, v1.RedeployResponse](
-			httpClient,
-			baseURL+DeployServiceRedeployProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("Redeploy")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
@@ -113,7 +102,6 @@ type deployServiceClient struct {
 	getDeployment    *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 	rollback         *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
 	promote          *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
-	redeploy         *connect.Client[v1.RedeployRequest, v1.RedeployResponse]
 }
 
 // CreateDeployment calls ctrl.v1.DeployService.CreateDeployment.
@@ -136,14 +124,10 @@ func (c *deployServiceClient) Promote(ctx context.Context, req *connect.Request[
 	return c.promote.CallUnary(ctx, req)
 }
 
-// Redeploy calls ctrl.v1.DeployService.Redeploy.
-func (c *deployServiceClient) Redeploy(ctx context.Context, req *connect.Request[v1.RedeployRequest]) (*connect.Response[v1.RedeployResponse], error) {
-	return c.redeploy.CallUnary(ctx, req)
-}
-
 // DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
 type DeployServiceHandler interface {
-	// Create a new deployment with a prebuilt docker image
+	// Create a new deployment from a docker image, git source, or by
+	// auto-detecting the appropriate source for the project.
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
@@ -151,10 +135,6 @@ type DeployServiceHandler interface {
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 	// Promote the deployment to the live environment
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
-	// Redeploy triggers a new deployment for a project+environment, resolving
-	// the latest commit from GitHub (for git-connected projects) or reusing the
-	// live deployment's Docker image (for non-git projects).
-	Redeploy(context.Context, *connect.Request[v1.RedeployRequest]) (*connect.Response[v1.RedeployResponse], error)
 }
 
 // NewDeployServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -188,12 +168,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deployServiceMethods.ByName("Promote")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deployServiceRedeployHandler := connect.NewUnaryHandler(
-		DeployServiceRedeployProcedure,
-		svc.Redeploy,
-		connect.WithSchema(deployServiceMethods.ByName("Redeploy")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/ctrl.v1.DeployService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DeployServiceCreateDeploymentProcedure:
@@ -204,8 +178,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 			deployServiceRollbackHandler.ServeHTTP(w, r)
 		case DeployServicePromoteProcedure:
 			deployServicePromoteHandler.ServeHTTP(w, r)
-		case DeployServiceRedeployProcedure:
-			deployServiceRedeployHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -229,8 +201,4 @@ func (UnimplementedDeployServiceHandler) Rollback(context.Context, *connect.Requ
 
 func (UnimplementedDeployServiceHandler) Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.Promote is not implemented"))
-}
-
-func (UnimplementedDeployServiceHandler) Redeploy(context.Context, *connect.Request[v1.RedeployRequest]) (*connect.Response[v1.RedeployResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.Redeploy is not implemented"))
 }

@@ -907,21 +907,6 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
-	//FindProjectWithEnvironmentSettingsAndVars
-	//
-	//  SELECT
-	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.live_deployment_id, p.is_rolled_back, p.default_branch, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
-	//      ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
-	//      ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at,
-	//      COALESCE(...) AS environment_variables
-	//  FROM projects p
-	//  INNER JOIN environments e ON e.project_id = p.id AND e.workspace_id = p.workspace_id
-	//  INNER JOIN environment_build_settings ebs ON ebs.environment_id = e.id
-	//  INNER JOIN environment_runtime_settings ers ON ers.environment_id = e.id
-	//  WHERE p.id = ?
-	//    AND e.slug = ?
-	FindProjectWithEnvironmentSettingsAndVars(ctx context.Context, db DBTX, arg FindProjectWithEnvironmentSettingsAndVarsParams) (FindProjectWithEnvironmentSettingsAndVarsRow, error)
 	//FindProjectByWorkspaceSlug
 	//
 	//  SELECT
@@ -937,6 +922,29 @@ type Querier interface {
 	//  WHERE workspace_id = ? AND slug = ?
 	//  LIMIT 1
 	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
+	//FindProjectWithEnvironmentSettingsAndVars
+	//
+	//  SELECT
+	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.live_deployment_id, p.is_rolled_back, p.default_branch, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
+	//      ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
+	//      ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(JSON_OBJECT('key', ev.`key`, 'value', ev.value))
+	//           FROM environment_variables ev
+	//           WHERE ev.environment_id = e.id),
+	//          JSON_ARRAY()
+	//      ) AS environment_variables
+	//  FROM projects p
+	//  INNER JOIN environments e
+	//      ON e.project_id = p.id AND e.workspace_id = p.workspace_id
+	//  INNER JOIN environment_build_settings ebs
+	//      ON ebs.environment_id = e.id
+	//  INNER JOIN environment_runtime_settings ers
+	//      ON ers.environment_id = e.id
+	//  WHERE p.id = ?
+	//    AND e.slug = ?
+	FindProjectWithEnvironmentSettingsAndVars(ctx context.Context, db DBTX, arg FindProjectWithEnvironmentSettingsAndVarsParams) (FindProjectWithEnvironmentSettingsAndVarsRow, error)
 	//FindQuotaByWorkspaceID
 	//
 	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team

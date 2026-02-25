@@ -65,17 +65,17 @@ export const redeploy = workspaceProcedure
 
       // Pass the exact commit SHA so the worker skips GitHub branch-head
       // resolution (which requires a valid GitHub App token). If somehow the
-      // deployment has no SHA recorded, fall back to branch-head resolution.
-      const target: { case: "commitSha"; value: string } | { case: undefined; value?: undefined } =
+      // deployment has no SHA recorded, fall back to auto-detection.
+      const source: { case: "git"; value: { commitSha: string } } | { case: undefined } =
         deployment.gitCommitSha
-          ? { case: "commitSha", value: deployment.gitCommitSha }
+          ? { case: "git" as const, value: { commitSha: deployment.gitCommitSha } }
           : { case: undefined };
 
-      await ctrl
-        .redeploy({
+      const result = await ctrl
+        .createDeployment({
           projectId: deployment.project.id,
           environmentSlug: deployment.environment?.slug ?? "",
-          target,
+          source,
         })
         .catch((err) => {
           console.error(err);
@@ -100,7 +100,7 @@ export const redeploy = workspaceProcedure
         context: ctx.audit,
       });
 
-      return {};
+      return { deploymentId: result.deploymentId };
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

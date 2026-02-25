@@ -23,13 +23,16 @@ enum SourceType {
 
 message CreateDeploymentRequest {
   reserved 1; // was workspace_id, now inferred from project_id
+  reserved 3; // was top-level branch, now in GitCommitInfo
   string project_id = 2;
-  string branch = 3;
   string environment_slug = 4;
 
-  // Build source - currently only prebuilt docker images are supported via API
-  // GitHub source builds are triggered automatically via webhook
-  string docker_image = 6; // Prebuilt image reference
+  // When omitted: git-connected projects deploy HEAD of default branch;
+  // projects without a repo connection reuse the live deployment's Docker image.
+  oneof source {
+    string docker_image = 6;
+    GitTarget git = 10;
+  }
 
   // Git information
   optional GitCommitInfo git_commit = 7;
@@ -42,12 +45,19 @@ message CreateDeploymentRequest {
   repeated string command = 9;
 }
 
+// GitTarget specifies a git-based deployment source.
+message GitTarget {
+  string branch = 1; // defaults to project default branch if empty
+  string commit_sha = 2; // if empty, worker resolves HEAD of branch
+}
+
 message GitCommitInfo {
   string commit_sha = 1;
   string commit_message = 2;
   string author_handle = 3;
   string author_avatar_url = 4;
   int64 timestamp = 5; // Unix epoch milliseconds
+  string branch = 6; // branch metadata for docker_image deployments
 }
 
 message CreateDeploymentResponse {
@@ -131,22 +141,6 @@ message RegionalConfig {
   int32 max_instances = 3;
 }
 
-message RedeployRequest {
-  string project_id = 1;
-  string environment_slug = 2;
-
-  // If omitted, deploys HEAD of project's default branch.
-  oneof target {
-    string commit_sha = 3; // Deploy this exact commit
-    string branch = 4; // Deploy HEAD of this branch
-  }
-}
-
-message RedeployResponse {
-  string deployment_id = 1;
-  DeploymentStatus status = 2;
-}
-
 message RollbackRequest {
   string source_deployment_id = 1;
   string target_deployment_id = 2;
@@ -161,7 +155,8 @@ message PromoteRequest {
 message PromoteResponse {}
 
 service DeployService {
-  // Create a new deployment with a prebuilt docker image
+  // Create a new deployment from a docker image, git source, or by
+  // auto-detecting the appropriate source for the project.
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
 
   // Get deployment details
@@ -172,9 +167,4 @@ service DeployService {
 
   // Promote the deployment to the live environment
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
-
-  // Redeploy triggers a new deployment for a project+environment, resolving
-  // the latest commit from GitHub (for git-connected projects) or reusing the
-  // live deployment's Docker image (for non-git projects).
-  rpc Redeploy(RedeployRequest) returns (RedeployResponse) {}
 }

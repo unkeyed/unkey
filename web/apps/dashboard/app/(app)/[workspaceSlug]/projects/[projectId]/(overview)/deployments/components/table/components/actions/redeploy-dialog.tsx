@@ -1,8 +1,10 @@
 "use client";
 
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type Deployment, collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, toast } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 import { DeploymentSection } from "./components/deployment-section";
 
 type RedeployDialogProps = {
@@ -13,12 +15,22 @@ type RedeployDialogProps = {
 
 export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: RedeployDialogProps) => {
   const utils = trpc.useUtils();
+  const router = useRouter();
+  const workspace = useWorkspaceNavigation();
 
   const redeploy = trpc.deploy.deployment.redeploy.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       utils.invalidate();
       toast.success("Redeploy triggered", {
         description: "A new deployment has been queued",
+        action: {
+          label: "View deployment",
+          onClick: () => {
+            router.push(
+              `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${data.deploymentId}`,
+            );
+          },
+        },
       });
       try {
         collection.deployments.utils.refetch();

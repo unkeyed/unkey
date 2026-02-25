@@ -74,16 +74,26 @@ func (c *ConnectVaultServiceClient) Decrypt(ctx context.Context, req *v1.Decrypt
 }
 
 func (c *ConnectVaultServiceClient) EncryptBulk(ctx context.Context, req *v1.EncryptBulkRequest) (*v1.EncryptBulkResponse, error) {
+	ctx, span := tracing.Start(ctx, "VaultService.EncryptBulk")
+	defer span.End()
 	resp, err := c.inner.EncryptBulk(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
 }
 
 func (c *ConnectVaultServiceClient) DecryptBulk(ctx context.Context, req *v1.DecryptBulkRequest) (*v1.DecryptBulkResponse, error) {
+	ctx, span := tracing.Start(ctx, "VaultService.DecryptBulk")
+	defer span.End()
 	resp, err := c.inner.DecryptBulk(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
