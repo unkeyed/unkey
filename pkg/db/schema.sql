@@ -381,6 +381,36 @@ CREATE TABLE `environment_variables` (
 	CONSTRAINT `environment_id_key` UNIQUE(`environment_id`,`key`)
 );
 
+CREATE TABLE `environment_build_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
+	`docker_context` varchar(500) NOT NULL DEFAULT '.',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_build_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `env_build_settings_environment_id_idx` UNIQUE(`environment_id`)
+);
+
+CREATE TABLE `environment_runtime_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`port` int NOT NULL DEFAULT 8080,
+	`cpu_millicores` int NOT NULL DEFAULT 256,
+	`memory_mib` int NOT NULL DEFAULT 256,
+	`command` json NOT NULL DEFAULT ('[]'),
+	`healthcheck` json,
+	`region_config` json NOT NULL DEFAULT ('{}'),
+	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
+	`sentinel_config` longblob NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_runtime_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `env_runtime_settings_environment_id_idx` UNIQUE(`environment_id`)
+);
+
 CREATE TABLE `clickhouse_workspace_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -405,7 +435,10 @@ CREATE TABLE `projects` (
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
+	`live_deployment_id` varchar(256),
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
+	`depot_project_id` varchar(255),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
