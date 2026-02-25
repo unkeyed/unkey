@@ -15,6 +15,21 @@ import {
 import type { NavItem } from "./workspace-navigations";
 
 /**
+ * Shared constants for resource navigation
+ */
+export const RESOURCE_TYPE_ROUTES: Record<"api" | "project" | "namespace", string> = {
+  api: "apis",
+  project: "projects",
+  namespace: "ratelimits",
+};
+
+export const RESOURCE_TYPE_PLURAL: Record<"api" | "project" | "namespace", string> = {
+  api: "APIs",
+  project: "Projects",
+  namespace: "Namespaces",
+};
+
+/**
  * API Management Product Navigation (product-level)
  */
 export function createApiManagementNavigation(segments: string[], workspace: Workspace): NavItem[] {

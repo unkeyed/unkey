@@ -36,6 +36,14 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
   // Memoize segments to prevent unnecessary re-renders
   const segments = useMemo(() => rawSegments ?? [], [rawSegments]);
 
+  // Track context changes to trigger transition
+  const contextKey = useMemo(() => {
+    if (context.type === "resource") {
+      return `${context.resourceType}-${context.resourceId}`;
+    }
+    return context.product;
+  }, [context]);
+
   // Generate base navigation items based on context
   const baseNavItems = useMemo(() => {
     if (context.type === "resource") {
@@ -99,16 +107,18 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
   }, [apiName, projectName, namespaceName, onResourceNameFetched]);
 
   return (
-    <SidebarGroup>
-      <SidebarMenu className="gap-2">
-        {finalNavItems.map((item) => (
-          <NavItems
-            key={item.label as string}
-            item={item}
-            isResourceLevel={context.type === "resource"}
-          />
-        ))}
-      </SidebarMenu>
+    <SidebarGroup className="overflow-hidden">
+      <div key={contextKey} className="animate-in slide-in-from-right-4 fade-in duration-200">
+        <SidebarMenu className="gap-2">
+          {finalNavItems.map((item) => (
+            <NavItems
+              key={item.label as string}
+              item={item}
+              isResourceLevel={context.type === "resource"}
+            />
+          ))}
+        </SidebarMenu>
+      </div>
     </SidebarGroup>
   );
 }

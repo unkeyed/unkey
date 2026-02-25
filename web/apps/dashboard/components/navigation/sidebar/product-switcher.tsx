@@ -23,6 +23,21 @@ interface ProductConfig {
   icon: React.ComponentType<IconProps>;
 }
 
+const PRODUCTS: ProductConfig[] = [
+  {
+    id: "api-management",
+    name: "API Management",
+    description: "Manage APIs and keys",
+    icon: Layers3,
+  },
+  {
+    id: "deploy",
+    name: "Deploy",
+    description: "Deploy applications",
+    icon: CloudUp,
+  },
+];
+
 interface ProductSwitcherProps {
   workspace: Workspace;
   currentProduct: Product;
@@ -37,21 +52,6 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
 
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
-
-  const PRODUCTS: ProductConfig[] = [
-    {
-      id: "api-management",
-      name: "API Management",
-      description: "Manage APIs and keys",
-      icon: Layers3,
-    },
-    {
-      id: "deploy",
-      name: "Deploy",
-      description: "Deploy applications",
-      icon: CloudUp,
-    },
-  ];
 
   // Filter products based on workspace feature flags
   const availableProducts = PRODUCTS.filter((p) => {
@@ -98,6 +98,42 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
     </button>
   );
 
+  // Shared dropdown content
+  const dropdownContent = (
+    <DropdownMenuContent
+      className="w-72 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
+      align="start"
+      side={isCollapsed ? "right" : undefined}
+      sideOffset={isCollapsed ? 8 : undefined}
+    >
+      {availableProducts.map((prod) => {
+        const ProdIcon = prod.icon;
+        return (
+          <DropdownMenuItem
+            key={prod.id}
+            className="flex items-start gap-3 p-3 cursor-pointer"
+            onClick={() => {
+              switchProduct(prod.id);
+            }}
+          >
+            <ProdIcon className="w-5 h-5 shrink-0 text-gray-11 mt-0.5" />
+            <div className="flex flex-col">
+              <span
+                className={cn(
+                  "text-sm",
+                  prod.id === product ? "font-semibold text-gray-12" : "text-gray-11",
+                )}
+              >
+                {prod.name}
+              </span>
+              <span className="text-xs text-gray-10">{prod.description}</span>
+            </div>
+          </DropdownMenuItem>
+        );
+      })}
+    </DropdownMenuContent>
+  );
+
   if (isCollapsed) {
     return (
       <TooltipProvider>
@@ -105,38 +141,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
           <TooltipTrigger asChild>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-72 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
-                align="start"
-                side="right"
-                sideOffset={8}
-              >
-                {availableProducts.map((prod) => {
-                  const ProdIcon = prod.icon;
-                  return (
-                    <DropdownMenuItem
-                      key={prod.id}
-                      className="flex items-start gap-3 p-3 cursor-pointer"
-                      onClick={() => {
-                        switchProduct(prod.id);
-                      }}
-                    >
-                      <ProdIcon className="w-5 h-5 shrink-0 text-gray-11 mt-0.5" />
-                      <div className="flex flex-col">
-                        <span
-                          className={cn(
-                            "text-sm",
-                            prod.id === product ? "font-semibold text-gray-12" : "text-gray-11",
-                          )}
-                        >
-                          {prod.name}
-                        </span>
-                        <span className="text-xs text-gray-10">{prod.description}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
+              {dropdownContent}
             </DropdownMenu>
           </TooltipTrigger>
           <TooltipContent side="right" sideOffset={8}>
@@ -150,36 +155,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-72 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
-        align="start"
-      >
-        {availableProducts.map((prod) => {
-          const ProdIcon = prod.icon;
-          return (
-            <DropdownMenuItem
-              key={prod.id}
-              className="flex items-start gap-3 p-3 cursor-pointer"
-              onClick={() => {
-                switchProduct(prod.id);
-              }}
-            >
-              <ProdIcon className="w-5 h-5 shrink-0 text-gray-11 mt-0.5" />
-              <div className="flex flex-col">
-                <span
-                  className={cn(
-                    "text-sm",
-                    prod.id === product ? "font-semibold text-gray-12" : "text-gray-11",
-                  )}
-                >
-                  {prod.name}
-                </span>
-                <span className="text-xs text-gray-10">{prod.description}</span>
-              </div>
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
+      {dropdownContent}
     </DropdownMenu>
   );
 };

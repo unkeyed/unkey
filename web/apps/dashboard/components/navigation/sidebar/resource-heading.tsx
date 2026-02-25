@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  RESOURCE_TYPE_PLURAL,
+  RESOURCE_TYPE_ROUTES,
+} from "@/components/navigation/sidebar/navigation-configs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { ChevronLeft } from "@unkey/icons";
 import Link from "next/link";
@@ -10,18 +14,6 @@ interface ResourceHeadingProps {
   resourceId: string;
   resourceName?: string; // Optional - not used anymore since name is in nav
 }
-
-const RESOURCE_TYPE_PLURAL: Record<ResourceHeadingProps["resourceType"], string> = {
-  api: "APIs",
-  project: "Projects",
-  namespace: "Namespaces",
-};
-
-const RESOURCE_TYPE_ROUTES: Record<ResourceHeadingProps["resourceType"], string> = {
-  api: "apis",
-  project: "projects",
-  namespace: "ratelimits", // Namespaces are accessed via /ratelimits route
-};
 
 export const ResourceHeading: React.FC<ResourceHeadingProps> = ({ resourceType }) => {
   const workspace = useWorkspaceNavigation();

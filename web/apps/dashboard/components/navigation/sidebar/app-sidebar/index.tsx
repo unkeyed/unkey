@@ -1,5 +1,9 @@
 "use client";
 import { ContextNavigation } from "@/components/navigation/sidebar/context-navigation";
+import {
+  RESOURCE_TYPE_PLURAL,
+  RESOURCE_TYPE_ROUTES,
+} from "@/components/navigation/sidebar/navigation-configs";
 import { ProductSwitcher } from "@/components/navigation/sidebar/product-switcher";
 import { ResourceHeading } from "@/components/navigation/sidebar/resource-heading";
 import { WorkspaceSwitcher } from "@/components/navigation/sidebar/team-switcher";
@@ -26,18 +30,6 @@ import { HelpButton } from "../help-button";
 import { UsageBanner } from "../usage-banner";
 import type { NavItem } from "../workspace-navigations";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
-
-const RESOURCE_TYPE_ROUTES: Record<"api" | "project" | "namespace", string> = {
-  api: "apis",
-  project: "projects",
-  namespace: "ratelimits",
-};
-
-const RESOURCE_TYPE_PLURAL: Record<"api" | "project" | "namespace", string> = {
-  api: "APIs",
-  project: "Projects",
-  namespace: "Namespaces",
-};
 
 export function AppSidebar({
   ...props

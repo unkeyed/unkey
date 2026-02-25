@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getCurrentProduct } from "./use-product-selection";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
@@ -16,6 +16,7 @@ export type NavigationContext =
     };
 
 const STORAGE_KEY = "selected-product";
+const STORAGE_EVENT = "product-selection-changed";
 
 /**
  * Hook to detect the current navigation context based on route params and segments.
@@ -31,6 +32,18 @@ export function useNavigationContext(): NavigationContext {
   const segments = useSelectedLayoutSegments();
   const params = useParams();
   const workspace = useWorkspaceNavigation();
+
+  // Track localStorage changes via custom event
+  const [storageVersion, setStorageVersion] = useState(0);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setStorageVersion((v) => v + 1);
+    };
+
+    window.addEventListener(STORAGE_EVENT, handleStorageChange);
+    return () => window.removeEventListener(STORAGE_EVENT, handleStorageChange);
+  }, []);
 
   // Detect the current product from URL
   const detectedProduct = useMemo(() => {
@@ -75,6 +88,8 @@ export function useNavigationContext(): NavigationContext {
   }, [detectedProduct]);
 
   // Memoize the context to prevent unnecessary re-renders
+  // Include storageVersion to re-compute when localStorage changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: storageVersion forces re-computation on localStorage changes
   return useMemo(() => {
     // Detect resource-level context by checking for resource ID params
     if (params.apiId) {
@@ -115,5 +130,5 @@ export function useNavigationContext(): NavigationContext {
     // This ensures we don't change the product context when it's ambiguous
     const currentProduct = getCurrentProduct();
     return { type: "product", product: currentProduct };
-  }, [params, detectedProduct]);
+  }, [params, detectedProduct, storageVersion]);
 }
