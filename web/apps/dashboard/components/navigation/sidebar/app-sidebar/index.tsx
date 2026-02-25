@@ -83,9 +83,6 @@ export function AppSidebar({
   const { state, isMobile, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  // Determine if we should show resource heading
-  const showResourceHeading = context.type === "resource";
-
   // Determine which product to show in the switcher
   const currentProduct = useMemo((): "api-management" | "deploy" => {
     switch (context.type) {
@@ -132,7 +129,7 @@ export function AppSidebar({
         </div>
 
         {/* Resource Heading - only at resource-level, only when expanded */}
-        {showResourceHeading && !isCollapsed && context.type === "resource" && (
+        {context.type === "resource" && !isCollapsed && (
           <ResourceHeading
             resourceType={context.resourceType}
             resourceId={context.resourceId}
@@ -145,7 +142,6 @@ export function AppSidebar({
       isCollapsed,
       isMobile,
       toggleSidebar,
-      showResourceHeading,
       context,
       props.workspace,
       currentProduct,
@@ -160,7 +156,7 @@ export function AppSidebar({
         <SidebarContent className="px-2 flex flex-col justify-between">
           {/* Context-aware navigation */}
           <div className="flex flex-col gap-4">
-            {state === "collapsed" && (
+            {isCollapsed && (
               <SidebarGroup>
                 <SidebarMenu className="gap-2">
                   <ToggleSidebarButton
@@ -169,7 +165,7 @@ export function AppSidebar({
                   />
 
                   {/* Back button - only in collapsed state when viewing a resource */}
-                  {showResourceHeading && context.type === "resource" && (
+                  {context.type === "resource" && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link
