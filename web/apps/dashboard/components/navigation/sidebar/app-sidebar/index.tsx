@@ -31,6 +31,14 @@ import { UsageBanner } from "../usage-banner";
 import type { NavItem } from "../workspace-navigations";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
 
+const TOGGLE_NAV_ITEM: NavItem = {
+  label: "Toggle Sidebar",
+  href: "#",
+  icon: SidebarLeftShow,
+  active: false,
+  tooltip: "Toggle Sidebar",
+};
+
 export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
@@ -71,17 +79,6 @@ export function AppSidebar({
     }
     router.refresh();
   }, [router, props.workspace.id]);
-
-  const toggleNavItem: NavItem = useMemo(
-    () => ({
-      label: "Toggle Sidebar",
-      href: "#",
-      icon: SidebarLeftShow,
-      active: false,
-      tooltip: "Toggle Sidebar",
-    }),
-    [],
-  );
 
   const { state, isMobile, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -127,7 +124,7 @@ export function AppSidebar({
           )}
         >
           <ProductSwitcher workspace={props.workspace} currentProduct={currentProduct} />
-          {state !== "collapsed" && !isMobile && (
+          {!isCollapsed && !isMobile && (
             <button type="button" onClick={toggleSidebar} aria-label="Collapse sidebar">
               <SidebarLeftHide className="text-gray-8" iconSize="xl-medium" />
             </button>
@@ -139,14 +136,13 @@ export function AppSidebar({
           <ResourceHeading
             resourceType={context.resourceType}
             resourceId={context.resourceId}
-            resourceName={fetchedResourceName || context.resourceName}
+            resourceName={fetchedResourceName ?? context.resourceName}
           />
         )}
       </div>
     ),
     [
       isCollapsed,
-      state,
       isMobile,
       toggleSidebar,
       showResourceHeading,
@@ -168,7 +164,7 @@ export function AppSidebar({
               <SidebarGroup>
                 <SidebarMenu className="gap-2">
                   <ToggleSidebarButton
-                    toggleNavItem={toggleNavItem}
+                    toggleNavItem={TOGGLE_NAV_ITEM}
                     toggleSidebar={toggleSidebar}
                   />
 
