@@ -104,7 +104,7 @@ func (s *Service) CreateDeployment(
 
 	switch source := req.Msg.GetSource().(type) {
 	case *ctrlv1.CreateDeploymentRequest_DockerImage:
-		// Docker image source: deploy a prebuilt image directly
+		// Explicit docker image (CLI, REST API)
 		dockerImage := source.DockerImage
 		if dockerImage == "" {
 			return nil, connect.NewError(connect.CodeInvalidArgument,
@@ -149,40 +149,8 @@ func (s *Service) CreateDeployment(
 			},
 		}
 
-	case *ctrlv1.CreateDeploymentRequest_Git:
-		// Git source: build from a GitHub repo connection
-		repoConn, repoErr := db.Query.FindGithubRepoConnectionByProjectId(ctx, s.db.RO(), req.Msg.GetProjectId())
-		if repoErr != nil {
-			if db.IsNotFound(repoErr) {
-				return nil, connect.NewError(connect.CodeFailedPrecondition,
-					fmt.Errorf("project %q has no git connection; cannot deploy from git source", req.Msg.GetProjectId()))
-			}
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("failed to lookup github repo connection: %w", repoErr))
-		}
-
-		branch, commitSHA := resolveGitTarget(source.Git, project)
-		gitBranch = branch
-		gitCommitSha = commitSHA
-
-		deployReq = &hydrav1.DeployRequest{
-			DeploymentId: deploymentID,
-			KeyAuthId:    nil,
-			Command:      nil,
-			Source: &hydrav1.DeployRequest_Git{
-				Git: &hydrav1.GitSource{
-					InstallationId: repoConn.InstallationID,
-					Repository:     repoConn.RepositoryFullName,
-					CommitSha:      commitSHA,
-					ContextPath:    envSettings.EnvironmentBuildSetting.DockerContext,
-					DockerfilePath: envSettings.EnvironmentBuildSetting.Dockerfile,
-					Branch:         branch,
-				},
-			},
-		}
-
 	default:
-		// No source specified: auto-detect based on project configuration
+		// Source omitted (dashboard redeploy w/o commit SHA): auto-detect from project config
 		repoConn, repoErr := db.Query.FindGithubRepoConnectionByProjectId(ctx, s.db.RO(), req.Msg.GetProjectId())
 		hasRepoConnection := repoErr == nil
 		if repoErr != nil && !db.IsNotFound(repoErr) {
@@ -191,7 +159,7 @@ func (s *Service) CreateDeployment(
 		}
 
 		if hasRepoConnection {
-			// Git-connected: deploy HEAD of default branch
+			// Has github_repo_connections row: build HEAD of default branch
 			defaultBranch := project.DefaultBranch.String
 			if defaultBranch == "" {
 				defaultBranch = "main"
@@ -214,7 +182,7 @@ func (s *Service) CreateDeployment(
 				},
 			}
 		} else {
-			// Non-git: reuse the live deployment's Docker image
+			// No repo connection: redeploy the live deployment's Docker image
 			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, project, deploymentID)
 			if dockerErr != nil {
 				return nil, dockerErr
@@ -338,29 +306,6 @@ func validateGitCommitTimestamp(gitCommit *ctrlv1.GitCommitInfo) error {
 			fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp))
 	}
 	return nil
-}
-
-// resolveGitTarget extracts branch and commit SHA from a GitTarget message.
-// When a commit_sha is provided, branch defaults to the project's default
-// branch for metadata. When only a branch is provided, commit SHA is left empty
-// for the worker to resolve. When neither is provided, the project's default
-// branch is used.
-func resolveGitTarget(git *ctrlv1.GitTarget, project db.Project) (branch string, commitSHA string) {
-	defaultBranch := project.DefaultBranch.String
-	if defaultBranch == "" {
-		defaultBranch = "main"
-	}
-
-	if git == nil {
-		return defaultBranch, ""
-	}
-
-	branch = git.GetBranch()
-	if branch == "" {
-		branch = defaultBranch
-	}
-
-	return branch, git.GetCommitSha()
 }
 
 // buildDockerSource looks up the live deployment's Docker image and carries

@@ -27,11 +27,12 @@ message CreateDeploymentRequest {
   string project_id = 2;
   string environment_slug = 4;
 
+  reserved 10; // was GitTarget git, now handled by default auto-detection
+
   // When omitted: git-connected projects deploy HEAD of default branch;
   // projects without a repo connection reuse the live deployment's Docker image.
   oneof source {
     string docker_image = 6;
-    GitTarget git = 10;
   }
 
   // Git information
@@ -43,12 +44,6 @@ message CreateDeploymentRequest {
   // Container command override (e.g., ["./app", "serve"])
   // If not specified, the container's default entrypoint/cmd is used
   repeated string command = 9;
-}
-
-// GitTarget specifies a git-based deployment source.
-message GitTarget {
-  string branch = 1; // defaults to project default branch if empty
-  string commit_sha = 2; // if empty, worker resolves HEAD of branch
 }
 
 message GitCommitInfo {
@@ -155,8 +150,8 @@ message PromoteRequest {
 message PromoteResponse {}
 
 service DeployService {
-  // Create a new deployment from a docker image, git source, or by
-  // auto-detecting the appropriate source for the project.
+  // Create a new deployment from a docker image or by auto-detecting
+  // the appropriate source for the project.
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
 
   // Get deployment details

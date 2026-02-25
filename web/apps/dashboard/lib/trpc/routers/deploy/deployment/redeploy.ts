@@ -48,7 +48,6 @@ export const redeploy = workspaceProcedure
         columns: {
           id: true,
           projectId: true,
-          gitCommitSha: true,
         },
         with: {
           project: { columns: { id: true, name: true } },
@@ -63,19 +62,10 @@ export const redeploy = workspaceProcedure
         });
       }
 
-      // Pass the exact commit SHA so the worker skips GitHub branch-head
-      // resolution (which requires a valid GitHub App token). If somehow the
-      // deployment has no SHA recorded, fall back to auto-detection.
-      const source: { case: "git"; value: { commitSha: string } } | { case: undefined } =
-        deployment.gitCommitSha
-          ? { case: "git" as const, value: { commitSha: deployment.gitCommitSha } }
-          : { case: undefined };
-
       const result = await ctrl
         .createDeployment({
           projectId: deployment.project.id,
           environmentSlug: deployment.environment?.slug ?? "",
-          source,
         })
         .catch((err) => {
           console.error(err);
