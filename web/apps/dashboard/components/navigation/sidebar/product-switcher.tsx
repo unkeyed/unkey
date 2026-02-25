@@ -15,6 +15,7 @@ import type { IconProps } from "@unkey/icons";
 import { ChevronExpandY, CloudUp, Nodes } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import type React from "react";
+import { useState } from "react";
 
 interface ProductConfig {
   id: Product;
@@ -49,6 +50,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
 }) => {
   const { isMobile, state } = useSidebar();
   const { switchProduct } = useProductSelection();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
@@ -137,13 +139,13 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
   if (isCollapsed) {
     return (
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenu>
+        <Tooltip open={!isDropdownOpen}>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-              {dropdownContent}
-            </DropdownMenu>
-          </TooltipTrigger>
+            </TooltipTrigger>
+            {dropdownContent}
+          </DropdownMenu>
           <TooltipContent side="right" sideOffset={8}>
             <p className="text-xs">{currentProduct.name}</p>
           </TooltipContent>

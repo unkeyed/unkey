@@ -2,7 +2,7 @@
 
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { getCurrentProduct } from "./use-product-selection";
+import { STORAGE_EVENT, STORAGE_KEY, getCurrentProduct } from "./use-product-selection";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type NavigationContext =
@@ -15,8 +15,27 @@ export type NavigationContext =
       keyAuthId?: string; // For API resources, the keyspace/keyAuth ID
     };
 
-const STORAGE_KEY = "selected-product";
-const STORAGE_EVENT = "product-selection-changed";
+/**
+ * Safely extracts a single string value from Next.js route params.
+ * Handles both string and string[] param types.
+ * Returns undefined for missing or invalid params.
+ */
+function getParamSingle(
+  params: Record<string, string | string[] | undefined>,
+  key: string,
+): string | undefined {
+  const value = params[key];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Array.isArray(value) && value.length > 0) {
+    return value[0];
+  }
+  return undefined;
+}
 
 /**
  * Hook to detect the current navigation context based on route params and segments.
@@ -92,30 +111,35 @@ export function useNavigationContext(): NavigationContext {
   // biome-ignore lint/correctness/useExhaustiveDependencies: storageVersion forces re-computation on localStorage changes
   return useMemo(() => {
     // Detect resource-level context by checking for resource ID params
-    if (params.apiId) {
+    const apiId = getParamSingle(params, "apiId");
+    const keyAuthId = getParamSingle(params, "keyAuthId");
+    const projectId = getParamSingle(params, "projectId");
+    const namespaceId = getParamSingle(params, "namespaceId");
+
+    if (apiId) {
       return {
         type: "resource",
         resourceType: "api",
-        resourceId: params.apiId as string,
+        resourceId: apiId,
         resourceName: undefined,
-        keyAuthId: params.keyAuthId as string | undefined,
+        keyAuthId,
       };
     }
 
-    if (params.projectId) {
+    if (projectId) {
       return {
         type: "resource",
         resourceType: "project",
-        resourceId: params.projectId as string,
+        resourceId: projectId,
         resourceName: undefined,
       };
     }
 
-    if (params.namespaceId) {
+    if (namespaceId) {
       return {
         type: "resource",
         resourceType: "namespace",
-        resourceId: params.namespaceId as string,
+        resourceId: namespaceId,
         resourceName: undefined,
       };
     }

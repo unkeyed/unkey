@@ -44,7 +44,7 @@ export const CreateProjectDialog = () => {
         author: "will-be-replace-by-server",
         authorAvatar: "will-be-replace-by-server",
         branch: "will-be-replace-by-server",
-        commitTimestamp: 0,
+        commitTimestamp: null,
         commitTitle: "will-be-replace-by-server",
         domain: "will-be-replace-by-server",
         regions: [],

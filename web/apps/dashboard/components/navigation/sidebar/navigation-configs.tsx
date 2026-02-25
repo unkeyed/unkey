@@ -69,13 +69,6 @@ export function createApiManagementNavigation(segments: string[], workspace: Wor
       ],
     },
     {
-      icon: Grid,
-      href: "/monitors/verifications",
-      label: "Monitors",
-      active: segments.at(1) === "verifications",
-      hidden: !workspace?.features.webhooks,
-    },
-    {
       icon: Layers3,
       href: `${basePath}/logs`,
       label: "Logs",
@@ -87,7 +80,7 @@ export function createApiManagementNavigation(segments: string[], workspace: Wor
       label: "Identities",
       active: segments.at(1) === "identities" && !segments.at(2), // Only active at list level
     },
-  ].filter((n) => !n.hidden);
+  ];
 }
 
 /**

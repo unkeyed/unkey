@@ -46,6 +46,12 @@ export function AppSidebar({
     setFetchedResourceName(name);
   }, []);
 
+  // Clear fetched resource name when resource context changes
+  useEffect(() => {
+    // Reset name when context changes - this will be repopulated by ContextNavigation
+    setFetchedResourceName(undefined);
+  });
+
   // Refresh the router when workspace changes to update sidebar
   useEffect(() => {
     if (!props.workspace.id) {
@@ -72,18 +78,30 @@ export function AppSidebar({
   const showResourceHeading = context.type === "resource";
 
   // Determine which product to show in the switcher
-  const currentProduct = useMemo(() => {
-    if (context.type === "product") {
-      return context.product;
+  const currentProduct = useMemo((): "api-management" | "deploy" => {
+    switch (context.type) {
+      case "product":
+        return context.product;
+      case "resource": {
+        switch (context.resourceType) {
+          case "api":
+          case "namespace":
+            return "api-management";
+          case "project":
+            return "deploy";
+          default: {
+            // Exhaustiveness check - will cause compile error if new resource type added
+            const _exhaustive: never = context.resourceType;
+            return _exhaustive;
+          }
+        }
+      }
+      default: {
+        // Exhaustiveness check - will cause compile error if new context type added
+        const _exhaustive: never = context;
+        return _exhaustive;
+      }
     }
-    // Resource-level: determine product based on resource type
-    if (context.resourceType === "api" || context.resourceType === "namespace") {
-      return "api-management";
-    }
-    if (context.resourceType === "project") {
-      return "deploy";
-    }
-    return "api-management"; // fallback
   }, [context]);
 
   const headerContent = useMemo(
@@ -98,7 +116,7 @@ export function AppSidebar({
         >
           <ProductSwitcher workspace={props.workspace} currentProduct={currentProduct} />
           {state !== "collapsed" && !isMobile && (
-            <button type="button" onClick={toggleSidebar}>
+            <button type="button" onClick={toggleSidebar} aria-label="Collapse sidebar">
               <SidebarLeftHide className="text-gray-8" iconSize="xl-medium" />
             </button>
           )}
@@ -146,6 +164,7 @@ export function AppSidebar({
                         <Link
                           href={`/${workspace.slug}/${RESOURCE_TYPE_ROUTES[context.resourceType]}`}
                           className="flex items-center justify-center h-10 w-10 text-gray-11 hover:text-gray-12 hover:bg-gray-3 rounded-md transition-colors"
+                          aria-label={`Back to All ${RESOURCE_TYPE_PLURAL[context.resourceType]}`}
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </Link>

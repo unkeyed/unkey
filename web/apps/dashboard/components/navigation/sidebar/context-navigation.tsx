@@ -102,6 +102,9 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
         onResourceNameFetched(projectName);
       } else if (namespaceName) {
         onResourceNameFetched(namespaceName);
+      } else {
+        // Clear parent state when no name is available
+        onResourceNameFetched(undefined);
       }
     }
   }, [apiName, projectName, namespaceName, onResourceNameFetched]);
@@ -111,11 +114,7 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
       <div key={contextKey} className="animate-in slide-in-from-right-4 fade-in duration-200">
         <SidebarMenu className="gap-2">
           {finalNavItems.map((item) => (
-            <NavItems
-              key={item.label as string}
-              item={item}
-              isResourceLevel={context.type === "resource"}
-            />
+            <NavItems key={item.href} item={item} isResourceLevel={context.type === "resource"} />
           ))}
         </SidebarMenu>
       </div>

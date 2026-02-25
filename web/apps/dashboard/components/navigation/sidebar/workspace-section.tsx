@@ -76,7 +76,7 @@ export function WorkspaceSection() {
       {/* Workspace-level navigation items */}
       <SidebarMenu className="gap-2">
         {workspaceItems.map((item) => (
-          <NavItems key={item.label as string} item={item} />
+          <NavItems key={item.href} item={item} />
         ))}
       </SidebarMenu>
     </SidebarGroup>

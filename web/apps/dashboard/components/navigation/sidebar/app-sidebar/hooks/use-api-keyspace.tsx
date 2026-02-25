@@ -12,14 +12,13 @@ import { useMemo } from "react";
 export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
   const workspace = useWorkspaceNavigation();
 
-  // Fetch all APIs to find the one we need
-  const { data, isLoading } = trpc.api.overview.query.useInfiniteQuery(
+  // Fetch the specific API by ID
+  const { data, isLoading } = trpc.api.queryApiKeyDetails.useQuery(
     {
-      limit: 18, // Max allowed by the API
+      apiId: apiId ?? "",
     },
     {
       enabled: !!apiId,
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
     },
   );
 
@@ -42,17 +41,11 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
       });
     }
 
-    if (!data?.pages) {
+    if (!data?.currentApi) {
       return baseNavItems;
     }
 
-    // Find the API in the fetched data
-    const api = data.pages.flatMap((page) => page.apiList).find((a) => a.id === apiId);
-
-    // If API not found, return base items unchanged
-    if (!api) {
-      return baseNavItems;
-    }
+    const api = data.currentApi;
 
     // Find and update the parent API item and its Keys child
     return baseNavItems.map((item) => {
@@ -70,8 +63,8 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
         // Update the Keys child item
         updatedItem.items = item.items.map((childItem) => {
           if (childItem.label === "Keys") {
-            // If keyspaceId is null, keep the item disabled (API has no keys yet)
-            if (!api.keyspaceId) {
+            // If keyAuthId is null, keep the item disabled (API has no keys yet)
+            if (!api.keyAuthId) {
               return {
                 ...childItem,
                 disabled: true,
@@ -79,10 +72,10 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
               };
             }
 
-            // Update with the actual keyspaceId
+            // Update with the actual keyAuthId (keyspaceId)
             return {
               ...childItem,
-              href: `/${workspace.slug}/apis/${apiId}/keys/${api.keyspaceId}`,
+              href: `/${workspace.slug}/apis/${apiId}/keys/${api.keyAuthId}`,
               disabled: false,
             };
           }
@@ -97,12 +90,8 @@ export const useApiKeyspace = (baseNavItems: NavItem[], apiId?: string) => {
 
   // Get the API name if available
   const apiName = useMemo(() => {
-    if (!data?.pages || !apiId) {
-      return undefined;
-    }
-    const api = data.pages.flatMap((page) => page.apiList).find((a) => a.id === apiId);
-    return api?.name;
-  }, [data, apiId]);
+    return data?.currentApi?.name;
+  }, [data]);
 
   return {
     enhancedNavItems,
