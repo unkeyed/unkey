@@ -201,25 +201,36 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to decode commit response"))
 	}
 
-	message := commit.Commit.Message
+	return CommitInfoFromRaw(
+		commit.SHA,
+		commit.Commit.Message,
+		commit.Author.Login,
+		commit.Author.AvatarURL,
+		commit.Commit.Author.Date,
+	), nil
+}
+
+// CommitInfoFromRaw constructs a CommitInfo, truncating the message to the
+// first line and parsing an RFC3339 timestamp string.
+func CommitInfoFromRaw(sha, message, authorHandle, authorAvatarURL, timestamp string) CommitInfo {
 	if idx := strings.Index(message, "\n"); idx != -1 {
 		message = message[:idx]
 	}
 
 	var ts time.Time
-	if commit.Commit.Author.Date != "" {
-		if parsed, parseErr := time.Parse(time.RFC3339, commit.Commit.Author.Date); parseErr == nil {
+	if timestamp != "" {
+		if parsed, err := time.Parse(time.RFC3339, timestamp); err == nil {
 			ts = parsed
 		}
 	}
 
 	return CommitInfo{
-		SHA:             commit.SHA,
+		SHA:             sha,
 		Message:         message,
-		AuthorHandle:    commit.Author.Login,
-		AuthorAvatarURL: commit.Author.AvatarURL,
+		AuthorHandle:    authorHandle,
+		AuthorAvatarURL: authorAvatarURL,
 		Timestamp:       ts,
-	}, nil
+	}
 }
 
 // ghCommitResponse is the subset of GitHub's GET /repos/{owner}/{repo}/commits/{ref}
