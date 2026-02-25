@@ -102,6 +102,14 @@ func (s *Service) CreateDeployment(
 	var gitCommitTimestamp int64
 	var deployReq *hydrav1.DeployRequest
 
+	// Resolve request-level overrides once so all branches can use them.
+	keyspaceID := req.Msg.GetKeyspaceId()
+	var keyAuthID *string
+	if keyspaceID != "" {
+		keyAuthID = &keyspaceID
+	}
+	command := req.Msg.GetCommand()
+
 	if dockerImage := req.Msg.GetDockerImage(); dockerImage != "" {
 		// Explicit docker image (CLI, REST API)
 
@@ -126,16 +134,10 @@ func (s *Service) CreateDeployment(
 			"deployment_id", deploymentID,
 			"image", dockerImage)
 
-		keyspaceID := req.Msg.GetKeyspaceId()
-		var keySpaceID *string
-		if keyspaceID != "" {
-			keySpaceID = &keyspaceID
-		}
-
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    keySpaceID,
-			Command:      req.Msg.GetCommand(),
+			KeyAuthId:    keyAuthID,
+			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{
 					Image: dockerImage,
@@ -161,8 +163,8 @@ func (s *Service) CreateDeployment(
 
 			deployReq = &hydrav1.DeployRequest{
 				DeploymentId: deploymentID,
-				KeyAuthId:    nil,
-				Command:      nil,
+				KeyAuthId:    keyAuthID,
+				Command:      command,
 				Source: &hydrav1.DeployRequest_Git{
 					Git: &hydrav1.GitSource{
 						InstallationId: repoConn.InstallationID,
@@ -189,8 +191,8 @@ func (s *Service) CreateDeployment(
 
 			deployReq = &hydrav1.DeployRequest{
 				DeploymentId: deploymentID,
-				KeyAuthId:    nil,
-				Command:      nil,
+				KeyAuthId:    keyAuthID,
+				Command:      command,
 				Source: &hydrav1.DeployRequest_DockerImage{
 					DockerImage: &hydrav1.DockerImage{
 						Image: dockerInfo.dockerImage,
