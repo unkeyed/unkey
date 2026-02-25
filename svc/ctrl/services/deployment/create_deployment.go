@@ -204,6 +204,16 @@ func (s *Service) CreateDeployment(
 		Send(ctx, deployReq)
 	if err != nil {
 		logger.Error("failed to start deployment workflow", "error", err)
+
+		updateErr := db.Query.UpdateDeploymentStatus(ctx, s.db.RW(), db.UpdateDeploymentStatusParams{
+			ID:        deploymentID,
+			Status:    db.DeploymentsStatusFailed,
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+		if updateErr != nil {
+			logger.Error("failed to mark deployment as failed", "deployment_id", deploymentID, "error", updateErr)
+		}
+
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))
 	}
 
