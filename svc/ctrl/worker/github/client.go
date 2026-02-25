@@ -21,6 +21,28 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
+// ghCommitResponse is the subset of GitHub's GET /repos/{owner}/{repo}/commits/{ref}
+// response that we need.
+type ghCommitResponse struct {
+	SHA    string         `json:"sha"`
+	Commit ghCommitDetail `json:"commit"`
+	Author ghUser         `json:"author"`
+}
+
+type ghCommitDetail struct {
+	Message string         `json:"message"`
+	Author  ghCommitAuthor `json:"author"`
+}
+
+type ghCommitAuthor struct {
+	Date string `json:"date"`
+}
+
+type ghUser struct {
+	Login     string `json:"login"`
+	AvatarURL string `json:"avatar_url"`
+}
+
 // ClientConfig holds configuration for creating a [Client] instance.
 type ClientConfig struct {
 	// AppID is the numeric ID assigned to the GitHub App during registration.
@@ -153,7 +175,6 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 			return cache.WriteValue
 		},
 	)
-
 	if err != nil {
 		return InstallationToken{}, err
 	}
@@ -231,28 +252,6 @@ func CommitInfoFromRaw(sha, message, authorHandle, authorAvatarURL, timestamp st
 		AuthorAvatarURL: authorAvatarURL,
 		Timestamp:       ts,
 	}
-}
-
-// ghCommitResponse is the subset of GitHub's GET /repos/{owner}/{repo}/commits/{ref}
-// response that we need.
-type ghCommitResponse struct {
-	SHA    string         `json:"sha"`
-	Commit ghCommitDetail `json:"commit"`
-	Author ghUser         `json:"author"`
-}
-
-type ghCommitDetail struct {
-	Message string         `json:"message"`
-	Author  ghCommitAuthor `json:"author"`
-}
-
-type ghCommitAuthor struct {
-	Date string `json:"date"`
-}
-
-type ghUser struct {
-	Login     string `json:"login"`
-	AvatarURL string `json:"avatar_url"`
 }
 
 // VerifyWebhookSignature verifies a GitHub webhook signature using constant-time
