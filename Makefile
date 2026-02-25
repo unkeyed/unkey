@@ -92,8 +92,9 @@ generate: generate-sql ## Generate code from protobuf and other sources
 
 .PHONY: test
 test: ## Run tests with bazel
-	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 vault --wait
-	bazel test //...
+	bazel run //:unkey_image_load
+	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3  --wait
+	bazel test --test_env=DOCKERTEST_KEEP_CONTAINERS=$(DOCKERTEST_KEEP_CONTAINERS) //...
 	make clean-docker-test
 
 .PHONY: clean-docker-test

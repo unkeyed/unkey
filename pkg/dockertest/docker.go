@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 var (
@@ -31,6 +32,8 @@ type Container struct {
 
 	// Host is the hostname to connect to (typically "localhost").
 	Host string
+
+	ContainerName string
 
 	// Ports maps container ports to host ports.
 	// Key is the container port (e.g., "6379/tcp"), value is the host port.
@@ -74,6 +77,10 @@ type containerConfig struct {
 	// Keys are mount paths, values are mount options (e.g., "rw,noexec,size=256m").
 	Tmpfs map[string]string
 
+	// Binds mounts host paths into the container.
+	// Format: "/host/path:/container/path:ro".
+	Binds []string
+
 	// WaitStrategy determines how to detect container readiness.
 	// If nil, the container is considered ready immediately after starting.
 	WaitStrategy WaitStrategy
@@ -81,6 +88,14 @@ type containerConfig struct {
 	// WaitTimeout is the maximum time to wait for container readiness.
 	// Defaults to 30 seconds if zero.
 	WaitTimeout time.Duration
+
+	// NetworkName is the Docker network to attach the container to.
+	// Leave empty to use Docker's default networking.
+	NetworkName string
+
+	// Keep can be set to true to prevent the testsuite from cleaning up containers.
+	// Use it when you need the container to inspect logs or similar.
+	Keep bool
 }
 
 // getClient returns a shared Docker client instance.
@@ -173,15 +188,25 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 	ctx := context.Background()
 
 	// Create the container
-	containerName := strings.NewReplacer(
-		":", "-",
-		"/", "-",
-	).Replace(fmt.Sprintf("%s_%s_%d", cfg.Image, t.Name(), time.Now().UnixNano()))
+	containerName := uid.New("")
+	//strings.NewReplacer(
+	//	":", "-",
+	//	"/", "-",
+	//).Replace(fmt.Sprintf("%s_%s_%d", cfg.Image, t.Name(), time.Now().UnixNano()))
 
 	// Convert environment map to slice format ("KEY=VALUE")
 	var envSlice []string
 	for k, v := range cfg.Env {
 		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	var networkingConfig *network.NetworkingConfig
+	if cfg.NetworkName != "" {
+		networkingConfig = &network.NetworkingConfig{
+			EndpointsConfig: map[string]*network.EndpointSettings{
+				cfg.NetworkName: {},
+			},
+		}
 	}
 
 	resp, err := cli.ContainerCreate(
@@ -193,14 +218,16 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 			Cmd:          cfg.Cmd,
 			Labels: map[string]string{
 				"owner": "dockertest",
+				"test":  t.Name(),
 			},
 		},
 		&container.HostConfig{
 			PortBindings: portBindings,
 			AutoRemove:   false, // We handle removal in t.Cleanup
 			Tmpfs:        cfg.Tmpfs,
+			Binds:        cfg.Binds,
 		},
-		nil, // NetworkingConfig
+		networkingConfig,
 		nil, // Platform
 		containerName,
 	)
@@ -208,12 +235,14 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 
 	containerID := resp.ID
 
-	// Register cleanup to ensure container is removed when test completes
-	t.Cleanup(func() {
-		require.NoError(t, cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
-			Force: true,
-		}))
-	})
+	if !cfg.Keep {
+		// Register cleanup to ensure container is removed when test completes
+		t.Cleanup(func() {
+			require.NoError(t, cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
+				Force: true,
+			}))
+		})
+	}
 
 	// Start the container
 	require.NoError(t, cli.ContainerStart(ctx, containerID, container.StartOptions{}))
@@ -231,9 +260,10 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 	}
 
 	ctr := &Container{
-		ID:    containerID,
-		Host:  "localhost",
-		Ports: ports,
+		ID:            containerID,
+		Host:          "localhost",
+		Ports:         ports,
+		ContainerName: containerName,
 	}
 
 	// Wait for the container to be ready

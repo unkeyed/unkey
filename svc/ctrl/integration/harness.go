@@ -30,7 +30,7 @@ func New(t *testing.T) *Harness {
 
 	ctx := context.Background()
 
-	mysqlCfg := dockertest.MySQL(t)
+	mysqlCfg := dockertest.MySQL(t, nil)
 	mysqlHostDSN := mysqlCfg.DSN
 
 	database, err := db.New(db.Config{

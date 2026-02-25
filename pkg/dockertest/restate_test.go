@@ -10,7 +10,7 @@ import (
 )
 
 func TestRestate(t *testing.T) {
-	config := dockertest.Restate(t)
+	config := dockertest.Restate(t, nil)
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(config.AdminURL + "/health")

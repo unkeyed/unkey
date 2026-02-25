@@ -1,5 +1,7 @@
 load("@gazelle//:def.bzl", "gazelle")
 load("@rules_go//go:def.bzl", "go_binary", "go_library", "nogo")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 gazelle(name = "gazelle")
 
@@ -25,6 +27,51 @@ go_binary(
     out = "bin/unkey",
     embed = [":unkey_lib"],
     pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "unkey_linux_amd64",
+    out = "bin/unkey",
+    embed = [":unkey_lib"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "unkey_linux_arm64",
+    out = "bin/unkey",
+    embed = [":unkey_lib"],
+    goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:private"],
+)
+
+pkg_tar(
+    name = "unkey_tar",
+    srcs = select({
+        "@platforms//cpu:arm64": [":unkey_linux_arm64"],
+        "@platforms//cpu:x86_64": [":unkey_linux_amd64"],
+        "//conditions:default": [":unkey_linux_amd64"],
+    }),
+    package_dir = "/",
+    strip_prefix = "bin",
+)
+
+oci_image(
+    name = "unkey_image",
+    base = "@distroless_static",
+    entrypoint = ["/unkey"],
+    tars = [":unkey_tar"],
+)
+
+oci_load(
+    name = "unkey_image_load",
+    image = ":unkey_image",
+    repo_tags = ["unkey/unkey:latest"],
     visibility = ["//visibility:public"],
 )
 

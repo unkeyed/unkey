@@ -19,7 +19,7 @@ const (
 //
 // This function blocks until Redis is accepting TCP connections (up to 30s).
 // Fails the test if Docker is unavailable or the container fails to start.
-func Redis(t *testing.T) string {
+func Redis(t *testing.T, network *Network) string {
 	t.Helper()
 
 	ctr := startContainer(t, containerConfig{
@@ -30,6 +30,9 @@ func Redis(t *testing.T) string {
 		Env:          map[string]string{},
 		Cmd:          []string{},
 		Tmpfs:        nil,
+		Binds:        nil,
+		Keep:         false,
+		NetworkName:  networkName(network),
 	})
 
 	port := ctr.Port(redisPort)

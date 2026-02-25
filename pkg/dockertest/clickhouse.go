@@ -37,7 +37,7 @@ type ClickHouseConfig struct {
 // This function blocks until ClickHouse is accepting connections and
 // the schema has been applied. Fails the test if Docker is unavailable
 // or the container fails to start.
-func ClickHouse(t *testing.T) ClickHouseConfig {
+func ClickHouse(t *testing.T, network *Network) ClickHouseConfig {
 	t.Helper()
 
 	ctr := startContainer(t, containerConfig{
@@ -49,8 +49,11 @@ func ClickHouse(t *testing.T) ClickHouseConfig {
 			"CLICKHOUSE_USER":     clickhouseUser,
 			"CLICKHOUSE_PASSWORD": clickhousePassword,
 		},
-		Cmd:   []string{},
-		Tmpfs: nil,
+		Cmd:         []string{},
+		Tmpfs:       nil,
+		Binds:       nil,
+		Keep:        false,
+		NetworkName: networkName(network),
 	})
 
 	port := ctr.Port(clickhousePort)

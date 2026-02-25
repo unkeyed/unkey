@@ -35,7 +35,7 @@ type MySQLConfig struct {
 // The container is based on the local dev image with preloaded schema.
 // This function blocks until the MySQL port is accepting TCP connections
 // (up to 60s). Fails the test if Docker is unavailable or the container fails to start.
-func MySQL(t *testing.T) MySQLConfig {
+func MySQL(t *testing.T, network *Network) MySQLConfig {
 	t.Helper()
 
 	containerStart := time.Now()
@@ -69,6 +69,9 @@ func MySQL(t *testing.T) MySQLConfig {
 		Tmpfs: map[string]string{
 			"/var/lib/mysql": "rw,noexec,nosuid,size=256m",
 		},
+		Binds:       nil,
+		Keep:        false,
+		NetworkName: networkName(network),
 	})
 	t.Logf("  MySQL container started in %s", time.Since(containerStart))
 

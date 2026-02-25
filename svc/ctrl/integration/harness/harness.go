@@ -98,21 +98,21 @@ func New(t *testing.T) *Harness {
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		restateCfg = dockertest.Restate(t)
+		restateCfg = dockertest.Restate(t, nil)
 		t.Logf("Restate started in %s", time.Since(s))
 	}()
 
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		mysqlCfg = dockertest.MySQL(t)
+		mysqlCfg = dockertest.MySQL(t, nil)
 		t.Logf("MySQL started in %s", time.Since(s))
 	}()
 
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		chCfg = dockertest.ClickHouse(t)
+		chCfg = dockertest.ClickHouse(t, nil)
 		t.Logf("ClickHouse started in %s", time.Since(s))
 	}()
 

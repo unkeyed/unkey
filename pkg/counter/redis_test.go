@@ -14,7 +14,7 @@ import (
 
 func TestRedisCounter(t *testing.T) {
 	ctx := context.Background()
-	redisURL := dockertest.Redis(t)
+	redisURL := dockertest.Redis(t, nil)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -320,7 +320,7 @@ func TestRedisCounterConnection(t *testing.T) {
 
 func TestRedisCounterMultiGet(t *testing.T) {
 	ctx := context.Background()
-	redisURL := dockertest.Redis(t)
+	redisURL := dockertest.Redis(t, nil)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -441,7 +441,7 @@ func TestRedisCounterMultiGet(t *testing.T) {
 
 func TestRedisCounterDecrement(t *testing.T) {
 	ctx := context.Background()
-	redisURL := dockertest.Redis(t)
+	redisURL := dockertest.Redis(t, nil)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -532,7 +532,7 @@ func TestRedisCounterDecrement(t *testing.T) {
 
 func TestRedisCounterDecrementIfExists(t *testing.T) {
 	ctx := context.Background()
-	redisURL := dockertest.Redis(t)
+	redisURL := dockertest.Redis(t, nil)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -643,7 +643,7 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 // TestRedisCounterDelete tests the Delete operation on the Redis counter.
 func TestRedisCounterDelete(t *testing.T) {
 	ctx := context.Background()
-	redisURL := dockertest.Redis(t)
+	redisURL := dockertest.Redis(t, nil)
 
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
@@ -721,7 +721,7 @@ func TestRedisCounterDelete(t *testing.T) {
 // TestRedisCounterDecrementLogic tests the decrement logic that avoids negative values
 func TestRedisCounterDecrementLogic(t *testing.T) {
 	ctx := context.Background()
-	redisURL := dockertest.Redis(t)
+	redisURL := dockertest.Redis(t, nil)
 
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,

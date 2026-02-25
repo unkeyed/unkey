@@ -26,7 +26,9 @@
 // Each service function starts a container and returns connection information:
 //
 //	func TestRedisIntegration(t *testing.T) {
-//	    redisURL := dockertest.Redis(t)
+//	    network, cleanup := dockertest.CreateNetwork(t)
+//	    t.Cleanup(cleanup)
+//	    redisURL := dockertest.Redis(t, &network)
 //	    // redisURL is "redis://localhost:{randomPort}"
 //	    // Container is automatically removed when test completes
 //	}

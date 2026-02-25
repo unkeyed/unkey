@@ -20,9 +20,9 @@ import (
 func TestContextCancellation(t *testing.T) {
 
 	// Use testcontainers for dynamic service management
-	mysqlCfg := dockertest.MySQL(t)
+	mysqlCfg := dockertest.MySQL(t, nil)
 	dbDsn := mysqlCfg.DSN
-	redisUrl := dockertest.Redis(t)
+	redisUrl := dockertest.Redis(t, nil)
 
 	// Create ephemeral listener
 	ln, err := net.Listen("tcp", ":0")

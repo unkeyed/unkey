@@ -24,7 +24,7 @@ type RestateConfig struct {
 // The container is automatically removed when the test completes via t.Cleanup.
 // This function blocks until the admin health endpoint responds (up to 30s).
 // Fails the test if Docker is unavailable or the container fails to start.
-func Restate(t *testing.T) RestateConfig {
+func Restate(t *testing.T, network *Network) RestateConfig {
 	t.Helper()
 
 	ctr := startContainer(t, containerConfig{
@@ -35,6 +35,9 @@ func Restate(t *testing.T) RestateConfig {
 		Env:          map[string]string{},
 		Cmd:          []string{},
 		Tmpfs:        nil,
+		Binds:        nil,
+		Keep:         false,
+		NetworkName:  networkName(network),
 	})
 
 	return RestateConfig{

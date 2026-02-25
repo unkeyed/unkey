@@ -39,8 +39,8 @@ type testHarness struct {
 func newTestHarness(t *testing.T) *testHarness {
 	t.Helper()
 
-	mysqlCfg := dockertest.MySQL(t)
-	redisURL := dockertest.Redis(t)
+	mysqlCfg := dockertest.MySQL(t, nil)
+	redisURL := dockertest.Redis(t, nil)
 
 	clk := clock.New()
 

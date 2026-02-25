@@ -8,7 +8,7 @@ import (
 
 const (
 	minioImage = "quay.io/minio/minio:latest"
-	minioPort  = "9000/tcp"
+	minioPort  = 9000
 
 	// Default MinIO credentials used for test containers.
 	minioAccessKey = "minioadmin"
@@ -20,8 +20,11 @@ const (
 // The returned configuration can be used directly with AWS SDK, MinIO client,
 // or any S3-compatible client library. Credentials are set to MinIO defaults.
 type S3Config struct {
-	// URL is the S3 endpoint URL (e.g., "http://localhost:54321").
-	URL string
+	// HostURL is the S3 endpoint URL reachable from the host (e.g., "http://localhost:54321").
+	HostURL string
+	// ContainerURL is the S3 endpoint URL reachable from another container (e.g., "http://s3:54321").
+
+	ContainerURL string
 
 	// AccessKeyID is the access key for authentication.
 	AccessKeyID string
@@ -43,32 +46,38 @@ type S3Config struct {
 // Example usage:
 //
 //	func TestS3Integration(t *testing.T) {
-//	    s3 := dockertest.S3(t)
-//	    client, err := minio.New(s3.URL, &minio.Options{
+//	    s3 := dockertest.S3(t, nil)
+//	    client, err := minio.New(s3.HostURL, &minio.Options{
 //	        Creds: credentials.NewStaticV4(s3.AccessKeyID, s3.SecretAccessKey, ""),
 //	    })
 //	    require.NoError(t, err)
 //	    // Use client...
 //	}
-func S3(t *testing.T) S3Config {
+func S3(t *testing.T, network *Network) S3Config {
 	t.Helper()
+
+	tcpPort := fmt.Sprintf("%d/tcp", minioPort)
 
 	ctr := startContainer(t, containerConfig{
 		Image:        minioImage,
-		ExposedPorts: []string{minioPort},
+		ExposedPorts: []string{tcpPort},
 		Env: map[string]string{
 			"MINIO_ROOT_USER":     minioAccessKey,
 			"MINIO_ROOT_PASSWORD": minioSecretKey,
 		},
 		Cmd:          []string{"server", "/data"},
-		WaitStrategy: NewHTTPWait(minioPort, "/minio/health/live"),
+		WaitStrategy: NewHTTPWait(tcpPort, "/minio/health/live"),
 		WaitTimeout:  30 * time.Second,
 		Tmpfs:        nil,
+		Binds:        nil,
+		Keep:         false,
+		NetworkName:  networkName(network),
 	})
 
-	port := ctr.Port(minioPort)
+	port := ctr.Port(tcpPort)
 	return S3Config{
-		URL:             fmt.Sprintf("http://localhost:%s", port),
+		HostURL:         fmt.Sprintf("http://localhost:%s", port),
+		ContainerURL:    fmt.Sprintf("http://%s:%d", ctr.ContainerName, minioPort),
 		AccessKeyID:     minioAccessKey,
 		SecretAccessKey: minioSecretKey,
 	}
