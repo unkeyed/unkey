@@ -236,17 +236,23 @@ func CommitInfoFromRaw(sha, message, authorHandle, authorAvatarURL, timestamp st
 // ghCommitResponse is the subset of GitHub's GET /repos/{owner}/{repo}/commits/{ref}
 // response that we need.
 type ghCommitResponse struct {
-	SHA    string `json:"sha"`
-	Commit struct {
-		Message string `json:"message"`
-		Author  struct {
-			Date string `json:"date"`
-		} `json:"author"`
-	} `json:"commit"`
-	Author struct {
-		Login     string `json:"login"`
-		AvatarURL string `json:"avatar_url"`
-	} `json:"author"`
+	SHA    string         `json:"sha"`
+	Commit ghCommitDetail `json:"commit"`
+	Author ghUser         `json:"author"`
+}
+
+type ghCommitDetail struct {
+	Message string         `json:"message"`
+	Author  ghCommitAuthor `json:"author"`
+}
+
+type ghCommitAuthor struct {
+	Date string `json:"date"`
+}
+
+type ghUser struct {
+	Login     string `json:"login"`
+	AvatarURL string `json:"avatar_url"`
 }
 
 // VerifyWebhookSignature verifies a GitHub webhook signature using constant-time
