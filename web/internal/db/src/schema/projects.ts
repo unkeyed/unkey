@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -18,7 +18,10 @@ export const projects = mysqlTable(
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
 
+    liveDeploymentId: varchar("live_deployment_id", { length: 256 }),
+    isRolledBack: boolean("is_rolled_back").notNull().default(false),
     defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
+    depotProjectId: varchar("depot_project_id", { length: 255 }),
 
     ...deleteProtection,
     ...lifecycleDates,

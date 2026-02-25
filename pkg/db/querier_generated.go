@@ -1459,6 +1459,7 @@ type Querier interface {
 	//
 	//  INSERT INTO github_repo_connections (
 	//      project_id,
+	//      app_id,
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
@@ -1466,6 +1467,7 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1953,6 +1955,7 @@ type Querier interface {
 	//  SELECT
 	//      pk,
 	//      project_id,
+	//      app_id,
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
