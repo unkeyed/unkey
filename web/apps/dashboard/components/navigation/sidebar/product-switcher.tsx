@@ -12,7 +12,7 @@ import { useProductSelection } from "@/hooks/use-product-selection";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import type { IconProps } from "@unkey/icons";
-import { ChevronExpandY, CloudUp, Layers3 } from "@unkey/icons";
+import { ChevronExpandY, CloudUp, Nodes } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import type React from "react";
 
@@ -28,7 +28,7 @@ const PRODUCTS: ProductConfig[] = [
     id: "api-management",
     name: "API Management",
     description: "Manage APIs and keys",
-    icon: Layers3,
+    icon: Nodes,
   },
   {
     id: "deploy",
