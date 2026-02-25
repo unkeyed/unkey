@@ -102,14 +102,8 @@ func (s *Service) CreateDeployment(
 	var gitCommitTimestamp int64
 	var deployReq *hydrav1.DeployRequest
 
-	switch source := req.Msg.GetSource().(type) {
-	case *ctrlv1.CreateDeploymentRequest_DockerImage:
+	if dockerImage := req.Msg.GetDockerImage(); dockerImage != "" {
 		// Explicit docker image (CLI, REST API)
-		dockerImage := source.DockerImage
-		if dockerImage == "" {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("docker_image is required when source is docker_image"))
-		}
 
 		// Resolve branch from git_commit metadata or project default
 		gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), project)
@@ -148,8 +142,7 @@ func (s *Service) CreateDeployment(
 				},
 			},
 		}
-
-	default:
+	} else {
 		// Source omitted (dashboard redeploy w/o commit SHA): auto-detect from project config
 		repoConn, repoErr := db.Query.FindGithubRepoConnectionByProjectId(ctx, s.db.RO(), req.Msg.GetProjectId())
 		hasRepoConnection := repoErr == nil

@@ -87,9 +87,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       req.ProjectId,
 		EnvironmentSlug: req.EnvironmentSlug,
-		Source: &ctrlv1.CreateDeploymentRequest_DockerImage{
-			DockerImage: req.DockerImage,
-		},
+		DockerImage:     req.DockerImage,
 		GitCommit: &ctrlv1.GitCommitInfo{
 			Branch: req.Branch,
 		},

@@ -62,9 +62,7 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 	resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
 		ProjectId:       project.ID,
 		EnvironmentSlug: environment.Slug,
-		Source: &ctrlv1.CreateDeploymentRequest_DockerImage{
-			DockerImage: "nginx:latest",
-		},
+		DockerImage:     "nginx:latest",
 	}))
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Msg.GetDeploymentId())

@@ -139,11 +139,7 @@ type CreateDeploymentRequest struct {
 	EnvironmentSlug string                 `protobuf:"bytes,4,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
 	// When omitted: git-connected projects deploy HEAD of default branch;
 	// projects without a repo connection reuse the live deployment's Docker image.
-	//
-	// Types that are valid to be assigned to Source:
-	//
-	//	*CreateDeploymentRequest_DockerImage
-	Source isCreateDeploymentRequest_Source `protobuf_oneof:"source"`
+	DockerImage string `protobuf:"bytes,6,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
 	// Git information
 	GitCommit *GitCommitInfo `protobuf:"bytes,7,opt,name=git_commit,json=gitCommit,proto3,oneof" json:"git_commit,omitempty"`
 	// Authentication
@@ -199,18 +195,9 @@ func (x *CreateDeploymentRequest) GetEnvironmentSlug() string {
 	return ""
 }
 
-func (x *CreateDeploymentRequest) GetSource() isCreateDeploymentRequest_Source {
-	if x != nil {
-		return x.Source
-	}
-	return nil
-}
-
 func (x *CreateDeploymentRequest) GetDockerImage() string {
 	if x != nil {
-		if x, ok := x.Source.(*CreateDeploymentRequest_DockerImage); ok {
-			return x.DockerImage
-		}
+		return x.DockerImage
 	}
 	return ""
 }
@@ -235,16 +222,6 @@ func (x *CreateDeploymentRequest) GetCommand() []string {
 	}
 	return nil
 }
-
-type isCreateDeploymentRequest_Source interface {
-	isCreateDeploymentRequest_Source()
-}
-
-type CreateDeploymentRequest_DockerImage struct {
-	DockerImage string `protobuf:"bytes,6,opt,name=docker_image,json=dockerImage,proto3,oneof"`
-}
-
-func (*CreateDeploymentRequest_DockerImage) isCreateDeploymentRequest_Source() {}
 
 type GitCommitInfo struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
@@ -1062,21 +1039,19 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xbf\x02\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xad\x02\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12)\n" +
-	"\x10environment_slug\x18\x04 \x01(\tR\x0fenvironmentSlug\x12#\n" +
-	"\fdocker_image\x18\x06 \x01(\tH\x00R\vdockerImage\x12:\n" +
+	"\x10environment_slug\x18\x04 \x01(\tR\x0fenvironmentSlug\x12!\n" +
+	"\fdocker_image\x18\x06 \x01(\tR\vdockerImage\x12:\n" +
 	"\n" +
-	"git_commit\x18\a \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x01R\tgitCommit\x88\x01\x01\x12$\n" +
-	"\vkeyspace_id\x18\b \x01(\tH\x02R\n" +
+	"git_commit\x18\a \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12$\n" +
+	"\vkeyspace_id\x18\b \x01(\tH\x01R\n" +
 	"keyspaceId\x88\x01\x01\x12\x18\n" +
-	"\acommand\x18\t \x03(\tR\acommandB\b\n" +
-	"\x06sourceB\r\n" +
+	"\acommand\x18\t \x03(\tR\acommandB\r\n" +
 	"\v_git_commitB\x0e\n" +
-	"\f_keyspace_idJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04J\x04\b\n" +
-	"\x10\v\"\xdc\x01\n" +
+	"\f_keyspace_idJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04\"\xdc\x01\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x01 \x01(\tR\tcommitSha\x12%\n" +
@@ -1230,9 +1205,7 @@ func file_ctrl_v1_deployment_proto_init() {
 	if File_ctrl_v1_deployment_proto != nil {
 		return
 	}
-	file_ctrl_v1_deployment_proto_msgTypes[0].OneofWrappers = []any{
-		(*CreateDeploymentRequest_DockerImage)(nil),
-	}
+	file_ctrl_v1_deployment_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

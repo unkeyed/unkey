@@ -27,13 +27,9 @@ message CreateDeploymentRequest {
   string project_id = 2;
   string environment_slug = 4;
 
-  reserved 10; // was GitTarget git, now handled by default auto-detection
-
   // When omitted: git-connected projects deploy HEAD of default branch;
   // projects without a repo connection reuse the live deployment's Docker image.
-  oneof source {
-    string docker_image = 6;
-  }
+  string docker_image = 6;
 
   // Git information
   optional GitCommitInfo git_commit = 7;
