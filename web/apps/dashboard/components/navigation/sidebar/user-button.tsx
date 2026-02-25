@@ -25,17 +25,10 @@ type UserButtonProps = {
   className?: string;
 };
 
-export const UserButton: React.FC<UserButtonProps> = ({
-  isCollapsed = false,
-  isMobile = false,
-  isMobileSidebarOpen = false,
-  className,
-}) => {
-  const { data: user, isLoading } = trpc.user.getCurrentUser.useQuery();
+export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, className }) => {
+  const { data: user } = trpc.user.getCurrentUser.useQuery();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
-
-  const displayName = user?.fullName ?? user?.email ?? "";
 
   return (
     <DropdownMenu>
@@ -55,15 +48,6 @@ export const UserButton: React.FC<UserButtonProps> = ({
               {user ? (user?.fullName ?? "U").slice(0, 1).toUpperCase() : null}
             </AvatarFallback>
           </Avatar>
-          {!isCollapsed || (isMobile && isMobileSidebarOpen) ? (
-            isLoading ? (
-              <div className="bg-gray-5 animate-pulse rounded-lg w-24 h-4" />
-            ) : (
-              <span className="overflow-hidden text-ellipsis text-accent-12 text-sm font-medium">
-                {displayName}
-              </span>
-            )
-          ) : null}
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="end">
