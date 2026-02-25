@@ -158,19 +158,22 @@ export function AppSidebar({
   );
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="px-4 items-center pt-4">{headerContent}</SidebarHeader>
-      <SidebarContent className="px-2 flex flex-col justify-between">
-        {/* Context-aware navigation */}
-        <div className="flex flex-col gap-4">
-          {state === "collapsed" && (
-            <SidebarGroup>
-              <SidebarMenu className="gap-2">
-                <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
+    <TooltipProvider>
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader className="px-4 items-center pt-4">{headerContent}</SidebarHeader>
+        <SidebarContent className="px-2 flex flex-col justify-between">
+          {/* Context-aware navigation */}
+          <div className="flex flex-col gap-4">
+            {state === "collapsed" && (
+              <SidebarGroup>
+                <SidebarMenu className="gap-2">
+                  <ToggleSidebarButton
+                    toggleNavItem={toggleNavItem}
+                    toggleSidebar={toggleSidebar}
+                  />
 
-                {/* Back button - only in collapsed state when viewing a resource */}
-                {showResourceHeading && context.type === "resource" && (
-                  <TooltipProvider>
+                  {/* Back button - only in collapsed state when viewing a resource */}
+                  {showResourceHeading && context.type === "resource" && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link
@@ -187,38 +190,44 @@ export function AppSidebar({
                         </p>
                       </TooltipContent>
                     </Tooltip>
-                  </TooltipProvider>
-                )}
-              </SidebarMenu>
+                  )}
+                </SidebarMenu>
+              </SidebarGroup>
+            )}
+
+            <ContextNavigation
+              context={context}
+              onResourceNameFetched={handleResourceNameFetched}
+            />
+
+            {/* Workspace section with border-top separator */}
+            <div className="border-t border-grayA-4 pt-4">
+              <WorkspaceSection />
+            </div>
+          </div>
+
+          {/* Bottom section: Usage banner */}
+          <div className="flex flex-col gap-2">
+            <SidebarGroup>
+              <UsageBanner quotas={props.workspace.quotas} />
             </SidebarGroup>
+          </div>
+        </SidebarContent>
+        <SidebarFooter>
+          {/* Workspace switcher with help button - hidden on mobile */}
+          {!isMobile && (
+            <div
+              className={cn(
+                "flex items-center gap-2",
+                isCollapsed ? "flex-col" : "justify-between",
+              )}
+            >
+              <WorkspaceSwitcher />
+              <HelpButton />
+            </div>
           )}
-
-          <ContextNavigation context={context} onResourceNameFetched={handleResourceNameFetched} />
-
-          {/* Workspace section with border-top separator */}
-          <div className="border-t border-grayA-4 pt-4">
-            <WorkspaceSection />
-          </div>
-        </div>
-
-        {/* Bottom section: Usage banner */}
-        <div className="flex flex-col gap-2">
-          <SidebarGroup>
-            <UsageBanner quotas={props.workspace.quotas} />
-          </SidebarGroup>
-        </div>
-      </SidebarContent>
-      <SidebarFooter>
-        {/* Workspace switcher with help button - hidden on mobile */}
-        {!isMobile && (
-          <div
-            className={cn("flex items-center gap-2", isCollapsed ? "flex-col" : "justify-between")}
-          >
-            <WorkspaceSwitcher />
-            <HelpButton />
-          </div>
-        )}
-      </SidebarFooter>
-    </Sidebar>
+        </SidebarFooter>
+      </Sidebar>
+    </TooltipProvider>
   );
 }
