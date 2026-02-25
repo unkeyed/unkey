@@ -4,6 +4,7 @@ go_library(
     name = "dockertest",
     srcs = [
         "clickhouse.go",
+        "cluster.go",
         "doc.go",
         "docker.go",
         "mysql.go",

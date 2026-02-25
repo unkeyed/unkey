@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/client"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -15,13 +16,9 @@ type Network struct {
 	Name string
 }
 
-// CreateNetwork creates a Docker network for tests and returns a cleanup function.
-//
-// Call the returned cleanup function when the network is no longer needed.
-func CreateNetwork(t *testing.T) (Network, func()) {
+func createNetwork(t *testing.T, cli *client.Client) (Network, func()) {
 	t.Helper()
 
-	cli := getClient(t)
 	ctx := context.Background()
 
 	name := uid.New(uid.Prefix("dockertest"))
@@ -53,11 +50,4 @@ func CreateNetwork(t *testing.T) (Network, func()) {
 		ID:   resp.ID,
 		Name: name,
 	}, cleanup
-}
-
-func networkName(net *Network) string {
-	if net == nil {
-		return ""
-	}
-	return net.Name
 }

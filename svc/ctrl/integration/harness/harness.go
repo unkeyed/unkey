@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"runtime"
-	"sync"
 	"testing"
 	"time"
 
@@ -86,56 +85,24 @@ func New(t *testing.T) *Harness {
 
 	start := time.Now()
 
-	// Start all containers in parallel
-	var wg sync.WaitGroup
-	var restateCfg dockertest.RestateConfig
-	var mysqlCfg dockertest.MySQLConfig
-	var chCfg dockertest.ClickHouseConfig
-	var testVault *vaulttestutil.TestVault
+	cluster := dockertest.New(t)
+	restateCfg := cluster.Restate()
+	mysqlCfg := cluster.MySQL()
+	clickhouseCfg := cluster.ClickHouse()
+	testVault := vaulttestutil.StartTestVault(t)
 
-	wg.Add(4)
-
-	go func() {
-		defer wg.Done()
-		s := time.Now()
-		restateCfg = dockertest.Restate(t, nil)
-		t.Logf("Restate started in %s", time.Since(s))
-	}()
-
-	go func() {
-		defer wg.Done()
-		s := time.Now()
-		mysqlCfg = dockertest.MySQL(t, nil)
-		t.Logf("MySQL started in %s", time.Since(s))
-	}()
-
-	go func() {
-		defer wg.Done()
-		s := time.Now()
-		chCfg = dockertest.ClickHouse(t, nil)
-		t.Logf("ClickHouse started in %s", time.Since(s))
-	}()
-
-	go func() {
-		defer wg.Done()
-		s := time.Now()
-		testVault = vaulttestutil.StartTestVault(t)
-		t.Logf("Vault started in %s", time.Since(s))
-	}()
-
-	wg.Wait()
 	t.Logf("All containers started in %s", time.Since(start))
 
 	// Connect to MySQL
 	database, err := db.New(db.Config{
-		PrimaryDSN:  mysqlCfg.DSN,
+		PrimaryDSN:  mysqlCfg.HostDSN,
 		ReadOnlyDSN: "",
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
 	// Connect to ClickHouse
-	chDSN := chCfg.DSN
+	chDSN := clickhouseCfg.HostDSN
 	chClient, err := clickhouse.New(clickhouse.Config{
 		URL: chDSN,
 	})
@@ -223,7 +190,7 @@ func New(t *testing.T) *Harness {
 	workerPort := tcpAddr.Port
 	registerAs := fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)
 
-	adminClient := restateadmin.New(restateadmin.Config{BaseURL: restateCfg.AdminURL, APIKey: ""})
+	adminClient := restateadmin.New(restateadmin.Config{BaseURL: restateCfg.HostAdminURL, APIKey: ""})
 	require.NoError(t, adminClient.RegisterDeployment(ctx, registerAs))
 	t.Logf("Total harness setup in %s", time.Since(start))
 
@@ -237,9 +204,9 @@ func New(t *testing.T) *Harness {
 		ClickHouseDSN:  chDSN,
 		VaultClient:    vaultClient,
 		VaultToken:     testVault.Token,
-		Restate:        ingress.NewClient(restateCfg.IngressURL),
-		RestateIngress: restateCfg.IngressURL,
-		RestateAdmin:   restateCfg.AdminURL,
+		Restate:        ingress.NewClient(restateCfg.HostIngressURL),
+		RestateIngress: restateCfg.HostIngressURL,
+		RestateAdmin:   restateCfg.HostAdminURL,
 	}
 }
 

@@ -25,7 +25,8 @@ import (
 
 func Test_ColdStart(t *testing.T) {
 
-	s3 := dockertest.S3(t, nil)
+	cluster := dockertest.New(t)
+	s3 := cluster.S3()
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.HostURL,

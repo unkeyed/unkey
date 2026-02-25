@@ -308,16 +308,17 @@ func TestS3_ContextCancellation(t *testing.T) {
 func newTestS3Storage(t *testing.T) Storage {
 	t.Helper()
 
-	s3Config := dockertest.S3(t, nil)
+	cluster := dockertest.New(t)
+	s3Cfg := cluster.S3()
 
 	// Use a unique bucket name per test to ensure isolation
 	bucketName := fmt.Sprintf("test-%d", time.Now().UnixNano())
 
 	store, err := NewS3(S3Config{
-		S3URL:             s3Config.HostURL,
+		S3URL:             s3Cfg.HostURL,
 		S3Bucket:          bucketName,
-		S3AccessKeyID:     s3Config.AccessKeyID,
-		S3AccessKeySecret: s3Config.SecretAccessKey,
+		S3AccessKeyID:     s3Cfg.AccessKeyID,
+		S3AccessKeySecret: s3Cfg.SecretAccessKey,
 	})
 	require.NoError(t, err)
 

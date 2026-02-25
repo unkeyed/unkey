@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"testing"
 	"time"
 
 	mysql "github.com/go-sql-driver/mysql"
@@ -24,26 +23,18 @@ const (
 
 // MySQLConfig holds connection information for a MySQL test container.
 type MySQLConfig struct {
-	// DSN is the host DSN for connecting from the test runner.
-	DSN string
-	// DockerDSN is the DSN for connecting from containers on the docker network.
+	HostDSN   string
 	DockerDSN string
 }
 
 // MySQL starts the local MySQL test container and returns DSNs.
-//
-// The container is based on the local dev image with preloaded schema.
-// This function blocks until the MySQL port is accepting TCP connections
-// (up to 60s). Fails the test if Docker is unavailable or the container fails to start.
-func MySQL(t *testing.T, network *Network) MySQLConfig {
-	t.Helper()
+func (c *Cluster) MySQL() MySQLConfig {
+	c.t.Helper()
 
-	containerStart := time.Now()
-	ctr := startContainer(t, containerConfig{
-		Image:        mysqlImage,
-		ExposedPorts: []string{mysqlPort},
-		WaitStrategy: NewTCPWait(mysqlPort),
-		WaitTimeout:  60 * time.Second,
+	ctr, cleanup, err := startContainer(c.cli, containerConfig{
+		ContainerName: "",
+		Image:         mysqlImage,
+		ExposedPorts:  []string{mysqlPort},
 		Env: map[string]string{
 			"MYSQL_ROOT_PASSWORD": mysqlPassword,
 			"MYSQL_DATABASE":      mysqlDatabase,
@@ -51,19 +42,14 @@ func MySQL(t *testing.T, network *Network) MySQLConfig {
 			"MYSQL_PASSWORD":      mysqlPassword,
 		},
 		Cmd: []string{
-			// Disable binary logging (not needed for tests)
 			"--skip-log-bin",
 			"--disable-log-bin",
-			// Disable durability for faster writes (crash safety not needed in tests)
 			"--innodb-doublewrite=0",
 			"--innodb-flush-log-at-trx-commit=0",
 			"--innodb-flush-method=nosync",
-			// Reduce buffer sizes for faster startup
 			"--innodb-buffer-pool-size=32M",
 			"--innodb-log-buffer-size=1M",
-			// Disable performance schema (overhead not needed for tests)
 			"--performance-schema=OFF",
-			// Skip name resolution for faster connections
 			"--skip-name-resolve",
 		},
 		Tmpfs: map[string]string{
@@ -71,10 +57,48 @@ func MySQL(t *testing.T, network *Network) MySQLConfig {
 		},
 		Binds:       nil,
 		Keep:        false,
-		NetworkName: networkName(network),
-	})
-	t.Logf("  MySQL container started in %s", time.Since(containerStart))
+		NetworkName: c.network.Name,
+	}, c.t.Name())
+	require.NoError(c.t, err)
+	if cleanup != nil {
+		c.t.Cleanup(func() { require.NoError(c.t, cleanup()) })
+	}
 
+	wait := NewTCPWait(mysqlPort)
+	wait.Wait(c.t, ctr, 60*time.Second)
+
+	hostCfg := mysqlHostConfig(ctr)
+
+	hostDB, err := sql.Open("mysql", hostCfg.FormatDSN())
+	require.NoError(c.t, err)
+	defer func() { require.NoError(c.t, hostDB.Close()) }()
+	require.Eventually(c.t, func() bool {
+		pingErr := hostDB.PingContext(context.Background())
+		return pingErr == nil
+	}, 60*time.Second, 500*time.Millisecond)
+
+	schemaPath := schemaSQLPath()
+	schemaBytes, err := os.ReadFile(schemaPath)
+	require.NoError(c.t, err)
+	_, err = hostDB.ExecContext(context.Background(), string(schemaBytes))
+	require.NoError(c.t, err)
+
+	dockerCfg := mysql.NewConfig()
+	dockerCfg.User = mysqlUser
+	dockerCfg.Passwd = mysqlPassword
+	dockerCfg.Net = "tcp"
+	dockerCfg.Addr = fmt.Sprintf("%s:%s", ctr.ContainerName, containerPortNumber(mysqlPort))
+	dockerCfg.DBName = mysqlDatabase
+	dockerCfg.ParseTime = true
+	dockerCfg.Logger = &mysql.NopLogger{}
+
+	return MySQLConfig{
+		HostDSN:   hostCfg.FormatDSN(),
+		DockerDSN: dockerCfg.FormatDSN(),
+	}
+}
+
+func mysqlHostConfig(ctr *Container) *mysql.Config {
 	port := ctr.Port(mysqlPort)
 	addr := fmt.Sprintf("%s:%s", ctr.Host, port)
 
@@ -88,37 +112,7 @@ func MySQL(t *testing.T, network *Network) MySQLConfig {
 	hostCfg.MultiStatements = true
 	hostCfg.Logger = &mysql.NopLogger{}
 
-	dockerCfg := mysql.NewConfig()
-	dockerCfg.User = mysqlUser
-	dockerCfg.Passwd = mysqlPassword
-	dockerCfg.Net = "tcp"
-	dockerCfg.Addr = "mysql:3306"
-	dockerCfg.DBName = mysqlDatabase
-	dockerCfg.ParseTime = true
-	dockerCfg.Logger = &mysql.NopLogger{}
-
-	pingStart := time.Now()
-	hostDB, err := sql.Open("mysql", hostCfg.FormatDSN())
-	require.NoError(t, err)
-	defer func() { require.NoError(t, hostDB.Close()) }()
-	require.Eventually(t, func() bool {
-		pingErr := hostDB.PingContext(context.Background())
-		return pingErr == nil
-	}, 60*time.Second, 500*time.Millisecond)
-	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
-
-	schemaStart := time.Now()
-	schemaPath := schemaSQLPath()
-	schemaBytes, err := os.ReadFile(schemaPath)
-	require.NoError(t, err)
-	_, err = hostDB.ExecContext(context.Background(), string(schemaBytes))
-	require.NoError(t, err)
-	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
-
-	return MySQLConfig{
-		DSN:       hostCfg.FormatDSN(),
-		DockerDSN: dockerCfg.FormatDSN(),
-	}
+	return hostCfg
 }
 
 func schemaSQLPath() string {

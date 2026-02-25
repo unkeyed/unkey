@@ -79,7 +79,9 @@ func NewHarness(t *testing.T) *Harness {
 	mysqlCfg := containers.MySQL(t)
 	mysqlDSN := mysqlCfg.FormatDSN()
 
-	redisUrl := dockertest.Redis(t, nil)
+	cluster := dockertest.New(t)
+	redisCfg := cluster.Redis()
+	redisUrl := redisCfg.HostURL
 
 	db, err := db.New(db.Config{
 		PrimaryDSN:  mysqlDSN,

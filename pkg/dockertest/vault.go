@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
@@ -27,52 +26,56 @@ var (
 
 // VaultConfig holds connection information for a vault test container.
 type VaultConfig struct {
-	// URL is the vault endpoint URL (e.g., "http://localhost:54321").
-	URL string
-
-	// Token is the bearer token used to authenticate requests.
-	Token string
+	HostURL   string
+	DockerURL string
+	Token     string
 }
 
 // Vault starts a vault service container configured to use the provided S3.
-//
-// The container image is built once on demand and cached locally. The service
-// reads its config from a temp TOML file mounted into the container and expands
-// env vars so each container can inject its own S3 credentials and master key at runtime.
-func Vault(t *testing.T, s3 S3Config, network *Network) VaultConfig {
-	t.Helper()
+func (c *Cluster) Vault(s3 S3Config) VaultConfig {
+	c.t.Helper()
 
 	_, masterKey, err := vaultkeys.GenerateMasterKey()
-	require.NoError(t, err)
+	require.NoError(c.t, err)
 
-	configDir := t.TempDir()
+	configDir := c.t.TempDir()
 	configPath := filepath.Join(configDir, "vault.toml")
-	require.NoError(t, os.WriteFile(configPath, []byte(vaultConfigTemplate), 0o644))
+	require.NoError(c.t, os.WriteFile(configPath, []byte(vaultConfigTemplate), 0o644))
 
-	ctr := startContainer(t, containerConfig{
-		Image:        unkeyImage,
-		ExposedPorts: []string{vaultPort},
+	ctr, cleanup, err := startContainer(c.cli, containerConfig{
+		ContainerName: "",
+		Image:         unkeyImage,
+		ExposedPorts:  []string{vaultPort},
 		Env: map[string]string{
 			"UNKEY_CONFIG":         "/etc/unkey/vault.toml",
 			"VAULT_BEARER_TOKEN":   vaultToken,
 			"VAULT_MASTER_KEY":     masterKey,
-			"S3_URL":               s3.ContainerURL,
+			"S3_URL":               s3.DockerURL,
 			"S3_BUCKET":            vaultBucket,
 			"S3_ACCESS_KEY_ID":     s3.AccessKeyID,
 			"S3_ACCESS_KEY_SECRET": s3.SecretAccessKey,
 		},
-		Cmd:          []string{"run", "vault"},
-		WaitStrategy: NewHTTPWait(vaultPort, "/health/ready"),
-		WaitTimeout:  30 * time.Second,
-		Tmpfs:        nil,
-		Binds:        []string{fmt.Sprintf("%s:/etc/unkey/vault.toml:ro", configPath)},
-		Keep:         true,
-		NetworkName:  networkName(network),
-	})
+		Cmd:         []string{"run", "vault"},
+		Tmpfs:       nil,
+		Binds:       []string{fmt.Sprintf("%s:/etc/unkey/vault.toml:ro", configPath)},
+		Keep:        true,
+		NetworkName: c.network.Name,
+	}, c.t.Name())
+	require.NoError(c.t, err)
+	if cleanup != nil {
+		c.t.Cleanup(func() { require.NoError(c.t, cleanup()) })
+	}
+
+	wait := NewHTTPWait(vaultPort, "/health/ready")
+	wait.Wait(c.t, ctr, 30*time.Second)
+
+	port := ctr.Port(vaultPort)
+	require.NotEmpty(c.t, port, "vault port not mapped")
 
 	return VaultConfig{
-		URL:   ctr.HostURL("http", vaultPort),
-		Token: vaultToken,
+		HostURL:   fmt.Sprintf("http://%s:%s", ctr.Host, port),
+		DockerURL: fmt.Sprintf("http://%s:%s", ctr.ContainerName, containerPortNumber(vaultPort)),
+		Token:     vaultToken,
 	}
 }
 
