@@ -39,18 +39,30 @@ export function AppSidebar({
   const router = useRouter();
   const context = useNavigationContext();
   const workspace = useWorkspaceNavigation();
-  const [fetchedResourceName, setFetchedResourceName] = useState<string | undefined>();
+  const [fetchedResourceData, setFetchedResourceData] = useState<{
+    name: string | undefined;
+    contextKey: string;
+  }>();
+
+  // Create a stable key from context to track changes
+  const contextKey = useMemo(() => {
+    if (context.type === "resource") {
+      return `${context.resourceType}-${context.resourceId}`;
+    }
+    return context.product;
+  }, [context]);
 
   // Callback to receive fetched resource name from ContextNavigation
-  const handleResourceNameFetched = useCallback((name: string | undefined) => {
-    setFetchedResourceName(name);
-  }, []);
+  const handleResourceNameFetched = useCallback(
+    (name: string | undefined) => {
+      setFetchedResourceData({ name, contextKey });
+    },
+    [contextKey],
+  );
 
-  // Clear fetched resource name when resource context changes
-  useEffect(() => {
-    // Reset name when context changes - this will be repopulated by ContextNavigation
-    setFetchedResourceName(undefined);
-  });
+  // Derive the current resource name - only use fetched name if it matches current context
+  const fetchedResourceName =
+    fetchedResourceData?.contextKey === contextKey ? fetchedResourceData.name : undefined;
 
   // Refresh the router when workspace changes to update sidebar
   useEffect(() => {
