@@ -129,7 +129,7 @@ export const WorkspaceSwitcher: React.FC = () => {
           )}
         </div>
         {!isCollapsed && (
-          <ChevronExpandY className="w-5 h-5 shrink-0 md:block [stroke-width:1px] text-gray-9" />
+          <ChevronExpandY className="w-4 h-54 shrink-0 md:block [stroke-width:1px] text-gray-9" />
         )}
       </DropdownMenuTrigger>
 
