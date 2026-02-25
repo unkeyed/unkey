@@ -1,5 +1,5 @@
 "use client";
-import { createRootKeyColumns, EmptyRootKeys, DataTable } from "@/components/data-table";
+import { DataTable, EmptyRootKeys, createRootKeyColumns } from "@/components/data-table";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { unkeyPermissionValidation } from "@unkey/rbac";
@@ -53,6 +53,8 @@ export const RootKeysList = () => {
       hide: isLoading,
       buttonText: "Load more root keys",
       hasMore,
+      onLoadMore: loadMore,
+      isFetchingNextPage: isLoadingMore,
       countInfoText: (
         <div className="flex gap-2">
           <span>Showing</span>{" "}
@@ -63,16 +65,11 @@ export const RootKeysList = () => {
         </div>
       ),
     }),
-    [isLoading, hasMore, rootKeys.length, totalCount],
+    [isLoading, hasMore, loadMore, isLoadingMore, rootKeys.length, totalCount],
   );
 
   // Memoize the emptyState to prevent unnecessary re-renders
-  const emptyState = useMemo(
-    () => (
-      <EmptyRootKeys />
-    ),
-    [],
-  );
+  const emptyState = useMemo(() => <EmptyRootKeys />, []);
 
   // Memoize the config to prevent unnecessary re-renders
   const config = useMemo(
@@ -81,7 +78,6 @@ export const RootKeysList = () => {
       layout: "grid" as const,
       rowBorders: true,
       containerPadding: "px-0",
-      
     }),
     [],
   );
@@ -118,9 +114,6 @@ export const RootKeysList = () => {
         columns={columns}
         getRowId={(rootKey) => rootKey.id}
         isLoading={isLoading}
-        isFetchingNextPage={isLoadingMore}
-        onLoadMore={loadMore}
-        hasMore={hasMore}
         onRowClick={handleRowClick}
         selectedItem={selectedRootKey}
         rowClassName={getRowClassNameMemoized}

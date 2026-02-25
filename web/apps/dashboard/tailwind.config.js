@@ -2,10 +2,10 @@
 
 import defaultTheme from "@unkey/ui/tailwind.config";
 import "tailwindcss/plugin";
-import tailwindcssAnimate from "tailwindcss-animate";
-import tailwindType from "@tailwindcss/typography";
 import tailwindAspectRatio from "@tailwindcss/aspect-ratio";
 import tailwindContainerQueries from "@tailwindcss/container-queries";
+import tailwindType from "@tailwindcss/typography";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 module.exports = {
   darkMode: ["class"],
@@ -184,13 +184,7 @@ module.exports = {
       },
     },
   }),
-  plugins: [
-    tailwindcssAnimate,
-    tailwindType,
-    tailwindAspectRatio,
-    tailwindContainerQueries,
-   
-  ],
+  plugins: [tailwindcssAnimate, tailwindType, tailwindAspectRatio, tailwindContainerQueries],
 };
 
 export function merge(obj1, obj2) {

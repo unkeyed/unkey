@@ -1,8 +1,11 @@
+import {
+  rootKeysFilterFieldConfig,
+  rootKeysListFilterFieldNames,
+} from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
+import { useFilters } from "@/app/(app)/[workspaceSlug]/settings/root-keys/hooks/use-filters";
 import { trpc } from "@/lib/trpc/client";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { useEffect, useMemo, useState } from "react";
-import { rootKeysFilterFieldConfig, rootKeysListFilterFieldNames } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
-import { useFilters } from "@/app/(app)/[workspaceSlug]/settings/root-keys/hooks/use-filters";
 import type { RootKeysQueryPayload } from "../../schema/query-logs.schema";
 
 export function useRootKeysListQuery() {

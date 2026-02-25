@@ -65,14 +65,8 @@ export interface DataTableConfig {
   containerPadding: string; // Default: "px-2"
   tableLayout: "fixed" | "auto"; // Default: "fixed"
 
-  // Virtualization
-  overscan: number; // Default: 5
-
   // Loading
   loadingRows: number; // Default: 10
-
-  // Throttle delay for load more
-  throttleDelay: number; // Default: 350
 }
 
 /**
@@ -114,9 +108,10 @@ export interface DataTableProps<TData> {
   selectedItem?: TData | null;
 
   // Pagination (optional)
-  onLoadMore?: () => void;
-  hasMore?: boolean;
-  isFetchingNextPage?: boolean;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 
   // Configuration (optional)
   config?: Partial<DataTableConfig>;

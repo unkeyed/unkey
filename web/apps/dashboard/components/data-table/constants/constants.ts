@@ -15,14 +15,8 @@ export const DEFAULT_CONFIG: DataTableConfig = {
   containerPadding: "px-2",
   tableLayout: "fixed",
 
-  // Virtualization
-  overscan: 5,
-
   // Loading
   loadingRows: 10,
-
-  // Throttle
-  throttleDelay: 350,
 } as const;
 
 /**
@@ -33,4 +27,4 @@ export const MOBILE_TABLE_HEIGHT = 400;
 /**
  * Breathing space for table height calculation
  */
-export const BREATHING_SPACE = 20;
+export const BREATHING_SPACE = 10;

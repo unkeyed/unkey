@@ -1,5 +1,5 @@
-export { 
-    ActionColumnSkeleton,
+export {
+  ActionColumnSkeleton,
   CreatedAtColumnSkeleton,
   KeyColumnSkeleton,
   LastUpdatedColumnSkeleton,
@@ -7,4 +7,4 @@ export {
   RootKeyColumnSkeleton,
 } from "./root-key-skeletons";
 
-export {   renderRootKeySkeletonRow } from "./render-root-key-skeleton-row";
+export { renderRootKeySkeletonRow } from "./render-root-key-skeleton-row";

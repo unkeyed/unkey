@@ -1,5 +1,8 @@
+import {
+  rootKeysFilterOperatorEnum,
+  rootKeysListFilterFieldNames,
+} from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import { z } from "zod";
-import { rootKeysFilterOperatorEnum, rootKeysListFilterFieldNames } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 
 const filterItemSchema = z.object({
   operator: rootKeysFilterOperatorEnum,

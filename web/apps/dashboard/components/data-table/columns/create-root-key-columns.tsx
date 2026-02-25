@@ -1,19 +1,19 @@
-import { HiddenValueCell } from "@/components/data-table/components/cells/hidden-value-cell";
 import type { DataTableColumnDef } from "@/components/data-table";
-import { RowActionSkeleton } from "@/components/data-table/components/cells/row-action-skeleton";
-import { RootKeyNameCell } from "@/components/data-table/components/cells/root-key-name-cell";
 import { AssignedItemsCell } from "@/components/data-table/components/cells/assigned-items-cell";
+import { HiddenValueCell } from "@/components/data-table/components/cells/hidden-value-cell";
+import { LastUpdatedCell } from "@/components/data-table/components/cells/last-updated-cell";
+import { RootKeyNameCell } from "@/components/data-table/components/cells/root-key-name-cell";
+import { RowActionSkeleton } from "@/components/data-table/components/cells/row-action-skeleton";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { LastUpdatedCell } from "@/components/data-table/components/cells/last-updated-cell";
 
 const RootKeysTableActions = dynamic(
   () =>
-    import(
-      "../components/settings-root-keys/root-keys-table-action.popover"
-    ).then((mod) => mod.RootKeysTableActions),
+    import("../components/settings-root-keys/root-keys-table-action.popover").then(
+      (mod) => mod.RootKeysTableActions,
+    ),
   {
     loading: () => <RowActionSkeleton />,
   },
@@ -55,8 +55,8 @@ export const createRootKeyColumns = ({
         <InfoTooltip
           content={
             <p>
-              This is the first part of the key to visually match it. We don&apos;t store the full key
-              for security reasons.
+              This is the first part of the key to visually match it. We don&apos;t store the full
+              key for security reasons.
             </p>
           }
         >

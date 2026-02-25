@@ -10,7 +10,7 @@ import { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
 import { useRealtimeData } from "./hooks/use-realtime-data";
 import { useTableHeight } from "./hooks/use-table-height";
-import { useVirtualization } from "./hooks/use-virtualization";
+import { Pagination } from "./components/pagination";
 import type { DataTableProps, SeparatorItem } from "./types";
 import { calculateColumnWidth } from "./utils/column-width";
 
@@ -22,10 +22,7 @@ export type DataTableRef = {
 /**
  * Main DataTable component with TanStack Table + TanStack Virtual
  */
-function DataTableInner<TData>(
-  props: DataTableProps<TData>,
-  ref: React.Ref<DataTableRef>,
-) {
+function DataTableInner<TData>(props: DataTableProps<TData>, ref: React.Ref<DataTableRef>) {
   const {
     data: historicData,
     realtimeData = [],
@@ -39,9 +36,10 @@ function DataTableInner<TData>(
     onRowMouseEnter,
     onRowMouseLeave,
     selectedItem,
-    onLoadMore,
-    hasMore,
-    isFetchingNextPage,
+    page,
+    pageSize,
+    totalPages,
+    onPageChange,
     config: userConfig,
     emptyState,
     loadMoreFooterProps,
@@ -86,16 +84,6 @@ function DataTableInner<TData>(
     onRowSelectionChange,
   });
 
-  // TanStack Virtual
-  const virtualizer = useVirtualization({
-    totalDataLength: tableDataHelper.getTotalLength(),
-    isLoading,
-    config,
-    onLoadMore,
-    isFetchingNextPage,
-    parentRef,
-  });
-
   // Expose refs
   useImperativeHandle(
     ref,
@@ -130,7 +118,7 @@ function DataTableInner<TData>(
   if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
     return (
       <div
-        className="w-full flex flex-col md:h-full"
+        className="w-full flex flex-col h-full"
         style={{ height: `${fixedHeight}px` }}
         ref={containerRef}
       >
@@ -262,20 +250,15 @@ function DataTableInner<TData>(
 
           {/* Body */}
           <tbody>
-            {/* Top spacer */}
-            <tr
-              style={{
-                height: `${virtualizer.getVirtualItems()[0]?.start || 0}px`,
-              }}
-            />
-
-            {/* Virtual rows */}
-            {virtualizer.getVirtualItems().map((virtualRow) => {
-              // Loading skeleton
-              if (isLoading) {
-                return (
+            {/* Render all rows directly without virtualization */}
+            {isLoading
+              ? // Loading skeleton rows
+                Array.from({ length: config.loadingRows }).map((_, index) => (
                   <tr
-                    key={`skeleton-${virtualRow.key}`}
+                    key={`skeleton-${
+                      // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows have no stable id
+                      index
+                    }`}
                     className={cn(config.rowBorders && "border-b border-gray-4")}
                     style={{ height: `${config.rowHeight}px` }}
                   >
@@ -288,142 +271,132 @@ function DataTableInner<TData>(
                       <SkeletonRow columns={columns} rowHeight={config.rowHeight} />
                     )}
                   </tr>
-                );
-              }
+                ))
+              : // Data rows
+                tableDataHelper.data.map((item, index) => {
+                  // Separator row
+                  const separator = item as SeparatorItem;
+                  if (separator.isSeparator) {
+                    return (
+                      <Fragment key="separator">
+                        <tr style={{ height: "4px" }} />
+                        <tr>
+                          <td colSpan={columns.length} className="p-0">
+                            <RealtimeSeparator />
+                          </td>
+                        </tr>
+                      </Fragment>
+                    );
+                  }
 
-              // Get item
-              const item = tableDataHelper.getItemAt(virtualRow.index);
-              if (!item) {
-                return null;
-              }
+                  // Data row
+                  const typedItem = item as TData;
+                  const rowId = getRowId(typedItem);
+                  const tableRow = table.getRowModel().rows.find((r) => r.id === rowId);
 
-              // Separator row
-              const separator = item as SeparatorItem;
-              if (separator.isSeparator) {
-                return (
-                  <Fragment key={`row-group-${virtualRow.key}`}>
-                    <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
-                    <tr key={`content-${virtualRow.key}`}>
-                      <td colSpan={columns.length} className="p-0">
-                        <RealtimeSeparator />
-                      </td>
-                    </tr>
-                  </Fragment>
-                );
-              }
+                  if (!tableRow) {
+                    return null;
+                  }
 
-              // Data row
-              const typedItem = item as TData;
-              const rowId = getRowId(typedItem);
-              const tableRow = table.getRowModel().rows.find((r) => r.id === rowId);
+                  const isSelected = selectedItem ? getRowId(selectedItem) === rowId : false;
 
-              if (!tableRow) {
-                return null;
-              }
-
-              const isSelected = selectedItem ? getRowId(selectedItem) === rowId : false;
-
-              // Grid layout (no spacing)
-              if (isGridLayout) {
-                return (
-                  <tr
-                    key={`content-${virtualRow.key}`}
-                    tabIndex={virtualRow.index}
-                    data-row-index={virtualRow.index}
-                    aria-selected={isSelected}
-                    onClick={() => onRowClick?.(typedItem)}
-                    onMouseEnter={() => onRowMouseEnter?.(typedItem)}
-                    onMouseLeave={() => onRowMouseLeave?.()}
-                    onKeyDown={(e) => handleKeyDown(e, virtualRow.index)}
-                    className={cn(
-                      "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
-                      config.rowBorders && "border-b border-gray-4",
-                      rowClassName?.(typedItem),
-                      selectedClassName?.(typedItem, isSelected),
-                    )}
-                    style={{ height: `${config.rowHeight}px` }}
-                  >
-                    {tableRow.getVisibleCells().map((cell, idx) => (
-                      <td
-                        key={cell.id}
+                  // Grid layout (no spacing)
+                  if (isGridLayout) {
+                    return (
+                      <tr
+                        key={rowId}
+                        tabIndex={index}
+                        data-row-index={index}
+                        aria-selected={isSelected}
+                        onClick={() => onRowClick?.(typedItem)}
+                        onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                        onMouseLeave={() => onRowMouseLeave?.()}
+                        onKeyDown={(e) => handleKeyDown(e, index)}
                         className={cn(
-                          "text-xs align-middle whitespace-nowrap pr-4",
-                          idx === 0 ? "rounded-l-md" : "",
-                          idx === tableRow.getVisibleCells().length - 1 ? "rounded-r-md" : "",
-                          cell.column.columnDef.meta?.cellClassName,
+                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
+                          config.rowBorders && "border-b border-gray-4",
+                          rowClassName?.(typedItem),
+                          selectedClassName?.(typedItem, isSelected),
                         )}
+                        style={{ height: `${config.rowHeight}px` }}
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              }
+                        {tableRow.getVisibleCells().map((cell, idx) => (
+                          <td
+                            key={cell.id}
+                            className={cn(
+                              "text-xs align-middle whitespace-nowrap pr-4",
+                              idx === 0 ? "rounded-l-md" : "",
+                              idx === tableRow.getVisibleCells().length - 1 ? "rounded-r-md" : "",
+                              cell.column.columnDef.meta?.cellClassName,
+                            )}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  }
 
-              // Classic layout (with spacing)
-              return (
-                <Fragment key={`row-group-${virtualRow.key}`}>
-                  {(config.rowSpacing ?? 4) > 0 && (
-                    <tr
-                      key={`spacer-${virtualRow.key}`}
-                      style={{ height: `${config.rowSpacing ?? 4}px` }}
-                    />
-                  )}
-                  <tr
-                    key={`content-${virtualRow.key}`}
-                    tabIndex={virtualRow.index}
-                    data-row-index={virtualRow.index}
-                    aria-selected={isSelected}
-                    onClick={() => onRowClick?.(typedItem)}
-                    onMouseEnter={() => onRowMouseEnter?.(typedItem)}
-                    onMouseLeave={() => onRowMouseLeave?.()}
-                    onKeyDown={(e) => handleKeyDown(e, virtualRow.index)}
-                    className={cn(
-                      "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
-                      config.rowBorders && "border-b border-gray-4",
-                      rowClassName?.(typedItem),
-                      selectedClassName?.(typedItem, isSelected),
-                    )}
-                    style={{ height: `${config.rowHeight}px` }}
-                  >
-                    {tableRow.getVisibleCells().map((cell, idx) => (
-                      <td
-                        key={cell.id}
+                  // Classic layout (with spacing)
+                  return (
+                    <Fragment key={rowId}>
+                      {(config.rowSpacing ?? 4) > 0 && (
+                        <tr style={{ height: `${config.rowSpacing ?? 4}px` }} />
+                      )}
+                      <tr
+                        tabIndex={index}
+                        data-row-index={index}
+                        aria-selected={isSelected}
+                        onClick={() => onRowClick?.(typedItem)}
+                        onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                        onMouseLeave={() => onRowMouseLeave?.()}
+                        onKeyDown={(e) => handleKeyDown(e, index)}
                         className={cn(
-                          "text-xs align-middle whitespace-nowrap pr-4",
-                          idx === 0 ? "rounded-l-md" : "",
-                          idx === tableRow.getVisibleCells().length - 1 ? "rounded-r-md" : "",
-                          cell.column.columnDef.meta?.cellClassName,
+                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
+                          config.rowBorders && "border-b border-gray-4",
+                          rowClassName?.(typedItem),
+                          selectedClassName?.(typedItem, isSelected),
                         )}
+                        style={{ height: `${config.rowHeight}px` }}
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                </Fragment>
-              );
-            })}
-
-            {/* Bottom spacer */}
-            <tr
-              style={{
-                height: `${
-                  virtualizer.getTotalSize() -
-                  (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end ||
-                    0)
-                }px`,
-              }}
-            />
+                        {tableRow.getVisibleCells().map((cell, idx) => (
+                          <td
+                            key={cell.id}
+                            className={cn(
+                              "text-xs align-middle whitespace-nowrap pr-4",
+                              idx === 0 ? "rounded-l-md" : "",
+                              idx === tableRow.getVisibleCells().length - 1 ? "rounded-r-md" : "",
+                              cell.column.columnDef.meta?.cellClassName,
+                            )}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    </Fragment>
+                  );
+                })}
           </tbody>
         </table>
       </div>
+      {/* Pagination footer */}
+      {page !== undefined &&
+        pageSize !== undefined &&
+        totalPages !== undefined &&
+        onPageChange !== undefined && (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalPages={totalPages}
+            totalCount={tableDataHelper.getTotalLength()}
+            onPageChange={onPageChange}
+          />
+        )}
+      {/* Legacy load more footer */}
       {loadMoreFooterProps && (
         <LoadMoreFooter
           {...loadMoreFooterProps}
-          onLoadMore={onLoadMore}
-          isFetchingNextPage={isFetchingNextPage}
-          hasMore={hasMore}
-          totalVisible={virtualizer.getVirtualItems().length}
+          totalVisible={tableDataHelper.data.length}
           totalCount={tableDataHelper.getTotalLength()}
         />
       )}

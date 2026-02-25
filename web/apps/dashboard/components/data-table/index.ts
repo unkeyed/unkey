@@ -22,7 +22,6 @@ export { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT, BREATHING_SPACE } from "./constant
 export { useDataTable } from "./hooks/use-data-table";
 export { useRealtimeData } from "./hooks/use-realtime-data";
 export { useTableHeight } from "./hooks/use-table-height";
-export { useVirtualization } from "./hooks/use-virtualization";
 
 // Cell components
 export { CheckboxCell, CheckboxHeaderCell } from "./components/cells";
@@ -36,15 +35,15 @@ export { LastUpdatedCell } from "./components/cells";
 export { RootKeyNameCell } from "./components/cells";
 
 // Skeletons
-export { 
+export {
   ActionColumnSkeleton,
-  CreatedAtColumnSkeleton, 
-  KeyColumnSkeleton, 
-  LastUpdatedColumnSkeleton, 
-  PermissionsColumnSkeleton, 
+  CreatedAtColumnSkeleton,
+  KeyColumnSkeleton,
+  LastUpdatedColumnSkeleton,
+  PermissionsColumnSkeleton,
   RootKeyColumnSkeleton,
-  renderRootKeySkeletonRow
-} from "./components/skeletons"
+  renderRootKeySkeletonRow,
+} from "./components/skeletons";
 
 // Header components
 export { SortableHeader } from "./components/headers";
@@ -64,4 +63,4 @@ export { RealtimeSeparator } from "./components/utils/realtime-separator";
 export { calculateColumnWidth } from "./utils/column-width";
 
 // Column Defs
-export { createRootKeyColumns } from "./columns"
+export { createRootKeyColumns } from "./columns";

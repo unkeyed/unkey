@@ -5,7 +5,6 @@ interface EmptyStateProps {
   content?: React.ReactNode;
 }
 
-
 /**
  * Empty state component for tables with no data
  */

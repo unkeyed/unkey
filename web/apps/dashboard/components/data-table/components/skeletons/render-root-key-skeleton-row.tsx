@@ -15,10 +15,7 @@ type RenderRootKeySkeletonRowProps = {
   rowHeight: number;
 };
 
-export const renderRootKeySkeletonRow = ({
-  columns,
-  rowHeight,
-}: RenderRootKeySkeletonRowProps) =>
+export const renderRootKeySkeletonRow = ({ columns, rowHeight }: RenderRootKeySkeletonRowProps) =>
   columns.map((column) => (
     <td
       key={column.id}

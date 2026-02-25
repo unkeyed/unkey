@@ -1,1 +1,1 @@
-export { createRootKeyColumns } from "./create-root-key-columns"
+export { createRootKeyColumns } from "./create-root-key-columns";
