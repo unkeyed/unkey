@@ -1,5 +1,6 @@
 "use client";
 
+// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useReducer } from "react";
@@ -74,20 +75,28 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
 
     case "GO_NEXT": {
       const idx = state.steps.findIndex((s) => s.id === state.activeStepId);
-      if (idx < 0 || idx >= state.steps.length - 1) return state;
+      if (idx < 0 || idx >= state.steps.length - 1) {
+        return state;
+      }
       return { ...state, activeStepId: state.steps[idx + 1].id };
     }
 
     case "GO_BACK": {
       const idx = state.steps.findIndex((s) => s.id === state.activeStepId);
-      if (idx <= 0) return state;
+      if (idx <= 0) {
+        return state;
+      }
       const currentStep = state.steps[idx];
-      if (currentStep.preventBack) return state;
+      if (currentStep.preventBack) {
+        return state;
+      }
       return { ...state, activeStepId: state.steps[idx - 1].id };
     }
 
     case "GO_TO": {
-      if (!state.steps.some((s) => s.id === action.id)) return state;
+      if (!state.steps.some((s) => s.id === action.id)) {
+        return state;
+      }
       return { ...state, activeStepId: action.id };
     }
   }
@@ -150,7 +159,9 @@ const StepWizardRoot = ({
   }, [isLastStep, onComplete]);
 
   const skip = useCallback(() => {
-    if (currentStep?.kind !== "optional") return;
+    if (currentStep?.kind !== "optional") {
+      return;
+    }
     next();
   }, [currentStep, next]);
 
@@ -199,9 +210,7 @@ const StepWizardStep = ({
   useEffect(() => {
     registerStep({ id, label, kind, preventBack });
     return () => unregisterStep(id);
-    // Only re-register when props that affect metadata change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, label, kind, preventBack]);
+  }, [id, label, kind, preventBack, unregisterStep, registerStep]);
 
   const isActive = id === activeStepId;
 
