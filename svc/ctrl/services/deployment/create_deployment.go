@@ -43,7 +43,7 @@ type dockerSourceInfo struct {
 // deployment's Docker image.
 //
 // The workflow runs asynchronously keyed by project ID, so only one deployment
-// per project executes at a time.
+// per project executes at a time. Returns the deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
