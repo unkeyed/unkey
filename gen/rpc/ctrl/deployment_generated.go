@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 // DeployServiceClient wraps ctrlv1connect.DeployServiceClient with simplified signatures.
@@ -33,32 +34,52 @@ func NewConnectDeployServiceClient(inner ctrlv1connect.DeployServiceClient) *Con
 }
 
 func (c *ConnectDeployServiceClient) CreateDeployment(ctx context.Context, req *v1.CreateDeploymentRequest) (*v1.CreateDeploymentResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.CreateDeployment")
+	defer span.End()
 	resp, err := c.inner.CreateDeployment(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
 }
 
 func (c *ConnectDeployServiceClient) GetDeployment(ctx context.Context, req *v1.GetDeploymentRequest) (*v1.GetDeploymentResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.GetDeployment")
+	defer span.End()
 	resp, err := c.inner.GetDeployment(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
 }
 
 func (c *ConnectDeployServiceClient) Rollback(ctx context.Context, req *v1.RollbackRequest) (*v1.RollbackResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.Rollback")
+	defer span.End()
 	resp, err := c.inner.Rollback(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil
 }
 
 func (c *ConnectDeployServiceClient) Promote(ctx context.Context, req *v1.PromoteRequest) (*v1.PromoteResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.Promote")
+	defer span.End()
 	resp, err := c.inner.Promote(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

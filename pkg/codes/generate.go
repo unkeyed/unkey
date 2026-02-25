@@ -221,7 +221,10 @@ func processCategory(f *os.File, systemName, domainName, categoryName, domain st
 		}
 
 		// Write the constant
-		f.WriteString(fmt.Sprintf("\t%s URN = \"%s\"\n", constName, codeStr))
+		_, err := fmt.Fprintf(f, "\t%s URN = \"%s\"\n", constName, codeStr)
+		if err != nil {
+			panic(err)
+		}
 
 		// Store error code info for MDX generation
 		errorCodes = append(errorCodes, ErrorCodeInfo{
@@ -238,7 +241,7 @@ func processCategory(f *os.File, systemName, domainName, categoryName, domain st
 // generateMissingMDXFiles creates MDX documentation files for error codes that don't have them
 func generateMissingMDXFiles(errorCodes []ErrorCodeInfo) error {
 	// Get the base docs directory path (relative to this file)
-	baseDocsPath := filepath.Join("..", "..", "..", "apps", "docs", "errors")
+	baseDocsPath := filepath.Join("..", "..", "..", "docs", "product", "errors")
 
 	created := 0
 	skipped := 0
@@ -304,7 +307,7 @@ description: "%s"
 
 // removeObsoleteMDXFiles deletes MDX files that don't have corresponding error codes
 func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
-	baseDocsPath := filepath.Join("..", "..", "..", "apps", "docs", "errors")
+	baseDocsPath := filepath.Join("..", "..", "..", "docs", "product", "errors")
 
 	// Build a set of valid file paths from error codes
 	validPaths := make(map[string]bool)
@@ -370,7 +373,7 @@ func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
 
 // updateDocsJSON updates the docs.json navigation to include all error pages
 func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
-	docsJSONPath := filepath.Join("..", "..", "web", "apps", "docs", "docs.json")
+	docsJSONPath := filepath.Join("..", "..", "docs", "product", "docs.json")
 
 	// Read existing docs.json
 	data, err := os.ReadFile(docsJSONPath)
