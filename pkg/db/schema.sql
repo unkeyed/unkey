@@ -433,8 +433,6 @@ CREATE TABLE `projects` (
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
-	`live_deployment_id` varchar(256),
-	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
 	`depot_project_id` varchar(255),
 	`delete_protection` boolean DEFAULT false,
