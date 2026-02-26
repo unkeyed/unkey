@@ -76,15 +76,15 @@ export const redeploy = workspaceProcedure
           dockerImage: deployment.image ?? "",
           ...(deployment.gitCommitSha
             ? {
-              gitCommit: {
-                commitSha: deployment.gitCommitSha,
-                branch: deployment.gitBranch ?? "",
-                commitMessage: deployment.gitCommitMessage ?? "",
-                authorHandle: deployment.gitCommitAuthorHandle ?? "",
-                authorAvatarUrl: deployment.gitCommitAuthorAvatarUrl ?? "",
-                timestamp: BigInt(deployment.gitCommitTimestamp ?? 0),
-              },
-            }
+                gitCommit: {
+                  commitSha: deployment.gitCommitSha,
+                  branch: deployment.gitBranch ?? "",
+                  commitMessage: deployment.gitCommitMessage ?? "",
+                  authorHandle: deployment.gitCommitAuthorHandle ?? "",
+                  authorAvatarUrl: deployment.gitCommitAuthorAvatarUrl ?? "",
+                  timestamp: BigInt(deployment.gitCommitTimestamp ?? 0),
+                },
+              }
             : {}),
         })
         .catch((err) => {
