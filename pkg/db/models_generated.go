@@ -1480,8 +1480,6 @@ type Project struct {
 	WorkspaceID      string         `db:"workspace_id"`
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
-	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
-	IsRolledBack     bool           `db:"is_rolled_back"`
 	DefaultBranch    sql.NullString `db:"default_branch"`
 	DepotProjectID   sql.NullString `db:"depot_project_id"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
