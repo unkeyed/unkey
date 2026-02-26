@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     `workspace_id` String CODEC(ZSTD(1)),
     `project_id` String CODEC(ZSTD(1)),
     `environment_id` String CODEC(ZSTD(1)),
-    `app_id` String DEFAULT '' CODEC(ZSTD(1)),
+    `app_id` String CODEC(ZSTD(1)),
     `deployment_id` String CODEC(ZSTD(1)),
     `k8s_pod_name` String CODEC(ZSTD(1)),
     `region` LowCardinality(String),

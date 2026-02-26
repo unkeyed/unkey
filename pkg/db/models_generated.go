@@ -1084,20 +1084,6 @@ type AppEnvironmentVariable struct {
 	UpdatedAt        sql.NullInt64               `db:"updated_at"`
 }
 
-type AppInternalService struct {
-	Pk             uint64        `db:"pk"`
-	ID             string        `db:"id"`
-	WorkspaceID    string        `db:"workspace_id"`
-	AppID          string        `db:"app_id"`
-	EnvironmentID  string        `db:"environment_id"`
-	Region         string        `db:"region"`
-	K8sServiceName string        `db:"k8s_service_name"`
-	K8sNamespace   string        `db:"k8s_namespace"`
-	Port           int32         `db:"port"`
-	CreatedAt      int64         `db:"created_at"`
-	UpdatedAt      sql.NullInt64 `db:"updated_at"`
-}
-
 type AppRuntimeSetting struct {
 	Pk             uint64                           `db:"pk"`
 	WorkspaceID    string                           `db:"workspace_id"`

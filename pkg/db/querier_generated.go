@@ -2730,37 +2730,6 @@ type Querier interface {
 	//      docker_context = VALUES(docker_context),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppBuildSettings(ctx context.Context, db DBTX, arg UpsertAppBuildSettingsParams) error
-	//UpsertAppInternalService
-	//
-	//  INSERT INTO app_internal_services (
-	//      id,
-	//      workspace_id,
-	//      app_id,
-	//      environment_id,
-	//      region,
-	//      k8s_service_name,
-	//      k8s_namespace,
-	//      port,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//      k8s_service_name = VALUES(k8s_service_name),
-	//      k8s_namespace = VALUES(k8s_namespace),
-	//      port = VALUES(port),
-	//      updated_at = VALUES(updated_at)
-	UpsertAppInternalService(ctx context.Context, db DBTX, arg UpsertAppInternalServiceParams) error
 	//UpsertAppRuntimeSettings
 	//
 	//  INSERT INTO app_runtime_settings (
