@@ -34,9 +34,9 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	// Call the Restate workflow using app ID as the key
-	// This ensures only one operation per app can run at a time
-	_, err = s.deploymentClient(targetDeployment.AppID).
+	// Call the Restate workflow using project ID as the key
+	// This ensures only one operation per project can run at a time
+	_, err = s.deploymentClient(targetDeployment.ProjectID).
 		Promote().
 		Request(ctx, &hydrav1.PromoteRequest{
 			TargetDeploymentId: req.Msg.GetTargetDeploymentId(),
