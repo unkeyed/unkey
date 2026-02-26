@@ -39,7 +39,6 @@ type service struct {
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
-
 	return &service{
 		db:           config.DB,
 		rbac:         config.RBAC,

@@ -25,6 +25,10 @@ const workspaceRatelimitNamespace = "workspace.ratelimit"
 // On any internal error (cache miss, rate limiter failure) the check fails
 // open to avoid blocking legitimate traffic.
 func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session) error {
+	// When quotaCache is nil, workspace rate limiting is disabled (e.g. sentinel).
+	if s.quotaCache == nil {
+		return nil
+	}
 
 	quota, _, err := s.quotaCache.SWR(ctx, sess.AuthorizedWorkspaceID(), func(ctx context.Context) (db.Quotas, error) {
 		return db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), sess.AuthorizedWorkspaceID())
