@@ -239,8 +239,8 @@ func (s *Service) CreateDeployment(
 		},
 	}
 
-	// Send deployment request asynchronously (fire-and-forget), keyed by app ID
-	invocation, err := s.deploymentClient(app.ID).
+	// Send deployment request asynchronously (fire-and-forget), keyed by project ID
+	invocation, err := s.deploymentClient(project.ID).
 		Deploy().
 		Send(ctx, deployReq)
 	if err != nil {

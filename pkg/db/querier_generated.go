@@ -931,8 +931,11 @@ type Querier interface {
 	//      slug,
 	//      default_branch,
 	//      delete_protection,
+	//      live_deployment_id,
+	//      is_rolled_back,
 	//      created_at,
-	//      updated_at
+	//      updated_at,
+	//      depot_project_id
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
@@ -2686,6 +2689,14 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
+	//UpdateProjectDepotID
+	//
+	//  UPDATE projects
+	//  SET
+	//      depot_project_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateProjectDepotID(ctx context.Context, db DBTX, arg UpdateProjectDepotIDParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`
