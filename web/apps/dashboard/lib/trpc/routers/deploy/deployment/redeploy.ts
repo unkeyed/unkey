@@ -48,6 +48,13 @@ export const redeploy = workspaceProcedure
         columns: {
           id: true,
           projectId: true,
+          image: true,
+          gitCommitSha: true,
+          gitBranch: true,
+          gitCommitMessage: true,
+          gitCommitAuthorHandle: true,
+          gitCommitAuthorAvatarUrl: true,
+          gitCommitTimestamp: true,
         },
         with: {
           project: { columns: { id: true, name: true } },
@@ -66,6 +73,19 @@ export const redeploy = workspaceProcedure
         .createDeployment({
           projectId: deployment.project.id,
           environmentSlug: deployment.environment?.slug ?? "",
+          dockerImage: deployment.image ?? "",
+          ...(deployment.gitCommitSha
+            ? {
+              gitCommit: {
+                commitSha: deployment.gitCommitSha,
+                branch: deployment.gitBranch ?? "",
+                commitMessage: deployment.gitCommitMessage ?? "",
+                authorHandle: deployment.gitCommitAuthorHandle ?? "",
+                authorAvatarUrl: deployment.gitCommitAuthorAvatarUrl ?? "",
+                timestamp: BigInt(deployment.gitCommitTimestamp ?? 0),
+              },
+            }
+            : {}),
         })
         .catch((err) => {
           console.error(err);

@@ -154,12 +154,16 @@ func (s *Service) CreateDeployment(
 		}
 
 		if hasRepoConnection {
-			// Has github_repo_connections row: build HEAD of default branch
-			defaultBranch := project.DefaultBranch.String
-			if defaultBranch == "" {
-				defaultBranch = "main"
+			// Has github_repo_connections row: build from git source.
+			gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), project)
+
+			if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
+				gitCommitSha = gitCommit.GetCommitSha()
+				gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
+				gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
+				gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
+				gitCommitTimestamp = gitCommit.GetTimestamp()
 			}
-			gitBranch = defaultBranch
 
 			deployReq = &hydrav1.DeployRequest{
 				DeploymentId: deploymentID,
@@ -169,10 +173,10 @@ func (s *Service) CreateDeployment(
 					Git: &hydrav1.GitSource{
 						InstallationId: repoConn.InstallationID,
 						Repository:     repoConn.RepositoryFullName,
-						CommitSha:      "",
+						CommitSha:      gitCommitSha,
 						ContextPath:    envSettings.EnvironmentBuildSetting.DockerContext,
 						DockerfilePath: envSettings.EnvironmentBuildSetting.Dockerfile,
-						Branch:         defaultBranch,
+						Branch:         gitBranch,
 					},
 				},
 			}
