@@ -7,6 +7,7 @@ import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { PromotionDialog } from "./promotion-dialog";
+import { RedeployDialog } from "./redeploy-dialog";
 import { RollbackDialog } from "./rollback-dialog";
 
 type DeploymentListTableActionsProps = {
@@ -34,6 +35,8 @@ export const DeploymentListTableActions = ({
       environment?.slug === "production" &&
       selectedDeployment.status === "ready" &&
       selectedDeployment.id !== liveDeployment.id;
+
+    const canRedeploy = selectedDeployment.status === "ready";
 
     return [
       {
@@ -67,6 +70,15 @@ export const DeploymentListTableActions = ({
                 />
               )
             : undefined,
+      },
+      {
+        id: "redeploy",
+        label: "Redeploy",
+        icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
+        disabled: !canRedeploy,
+        ActionComponent: canRedeploy
+          ? (props) => <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
+          : undefined,
       },
       {
         id: "sentinel-logs",

@@ -60,7 +60,6 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxWebhookBodySize))
-
 	if err != nil {
 		logger.Warn("GitHub webhook rejected: failed to read body", "error", err)
 		http.Error(w, "failed to read body", http.StatusBadRequest)
@@ -85,7 +84,6 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Info("Unhandled event type", "event", event)
 		w.WriteHeader(http.StatusOK)
 	}
-
 }
 
 // handlePush processes push events by creating a deployment record and
@@ -186,7 +184,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		// Create deployment record
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		now := time.Now().UnixMilli()
-		gitCommit := s.extractGitCommitInfo(&payload, branch)
+		gitCommit := s.extractGitCommitInfo(&payload)
 
 		err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 			ID:                            deploymentID,
@@ -202,10 +200,10 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			UpdatedAt:                     sql.NullInt64{Valid: false},
 			GitCommitSha:                  sql.NullString{String: payload.After, Valid: payload.After != ""},
 			GitBranch:                     sql.NullString{String: branch, Valid: branch != ""},
-			GitCommitMessage:              sql.NullString{String: gitCommit.message, Valid: gitCommit.message != ""},
-			GitCommitAuthorHandle:         sql.NullString{String: gitCommit.authorHandle, Valid: gitCommit.authorHandle != ""},
-			GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.authorAvatarURL, Valid: gitCommit.authorAvatarURL != ""},
-			GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.timestamp, Valid: gitCommit.timestamp != 0},
+			GitCommitMessage:              sql.NullString{String: gitCommit.Message, Valid: gitCommit.Message != ""},
+			GitCommitAuthorHandle:         sql.NullString{String: gitCommit.AuthorHandle, Valid: gitCommit.AuthorHandle != ""},
+			GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.AuthorAvatarURL, Valid: gitCommit.AuthorAvatarURL != ""},
+			GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.Timestamp.UnixMilli(), Valid: !gitCommit.Timestamp.IsZero()},
 			OpenapiSpec:                   sql.NullString{Valid: false},
 			CpuMillicores:                 envSettings.EnvironmentRuntimeSetting.CpuMillicores,
 			MemoryMib:                     envSettings.EnvironmentRuntimeSetting.MemoryMib,
@@ -270,17 +268,9 @@ func extractBranchFromRef(ref string) string {
 	return strings.TrimPrefix(ref, prefix)
 }
 
-// gitCommitInfo holds extracted commit metadata for deployment records.
-type gitCommitInfo struct {
-	message         string
-	authorHandle    string
-	authorAvatarURL string
-	timestamp       int64
-}
-
 // extractGitCommitInfo extracts commit metadata from the push payload,
 // preferring HeadCommit when available and falling back to the first commit.
-func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload, branch string) gitCommitInfo {
+func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 	headCommit := payload.HeadCommit
 	if headCommit == nil && len(payload.Commits) > 0 {
 		c := payload.Commits[0]
@@ -293,12 +283,7 @@ func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload, branch string
 	}
 
 	if headCommit == nil {
-		return gitCommitInfo{
-			message:         "",
-			authorHandle:    "",
-			authorAvatarURL: "",
-			timestamp:       0,
-		}
+		return githubclient.CommitInfoFromRaw("", "", "", "", "")
 	}
 
 	authorHandle := headCommit.Author.Username
@@ -306,20 +291,11 @@ func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload, branch string
 		authorHandle = headCommit.Author.Name
 	}
 
-	var timestamp int64
-	if t, err := time.Parse(time.RFC3339, headCommit.Timestamp); err == nil {
-		timestamp = t.UnixMilli()
-	}
-
-	message := headCommit.Message
-	if idx := strings.Index(message, "\n"); idx != -1 {
-		message = message[:idx]
-	}
-
-	return gitCommitInfo{
-		message:         message,
-		authorHandle:    authorHandle,
-		authorAvatarURL: payload.Sender.AvatarURL,
-		timestamp:       timestamp,
-	}
+	return githubclient.CommitInfoFromRaw(
+		headCommit.ID,
+		headCommit.Message,
+		authorHandle,
+		payload.Sender.AvatarURL,
+		headCommit.Timestamp,
+	)
 }
