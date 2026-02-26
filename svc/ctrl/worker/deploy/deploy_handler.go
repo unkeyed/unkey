@@ -154,6 +154,12 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		// a GitTarget that specifies only a branch)
 		if commitSHA == "" && source.Git.GetBranch() != "" {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
+				if w.allowUnauthenticatedDeployments {
+					return w.github.GetBranchHeadCommitPublic(
+						source.Git.GetRepository(),
+						source.Git.GetBranch(),
+					)
+				}
 				return w.github.GetBranchHeadCommit(
 					source.Git.GetInstallationId(),
 					source.Git.GetRepository(),

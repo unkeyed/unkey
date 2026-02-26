@@ -142,7 +142,10 @@ export const projects = createCollection<Project, string>(
           }
         },
       });
-      await mutation;
+      const result = await mutation;
+      transaction.metadata = {
+        projectId: result.id
+      }
     },
   }),
 );
