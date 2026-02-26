@@ -7,7 +7,7 @@ import { Button } from "@unkey/ui";
 import { HelpButton } from "./help-button";
 
 export const SidebarMobile = () => {
-  const { isMobile, setOpenMobile, state, openMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   if (!isMobile) {
     return null;
@@ -21,11 +21,7 @@ export const SidebarMobile = () => {
       <WorkspaceSwitcher />
       <div className="flex gap-4 items-center">
         <HelpButton />
-        <UserButton
-          isCollapsed={(state === "collapsed" || isMobile) && !(isMobile && openMobile)}
-          isMobile={isMobile}
-          isMobileSidebarOpen={openMobile}
-        />
+        <UserButton />
       </div>
     </div>
   );
