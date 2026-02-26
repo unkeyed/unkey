@@ -22,24 +22,22 @@ enum SourceType {
 }
 
 message CreateDeploymentRequest {
-  reserved 1; // was workspace_id, now inferred from project_id
-  reserved 3; // was top-level branch, now in GitCommitInfo
-  string project_id = 2;
-  string environment_slug = 4;
+  string project_id = 1;
+  string environment_slug = 2;
 
   // When omitted: git-connected projects deploy HEAD of default branch;
   // projects without a repo connection reuse the live deployment's Docker image.
-  string docker_image = 6;
+  string docker_image = 3;
 
   // Git information
-  optional GitCommitInfo git_commit = 7;
+  optional GitCommitInfo git_commit = 4;
 
   // Authentication
-  optional string keyspace_id = 8;
+  optional string keyspace_id = 5;
 
   // Container command override (e.g., ["./app", "serve"])
   // If not specified, the container's default entrypoint/cmd is used
-  repeated string command = 9;
+  repeated string command = 6;
 }
 
 message GitCommitInfo {
@@ -100,7 +98,6 @@ message Deployment {
 
   // Extended git information
   string git_commit_message = 17;
-  // Removed: email is PII and not stored
   string git_commit_author_handle = 18;
   string git_commit_author_avatar_url = 19;
   int64 git_commit_timestamp = 20; // Unix epoch milliseconds
