@@ -24,7 +24,7 @@ export const githubRepoConnections = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     projectId: varchar("project_id", { length: 64 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull().unique(),
+    appId: varchar("app_id", { length: 64 }).notNull().default("").unique(),
     installationId: bigint("installation_id", {
       mode: "number",
     }).notNull(),
