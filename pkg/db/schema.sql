@@ -737,7 +737,7 @@ CREATE TABLE `github_app_installations` (
 CREATE TABLE `github_repo_connections` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`project_id` varchar(64) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
+	`app_id` varchar(64) NOT NULL DEFAULT '',
 	`installation_id` bigint NOT NULL,
 	`repository_id` bigint NOT NULL,
 	`repository_full_name` varchar(500) NOT NULL,
