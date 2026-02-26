@@ -35,9 +35,9 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	// Call the Restate workflow using app ID as the key
-	// This ensures only one rollback per app can run at a time
-	_, err = s.deploymentClient(sourceDeployment.AppID).
+	// Call the Restate workflow using project ID as the key
+	// This ensures only one rollback per project can run at a time
+	_, err = s.deploymentClient(sourceDeployment.ProjectID).
 		Rollback().
 		Request(ctx, &hydrav1.RollbackRequest{
 			SourceDeploymentId: req.Msg.GetSourceDeploymentId(),
