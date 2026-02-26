@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -18,17 +19,14 @@ export const ConfigureDeploymentStep = ({ projectId }: ConfigureDeploymentStepPr
 
   const deploy = trpc.deploy.deployment.create.useMutation({
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       toast.success("Deployment triggered", {
         description: "Your project is being built and deployed",
       });
-      router.push(
-        `/${workspace.slug}/projects/${projectId}/deployments/${data.deploymentId}`,
-      );
+      router.push(`/${workspace.slug}/projects/${projectId}/deployments/${data.deploymentId}`);
     },
     onError: (error) => {
-      toast.error("Deployment failed", {
-        description: error.message,
-      });
+      toast.error("Deployment failed", { description: error.message });
     },
   });
 
