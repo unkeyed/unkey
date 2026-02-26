@@ -462,8 +462,7 @@ CREATE TABLE `apps` (
 	`updated_at` bigint,
 	CONSTRAINT `apps_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `apps_id_unique` UNIQUE(`id`),
-	CONSTRAINT `apps_project_slug_idx` UNIQUE(`project_id`,`slug`),
-	CONSTRAINT `apps_workspace_slug_idx` UNIQUE(`workspace_id`,`slug`)
+	CONSTRAINT `apps_project_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 
 CREATE TABLE `app_build_settings` (
