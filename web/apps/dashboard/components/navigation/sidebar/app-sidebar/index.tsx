@@ -170,7 +170,7 @@ export function AppSidebar({
                       <TooltipTrigger asChild>
                         <Link
                           href={`/${workspace.slug}/${RESOURCE_TYPE_ROUTES[context.resourceType]}`}
-                          className="flex items-center justify-center h-10 w-10 text-gray-11 hover:text-gray-12 hover:bg-gray-3 rounded-md transition-colors"
+                          className="flex items-center  justify-center h-10 w-10 text-gray-11 hover:text-gray-12 hover:bg-gray-3 rounded-md transition-colors"
                           aria-label={`Back to All ${RESOURCE_TYPE_PLURAL[context.resourceType]}`}
                         >
                           <ChevronLeft className="w-4 h-4" />

@@ -22,22 +22,8 @@ interface ProductConfig {
   name: string;
   description: string;
   icon: React.ComponentType<IconProps>;
+  disabled: boolean;
 }
-
-const PRODUCTS: ProductConfig[] = [
-  {
-    id: "api-management",
-    name: "API Management",
-    description: "Manage APIs and keys",
-    icon: Nodes,
-  },
-  {
-    id: "deploy",
-    name: "Deploy",
-    description: "Deploy applications",
-    icon: CloudUp,
-  },
-];
 
 interface ProductSwitcherProps {
   workspace: Workspace;
@@ -55,15 +41,24 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
 
-  // Filter products based on workspace feature flags
-  const availableProducts = PRODUCTS.filter((p) => {
-    if (p.id === "deploy") {
-      return workspace.betaFeatures?.deployments === true;
-    }
-    return true; // API Management is always available
-  });
+  const products: ProductConfig[] = [
+    {
+      id: "api-management",
+      name: "API Management",
+      description: "Manage APIs and keys",
+      icon: Nodes,
+      disabled: false,
+    },
+    {
+      id: "deploy",
+      name: "Deploy",
+      description: "Deploy applications",
+      icon: CloudUp,
+      disabled: !workspace.betaFeatures?.deployments,
+    },
+  ];
 
-  const currentProduct = availableProducts.find((p) => p.id === product) || availableProducts[0];
+  const currentProduct = products.find((p) => p.id === product) || products[0];
 
   if (!currentProduct) {
     return null;
@@ -103,17 +98,18 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
   // Shared dropdown content
   const dropdownContent = (
     <DropdownMenuContent
-      className="w-72 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
+      className="min-w-64"
       align="start"
       side={isCollapsed ? "right" : undefined}
       sideOffset={isCollapsed ? 8 : undefined}
     >
-      {availableProducts.map((prod) => {
+      {products.map((prod) => {
         const ProdIcon = prod.icon;
         return (
           <DropdownMenuItem
             key={prod.id}
-            className="flex items-start gap-3 p-3 cursor-pointer"
+            className="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-2"
+            disabled={prod.disabled}
             onClick={() => {
               switchProduct(prod.id);
             }}
@@ -128,7 +124,11 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
               >
                 {prod.name}
               </span>
-              <span className="text-xs text-gray-10">{prod.description}</span>
+              {prod.disabled ? (
+                <span className="text-xs text-warning-10">In Private Beta</span>
+              ) : (
+                <span className="text-xs text-gray-10">{prod.description}</span>
+              )}
             </div>
           </DropdownMenuItem>
         );
