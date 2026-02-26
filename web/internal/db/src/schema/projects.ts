@@ -36,6 +36,14 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   }),
   apps: many(apps),
   deployments: many(deployments),
+  activeDeployment: one(deployments, {
+    fields: [projects.liveDeploymentId],
+    references: [deployments.id],
+  }),
   frontlineRoutes: many(frontlineRoutes),
+  githubRepoConnection: one(githubRepoConnections, {
+    fields: [projects.id],
+    references: [githubRepoConnections.projectId],
+  }),
   githubRepoConnections: many(githubRepoConnections),
 }));
