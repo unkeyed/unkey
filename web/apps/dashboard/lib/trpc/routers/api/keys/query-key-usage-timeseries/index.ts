@@ -21,15 +21,9 @@ export const keyUsageTimeseries = workspaceProcedure
         outcomes: null,
       });
 
-      if (!result || result.length === 0) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Something went wrong when fetching data from ClickHouse.",
-        });
-      }
-
+      // Empty result is valid - it just means no usage data
       return {
-        timeseries: result,
+        timeseries: result || [],
       };
     } catch (error) {
       console.error("Error fetching timeseries data:", error);
