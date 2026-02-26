@@ -144,7 +144,7 @@ func seedMultiApp(ctx context.Context, cmd *cli.Command) error {
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
-			// Worker app — same Dockerfile, override command in runtime settings
+			// Worker app — same Dockerfile, command override in runtime settings selects the service
 			{
 				WorkspaceID:   workspaceID,
 				AppID:         workerAppID,
@@ -196,8 +196,9 @@ func seedMultiApp(ctx context.Context, cmd *cli.Command) error {
 		}
 
 		// Runtime settings: both apps on port 8080, 256 CPU/mem
+		// The command override selects which service the shared binary runs as.
 		err = db.BulkQuery.UpsertAppRuntimeSettings(ctx, tx, []db.UpsertAppRuntimeSettingsParams{
-			// API app — preview + production
+			// API app — uses default entrypoint (/service), which runs as "api"
 			{
 				WorkspaceID:    workspaceID,
 				AppID:          apiAppID,
@@ -205,7 +206,7 @@ func seedMultiApp(ctx context.Context, cmd *cli.Command) error {
 				Port:           8080,
 				CpuMillicores:  256,
 				MemoryMib:      256,
-				Command:        dbtype.StringSlice{},
+				Command:        dbtype.StringSlice{"/service", "api"},
 				Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				RegionConfig:   dbtype.RegionConfig{},
 				SentinelConfig: []byte{},
@@ -220,7 +221,7 @@ func seedMultiApp(ctx context.Context, cmd *cli.Command) error {
 				Port:           8080,
 				CpuMillicores:  256,
 				MemoryMib:      256,
-				Command:        dbtype.StringSlice{},
+				Command:        dbtype.StringSlice{"/service", "api"},
 				Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				RegionConfig:   dbtype.RegionConfig{},
 				SentinelConfig: []byte{},
@@ -228,7 +229,7 @@ func seedMultiApp(ctx context.Context, cmd *cli.Command) error {
 				CreatedAt:      now,
 				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
 			},
-			// Worker app — preview + production
+			// Worker app — command override runs the binary as "worker"
 			{
 				WorkspaceID:    workspaceID,
 				AppID:          workerAppID,
@@ -236,7 +237,7 @@ func seedMultiApp(ctx context.Context, cmd *cli.Command) error {
 				Port:           8080,
 				CpuMillicores:  256,
 				MemoryMib:      256,
-				Command:        dbtype.StringSlice{},
+				Command:        dbtype.StringSlice{"/service", "worker"},
 				Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				RegionConfig:   dbtype.RegionConfig{},
 				SentinelConfig: []byte{},
@@ -251,7 +252,7 @@ func seedMultiApp(ctx context.Context, cmd *cli.Command) error {
 				Port:           8080,
 				CpuMillicores:  256,
 				MemoryMib:      256,
-				Command:        dbtype.StringSlice{},
+				Command:        dbtype.StringSlice{"/service", "worker"},
 				Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				RegionConfig:   dbtype.RegionConfig{},
 				SentinelConfig: []byte{},
