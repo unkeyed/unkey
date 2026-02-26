@@ -86,10 +86,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       req.ProjectId,
-		Branch:          req.Branch,
 		EnvironmentSlug: req.EnvironmentSlug,
 		DockerImage:     req.DockerImage,
-		GitCommit:       &ctrlv1.GitCommitInfo{},
+		GitCommit: &ctrlv1.GitCommitInfo{
+			Branch: req.Branch,
+		},
 	}
 
 	// Add optional keyspace ID for authentication
@@ -100,7 +101,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Handle optional git commit info
 	if req.GitCommit != nil {
 		// nolint: exhaustruct // optional proto fields, only setting whats provided
-		gitCommit := &ctrlv1.GitCommitInfo{}
+		gitCommit := &ctrlv1.GitCommitInfo{
+			Branch: req.Branch,
+		}
 		if req.GitCommit.CommitSha != nil {
 			gitCommit.CommitSha = *req.GitCommit.CommitSha
 		}

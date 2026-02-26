@@ -18,3 +18,8 @@ func NewNoop() *Noop {
 func (n *Noop) GetInstallationToken(installationID int64) (InstallationToken, error) {
 	return InstallationToken{}, fault.New("GitHub client not configured: GitHub App credentials were not provided at startup")
 }
+
+// GetBranchHeadCommit returns an error indicating GitHub is not configured.
+func (n *Noop) GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error) {
+	return CommitInfo{}, fault.New("GitHub client not configured: GitHub App credentials were not provided at startup")
+}
