@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
 )
@@ -35,6 +36,35 @@ func TestRerollKeyNotFound(t *testing.T) {
 		nonexistentKeyID := uid.New(uid.KeyPrefix)
 		req := handler.Request{
 			KeyId: nonexistentKeyID,
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, 404, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "The specified key was not found")
+	})
+
+	t.Run("key belongs to different workspace", func(t *testing.T) {
+		// Create a second workspace with its own API and key
+		otherWorkspace := h.CreateWorkspace()
+		otherApi := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID:   otherWorkspace.ID,
+			EncryptedKeys: false,
+			IpWhitelist:   "",
+			Name:          nil,
+			CreatedAt:     nil,
+			DefaultPrefix: nil,
+			DefaultBytes:  nil,
+		})
+		otherKey := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: otherWorkspace.ID,
+			Disabled:    false,
+			KeySpaceID:  otherApi.KeyAuthID.String,
+		})
+
+		req := handler.Request{
+			KeyId:      otherKey.KeyID,
+			Expiration: 0,
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

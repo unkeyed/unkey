@@ -61,4 +61,22 @@ func TestNotFound(t *testing.T) {
 		require.Equal(t, openapi.NOTFOUND, res.Body.Data.Code, "Key should be not found but got %s", res.Body.Data.Code)
 		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
 	})
+
+	t.Run("key belongs to different workspace", func(t *testing.T) {
+		otherWorkspace := h.CreateWorkspace()
+		otherApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: otherWorkspace.ID})
+		otherKey := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: otherWorkspace.ID,
+			KeySpaceID:  otherApi.KeyAuthID.String,
+		})
+
+		req := handler.Request{
+			Key: otherKey.Key,
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		require.Equal(t, openapi.NOTFOUND, res.Body.Data.Code, "Key should be not found but got %s", res.Body.Data.Code)
+		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+	})
 }
