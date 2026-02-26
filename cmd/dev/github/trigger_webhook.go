@@ -227,6 +227,7 @@ func (s *Service) ensureGithubConnections(ctx context.Context, projectID string,
 		return fmt.Errorf("no apps found for project %s — run 'dev seed multi-app' first", projectID)
 	}
 
+	now := time.Now().UnixMilli()
 	for _, app := range apps {
 		fmt.Printf("  → connecting app %s (%s)\n", app.Slug, app.ID)
 		err := db.Query.InsertGithubRepoConnection(ctx, s.db.RW(), db.InsertGithubRepoConnectionParams{
@@ -235,11 +236,11 @@ func (s *Service) ensureGithubConnections(ctx context.Context, projectID string,
 			InstallationID:     installationID,
 			RepositoryID:       repositoryID,
 			RepositoryFullName: repository,
-			CreatedAt:          time.Now().UnixMilli(),
-			UpdatedAt:          sql.NullInt64{Valid: false, Int64: 0},
+			CreatedAt:          now,
+			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
 		})
-		if err != nil && !db.IsDuplicateKeyError(err) {
-			return fmt.Errorf("failed to insert connection for app %s: %w", app.ID, err)
+		if err != nil {
+			return fmt.Errorf("failed to upsert connection for app %s: %w", app.ID, err)
 		}
 	}
 

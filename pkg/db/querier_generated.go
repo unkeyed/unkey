@@ -1501,6 +1501,11 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      installation_id = VALUES(installation_id),
+	//      repository_id = VALUES(repository_id),
+	//      repository_full_name = VALUES(repository_full_name),
+	//      updated_at = VALUES(updated_at)
 	InsertGithubRepoConnection(ctx context.Context, db DBTX, arg InsertGithubRepoConnectionParams) error
 	//InsertIdentity
 	//

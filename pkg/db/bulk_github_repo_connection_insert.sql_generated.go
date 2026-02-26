@@ -9,7 +9,11 @@ import (
 )
 
 // bulkInsertGithubRepoConnection is the base query for bulk insert
-const bulkInsertGithubRepoConnection = `INSERT INTO github_repo_connections ( project_id, app_id, installation_id, repository_id, repository_full_name, created_at, updated_at ) VALUES %s`
+const bulkInsertGithubRepoConnection = `INSERT INTO github_repo_connections ( project_id, app_id, installation_id, repository_id, repository_full_name, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+    installation_id = VALUES(installation_id),
+    repository_id = VALUES(repository_id),
+    repository_full_name = VALUES(repository_full_name),
+    updated_at = VALUES(updated_at)`
 
 // InsertGithubRepoConnections performs bulk insert in a single query
 func (q *BulkQueries) InsertGithubRepoConnections(ctx context.Context, db DBTX, args []InsertGithubRepoConnectionParams) error {
