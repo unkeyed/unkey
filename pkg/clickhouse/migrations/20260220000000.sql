@@ -1,8 +1,11 @@
 -- Breaking change: drop and recreate runtime_logs_raw_v1 to add app_id to ORDER BY.
 -- ClickHouse doesn't allow altering the ORDER BY of a MergeTree table.
 -- All existing log data will be lost — acceptable since logs are ephemeral.
+--
+-- The DROP was run manually. It is commented out to prevent accidental
+-- data loss if migrations are ever automated and re-applied.
 
-DROP TABLE IF EXISTS default.runtime_logs_raw_v1;
+-- DROP TABLE IF EXISTS default.runtime_logs_raw_v1;
 
 CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
 (
