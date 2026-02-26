@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 import { indexToValue, valueToIndex } from "../shared/slider-utils";
 
@@ -61,6 +61,12 @@ export const Memory = () => {
   const hasChanges = currentMemory !== defaultMemory;
   const currentIndex = valueToIndex(MEMORY_OPTIONS, currentMemory);
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   return (
     <FormSettingCard
       icon={<ScanCode className="text-gray-12" iconSize="xl-medium" />}
@@ -76,8 +82,7 @@ export const Memory = () => {
         );
       })()}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={isSubmitting}
+      saveState={saveState}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Memory per instance</span>

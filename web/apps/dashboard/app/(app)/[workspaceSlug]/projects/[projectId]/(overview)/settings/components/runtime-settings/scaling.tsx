@@ -5,7 +5,7 @@ import { Gauge } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 
 const scalingSchema = z
@@ -47,6 +47,11 @@ export const Scaling = () => {
     currentMax !== DEFAULT_VALUES.maxInstances ||
     currentCpuThreshold !== DEFAULT_VALUES.cpuThreshold;
 
+  const saveState = resolveSaveState([
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   return (
     <FormSettingCard
       icon={<Gauge className="text-gray-12" iconSize="xl-medium" />}
@@ -64,8 +69,7 @@ export const Scaling = () => {
         </div>
       }
       onSubmit={(e) => e.preventDefault()}
-      canSave={isValid && hasChanges}
-      isSaving={false}
+      saveState={saveState}
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col">

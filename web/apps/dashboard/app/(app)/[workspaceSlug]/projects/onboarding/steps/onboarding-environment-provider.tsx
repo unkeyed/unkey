@@ -9,7 +9,6 @@ import { type PropsWithChildren, useEffect, useMemo, useRef } from "react";
 import { useProjectData } from "../../[projectId]/(overview)/data-provider";
 import { EnvironmentContext } from "../../[projectId]/(overview)/settings/environment-provider";
 
-
 /**
  * Drop-in replacement for EnvironmentSettingsProvider used during onboarding.
  *
@@ -31,7 +30,10 @@ export const OnboardingEnvironmentSettingsProvider = ({ children }: PropsWithChi
   );
 
   const { data } = useLiveQuery(
-    (q) => q.from({ s: collection.environmentSettings }).where(({ s }) => eq(s.environmentId, prodEnvId)),
+    (q) =>
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) => eq(s.environmentId, prodEnvId)),
     [prodEnvId],
   );
 
@@ -43,7 +45,6 @@ export const OnboardingEnvironmentSettingsProvider = ({ children }: PropsWithChi
 
   return <EnvironmentContext.Provider value={{ settings }}>{children}</EnvironmentContext.Provider>;
 };
-
 
 function useSyncSettingsToOtherEnvironments(
   settings: EnvironmentSettings | undefined,
@@ -60,7 +61,9 @@ function useSyncSettingsToOtherEnvironments(
     const current = settingsRef.current;
     const envIds = otherEnvIdsRef.current;
 
-    if (!current || envIds.length === 0) { return };
+    if (!current || envIds.length === 0) {
+      return;
+    }
 
     const prev = prevSettingsRef.current;
     prevSettingsRef.current = current;
@@ -69,9 +72,7 @@ function useSyncSettingsToOtherEnvironments(
       return; // skip initial load
     }
 
-    const mutations = envIds.flatMap((envId) =>
-      buildSettingsMutations(envId, prev, current),
-    );
+    const mutations = envIds.flatMap((envId) => buildSettingsMutations(envId, prev, current));
 
     if (mutations.length > 0) {
       Promise.all(mutations).catch(console.error);

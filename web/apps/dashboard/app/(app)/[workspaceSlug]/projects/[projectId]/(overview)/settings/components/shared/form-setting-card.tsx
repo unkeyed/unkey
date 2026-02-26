@@ -1,7 +1,19 @@
 import { cn } from "@/lib/utils";
-import { Button, SettingCard, type SettingCardBorder } from "@unkey/ui";
+import { Button, InfoTooltip, SettingCard, type SettingCardBorder } from "@unkey/ui";
 import type React from "react";
 import { SelectedConfig } from "./selected-config";
+
+export type SaveState =
+  | { status: "ready" }
+  | { status: "disabled"; reason?: string }
+  | { status: "saving" };
+
+export function resolveSaveState(checks: ReadonlyArray<[boolean, SaveState]>): SaveState {
+  for (const [condition, state] of checks) {
+    if (condition) return state;
+  }
+  return { status: "ready" };
+}
 
 type EditableSettingCardProps = {
   icon: React.ReactNode;
@@ -14,8 +26,7 @@ type EditableSettingCardProps = {
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   children: React.ReactNode;
 
-  canSave: boolean;
-  isSaving: boolean;
+  saveState: SaveState;
 
   ref?: React.Ref<HTMLFormElement>;
   className?: string;
@@ -29,8 +40,7 @@ export const FormSettingCard = ({
   displayValue,
   onSubmit,
   children,
-  canSave,
-  isSaving,
+  saveState,
   ref,
   className,
 }: EditableSettingCardProps) => {
@@ -56,16 +66,25 @@ export const FormSettingCard = ({
             {children}
           </div>
           <div className="px-4 pt-2 pb-4 flex justify-end">
-            <Button
-              type="submit"
-              variant="primary"
-              className="px-3 py-3"
-              size="sm"
-              disabled={!canSave}
-              loading={isSaving}
+            <InfoTooltip
+              content={saveState.status === "disabled" ? saveState.reason : undefined}
+              disabled={
+                saveState.status !== "disabled" || !("reason" in saveState && saveState.reason)
+              }
+              asChild
+              variant="inverted"
             >
-              Save
-            </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                className="px-3 py-3"
+                size="sm"
+                disabled={saveState.status !== "ready"}
+                loading={saveState.status === "saving"}
+              >
+                Save
+              </Button>
+            </InfoTooltip>
           </div>
         </form>
       }
