@@ -75,6 +75,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// Validate key belongs to authorized workspace
+	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+		return fault.New("key not found",
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("key belongs to different workspace"),
+			fault.Public("The specified key was not found."),
+		)
+	}
+
 	keyData := db.ToKeyData(key)
 
 	checks := rbac.Or(
