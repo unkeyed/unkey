@@ -387,8 +387,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-
-
 	logger.Info("waiting for deployments to be ready", "deployment_id", deployment.ID)
 
 	readygates := make([]restate.Future, len(topologies))
