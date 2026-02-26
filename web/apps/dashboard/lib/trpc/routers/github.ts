@@ -19,7 +19,6 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
       },
       with: {
         apps: {
-          where: (table, { eq }) => eq(table.slug, "default"),
           columns: { id: true },
           with: {
             githubRepoConnection: {
@@ -30,7 +29,6 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
               },
             },
           },
-          limit: 1,
         },
         workspace: {
           columns: {
@@ -58,15 +56,17 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
     return null;
   }
 
-  const defaultApp = project.apps[0] ?? null;
+  // Prefer the first app that already has a github connection, otherwise pick any app
+  const connectedApp = project.apps.find((a) => a.githubRepoConnection != null);
+  const app = connectedApp ?? project.apps[0] ?? null;
 
   return {
-    appId: defaultApp?.id ?? null,
-    repoConnection: defaultApp?.githubRepoConnection
+    appId: app?.id ?? null,
+    repoConnection: app?.githubRepoConnection
       ? {
-          pk: defaultApp.githubRepoConnection.pk,
-          repositoryId: defaultApp.githubRepoConnection.repositoryId,
-          repositoryFullName: defaultApp.githubRepoConnection.repositoryFullName,
+          pk: app.githubRepoConnection.pk,
+          repositoryId: app.githubRepoConnection.repositoryId,
+          repositoryFullName: app.githubRepoConnection.repositoryFullName,
         }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],

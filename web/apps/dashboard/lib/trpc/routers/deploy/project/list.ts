@@ -2,10 +2,8 @@ import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import {
-  apps,
   deployments,
   frontlineRoutes,
-  githubRepoConnections,
   projects,
 } from "@unkey/db/src/schema";
 
@@ -28,15 +26,36 @@ type ProjectRow = {
 export const listProjects = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .query(async ({ ctx }) => {
+    // Pick the most recently updated app that has a live deployment.
+    // This avoids hardcoding slug = 'default' and works for any number of apps.
     const result = await db.execute(sql`
       SELECT
         ${projects.id},
         ${projects.name},
         ${projects.slug},
         ${projects.updatedAt},
-        ${githubRepoConnections.repositoryFullName},
-        ${apps.liveDeploymentId},
-        ${apps.isRolledBack},
+        (
+          SELECT grc.repository_full_name
+          FROM github_repo_connections grc
+          WHERE grc.project_id = ${projects.id}
+          LIMIT 1
+        ) as repository_full_name,
+        (
+          SELECT a.live_deployment_id
+          FROM apps a
+          WHERE a.project_id = ${projects.id}
+            AND a.live_deployment_id IS NOT NULL
+          ORDER BY a.updated_at DESC
+          LIMIT 1
+        ) as live_deployment_id,
+        (
+          SELECT a.is_rolled_back
+          FROM apps a
+          WHERE a.project_id = ${projects.id}
+            AND a.live_deployment_id IS NOT NULL
+          ORDER BY a.updated_at DESC
+          LIMIT 1
+        ) as is_rolled_back,
         ${deployments.gitCommitMessage},
         ${deployments.gitBranch},
         ${deployments.gitCommitAuthorHandle},
@@ -52,16 +71,18 @@ export const listProjects = workspaceProcedure
           LIMIT 1
         ) as latest_deployment_id
       FROM ${projects}
-      LEFT JOIN ${apps}
-        ON ${apps.projectId} = ${projects.id}
-        AND ${apps.slug} = 'default'
       LEFT JOIN ${deployments}
-        ON ${apps.liveDeploymentId} = ${deployments.id}
+        ON ${deployments.id} = (
+          SELECT a2.live_deployment_id
+          FROM apps a2
+          WHERE a2.project_id = ${projects.id}
+            AND a2.live_deployment_id IS NOT NULL
+          ORDER BY a2.updated_at DESC
+          LIMIT 1
+        )
         AND ${deployments.workspaceId} = ${ctx.workspace.id}
       LEFT JOIN ${frontlineRoutes}
         ON ${projects.id} = ${frontlineRoutes.projectId}
-      LEFT JOIN ${githubRepoConnections}
-        ON ${apps.id} = ${githubRepoConnections.appId}
       WHERE ${projects.workspaceId} = ${ctx.workspace.id}
       ORDER BY ${projects.updatedAt} DESC
     `);
