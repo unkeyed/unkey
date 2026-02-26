@@ -123,11 +123,17 @@ function flattenSettingsResponse(
   };
 }
 
-async function dispatchSettingsMutations(
+/**
+ * Build an array of tRPC mutation promises for settings that changed between
+ * `original` and `modified`, targeting `environmentId`.
+ *
+ * Pure function — no toasts, no side-effects beyond the network calls.
+ */
+export function buildSettingsMutations(
+  environmentId: string,
   original: EnvironmentSettings,
   modified: EnvironmentSettings,
-): Promise<void> {
-  const { environmentId } = original;
+): Promise<unknown>[] {
   const mutations: Promise<unknown>[] = [];
 
   if (modified.dockerfile !== original.dockerfile) {
@@ -231,6 +237,15 @@ async function dispatchSettingsMutations(
       }),
     );
   }
+
+  return mutations;
+}
+
+async function dispatchSettingsMutations(
+  original: EnvironmentSettings,
+  modified: EnvironmentSettings,
+): Promise<void> {
+  const mutations = buildSettingsMutations(original.environmentId, original, modified);
 
   if (mutations.length === 0) {
     return;

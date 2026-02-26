@@ -10,7 +10,7 @@ type EnvironmentContextType = {
   settings: EnvironmentSettings;
 };
 
-const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
+export const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
 
 export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => {
   const { environments } = useProjectData();
