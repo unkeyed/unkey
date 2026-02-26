@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { Header } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { CaretDown, CaretExpandY, CaretUp } from "@unkey/icons";
+import { ChevronDown, ChevronUp } from "@unkey/icons";
 
 interface SortableHeaderProps<TData> {
   header: Header<TData, unknown>;
@@ -43,7 +43,7 @@ export function SortableHeader<TData>({ header, children }: SortableHeaderProps<
       }
     >
       <span>{children || flexRender(column.columnDef.header, header.getContext())}</span>
-      <span className="flex-shrink-0">
+      <span className="shrink-0 pl-1">
         <SortIcon sorted={isSorted} />
       </span>
     </button>
@@ -51,13 +51,10 @@ export function SortableHeader<TData>({ header, children }: SortableHeaderProps<
 }
 
 function SortIcon({ sorted }: { sorted: false | "asc" | "desc" }) {
-  if (sorted === "asc") {
-    return <CaretUp className="color-gray-9" iconSize="sm-thin" />;
-  }
-
-  if (sorted === "desc") {
-    return <CaretDown className="color-gray-9" iconSize="sm-thin" />;
-  }
-
-  return <CaretExpandY className="color-gray-9" />;
+  return (
+    <div>
+      <ChevronUp className={cn("color-gray-9 size-2", sorted === "desc" && "invisible")} />
+      <ChevronDown className={cn("color-gray-9 size-2", sorted === "asc" && "invisible")} />
+    </div>
+  );
 }

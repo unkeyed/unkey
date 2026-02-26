@@ -24,6 +24,7 @@ const filterFieldsSchema = rootKeysListFilterFieldNames.reduce(
 const baseRootKeysSchema = z.object(filterFieldsSchema);
 
 export const rootKeysQueryPayload = baseRootKeysSchema.extend({
+  limit: z.number().min(20).optional(),
   cursor: z.number().nullish(),
 });
 

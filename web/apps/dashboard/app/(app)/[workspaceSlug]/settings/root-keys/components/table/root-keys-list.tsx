@@ -1,5 +1,6 @@
 "use client";
 import { DataTable, EmptyRootKeys, createRootKeyColumns } from "@/components/data-table";
+import { PaginationFooter } from "@/components/data-table/components/footer/pagination-footer";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { unkeyPermissionValidation } from "@unkey/rbac";
@@ -12,12 +13,12 @@ const isUnkeyPermission = (permissionName: string): permissionName is UnkeyPermi
   return result.success;
 };
 import { renderRootKeySkeletonRow } from "@/components/data-table/components/skeletons/render-root-key-skeleton-row";
-import { useRootKeysListQuery } from "@/components/data-table/hooks/rootkey/use-root-keys-list-query";
+import { useRootKeysListPaginated } from "@/components/data-table/hooks/rootkey/use-root-keys-list-query";
 import { getRowClassName } from "@/components/data-table/utils/get-row-class";
 
 export const RootKeysList = () => {
-  const { rootKeys, isLoading, isLoadingMore, loadMore, totalCount, hasMore } =
-    useRootKeysListQuery();
+  const { rootKeys, isLoading, isFetching, isPending, totalCount, onPageChange, page, pageSize, totalPages } =
+    useRootKeysListPaginated();
   const [selectedRootKey, setSelectedRootKey] = useState<RootKey | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<RootKey | null>(null);
@@ -45,27 +46,6 @@ export const RootKeysList = () => {
   const getRowClassNameMemoized = useCallback(
     (rootKey: RootKey) => getRowClassName(rootKey, selectedRootKey),
     [selectedRootKey],
-  );
-
-  // Memoize the loadMoreFooterProps to prevent unnecessary re-renders
-  const loadMoreFooterProps = useMemo(
-    () => ({
-      hide: isLoading,
-      buttonText: "Load more root keys",
-      hasMore,
-      onLoadMore: loadMore,
-      isFetchingNextPage: isLoadingMore,
-      countInfoText: (
-        <div className="flex gap-2">
-          <span>Showing</span>{" "}
-          <span className="text-accent-12">{new Intl.NumberFormat().format(rootKeys.length)}</span>
-          <span>of</span>
-          {new Intl.NumberFormat().format(totalCount)}
-          <span>root keys</span>
-        </div>
-      ),
-    }),
-    [isLoading, hasMore, loadMore, isLoadingMore, rootKeys.length, totalCount],
   );
 
   // Memoize the emptyState to prevent unnecessary re-renders
@@ -113,14 +93,23 @@ export const RootKeysList = () => {
         data={rootKeys}
         columns={columns}
         getRowId={(rootKey) => rootKey.id}
-        isLoading={isLoading}
+        isLoading={isLoading || isFetching}
         onRowClick={handleRowClick}
         selectedItem={selectedRootKey}
         rowClassName={getRowClassNameMemoized}
-        loadMoreFooterProps={loadMoreFooterProps}
         emptyState={emptyState}
         config={config}
         renderSkeletonRow={renderSkeletonRow}
+        enableSorting={true}
+      />
+      <PaginationFooter
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        onPageChange={onPageChange}
+        itemLabel="root keys"
+        hide={isPending}
       />
       {editingKey && existingKey && (
         <RootKeyDialog

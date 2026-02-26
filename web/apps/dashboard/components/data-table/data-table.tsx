@@ -3,6 +3,7 @@ import { flexRender } from "@tanstack/react-table";
 import { useIsMobile } from "@unkey/ui";
 import { Fragment, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { LoadMoreFooter } from "./components/footer/load-more-footer";
+import { Pagination } from "./components/pagination";
 import { SkeletonRow } from "./components/rows/skeleton-row";
 import { EmptyState } from "./components/utils/empty-state";
 import { RealtimeSeparator } from "./components/utils/realtime-separator";
@@ -10,7 +11,6 @@ import { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
 import { useRealtimeData } from "./hooks/use-realtime-data";
 import { useTableHeight } from "./hooks/use-table-height";
-import { Pagination } from "./components/pagination";
 import type { DataTableProps, SeparatorItem } from "./types";
 import { calculateColumnWidth } from "./utils/column-width";
 

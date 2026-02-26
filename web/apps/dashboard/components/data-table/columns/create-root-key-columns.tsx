@@ -1,4 +1,5 @@
 import type { DataTableColumnDef } from "@/components/data-table";
+import { SortableHeader } from "@/components/data-table";
 import { AssignedItemsCell } from "@/components/data-table/components/cells/assigned-items-cell";
 import { HiddenValueCell } from "@/components/data-table/components/cells/hidden-value-cell";
 import { LastUpdatedCell } from "@/components/data-table/components/cells/last-updated-cell";
@@ -31,11 +32,16 @@ export const createRootKeyColumns = ({
   {
     id: "root_key",
     accessorKey: "name",
-    header: "Name",
+    header: ({ header }) => (
+      <SortableHeader key="root_key" header={header}>
+        Name
+      </SortableHeader>
+    ),
     meta: {
       width: "20%",
       headerClassName: "pl-[18px]",
     },
+    sortingFn: "alphanumeric",
     cell: ({ row }) => {
       const rootKey = row.original;
       const isSelected = rootKey.id === selectedRootKeyId;
@@ -49,6 +55,7 @@ export const createRootKeyColumns = ({
     meta: {
       width: "18%",
     },
+    sortingFn: "alphanumeric",
     cell: ({ row }) => {
       const rootKey = row.original;
       return (

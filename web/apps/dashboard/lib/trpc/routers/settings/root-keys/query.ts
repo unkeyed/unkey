@@ -41,16 +41,17 @@ export const queryRootKeys = workspaceProcedure
   .input(rootKeysQueryPayload)
   .output(RootKeysResponse)
   .query(async ({ ctx, input }) => {
-    // Build base conditions
+    // Build base conditions (used for both count and fetch)
     const baseConditions = [
       eq(schema.keys.forWorkspaceId, ctx.workspace.id),
       isNull(schema.keys.deletedAtM),
     ];
 
-    // Add cursor condition for pagination
-    if (input.cursor && typeof input.cursor === "number") {
-      baseConditions.push(lt(schema.keys.createdAtM, input.cursor));
-    }
+    // Cursor condition applied only to the fetch query, not the count query
+    const cursorConditions =
+      input.cursor && typeof input.cursor === "number"
+        ? [lt(schema.keys.createdAtM, input.cursor)]
+        : [];
 
     // Build filter conditions
     const filterConditions = [];
@@ -132,18 +133,24 @@ export const queryRootKeys = workspaceProcedure
       }
     }
 
-    // Combine all conditions
-    const allConditions =
+    // Count conditions: base + filters only (no cursor — total must reflect all matching keys)
+    const countConditions =
       filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
+
+    // Fetch conditions: base + cursor + filters
+    const fetchConditions =
+      filterConditions.length > 0
+        ? [...baseConditions, ...cursorConditions, ...filterConditions]
+        : [...baseConditions, ...cursorConditions];
 
     try {
       const [totalResult, keysResult] = await Promise.all([
         db
           .select({ count: count() })
           .from(schema.keys)
-          .where(and(...allConditions)),
+          .where(and(...countConditions)),
         db.query.keys.findMany({
-          where: and(...allConditions),
+          where: and(...fetchConditions),
           orderBy: [desc(schema.keys.createdAtM)],
           limit: LIMIT + 1, // Get one extra to check if there are more
           columns: {
