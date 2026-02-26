@@ -64,8 +64,7 @@ The inject binary at `cmd/inject/` gets rewritten with two modes: `decrypt` (ini
 
 **Init container** (`inject decrypt`):
 1. Read `UNKEY_SEALED_ENV` from env var
-2. Read KEK from `/var/run/unkey/kek/kek.json` (local file, no network)
-3. Find the KEK matching the envelope's `kek_id`
+2. Read `/var/run/unkey/kek/<kek_id>` matching the envelope's `kek_id` (local file, no network)
 4. Unwrap DEK → decrypt payload → get `{key: value}` map
 5. Write plaintext env vars as JSON to `/env-shared/env.json`
 6. Exit. KEK is never accessible again after this point.
@@ -81,17 +80,16 @@ The inject binary at `cmd/inject/` gets rewritten with two modes: `decrypt` (ini
 
 The KEK is stored encrypted at rest in an object store (S3, GCS, MinIO — any S3-compatible API). A **root key** encrypts the KEK before it's written to the bucket. This gives us two independent security barriers: bucket access alone is useless without the root key, and the root key alone is useless without bucket access.
 
+S3 is treated as a plain filesystem. Each KEK is its own file, encrypted individually with the root key. kek-agent lists the prefix and downloads all files.
+
 ```
-┌─────────────────────────────────────────────────┐
-│ Object store (S3 / GCS / MinIO)                 │
-│                                                 │
-│   kek.json.enc                                  │
-│   ┌───────────────────────────────────────────┐ │
-│   │ AES-256-GCM encrypted with root key       │ │
-│   │ Plaintext is the KEK key file (see below) │ │
-│   └───────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────┘
+s3://unkey-kek/
+├── kek-2026-01.enc    ← AES-256-GCM encrypted with root key
+├── kek-2026-02.enc    ← AES-256-GCM encrypted with root key
+└── ...
 ```
+
+Adding a new KEK is uploading a file. Removing an old KEK is deleting a file. No monolithic config to manage.
 
 Three layers of envelope encryption total: root key wraps KEK, KEK wraps DEK, DEK wraps secrets. Compromise requires breaking multiple independent systems.
 
@@ -101,26 +99,23 @@ This design is deliberately cloud-agnostic. No dependency on AWS KMS, GCP Cloud 
 
 ### KEK Distribution (kek-agent DaemonSet)
 
-A DaemonSet running on every node. Its only job: fetch the encrypted KEK from the object store, decrypt it with the root key, and put the plaintext on the node's tmpfs.
+A DaemonSet running on every node. Its only job: list KEK files from S3, decrypt each with the root key, and write them to the node's tmpfs.
 
-1. At startup: fetch encrypted KEK from object store, decrypt with root key (AES-256-GCM)
-2. Write plaintext KEK to host tmpfs at `/var/run/unkey/kek/kek.json`
+1. At startup: list `s3://unkey-kek/`, download each `.enc` file, decrypt with root key
+2. Write each plaintext KEK to `/var/run/unkey/kek/<kek-id>` on host tmpfs
 3. Serve a health endpoint
-4. Periodically re-fetch from object store (picks up rotations without DaemonSet redeploy)
-5. Sleep forever
+4. Periodically re-list S3 (picks up new/removed KEKs without DaemonSet redeploy)
 
 Pods mount `/var/run/unkey/kek` as a read-only `hostPath` volume. The DaemonSet runs with `priorityClassName: system-node-critical` so it starts before user pods on node boot.
 
-The plaintext KEK file on tmpfs supports multiple keys for rotation:
-
-```json
-[
-    { "id": "kek-2026-02", "key": "<base64-32-bytes>" },
-    { "id": "kek-2026-01", "key": "<base64-32-bytes>" }
-]
+```
+/var/run/unkey/kek/
+├── kek-2026-01    ← plaintext 32-byte key, base64-encoded
+├── kek-2026-02
+└── ...
 ```
 
-tmpfs means the plaintext KEK only ever lives in memory — never written to disk, never in etcd, never in the object store. Node reboot wipes it. kek-agent rewrites it on startup.
+The sealed envelope's `kek_id` maps directly to a filename. tmpfs means the plaintext KEKs only ever live in memory — never on disk, never in etcd. Node reboot wipes it. kek-agent rewrites it on startup.
 
 ### Pod Spec Construction
 
@@ -140,8 +135,8 @@ spec:
           env:
               - name: UNKEY_SEALED_ENV
                 value: <base64-sealed-envelope>
-              - name: UNKEY_KEK_PATH
-                value: /var/run/unkey/kek/kek.json
+              - name: UNKEY_KEK_DIR
+                value: /var/run/unkey/kek
               - name: UNKEY_ENV_FILE
                 value: /env-shared/env.json
           volumeMounts:
@@ -247,9 +242,9 @@ One deployment's failure never affects another. Each deployment has its own DEK.
 
 Three steps:
 
-1. **Add new KEK**: Upload a new encrypted KEK file to the object store containing both old and new keys. kek-agent's periodic re-fetch picks it up on all nodes automatically. Nothing breaks — old envelopes still decrypt with the old key.
+1. **Add new KEK**: Upload `kek-2026-03.enc` to S3. kek-agent's periodic re-list picks it up on all nodes automatically. Nothing breaks — old envelopes still decrypt with the old key.
 2. **Force re-deploy everything**: Trigger a new deployment for all active deployments. ctrl-worker re-seals each with the new KEK. As pods roll, they start using envelopes sealed with the new key.
-3. **Remove old KEK**: Once no active deployment uses the old `kek_id` (query the DB), upload a KEK file with only the new key.
+3. **Remove old KEK**: Once no active deployment uses the old `kek_id` (query the DB), delete `kek-2026-02.enc` from S3.
 
 At no point does any pod fail. Old pods keep using old KEK until they're replaced. New pods use new KEK. Both keys coexist in the file throughout the transition.
 
@@ -335,6 +330,3 @@ Clean cutover. Deploy everything, force re-deploy all active deployments, delete
 
 **Sealed Secrets (Bitnami)**: Encrypt secrets with a cluster-side controller. Rejected because it's designed for GitOps workflows (encrypted secrets in git), not runtime injection, and would require significant adaptation to fit the Unkey deployment model.
 
-## Unresolved Questions
-
-- **Per-environment KEKs**: Should there be separate KEKs per environment rather than a single cluster-wide KEK? This reduces blast radius but increases operational complexity (more keys to manage, rotate, distribute). The current design uses a single KEK for simplicity; per-environment KEKs can be added later by using the `kek_id` field to route to different keys.
