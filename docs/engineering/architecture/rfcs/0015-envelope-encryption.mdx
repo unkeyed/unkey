@@ -16,15 +16,16 @@ Move all secret resolution to deploy time. At deploy time, ctrl-worker decrypts 
 
 **Reliability**: Any of the 4 services (preflight, inject, Krane SecretsService, Vault) going down means pods can't start. Even scaling an existing deployment fails because new pods need to fetch secrets at startup.
 
-**Complexity**: TLS cert management for the preflight webhook is DIY (self-signed CA, cert-gen init container, ca-patcher sidecar). Debugging a secret injection failure requires tracing through 4 services. The `MutatingWebhookConfiguration` with `failurePolicy: Fail` means webhook issues block all pod creation cluster-wide.
+**Complexity**: TLS cert management for the preflight webhook. Debugging a secret injection failure requires tracing through 4 services. The `MutatingWebhookConfiguration` with `failurePolicy: Fail` means webhook issues block all pod creation cluster-wide.
+TL;DR if anything is down boy it will all break.
 
-**Depot pull tokens**: Fetched per-pod at admission time through the same webhook SPOF. 55-minute TTL tokens fetched individually for every pod rather than shared per deployment.
+**Depot pull tokens**: The webhook creates pull secrets with deterministic names (`preflight-pull-<sha256(image)[:8]>`) and reuses them across pods with the same image until they expire. But every pod creation still flows through the webhook to check/create the secret — the webhook remains a SPOF for pod admission even when the actual Depot API call is cached.
 
 ## Detailed Design
 
 ### Envelope Encryption
 
-The system uses envelope encryption — the same pattern used by AWS KMS, GCP Cloud KMS, and Azure Key Vault. Two keys:
+Two keys:
 
 - **KEK (Key Encryption Key)** — A long-lived cluster-wide master key. Distributed to nodes via a DaemonSet. Used to wrap/unwrap DEKs.
 - **DEK (Data Encryption Key)** — A random per-deployment key. Generated at deploy time. Used to encrypt the actual secrets.
@@ -59,30 +60,58 @@ Currently, `create_deployment.go` builds a `SecretsConfig` proto with the raw (v
 
 ### Pod Startup (inject binary)
 
-The inject binary at `cmd/inject/` currently supports only the `krane-vault` provider. It will gain a new `envelope` provider:
+The inject binary at `cmd/inject/` gets rewritten with two modes: `decrypt` (init container) and the default run mode (main container). The krane-vault provider is removed.
 
-1. Read `UNKEY_SEALED_ENV` from env var (set by Krane in the pod spec)
+**Init container** (`inject decrypt`):
+1. Read `UNKEY_SEALED_ENV` from env var
 2. Read KEK from `/var/run/unkey/kek/kek.json` (local file, no network)
 3. Find the KEK matching the envelope's `kek_id`
-4. Unwrap DEK: `AES-GCM-Decrypt(KEK, wrapped_dek)` → plaintext DEK
-5. Decrypt payload: `AES-GCM-Decrypt(DEK, encrypted_payload)` → `{key: value}` JSON
-6. Set env vars, `syscall.Exec()` the real process
-7. **Zero network calls. Zero service dependencies.**
+4. Unwrap DEK → decrypt payload → get `{key: value}` map
+5. Write plaintext env vars as JSON to `/env-shared/env.json`
+6. Exit. KEK is never accessible again after this point.
 
-Provider selection in `cmd/inject/command.go` is driven by `UNKEY_PROVIDER` env var. The inject binary already supports pluggable providers via `pkg/secrets/provider/provider.go`. The new `envelope` provider is registered alongside the existing `krane-vault` provider.
+**Main container** (`inject` wraps the customer process):
+1. Read `/env-shared/env.json`
+2. Set env vars
+3. Delete `/env-shared/env.json` — plaintext secrets gone from disk before customer code runs
+4. `syscall.Exec()` the customer process — inject is gone, customer code just sees normal env vars
+5. **Zero network calls. Zero files left behind. Zero crypto keys. Customer code has no idea any of this happened.**
+
+### KEK Storage
+
+The KEK is stored encrypted at rest in an object store (S3, GCS, MinIO — any S3-compatible API). A **root key** encrypts the KEK before it's written to the bucket. This gives us two independent security barriers: bucket access alone is useless without the root key, and the root key alone is useless without bucket access.
+
+```
+┌─────────────────────────────────────────────────┐
+│ Object store (S3 / GCS / MinIO)                 │
+│                                                 │
+│   kek.json.enc                                  │
+│   ┌───────────────────────────────────────────┐ │
+│   │ AES-256-GCM encrypted with root key       │ │
+│   │ Plaintext is the KEK key file (see below) │ │
+│   └───────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────┘
+```
+
+Three layers of envelope encryption total: root key wraps KEK, KEK wraps DEK, DEK wraps secrets. Compromise requires breaking multiple independent systems.
+
+The root key is the one true secret. It's a 32-byte value stored in AWS Secrets Manager and provided to kek-agent as an env var. The root key never touches the object store. The KEK never touches Secrets Manager. Separation of concerns.
+
+This design is deliberately cloud-agnostic. No dependency on AWS KMS, GCP Cloud KMS, or any provider-specific key management. The encryption is AES-256-GCM done by us. The object store is just dumb storage. Switching from AWS to GCP or bare metal means pointing kek-agent at a different bucket — the crypto doesn't change.
 
 ### KEK Distribution (kek-agent DaemonSet)
 
-A DaemonSet running on every node. Its only job: put the KEK on the node's tmpfs.
+A DaemonSet running on every node. Its only job: fetch the encrypted KEK from the object store, decrypt it with the root key, and put the plaintext on the node's tmpfs.
 
-1. At startup: load KEK from configured source (env var, config file, or cloud secret manager)
-2. Write KEK to host tmpfs at `/var/run/unkey/kek/kek.json`
+1. At startup: fetch encrypted KEK from object store, decrypt with root key (AES-256-GCM)
+2. Write plaintext KEK to host tmpfs at `/var/run/unkey/kek/kek.json`
 3. Serve a health endpoint
-4. Sleep forever
+4. Periodically re-fetch from object store (picks up rotations without DaemonSet redeploy)
+5. Sleep forever
 
 Pods mount `/var/run/unkey/kek` as a read-only `hostPath` volume. The DaemonSet runs with `priorityClassName: system-node-critical` so it starts before user pods on node boot.
 
-The KEK file format supports multiple keys for rotation:
+The plaintext KEK file on tmpfs supports multiple keys for rotation:
 
 ```json
 [
@@ -91,21 +120,36 @@ The KEK file format supports multiple keys for rotation:
 ]
 ```
 
+tmpfs means the plaintext KEK only ever lives in memory — never written to disk, never in etcd, never in the object store. Node reboot wipes it. kek-agent rewrites it on startup.
+
 ### Pod Spec Construction
 
 Currently, Krane (`svc/krane/internal/deployment/apply.go`) builds the ReplicaSet with just the user container. Preflight (`svc/preflight/internal/services/mutator/mutator.go`) then patches in the inject init container at admission time via `MutatingWebhookConfiguration`.
 
-In the new system, Krane builds the complete spec directly when `sealed_envelope` is present in the `ApplyDeployment` proto:
+In the new system, Krane builds the complete spec directly when `sealed_envelope` is present in the `ApplyDeployment` proto.
 
+**The KEK is only accessible to the init container, never the main container.** The init container decrypts secrets and writes plaintext env vars to a shared emptyDir file. The main container reads that file — it never sees the KEK. This is critical because the main container runs customer code.
+
+It would look something like this:
 ```yaml
 spec:
     initContainers:
-        - name: copy-inject
+        - name: decrypt-env
           image: ghcr.io/unkeyed/inject:latest
-          command: ["cp", "/ko-app/inject", "/inject-bin/inject"]
+          command: ["/ko-app/inject", "decrypt"]
+          env:
+              - name: UNKEY_SEALED_ENV
+                value: <base64-sealed-envelope>
+              - name: UNKEY_KEK_PATH
+                value: /var/run/unkey/kek/kek.json
+              - name: UNKEY_ENV_FILE
+                value: /env-shared/env.json
           volumeMounts:
-              - name: inject-bin
-                mountPath: /inject-bin
+              - name: kek                    # KEK only here — never in main container
+                mountPath: /var/run/unkey/kek
+                readOnly: true
+              - name: env-shared
+                mountPath: /env-shared
 
     containers:
         - name: deployment
@@ -113,27 +157,26 @@ spec:
           command: ["/inject-bin/inject"]
           args: ["--", <resolved-entrypoint>]
           env:
-              - name: UNKEY_SEALED_ENV
-                value: <base64-sealed-envelope>
-              - name: UNKEY_PROVIDER
-                value: envelope
-              - name: UNKEY_KEK_PATH
-                value: /var/run/unkey/kek/kek.json
+              - name: UNKEY_ENV_FILE
+                value: /env-shared/env.json
               - name: UNKEY_DEPLOYMENT_ID
                 value: <deployment-id>
           volumeMounts:
               - name: inject-bin
                 mountPath: /inject-bin
                 readOnly: true
-              - name: kek
-                mountPath: /var/run/unkey/kek
+              - name: env-shared             # plaintext env vars, no KEK
+                mountPath: /env-shared
                 readOnly: true
 
     volumes:
         - name: inject-bin
           emptyDir:
               medium: Memory
-        - name: kek
+        - name: env-shared                   # decrypted env vars passed between init and main
+          emptyDir:
+              medium: Memory
+        - name: kek                          # only mounted in init container
           hostPath:
               path: /var/run/unkey/kek
               type: Directory
@@ -141,6 +184,8 @@ spec:
     imagePullSecrets:
         - name: <depot-pull-secret>
 ```
+
+The inject image serves double duty: in the init container it decrypts and writes the env file, in the main container it reads the env file, sets env vars, and exec's the customer process. The KEK volume is only mounted on the init container — the main container (and therefore customer code) can never access it.
 
 ### Image Entrypoint Resolution
 
@@ -167,9 +212,13 @@ Token refresh via a Restate periodic handler in ctrl-worker (follows the existin
 
 ## Resilience
 
+### Object store (S3) goes down
+
+**Impact: None on running pods or new pods on existing nodes.** The KEK is already decrypted and on tmpfs. The object store is only needed when kek-agent starts on a fresh node or during KEK rotation. If S3 is down for hours, everything keeps working on existing nodes. New nodes joining the cluster would be blocked until S3 recovers.
+
 ### kek-agent DaemonSet pod dies
 
-**Impact: None on running pods. New pods can still start.** The KEK file lives on the host's tmpfs, not inside the DaemonSet pod. The DaemonSet pod is only needed for initial KEK write (once per node boot) and KEK rotation. If the DaemonSet pod is gone for hours, everything keeps working.
+**Impact: None on running pods. New pods can still start.** The KEK file lives on the host's tmpfs, not inside the DaemonSet pod. The DaemonSet pod is only needed for initial KEK fetch/decrypt (once per node boot) and KEK rotation. If the DaemonSet pod is gone for hours, everything keeps working.
 
 ### Node reboots
 
@@ -196,25 +245,15 @@ One deployment's failure never affects another. Each deployment has its own DEK.
 
 ## KEK Rotation
 
-### Zero-downtime rotation
+Three steps:
 
-**Step 1**: Generate new KEK with new ID (e.g., `kek-2026-03`).
+1. **Add new KEK**: Upload a new encrypted KEK file to the object store containing both old and new keys. kek-agent's periodic re-fetch picks it up on all nodes automatically. Nothing breaks — old envelopes still decrypt with the old key.
+2. **Force re-deploy everything**: Trigger a new deployment for all active deployments. ctrl-worker re-seals each with the new KEK. As pods roll, they start using envelopes sealed with the new key.
+3. **Remove old KEK**: Once no active deployment uses the old `kek_id` (query the DB), upload a KEK file with only the new key.
 
-**Step 2**: Update kek-agent config with both old and new KEK. Rolling update writes both to each node's file. No pods are affected because the old KEK is still present.
+At no point does any pod fail. Old pods keep using old KEK until they're replaced. New pods use new KEK. Both keys coexist in the file throughout the transition.
 
-**Step 3**: Update ctrl-worker to seal new deployments with the new KEK.
-
-**Step 4**: Wait for old deployments to be replaced naturally, or trigger re-deployment for all active deployments to speed this up.
-
-**Step 5**: Once no active deployment uses the old KEK (query DB for `kek_id` in sealed envelopes), remove the old KEK from kek-agent config.
-
-**Key safety property**: At no point during rotation does any pod fail. Old pods keep using old KEK. New pods use new KEK. Both coexist in the file throughout the transition.
-
-### Emergency rotation (KEK compromised)
-
-1. Generate new KEK, push to kek-agent (both old + new)
-2. Re-deploy ALL active deployments immediately (ctrl-worker re-seals each with new KEK)
-3. Once all deployments are re-sealed, remove old KEK
+For emergency rotation (KEK compromised), same three steps but do step 2 immediately for all deployments rather than waiting for natural churn.
 
 ## Proto and Code Changes
 
@@ -236,15 +275,14 @@ One deployment's failure never affects another. Each deployment has its own DEK.
 | ----------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | envelope          | `pkg/envelope/`                    | `Seal(kek, kekID, payload) → SealedEnvelope` and `Open(keks, sealed) → payload`. AES-256-GCM. KEK file loading.    |
 | envelope provider | `pkg/secrets/provider/envelope.go` | Implements `Provider` interface. Reads KEK from local file, calls `envelope.Open()`, returns env vars. No network. |
-| kek-agent         | `svc/kek-agent/`                   | DaemonSet service. Reads KEK from config, writes to host tmpfs, health endpoint.                                   |
+| kek-agent         | `svc/kek-agent/`                   | DaemonSet service. Fetches encrypted KEK from object store, decrypts with root key, writes to host tmpfs. Periodic re-fetch for rotation. Health endpoint. |
 
 ### Modified packages
 
 | Package           | Path                                                 | Change                                                                                                                                                                                                             |
 | ----------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| provider          | `pkg/secrets/provider/provider.go`                   | Add `Envelope` provider type to factory                                                                                                                                                                            |
-| inject            | `cmd/inject/`                                        | Add `UNKEY_SEALED_ENV`, `UNKEY_KEK_PATH` env vars. Add envelope provider selection. Dual-mode: prefer envelope when `UNKEY_SEALED_ENV` is present, fall back to krane-vault when `UNKEY_ENCRYPTED_ENV` is present. |
-| deployment create | `svc/ctrl/services/deployment/create_deployment.go`  | When feature flag enabled: call `vault.DecryptBulk` to get plaintext values, seal with `envelope.Seal()`, store sealed envelope in deployment row                                                                  |
+| inject            | `cmd/inject/`                                        | Rewrite with two modes: `decrypt` (init container, reads KEK, writes env file) and default (main container, reads env file, exec's process). Remove krane-vault provider. |
+| deployment create | `svc/ctrl/services/deployment/create_deployment.go`  | Call `vault.DecryptBulk` to get plaintext values, seal with `envelope.Seal()`, store sealed envelope in deployment row                                                                  |
 | cluster service   | `svc/ctrl/services/cluster/rpc_watch_deployments.go` | Pass `sealed_envelope` field through from deployment row to `ApplyDeployment`                                                                                                                                      |
 | krane apply       | `svc/krane/internal/deployment/apply.go`             | When `sealed_envelope` is present: add init container, volumes, inject command wrapper, envelope env vars                                                                                                          |
 
@@ -254,34 +292,12 @@ One deployment's failure never affects another. Each deployment has its own DEK.
 
 ## Migration
 
-### Dual-mode inject
+Clean cutover. Deploy everything, force re-deploy all active deployments, delete the old pipeline.
 
-The inject binary supports both providers simultaneously:
-
-- `UNKEY_SEALED_ENV` present → envelope provider (local decryption, zero network)
-- `UNKEY_ENCRYPTED_ENV` present → krane-vault provider (network call to Krane)
-- Both present → prefer envelope
-
-This means we can deploy the new inject binary before anything else changes. Old deployments keep working.
-
-### Feature flag
-
-ctrl-worker gets a config flag: `envelope_encryption_enabled`. When false (default), it uses the current path (store vault-encrypted values as-is in `SecretsConfig`). When true, it decrypts-then-seals at deploy time.
-
-### Rollout order
-
-1. Deploy new inject binary (dual-mode) — zero risk, backward compatible
-2. Deploy kek-agent DaemonSet — writes KEK to nodes, no impact on existing pods
-3. Update Krane to build complete pod spec with inject init container + volumes when `sealed_envelope` is present — new deployments get the full setup, old pods unchanged
-4. Enable `envelope_encryption_enabled` in ctrl-worker — new deployments get sealed envelopes
-5. Deploy Depot pull token creation + refresh in ctrl-worker — new deployments get pull secrets from ctrl-worker
-6. Monitor, verify, gain confidence
-7. Delete preflight `MutatingWebhookConfiguration` — webhook stops intercepting pods
-8. Delete preflight service, Krane SecretsService, old inject provider code
-
-### Rollback at any step
-
-Disable `envelope_encryption_enabled` → new deployments revert to old path. The inject binary supports both modes. No binary rollback needed.
+1. Deploy kek-agent DaemonSet — writes KEK to all nodes
+2. Deploy new inject binary, updated Krane, updated ctrl-worker
+3. Force re-deploy all active deployments — they get sealed envelopes and the new pod spec
+4. Delete preflight `MutatingWebhookConfiguration`, preflight service, Krane SecretsService, old provider code
 
 ## What Gets Deleted (after full migration)
 
@@ -292,7 +308,6 @@ Disable `envelope_encryption_enabled` → new deployments revert to old path. Th
 | Krane SecretsService | `svc/krane/secrets/`                  | No more runtime decryption    |
 | KraneVault provider  | `pkg/secrets/provider/krane_vault.go` | Replaced by envelope provider |
 
-Krane itself stays — it still manages deployments, sentinels, and Cilium policies. Only the SecretsService (~150 lines) is removed.
 
 ## Security Model Comparison
 
@@ -301,18 +316,16 @@ Krane itself stays — it still manages deployments, sentinels, and Cilium polic
 | Secrets at rest                | Vault-encrypted per-value in DB          | Same in DB + sealed in envelope in pod spec                        |
 | Secrets in transit             | Over network: inject → Krane → Vault     | No transit — decrypted locally                                     |
 | Secrets in memory              | inject process only (exec replaces)      | Same — inject process only                                         |
-| KEK storage                    | N/A (Vault config file)                  | Node tmpfs (memory-only, never hits etcd)                          |
+| KEK storage                    | N/A (Vault config file)                  | Encrypted in object store (root key), plaintext only on node tmpfs |
 | SPOF at pod startup            | Preflight + Krane + Vault all must be up | None. Vault only at deploy time.                                   |
 | Blast radius of key compromise | Vault master key = all secrets           | KEK = all secrets (same scope, but KEK in memory vs Vault on disk) |
 | Authentication                 | K8s SA token validated by Krane          | Possession of KEK file (host-level, RBAC + node isolation)         |
+| KEK exposure to customer code  | N/A                                      | None — KEK only in init container, never in main container         |
 
 ## Drawbacks
 
-- **KEK is a cluster-wide secret**: A compromised KEK exposes all sealed envelopes. This is the same blast radius as the current Vault master key, but the KEK lives in memory on every node rather than in a single Vault instance. Mitigated by: tmpfs (never written to disk), RBAC on hostPath, gvisor isolation for user workloads, and the fact that an attacker also needs access to the pod specs (K8s API) to get the sealed envelopes.
+- **KEK is a cluster-wide secret**: A compromised KEK exposes all sealed envelopes. This is the same blast radius as the current Vault master key, but the KEK lives in memory on every node rather than in a single Vault instance. Mitigated by: three-layer encryption (root key → KEK → DEK → secrets), KEK encrypted at rest in object store, plaintext only on tmpfs (never on disk), RBAC on hostPath, gvisor isolation for user workloads, and the fact that an attacker also needs access to the pod specs (K8s API) to get the sealed envelopes.
 
-- **Secrets are stale at pod startup**: If a user updates an environment variable after deploying, running pods won't pick up the change until the next deployment. This is the same behavior as today (secrets are snapshotted at deployment creation in `create_deployment.go`), but worth calling out since the envelope model makes it more explicit.
-
-- **Larger pod specs**: The base64-encoded sealed envelope is stored in the pod spec as an env var. For deployments with many large secrets, this could bloat the pod spec. etcd has a 1.5MB limit per object. In practice, environment variables are small (connection strings, API keys), so this is unlikely to be an issue.
 
 ## Alternatives
 
@@ -324,8 +337,4 @@ Krane itself stays — it still manages deployments, sentinels, and Cilium polic
 
 ## Unresolved Questions
 
-- **Cloud KMS for KEK wrapping**: Should the KEK itself be wrapped by a cloud KMS (AWS KMS, GCP Cloud KMS) for an additional layer of protection? This adds a cloud provider dependency but provides hardware-backed key management. Can be added later without changing the envelope format (just add a KEK wrapping step in kek-agent).
-
 - **Per-environment KEKs**: Should there be separate KEKs per environment rather than a single cluster-wide KEK? This reduces blast radius but increases operational complexity (more keys to manage, rotate, distribute). The current design uses a single KEK for simplicity; per-environment KEKs can be added later by using the `kek_id` field to route to different keys.
-
-- **Sealed envelope in etcd size limits**: For deployments with hundreds of large environment variables, the base64-encoded sealed envelope could approach etcd's 1.5MB per-object limit. Should we add a size check and fall back to a different mechanism (e.g., storing the sealed envelope in a K8s Secret and referencing it) for large payloads?
