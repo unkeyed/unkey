@@ -515,23 +515,6 @@ CREATE TABLE `app_environment_variables` (
 	CONSTRAINT `app_env_id_key` UNIQUE(`app_id`,`environment_id`,`key`)
 );
 
-CREATE TABLE `app_internal_services` (
-	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(64) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
-	`environment_id` varchar(128) NOT NULL,
-	`region` varchar(64) NOT NULL,
-	`k8s_service_name` varchar(255) NOT NULL,
-	`k8s_namespace` varchar(255) NOT NULL,
-	`port` int NOT NULL,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `app_internal_services_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `app_internal_services_id_unique` UNIQUE(`id`),
-	CONSTRAINT `one_app_svc_per_env_per_region` UNIQUE(`app_id`,`environment_id`,`region`)
-);
-
 CREATE TABLE `deployments` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
