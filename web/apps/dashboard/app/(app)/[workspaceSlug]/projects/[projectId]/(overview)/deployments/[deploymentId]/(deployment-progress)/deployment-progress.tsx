@@ -138,7 +138,11 @@ export function DeploymentProgress() {
           }
         />
       </SettingCardGroup>
-      {network?.completed && <DeploymentDomainsCard glow />}
+      {network?.completed && (
+        <div className="animate-fade-slide-in">
+          <DeploymentDomainsCard glow />
+        </div>
+      )}
     </div>
   );
 }
