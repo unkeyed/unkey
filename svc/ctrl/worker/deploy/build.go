@@ -58,6 +58,7 @@ type gitBuildParams struct {
 	ContextPath    string
 	DockerfilePath string
 	ProjectID      string
+	AppID          string
 	DeploymentID   string
 	WorkspaceID    string
 }

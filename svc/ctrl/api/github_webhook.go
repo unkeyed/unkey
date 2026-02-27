@@ -133,21 +133,6 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			return
 		}
 
-		// Look up default app
-		appRow, appErr := db.Query.FindAppByProjectAndSlug(ctx, s.db.RO(), db.FindAppByProjectAndSlugParams{
-			ProjectID: project.ID,
-			Slug:      "default",
-		})
-		if appErr != nil {
-			if db.IsNotFound(appErr) {
-				logger.Info("No default app found for project", "projectId", project.ID)
-				continue
-			}
-			logger.Error("failed to find default app", "error", appErr, "projectId", project.ID)
-			http.Error(w, "failed to find default app", http.StatusInternalServerError)
-			return
-		}
-
 		defaultBranch := "main"
 		if project.DefaultBranch.Valid && project.DefaultBranch.String != "" {
 			defaultBranch = project.DefaultBranch.String
@@ -159,7 +144,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			envSlug = "production"
 		}
 
-		envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
+		env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
 			WorkspaceID: project.WorkspaceID,
 			ProjectID:   project.ID,
 			Slug:        envSlug,
@@ -169,10 +154,47 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			http.Error(w, "failed to find environment", http.StatusInternalServerError)
 			return
 		}
-		env := envSettings.Environment
 
-		// Fetch environment variables and build secrets blob
-		envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
+		// Look up default app for the project
+		appRow, err := db.Query.FindAppByProjectAndSlug(ctx, s.db.RO(), db.FindAppByProjectAndSlugParams{
+			ProjectID: project.ID,
+			Slug:      "default",
+		})
+		if err != nil {
+			logger.Error("failed to find default app", "error", err, "projectId", project.ID)
+			http.Error(w, "failed to find default app", http.StatusInternalServerError)
+			return
+		}
+		app := appRow.App
+
+		// Fetch app-scoped runtime and build settings
+		runtimeRow, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, s.db.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID:         app.ID,
+			EnvironmentID: env.ID,
+		})
+		if err != nil {
+			logger.Error("failed to find app runtime settings", "error", err, "appId", app.ID, "envId", env.ID)
+			http.Error(w, "failed to find app runtime settings", http.StatusInternalServerError)
+			return
+		}
+		runtimeSettings := runtimeRow.AppRuntimeSetting
+
+		buildRow, err := db.Query.FindAppBuildSettingsByAppAndEnv(ctx, s.db.RO(), db.FindAppBuildSettingsByAppAndEnvParams{
+			AppID:         app.ID,
+			EnvironmentID: env.ID,
+		})
+		if err != nil {
+			logger.Error("failed to find app build settings", "error", err, "appId", app.ID, "envId", env.ID)
+			http.Error(w, "failed to find app build settings", http.StatusInternalServerError)
+			return
+		}
+		buildSettings := buildRow.AppBuildSetting
+
+		// Fetch app-scoped environment variables and build secrets blob
+		envVars, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, s.db.RO(), db.FindAppEnvVarsByAppAndEnvParams{
+			AppID:         app.ID,
+			EnvironmentID: env.ID,
+		})
 		if err != nil {
 			logger.Error("failed to fetch environment variables", "error", err)
 			http.Error(w, "failed to fetch environment variables", http.StatusInternalServerError)
@@ -206,11 +228,11 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			K8sName:                       uid.DNS1035(12),
 			WorkspaceID:                   project.WorkspaceID,
 			ProjectID:                     project.ID,
-			AppID:                         appRow.App.ID,
+			AppID:                         app.ID,
 			EnvironmentID:                 env.ID,
-			SentinelConfig:                envSettings.EnvironmentRuntimeSetting.SentinelConfig,
+			SentinelConfig:                runtimeSettings.SentinelConfig,
 			EncryptedEnvironmentVariables: secretsBlob,
-			Command:                       envSettings.EnvironmentRuntimeSetting.Command,
+			Command:                       runtimeSettings.Command,
 			Status:                        db.DeploymentsStatusPending,
 			CreatedAt:                     now,
 			UpdatedAt:                     sql.NullInt64{Valid: false},
@@ -221,11 +243,11 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.AuthorAvatarURL, Valid: gitCommit.AuthorAvatarURL != ""},
 			GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.Timestamp.UnixMilli(), Valid: !gitCommit.Timestamp.IsZero()},
 			OpenapiSpec:                   sql.NullString{Valid: false},
-			CpuMillicores:                 envSettings.EnvironmentRuntimeSetting.CpuMillicores,
-			MemoryMib:                     envSettings.EnvironmentRuntimeSetting.MemoryMib,
-			Port:                          envSettings.EnvironmentRuntimeSetting.Port,
-			ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.EnvironmentRuntimeSetting.ShutdownSignal),
-			Healthcheck:                   envSettings.EnvironmentRuntimeSetting.Healthcheck,
+			CpuMillicores:                 runtimeSettings.CpuMillicores,
+			MemoryMib:                     runtimeSettings.MemoryMib,
+			Port:                          runtimeSettings.Port,
+			ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
+			Healthcheck:                   runtimeSettings.Healthcheck,
 		})
 		if err != nil {
 			logger.Error("failed to insert deployment", "error", err)
@@ -242,8 +264,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			"environment", envSlug,
 		)
 
-		// Start deploy workflow with GitSource
-		deployClient := hydrav1.NewDeployServiceIngressClient(s.restate, deploymentID)
+		// Start deploy workflow with GitSource, keyed by project ID
+		deployClient := hydrav1.NewDeployServiceIngressClient(s.restate, project.ID)
 		invocation, err := deployClient.Deploy().Send(ctx, &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Source: &hydrav1.DeployRequest_Git{
@@ -251,8 +273,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 					InstallationId: repo.InstallationID,
 					Repository:     payload.Repository.FullName,
 					CommitSha:      payload.After,
-					ContextPath:    envSettings.EnvironmentBuildSetting.DockerContext,
-					DockerfilePath: envSettings.EnvironmentBuildSetting.Dockerfile,
+					ContextPath:    buildSettings.DockerContext,
+					DockerfilePath: buildSettings.Dockerfile,
 				},
 			},
 		})

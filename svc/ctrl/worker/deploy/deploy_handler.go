@@ -204,6 +204,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			ContextPath:    source.Git.GetContextPath(),
 			DockerfilePath: source.Git.GetDockerfilePath(),
 			ProjectID:      deployment.ProjectID,
+			AppID:          deployment.AppID,
 			DeploymentID:   deployment.ID,
 			WorkspaceID:    deployment.WorkspaceID,
 		})
@@ -485,10 +486,31 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
+	// Derive rolled-back state: if the current live deployment doesn't match
+	// the previous latest-ready deployment, a rollback occurred and we should
+	// not auto-promote this new deployment.
+	autoPromote := false
+	if environment.Slug == "production" {
+		if !app.LiveDeploymentID.Valid {
+			// No live deployment yet — first deploy, auto-promote
+			autoPromote = true
+		} else {
+			prevLatest, prevErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+				return db.Query.FindLatestReadyDeploymentByAppAndEnv(runCtx, w.db.RO(), db.FindLatestReadyDeploymentByAppAndEnvParams{
+					AppID:         app.ID,
+					EnvironmentID: deployment.EnvironmentID,
+					ExcludeID:     deployment.ID,
+				})
+			}, restate.WithName("check rolled back state"))
+			if prevErr == nil && prevLatest == app.LiveDeploymentID.String {
+				autoPromote = true
+			}
+		}
+	}
+
 	// Fetch sticky routes for this environment
 	stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
-	if !app.IsRolledBack && environment.Slug == "production" {
-		// Only reassign live routes when not rolled back - rollbacks keep live routes on the previous deployment
+	if autoPromote {
 		stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
 	}
 
@@ -524,7 +546,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-	if !app.IsRolledBack && environment.Slug == "production" {
+	if autoPromote {
 		// Atomically read the current live deployment and swap it to the new one.
 		// This prevents a race where two concurrent deploys both capture the same
 		// previousLiveDeploymentID and one of them never gets scheduled for standby.
@@ -536,9 +558,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				}
 
 				updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
-					IsRolledBack:     false,
 					ID:               app.ID,
 					LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
+					IsRolledBack:     false,
 					UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
 				if updateErr != nil {
