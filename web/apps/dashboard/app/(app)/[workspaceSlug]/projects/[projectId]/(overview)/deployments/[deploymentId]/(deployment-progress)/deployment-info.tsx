@@ -19,10 +19,7 @@ export function DeploymentInfo({ title = "Deployment" }: { title?: string }) {
 
   return (
     <Section>
-      <SectionHeader
-        icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
-        title={title}
-      />
+      <SectionHeader icon={<Cloud iconSize="md-regular" className="text-gray-9" />} title={title} />
       <ActiveDeploymentCard
         deploymentId={deployment.id}
         trailingContent={
