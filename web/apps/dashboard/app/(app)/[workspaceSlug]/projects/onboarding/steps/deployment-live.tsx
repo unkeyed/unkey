@@ -4,6 +4,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Check } from "@unkey/icons";
 import Link from "next/link";
 import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
+import { DeploymentInfo } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
 import {
   DeploymentLayoutProvider,
@@ -61,6 +62,7 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
         }
       />
       <div className="w-[900px]">
+        <DeploymentInfo />
         <DeploymentProgress />
       </div>
     </div>

@@ -8,12 +8,12 @@ import { DisabledWrapper } from "../../../../components/disabled-wrapper";
 import { InfoChip } from "../../../../components/info-chip";
 import { RegionFlags } from "../../../../components/region-flags";
 import { Section, SectionHeader } from "../../../../components/section";
-import { useProjectLayout } from "../../../layout-provider";
+import { useOptionalProjectLayout } from "../../../layout-provider";
 import { useDeployment } from "../layout-provider";
 
 export function DeploymentInfo() {
   const { deployment } = useDeployment();
-  const { setIsDetailsOpen, isDetailsOpen } = useProjectLayout();
+  const projectLayout = useOptionalProjectLayout();
   const deploymentStatus = deployment.status;
 
   return (
@@ -47,16 +47,18 @@ export function DeploymentInfo() {
               </InfoChip>
             </DisabledWrapper>
             <RegionFlags instances={deployment.instances} />
-            <InfoTooltip asChild content="Show deployment details">
-              <Button
-                variant="ghost"
-                className="[&_svg]:size-3 size-3 rounded-xs"
-                size="icon"
-                onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-              >
-                <LayoutRight iconSize="sm-regular" className="text-gray-10" />
-              </Button>
-            </InfoTooltip>
+            {projectLayout && (
+              <InfoTooltip asChild content="Show deployment details">
+                <Button
+                  variant="ghost"
+                  className="[&_svg]:size-3 size-3 rounded-sm"
+                  size="icon"
+                  onClick={() => projectLayout.setIsDetailsOpen(!projectLayout.isDetailsOpen)}
+                >
+                  <LayoutRight iconSize="sm-regular" className="text-gray-10" />
+                </Button>
+              </InfoTooltip>
+            )}
           </div>
         }
         statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
