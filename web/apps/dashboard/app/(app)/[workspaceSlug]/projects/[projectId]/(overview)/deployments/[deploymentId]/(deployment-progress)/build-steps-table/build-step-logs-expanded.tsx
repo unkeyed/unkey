@@ -14,7 +14,7 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
 
   return (
     <>
-      <tr aria-hidden="true">
+      <tr>
         <td colSpan={6} className="p-0" />
       </tr>
       {step.logs.map((log, idx) => (

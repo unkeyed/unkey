@@ -152,7 +152,7 @@ function SettingCard({
       >
         <div className="flex gap-4 items-center">
           {icon && (
-            <div className="bg-gray-3 size-8 rounded-[10px] flex items-center justify-center">
+            <div className="bg-gray-3 size-8 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20">
               {icon}
             </div>
           )}
