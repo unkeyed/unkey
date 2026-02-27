@@ -48,6 +48,8 @@ const (
 
 	// QueryQuotaExceeded indicates the workspace has exceeded their query quota for the current window.
 	UserErrorsTooManyRequestsQueryQuotaExceeded URN = "err:user:too_many_requests:query_quota_exceeded"
+	// WorkspaceRateLimited indicates the workspace has exceeded its API rate limit for the current window.
+	UserErrorsTooManyRequestsWorkspaceRateLimited URN = "err:user:too_many_requests:workspace_rate_limited"
 
 	// ----------------
 	// UnkeyAuthErrors

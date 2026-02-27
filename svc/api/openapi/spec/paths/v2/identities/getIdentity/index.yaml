@@ -94,6 +94,12 @@ post:
                   detail: Identity with externalId "user_abc123" not found.
                   status: 404
                   type: not_found
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
     "500":
       description: Internal server error
       content:

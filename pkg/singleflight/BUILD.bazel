@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "singleflight",
+    srcs = ["singleflight.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/singleflight",
+    visibility = ["//visibility:public"],
+    deps = ["@org_golang_x_sync//singleflight"],
+)

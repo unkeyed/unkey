@@ -281,6 +281,7 @@ func initMiddlewareEngine(cfg Config, database db.Database, ch clickhouse.ClickH
 		Region:       cfg.Region,
 		UsageLimiter: usageLimiter,
 		KeyCache:     keyCache,
+		QuotaCache:   nil,
 	})
 	if err != nil {
 		logger.Error("failed to create key service, middleware engine disabled", "error", err)

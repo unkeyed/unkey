@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//internal/services/caches",
         "//internal/services/keys",
+        "//internal/services/ratelimit/namespace",
         "//pkg/cache",
         "//pkg/codes",
         "//pkg/db",
@@ -28,6 +29,7 @@ go_test(
         "401_test.go",
         "403_test.go",
         "404_test.go",
+        "429_test.go",
     ],
     deps = [
         ":v2_ratelimit_get_override",

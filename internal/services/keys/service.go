@@ -18,7 +18,8 @@ type Config struct {
 	Region       string                // Geographic region identifier
 	UsageLimiter usagelimiter.Service  // Redis Counter for usage limiting
 
-	KeyCache cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
+	KeyCache   cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
+	QuotaCache cache.Cache[string, db.Quotas]        // Cache for workspace quota lookups
 }
 
 type service struct {
@@ -31,11 +32,13 @@ type service struct {
 
 	// hash -> cached key data (includes pre-parsed IP whitelist)
 	keyCache cache.Cache[string, db.CachedKeyData]
+
+	// workspace_id -> quota (for workspace rate limiting)
+	quotaCache cache.Cache[string, db.Quotas]
 }
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
-
 	return &service{
 		db:           config.DB,
 		rbac:         config.RBAC,
@@ -44,6 +47,7 @@ func New(config Config) (*service, error) {
 		clickhouse:   config.Clickhouse,
 		region:       config.Region,
 		keyCache:     config.KeyCache,
+		quotaCache:   config.QuotaCache,
 	}, nil
 }
 

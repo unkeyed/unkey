@@ -1,0 +1,30 @@
+---
+title: "workspace_rate_limited"
+description: "Your workspace has exceeded its API rate limit for the current time window."
+---
+
+<Danger>`err:user:too_many_requests:workspace_rate_limited`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_4dgzrNP3Je5mU1tD"
+  },
+  "error": {
+    "detail": "This workspace has exceeded its API rate limit of 100/10s. Please try again later.",
+    "status": 429,
+    "title": "Too Many Requests",
+    "type": "https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited"
+  }
+}
+```
+
+## What Happened?
+
+Your workspace has been configured with an API rate limit and you've exceeded it. Most workspaces don't have a rate limit by default — this is only applied when needed.
+
+The response includes standard rate limit headers (`RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `Retry-After`) so your client knows when to retry.
+
+## Need Help?
+
+If you're hitting this limit unexpectedly, [contact us](mailto:support@unkey.com) and we'll sort it out.

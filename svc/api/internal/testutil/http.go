@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -136,17 +137,6 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	keyService, err := keys.New(keys.Config{
-		DB:           db,
-		KeyCache:     caches.VerificationKeyByHash,
-		RateLimiter:  ratelimitService,
-		RBAC:         rbac.New(),
-		Clickhouse:   ch,
-		Region:       "test",
-		UsageLimiter: ulSvc,
-	})
-	require.NoError(t, err)
-
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
 	v := vault.NewConnectVaultServiceClient(testVault.Client)
 
@@ -167,6 +157,18 @@ func NewHarness(t *testing.T) *Harness {
 
 	audit, err := auditlogs.New(auditlogs.Config{
 		DB: db,
+	})
+	require.NoError(t, err)
+
+	keyService, err := keys.New(keys.Config{
+		DB:           db,
+		KeyCache:     caches.VerificationKeyByHash,
+		QuotaCache:   caches.WorkspaceQuota,
+		RateLimiter:  ratelimitService,
+		RBAC:         rbac.New(),
+		Clickhouse:   ch,
+		Region:       "test",
+		UsageLimiter: ulSvc,
 	})
 	require.NoError(t, err)
 
@@ -452,6 +454,8 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		AuditLogsRetentionDays: config.RetentionDays,
 		RequestsPerMonth:       1_000_000,
 		Team:                   false,
+		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
+		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
 	})
 	require.NoError(h.t, err)
 

@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -255,6 +256,7 @@ func Run(ctx context.Context, cfg Config) error {
 	keySvc, err := keys.New(keys.Config{
 		DB:           db,
 		KeyCache:     caches.VerificationKeyByHash,
+		QuotaCache:   caches.WorkspaceQuota,
 		RateLimiter:  rlSvc,
 		RBAC:         rbac.New(),
 		Clickhouse:   ch,
@@ -303,18 +305,19 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:                   db,
-		ClickHouse:                 ch,
-		Keys:                       keySvc,
-		Validator:                  validator,
-		Ratelimit:                  rlSvc,
-		Auditlogs:                  auditlogSvc,
-		Caches:                     caches,
-		Vault:                      vaultClient,
-		CtrlDeploymentClient:       ctrlDeploymentClient,
-		PprofEnabled:               cfg.Pprof != nil,
-		PprofUsername:              pprofUsername,
-		PprofPassword:              pprofPassword,
+		Database:             db,
+		ClickHouse:           ch,
+		Keys:                 keySvc,
+		Validator:            validator,
+		Ratelimit:            rlSvc,
+		Auditlogs:            auditlogSvc,
+		Caches:               caches,
+		Vault:                vaultClient,
+		CtrlDeploymentClient: ctrlDeploymentClient,
+		PprofEnabled:         cfg.Pprof != nil,
+		PprofUsername:        pprofUsername,
+		PprofPassword:        pprofPassword,
+
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
 	},
