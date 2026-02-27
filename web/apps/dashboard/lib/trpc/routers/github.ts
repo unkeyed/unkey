@@ -59,10 +59,10 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
   return {
     repoConnection: project.githubRepoConnection
       ? {
-          pk: project.githubRepoConnection.pk,
-          repositoryId: project.githubRepoConnection.repositoryId,
-          repositoryFullName: project.githubRepoConnection.repositoryFullName,
-        }
+        pk: project.githubRepoConnection.pk,
+        repositoryId: project.githubRepoConnection.repositoryId,
+        repositoryFullName: project.githubRepoConnection.repositoryFullName,
+      }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
   };
@@ -114,6 +114,14 @@ const fetchProjectInstallation = async (
 };
 
 export const githubRouter = t.router({
+  hasInstallations: workspaceProcedure.query(async ({ ctx }) => {
+    const installation = await db.query.githubAppInstallations.findFirst({
+      where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
+      columns: { pk: true },
+    });
+    return { hasInstallation: Boolean(installation) };
+  }),
+
   registerInstallation: workspaceProcedure
     .input(
       z.object({

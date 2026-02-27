@@ -2,15 +2,16 @@
 import { Cloud, Earth } from "@unkey/icons";
 import { EmptySection } from "./(overview)/components/empty-section";
 import { useProjectData } from "./(overview)/data-provider";
-import { DeploymentLogsProvider } from "./(overview)/details/active-deployment-card-logs/providers/deployment-logs-provider";
+import { DeploymentInfo } from "./(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
+import { DeploymentLayoutProvider } from "./(overview)/deployments/[deploymentId]/layout-provider";
 import { DomainRow, DomainRowSkeleton } from "./(overview)/details/domain-row";
-import { ActiveDeploymentCard } from "./components/active-deployment-card";
-import { DeploymentStatusBadge } from "./components/deployment-status-badge";
+import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card/components/active-deployment-card-empty";
+import { ActiveDeploymentCardSkeleton } from "./components/active-deployment-card/components/skeleton";
 import { ProjectContentWrapper } from "./components/project-content-wrapper";
 import { Section, SectionHeader } from "./components/section";
 
 export default function ProjectDetails() {
-  const { getDomainsForDeployment, isDomainsLoading, getDeploymentById, project } =
+  const { getDomainsForDeployment, isDomainsLoading, isProjectLoading, project } =
     useProjectData();
 
   const liveDeploymentId = project?.liveDeploymentId;
@@ -20,25 +21,21 @@ export default function ProjectDetails() {
     ? getDomainsForDeployment(liveDeploymentId).filter((d) => d.sticky === "live")
     : [];
 
-  // Get deployment from provider
-  const deploymentStatus = liveDeploymentId
-    ? getDeploymentById(liveDeploymentId)?.status
-    : undefined;
-
   return (
     <ProjectContentWrapper centered>
-      <Section>
-        <SectionHeader
-          icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
-          title="Live Deployment"
-        />
-        <DeploymentLogsProvider>
-          <ActiveDeploymentCard
-            deploymentId={project?.liveDeploymentId ?? null}
-            statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
+      {liveDeploymentId ? (
+        <DeploymentLayoutProvider deploymentId={liveDeploymentId}>
+          <DeploymentInfo title="Live Deployment" />
+        </DeploymentLayoutProvider>
+      ) : (
+        <Section>
+          <SectionHeader
+            icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
+            title="Live Deployment"
           />
-        </DeploymentLogsProvider>{" "}
-      </Section>
+          {isProjectLoading ? <ActiveDeploymentCardSkeleton /> : <ActiveDeploymentCardEmpty />}
+        </Section>
+      )}
       <Section>
         <SectionHeader
           icon={<Earth iconSize="md-regular" className="text-gray-9" />}

@@ -12,7 +12,7 @@ import { Section, SectionHeader } from "../../../../components/section";
 import { useOptionalProjectLayout } from "../../../layout-provider";
 import { useDeployment } from "../layout-provider";
 
-export function DeploymentInfo() {
+export function DeploymentInfo({ title = "Deployment" }: { title?: string }) {
   const { deployment } = useDeployment();
   const projectLayout = useOptionalProjectLayout();
   const deploymentStatus = deployment.status;
@@ -21,7 +21,7 @@ export function DeploymentInfo() {
     <Section>
       <SectionHeader
         icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
-        title="Deployment"
+        title={title}
       />
       <ActiveDeploymentCard
         deploymentId={deployment.id}
