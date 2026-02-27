@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
@@ -130,10 +129,10 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		RepositoryFullName:    payload.Repository.FullName,
 		Branch:                branch,
 		After:                 payload.After,
-		CommitMessage:         gitCommit.message,
-		CommitAuthorHandle:    gitCommit.authorHandle,
-		CommitAuthorAvatarUrl: gitCommit.authorAvatarURL,
-		CommitTimestamp:       gitCommit.timestamp,
+		CommitMessage:         gitCommit.Message,
+		CommitAuthorHandle:    gitCommit.AuthorHandle,
+		CommitAuthorAvatarUrl: gitCommit.AuthorAvatarURL,
+		CommitTimestamp:       gitCommit.Timestamp.UnixMilli(),
 		DeliveryId:            deliveryID,
 	}, sendOpts...)
 	if err != nil {
@@ -166,17 +165,9 @@ func extractBranchFromRef(ref string) string {
 	return strings.TrimPrefix(ref, prefix)
 }
 
-// gitCommitInfo holds extracted commit metadata for deployment records.
-type gitCommitInfo struct {
-	message         string
-	authorHandle    string
-	authorAvatarURL string
-	timestamp       int64
-}
-
 // extractGitCommitInfo extracts commit metadata from the push payload,
 // preferring HeadCommit when available and falling back to the first commit.
-func extractGitCommitInfo(payload *pushPayload) gitCommitInfo {
+func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 	headCommit := payload.HeadCommit
 	if headCommit == nil && len(payload.Commits) > 0 {
 		c := payload.Commits[0]
@@ -189,7 +180,7 @@ func extractGitCommitInfo(payload *pushPayload) gitCommitInfo {
 	}
 
 	if headCommit == nil {
-		return gitCommitInfo{}
+		return githubclient.CommitInfoFromRaw("", "", "", "", "")
 	}
 
 	authorHandle := headCommit.Author.Username
@@ -197,20 +188,11 @@ func extractGitCommitInfo(payload *pushPayload) gitCommitInfo {
 		authorHandle = headCommit.Author.Name
 	}
 
-	var timestamp int64
-	if t, err := time.Parse(time.RFC3339, headCommit.Timestamp); err == nil {
-		timestamp = t.UnixMilli()
-	}
-
-	message := headCommit.Message
-	if idx := strings.Index(message, "\n"); idx != -1 {
-		message = message[:idx]
-	}
-
-	return gitCommitInfo{
-		message:         message,
-		authorHandle:    authorHandle,
-		authorAvatarURL: payload.Sender.AvatarURL,
-		timestamp:       timestamp,
-	}
+	return githubclient.CommitInfoFromRaw(
+		headCommit.ID,
+		headCommit.Message,
+		authorHandle,
+		payload.Sender.AvatarURL,
+		headCommit.Timestamp,
+	)
 }
