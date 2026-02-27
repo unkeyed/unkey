@@ -104,6 +104,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     };
 
     const hasPadding = config.containerPadding !== "px-0";
+    const hasHeaders = columns.some((col) => col.header);
 
     const calculatedHeight = useTableHeight(containerRef);
     const fixedHeight = fixedHeightProp ?? calculatedHeight;
@@ -152,7 +153,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     );
 
     const containerClassName = cn(
-      "overflow-auto relative pb-4 bg-white dark:bg-black ",
+      "overflow-auto relative pb-4",
+      config.className,
       config.containerPadding || "px-2",
     );
 
@@ -181,27 +183,29 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 <col key={column.key} style={{ width: colWidths[idx].width }} />
               ))}
             </colgroup>
-            <thead className="sticky top-0 z-10 bg-white dark:bg-black">
-              <tr>
-                {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className={cn(
-                      "text-sm font-medium text-accent-12 py-1 text-left",
-                      column.headerClassName,
-                      column.cellClassName,
-                    )}
-                  >
-                    <div className="truncate text-accent-12">{column.header}</div>
+            {hasHeaders && (
+              <thead className={cn("sticky top-0 z-10", config.className)}>
+                <tr>
+                  {columns.map((column) => (
+                    <th
+                      key={column.key}
+                      className={cn(
+                        "text-sm font-medium text-accent-12 py-1 text-left",
+                        column.headerClassName,
+                        column.cellClassName,
+                      )}
+                    >
+                      <div className="truncate text-accent-12">{column.header}</div>
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  <th colSpan={columns.length} className="p-0">
+                    <div className="w-full border-t border-gray-4" />
                   </th>
-                ))}
-              </tr>
-              <tr>
-                <th colSpan={columns.length} className="p-0">
-                  <div className="w-full border-t border-gray-4" />
-                </th>
-              </tr>
-            </thead>
+                </tr>
+              </thead>
+            )}
           </table>
           {emptyState ? (
             <div className="flex-1 flex items-center justify-center">{emptyState}</div>
@@ -225,34 +229,36 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 <col key={column.key} style={{ width: colWidths[idx].width }} />
               ))}
             </colgroup>
-            <thead className="sticky top-0 z-10 bg-white dark:bg-black">
-              <tr>
-                {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className={cn(
-                      "text-sm font-medium text-accent-12 py-1 text-left relative",
-                      column.headerClassName,
-                      column.cellClassName,
-                    )}
-                  >
-                    <HeaderCell column={column} />
-                  </th>
-                ))}
-              </tr>
-              <tr>
-                <th colSpan={columns.length} className="p-0">
-                  <div className="relative w-full">
-                    <div
+            {hasHeaders && (
+              <thead className={cn("sticky top-0 z-10", config.className)}>
+                <tr>
+                  {columns.map((column) => (
+                    <th
+                      key={column.key}
                       className={cn(
-                        "absolute border-t border-gray-4",
-                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                        "text-sm font-medium text-accent-12 py-1 text-left relative",
+                        column.headerClassName,
+                        column.cellClassName,
                       )}
-                    />
-                  </div>
-                </th>
-              </tr>
-            </thead>
+                    >
+                      <HeaderCell column={column} />
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  <th colSpan={columns.length} className="p-0">
+                    <div className="relative w-full">
+                      <div
+                        className={cn(
+                          "absolute border-t border-gray-4",
+                          hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                        )}
+                      />
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+            )}
 
             <tbody>
               <tr
@@ -390,13 +396,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           </td>
                         ))}
                       </tr>
-                      {isExpanded && renderExpanded && (
-                        <tr key={`expanded-${virtualRow.key}`}>
-                          <td colSpan={columns.length} className="">
-                            {renderExpanded(typedItem)}
-                          </td>
-                        </tr>
-                      )}
+                      {isExpanded && renderExpanded?.(typedItem)}
                     </Fragment>
                   );
                 }
@@ -467,23 +467,16 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         </td>
                       ))}
                     </tr>
-                    {isExpanded && renderExpanded && (
-                      <tr key={`expanded-${virtualRow.key}`}>
-                        <td colSpan={columns.length} className="p-0">
-                          {renderExpanded(typedItem)}
-                        </td>
-                      </tr>
-                    )}
+                    {isExpanded && renderExpanded?.(typedItem)}
                   </Fragment>
                 );
               })}
               <tr
                 style={{
-                  height: `${
-                    virtualizer.getTotalSize() -
+                  height: `${virtualizer.getTotalSize() -
                     (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end ||
                       0)
-                  }px`,
+                    }px`,
                 }}
               />
             </tbody>

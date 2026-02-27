@@ -11,28 +11,26 @@ import { useDeployment } from "./layout-provider";
 export default function DeploymentOverview() {
   const { deployment } = useDeployment();
   const { refetchDomains } = useProjectData();
-
-  const ready = deployment.status === "ready";
-
-  useEffect(() => {
-    if (ready) {
-      refetchDomains();
-    }
-  }, [ready, refetchDomains]);
-
-  if (!ready) {
-    return (
-      <ProjectContentWrapper centered>
-        <DeploymentProgressSection />
-      </ProjectContentWrapper>
-    );
-  }
+  //
+  // const ready = deployment.status === "ready";
+  //
+  // useEffect(() => {
+  //   if (ready) {
+  //     refetchDomains();
+  //   }
+  // }, [ready, refetchDomains]);
 
   return (
     <ProjectContentWrapper centered>
-      <DeploymentInfoSection />
-      <DeploymentDomainsSection />
-      <DeploymentNetworkSection />
+      <DeploymentProgressSection />
     </ProjectContentWrapper>
   );
+
+  // return (
+  //   <ProjectContentWrapper centered>
+  //     <DeploymentInfoSection />
+  //     <DeploymentDomainsSection />
+  //     <DeploymentNetworkSection />
+  //   </ProjectContentWrapper>
+  // );
 }

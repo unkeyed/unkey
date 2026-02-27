@@ -33,6 +33,10 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps }) => {
       fixedHeight={256}
       isExpandable={(step) => step.has_logs}
       renderExpanded={(step) => <BuildStepLogsExpanded step={step} />}
+      config={{
+        containerPadding: "px-0 py-0",
+        className: "bg-transparent"
+      }}
       emptyState={
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">
