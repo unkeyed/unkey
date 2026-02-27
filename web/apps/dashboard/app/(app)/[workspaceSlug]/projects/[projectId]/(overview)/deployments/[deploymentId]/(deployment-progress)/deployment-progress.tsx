@@ -2,17 +2,16 @@
 
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc/client";
-import { Check, ChevronDown, CloudUp, Cube, Earth, Hammer2, LayerFront, Link4, TriangleWarning2 } from "@unkey/icons";
-import { Badge, Button, CopyButton, Loading, Popover, PopoverContent, PopoverTrigger, SettingCard, SettingCardGroup } from "@unkey/ui";
-import ms from "ms";
+import { ChevronDown, CloudUp, Cube, Earth, Hammer2, LayerFront, Link4 } from "@unkey/icons";
+import { Button, CopyButton, Popover, PopoverContent, PopoverTrigger, SettingCard, SettingCardGroup } from "@unkey/ui";
 import { useEffect, useState } from "react";
-import { useProjectData } from "../../../../../data-provider";
-import { useDeployment } from "../../../layout-provider";
-import { DeploymentBuildStepsTable } from "../table/deployment-build-steps-table";
-import { DeploymentInfoSection } from "./deployment-info-section";
-import { SettingsGroup } from "../../../../../settings/components/shared/settings-group";
+import { useProjectData } from "../../../data-provider";
+import { SettingsGroup } from "../../../settings/components/shared/settings-group";
+import { useDeployment } from "../layout-provider";
+import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
+import { DeploymentStep } from "./deployment-step";
 
-export function DeploymentProgressSection() {
+export function DeploymentProgress() {
   const { deployment } = useDeployment();
   const steps = trpc.deploy.deployment.steps.useQuery(
     {
@@ -57,8 +56,7 @@ export function DeploymentProgressSection() {
   const showDomains = network?.completed && (isDomainsLoading || sortedDomains.length > 0);
 
   return (
-    <>
-      <DeploymentInfoSection />
+    <div className="flex flex-col gap-5">
       <SettingCardGroup>
         <DeploymentStep
           icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
@@ -230,81 +228,6 @@ export function DeploymentProgressSection() {
           </SettingCardGroup>
         </SettingsGroup>
       )}
-    </>
-  );
-}
-
-type DeploymentStepProps = {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  duration?: number;
-  status: "pending" | "started" | "completed" | "error";
-  expandable?: React.ReactNode;
-  defaultExpanded?: boolean;
-};
-
-function DeploymentStep({
-  icon,
-  title,
-  description,
-  duration,
-  status,
-  expandable,
-  defaultExpanded,
-}: DeploymentStepProps) {
-  const showGlow = status === "started"
-  return (
-    <SettingCard
-      icon={
-        <div className="relative w-full h-full">
-          <div
-            className={cn(
-              "absolute inset-[-4px] rounded-[10px] blur-[14px]",
-              "bg-gradient-to-l from-feature-8 to-info-9",
-              showGlow ? "animate-pulse opacity-20" : "opacity-0 transition-opacity duration-300",
-            )}
-          />
-          <div className={cn("w-full h-full rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20", showGlow && "relative dark:bg-white dark:text-black bg-black text-white shadow-md shadow-black/40")}>
-            {icon}
-          </div>
-        </div>
-      }
-      title={
-        <div className="flex items-center gap-2">
-          <span
-
-          >
-            {title}
-          </span>
-          <Badge
-            variant="success"
-            size="sm"
-            className={cn(
-              "transition-all duration-300 font-normal text-[11px] rounded-md h-[18px]",
-              status === "completed" ? "opacity-100 scale-100" : "opacity-0 scale-95",
-            )}
-          >
-            Complete
-          </Badge>
-        </div>
-      }
-      className="relative"
-      description={description}
-      expandable={expandable}
-      defaultExpanded={defaultExpanded}
-      contentWidth="w-fit"
-    >
-      <div className="flex items-center gap-4 justify-end w-full absolute right-14">
-        <span className="text-gray-10 text-xs">{duration ? ms(duration) : null}</span>
-        {status === "completed" ? (
-          <Check iconSize="md-regular" className="text-success-11" />
-        ) : status === "started" ? (
-          <Loading className="size-4" />
-        ) : status === "error" ? (
-          <TriangleWarning2 className="text-error-11" />
-        ) : null}
-      </div>
-    </SettingCard>
+    </div>
   );
 }

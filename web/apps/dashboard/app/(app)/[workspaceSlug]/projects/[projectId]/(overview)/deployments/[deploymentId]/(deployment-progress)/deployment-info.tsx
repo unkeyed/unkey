@@ -2,16 +2,16 @@
 
 import { Bolt, Cloud, Grid, Harddrive, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
-import { ActiveDeploymentCard } from "../../../../../../components/active-deployment-card";
-import { DeploymentStatusBadge } from "../../../../../../components/deployment-status-badge";
-import { DisabledWrapper } from "../../../../../../components/disabled-wrapper";
-import { InfoChip } from "../../../../../../components/info-chip";
-import { RegionFlags } from "../../../../../../components/region-flags";
-import { Section, SectionHeader } from "../../../../../../components/section";
-import { useProjectLayout } from "../../../../../layout-provider";
-import { useDeployment } from "../../../layout-provider";
+import { ActiveDeploymentCard } from "../../../../components/active-deployment-card";
+import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
+import { DisabledWrapper } from "../../../../components/disabled-wrapper";
+import { InfoChip } from "../../../../components/info-chip";
+import { RegionFlags } from "../../../../components/region-flags";
+import { Section, SectionHeader } from "../../../../components/section";
+import { useProjectLayout } from "../../../layout-provider";
+import { useDeployment } from "../layout-provider";
 
-export function DeploymentInfoSection() {
+export function DeploymentInfo() {
   const { deployment } = useDeployment();
   const { setIsDetailsOpen, isDetailsOpen } = useProjectLayout();
   const deploymentStatus = deployment.status;

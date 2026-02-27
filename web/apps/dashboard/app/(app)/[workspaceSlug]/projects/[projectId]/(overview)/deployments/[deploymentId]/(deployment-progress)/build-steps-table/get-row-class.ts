@@ -1,5 +1,5 @@
 import { cn } from "@unkey/ui/src/lib/utils";
-import type { BuildStepRow } from "../columns/build-steps";
+import type { BuildStepRow } from "./columns";
 
 export function getBuildStepRowClass(step: BuildStepRow): string {
   if (!step?.step_id) {

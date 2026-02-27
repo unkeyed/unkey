@@ -1,5 +1,5 @@
 import { TimestampInfo } from "@unkey/ui";
-import type { BuildStepRow } from "./columns/build-steps";
+import type { BuildStepRow } from "./columns";
 
 export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
   if (!step.logs || step.logs.length === 0) {
