@@ -29,6 +29,9 @@ properties:
     type: array
     items:
       type: string
+      minLength: 1
+      maxLength: 512
+    maxItems: 20
     description: |
       Attaches metadata tags for analytics and monitoring without affecting verification outcomes.
       Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions.
