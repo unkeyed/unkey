@@ -115,12 +115,12 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	fmt.Printf("Repository: %s (id: %d)\n", repository, repositoryID)
 	fmt.Printf("Project: %s\n", projectID)
 
-	// Ensure github_repo_connection exists
-	fmt.Println("Ensuring GitHub connection exists in database...")
-	if err := svc.ensureGithubConnection(ctx, projectID, installationID, repositoryID, repository); err != nil {
-		return fmt.Errorf("failed to create GitHub connection: %w", err)
+	// Ensure github_repo_connections exist for all apps in this project
+	fmt.Println("Ensuring GitHub connections exist in database...")
+	if err := svc.ensureGithubConnections(ctx, projectID, installationID, repositoryID, repository); err != nil {
+		return fmt.Errorf("failed to create GitHub connections: %w", err)
 	}
-	fmt.Println("✔ GitHub connection ready")
+	fmt.Println("✔ GitHub connections ready")
 
 	// Warn if deployment will fail due to auth configuration
 	if !checkAllowUnauthenticatedDeployments() && installationID == 1 {
@@ -217,18 +217,31 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	}
 }
 
-func (s *Service) ensureGithubConnection(ctx context.Context, projectID string, installationID, repositoryID int64, repository string) error {
-	// Try to insert, ignore if already exists
-	err := db.Query.InsertGithubRepoConnection(ctx, s.db.RW(), db.InsertGithubRepoConnectionParams{
-		ProjectID:          projectID,
-		InstallationID:     installationID,
-		RepositoryID:       repositoryID,
-		RepositoryFullName: repository,
-		CreatedAt:          time.Now().UnixMilli(),
-		UpdatedAt:          sql.NullInt64{Valid: false, Int64: 0},
-	})
-	if err != nil && !db.IsDuplicateKeyError(err) {
-		return fmt.Errorf("failed to insert connection: %w", err)
+func (s *Service) ensureGithubConnections(ctx context.Context, projectID string, installationID, repositoryID int64, repository string) error {
+	// Find all apps for this project
+	apps, err := db.Query.FindAppsByProjectId(ctx, s.db.RO(), projectID)
+	if err != nil {
+		return fmt.Errorf("failed to find apps for project: %w", err)
+	}
+	if len(apps) == 0 {
+		return fmt.Errorf("no apps found for project %s — run 'dev seed multi-app' first", projectID)
+	}
+
+	now := time.Now().UnixMilli()
+	for _, app := range apps {
+		fmt.Printf("  → connecting app %s (%s)\n", app.Slug, app.ID)
+		err := db.Query.InsertGithubRepoConnection(ctx, s.db.RW(), db.InsertGithubRepoConnectionParams{
+			ProjectID:          projectID,
+			AppID:              app.ID,
+			InstallationID:     installationID,
+			RepositoryID:       repositoryID,
+			RepositoryFullName: repository,
+			CreatedAt:          now,
+			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upsert connection for app %s: %w", app.ID, err)
+		}
 	}
 
 	return nil
