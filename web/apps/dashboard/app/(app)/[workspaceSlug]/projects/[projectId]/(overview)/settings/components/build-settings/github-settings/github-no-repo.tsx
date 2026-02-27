@@ -6,9 +6,11 @@ import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel
 
 export const GitHubNoRepo = ({
   projectId,
+  appId,
   installUrl,
 }: {
   projectId: string;
+  appId: string;
   installUrl: string;
 }) => {
   const utils = trpc.useUtils();
@@ -52,6 +54,7 @@ export const GitHubNoRepo = ({
     }
     selectRepoMutation.mutate({
       projectId,
+      appId,
       repositoryId: repo.id,
       repositoryFullName: repo.fullName,
       installationId: repo.installationId,

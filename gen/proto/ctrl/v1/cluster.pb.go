@@ -1285,7 +1285,10 @@ type ApplyDeployment struct {
 	ShutdownSignal string `protobuf:"bytes,15,opt,name=shutdown_signal,json=shutdownSignal,proto3" json:"shutdown_signal,omitempty"`
 	// healthcheck is a JSON-encoded Healthcheck struct for configuring liveness/readiness probes.
 	// If empty, no probes are configured.
-	Healthcheck   []byte `protobuf:"bytes,17,opt,name=healthcheck,proto3,oneof" json:"healthcheck,omitempty"`
+	Healthcheck []byte `protobuf:"bytes,17,opt,name=healthcheck,proto3,oneof" json:"healthcheck,omitempty"`
+	// app_id identifies the app within the project.
+	// Used for pod labels so Vector can extract it into runtime logs.
+	AppId         string `protobuf:"bytes,18,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1430,6 +1433,13 @@ func (x *ApplyDeployment) GetHealthcheck() []byte {
 		return x.Healthcheck
 	}
 	return nil
+}
+
+func (x *ApplyDeployment) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
@@ -1746,7 +1756,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
 	"memory_mib\x18\t \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xda\x04\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xf1\x04\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1766,7 +1776,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\acommand\x18\r \x03(\tR\acommand\x12\x12\n" +
 	"\x04port\x18\x0e \x01(\x05R\x04port\x12'\n" +
 	"\x0fshutdown_signal\x18\x0f \x01(\tR\x0eshutdownSignal\x12%\n" +
-	"\vhealthcheck\x18\x11 \x01(\fH\x01R\vhealthcheck\x88\x01\x01B\v\n" +
+	"\vhealthcheck\x18\x11 \x01(\fH\x01R\vhealthcheck\x88\x01\x01\x12\x15\n" +
+	"\x06app_id\x18\x12 \x01(\tR\x05appIdB\v\n" +
 	"\t_build_idB\x0e\n" +
 	"\f_healthcheck\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
