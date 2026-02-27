@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findGithubRepoConnectionByProjectId = `-- name: FindGithubRepoConnectionByProjectId :one
@@ -22,6 +23,16 @@ FROM github_repo_connections
 WHERE project_id = ?
 `
 
+type FindGithubRepoConnectionByProjectIdRow struct {
+	Pk                 uint64        `db:"pk"`
+	ProjectID          string        `db:"project_id"`
+	InstallationID     int64         `db:"installation_id"`
+	RepositoryID       int64         `db:"repository_id"`
+	RepositoryFullName string        `db:"repository_full_name"`
+	CreatedAt          int64         `db:"created_at"`
+	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+}
+
 // FindGithubRepoConnectionByProjectId
 //
 //	SELECT
@@ -34,9 +45,9 @@ WHERE project_id = ?
 //	    updated_at
 //	FROM github_repo_connections
 //	WHERE project_id = ?
-func (q *Queries) FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (GithubRepoConnection, error) {
+func (q *Queries) FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (FindGithubRepoConnectionByProjectIdRow, error) {
 	row := db.QueryRowContext(ctx, findGithubRepoConnectionByProjectId, projectID)
-	var i GithubRepoConnection
+	var i FindGithubRepoConnectionByProjectIdRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ProjectID,
