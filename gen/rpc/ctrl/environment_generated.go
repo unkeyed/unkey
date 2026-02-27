@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	v1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 // EnvironmentServiceClient wraps ctrlv1connect.EnvironmentServiceClient with simplified signatures.
@@ -29,8 +30,13 @@ func NewConnectEnvironmentServiceClient(inner ctrlv1connect.EnvironmentServiceCl
 }
 
 func (c *ConnectEnvironmentServiceClient) CreateEnvironment(ctx context.Context, req *v1.CreateEnvironmentRequest) (*v1.CreateEnvironmentResponse, error) {
+	ctx, span := tracing.Start(ctx, "EnvironmentService.CreateEnvironment")
+	defer span.End()
 	resp, err := c.inner.CreateEnvironment(ctx, connect.NewRequest(req))
 	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
 		return nil, err
 	}
 	return resp.Msg, nil

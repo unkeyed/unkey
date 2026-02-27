@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"net"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -48,6 +49,10 @@ func (c *gossipCluster) evaluateBridge() {
 }
 
 // promoteToBridge creates a WAN memberlist and joins WAN seeds.
+// memberlist.Create is performed outside the lock because it does network I/O
+// and must not block Broadcast/Members/IsBridge. Retries with exponential
+// backoff handle the case where a previous WAN memberlist's socket hasn't been
+// fully released by the OS yet (e.g. after a rapid demote→promote cycle).
 func (c *gossipCluster) promoteToBridge() {
 	c.mu.Lock()
 	if c.isBridge {
@@ -63,17 +68,48 @@ func (c *gossipCluster) promoteToBridge() {
 	wanCfg.BindPort = c.config.WANBindPort
 	wanCfg.AdvertisePort = c.config.WANBindPort
 	if c.config.WANAdvertiseAddr != "" {
-		wanCfg.AdvertiseAddr = c.config.WANAdvertiseAddr
+		wanCfg.AdvertiseAddr = resolveAdvertiseAddr(c.config.WANAdvertiseAddr)
 	}
 	wanCfg.LogOutput = newLogWriter("wan")
 	wanCfg.SecretKey = c.config.SecretKey
-
 	wanCfg.Delegate = newWANDelegate(c)
 
-	wanList, err := memberlist.Create(wanCfg)
-	if err != nil {
+	seeds := c.config.WANSeeds
+	c.mu.Unlock()
+
+	backoff := initialBackoff
+	var wanList *memberlist.Memberlist
+
+	for {
+		if c.closing.Load() {
+			return
+		}
+
+		var err error
+		wanList, err = memberlist.Create(wanCfg)
+		if err == nil {
+			break
+		}
+
+		logger.Warn("Failed to create WAN memberlist, retrying",
+			"error", err,
+			"next_backoff", backoff,
+		)
+
+		select {
+		case <-c.done:
+			return
+		case <-time.After(backoff):
+		}
+
+		backoff = min(backoff*2, reconnectInterval)
+	}
+
+	c.mu.Lock()
+	if c.closing.Load() {
 		c.mu.Unlock()
-		logger.Error("Failed to create WAN memberlist", "error", err)
+		wanList.Leave(5 * time.Second) //nolint:errcheck
+		wanList.Shutdown()             //nolint:errcheck
 		return
 	}
 
@@ -82,9 +118,7 @@ func (c *gossipCluster) promoteToBridge() {
 		NumNodes:       func() int { return wanList.NumMembers() },
 		RetransmitMult: 4,
 	}
-
 	c.isBridge = true
-	seeds := c.config.WANSeeds
 	c.mu.Unlock()
 
 	metrics.ClusterBridgeStatus.Set(1)
@@ -98,6 +132,32 @@ func (c *gossipCluster) promoteToBridge() {
 			return c.wan
 		}, seeds, nil)
 	}
+}
+
+// resolveAdvertiseAddr resolves a hostname to its first IP address.
+// If the input is already a valid IP, it is returned unchanged.
+// If DNS resolution fails, an empty string is returned so the caller
+// falls back to the bind address rather than passing a raw hostname
+// to memberlist (which would leak the transport).
+//
+// memberlist requires AdvertiseAddr to be a valid IP (it uses net.ParseIP
+// internally). Passing a hostname like an NLB DNS name causes
+// newMemberlist to fail after binding the port, leaking the transport.
+func resolveAdvertiseAddr(addr string) string {
+	if addr == "" {
+		return ""
+	}
+	if net.ParseIP(addr) != nil {
+		return addr
+	}
+	ips, err := net.LookupHost(addr)
+	if err != nil || len(ips) == 0 {
+		logger.Warn("Failed to resolve WAN advertise address",
+			"addr", addr, "error", err)
+		return ""
+	}
+	logger.Info("Resolved WAN advertise address", "hostname", addr, "ip", ips[0])
+	return ips[0]
 }
 
 // demoteFromBridge shuts down the WAN memberlist.

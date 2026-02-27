@@ -86,4 +86,25 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 	})
+
+	t.Run("API belongs to different workspace", func(t *testing.T) {
+		otherWorkspace := h.CreateWorkspace()
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: otherWorkspace.ID})
+
+		req := handler.Request{
+			ApiId: api.ID,
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 404, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
+	})
 }

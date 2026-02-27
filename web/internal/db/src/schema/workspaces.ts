@@ -65,6 +65,11 @@ export const workspaces = mysqlTable("workspaces", {
        */
 
       deployments?: boolean;
+
+      /**
+       * Can access customer billing portal
+       */
+      portal?: boolean;
     }>()
     .notNull(),
   features: json("features")

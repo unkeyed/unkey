@@ -232,26 +232,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	// Handle decryption if requested
-	plaintextMap := make(map[string]string)
-	if req.Decrypt != nil && *req.Decrypt {
-		for _, key := range keyResults {
-			if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
-				decrypted, decryptErr := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-					Keyring:   key.WorkspaceID,
-					Encrypted: key.EncryptedKey.String,
-				})
-				if decryptErr != nil {
-					logger.Error("failed to decrypt key",
-						"keyId", key.ID,
-						"error", decryptErr,
-					)
-					continue
-				}
-				plaintextMap[key.ID] = decrypted.GetPlaintext()
-			}
-		}
-	}
+	plaintextMap := h.decryptKeys(ctx, req, keyResults, auth.AuthorizedWorkspaceID)
 
 	// Transform to response format
 	responseData := make([]openapi.KeyResponseData, len(keyResults))
@@ -271,6 +252,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			HasMore: hasMore,
 		},
 	})
+}
+
+func (h *Handler) decryptKeys(ctx context.Context, req Request, keys []db.ListLiveKeysByKeySpaceIDRow, workspaceID string) map[string]string {
+	if req.Decrypt == nil || !*req.Decrypt {
+		return nil
+	}
+
+	bulkItems := make(map[string]string, len(keys))
+	for _, key := range keys {
+		if key.EncryptedKey.Valid && key.EncryptionKeyID.Valid {
+			bulkItems[key.ID] = key.EncryptedKey.String
+		}
+	}
+	if len(bulkItems) == 0 {
+		return nil
+	}
+
+	bulkRes, err := h.Vault.DecryptBulk(ctx, &vaultv1.DecryptBulkRequest{
+		Keyring: workspaceID,
+		Items:   bulkItems,
+	})
+	if err != nil {
+		logger.Error("failed to bulk decrypt keys", "error", err)
+		return nil
+	}
+
+	return bulkRes.GetItems()
 }
 
 // buildKeyResponseData transforms internal key data into API response format.

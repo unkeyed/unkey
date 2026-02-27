@@ -92,6 +92,96 @@ func TestBadRequest(t *testing.T) {
 		})
 	})
 
+	t.Run("tags accept any string values without pattern restriction", func(t *testing.T) {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+		})
+
+		testCases := []struct {
+			name string
+			tags []string
+		}{
+			{
+				name: "special characters",
+				tags: []string{"hello world!", "café", "key=value&foo=bar", "path/to/thing?query=1"},
+			},
+			{
+				name: "unicode and emoji",
+				tags: []string{"日本語タグ", "émojis 🎉🚀", "Ünïcödé"},
+			},
+			{
+				name: "spaces and whitespace",
+				tags: []string{"  leading", "trailing  ", "  both  ", "mid dle"},
+			},
+			{
+				name: "max items boundary",
+				tags: func() []string {
+					tags := make([]string, 20)
+					for i := range tags {
+						tags[i] = fmt.Sprintf("tag-%d", i)
+					}
+					return tags
+				}(),
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				req := handler.Request{
+					Key:  key.Key,
+					Tags: &tc.tags,
+				}
+
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, validHeaders, req)
+				require.Equal(t, 200, res.Status, "tags %v should pass validation", tc.tags)
+			})
+		}
+	})
+
+	t.Run("tags rejected when exceeding limits", func(t *testing.T) {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+		})
+
+		testCases := []struct {
+			name string
+			tags []string
+		}{
+			{
+				name: "too many tags",
+				tags: func() []string {
+					tags := make([]string, 21)
+					for i := range tags {
+						tags[i] = fmt.Sprintf("tag-%d", i)
+					}
+					return tags
+				}(),
+			},
+			{
+				name: "empty tag string",
+				tags: []string{"valid", ""},
+			},
+			{
+				name: "tag exceeds max length",
+				tags: []string{string(make([]byte, 513))},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				req := handler.Request{
+					Key:  key.Key,
+					Tags: &tc.tags,
+				}
+
+				res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)
+				require.Equal(t, 400, res.Status, "tags %v should be rejected", tc.tags)
+			})
+		}
+	})
+
 	t.Run("invalid permissions query syntax", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,

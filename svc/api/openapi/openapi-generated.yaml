@@ -1413,8 +1413,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 256
-                        pattern: "^[a-zA-Z0-9_=/.:-]+$"
+                        maxLength: 512
                     maxItems: 20
                     description: |
                         Attaches metadata tags for analytics and monitoring without affecting verification outcomes.

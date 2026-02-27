@@ -32,6 +32,11 @@ type RatelimitInfo struct {
 	AutoApply  bool              `json:"auto_apply"`
 }
 
+type EnvVarInfo struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 // UnmarshalNullableJSONTo unmarshals JSON data from database columns into Go types.
 // It handles the common pattern where database queries return JSON as []byte that needs
 // to be deserialized into structs, slices, or maps.
