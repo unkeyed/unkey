@@ -1,12 +1,19 @@
 "use client";
 
 import { VirtualTable } from "@/components/virtual-table/index";
+import { cn } from "@/lib/utils";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useState } from "react";
 import { BuildStepLogsExpanded } from "./build-step-logs-expanded";
 import { type BuildStepRow, buildStepsColumns } from "./columns";
 import { getBuildStepRowClass } from "./get-row-class";
+import {
+  DurationColumnSkeleton,
+  NameColumnSkeleton,
+  StartedAtColumnSkeleton,
+  StatusColumnSkeleton,
+} from "./skeletons";
 
 type Props = {
   steps: BuildStepRow[];
@@ -25,6 +32,24 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps }) => {
       data={enrichedSteps}
       isLoading={steps.length === 0}
       columns={buildStepsColumns}
+      renderSkeletonRow={({ columns, rowHeight }) =>
+        columns.map((column, idx) => (
+          <td
+            key={column.key}
+            className={cn(
+              "text-xs align-middle whitespace-nowrap",
+              idx === 0 ? "pl-[18px]" : "",
+              column.cellClassName,
+            )}
+            style={{ height: `${rowHeight}px` }}
+          >
+            {column.key === "started_at" && <StartedAtColumnSkeleton />}
+            {column.key === "status" && <StatusColumnSkeleton />}
+            {column.key === "name" && <NameColumnSkeleton />}
+            {column.key === "duration" && <DurationColumnSkeleton />}
+          </td>
+        ))
+      }
       keyExtractor={(step) => step.step_id}
       rowClassName={(step) => getBuildStepRowClass(step)}
       expandedIds={expandedIds}
