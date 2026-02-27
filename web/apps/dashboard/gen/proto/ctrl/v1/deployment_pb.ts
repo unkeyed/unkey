@@ -10,48 +10,41 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/deployment.proto.
  */
 export const file_ctrl_v1_deployment: GenFile = /*@__PURE__*/
-  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEigAIKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhIKCnByb2plY3RfaWQYAiABKAkSDgoGYnJhbmNoGAMgASgJEhgKEGVudmlyb25tZW50X3NsdWcYBCABKAkSFAoMZG9ja2VyX2ltYWdlGAYgASgJEi8KCmdpdF9jb21taXQYByABKAsyFi5jdHJsLnYxLkdpdENvbW1pdEluZm9IAIgBARIYCgtrZXlzcGFjZV9pZBgIIAEoCUgBiAEBEg8KB2NvbW1hbmQYCSADKAkSEAoIYXBwX3NsdWcYCiABKAlCDQoLX2dpdF9jb21taXRCDgoMX2tleXNwYWNlX2lkSgQIARACIoABCg1HaXRDb21taXRJbmZvEhIKCmNvbW1pdF9zaGEYASABKAkSFgoOY29tbWl0X21lc3NhZ2UYAiABKAkSFQoNYXV0aG9yX2hhbmRsZRgDIAEoCRIZChFhdXRob3JfYXZhdGFyX3VybBgEIAEoCRIRCgl0aW1lc3RhbXAYBSABKAMiXAoYQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSKQoGc3RhdHVzGAIgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQimAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSDgoGYXBwX2lkGBUgASgJEhYKDmdpdF9jb21taXRfc2hhGAUgASgJEhIKCmdpdF9icmFuY2gYBiABKAkSKQoGc3RhdHVzGAcgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYCCABKAkSTAoVZW52aXJvbm1lbnRfdmFyaWFibGVzGAkgAygLMi0uY3RybC52MS5EZXBsb3ltZW50LkVudmlyb25tZW50VmFyaWFibGVzRW50cnkSIwoIdG9wb2xvZ3kYCiABKAsyES5jdHJsLnYxLlRvcG9sb2d5EhIKCmNyZWF0ZWRfYXQYCyABKAMSEgoKdXBkYXRlZF9hdBgMIAEoAxIRCglob3N0bmFtZXMYDSADKAkSFwoPcm9vdGZzX2ltYWdlX2lkGA4gASgJEhAKCGJ1aWxkX2lkGA8gASgJEiYKBXN0ZXBzGBAgAygLMhcuY3RybC52MS5EZXBsb3ltZW50U3RlcBIaChJnaXRfY29tbWl0X21lc3NhZ2UYESABKAkSIAoYZ2l0X2NvbW1pdF9hdXRob3JfaGFuZGxlGBIgASgJEiQKHGdpdF9jb21taXRfYXV0aG9yX2F2YXRhcl91cmwYEyABKAkSHAoUZ2l0X2NvbW1pdF90aW1lc3RhbXAYFCABKAMaOwoZRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlwKDkRlcGxveW1lbnRTdGVwEg4KBnN0YXR1cxgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEhUKDWVycm9yX21lc3NhZ2UYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoAyKnAQoIVG9wb2xvZ3kSFgoOY3B1X21pbGxpY29yZXMYASABKAUSEgoKbWVtb3J5X21pYhgCIAEoBRIoCgdyZWdpb25zGAMgAygLMhcuY3RybC52MS5SZWdpb25hbENvbmZpZxIcChRpZGxlX3RpbWVvdXRfc2Vjb25kcxgEIAEoBRIZChFoZWFsdGhfY2hlY2tfcGF0aBgFIAEoCRIMCgRwb3J0GAYgASgFIk4KDlJlZ2lvbmFsQ29uZmlnEg4KBnJlZ2lvbhgBIAEoCRIVCg1taW5faW5zdGFuY2VzGAIgASgFEhUKDW1heF9pbnN0YW5jZXMYAyABKAUiTQoPUm9sbGJhY2tSZXF1ZXN0EhwKFHNvdXJjZV9kZXBsb3ltZW50X2lkGAEgASgJEhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAIgASgJIhIKEFJvbGxiYWNrUmVzcG9uc2UiLgoOUHJvbW90ZVJlcXVlc3QSHAoUdGFyZ2V0X2RlcGxveW1lbnRfaWQYASABKAkiEQoPUHJvbW90ZVJlc3BvbnNlKu8BChBEZXBsb3ltZW50U3RhdHVzEiEKHURFUExPWU1FTlRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASHQoZREVQTE9ZTUVOVF9TVEFUVVNfUEVORElORxABEh4KGkRFUExPWU1FTlRfU1RBVFVTX0JVSUxESU5HEAISHwobREVQTE9ZTUVOVF9TVEFUVVNfREVQTE9ZSU5HEAMSHQoZREVQTE9ZTUVOVF9TVEFUVVNfTkVUV09SSxAEEhsKF0RFUExPWU1FTlRfU1RBVFVTX1JFQURZEAUSHAoYREVQTE9ZTUVOVF9TVEFUVVNfRkFJTEVEEAYqWgoKU291cmNlVHlwZRIbChdTT1VSQ0VfVFlQRV9VTlNQRUNJRklFRBAAEhMKD1NPVVJDRV9UWVBFX0dJVBABEhoKFlNPVVJDRV9UWVBFX0NMSV9VUExPQUQQAjK/AgoNRGVwbG95U2VydmljZRJZChBDcmVhdGVEZXBsb3ltZW50EiAuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVxdWVzdBohLmN0cmwudjEuQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlIgASUAoNR2V0RGVwbG95bWVudBIdLmN0cmwudjEuR2V0RGVwbG95bWVudFJlcXVlc3QaHi5jdHJsLnYxLkdldERlcGxveW1lbnRSZXNwb25zZSIAEkEKCFJvbGxiYWNrEhguY3RybC52MS5Sb2xsYmFja1JlcXVlc3QaGS5jdHJsLnYxLlJvbGxiYWNrUmVzcG9uc2UiABI+CgdQcm9tb3RlEhcuY3RybC52MS5Qcm9tb3RlUmVxdWVzdBoYLmN0cmwudjEuUHJvbW90ZVJlc3BvbnNlIgBCjgEKC2NvbS5jdHJsLnYxQg9EZXBsb3ltZW50UHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
+  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi6gEKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSGAoQZW52aXJvbm1lbnRfc2x1ZxgCIAEoCRIUCgxkb2NrZXJfaW1hZ2UYAyABKAkSLwoKZ2l0X2NvbW1pdBgEIAEoCzIWLmN0cmwudjEuR2l0Q29tbWl0SW5mb0gAiAEBEhgKC2tleXNwYWNlX2lkGAUgASgJSAGIAQESDwoHY29tbWFuZBgGIAMoCRIQCghhcHBfc2x1ZxgHIAEoCUINCgtfZ2l0X2NvbW1pdEIOCgxfa2V5c3BhY2VfaWQikAEKDUdpdENvbW1pdEluZm8SEgoKY29tbWl0X3NoYRgBIAEoCRIWCg5jb21taXRfbWVzc2FnZRgCIAEoCRIVCg1hdXRob3JfaGFuZGxlGAMgASgJEhkKEWF1dGhvcl9hdmF0YXJfdXJsGAQgASgJEhEKCXRpbWVzdGFtcBgFIAEoAxIOCgZicmFuY2gYBiABKAkiXAoYQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSKQoGc3RhdHVzGAIgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQimAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSDgoGYXBwX2lkGBUgASgJEhYKDmdpdF9jb21taXRfc2hhGAUgASgJEhIKCmdpdF9icmFuY2gYBiABKAkSKQoGc3RhdHVzGAcgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYCCABKAkSTAoVZW52aXJvbm1lbnRfdmFyaWFibGVzGAkgAygLMi0uY3RybC52MS5EZXBsb3ltZW50LkVudmlyb25tZW50VmFyaWFibGVzRW50cnkSIwoIdG9wb2xvZ3kYCiABKAsyES5jdHJsLnYxLlRvcG9sb2d5EhIKCmNyZWF0ZWRfYXQYCyABKAMSEgoKdXBkYXRlZF9hdBgMIAEoAxIRCglob3N0bmFtZXMYDSADKAkSFwoPcm9vdGZzX2ltYWdlX2lkGA4gASgJEhAKCGJ1aWxkX2lkGA8gASgJEiYKBXN0ZXBzGBAgAygLMhcuY3RybC52MS5EZXBsb3ltZW50U3RlcBIaChJnaXRfY29tbWl0X21lc3NhZ2UYESABKAkSIAoYZ2l0X2NvbW1pdF9hdXRob3JfaGFuZGxlGBIgASgJEiQKHGdpdF9jb21taXRfYXV0aG9yX2F2YXRhcl91cmwYEyABKAkSHAoUZ2l0X2NvbW1pdF90aW1lc3RhbXAYFCABKAMaOwoZRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlwKDkRlcGxveW1lbnRTdGVwEg4KBnN0YXR1cxgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEhUKDWVycm9yX21lc3NhZ2UYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoAyKnAQoIVG9wb2xvZ3kSFgoOY3B1X21pbGxpY29yZXMYASABKAUSEgoKbWVtb3J5X21pYhgCIAEoBRIoCgdyZWdpb25zGAMgAygLMhcuY3RybC52MS5SZWdpb25hbENvbmZpZxIcChRpZGxlX3RpbWVvdXRfc2Vjb25kcxgEIAEoBRIZChFoZWFsdGhfY2hlY2tfcGF0aBgFIAEoCRIMCgRwb3J0GAYgASgFIk4KDlJlZ2lvbmFsQ29uZmlnEg4KBnJlZ2lvbhgBIAEoCRIVCg1taW5faW5zdGFuY2VzGAIgASgFEhUKDW1heF9pbnN0YW5jZXMYAyABKAUiTQoPUm9sbGJhY2tSZXF1ZXN0EhwKFHNvdXJjZV9kZXBsb3ltZW50X2lkGAEgASgJEhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAIgASgJIhIKEFJvbGxiYWNrUmVzcG9uc2UiLgoOUHJvbW90ZVJlcXVlc3QSHAoUdGFyZ2V0X2RlcGxveW1lbnRfaWQYASABKAkiEQoPUHJvbW90ZVJlc3BvbnNlKu8BChBEZXBsb3ltZW50U3RhdHVzEiEKHURFUExPWU1FTlRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASHQoZREVQTE9ZTUVOVF9TVEFUVVNfUEVORElORxABEh4KGkRFUExPWU1FTlRfU1RBVFVTX0JVSUxESU5HEAISHwobREVQTE9ZTUVOVF9TVEFUVVNfREVQTE9ZSU5HEAMSHQoZREVQTE9ZTUVOVF9TVEFUVVNfTkVUV09SSxAEEhsKF0RFUExPWU1FTlRfU1RBVFVTX1JFQURZEAUSHAoYREVQTE9ZTUVOVF9TVEFUVVNfRkFJTEVEEAYqWgoKU291cmNlVHlwZRIbChdTT1VSQ0VfVFlQRV9VTlNQRUNJRklFRBAAEhMKD1NPVVJDRV9UWVBFX0dJVBABEhoKFlNPVVJDRV9UWVBFX0NMSV9VUExPQUQQAjK/AgoNRGVwbG95U2VydmljZRJZChBDcmVhdGVEZXBsb3ltZW50EiAuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVxdWVzdBohLmN0cmwudjEuQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlIgASUAoNR2V0RGVwbG95bWVudBIdLmN0cmwudjEuR2V0RGVwbG95bWVudFJlcXVlc3QaHi5jdHJsLnYxLkdldERlcGxveW1lbnRSZXNwb25zZSIAEkEKCFJvbGxiYWNrEhguY3RybC52MS5Sb2xsYmFja1JlcXVlc3QaGS5jdHJsLnYxLlJvbGxiYWNrUmVzcG9uc2UiABI+CgdQcm9tb3RlEhcuY3RybC52MS5Qcm9tb3RlUmVxdWVzdBoYLmN0cmwudjEuUHJvbW90ZVJlc3BvbnNlIgBCjgEKC2NvbS5jdHJsLnYxQg9EZXBsb3ltZW50UHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message ctrl.v1.CreateDeploymentRequest
  */
 export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest"> & {
   /**
-   * @generated from field: string project_id = 2;
+   * @generated from field: string project_id = 1;
    */
   projectId: string;
 
   /**
-   * @generated from field: string branch = 3;
-   */
-  branch: string;
-
-  /**
-   * @generated from field: string environment_slug = 4;
+   * @generated from field: string environment_slug = 2;
    */
   environmentSlug: string;
 
   /**
-   * Build source - currently only prebuilt docker images are supported via API
-   * GitHub source builds are triggered automatically via webhook
+   * When omitted: git-connected projects deploy HEAD of default branch;
+   * projects without a repo connection reuse the live deployment's Docker image.
    *
-   * Prebuilt image reference
-   *
-   * @generated from field: string docker_image = 6;
+   * @generated from field: string docker_image = 3;
    */
   dockerImage: string;
 
   /**
    * Git information
    *
-   * @generated from field: optional ctrl.v1.GitCommitInfo git_commit = 7;
+   * @generated from field: optional ctrl.v1.GitCommitInfo git_commit = 4;
    */
   gitCommit?: GitCommitInfo;
 
   /**
    * Authentication
    *
-   * @generated from field: optional string keyspace_id = 8;
+   * @generated from field: optional string keyspace_id = 5;
    */
   keyspaceId?: string;
 
@@ -59,14 +52,14 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
    * Container command override (e.g., ["./app", "serve"])
    * If not specified, the container's default entrypoint/cmd is used
    *
-   * @generated from field: repeated string command = 9;
+   * @generated from field: repeated string command = 6;
    */
   command: string[];
 
   /**
    * App slug within the project. Defaults to "default" if empty.
    *
-   * @generated from field: string app_slug = 10;
+   * @generated from field: string app_slug = 7;
    */
   appSlug: string;
 };
@@ -108,6 +101,13 @@ export type GitCommitInfo = Message<"ctrl.v1.GitCommitInfo"> & {
    * @generated from field: int64 timestamp = 5;
    */
   timestamp: bigint;
+
+  /**
+   * branch metadata for docker_image deployments
+   *
+   * @generated from field: string branch = 6;
+   */
+  branch: string;
 };
 
 /**
@@ -290,8 +290,6 @@ export type Deployment = Message<"ctrl.v1.Deployment"> & {
   gitCommitMessage: string;
 
   /**
-   * Removed: email is PII and not stored
-   *
    * @generated from field: string git_commit_author_handle = 18;
    */
   gitCommitAuthorHandle: string;
@@ -569,7 +567,8 @@ export const SourceTypeSchema: GenEnum<SourceType> = /*@__PURE__*/
  */
 export const DeployService: GenService<{
   /**
-   * Create a new deployment with a prebuilt docker image
+   * Create a new deployment from a docker image or by auto-detecting
+   * the appropriate source for the project.
    *
    * @generated from rpc ctrl.v1.DeployService.CreateDeployment
    */
