@@ -5,6 +5,7 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { useParams } from "next/navigation";
 import { createContext, useContext } from "react";
 import { useProjectData } from "../../data-provider";
+import { LoadingState } from "@/components/loading-state";
 
 type DeploymentLayoutContextType = {
   deployment: Deployment;
