@@ -1,4 +1,5 @@
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
+import { invalidateKeysByHash } from "@/lib/cache-invalidation";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -114,6 +115,8 @@ export const updateKeysEnabled = workspaceProcedure
           "We were unable to update enabled status on these keys. Please try again or contact support@unkey.com",
       });
     }
+
+    await invalidateKeysByHash(keys.map((k) => k.hash));
 
     return {
       enabled: input.enabled,

@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "internal_cache_invalidate",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/internal_cache_invalidate",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/caches",
+        "//pkg/fault",
+        "//pkg/zen",
+        "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "internal_cache_invalidate_test",
+    size = "medium",
+    srcs = [
+        "200_test.go",
+        "400_test.go",
+        "401_test.go",
+        "404_test.go",
+        "helpers_test.go",
+    ],
+    deps = [
+        ":internal_cache_invalidate",
+        "//pkg/cache",
+        "//pkg/db",
+        "//svc/api/internal/testutil",
+        "@com_github_stretchr_testify//require",
+    ],
+)

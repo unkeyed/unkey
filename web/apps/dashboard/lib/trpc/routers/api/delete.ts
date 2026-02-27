@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
+import { invalidateApiById } from "@/lib/cache-invalidation";
 import { db, eq, schema } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
@@ -122,4 +123,6 @@ export const deleteApi = workspaceProcedure
         message: "We are unable to delete the API. Please try again or contact support@unkey.com",
       });
     }
+
+    await invalidateApiById(ctx.workspace.id, input.apiId);
   });

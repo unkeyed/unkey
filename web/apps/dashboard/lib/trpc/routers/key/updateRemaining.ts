@@ -1,5 +1,6 @@
 import { creditsSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
+import { invalidateKeyByHash } from "@/lib/cache-invalidation";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -12,6 +13,7 @@ export const updateKeyRemaining = workspaceProcedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
+    let keyHash: string | undefined;
     await db
       .transaction(async (tx) => {
         const key = await tx.query.keys.findFirst({
@@ -29,6 +31,7 @@ export const updateKeyRemaining = workspaceProcedure
             code: "NOT_FOUND",
           });
         }
+        keyHash = key.hash;
 
         // If limits are disabled, set all values to null
         if (input.limit.enabled) {
@@ -115,5 +118,9 @@ export const updateKeyRemaining = workspaceProcedure
             "We were unable to update remaining limits on this key. Please try again or contact support@unkey.com",
         });
       });
+    if (keyHash) {
+      await invalidateKeyByHash(keyHash);
+    }
+
     return { keyId: input.keyId };
   });

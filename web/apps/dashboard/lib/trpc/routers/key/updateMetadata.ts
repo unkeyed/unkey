@@ -1,4 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { invalidateKeyByHash } from "@/lib/cache-invalidation";
 import { db, eq, schema } from "@/lib/db";
 import { metadataSchema } from "@/lib/schemas/metadata";
 import { TRPCError } from "@trpc/server";
@@ -99,6 +100,8 @@ export const updateKeyMetadata = workspaceProcedure
             "We are unable to update metadata on this key. Please try again or contact support@unkey.com",
         });
       });
+
+    await invalidateKeyByHash(key.hash);
 
     return {
       keyId: key.id,

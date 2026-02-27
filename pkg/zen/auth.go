@@ -1,6 +1,7 @@
 package zen
 
 import (
+	"crypto/subtle"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -49,4 +50,23 @@ func Bearer(s *Session) (string, error) {
 	}
 
 	return bearer, nil
+}
+
+// BearerTokenAuth extracts the Bearer token from the session and compares it
+// against the expected token using constant-time comparison. Returns nil if
+// the token matches, or an appropriate error otherwise.
+func BearerTokenAuth(s *Session, expected string) error {
+	token, err := Bearer(s)
+	if err != nil {
+		return err
+	}
+
+	if subtle.ConstantTimeCompare([]byte(token), []byte(expected)) != 1 {
+		return fault.New("invalid bearer token",
+			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+			fault.Internal("bearer token does not match"),
+			fault.Public("The provided token is invalid."))
+	}
+
+	return nil
 }

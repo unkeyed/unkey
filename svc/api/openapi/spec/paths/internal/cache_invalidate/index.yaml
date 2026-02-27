@@ -1,0 +1,51 @@
+post:
+  x-speakeasy-ignore: true
+  x-excluded: true
+  tags:
+    - internal
+  security: []
+  operationId: internalCacheInvalidate
+  summary: Invalidate cache entries
+  description: |-
+    Internal endpoint for invalidating cached entries across all API nodes.
+    Used by the dashboard to notify the API after mutations so stale cache
+    entries are evicted immediately rather than waiting for TTL expiry.
+
+    Invalidation is propagated to all cluster nodes via gossip when clustering
+    is enabled.
+
+    This endpoint requires a dedicated bearer token and should not be used by
+    external clients.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./CacheInvalidateRequestBody.yaml"
+  responses:
+    "200":
+      description: Cache entries successfully invalidated
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid request body, missing cacheName or keys
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/UnauthorizedErrorResponse.yaml"
+      description: Missing or invalid bearer token
+    "404":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/NotFoundErrorResponse.yaml"
+      description: Cache name not found in registry
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../error/InternalServerErrorResponse.yaml"
+      description: Failed to invalidate cache entries

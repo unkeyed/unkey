@@ -104,6 +104,10 @@ type Config struct {
 	// When nil (section omitted), pprof endpoints are not registered.
 	Pprof *config.PprofConfig `toml:"pprof"`
 
+	// DashboardToken is the authentication token for dashboard cache invalidation endpoints.
+	// When empty, dashboard cache invalidation routes are not registered.
+	DashboardToken string `toml:"dashboard_token"`
+
 	// Listener is a pre-created [net.Listener] for the HTTP server. When set,
 	// the server uses this listener instead of binding to HttpPort. This is
 	// intended for tests that need ephemeral ports to avoid conflicts.

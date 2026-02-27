@@ -1,4 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { invalidateKeysByHash } from "@/lib/cache-invalidation";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -37,6 +38,7 @@ export const deleteKeys = workspaceProcedure
               and(isNull(table.deletedAtM), inArray(table.id, keyIds)),
             columns: {
               id: true,
+              hash: true,
             },
           },
         },
@@ -130,6 +132,8 @@ export const deleteKeys = workspaceProcedure
         }
         throw txErr; // Re-throw to be caught by outer catch
       }
+
+      await invalidateKeysByHash(workspace.keys.map((k) => k.hash));
 
       return {
         deletedKeyIds: workspace.keys.map((k) => k.id),

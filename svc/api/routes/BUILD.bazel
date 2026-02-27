@@ -22,6 +22,7 @@ go_library(
         "//pkg/zen",
         "//pkg/zen/validation",
         "//svc/api/internal/middleware",
+        "//svc/api/routes/internal_cache_invalidate",
         "//svc/api/routes/openapi",
         "//svc/api/routes/pprof",
         "//svc/api/routes/reference",
