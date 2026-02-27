@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import { Bolt, Cloud, Grid, Harddrive, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { ActiveDeploymentCard } from "../../../../components/active-deployment-card";
@@ -26,26 +27,25 @@ export function DeploymentInfo() {
         deploymentId={deployment.id}
         trailingContent={
           <div className="flex gap-1.5 items-center">
-            <DisabledWrapper
-              tooltipContent="Resource metrics coming soon"
-              className="2xl:flex gap-1.5 items-center hidden"
-            >
+            <div className="2xl:flex gap-1.5 items-center hidden">
               <InfoChip icon={Bolt}>
-                <div className="text-grayA-10 text-xs">
-                  <span className="text-gray-12 font-medium">—</span> vCPUs
+                <div className="text-gray-12 font-medium text-xs">
+                  {formatCpu(deployment.cpuMillicores)}
                 </div>
               </InfoChip>
               <InfoChip icon={Grid}>
-                <div className="text-grayA-10 text-xs">
-                  <span className="text-gray-12 font-medium">—</span> GiB
+                <div className="text-gray-12 font-medium text-xs">
+                  {formatMemory(deployment.memoryMib)}
                 </div>
               </InfoChip>
-              <InfoChip icon={Harddrive}>
-                <div className="text-grayA-10 text-xs">
-                  <span className="text-gray-12 font-medium">—</span> GB
-                </div>
-              </InfoChip>
-            </DisabledWrapper>
+              <DisabledWrapper tooltipContent="Storage metrics coming soon">
+                <InfoChip icon={Harddrive}>
+                  <div className="text-grayA-10 text-xs">
+                    <span className="text-gray-12 font-medium">—</span> GB
+                  </div>
+                </InfoChip>
+              </DisabledWrapper>
+            </div>
             <RegionFlags instances={deployment.instances} />
             {projectLayout && (
               <InfoTooltip asChild content="Show deployment details">

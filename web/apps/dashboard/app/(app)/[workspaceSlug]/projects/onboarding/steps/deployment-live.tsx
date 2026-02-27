@@ -61,7 +61,7 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
           )
         }
       />
-      <div className="w-[900px]">
+      <div className="w-[900px] space-y-6">
         <DeploymentInfo />
         <DeploymentProgress />
       </div>
