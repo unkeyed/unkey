@@ -1,9 +1,17 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { ChevronDown, CloudUp, Cube, Earth, Hammer2, LayerFront, Link4 } from "@unkey/icons";
-import { Button, CopyButton, Popover, PopoverContent, PopoverTrigger, SettingCard, SettingCardGroup } from "@unkey/ui";
+import {
+  Button,
+  CopyButton,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  SettingCard,
+  SettingCardGroup,
+} from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useProjectData } from "../../../data-provider";
 import { SettingsGroup } from "../../../settings/components/shared/settings-group";
@@ -174,21 +182,29 @@ export function DeploymentProgress() {
                       className={cn(
                         "absolute inset-[-4px] rounded-[10px] blur-[14px]",
                         "bg-gradient-to-l from-feature-8 to-info-9",
-                        "animate-pulse opacity-20"
+                        "animate-pulse opacity-20",
                       )}
                     />
-                    <div className={cn("w-full h-full rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none relative dark:bg-white dark:text-black bg-black text-white")}>
+                    <div
+                      className={cn(
+                        "w-full h-full rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none relative dark:bg-white dark:text-black bg-black text-white",
+                      )}
+                    >
                       <Cube iconSize="md-medium" className="size-[18px]" />
                     </div>
                   </div>
                 }
                 title={project?.name}
-                description={<div className="flex items-center justify-center gap-2 ">
-                  <span className="text-gray-10 text-xs">{primaryDomain.fullyQualifiedDomainName}</span>
-                  <div className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-[18px] font-mono tabular-nums hover:bg-grayA-4 transition-colors">
-                    +{additionalDomains.length}
+                description={
+                  <div className="flex items-center justify-center gap-2 ">
+                    <span className="text-gray-10 text-xs">
+                      {primaryDomain.fullyQualifiedDomainName}
+                    </span>
+                    <div className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-[18px] font-mono tabular-nums hover:bg-grayA-4 transition-colors">
+                      +{additionalDomains.length}
+                    </div>
                   </div>
-                </div>}
+                }
                 contentWidth="w-fit"
               >
                 <div className="flex items-center gap-2">
@@ -202,7 +218,10 @@ export function DeploymentProgress() {
                       </PopoverTrigger>
                       <PopoverContent side="bottom" align="end" className="p-0 max-w-[300px]">
                         {additionalDomains.map((d) => (
-                          <div key={d.id} className="flex items-center justify-left w-full h-10 border-b border-gray-4 px-3 py-[14px] gap-2">
+                          <div
+                            key={d.id}
+                            className="flex items-center justify-left w-full h-10 border-b border-gray-4 px-3 py-[14px] gap-2"
+                          >
                             <Link4 className="text-gray-9 !size-3 shrink-0" iconSize="sm-regular" />
                             <a
                               href={`https://${d.fullyQualifiedDomainName}`}

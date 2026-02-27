@@ -18,9 +18,7 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
         <td colSpan={6} className="p-0" />
       </tr>
       {step.logs.map((log, idx) => (
-        <tr
-          key={`${log.time}-${idx}`}
-        >
+        <tr key={`${log.time}-${idx}`}>
           <td className="border-l-2 border-accent-7 py-0" />
           <td className="py-0">
             <TimestampInfo

@@ -52,7 +52,7 @@ const IconRow = () => (
 );
 
 type OnboardingStepHeaderProps = {
-  title: string;
+  title: ReactNode;
   subtitle?: ReactNode;
   showIconRow?: boolean;
   allowBack?: boolean;

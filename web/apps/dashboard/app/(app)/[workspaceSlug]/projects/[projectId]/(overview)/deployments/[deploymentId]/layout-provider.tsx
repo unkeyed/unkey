@@ -5,7 +5,6 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { useParams } from "next/navigation";
 import { createContext, useContext } from "react";
 import { useProjectData } from "../../data-provider";
-import { LoadingState } from "@/components/loading-state";
 
 type DeploymentLayoutContextType = {
   deployment: Deployment;
@@ -13,12 +12,22 @@ type DeploymentLayoutContextType = {
 
 const DeploymentLayoutContext = createContext<DeploymentLayoutContextType | null>(null);
 
-export const DeploymentLayoutProvider = ({ children }: { children: React.ReactNode }) => {
-  const params = useParams();
-  const deploymentId = params?.deploymentId;
+type DeploymentLayoutProviderProps = {
+  children: React.ReactNode;
+  deploymentId?: string;
+};
 
-  if (!deploymentId || typeof deploymentId !== "string") {
-    throw new Error("DeploymentLayoutProvider must be used within a deployment route");
+export const DeploymentLayoutProvider = ({
+  children,
+  deploymentId: deploymentIdProp,
+}: DeploymentLayoutProviderProps) => {
+  const params = useParams();
+  const deploymentId =
+    deploymentIdProp ??
+    (typeof params?.deploymentId === "string" ? params.deploymentId : undefined);
+
+  if (!deploymentId) {
+    throw new Error("DeploymentLayoutProvider requires a deploymentId (via prop or route params)");
   }
 
   const { getDeploymentById, isDeploymentsLoading } = useProjectData();

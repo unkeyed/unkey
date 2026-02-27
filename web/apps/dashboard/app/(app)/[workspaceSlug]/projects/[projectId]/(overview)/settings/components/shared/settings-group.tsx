@@ -8,7 +8,7 @@ type SettingsGroupProps = {
   title: React.ReactNode;
   children: React.ReactNode;
   defaultExpanded?: boolean;
-  hideChevron?: boolean
+  hideChevron?: boolean;
 };
 
 export const SettingsGroup = ({
@@ -32,7 +32,7 @@ export const SettingsGroup = ({
           onClick={() => setExpanded((prev) => !prev)}
           className="flex items-center gap-1 text-xs text-gray-10 hover:text-gray-11 transition-colors group duration-300"
         >
-          {!hideChevron &&
+          {!hideChevron && (
             <>
               {expanded ? "Hide" : "Show"}
               <ChevronRight
@@ -44,8 +44,7 @@ export const SettingsGroup = ({
                 }}
               />
             </>
-          }
-
+          )}
         </button>
       </div>
       <div

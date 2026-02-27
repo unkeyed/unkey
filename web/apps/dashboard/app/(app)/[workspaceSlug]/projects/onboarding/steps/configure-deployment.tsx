@@ -1,29 +1,31 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
-import { Button, toast } from "@unkey/ui";
-import { useRouter } from "next/navigation";
+import { Button, toast, useStepWizard } from "@unkey/ui";
 import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
 import { DeploymentSettings } from "../../[projectId]/(overview)/settings/deployment-settings";
 import { OnboardingEnvironmentSettingsProvider } from "./onboarding-environment-provider";
 
 type ConfigureDeploymentStepProps = {
   projectId: string;
+  onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export const ConfigureDeploymentStep = ({ projectId }: ConfigureDeploymentStepProps) => {
-  const router = useRouter();
-  const workspace = useWorkspaceNavigation();
+export const ConfigureDeploymentStep = ({
+  projectId,
+  onDeploymentCreated,
+}: ConfigureDeploymentStepProps) => {
+  const { next } = useStepWizard();
 
   const deploy = trpc.deploy.deployment.create.useMutation({
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       toast.success("Deployment triggered", {
         description: "Your project is being built and deployed",
       });
-      router.push(`/${workspace.slug}/projects/${projectId}/deployments/${data.deploymentId}`);
+      onDeploymentCreated(data.deploymentId);
+      next();
     },
     onError: (error) => {
       toast.error("Deployment failed", { description: error.message });

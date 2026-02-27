@@ -8,6 +8,7 @@ import { OnboardingStepHeader } from "./onboarding-step-header";
 import { ConfigureDeploymentStep } from "./steps/configure-deployment";
 import { ConnectGithubStep } from "./steps/connect-github";
 import { CreateProjectStep } from "./steps/create-project";
+import { DeploymentLiveStep } from "./steps/deployment-live";
 import { SelectRepo } from "./steps/select-repo";
 
 export const Onboarding = () => {
@@ -23,6 +24,7 @@ export const Onboarding = () => {
   const initialProjectId = searchParams.get("projectId") ?? undefined;
 
   const [projectId, setProjectId] = useState<string | null>(initialProjectId ?? null);
+  const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
   return (
     <div>
@@ -86,8 +88,16 @@ export const Onboarding = () => {
                 subtitle="Review the defaults. Edit anything you'd like to adjust."
                 allowBack
               />
-              <ConfigureDeploymentStep projectId={projectId} />
+              <ConfigureDeploymentStep
+                projectId={projectId}
+                onDeploymentCreated={setDeploymentId}
+              />
             </div>
+          ) : null}
+        </StepWizard.Step>
+        <StepWizard.Step id="deploying" label="Deploying" preventBack>
+          {projectId && deploymentId ? (
+            <DeploymentLiveStep projectId={projectId} deploymentId={deploymentId} />
           ) : null}
         </StepWizard.Step>
       </StepWizard.Root>

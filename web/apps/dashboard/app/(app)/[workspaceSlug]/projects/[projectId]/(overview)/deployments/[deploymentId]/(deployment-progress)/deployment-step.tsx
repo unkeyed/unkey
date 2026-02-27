@@ -24,7 +24,7 @@ export function DeploymentStep({
   expandable,
   defaultExpanded,
 }: DeploymentStepProps) {
-  const showGlow = status === "started"
+  const showGlow = status === "started";
   return (
     <SettingCard
       icon={
@@ -36,18 +36,20 @@ export function DeploymentStep({
               showGlow ? "animate-pulse opacity-20" : "opacity-0 transition-opacity duration-300",
             )}
           />
-          <div className={cn("w-full h-full rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20", showGlow && "relative dark:bg-white dark:text-black bg-black text-white shadow-md shadow-black/40")}>
+          <div
+            className={cn(
+              "w-full h-full rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
+              showGlow &&
+                "relative dark:bg-white dark:text-black bg-black text-white shadow-md shadow-black/40",
+            )}
+          >
             {icon}
           </div>
         </div>
       }
       title={
         <div className="flex items-center gap-2">
-          <span
-
-          >
-            {title}
-          </span>
+          <span>{title}</span>
           <Badge
             variant="success"
             size="sm"
