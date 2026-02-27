@@ -1,7 +1,6 @@
 package namespace
 
 import (
-	"encoding/json"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/db"
@@ -20,11 +19,9 @@ func ParseNamespaceRow(row db.FindRatelimitNamespaceRow) db.FindRatelimitNamespa
 		WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
 	}
 
-	overrides := make([]db.FindRatelimitNamespaceLimitOverride, 0)
-	if overrideBytes, ok := row.Overrides.([]byte); ok && overrideBytes != nil {
-		if unmarshalErr := json.Unmarshal(overrideBytes, &overrides); unmarshalErr != nil {
-			return result
-		}
+	overrides, err := db.UnmarshalNullableJSONTo[[]db.FindRatelimitNamespaceLimitOverride](row.Overrides)
+	if err != nil {
+		return result
 	}
 
 	for _, override := range overrides {
