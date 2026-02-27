@@ -92,6 +92,66 @@ func TestBadRequest(t *testing.T) {
 		})
 	})
 
+	t.Run("tags accept any string values", func(t *testing.T) {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+		})
+
+		testCases := []struct {
+			name string
+			tags []string
+		}{
+			{
+				name: "special characters",
+				tags: []string{"hello world!", "café", "key=value&foo=bar", "path/to/thing?query=1"},
+			},
+			{
+				name: "unicode and emoji",
+				tags: []string{"日本語タグ", "émojis 🎉🚀", "Ünïcödé"},
+			},
+			{
+				name: "long tags",
+				tags: []string{
+					"this-is-a-very-long-tag-that-exceeds-two-hundred-and-fifty-six-characters-" +
+						"which-would-have-been-rejected-before-but-should-now-pass-validation-" +
+						"because-we-removed-the-maxLength-constraint-from-the-openapi-spec-" +
+						"and-clickhouse-array-string-has-no-length-limit-on-individual-elements",
+				},
+			},
+			{
+				name: "many tags",
+				tags: func() []string {
+					tags := make([]string, 50)
+					for i := range tags {
+						tags[i] = fmt.Sprintf("tag-%d", i)
+					}
+					return tags
+				}(),
+			},
+			{
+				name: "empty strings",
+				tags: []string{"", "valid", ""},
+			},
+			{
+				name: "spaces and whitespace",
+				tags: []string{"  leading", "trailing  ", "  both  ", "mid dle"},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				req := handler.Request{
+					Key:  key.Key,
+					Tags: &tc.tags,
+				}
+
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, validHeaders, req)
+				require.Equal(t, 200, res.Status, "tags %v should pass validation", tc.tags)
+			})
+		}
+	})
+
 	t.Run("invalid permissions query syntax", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
