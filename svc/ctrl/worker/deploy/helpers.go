@@ -39,6 +39,7 @@ func (w *Workflow) startDeploymentStep(
 		return db.Query.InsertDeploymentStep(runCtx, w.db.RW(), db.InsertDeploymentStepParams{
 			WorkspaceID:   deployment.WorkspaceID,
 			ProjectID:     deployment.ProjectID,
+			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
 			DeploymentID:  deployment.ID,
 			Step:          step,

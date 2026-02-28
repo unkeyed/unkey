@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -17,8 +18,6 @@ export const projects = mysqlTable(
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
 
-    // this is likely temporary but we need a way to point to the current prod deployment.
-    // in the future I think we want to have a special deployment per environment, but for now this is fine
     liveDeploymentId: varchar("live_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
     defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
@@ -35,6 +34,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     fields: [projects.workspaceId],
     references: [workspaces.id],
   }),
+  apps: many(apps),
   deployments: many(deployments),
   activeDeployment: one(deployments, {
     fields: [projects.liveDeploymentId],
@@ -45,5 +45,5 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     fields: [projects.id],
     references: [githubRepoConnections.projectId],
   }),
-  // environments: many(projectEnvironments),
+  githubRepoConnections: many(githubRepoConnections),
 }));

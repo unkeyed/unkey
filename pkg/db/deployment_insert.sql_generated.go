@@ -18,6 +18,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     k8s_name,
     workspace_id,
     project_id,
+    app_id,
     environment_id,
     git_commit_sha,
     git_branch,
@@ -61,6 +62,7 @@ VALUES (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
@@ -70,6 +72,7 @@ type InsertDeploymentParams struct {
 	K8sName                       string                    `db:"k8s_name"`
 	WorkspaceID                   string                    `db:"workspace_id"`
 	ProjectID                     string                    `db:"project_id"`
+	AppID                         string                    `db:"app_id"`
 	EnvironmentID                 string                    `db:"environment_id"`
 	GitCommitSha                  sql.NullString            `db:"git_commit_sha"`
 	GitBranch                     sql.NullString            `db:"git_branch"`
@@ -98,6 +101,7 @@ type InsertDeploymentParams struct {
 //	    k8s_name,
 //	    workspace_id,
 //	    project_id,
+//	    app_id,
 //	    environment_id,
 //	    git_commit_sha,
 //	    git_branch,
@@ -141,6 +145,7 @@ type InsertDeploymentParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error {
@@ -149,6 +154,7 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.K8sName,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.EnvironmentID,
 		arg.GitCommitSha,
 		arg.GitBranch,

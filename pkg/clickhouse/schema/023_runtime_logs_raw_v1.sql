@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     `workspace_id` String CODEC(ZSTD(1)),
     `project_id` String CODEC(ZSTD(1)),
     `environment_id` String CODEC(ZSTD(1)),
+    `app_id` String CODEC(ZSTD(1)),
     `deployment_id` String CODEC(ZSTD(1)),
 
     -- K8s metadata (pod name for identifying specific replica)
@@ -43,6 +44,6 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
 )
 ENGINE = MergeTree()
 PARTITION BY toDate(fromUnixTimestamp64Milli(inserted_at))
-ORDER BY (workspace_id, project_id, environment_id, time, deployment_id)
+ORDER BY (workspace_id, project_id, environment_id, app_id, time, deployment_id)
 TTL expires_at + INTERVAL 7 DAY
 SETTINGS index_granularity = 8192, ttl_only_drop_parts = 1;

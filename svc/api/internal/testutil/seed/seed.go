@@ -624,6 +624,7 @@ type CreateDeploymentRequest struct {
 	ID            string
 	WorkspaceID   string
 	ProjectID     string
+	AppID         string
 	EnvironmentID string
 	GitBranch     string
 }
@@ -641,6 +642,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		K8sName:                       "test-" + req.ID,
 		WorkspaceID:                   req.WorkspaceID,
 		ProjectID:                     req.ProjectID,
+		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
 		GitCommitSha:                  sql.NullString{Valid: false},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},

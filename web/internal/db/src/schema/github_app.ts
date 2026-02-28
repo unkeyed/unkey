@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { apps } from "./apps";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -22,7 +23,8 @@ export const githubRepoConnections = mysqlTable(
   "github_repo_connections",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    projectId: varchar("project_id", { length: 64 }).notNull().unique(),
+    projectId: varchar("project_id", { length: 64 }).notNull(),
+    appId: varchar("app_id", { length: 64 }).notNull().default("").unique(),
     installationId: bigint("installation_id", {
       mode: "number",
     }).notNull(),
@@ -39,6 +41,10 @@ export const githubRepoConnectionsRelations = relations(githubRepoConnections, (
   project: one(projects, {
     fields: [githubRepoConnections.projectId],
     references: [projects.id],
+  }),
+  app: one(apps, {
+    fields: [githubRepoConnections.appId],
+    references: [apps.id],
   }),
   installation: one(githubAppInstallations, {
     fields: [githubRepoConnections.installationId],
