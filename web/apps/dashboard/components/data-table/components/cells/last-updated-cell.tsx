@@ -2,9 +2,9 @@ import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
-import { STATUS_STYLES } from "../utils/get-row-class";
+import { STATUS_STYLES } from "../../utils/get-row-class";
 
-export const LastUpdated = ({
+export const LastUpdatedCell = ({
   isSelected,
   lastUpdated,
 }: {

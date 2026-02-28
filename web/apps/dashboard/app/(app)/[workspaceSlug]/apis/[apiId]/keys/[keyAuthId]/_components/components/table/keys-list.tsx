@@ -1,4 +1,5 @@
 "use client";
+import { HiddenValueCell } from "@/components/data-table";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -11,7 +12,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import React, { useCallback, useMemo, useState } from "react";
 import { VerificationBarChart } from "./components/bar-chart";
-import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
 import { SelectionControls } from "./components/selection-controls";
 import {

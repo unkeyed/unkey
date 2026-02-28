@@ -1,3 +1,4 @@
+import { useDeleteRootKey } from "@/components/data-table/hooks/rootkey/use-delete-root-key";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +7,6 @@ import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import { useDeleteRootKey } from "./hooks/use-delete-root-key";
 import { RootKeyInfo } from "./root-key-info";
 
 const deleteRootKeyFormSchema = z.object({
