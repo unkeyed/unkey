@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const listDesiredDeploymentTopology = `-- name: ListDesiredDeploymentTopology :many
@@ -35,7 +34,7 @@ type ListDesiredDeploymentTopologyParams struct {
 type ListDesiredDeploymentTopologyRow struct {
 	DeploymentTopology DeploymentTopology `db:"deployment_topology"`
 	Deployment         Deployment         `db:"deployment"`
-	K8sNamespace       sql.NullString     `db:"k8s_namespace"`
+	K8sNamespace       string             `db:"k8s_namespace"`
 }
 
 // ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.

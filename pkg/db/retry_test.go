@@ -218,11 +218,12 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	// Insert workspace using sqlc
 	err = Query.InsertWorkspace(ctx, dbInstance.RW(), InsertWorkspaceParams{
-		ID:        workspaceID,
-		OrgID:     workspaceID,
-		Name:      "Test Workspace",
-		Slug:      uid.New("slug"),
-		CreatedAt: time.Now().UnixMilli(),
+		ID:           workspaceID,
+		OrgID:        workspaceID,
+		Name:         "Test Workspace",
+		Slug:         uid.New("slug"),
+		CreatedAt:    time.Now().UnixMilli(),
+		K8sNamespace: uid.DNS1035(),
 	})
 	require.NoError(t, err)
 

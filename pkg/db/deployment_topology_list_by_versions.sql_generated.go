@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const listDeploymentTopologyByRegion = `-- name: ListDeploymentTopologyByRegion :many
@@ -32,7 +31,7 @@ type ListDeploymentTopologyByRegionParams struct {
 type ListDeploymentTopologyByRegionRow struct {
 	DeploymentTopology DeploymentTopology `db:"deployment_topology"`
 	Deployment         Deployment         `db:"deployment"`
-	K8sNamespace       sql.NullString     `db:"k8s_namespace"`
+	K8sNamespace       string             `db:"k8s_namespace"`
 }
 
 // ListDeploymentTopologyByRegion returns deployment topologies for a region with version > after_version.
