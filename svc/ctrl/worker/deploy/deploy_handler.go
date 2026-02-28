@@ -325,7 +325,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 				sentinelID := uid.New(uid.SentinelPrefix)
-				sentinelK8sName := uid.DNS1035()
+				sentinelDNS, err := uid.ToDNS1035(sentinelID)
+				if err != nil {
+					return fmt.Errorf("invalid sentinel ID: %w", err)
+				}
 
 				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 					// we rely on the unique index of environmentID + region here to create or noop
@@ -334,8 +337,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 						WorkspaceID:       workspace.ID,
 						EnvironmentID:     environment.ID,
 						ProjectID:         project.ID,
-						K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
-						K8sName:           sentinelK8sName,
+						K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelDNS, sentinelNamespace, sentinelPort),
+						K8sName:           sql.NullString{Valid: true, String: uid.New("garbage")}, // dummy value until we remove the column
 						Region:            topology.Region,
 						Image:             w.sentinelImage,
 						Health:            db.SentinelsHealthUnknown,

@@ -52,7 +52,7 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				if err != nil {
 					if connect.CodeOf(err) == connect.CodeNotFound {
 						if err := c.DeleteSentinel(ctx, &ctrlv1.DeleteSentinel{
-							K8SName: deployment.GetName(),
+							SentinelId: sentinelID,
 						}); err != nil {
 							logger.Error("unable to delete sentinel", "error", err.Error(), "sentinel_id", sentinelID)
 							continue

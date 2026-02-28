@@ -107,7 +107,7 @@ func (s *Service) sentinelRowToState(sentinel db.Sentinel) *ctrlv1.SentinelState
 			Version: sentinel.Version,
 			State: &ctrlv1.SentinelState_Delete{
 				Delete: &ctrlv1.DeleteSentinel{
-					K8SName: sentinel.K8sName,
+					SentinelId: sentinel.ID,
 				},
 			},
 		}
@@ -117,7 +117,6 @@ func (s *Service) sentinelRowToState(sentinel db.Sentinel) *ctrlv1.SentinelState
 			State: &ctrlv1.SentinelState_Apply{
 				Apply: &ctrlv1.ApplySentinel{
 					SentinelId:    sentinel.ID,
-					K8SName:       sentinel.K8sName,
 					WorkspaceId:   sentinel.WorkspaceID,
 					ProjectId:     sentinel.ProjectID,
 					EnvironmentId: sentinel.EnvironmentID,

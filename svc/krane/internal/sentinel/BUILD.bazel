@@ -23,6 +23,7 @@ go_library(
         "//pkg/logger",
         "//pkg/ptr",
         "//pkg/repeat",
+        "//pkg/uid",
         "//svc/krane/pkg/labels",
         "//svc/sentinel",
         "@com_connectrpc_connect//:connect",

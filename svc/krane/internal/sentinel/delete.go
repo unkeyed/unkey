@@ -6,6 +6,7 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/uid"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,14 +20,18 @@ import (
 // Not-found errors are ignored since the desired end state is already achieved.
 func (c *Controller) DeleteSentinel(ctx context.Context, req *ctrlv1.DeleteSentinel) error {
 	logger.Info("deleting sentinel",
-		"namespace", NamespaceSentinel,
-		"name", req.GetK8SName(),
+		"sentinel_id", req.GetSentinelId(),
 	)
 
-	gossipName := fmt.Sprintf("%s-gossip-lan", req.GetK8SName())
+	name, err := uid.ToDNS1035(req.GetSentinelId())
+	if err != nil {
+		return fmt.Errorf("invalid sentinel id: %w", err)
+	}
+
+	gossipName := fmt.Sprintf("%s-gossip-lan", name)
 
 	// Delete gossip headless service
-	err := c.clientSet.CoreV1().Services(NamespaceSentinel).Delete(ctx, gossipName, metav1.DeleteOptions{})
+	err = c.clientSet.CoreV1().Services(NamespaceSentinel).Delete(ctx, gossipName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -42,18 +47,18 @@ func (c *Controller) DeleteSentinel(ctx context.Context, req *ctrlv1.DeleteSenti
 		return err
 	}
 
-	err = c.clientSet.CoreV1().Services(NamespaceSentinel).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
+	err = c.clientSet.CoreV1().Services(NamespaceSentinel).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
-	err = c.clientSet.AppsV1().Deployments(NamespaceSentinel).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
+	err = c.clientSet.AppsV1().Deployments(NamespaceSentinel).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
 	err = c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
-		K8SName:           req.GetK8SName(),
+		Id:                req.GetSentinelId(),
 		AvailableReplicas: 0,
 		Health:            ctrlv1.Health_HEALTH_UNHEALTHY,
 	})
