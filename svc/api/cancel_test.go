@@ -19,10 +19,11 @@ import (
 // TestContextCancellation verifies that the API server responds properly to context cancellation
 func TestContextCancellation(t *testing.T) {
 
-	// Use testcontainers for dynamic service management
-	mysqlCfg := dockertest.MySQL(t)
-	dbDsn := mysqlCfg.DSN
-	redisUrl := dockertest.Redis(t)
+	cluster := dockertest.New(t)
+	mysqlCfg := cluster.MySQL()
+	redisCfg := cluster.Redis()
+	dbDsn := mysqlCfg.HostDSN
+	redisUrl := redisCfg.HostURL
 
 	// Create ephemeral listener
 	ln, err := net.Listen("tcp", ":0")

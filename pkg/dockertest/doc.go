@@ -14,35 +14,44 @@
 //
 // # Key Types
 //
-// The main entry point is through service functions like [Redis], which start
-// containers and return connection information. For lower-level access, [Container]
-// provides metadata about running containers including port mappings.
+// The main entry point is [New], which returns a [Cluster] for starting
+// containers and retrieving connection information via service methods like
+// [Cluster.Redis].
+// For lower-level access, [Container] provides metadata about running
+// containers including port mappings.
 //
 // Container readiness is determined by [WaitStrategy] implementations. The package
 // provides [TCPWait] for TCP port-based health checks, created via [NewTCPWait].
 //
 // # Usage
 //
-// Each service function starts a container and returns connection information:
+// Each service method starts a container and returns connection information:
 //
 //	func TestRedisIntegration(t *testing.T) {
-//	    redisURL := dockertest.Redis(t)
+//	    cluster := dockertest.New(t)
+//	    redis := cluster.Redis()
+//	    redisURL := redis.HostURL
 //	    // redisURL is "redis://localhost:{randomPort}"
-//	    // Container is automatically removed when test completes
 //	}
+//
+// Service configs include host and Docker endpoints, so you can wire
+// connections for code running on the host and for other containers in the
+// same cluster.
 //
 // # Design
 //
 // Containers are created per-test for isolation. Each container:
 //   - Uses a random host port to avoid conflicts
-//   - Waits for the service to be ready before returning
+//   - Waits for readiness before returning
 //   - Is automatically removed via t.Cleanup
 //
 // # Available Services
 //
 // Currently supported:
-//   - [MySQL]: MySQL with dev schema preloaded
-//   - [Redis]: Redis 8.0 container
-//   - [S3]: MinIO S3-compatible object storage
-//   - [Restate]: Restate server (ingress + admin)
+//   - [Cluster.MySQL]: MySQL with dev schema preloaded
+//   - [Cluster.Redis]: Redis 8.0 container
+//   - [Cluster.ClickHouse]: ClickHouse with schema preloaded
+//   - [Cluster.S3]: MinIO S3-compatible object storage
+//   - [Cluster.Restate]: Restate server (ingress + admin)
+//   - [Cluster.Vault]: Vault service wired to S3
 package dockertest

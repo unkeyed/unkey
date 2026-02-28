@@ -39,20 +39,21 @@ type testHarness struct {
 func newTestHarness(t *testing.T) *testHarness {
 	t.Helper()
 
-	mysqlCfg := dockertest.MySQL(t)
-	redisURL := dockertest.Redis(t)
+	cluster := dockertest.New(t)
+	mysqlCfg := cluster.MySQL()
+	redisCfg := cluster.Redis()
 
 	clk := clock.New()
 
 	database, err := db.New(db.Config{
-		PrimaryDSN:  mysqlCfg.DSN,
+		PrimaryDSN:  mysqlCfg.HostDSN,
 		ReadOnlyDSN: "",
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = database.Close() })
 
 	redisCounter, err := counter.NewRedis(counter.RedisConfig{
-		RedisURL: redisURL,
+		RedisURL: redisCfg.HostURL,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = redisCounter.Close() })

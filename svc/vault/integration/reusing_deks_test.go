@@ -25,10 +25,11 @@ import (
 // it is explicitly rotated.
 func TestReuseDEKsForSameKeyring(t *testing.T) {
 
-	s3 := dockertest.S3(t)
+	cluster := dockertest.New(t)
+	s3 := cluster.S3()
 
 	storage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.URL,
+		S3URL:             s3.HostURL,
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
@@ -73,10 +74,11 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 // affect other keyrings.
 func TestIndividualDEKsPerKeyring(t *testing.T) {
 
-	s3 := dockertest.S3(t)
+	cluster := dockertest.New(t)
+	s3 := cluster.S3()
 
 	storage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.URL,
+		S3URL:             s3.HostURL,
 		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,

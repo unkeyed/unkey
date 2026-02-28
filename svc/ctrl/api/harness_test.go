@@ -46,7 +46,9 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	t.Cleanup(cancel)
 
-	restateCfg := dockertest.Restate(t)
+	cluster := dockertest.New(t)
+	restateCfg := cluster.Restate()
+	mysqlCfg := cluster.MySQL()
 
 	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 	for _, service := range cfg.Services {
@@ -70,12 +72,11 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	t.Cleanup(workerServer.Close)
 
 	workerPort := workerListener.Addr().(*net.TCPAddr).Port
-	registration := &restateRegistration{adminURL: restateCfg.AdminURL, registerAs: fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)}
+	registration := &restateRegistration{adminURL: restateCfg.HostAdminURL, registerAs: fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)}
 	require.NoError(t, registration.register(ctx))
 
-	mysqlCfg := dockertest.MySQL(t)
 	database, err := db.New(db.Config{
-		PrimaryDSN:  mysqlCfg.DSN,
+		PrimaryDSN:  mysqlCfg.HostDSN,
 		ReadOnlyDSN: "",
 	})
 	require.NoError(t, err)
@@ -102,12 +103,12 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		DefaultDomain:    "",
 		RegionalDomain:   "",
 		Database: config.DatabaseConfig{
-			Primary:         mysqlCfg.DSN,
+			Primary:         mysqlCfg.HostDSN,
 			ReadonlyReplica: "",
 		},
 		Observability: config.Observability{},
 		Restate: RestateConfig{
-			URL:    restateCfg.IngressURL,
+			URL:    restateCfg.HostIngressURL,
 			APIKey: "",
 		},
 		GitHub: GitHubConfig{

@@ -2,8 +2,9 @@ package dockertest
 
 import (
 	"fmt"
-	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -11,27 +12,40 @@ const (
 	redisPort  = "6379/tcp"
 )
 
-// Redis starts a Redis 8.0 container and returns the connection URL.
-//
-// The returned URL is in the format "redis://localhost:{port}" and can be
-// used directly with most Redis client libraries. The container is
-// automatically removed when the test completes via t.Cleanup.
-//
-// This function blocks until Redis is accepting TCP connections (up to 30s).
-// Fails the test if Docker is unavailable or the container fails to start.
-func Redis(t *testing.T) string {
-	t.Helper()
+// RedisConfig holds connection information for a Redis test container.
+type RedisConfig struct {
+	HostURL   string
+	DockerURL string
+}
 
-	ctr := startContainer(t, containerConfig{
-		Image:        redisImage,
-		ExposedPorts: []string{redisPort},
-		WaitStrategy: NewTCPWait(redisPort),
-		WaitTimeout:  30 * time.Second,
-		Env:          map[string]string{},
-		Cmd:          []string{},
-		Tmpfs:        nil,
-	})
+// Redis starts a Redis container and returns connection information.
+func (c *Cluster) Redis() RedisConfig {
+	c.t.Helper()
+
+	ctr, cleanup, err := startContainer(c.cli, containerConfig{
+		ContainerName: "",
+		Image:         redisImage,
+		ExposedPorts:  []string{redisPort},
+		Env:           map[string]string{},
+		Cmd:           []string{},
+		Tmpfs:         nil,
+		Binds:         nil,
+		Keep:          false,
+		NetworkName:   c.network.Name,
+	}, c.t.Name())
+	require.NoError(c.t, err)
+	if cleanup != nil {
+		c.t.Cleanup(func() { require.NoError(c.t, cleanup()) })
+	}
+
+	wait := NewTCPWait(redisPort)
+	wait.Wait(c.t, ctr, 30*time.Second)
 
 	port := ctr.Port(redisPort)
-	return fmt.Sprintf("redis://localhost:%s", port)
+	require.NotEmpty(c.t, port, "redis port not mapped")
+
+	return RedisConfig{
+		HostURL:   fmt.Sprintf("redis://%s:%s", ctr.Host, port),
+		DockerURL: fmt.Sprintf("redis://%s:%s", ctr.ContainerName, containerPortNumber(redisPort)),
+	}
 }

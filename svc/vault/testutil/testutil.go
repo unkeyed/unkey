@@ -36,11 +36,12 @@ func StartTestVault(t *testing.T) *TestVault {
 	t.Helper()
 
 	// Start S3 for vault storage
-	s3 := dockertest.S3(t)
+	cluster := dockertest.New(t)
+	s3 := cluster.S3()
 
 	// Create S3 storage
 	st, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.URL,
+		S3URL:             s3.HostURL,
 		S3Bucket:          "vault-test",
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
