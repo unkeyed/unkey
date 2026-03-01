@@ -217,6 +217,9 @@ type KeyResponseData struct {
 	// KeyId Unique identifier for this key.
 	KeyId string `json:"keyId"`
 
+	// LastUsed Unix timestamp in milliseconds when key was last used for verification.
+	LastUsed int64 `json:"lastUsed,omitempty"`
+
 	// Meta Custom metadata associated with this key.
 	Meta map[string]interface{} `json:"meta,omitempty"`
 

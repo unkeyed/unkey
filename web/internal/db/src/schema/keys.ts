@@ -86,6 +86,8 @@ export const keys = mysqlTable(
      */
     environment: varchar("environment", { length: 256 }),
 
+    lastUsedAt: bigint("last_used_at", { mode: "number" }),
+
     pendingMigrationId: varchar("pending_migration_id", { length: 256 }),
   },
   (table) => ({

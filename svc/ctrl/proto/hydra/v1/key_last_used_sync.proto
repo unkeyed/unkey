@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// KeyLastUsedSyncService syncs key last-used timestamps from ClickHouse to MySQL.
+//
+// Keyed by run identifier (e.g. "sync-2026-02-27-14") for idempotency.
+// Uses Restate state to track a high-water mark for resumability if interrupted.
+service KeyLastUsedSyncService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // RunSync reads the latest verification timestamps from the ClickHouse
+  // key_last_used_v1 table and batch-updates MySQL keys.last_used_at.
+  //
+  // Key: run identifier (e.g. "sync-2026-02-27-14")
+  rpc RunSync(RunSyncRequest) returns (RunSyncResponse) {}
+}
+
+message RunSyncRequest {}
+
+message RunSyncResponse {
+  // Number of keys whose last_used_at was synced in this invocation
+  int32 keys_synced = 1;
+
+  // True when more keys remain to be synced. The caller should
+  // re-invoke with the same key until this is false.
+  bool has_more = 2;
+}

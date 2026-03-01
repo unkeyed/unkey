@@ -2351,6 +2351,15 @@ components:
                     example: 1701425400000
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+                lastUsed:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: Unix timestamp in milliseconds when key was last used for verification.
+                    example: 1701425400000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 expires:
                     type: integer
                     format: int64

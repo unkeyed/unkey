@@ -30,16 +30,34 @@ type MySQLConfig struct {
 	DockerDSN string
 }
 
+// MySQLOpt configures the MySQL test container.
+type MySQLOpt func(*containerConfig)
+
+// WithDiskStorage disables tmpfs so MySQL writes to real disk.
+// Use this for large-scale performance tests that exceed the default 256MB tmpfs.
+func WithDiskStorage() MySQLOpt {
+	return func(cfg *containerConfig) {
+		cfg.Tmpfs = nil
+		// Larger buffer pool for big datasets
+		for i, arg := range cfg.Cmd {
+			if arg == "--innodb-buffer-pool-size=32M" {
+				cfg.Cmd[i] = "--innodb-buffer-pool-size=512M"
+			}
+		}
+	}
+}
+
 // MySQL starts the local MySQL test container and returns DSNs.
 //
 // The container is based on the local dev image with preloaded schema.
 // This function blocks until the MySQL port is accepting TCP connections
 // (up to 60s). Fails the test if Docker is unavailable or the container fails to start.
-func MySQL(t *testing.T) MySQLConfig {
+func MySQL(t *testing.T, opts ...MySQLOpt) MySQLConfig {
 	t.Helper()
 
 	containerStart := time.Now()
-	ctr := startContainer(t, containerConfig{
+
+	cfg := containerConfig{
 		Image:        mysqlImage,
 		ExposedPorts: []string{mysqlPort},
 		WaitStrategy: NewTCPWait(mysqlPort),
@@ -69,7 +87,13 @@ func MySQL(t *testing.T) MySQLConfig {
 		Tmpfs: map[string]string{
 			"/var/lib/mysql": "rw,noexec,nosuid,size=256m",
 		},
-	})
+	}
+
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	ctr := startContainer(t, cfg)
 	t.Logf("  MySQL container started in %s", time.Since(containerStart))
 
 	port := ctr.Port(mysqlPort)

@@ -76,6 +76,7 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 			RatelimitLimit:     r.RatelimitLimit,
 			RatelimitDuration:  r.RatelimitDuration,
 			Environment:        r.Environment,
+			LastUsedAt:         r.LastUsedAt,
 			PendingMigrationID: r.PendingMigrationID,
 		},
 		// nolint: exhaustruct
@@ -149,6 +150,7 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 			RatelimitLimit:    r.RatelimitLimit,
 			RatelimitDuration: r.RatelimitDuration,
 			Environment:       r.Environment,
+			LastUsedAt:        r.LastUsedAt,
 		},
 		Api:             r.Api,
 		KeyAuth:         r.KeyAuth,

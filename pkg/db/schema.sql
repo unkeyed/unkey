@@ -146,6 +146,7 @@ CREATE TABLE `keys` (
 	`ratelimit_limit` int,
 	`ratelimit_duration` bigint,
 	`environment` varchar(256),
+	`last_used_at` bigint,
 	`pending_migration_id` varchar(256),
 	CONSTRAINT `keys_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `keys_id_unique` UNIQUE(`id`),

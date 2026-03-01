@@ -29,6 +29,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
@@ -76,10 +77,30 @@ type Harness struct {
 	RestateAdmin string
 }
 
+// Option configures the test harness.
+type Option func(*harnessOpts)
+
+type harnessOpts struct {
+	diskMySQL bool
+}
+
+// WithDiskMySQL starts MySQL with disk-backed storage instead of the default
+// 256MB tmpfs. Use this for performance tests with large datasets.
+func WithDiskMySQL() Option {
+	return func(o *harnessOpts) {
+		o.diskMySQL = true
+	}
+}
+
 // New creates a new test harness with all services started and registered.
 // All resources are automatically cleaned up when the test completes.
-func New(t *testing.T) *Harness {
+func New(t *testing.T, opts ...Option) *Harness {
 	t.Helper()
+
+	var o harnessOpts
+	for _, opt := range opts {
+		opt(&o)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	t.Cleanup(cancel)
@@ -105,7 +126,11 @@ func New(t *testing.T) *Harness {
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		mysqlCfg = dockertest.MySQL(t)
+		var mysqlOpts []dockertest.MySQLOpt
+		if o.diskMySQL {
+			mysqlOpts = append(mysqlOpts, dockertest.WithDiskStorage())
+		}
+		mysqlCfg = dockertest.MySQL(t, mysqlOpts...)
 		t.Logf("MySQL started in %s", time.Since(s))
 	}()
 
@@ -143,9 +168,9 @@ func New(t *testing.T) *Harness {
 	t.Cleanup(func() { require.NoError(t, chClient.Close()) })
 
 	// Get direct connection for inserting test data
-	opts, err := ch.ParseDSN(chDSN)
+	chOpts, err := ch.ParseDSN(chDSN)
 	require.NoError(t, err)
-	conn, err := ch.Open(opts)
+	conn, err := ch.Open(chOpts)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 
@@ -190,6 +215,13 @@ func New(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	keyLastUsedSyncSvc, err := keylastusedsync.New(keylastusedsync.Config{
+		DB:         database,
+		Clickhouse: chClient,
+		Heartbeat:  healthcheck.NewNoop(),
+	})
+	require.NoError(t, err)
+
 	deploymentSvc := deployment.New(deployment.Config{
 		DB: database,
 	})
@@ -200,6 +232,7 @@ func New(t *testing.T) *Harness {
 	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
 	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
+	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
 

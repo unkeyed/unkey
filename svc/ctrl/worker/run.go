@@ -40,6 +40,7 @@ import (
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
@@ -369,6 +370,23 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
 	logger.Info("KeyRefillService enabled")
+
+	// Key last used sync service for syncing last_used_at from ClickHouse to MySQL
+	var keyLastUsedSyncHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.Heartbeat.KeyLastUsedSyncURL != "" {
+		keyLastUsedSyncHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL)
+	}
+
+	keyLastUsedSyncSvc, err := keylastusedsync.New(keylastusedsync.Config{
+		DB:         database,
+		Clickhouse: ch,
+		Heartbeat:  keyLastUsedSyncHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create key last used sync service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc))
+	logger.Info("KeyLastUsedSyncService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
