@@ -27,11 +27,10 @@ import (
 //   - Old ciphertexts remain valid after DEK rotation
 func TestReEncrypt(t *testing.T) {
 
-	cluster := dockertest.New(t)
-	s3 := cluster.S3()
+	s3 := dockertest.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
-		S3URL:             s3.HostURL,
+		S3URL:             s3.URL,
 		S3Bucket:          "vault",
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,

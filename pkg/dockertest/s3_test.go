@@ -18,8 +18,7 @@ import (
 // TestS3 verifies that the MinIO container starts correctly and is accessible
 // via the AWS S3 SDK.
 func TestS3(t *testing.T) {
-	cluster := dockertest.New(t)
-	s3Cfg := cluster.S3()
+	s3Cfg := dockertest.S3(t)
 
 	client := newS3Client(t, s3Cfg)
 
@@ -59,12 +58,11 @@ func TestS3(t *testing.T) {
 // TestS3_MultipleContainers verifies that multiple MinIO containers can run
 // in parallel with isolated data.
 func TestS3_MultipleContainers(t *testing.T) {
-	cluster := dockertest.New(t)
-	s3Cfg1 := cluster.S3()
-	s3Cfg2 := cluster.S3()
+	s3Cfg1 := dockertest.S3(t)
+	s3Cfg2 := dockertest.S3(t)
 
 	// The URLs should be different (different ports)
-	require.NotEqual(t, s3Cfg1.HostURL, s3Cfg2.HostURL)
+	require.NotEqual(t, s3Cfg1.URL, s3Cfg2.URL)
 
 	client1 := newS3Client(t, s3Cfg1)
 	client2 := newS3Client(t, s3Cfg2)
@@ -130,7 +128,7 @@ func newS3Client(t *testing.T, s3Cfg dockertest.S3Config) *awsS3.Client {
 		func(service, region string, options ...any) (aws.Endpoint, error) {
 			// nolint:staticcheck
 			return aws.Endpoint{
-				URL:               s3Cfg.HostURL,
+				URL:               s3Cfg.URL,
 				HostnameImmutable: true,
 			}, nil
 		},

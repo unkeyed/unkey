@@ -34,9 +34,8 @@
 //	func TestDatabaseOperations(t *testing.T) {
 //		containers.StartAllServices(t) // No-op, services managed externally
 //
-//		cluster := dockertest.New(t)
-//		mysql := cluster.MySQL()
-//		db, err := sql.Open("mysql", mysql.HostDSN)
+//		hostCfg, dockerCfg := dockertest.MySQL(t)
+//		db, err := sql.Open("mysql", hostCfg.FormatDSN())
 //		require.NoError(t, err)
 //		defer db.Close()
 //
@@ -47,9 +46,8 @@
 //
 //	func TestFullIntegration(t *testing.T) {
 //		// Get MySQL connection
-//		cluster := dockertest.New(t)
-//		mysql := cluster.MySQL()
-//		db, err := sql.Open("mysql", mysql.HostDSN)
+//		hostCfg, _ := dockertest.MySQL(t)
+//		db, err := sql.Open("mysql", hostCfg.FormatDSN())
 //		require.NoError(t, err)
 //		defer db.Close()
 //

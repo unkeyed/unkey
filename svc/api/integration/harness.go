@@ -43,7 +43,6 @@ type Harness struct {
 	CH            clickhouse.ClickHouse
 	apiCluster    *ApiCluster
 	redisUrl      string
-	cluster       *dockertest.Cluster
 }
 
 // Config contains configuration options for the test harness
@@ -61,9 +60,6 @@ func New(t *testing.T, config Config) *Harness {
 
 	// Get service configurations
 	clickhouseHostDSN := containers.ClickHouse(t)
-
-	dockerCluster := dockertest.New(t)
-	redisCfg := dockerCluster.Redis()
 
 	// Create real ClickHouse client
 	ch, err := clickhouse.New(clickhouse.Config{
@@ -96,20 +92,19 @@ func New(t *testing.T, config Config) *Harness {
 		DB:            db,
 		CH:            ch,
 		apiCluster:    nil, // Will be set later
-		redisUrl:      redisCfg.HostURL,
-		cluster:       dockerCluster,
+		redisUrl:      dockertest.Redis(t),
 	}
 
 	h.Seed.Seed(ctx)
 
 	// Create dynamic API container cluster
-	apiCluster := h.RunAPI(ApiConfig{
+	cluster := h.RunAPI(ApiConfig{
 		Nodes:         config.NumNodes,
 		MysqlDSN:      mysqlDockerDSN,
 		ClickhouseDSN: clickhouseHostDSN,
 	})
-	h.apiCluster = apiCluster
-	h.instanceAddrs = apiCluster.Addrs
+	h.apiCluster = cluster
+	h.instanceAddrs = cluster.Addrs
 	return h
 }
 
@@ -135,8 +130,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		mysqlHostCfg := containers.MySQL(h.t)
 		mysqlHostCfg.DBName = "unkey"
 		clickhouseHostDSN := containers.ClickHouse(h.t)
-		s3 := h.cluster.S3()
-		vault := h.cluster.Vault(s3)
+		vaultURL, vaultToken := containers.Vault(h.t)
 		apiConfig := api.Config{
 			HttpPort:           7070,
 			Platform:           "test",
@@ -173,8 +167,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				KeyFile:  "",
 			},
 			Vault: sharedconfig.VaultConfig{
-				URL:   vault.HostURL,
-				Token: vault.Token,
+				URL:   vaultURL,
+				Token: vaultToken,
 			},
 			Control: sharedconfig.ControlConfig{
 				URL:   "http://control:7091",

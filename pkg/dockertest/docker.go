@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 var (
@@ -32,8 +31,6 @@ type Container struct {
 
 	// Host is the hostname to connect to (typically "localhost").
 	Host string
-
-	ContainerName string
 
 	// Ports maps container ports to host ports.
 	// Key is the container port (e.g., "6379/tcp"), value is the host port.
@@ -57,20 +54,8 @@ func (c *Container) Port(containerPort string) string {
 	return c.Ports[containerPort]
 }
 
-func containerPortNumber(containerPort string) string {
-	for i := 0; i < len(containerPort); i++ {
-		if containerPort[i] == '/' {
-			return containerPort[:i]
-		}
-	}
-	return containerPort
-}
-
 // containerConfig holds the configuration for starting a container.
 type containerConfig struct {
-	// ContainerName is the Docker container name.
-	ContainerName string
-
 	// Image is the Docker image to use (e.g., "redis:8.0").
 	Image string
 
@@ -89,17 +74,13 @@ type containerConfig struct {
 	// Keys are mount paths, values are mount options (e.g., "rw,noexec,size=256m").
 	Tmpfs map[string]string
 
-	// Binds mounts host paths into the container.
-	// Format: "/host/path:/container/path:ro".
-	Binds []string
+	// WaitStrategy determines how to detect container readiness.
+	// If nil, the container is considered ready immediately after starting.
+	WaitStrategy WaitStrategy
 
-	// NetworkName is the Docker network to attach the container to.
-	// Leave empty to use Docker's default networking.
-	NetworkName string
-
-	// Keep can be set to true to prevent the testsuite from cleaning up containers.
-	// Use it when you need the container to inspect logs or similar.
-	Keep bool
+	// WaitTimeout is the maximum time to wait for container readiness.
+	// Defaults to 30 seconds if zero.
+	WaitTimeout time.Duration
 }
 
 // getClient returns a shared Docker client instance.
@@ -123,46 +104,58 @@ func getClient(t *testing.T) *client.Client {
 	defer cancel()
 
 	_, err := dockerClient.Ping(ctx)
-	require.NoError(t, err, "Docker is not available. Ensure Docker is running.")
+	if err != nil {
+		t.Fatalf("Docker is not available: %v. Ensure Docker is running.", err)
+	}
 
 	return dockerClient
 }
 
 // pullImage pulls a Docker image if it's not already present locally.
 // This is a no-op if the image already exists in the local Docker cache.
-func pullImage(cli *client.Client, imageName string) error {
+func pullImage(t *testing.T, cli *client.Client, imageName string) {
+	t.Helper()
+
 	ctx := context.Background()
 
 	// Check if image exists locally
 	_, err := cli.ImageInspect(ctx, imageName)
 	if err == nil {
 		// Image exists locally
-		return nil
+		return
 	}
 
 	// Pull the image
 	// nolint:exhaustruct
 	reader, err := cli.ImagePull(ctx, imageName, image.PullOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to pull image %s: %w", imageName, err)
+		t.Fatalf("failed to pull image %s: %v", imageName, err)
 	}
-	defer func() { _ = reader.Close() }()
+	defer func() { require.NoError(t, reader.Close()) }()
 
 	// Consume the pull output to ensure the pull completes
 	_, err = io.Copy(io.Discard, reader)
 	if err != nil {
-		return fmt.Errorf("failed to read image pull response: %w", err)
+		t.Fatalf("failed to read image pull response: %v", err)
 	}
-
-	return nil
 }
 
 // startContainer creates and starts a Docker container with the given configuration.
-// Returns the container metadata and a cleanup function.
-func startContainer(cli *client.Client, cfg containerConfig, testName string) (*Container, func() error, error) {
-	if err := pullImage(cli, cfg.Image); err != nil {
-		return nil, nil, err
-	}
+//
+// Returns the container metadata including mapped ports. The container is
+// automatically removed when the test completes via t.Cleanup, ensuring no
+// orphaned containers remain even if the test fails.
+//
+// If WaitStrategy is provided, this function blocks until the container is
+// ready or the WaitTimeout is exceeded. If WaitTimeout is zero, defaults to
+// 30 seconds.
+func startContainer(t *testing.T, cfg containerConfig) *Container {
+	t.Helper()
+
+	cli := getClient(t)
+
+	// Pull image if not present locally
+	pullImage(t, cli, cfg.Image)
 
 	// Build exposed ports and port bindings
 	exposedPorts := nat.PortSet{}
@@ -180,24 +173,15 @@ func startContainer(cli *client.Client, cfg containerConfig, testName string) (*
 	ctx := context.Background()
 
 	// Create the container
-	containerName := cfg.ContainerName
-	if containerName == "" {
-		containerName = uid.New("")
-	}
+	containerName := strings.NewReplacer(
+		":", "-",
+		"/", "-",
+	).Replace(fmt.Sprintf("%s_%s_%d", cfg.Image, t.Name(), time.Now().UnixNano()))
 
 	// Convert environment map to slice format ("KEY=VALUE")
 	var envSlice []string
 	for k, v := range cfg.Env {
 		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	var networkingConfig *network.NetworkingConfig
-	if cfg.NetworkName != "" {
-		networkingConfig = &network.NetworkingConfig{
-			EndpointsConfig: map[string]*network.EndpointSettings{
-				cfg.NetworkName: {},
-			},
-		}
 	}
 
 	resp, err := cli.ContainerCreate(
@@ -209,42 +193,34 @@ func startContainer(cli *client.Client, cfg containerConfig, testName string) (*
 			Cmd:          cfg.Cmd,
 			Labels: map[string]string{
 				"owner": "dockertest",
-				"test":  testName,
 			},
 		},
 		&container.HostConfig{
 			PortBindings: portBindings,
-			AutoRemove:   false,
+			AutoRemove:   false, // We handle removal in t.Cleanup
 			Tmpfs:        cfg.Tmpfs,
-			Binds:        cfg.Binds,
 		},
-		networkingConfig,
-		nil,
+		nil, // NetworkingConfig
+		nil, // Platform
 		containerName,
 	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create container: %w", err)
-	}
+	require.NoError(t, err, "failed to create container")
 
 	containerID := resp.ID
 
-	cleanup := func() error {
-		if cfg.Keep {
-			return nil
-		}
-		return cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
-	}
+	// Register cleanup to ensure container is removed when test completes
+	t.Cleanup(func() {
+		require.NoError(t, cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
+			Force: true,
+		}))
+	})
 
 	// Start the container
-	if err := cli.ContainerStart(ctx, containerID, container.StartOptions{}); err != nil {
-		return nil, cleanup, fmt.Errorf("failed to start container: %w", err)
-	}
+	require.NoError(t, cli.ContainerStart(ctx, containerID, container.StartOptions{}))
 
 	// Inspect to get the mapped ports
 	inspect, err := cli.ContainerInspect(ctx, containerID)
-	if err != nil {
-		return nil, cleanup, fmt.Errorf("failed to inspect container: %w", err)
-	}
+	require.NoError(t, err, "failed to inspect container")
 
 	// Extract port mappings
 	ports := make(map[string]string)
@@ -255,11 +231,20 @@ func startContainer(cli *client.Client, cfg containerConfig, testName string) (*
 	}
 
 	ctr := &Container{
-		ID:            containerID,
-		Host:          "localhost",
-		Ports:         ports,
-		ContainerName: containerName,
+		ID:    containerID,
+		Host:  "localhost",
+		Ports: ports,
 	}
 
-	return ctr, cleanup, nil
+	// Wait for the container to be ready
+	if cfg.WaitStrategy != nil {
+		waitTimeout := cfg.WaitTimeout
+		if waitTimeout == 0 {
+			waitTimeout = 30 * time.Second
+		}
+
+		cfg.WaitStrategy.Wait(t, ctr, waitTimeout)
+	}
+
+	return ctr
 }

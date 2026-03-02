@@ -14,7 +14,7 @@ jobs:
           # Avoid downloading Bazel every time.
           bazelisk-cache: true
           # Store build cache per workflow.
-          disk-cache: false # we're already using depots remote cache
+          disk-cache: true
           # Share repository cache between workflows.
           repository-cache: true
           bazelrc: |
@@ -40,3 +40,32 @@ jobs:
 
       - name: Run tests
         run: bazel test //... --test_output=errors
+
+      - name: Report disk usage (in MB)
+        if: always()
+        shell: bash
+        run: |
+          BAZEL_OUTPUT_BASE=$(bazel info output_base)
+          BAZEL_REPOSITORY_CACHE=$(bazel info repository_cache)
+          echo "Bazel cache usage statistics"
+          du -ms -t 1 ~/bazel-disk-cache/* $BAZEL_REPOSITORY_CACHE
+          echo "Bazel output usage statistics"
+          du -ms -t 1 $BAZEL_OUTPUT_BASE
+          echo "Workspace usage statistics"
+          du -ms -t 1 $GITHUB_WORKSPACE
+
+      - name: Drop large Bazel cache files
+        if: always()
+        # Github has a nominal 10GB of storage for all cached builds associated with a project.
+        # Drop large files (>100MB) in our cache to improve shared build cache efficiency. Also
+        # the process of saving the Bazel disk cache generates a tarball on the runners disk, and
+        # it is possible to run out of storage in that process (does not fail the workflow).
+        shell: bash
+        run: |
+          if [ -d ~/bazel-disk-cache ]; then
+            find ~/bazel-disk-cache -size +100M -type f -exec rm {} \;
+            echo "Trimmed Bazel cache usage statistics"
+            du -ms -t 1 ~/bazel-disk-cache/*
+          else
+            echo "Disk cache does not exist: ~/bazel-disk-cache"
+          fi

@@ -13,9 +13,7 @@ import (
 func TestRedis(t *testing.T) {
 	// This test verifies that the Redis container starts correctly
 	// and is accessible via the returned URL.
-	cluster := dockertest.New(t)
-	redisCfg := cluster.Redis()
-	url := redisCfg.HostURL
+	url := dockertest.Redis(t)
 
 	// Parse the URL and create a Redis client
 	opts, err := redis.ParseURL(url)
@@ -43,11 +41,8 @@ func TestRedis(t *testing.T) {
 func TestRedis_MultipleContainers(t *testing.T) {
 	// This test verifies that multiple Redis containers can run in parallel
 	// with isolated data.
-	cluster := dockertest.New(t)
-	redis1 := cluster.Redis()
-	redis2 := cluster.Redis()
-	url1 := redis1.HostURL
-	url2 := redis2.HostURL
+	url1 := dockertest.Redis(t)
+	url2 := dockertest.Redis(t)
 
 	// The URLs should be different (different ports)
 	require.NotEqual(t, url1, url2)

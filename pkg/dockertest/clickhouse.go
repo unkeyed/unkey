@@ -26,72 +26,64 @@ const (
 
 // ClickHouseConfig holds connection information for a ClickHouse test container.
 type ClickHouseConfig struct {
-	HostDSN   string
-	DockerDSN string
+	// DSN is the connection string for connecting from the test runner.
+	DSN string
 }
 
 // ClickHouse starts a ClickHouse container and applies the schema.
-func (c *Cluster) ClickHouse() ClickHouseConfig {
-	c.t.Helper()
+//
+// The container is started with a random available port and the schema
+// is loaded from pkg/clickhouse/schema/*.sql files in order.
+// This function blocks until ClickHouse is accepting connections and
+// the schema has been applied. Fails the test if Docker is unavailable
+// or the container fails to start.
+func ClickHouse(t *testing.T) ClickHouseConfig {
+	t.Helper()
 
-	ctr, cleanup, err := startContainer(c.cli, containerConfig{
-		ContainerName: "",
-		Image:         clickhouseImage,
-		ExposedPorts:  []string{clickhousePort, clickhouseHTTPPort},
+	ctr := startContainer(t, containerConfig{
+		Image:        clickhouseImage,
+		ExposedPorts: []string{clickhousePort, clickhouseHTTPPort},
+		WaitStrategy: NewTCPWait(clickhousePort),
+		WaitTimeout:  60 * time.Second,
 		Env: map[string]string{
 			"CLICKHOUSE_USER":     clickhouseUser,
 			"CLICKHOUSE_PASSWORD": clickhousePassword,
 		},
-		Cmd:         []string{},
-		Tmpfs:       nil,
-		Binds:       nil,
-		Keep:        false,
-		NetworkName: c.network.Name,
-	}, c.t.Name())
-	require.NoError(c.t, err)
-	if cleanup != nil {
-		c.t.Cleanup(func() { require.NoError(c.t, cleanup()) })
-	}
+		Cmd:   []string{},
+		Tmpfs: nil,
+	})
 
-	wait := NewTCPWait(clickhousePort)
-	wait.Wait(c.t, ctr, 60*time.Second)
+	port := ctr.Port(clickhousePort)
+	dsn := fmt.Sprintf("clickhouse://%s:%s@%s:%s?secure=false&skip_verify=true&dial_timeout=10s",
+		clickhouseUser, clickhousePassword, ctr.Host, port)
 
 	// Connect and apply schema
-	hostDSN := clickhouseHostDSN(ctr)
-	opts, err := ch.ParseDSN(hostDSN)
-	require.NoError(c.t, err)
+	opts, err := ch.ParseDSN(dsn)
+	require.NoError(t, err)
 
 	conn, err := ch.Open(opts)
-	require.NoError(c.t, err)
-	c.t.Cleanup(func() { require.NoError(c.t, conn.Close()) })
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 
+	// Wait for ClickHouse to be ready to accept queries
 	ctx := context.Background()
-	require.Eventually(c.t, func() bool {
+	require.Eventually(t, func() bool {
 		return conn.Ping(ctx) == nil
 	}, 60*time.Second, 500*time.Millisecond)
 
-	applyClickHouseSchema(c.t, ctx, conn)
-
-	dockerDSN := fmt.Sprintf("clickhouse://%s:%s@%s:%s?secure=false&skip_verify=true&dial_timeout=10s",
-		clickhouseUser, clickhousePassword, ctr.ContainerName, containerPortNumber(clickhousePort))
+	// Apply schema files
+	applyClickHouseSchema(t, ctx, conn)
 
 	return ClickHouseConfig{
-		HostDSN:   hostDSN,
-		DockerDSN: dockerDSN,
+		DSN: dsn,
 	}
-}
-
-func clickhouseHostDSN(ctr *Container) string {
-	port := ctr.Port(clickhousePort)
-	return fmt.Sprintf("clickhouse://%s:%s@%s:%s?secure=false&skip_verify=true&dial_timeout=10s",
-		clickhouseUser, clickhousePassword, ctr.Host, port)
 }
 
 // applyClickHouseSchema loads and executes schema files from pkg/clickhouse/schema/.
 func applyClickHouseSchema(t *testing.T, ctx context.Context, conn ch.Conn) {
 	t.Helper()
 
-	// Enable experimental features needed by schema (for example, JSON type)
+	// Enable experimental features needed by schema (e.g., JSON type)
 	experimentalSettings := []string{
 		"SET allow_experimental_json_type = 1",
 		"SET allow_experimental_object_type = 1",
@@ -110,9 +102,11 @@ func applySchemaFiles(t *testing.T, ctx context.Context, conn ch.Conn, dir strin
 	t.Helper()
 
 	entries, err := os.ReadDir(dir)
-	require.NoError(t, err, "failed to read ClickHouse schema directory %q", dir)
+	if err != nil {
+		t.Fatalf("failed to read ClickHouse schema directory %q: %v", dir, err)
+	}
 
-	// Sort files by name to ensure correct order (000_, 001_, and so on)
+	// Sort files by name to ensure correct order (000_, 001_, etc.)
 	var files []string
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
