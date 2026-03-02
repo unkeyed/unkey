@@ -1,7 +1,7 @@
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 
-interface EmptyStateProps {
+export interface EmptyStateProps {
   content?: React.ReactNode;
 }
 

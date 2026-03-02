@@ -3,7 +3,7 @@ import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useCallback, useState } from "react";
 
-interface LoadMoreFooterProps {
+export interface LoadMoreFooterComponentProps {
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
   totalVisible: number;
@@ -32,7 +32,7 @@ export function LoadMoreFooter({
   countInfoText,
   hide,
   headerContent,
-}: LoadMoreFooterProps) {
+}: LoadMoreFooterComponentProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   const shouldShow = !!onLoadMore;

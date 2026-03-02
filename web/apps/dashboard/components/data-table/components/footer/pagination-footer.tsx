@@ -4,7 +4,7 @@ import { ArrowsToAllDirections, ArrowsToCenter, ChevronLeft, ChevronRight } from
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 
-interface PaginationFooterProps {
+export interface PaginationFooterProps {
   page: number;
   pageSize: number;
   totalPages: number;

@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 
-interface TimestampCellProps {
+export interface TimestampCellProps {
   timestamp: number | Date;
   format?: "relative" | "absolute" | "both";
 }

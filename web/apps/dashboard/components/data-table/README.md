@@ -1,24 +1,22 @@
 # DataTable Component
 
-A high-performance table component built with TanStack Table v8 and TanStack Virtual v3, designed to replace the legacy virtual-table implementation.
+A table component built with TanStack Table v8, designed for paginated and real-time entity lists in the dashboard.
 
 ## Features
 
-- ✅ **Virtualization**: Efficiently renders large datasets (10,000+ rows)
-- ✅ **Real-time Data**: Automatic merging with separator UI
-- ✅ **Sorting**: 3-state sorting (null → asc → desc → null)
-- ✅ **Row Selection**: Multi-select with checkboxes
-- ✅ **Keyboard Navigation**: Arrow keys, j/k (vim), Escape
-- ✅ **Load More**: Infinite scroll pagination
-- ✅ **Empty States**: Customizable empty state component
-- ✅ **Loading States**: Skeleton rows during loading
-- ✅ **Layout Modes**: Grid and Classic layouts
-- ✅ **Responsive**: Mobile and desktop height calculation
-- ✅ **TypeScript**: Full type safety
+- **Cursor-based pagination**: `PaginationFooter` with minimizable floating panel
+- **Load-more pagination**: `LoadMoreFooter` for infinite-scroll patterns
+- **Real-time data**: automatic merging with a "Live" separator UI
+- **Sorting**: 3-state (null → asc → desc → null), single column
+- **Row selection**: optional multi-select with checkboxes
+- **Keyboard navigation**: Arrow / j / k / Escape
+- **Layout modes**: Grid (no row spacing) and Classic (spacer rows)
+- **Skeleton rows**: customizable per table via `renderSkeletonRow`
+- **Empty states**: customizable via `emptyState` prop
+- **Responsive height**: auto-calculated via `ResizeObserver`, fixed 400px on mobile
+- **Full TypeScript**: all props and column definitions are typed
 
-## Installation
-
-The DataTable component is already set up in the project. Import it from:
+## Import
 
 ```typescript
 import { DataTable, type DataTableColumnDef } from "@/components/data-table";
@@ -26,222 +24,205 @@ import { DataTable, type DataTableColumnDef } from "@/components/data-table";
 
 ## Basic Usage
 
-### Entity List (Grid Layout)
+### Grid layout with cursor-based pagination (root keys pattern)
 
 ```typescript
-import { DataTable, type DataTableColumnDef } from "@/components/data-table";
-import { useState } from "react";
+import { DataTable, createRootKeyColumns } from "@/components/data-table";
+import { PaginationFooter } from "@/components/data-table/components/footer/pagination-footer";
+import { renderRootKeySkeletonRow } from "@/components/data-table/components/skeletons/render-root-key-skeleton-row";
+import { useRootKeysListPaginated } from "@/components/data-table/hooks/rootkey/use-root-keys-list-query";
 
-interface ApiKey {
-  id: string;
-  name: string;
-  createdAt: Date;
-  status: "active" | "inactive";
-}
+const TABLE_CONFIG = {
+  rowHeight: 40,
+  layout: "grid" as const,
+  rowBorders: true,
+  containerPadding: "px-0",
+};
 
-const columns: DataTableColumnDef<ApiKey>[] = [
-  {
-    id: "name",
-    accessorKey: "name",
-    header: "Name",
-    meta: {
-      width: "40%",
-      cellClassName: "font-medium",
-    },
-    cell: ({ row }) => <div>{row.original.name}</div>,
-  },
-  {
-    id: "status",
-    accessorKey: "status",
-    header: "Status",
-    meta: {
-      width: 100,
-    },
-    cell: ({ row }) => (
-      <Badge variant={row.original.status === "active" ? "success" : "default"}>
-        {row.original.status}
-      </Badge>
-    ),
-  },
-  {
-    id: "createdAt",
-    accessorKey: "createdAt",
-    header: "Created",
-    meta: {
-      width: 150,
-    },
-    cell: ({ row }) => <DateCell date={row.original.createdAt} />,
-  },
-];
+export function RootKeysList() {
+  const { rootKeys, isLoading, isFetching, isPending, totalCount, onPageChange, page, pageSize, totalPages } =
+    useRootKeysListPaginated();
+  const [selectedKey, setSelectedKey] = useState<RootKey | null>(null);
 
-export function ApiKeysList() {
-  const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null);
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    /* ... */
-  });
+  const columns = useMemo(
+    () => createRootKeyColumns({ selectedRootKeyId: selectedKey?.id, onEditKey: handleEdit }),
+    [selectedKey, handleEdit],
+  );
 
   return (
-    <DataTable
-      data={data?.pages.flatMap((p) => p.keys) ?? []}
-      columns={columns}
-      getRowId={(key) => key.id}
-      config={{
-        layout: "grid",
-        rowHeight: 52,
-        rowBorders: true,
-      }}
-      onRowClick={setSelectedKey}
-      selectedItem={selectedKey}
-      onLoadMore={fetchNextPage}
-      hasMore={hasNextPage}
-      isFetchingNextPage={isFetchingNextPage}
-    />
+    <>
+      <DataTable
+        data={rootKeys}
+        columns={columns}
+        getRowId={(key) => key.id}
+        isLoading={isLoading || isFetching}
+        onRowClick={setSelectedKey}
+        selectedItem={selectedKey}
+        config={TABLE_CONFIG}
+        renderSkeletonRow={renderRootKeySkeletonRow}
+        enableSorting
+      />
+      <PaginationFooter
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        onPageChange={onPageChange}
+        itemLabel="root keys"
+        hide={isPending}
+      />
+    </>
   );
 }
 ```
 
-### Log Table (Classic Layout with Real-time)
+### Classic layout with load-more and real-time data
 
 ```typescript
 import { DataTable, type DataTableColumnDef } from "@/components/data-table";
-
-interface Log {
-  id: string;
-  timestamp: number;
-  status: number;
-  method: string;
-  path: string;
-}
 
 const columns: DataTableColumnDef<Log>[] = [
   {
     id: "timestamp",
     accessorKey: "timestamp",
     header: "Time",
-    meta: {
-      width: 150,
-    },
-    cell: ({ row }) => <TimestampCell timestamp={row.original.timestamp} />,
+    meta: { width: 150 },
+    cell: ({ row }) => <TimestampInfo value={row.original.timestamp} />,
   },
   {
     id: "status",
     accessorKey: "status",
     header: "Status",
-    meta: {
-      width: 80,
-    },
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
-    id: "method",
-    accessorKey: "method",
-    header: "Method",
-    meta: {
-      width: 80,
-    },
-  },
-  {
-    id: "path",
-    accessorKey: "path",
-    header: "Path",
-    meta: {
-      width: "auto",
-    },
+    meta: { width: 80 },
+    cell: ({ row }) => <StatusCell status={row.original.status} />,
   },
 ];
 
 export function LogsTable() {
-  const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const { realtimeLogs } = useRealtimeLogs();
-  const { historicalLogs, fetchNextPage, hasNextPage } = useHistoricalLogs();
+  const { logs, fetchNextPage, hasNextPage, isFetchingNextPage } = useHistoricalLogs();
 
   return (
     <DataTable
-      data={historicalLogs}
+      data={logs}
       realtimeData={realtimeLogs}
       columns={columns}
       getRowId={(log) => log.id}
-      config={{
-        layout: "classic",
-        rowHeight: 32,
+      config={{ layout: "classic", rowHeight: 32 }}
+      loadMoreFooterProps={{
+        onLoadMore: fetchNextPage,
+        hasMore: hasNextPage,
+        isFetchingNextPage,
+        itemLabel: "logs",
       }}
-      rowClassName={(log) => getStatusRowClass(log.status)}
-      onRowClick={setSelectedLog}
-      selectedItem={selectedLog}
-      onLoadMore={fetchNextPage}
-      hasMore={hasNextPage}
     />
   );
 }
 ```
 
-### Sortable Table
+## Props
+
+### Required
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `data` | `TData[]` | Historical / paginated rows |
+| `columns` | `DataTableColumnDef<TData>[]` | TanStack column definitions |
+| `getRowId` | `(row: TData) => string` | Unique row identifier |
+
+### Data
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `realtimeData` | `TData[]` | Real-time rows prepended above a separator |
+
+### Interaction
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `onRowClick` | `(row: TData \| null) => void` | — | Row click handler; called with `null` on Escape |
+| `onRowMouseEnter` | `(row: TData) => void` | — | Row hover start |
+| `onRowMouseLeave` | `() => void` | — | Row hover end |
+| `selectedItem` | `TData \| null` | — | Highlighted row (pass the same object you get from `onRowClick`) |
+
+### Sorting
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `enableSorting` | `boolean` | `true` | Enable column sorting |
+| `sorting` | `SortingState` | — | Controlled sort state |
+| `onSortingChange` | `OnChangeFn<SortingState>` | — | Sort state change handler |
+
+### Row selection
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `enableRowSelection` | `boolean` | `false` | Show checkboxes |
+| `rowSelection` | `RowSelectionState` | — | Controlled selection state |
+| `onRowSelectionChange` | `OnChangeFn<RowSelectionState>` | — | Selection change handler |
+
+### Inline pagination (within table scroll area)
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `page` | `number` | Current page (1-indexed) |
+| `pageSize` | `number` | Rows per page |
+| `totalPages` | `number` | Total page count |
+| `onPageChange` | `(page: number) => void` | Page change handler |
+
+> All four must be provided together to render the inline `Pagination` bar. For the floating `PaginationFooter`, render it separately outside `DataTable`.
+
+### Loading and UI
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `isLoading` | `boolean` | `false` | Renders skeleton rows instead of data |
+| `renderSkeletonRow` | `(props) => ReactNode` | `SkeletonRow` | Custom per-column skeleton renderer |
+| `emptyState` | `ReactNode` | `<EmptyState />` | Rendered when data and realtimeData are both empty |
+| `loadMoreFooterProps` | `LoadMoreFooterProps` | — | Activates the floating load-more footer |
+| `rowClassName` | `(row: TData) => string` | — | Per-row className |
+| `selectedClassName` | `(row: TData, isSelected: boolean) => string` | — | Per-row className when selected |
+| `fixedHeight` | `number` | auto-calculated | Override the auto height calculation |
+| `enableKeyboardNav` | `boolean` | `true` | Arrow / j / k / Escape navigation |
+| `config` | `Partial<DataTableConfig>` | see below | Layout and dimension overrides |
+
+## Configuration
 
 ```typescript
-import { DataTable, type DataTableColumnDef } from "@/components/data-table";
-import { type SortingState } from "@tanstack/react-table";
-import { useState } from "react";
+interface DataTableConfig {
+  rowHeight: number;        // Default: 36
+  headerHeight: number;     // Default: 40
+  rowSpacing: number;       // Default: 4 — gap between rows in classic layout
 
-const columns: DataTableColumnDef<Item>[] = [
-  {
-    id: "name",
-    accessorKey: "name",
-    header: "Name",
-    enableSorting: true,
-  },
-  {
-    id: "value",
-    accessorKey: "value",
-    header: "Value",
-    enableSorting: true,
-  },
-];
+  layout: "grid" | "classic"; // Default: "classic"
+  rowBorders: boolean;      // Default: false — horizontal divider between rows
+  containerPadding: string; // Default: "px-2"
+  tableLayout: "fixed" | "auto"; // Default: "fixed"
 
-export function SortableTable() {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "value", desc: true }, // Default sort
-  ]);
-
-  return (
-    <DataTable
-      data={data}
-      columns={columns}
-      getRowId={(item) => item.id}
-      sorting={sorting}
-      onSortingChange={setSorting}
-      enableSorting
-    />
-  );
+  loadingRows: number;      // Default: 10 — skeleton row count while isLoading
 }
 ```
 
-## Column Configuration
+**Grid layout** — rows sit directly adjacent, no spacers. Used for entity lists (root keys, API keys).
 
-### Width Options
+**Classic layout** — a spacer `<tr>` is inserted before each data row for visual breathing room. Used for log tables.
+
+## Column Definition
+
+### Width options
 
 ```typescript
-// Fixed pixels
-meta: { width: 150 }
-
-// Percentage
-meta: { width: "25%" }
-
-// CSS values
-meta: { width: "165px" }
-
-// Keywords
-meta: { width: "auto" }  // Auto width
-meta: { width: "min" }   // Minimum width
-meta: { width: "1fr" }   // Flex grow
-
-// Range
-meta: { width: { min: 100, max: 300 } }
-
-// Flex ratio
-meta: { width: { flex: 2 } }
+meta: { width: 150 }             // Fixed pixels
+meta: { width: "25%" }           // Percentage of table width
+meta: { width: "165px" }         // Any CSS value
+meta: { width: "auto" }          // Browser auto sizing
+meta: { width: "min" }           // min-content
+meta: { width: "1fr" }           // Flex grow
+meta: { width: { min: 100, max: 300 } } // Clamp range
+meta: { width: { flex: 2 } }     // Flex ratio
 ```
 
-### Cell Styling
+### Per-column styling
 
 ```typescript
 {
@@ -249,213 +230,162 @@ meta: { width: { flex: 2 } }
   accessorKey: "name",
   header: "Name",
   meta: {
-    headerClassName: "text-left font-bold",
+    headerClassName: "pl-4",
     cellClassName: "font-medium text-gray-12",
   },
 }
 ```
 
-## Configuration Options
+### Sortable column with `SortableHeader`
 
 ```typescript
-interface DataTableConfig {
-  // Dimensions
-  rowHeight: number; // Default: 36
-  headerHeight: number; // Default: 40
-  rowSpacing: number; // Default: 4 (classic mode)
+import { SortableHeader } from "@/components/data-table";
 
-  // Layout
-  layout: "grid" | "classic"; // Default: "classic"
-  rowBorders: boolean; // Default: false
-  containerPadding: string; // Default: "px-2"
-  tableLayout: "fixed" | "auto"; // Default: "fixed"
-
-  // Virtualization
-  overscan: number; // Default: 5
-
-  // Loading
-  loadingRows: number; // Default: 10
-
-  // Throttle delay for load more
-  throttleDelay: number; // Default: 350ms
+{
+  id: "created_at",
+  accessorKey: "createdAt",
+  sortingFn: "alphanumeric",
+  header: ({ header }) => (
+    <SortableHeader header={header}>Created At</SortableHeader>
+  ),
 }
 ```
 
-## Features in Detail
+## Cell Components
 
-### Keyboard Navigation
+All exported from `@/components/data-table`:
 
-- **Escape**: Deselect current row and blur focus
-- **Arrow Down / j**: Move to next row
-- **Arrow Up / k**: Move to previous row
+| Component | Props | Use for |
+|-----------|-------|---------|
+| `CheckboxCell` | `row`, `table` | Row selection checkbox |
+| `CheckboxHeaderCell` | `table` | Select-all header checkbox |
+| `StatusCell` | `status`, `icon?`, `label?` | Status badge with icon |
+| `BadgeCell` | `value`, `variant?` | Generic badge |
+| `CopyCell` | `value`, `label?` | Click-to-copy value |
+| `HiddenValueCell` | `value`, `title`, `selected?` | Obfuscated key with reveal |
+| `TimestampCell` | `timestamp`, `format?` | Relative / absolute / both |
+| `LastUpdatedCell` | `lastUpdated`, `isSelected?` | Relative time with tooltip |
+| `AssignedItemsCell` | `permissionSummary`, `isSelected?` | Permission count badge |
+| `RootKeyNameCell` | `name`, `isSelected?` | Name with selection indicator |
 
-### Real-time Data
+## Footers
 
-The DataTable automatically merges real-time data with historical data and displays a separator:
+### `PaginationFooter`
+
+Floating fixed footer with page controls. Minimizes to a compact pill at the bottom-right.
 
 ```typescript
-<DataTable
-  data={historicalData} // Historic data
-  realtimeData={realtimeData} // New real-time data
-  getRowId={(item) => item.id}
-  // ... other props
+import { PaginationFooter } from "@/components/data-table/components/footer/pagination-footer";
+
+<PaginationFooter
+  page={page}
+  pageSize={pageSize}
+  totalPages={totalPages}
+  totalCount={totalCount}
+  onPageChange={onPageChange}
+  itemLabel="root keys"   // Label in "Viewing 1–50 of 200 root keys"
+  hide={isPending}        // Hide during page transitions
+  headerContent={<FilterBar />} // Optional content above the controls
 />
 ```
 
-The component will:
-1. Display real-time data at the top
-2. Show a "Live" separator
-3. Display deduplicated historical data below
+### `LoadMoreFooter`
 
-### Load More Pagination
+Floating fixed footer with a "Load more" button. Used with infinite-scroll data.
 
 ```typescript
 <DataTable
   data={data}
   columns={columns}
   getRowId={(item) => item.id}
-  onLoadMore={() => fetchNextPage()}
-  hasMore={hasNextPage}
-  isFetchingNextPage={isFetchingNextPage}
   loadMoreFooterProps={{
+    onLoadMore: fetchNextPage,
+    hasMore: hasNextPage,
+    isFetchingNextPage,
     itemLabel: "logs",
     buttonText: "Load more logs",
   }}
 />
 ```
 
-### Custom Empty State
+## Pagination Hook
+
+`useRootKeysListPaginated` implements cursor-based pagination for the root keys table. It stores page cursors in a ref so navigating back to a previous page is instant (uses the tRPC cache).
+
+```typescript
+const {
+  rootKeys,     // TData[] for the current page
+  isLoading,    // Initial load
+  isFetching,   // Background refetch
+  isPending,    // useTransition — page change in flight
+  page,         // Current page number (1-indexed)
+  pageSize,     // Rows per page
+  totalPages,
+  totalCount,
+  onPageChange, // (newPage: number) => void
+} = useRootKeysListPaginated(pageSize?: number);
+```
+
+Navigation to a page is only allowed if the cursor for that page has already been cached. Pages must be visited in order to accumulate cursors — random-access skipping is not possible.
+
+## Real-time Data
+
+Pass `realtimeData` alongside `data`. The component automatically:
+
+1. Prepends real-time rows at the top
+2. Deduplicates any rows that appear in both arrays (by `getRowId`)
+3. Inserts a `<RealtimeSeparator />` at the boundary
 
 ```typescript
 <DataTable
-  data={[]}
+  data={historicalLogs}
+  realtimeData={newLogs}
+  getRowId={(log) => log.id}
   columns={columns}
-  getRowId={(item) => item.id}
-  emptyState={
-    <div>
-      <h3>No items found</h3>
-      <p>Create your first item to get started</p>
-    </div>
-  }
 />
 ```
 
-### Custom Row Styling
+## Keyboard Navigation
+
+When `enableKeyboardNav` is true (default):
+
+| Key | Action |
+|-----|--------|
+| `ArrowDown` / `j` | Focus and click the next row |
+| `ArrowUp` / `k` | Focus and click the previous row |
+| `Escape` | Calls `onRowClick(null)` and blurs focus |
+
+## Column ID Constants
+
+When building custom skeleton renderers or referencing root key column IDs, use the exported constants to stay in sync with column definitions:
 
 ```typescript
-<DataTable
-  data={data}
-  columns={columns}
-  getRowId={(item) => item.id}
-  rowClassName={(item) =>
-    item.status === "error" ? "bg-red-50" : ""
-  }
-  selectedClassName={(item, isSelected) =>
-    isSelected ? "bg-blue-100" : ""
-  }
-/>
+import { ROOT_KEY_COLUMN_IDS } from "@/components/data-table";
+
+// ROOT_KEY_COLUMN_IDS.ROOT_KEY   → "root_key"
+// ROOT_KEY_COLUMN_IDS.KEY        → "key"
+// ROOT_KEY_COLUMN_IDS.PERMISSIONS → "permissions"
+// ROOT_KEY_COLUMN_IDS.CREATED_AT → "created_at"
+// ROOT_KEY_COLUMN_IDS.LAST_UPDATED → "last_updated"
+// ROOT_KEY_COLUMN_IDS.ACTION     → "action"
 ```
 
-## Migration from VirtualTable
+## Custom Skeleton Renderer
 
-### Column Definition Changes
+Provide `renderSkeletonRow` to render per-column skeleton content. The function receives the column list and `rowHeight` and must return `<td>` elements:
 
-**Before (VirtualTable):**
 ```typescript
-const columns: Column<Item>[] = [
-  {
-    key: "name",
-    header: "Name",
-    width: "15%",
-    render: (item) => <div>{item.name}</div>,
-    sort: {
-      sortable: true,
-      direction,
-      onSort,
-    },
-  },
-];
+import { ROOT_KEY_COLUMN_IDS } from "@/components/data-table";
+
+const renderSkeletonRow = ({ columns, rowHeight }) =>
+  columns.map((column) => (
+    <td key={column.id} style={{ height: `${rowHeight}px` }}>
+      {column.id === ROOT_KEY_COLUMN_IDS.ROOT_KEY && <RootKeyColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.KEY && <KeyColumnSkeleton />}
+    </td>
+  ));
+
+<DataTable renderSkeletonRow={renderSkeletonRow} ... />
 ```
 
-**After (DataTable):**
-```typescript
-const columns: DataTableColumnDef<Item>[] = [
-  {
-    id: "name",
-    accessorKey: "name",
-    header: "Name",
-    meta: {
-      width: "15%",
-    },
-    cell: ({ row }) => <div>{row.original.name}</div>,
-    enableSorting: true,
-  },
-];
-```
-
-### Props Changes
-
-| VirtualTable | DataTable | Notes |
-|--------------|-----------|-------|
-| `keyExtractor` | `getRowId` | Same functionality |
-| `config.layoutMode` | `config.layout` | Renamed |
-| `Column<T>` | `DataTableColumnDef<T>` | New type |
-| `column.render` | `column.cell` | TanStack API |
-| `column.key` | `column.id` | TanStack API |
-
-## Performance
-
-- **Virtualization**: Only visible rows are rendered to the DOM
-- **Memory**: < 50MB for 1000 rows
-- **Initial Render**: < 100ms
-- **Scroll FPS**: > 55fps
-- **Supports**: 10,000+ rows without performance degradation
-
-## Browser Support
-
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## Phase 1 Status ✅
-
-✅ Core Infrastructure Complete
-- [x] Component structure
-- [x] TypeScript types and constants
-- [x] Essential hooks (useDataTable, useVirtualization, useRealtimeData, useTableHeight)
-- [x] Main DataTable component
-- [x] Basic virtualization
-- [x] Empty state component
-- [x] Real-time separator component
-- [x] Column width utilities
-- [x] Zero TypeScript errors
-- [x] Documentation
-
-## Phase 2 Status ✅
-
-✅ Core Features Complete
-- [x] Sortable header component (3-state sorting)
-- [x] Row selection with checkboxes
-- [x] Select-all functionality
-- [x] Standard cell components (5 types):
-  - [x] CheckboxCell & CheckboxHeaderCell
-  - [x] StatusCell (with icon variants)
-  - [x] TimestampCell (relative/absolute/both)
-  - [x] BadgeCell (6 variants)
-  - [x] CopyCell (click-to-copy)
-- [x] Skeleton row component
-- [x] Load more footer component
-- [x] Full integration with DataTable
-- [x] Zero TypeScript errors
-- [x] Zero linting errors
-- [x] Comprehensive documentation
-
-## Next Steps (Phase 3)
-
-- [ ] Advanced features testing
-- [ ] Layout system refinement
-- [ ] Integration tests
-- [ ] Visual regression tests
-- [ ] Performance benchmarks
-- [ ] Migration of first table
+If `renderSkeletonRow` is not provided, `<SkeletonRow>` renders a uniform shimmer across all columns.

@@ -1,7 +1,11 @@
 "use client";
-import { DataTable, EmptyRootKeys, createRootKeyColumns } from "@/components/data-table";
-import { PaginationFooter } from "@/components/data-table/components/footer/pagination-footer";
-import { renderRootKeySkeletonRow } from "@/components/data-table/components/skeletons/render-root-key-skeleton-row";
+import {
+  DataTable,
+  EmptyRootKeys,
+  PaginationFooter,
+  createRootKeyColumns,
+  renderRootKeySkeletonRow,
+} from "@/components/data-table";
 import { useRootKeysListPaginated } from "@/components/data-table/hooks/rootkey/use-root-keys-list-query";
 import { getRowClassName } from "@/components/data-table/utils/get-row-class";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";

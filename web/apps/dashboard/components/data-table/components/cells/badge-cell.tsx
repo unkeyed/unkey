@@ -1,7 +1,7 @@
 import { Badge } from "@unkey/ui";
 import type { ReactNode } from "react";
 
-interface BadgeCellProps {
+export interface BadgeCellProps {
   children: ReactNode;
   variant?: "primary" | "secondary" | "success" | "warning" | "error" | "blocked";
   className?: string;

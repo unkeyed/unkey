@@ -1,7 +1,7 @@
 import { Check, Clock, XMark } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 
-interface StatusCellProps {
+export interface StatusCellProps {
   status: "success" | "pending" | "error" | "warning" | "active" | "inactive";
   label?: string;
   showIcon?: boolean;

@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { Clipboard } from "@unkey/icons";
 import { useState } from "react";
 
-interface CopyCellProps {
+export interface CopyCellProps {
   value: string;
   displayValue?: string;
   className?: string;

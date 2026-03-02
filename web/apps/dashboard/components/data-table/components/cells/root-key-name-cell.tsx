@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Key2 } from "@unkey/icons";
 
-type RootKeyNameCellProps = {
+export type RootKeyNameCellProps = {
   name?: string;
   isSelected?: boolean;
 };

@@ -4,13 +4,12 @@ import { Badge, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { STATUS_STYLES } from "../../utils/get-row-class";
 
-export const LastUpdatedCell = ({
-  isSelected,
-  lastUpdated,
-}: {
+export interface LastUpdatedCellProps {
   isSelected: boolean;
   lastUpdated?: number | null;
-}) => {
+}
+
+export const LastUpdatedCell = ({ isSelected, lastUpdated }: LastUpdatedCellProps) => {
   const badgeRef = useRef<HTMLElement>(null) as React.RefObject<HTMLElement>;
   const [showTooltip, setShowTooltip] = useState(false);
 

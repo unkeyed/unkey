@@ -3,7 +3,7 @@ import type { Header } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp } from "@unkey/icons";
 
-interface SortableHeaderProps<TData> {
+export interface SortableHeaderProps<TData> {
   header: Header<TData, unknown>;
   children?: React.ReactNode;
 }
