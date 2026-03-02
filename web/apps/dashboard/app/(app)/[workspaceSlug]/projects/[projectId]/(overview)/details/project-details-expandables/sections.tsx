@@ -1,5 +1,5 @@
 import type { Deployment } from "@/lib/collections";
-import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
+import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import {
   Bolt,
   ChartActivity,
@@ -141,16 +141,28 @@ export const createDetailSections = (
         {
           icon: <Bolt className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "CPU",
-          content: (
-            <span className="text-gray-12 font-medium">{formatCpu(details.cpuMillicores)}</span>
-          ),
+          content: (() => {
+            const cpu = formatCpuParts(details.cpuMillicores);
+            return (
+              <span>
+                <span className="font-medium text-gray-12">{cpu.value}</span>{" "}
+                <span className="text-gray-11">{cpu.unit}</span>
+              </span>
+            );
+          })(),
         },
         {
           icon: <Grid className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Memory",
-          content: (
-            <span className="text-gray-12 font-medium">{formatMemory(details.memoryMib)}</span>
-          ),
+          content: (() => {
+            const mem = formatMemoryParts(details.memoryMib);
+            return (
+              <span>
+                <span className="font-medium text-gray-12">{mem.value}</span>{" "}
+                <span className="text-gray-11">{mem.unit}</span>
+              </span>
+            );
+          })(),
         },
         {
           icon: <Harddrive className="size-[14px] text-gray-12" iconSize="md-regular" />,

@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
+import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { Bolt, Cloud, Grid, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { ActiveDeploymentCard } from "../../../../components/active-deployment-card";
@@ -25,13 +25,23 @@ export function DeploymentInfo({ title = "Deployment" }: { title?: string }) {
           <div className="flex gap-1.5 items-center">
             <div className="2xl:flex gap-1.5 items-center hidden">
               <InfoChip icon={Bolt}>
-                <div className="text-gray-12 font-medium text-xs">
-                  {formatCpu(deployment.cpuMillicores)}
+                <div className="text-xs flex gap-0.5">
+                  <span className="font-medium text-gray-12">
+                    {formatCpuParts(deployment.cpuMillicores).value}
+                  </span>
+                  <span className="text-gray-11">
+                    {formatCpuParts(deployment.cpuMillicores).unit}
+                  </span>
                 </div>
               </InfoChip>
               <InfoChip icon={Grid}>
-                <div className="text-gray-12 font-medium text-xs">
-                  {formatMemory(deployment.memoryMib)}
+                <div className="text-xs flex gap-0.5">
+                  <span className="font-medium text-gray-12">
+                    {formatMemoryParts(deployment.memoryMib).value}
+                  </span>
+                  <span className="text-gray-11">
+                    {formatMemoryParts(deployment.memoryMib).unit}
+                  </span>
                 </div>
               </InfoChip>
             </div>

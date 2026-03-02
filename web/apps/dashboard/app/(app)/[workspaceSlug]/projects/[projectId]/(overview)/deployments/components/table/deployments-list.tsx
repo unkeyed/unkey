@@ -4,8 +4,8 @@ import type { Column } from "@/components/virtual-table/types";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
-import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
+import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
+import { Bolt, BookBookmark, CodeBranch, Connections3, ScanCode } from "@unkey/icons";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
@@ -136,8 +136,8 @@ export const DeploymentsList = () => {
           return deployment.status === "failed" ? (
             <span className="text-gray-9">—</span>
           ) : (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-              <Cube className="text-gray-12" iconSize="sm-regular" />
+            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit h-[22px]">
+              <Connections3 className="text-gray-12" iconSize="sm-regular" />
               <div className="flex gap-0.5">
                 <span className="font-semibold text-grayA-12 tabular-nums">
                   {deployment.instances.length}
@@ -153,22 +153,25 @@ export const DeploymentsList = () => {
         header: "Size",
         width: "15%",
         render: ({ deployment }: { deployment: Deployment }) => {
-          return deployment.status === "failed" ? (
-            <span className="text-gray-9">—</span>
-          ) : (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-              <Cube className="text-gray-12" iconSize="sm-regular" />
-              <div className="flex gap-1">
+          if (deployment.status === "failed") {
+            return <span className="text-gray-9">—</span>;
+          }
+          const cpu = formatCpuParts(deployment.cpuMillicores);
+          const mem = formatMemoryParts(deployment.memoryMib);
+          return (
+            <div className="flex gap-1.5">
+              <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md relative text-grayA-11 w-fit h-[22px]">
+                <Bolt className="text-gray-12" iconSize="sm-regular" />
                 <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12">
-                    {formatCpu(deployment.cpuMillicores)}
-                  </span>
+                  <span className="font-semibold text-grayA-12">{cpu.value}</span>
+                  <span>{cpu.unit}</span>
                 </div>
-                <span> / </span>
+              </div>
+              <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md relative text-grayA-11 w-fit h-[22px]">
+                <ScanCode className="text-gray-12" iconSize="sm-regular" />
                 <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12">
-                    {formatMemory(deployment.memoryMib)}
-                  </span>
+                  <span className="font-semibold text-grayA-12">{mem.value}</span>
+                  <span>{mem.unit}</span>
                 </div>
               </div>
             </div>

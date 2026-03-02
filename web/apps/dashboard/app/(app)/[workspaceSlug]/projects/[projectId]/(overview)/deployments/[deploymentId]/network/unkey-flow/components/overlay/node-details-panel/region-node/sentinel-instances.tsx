@@ -1,4 +1,4 @@
-import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
+import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { Bolt, ChartActivity, CircleCheck, Focus, Heart, Layers2 } from "@unkey/icons";
 import type { DeploymentNode } from "../../../nodes";
 import { MetricPill } from "../../../nodes/components/metric-pill";
@@ -44,16 +44,34 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
                     value={`${rps ?? 0} RPS`}
                     tooltip="Avg. RPS over last 15 min (updated every 5s)"
                   />
-                  <MetricPill
-                    icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
-                    value={formatCpu(cpu ?? 0)}
-                    tooltip="CPU allocated to this instance"
-                  />
-                  <MetricPill
-                    icon={<Focus iconSize="sm-medium" className="shrink-0" />}
-                    value={formatMemory(memory ?? 0)}
-                    tooltip="Memory allocated to this instance"
-                  />
+                  {(() => {
+                    const parts = formatCpuParts(cpu ?? 0);
+                    return (
+                      <MetricPill
+                        icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
+                        value={
+                          <>
+                            <span className="font-medium">{parts.value}</span> {parts.unit}
+                          </>
+                        }
+                        tooltip="CPU allocated to this instance"
+                      />
+                    );
+                  })()}
+                  {(() => {
+                    const parts = formatMemoryParts(memory ?? 0);
+                    return (
+                      <MetricPill
+                        icon={<Focus iconSize="sm-medium" className="shrink-0" />}
+                        value={
+                          <>
+                            <span className="font-medium">{parts.value}</span> {parts.unit}
+                          </>
+                        }
+                        tooltip="Memory allocated to this instance"
+                      />
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusIndicator
