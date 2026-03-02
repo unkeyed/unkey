@@ -12,13 +12,14 @@ import (
 
 const upsertCustomDomain = `-- name: UpsertCustomDomain :exec
 INSERT INTO custom_domains (
-    id, workspace_id, project_id, environment_id, domain,
+    id, workspace_id, project_id, app_id, environment_id, domain,
     challenge_type, verification_status, verification_token, target_cname, created_at
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     workspace_id = VALUES(workspace_id),
     project_id = VALUES(project_id),
+    app_id = VALUES(app_id),
     environment_id = VALUES(environment_id),
     challenge_type = VALUES(challenge_type),
     verification_status = VALUES(verification_status),
@@ -30,6 +31,7 @@ type UpsertCustomDomainParams struct {
 	ID                 string                          `db:"id"`
 	WorkspaceID        string                          `db:"workspace_id"`
 	ProjectID          string                          `db:"project_id"`
+	AppID              string                          `db:"app_id"`
 	EnvironmentID      string                          `db:"environment_id"`
 	Domain             string                          `db:"domain"`
 	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
@@ -43,13 +45,14 @@ type UpsertCustomDomainParams struct {
 // UpsertCustomDomain
 //
 //	INSERT INTO custom_domains (
-//	    id, workspace_id, project_id, environment_id, domain,
+//	    id, workspace_id, project_id, app_id, environment_id, domain,
 //	    challenge_type, verification_status, verification_token, target_cname, created_at
 //	)
-//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    workspace_id = VALUES(workspace_id),
 //	    project_id = VALUES(project_id),
+//	    app_id = VALUES(app_id),
 //	    environment_id = VALUES(environment_id),
 //	    challenge_type = VALUES(challenge_type),
 //	    verification_status = VALUES(verification_status),
@@ -60,6 +63,7 @@ func (q *Queries) UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCus
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.EnvironmentID,
 		arg.Domain,
 		arg.ChallengeType,
