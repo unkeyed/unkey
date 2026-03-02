@@ -77,8 +77,8 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
               Redirecting to project overview in{" "}
               <span className="font-medium text-gray-12 inline-block w-[2ch] text-right tabular-nums">
                 {countdown}
-              </span>{" "}              seconds
-              …{" "}
+              </span>{" "}
+              seconds …{" "}
               <Link
                 href={deploymentUrl}
                 className="font-medium text-gray-12 border-b border-dotted"

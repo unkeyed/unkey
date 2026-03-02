@@ -3,6 +3,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { CloudUp, Earth, Hammer2, LayerFront } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
@@ -12,6 +13,11 @@ import { DeploymentStep } from "./deployment-step";
 
 export function DeploymentProgress() {
   const { deployment } = useDeployment();
+  const router = useRouter();
+  const params = useParams();
+  const workspaceSlug = params.workspaceSlug as string;
+  const projectId = params.projectId as string;
+
   const steps = trpc.deploy.deployment.steps.useQuery(
     {
       deploymentId: deployment.id,
@@ -43,6 +49,12 @@ export function DeploymentProgress() {
   const { building, deploying, network, queued } = steps.data ?? {};
 
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
+
+  useEffect(() => {
+    if (network?.completed) {
+      router.push(`/${workspaceSlug}/projects/${projectId}/deployments/${deployment.id}`);
+    }
+  }, [network?.completed, router, workspaceSlug, projectId, deployment.id]);
 
   return (
     <div className="flex flex-col gap-5">

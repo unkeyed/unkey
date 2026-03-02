@@ -1,11 +1,10 @@
 "use client";
 
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
-import { Bolt, Cloud, Grid, Harddrive, LayoutRight } from "@unkey/icons";
+import { Bolt, Cloud, Grid, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { ActiveDeploymentCard } from "../../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
-import { DisabledWrapper } from "../../../../components/disabled-wrapper";
 import { InfoChip } from "../../../../components/info-chip";
 import { RegionFlags } from "../../../../components/region-flags";
 import { Section, SectionHeader } from "../../../../components/section";

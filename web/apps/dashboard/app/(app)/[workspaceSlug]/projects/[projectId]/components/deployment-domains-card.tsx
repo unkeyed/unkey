@@ -12,7 +12,7 @@ import {
   SettingCard,
   SettingCardGroup,
 } from "@unkey/ui";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useProjectData } from "../(overview)/data-provider";
 import { useDeployment } from "../(overview)/deployments/[deploymentId]/layout-provider";
 import { SettingsGroup } from "../(overview)/settings/components/shared/settings-group";
@@ -22,6 +22,7 @@ export function DeploymentDomainsCard({
   glow,
   domainFilter,
 }: { emptyState?: ReactNode; glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
+  const [urlsOpen, setUrlsOpen] = useState(false);
   const { deployment } = useDeployment();
   const { getDomainsForDeployment, isDomainsLoading, project } = useProjectData();
 
@@ -95,9 +96,13 @@ export function DeploymentDomainsCard({
                   {primaryDomain.fullyQualifiedDomainName}
                 </a>
                 {additionalDomains.length > 0 && (
-                  <div className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-[18px] font-mono tabular-nums hover:bg-grayA-4 transition-colors">
+                  <button
+                    type="button"
+                    className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-[18px] font-mono tabular-nums hover:bg-grayA-4 transition-colors cursor-pointer"
+                    onClick={() => setUrlsOpen(true)}
+                  >
                     +{additionalDomains.length}
-                  </div>
+                  </button>
                 )}
               </div>
             }
@@ -105,18 +110,18 @@ export function DeploymentDomainsCard({
           >
             <div className="flex items-center gap-2">
               {additionalDomains.length > 0 && (
-                <Popover>
+                <Popover open={urlsOpen} onOpenChange={setUrlsOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       className="text-gray-12 font-medium bg-grayA-2 rounded-[8px]"
                       variant="outline"
                     >
-                      Copy URL
+                      Show URLs
                       <ChevronDown className="text-gray-9 !size-3" iconSize="sm-regular" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent side="bottom" align="end" className="p-0 max-w-[300px]">
-                    {additionalDomains.map((d) => (
+                    {sortedDomains.map((d) => (
                       <div
                         key={d.id}
                         className="flex items-center justify-left w-full h-10 border-b border-gray-4 px-3 py-[14px] gap-2"

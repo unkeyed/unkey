@@ -47,8 +47,7 @@ export function DeploymentNetworkView({
 
   return (
     <InfiniteCanvas
-      locked
-      defaultZoom={1}
+      defaultZoom={0.75}
       overlay={
         <>
           {showNodeDetails && (
