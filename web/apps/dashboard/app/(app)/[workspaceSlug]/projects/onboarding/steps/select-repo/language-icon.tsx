@@ -1,8 +1,6 @@
 import type { IconProps } from "@unkey/icons";
 import {
   BracketsCurly,
-  CircleDotted,
-  Code,
   LangElixir,
   LangGo,
   LangJava,

@@ -48,7 +48,7 @@ export function DeploymentProgress() {
     <div className="flex flex-col gap-5">
       <SettingCardGroup>
         <DeploymentStep
-          icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
+          icon={<LayerFront iconSize="sm-medium" className="size-[18px]" />}
           title="Deployment Queued"
           description={
             queued
@@ -69,7 +69,7 @@ export function DeploymentProgress() {
           }
         />
         <DeploymentStep
-          icon={<LayerFront iconSize="sm-medium" className="size-[18px]" />}
+          icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
           title="Building Image"
           description={
             building
