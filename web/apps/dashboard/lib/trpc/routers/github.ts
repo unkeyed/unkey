@@ -114,7 +114,7 @@ const fetchProjectInstallation = async (
 };
 
 export const githubRouter = t.router({
-  allation: workspaceProcedure
+  registerInstallation: workspaceProcedure
     .input(
       z.object({
         state: z.string(),
