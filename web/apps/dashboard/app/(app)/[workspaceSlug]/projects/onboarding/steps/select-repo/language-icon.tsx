@@ -32,7 +32,7 @@ export const LanguageIcon = ({ language }: { language: string | null }) => {
       <Icon className="size-[26px]" />
     </div>
   ) : (
-    <div className="size-10 grid place-content-center mr-11 ml-1">
+    <div className="size-10 grid place-content-center mr-11">
       <div className="size-[26px] grid place-content-center rounded-lg border border-grayA-5 shadow-md">
         <BracketsCurly iconSize="sm-medium" className="text-gray-9" />
       </div>
