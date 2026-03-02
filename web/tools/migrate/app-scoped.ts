@@ -3,9 +3,11 @@ import { newId } from "@unkey/id";
 import mysql from "mysql2/promise";
 
 async function main() {
-  const conn = await mysql.createConnection(
-    `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`,
-  );
+  if (!process.env.DRIZZLE_DATABASE_URL) {
+    throw new Error("DRIZZLE_DATABASE_URL is not set");
+  }
+
+  const conn = await mysql.createConnection(process.env.DRIZZLE_DATABASE_URL);
   await conn.ping();
   const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
