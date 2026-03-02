@@ -65,7 +65,7 @@ export const DeploymentsList = () => {
       {
         key: "deployment_id",
         header: "Deployment ID",
-        width: "15%",
+        width: "12%",
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
           const isLive = liveDeploymentId === deployment.id;
@@ -111,13 +111,13 @@ export const DeploymentsList = () => {
       {
         key: "status",
         header: "Status",
-        width: "15%",
+        width: "10%",
         render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
       },
       {
         key: "domains",
         header: "Domains",
-        width: "25%",
+        width: "20%",
         render: ({ deployment }) => {
           return (
             <div className="flex items-center min-h-[52px]">
@@ -129,7 +129,7 @@ export const DeploymentsList = () => {
       {
         key: "instances" as const,
         header: "Instances",
-        width: "10%",
+        width: "8%",
         headerClassName: "hidden 2xl:table-cell",
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
@@ -151,7 +151,7 @@ export const DeploymentsList = () => {
       {
         key: "size" as const,
         header: "Size",
-        width: "15%",
+        width: "14%",
         render: ({ deployment }: { deployment: Deployment }) => {
           if (deployment.status === "failed") {
             return <span className="text-gray-9">—</span>;
@@ -181,7 +181,7 @@ export const DeploymentsList = () => {
       {
         key: "source",
         header: "Source",
-        width: "15%",
+        width: "12%",
         headerClassName: "hidden 2xl:table-cell",
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }) => {
@@ -217,7 +217,7 @@ export const DeploymentsList = () => {
       {
         key: "created_at" as const,
         header: "Created",
-        width: "10%",
+        width: "8%",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
             <TimestampInfo
@@ -231,7 +231,7 @@ export const DeploymentsList = () => {
       {
         key: "author" as const,
         header: "Author",
-        width: "10%",
+        width: "8%",
         headerClassName: "hidden 2xl:table-cell",
         cellClassName: "hidden 2xl:table-cell",
         render: ({ deployment }: { deployment: Deployment }) => {
@@ -251,7 +251,7 @@ export const DeploymentsList = () => {
       {
         key: "action",
         header: "",
-        width: "5%",
+        width: "4%",
         render: ({
           deployment,
           environment,
