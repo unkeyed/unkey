@@ -17,6 +17,7 @@ message AddCustomDomainRequest {
   string project_id = 2;
   string environment_id = 3;
   string domain = 4;
+  string app_id = 5;
 }
 
 message AddCustomDomainResponse {

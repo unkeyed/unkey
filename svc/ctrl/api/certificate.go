@@ -74,6 +74,7 @@ func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain strin
 		ID:                 domainID,
 		WorkspaceID:        internalID,
 		ProjectID:          internalID,
+		AppID:              internalID,
 		EnvironmentID:      internalID,
 		Domain:             domain,
 		ChallengeType:      db.CustomDomainsChallengeTypeDNS01,

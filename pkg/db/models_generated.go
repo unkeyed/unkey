@@ -1194,6 +1194,7 @@ type CustomDomain struct {
 	ID                 string                          `db:"id"`
 	WorkspaceID        string                          `db:"workspace_id"`
 	ProjectID          string                          `db:"project_id"`
+	AppID              string                          `db:"app_id"`
 	EnvironmentID      string                          `db:"environment_id"`
 	Domain             string                          `db:"domain"`
 	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
