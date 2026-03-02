@@ -13,7 +13,7 @@ type IconBoxProps = {
 const IconBox = ({ children, large, className }: IconBoxProps) => (
   <div
     className={cn(
-      "shrink-0 flex items-center justify-center rounded-[10px] bg-transparent ring-1 ring-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.12),0_0_0_0.75px_rgba(0,0,0,0.08)]",
+      "shrink-0 flex items-center justify-center rounded-[10px] bg-transparent ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none",
       large ? "size-16" : "size-9",
       className,
     )}

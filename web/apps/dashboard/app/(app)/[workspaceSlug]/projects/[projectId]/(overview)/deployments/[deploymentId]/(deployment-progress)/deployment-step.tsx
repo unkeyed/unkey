@@ -38,7 +38,7 @@ export function DeploymentStep({
           />
           <div
             className={cn(
-              "w-full h-full rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
+              "w-full h-full rounded-[10px] flex items-center justify-center shrink-0",
               showGlow &&
                 "relative dark:bg-white dark:text-black bg-black text-white shadow-md shadow-black/40",
             )}
@@ -62,6 +62,7 @@ export function DeploymentStep({
           </Badge>
         </div>
       }
+      iconClassName={showGlow ? "bg-transparent shadow-none dark:ring-0" : undefined}
       className="relative"
       description={description}
       expandable={expandable}

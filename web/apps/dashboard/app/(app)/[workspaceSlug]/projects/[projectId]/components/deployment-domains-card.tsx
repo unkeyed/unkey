@@ -51,7 +51,7 @@ export function DeploymentDomainsCard({
         {isDomainsLoading ? (
           <SettingCard
             icon={
-              <div className="w-full h-full rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20">
+              <div className="w-full h-full rounded-[10px] flex items-center justify-center shrink-0">
                 <Earth iconSize="sm-medium" className="size-[18px]" />
               </div>
             }
@@ -60,6 +60,7 @@ export function DeploymentDomainsCard({
           />
         ) : (
           <SettingCard
+            iconClassName={glow ? "bg-transparent shadow-none dark:ring-0" : undefined}
             icon={
               glow ? (
                 <div className="relative w-full h-full">
@@ -72,14 +73,14 @@ export function DeploymentDomainsCard({
                   />
                   <div
                     className={cn(
-                      "w-full h-full rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none relative dark:bg-white dark:text-black bg-black text-white",
+                      "w-full h-full rounded-[10px] flex items-center justify-center shrink-0 relative dark:bg-white dark:text-black bg-black text-white",
                     )}
                   >
                     <Cube iconSize="md-medium" className="size-[18px]" />
                   </div>
                 </div>
               ) : (
-                <div className="w-full h-full rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20">
+                <div className="w-full h-full rounded-[10px] flex items-center justify-center shrink-0">
                   <Cube iconSize="md-medium" className="size-[18px]" />
                 </div>
               )
