@@ -13,7 +13,7 @@ const findAppWithSettings = `-- name: FindAppWithSettings :one
 SELECT
     a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.live_deployment_id, a.is_rolled_back, a.depot_project_id, a.delete_protection, a.created_at, a.updated_at,
     abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
-    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
+    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 FROM apps a
 INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
@@ -38,7 +38,7 @@ type FindAppWithSettingsRow struct {
 //	SELECT
 //	    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.live_deployment_id, a.is_rolled_back, a.depot_project_id, a.delete_protection, a.created_at, a.updated_at,
 //	    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
-//	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
+//	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 //	FROM apps a
 //	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 //	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
@@ -78,11 +78,8 @@ func (q *Queries) FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppW
 		&i.AppRuntimeSetting.AppID,
 		&i.AppRuntimeSetting.EnvironmentID,
 		&i.AppRuntimeSetting.Port,
-		&i.AppRuntimeSetting.CpuMillicores,
-		&i.AppRuntimeSetting.MemoryMib,
 		&i.AppRuntimeSetting.Command,
 		&i.AppRuntimeSetting.Healthcheck,
-		&i.AppRuntimeSetting.RegionConfig,
 		&i.AppRuntimeSetting.ShutdownSignal,
 		&i.AppRuntimeSetting.SentinelConfig,
 		&i.AppRuntimeSetting.CreatedAt,

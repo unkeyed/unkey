@@ -197,7 +197,7 @@ type Querier interface {
 	FindAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error)
 	//FindAppRuntimeSettingsByAppAndEnv
 	//
-	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.region_config, app_runtime_settings.shutdown_signal, app_runtime_settings.sentinel_config, app_runtime_settings.created_at, app_runtime_settings.updated_at
+	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.sentinel_config, app_runtime_settings.created_at, app_runtime_settings.updated_at
 	//  FROM app_runtime_settings
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
@@ -207,7 +207,7 @@ type Querier interface {
 	//  SELECT
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.live_deployment_id, a.is_rolled_back, a.depot_project_id, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
-	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
+	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 	//  FROM apps a
 	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
@@ -2737,11 +2737,8 @@ type Querier interface {
 	//      app_id,
 	//      environment_id,
 	//      port,
-	//      cpu_millicores,
-	//      memory_mib,
 	//      command,
 	//      healthcheck,
-	//      region_config,
 	//      shutdown_signal,
 	//      sentinel_config,
 	//      created_at,
@@ -2756,18 +2753,12 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
 	//      ?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      port = VALUES(port),
-	//      cpu_millicores = VALUES(cpu_millicores),
-	//      memory_mib = VALUES(memory_mib),
 	//      command = VALUES(command),
 	//      healthcheck = VALUES(healthcheck),
-	//      region_config = VALUES(region_config),
 	//      shutdown_signal = VALUES(shutdown_signal),
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)

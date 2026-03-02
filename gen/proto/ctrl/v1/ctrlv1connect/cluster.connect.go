@@ -66,6 +66,9 @@ const (
 	// ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure is the fully-qualified name of the
 	// ClusterService's GetDesiredCiliumNetworkPolicyState RPC.
 	ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure = "/ctrl.v1.ClusterService/GetDesiredCiliumNetworkPolicyState"
+	// ClusterServiceHeartbeatProcedure is the fully-qualified name of the ClusterService's Heartbeat
+	// RPC.
+	ClusterServiceHeartbeatProcedure = "/ctrl.v1.ClusterService/Heartbeat"
 )
 
 // ClusterServiceClient is a client for the ctrl.v1.ClusterService service.
@@ -96,6 +99,7 @@ type ClusterServiceClient interface {
 	// GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error)
+	Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error)
 }
 
 // NewClusterServiceClient constructs a client for the ctrl.v1.ClusterService service. By default,
@@ -157,6 +161,12 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredCiliumNetworkPolicyState")),
 			connect.WithClientOptions(opts...),
 		),
+		heartbeat: connect.NewClient[v1.HeartbeatRequest, v1.HeartbeatResponse](
+			httpClient,
+			baseURL+ClusterServiceHeartbeatProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("Heartbeat")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -170,6 +180,7 @@ type clusterServiceClient struct {
 	reportDeploymentStatus             *connect.Client[v1.ReportDeploymentStatusRequest, v1.ReportDeploymentStatusResponse]
 	watchCiliumNetworkPolicies         *connect.Client[v1.WatchCiliumNetworkPoliciesRequest, v1.CiliumNetworkPolicyState]
 	getDesiredCiliumNetworkPolicyState *connect.Client[v1.GetDesiredCiliumNetworkPolicyStateRequest, v1.CiliumNetworkPolicyState]
+	heartbeat                          *connect.Client[v1.HeartbeatRequest, v1.HeartbeatResponse]
 }
 
 // WatchDeployments calls ctrl.v1.ClusterService.WatchDeployments.
@@ -213,6 +224,11 @@ func (c *clusterServiceClient) GetDesiredCiliumNetworkPolicyState(ctx context.Co
 	return c.getDesiredCiliumNetworkPolicyState.CallUnary(ctx, req)
 }
 
+// Heartbeat calls ctrl.v1.ClusterService.Heartbeat.
+func (c *clusterServiceClient) Heartbeat(ctx context.Context, req *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error) {
+	return c.heartbeat.CallUnary(ctx, req)
+}
+
 // ClusterServiceHandler is an implementation of the ctrl.v1.ClusterService service.
 type ClusterServiceHandler interface {
 	// WatchDeployments streams deployment state changes from the control plane to agents.
@@ -241,6 +257,7 @@ type ClusterServiceHandler interface {
 	// GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error)
+	Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error)
 }
 
 // NewClusterServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -298,6 +315,12 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredCiliumNetworkPolicyState")),
 		connect.WithHandlerOptions(opts...),
 	)
+	clusterServiceHeartbeatHandler := connect.NewUnaryHandler(
+		ClusterServiceHeartbeatProcedure,
+		svc.Heartbeat,
+		connect.WithSchema(clusterServiceMethods.ByName("Heartbeat")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ctrl.v1.ClusterService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ClusterServiceWatchDeploymentsProcedure:
@@ -316,6 +339,8 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 			clusterServiceWatchCiliumNetworkPoliciesHandler.ServeHTTP(w, r)
 		case ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure:
 			clusterServiceGetDesiredCiliumNetworkPolicyStateHandler.ServeHTTP(w, r)
+		case ClusterServiceHeartbeatProcedure:
+			clusterServiceHeartbeatHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -355,4 +380,8 @@ func (UnimplementedClusterServiceHandler) WatchCiliumNetworkPolicies(context.Con
 
 func (UnimplementedClusterServiceHandler) GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState is not implemented"))
+}
+
+func (UnimplementedClusterServiceHandler) Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.Heartbeat is not implemented"))
 }

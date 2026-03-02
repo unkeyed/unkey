@@ -227,6 +227,47 @@ func (ns NullAppRuntimeSettingsShutdownSignal) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsShutdownSignal), nil
 }
 
+type AppScalingSettingsTargetMetric string
+
+const (
+	AppScalingSettingsTargetMetricCpu AppScalingSettingsTargetMetric = "cpu"
+)
+
+func (e *AppScalingSettingsTargetMetric) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppScalingSettingsTargetMetric(s)
+	case string:
+		*e = AppScalingSettingsTargetMetric(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppScalingSettingsTargetMetric: %T", src)
+	}
+	return nil
+}
+
+type NullAppScalingSettingsTargetMetric struct {
+	AppScalingSettingsTargetMetric AppScalingSettingsTargetMetric
+	Valid                          bool // Valid is true if AppScalingSettingsTargetMetric is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppScalingSettingsTargetMetric) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppScalingSettingsTargetMetric, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppScalingSettingsTargetMetric.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppScalingSettingsTargetMetric) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppScalingSettingsTargetMetric), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -1090,15 +1131,28 @@ type AppRuntimeSetting struct {
 	AppID          string                           `db:"app_id"`
 	EnvironmentID  string                           `db:"environment_id"`
 	Port           int32                            `db:"port"`
-	CpuMillicores  int32                            `db:"cpu_millicores"`
-	MemoryMib      int32                            `db:"memory_mib"`
 	Command        dbtype.StringSlice               `db:"command"`
 	Healthcheck    dbtype.NullHealthcheck           `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig              `db:"region_config"`
 	ShutdownSignal AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	SentinelConfig []byte                           `db:"sentinel_config"`
 	CreatedAt      int64                            `db:"created_at"`
 	UpdatedAt      sql.NullInt64                    `db:"updated_at"`
+}
+
+type AppScalingSetting struct {
+	Pk               uint64                             `db:"pk"`
+	WorkspaceID      string                             `db:"workspace_id"`
+	AppID            string                             `db:"app_id"`
+	EnvironmentID    string                             `db:"environment_id"`
+	RegionID         string                             `db:"region_id"`
+	TargetMetric     NullAppScalingSettingsTargetMetric `db:"target_metric"`
+	TargetThreshold  sql.NullInt16                      `db:"target_threshold"`
+	ReplicasMin      int32                              `db:"replicas_min"`
+	ReplicasMax      int32                              `db:"replicas_max"`
+	MaxCpuMillicores int32                              `db:"max_cpu_millicores"`
+	MaxMemoryMib     int32                              `db:"max_memory_mib"`
+	CreatedAt        int64                              `db:"created_at"`
+	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
 }
 
 type AuditLog struct {

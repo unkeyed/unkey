@@ -64,7 +64,17 @@ service ClusterService {
   // GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredCiliumNetworkPolicyState(GetDesiredCiliumNetworkPolicyStateRequest) returns (CiliumNetworkPolicyState);
+
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
+
+message HeartbeatRequest {
+  string cluster_id = 1;
+  string platform = 2;
+  string region = 3;
+}
+
+message HeartbeatResponse {}
 
 message WatchCiliumNetworkPoliciesRequest {
   string region = 1;

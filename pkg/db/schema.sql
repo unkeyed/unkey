@@ -482,17 +482,32 @@ CREATE TABLE `app_runtime_settings` (
 	`app_id` varchar(64) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`port` int NOT NULL DEFAULT 8080,
-	`cpu_millicores` int NOT NULL DEFAULT 256,
-	`memory_mib` int NOT NULL DEFAULT 256,
 	`command` json NOT NULL DEFAULT ('[]'),
 	`healthcheck` json,
-	`region_config` json NOT NULL DEFAULT ('{}'),
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`sentinel_config` longblob NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `app_runtime_settings_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `app_runtime_settings_app_env_idx` UNIQUE(`app_id`,`environment_id`)
+);
+
+CREATE TABLE `app_scaling_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`app_id` varchar(64) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`region_id` varchar(64) NOT NULL,
+	`target_metric` enum('cpu'),
+	`target_threshold` tinyint,
+	`replicas_min` int NOT NULL,
+	`replicas_max` int NOT NULL,
+	`max_cpu_millicores` int NOT NULL,
+	`max_memory_mib` int NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `app_scaling_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `unique_app_env_region` UNIQUE(`app_id`,`environment_id`,`region_id`)
 );
 
 CREATE TABLE `app_environment_variables` (
@@ -520,7 +535,7 @@ CREATE TABLE `deployments` (
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
+	`app_id` varchar(64) NOT NULL DEFAULT '',
 	`image` varchar(256),
 	`build_id` varchar(128),
 	`git_commit_sha` varchar(40),
@@ -554,7 +569,7 @@ CREATE TABLE `deployment_steps` (
 	`project_id` varchar(128) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`deployment_id` varchar(128) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
+	`app_id` varchar(64) NOT NULL DEFAULT '',
 	`step` enum('queued','building','deploying','network') NOT NULL DEFAULT 'queued',
 	`started_at` bigint unsigned NOT NULL,
 	`ended_at` bigint unsigned,
@@ -663,7 +678,7 @@ CREATE TABLE `instances` (
 	`deployment_id` varchar(255) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
+	`app_id` varchar(64) NOT NULL DEFAULT '',
 	`region` varchar(64) NOT NULL,
 	`k8s_name` varchar(255) NOT NULL,
 	`address` varchar(255) NOT NULL,
@@ -694,7 +709,7 @@ CREATE TABLE `frontline_routes` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
+	`app_id` varchar(64) NOT NULL DEFAULT '',
 	`deployment_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
 	`fully_qualified_domain_name` varchar(256) NOT NULL,
@@ -734,7 +749,7 @@ CREATE TABLE `cilium_network_policies` (
 	`id` varchar(64) NOT NULL,
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
+	`app_id` varchar(64) NOT NULL DEFAULT '',
 	`environment_id` varchar(255) NOT NULL,
 	`deployment_id` varchar(128) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
@@ -769,6 +784,7 @@ CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
 CREATE INDEX `apps_workspace_idx` ON `apps` (`workspace_id`);
 CREATE INDEX `apps_project_idx` ON `apps` (`project_id`);
+CREATE INDEX `workspace_idx` ON `app_scaling_settings` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);

@@ -25,19 +25,10 @@ export const appRuntimeSettings = mysqlTable(
     environmentId: varchar("environment_id", { length: 128 }).notNull(),
 
     port: int("port").notNull().default(8080),
-    cpuMillicores: int("cpu_millicores").notNull().default(256),
-    memoryMib: int("memory_mib").notNull().default(256),
     command: json("command").$type<string[]>().notNull().default(sql`('[]')`),
 
     // null = no healthcheck configured
     healthcheck: json("healthcheck").$type<Healthcheck>(),
-
-    // Maps region ID to replica count, e.g. {"us-east-1": 3, "eu-central-1": 1}
-    // Empty object = 1 replica in all available regions (default behavior)
-    regionConfig: json("region_config")
-      .$type<Record<string, number>>()
-      .notNull()
-      .default(sql`('{}')`),
 
     shutdownSignal: mysqlEnum("shutdown_signal", ["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"])
       .notNull()

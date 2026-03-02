@@ -18,11 +18,8 @@ INSERT INTO app_runtime_settings (
     app_id,
     environment_id,
     port,
-    cpu_millicores,
-    memory_mib,
     command,
     healthcheck,
-    region_config,
     shutdown_signal,
     sentinel_config,
     created_at,
@@ -37,18 +34,12 @@ INSERT INTO app_runtime_settings (
     ?,
     ?,
     ?,
-    ?,
-    ?,
-    ?,
     ?
 )
 ON DUPLICATE KEY UPDATE
     port = VALUES(port),
-    cpu_millicores = VALUES(cpu_millicores),
-    memory_mib = VALUES(memory_mib),
     command = VALUES(command),
     healthcheck = VALUES(healthcheck),
-    region_config = VALUES(region_config),
     shutdown_signal = VALUES(shutdown_signal),
     sentinel_config = VALUES(sentinel_config),
     updated_at = VALUES(updated_at)
@@ -59,11 +50,8 @@ type UpsertAppRuntimeSettingsParams struct {
 	AppID          string                           `db:"app_id"`
 	EnvironmentID  string                           `db:"environment_id"`
 	Port           int32                            `db:"port"`
-	CpuMillicores  int32                            `db:"cpu_millicores"`
-	MemoryMib      int32                            `db:"memory_mib"`
 	Command        dbtype.StringSlice               `db:"command"`
 	Healthcheck    dbtype.NullHealthcheck           `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig              `db:"region_config"`
 	ShutdownSignal AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	SentinelConfig []byte                           `db:"sentinel_config"`
 	CreatedAt      int64                            `db:"created_at"`
@@ -77,11 +65,8 @@ type UpsertAppRuntimeSettingsParams struct {
 //	    app_id,
 //	    environment_id,
 //	    port,
-//	    cpu_millicores,
-//	    memory_mib,
 //	    command,
 //	    healthcheck,
-//	    region_config,
 //	    shutdown_signal,
 //	    sentinel_config,
 //	    created_at,
@@ -96,18 +81,12 @@ type UpsertAppRuntimeSettingsParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    ?,
-//	    ?,
-//	    ?,
 //	    ?
 //	)
 //	ON DUPLICATE KEY UPDATE
 //	    port = VALUES(port),
-//	    cpu_millicores = VALUES(cpu_millicores),
-//	    memory_mib = VALUES(memory_mib),
 //	    command = VALUES(command),
 //	    healthcheck = VALUES(healthcheck),
-//	    region_config = VALUES(region_config),
 //	    shutdown_signal = VALUES(shutdown_signal),
 //	    sentinel_config = VALUES(sentinel_config),
 //	    updated_at = VALUES(updated_at)
@@ -117,11 +96,8 @@ func (q *Queries) UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg Ups
 		arg.AppID,
 		arg.EnvironmentID,
 		arg.Port,
-		arg.CpuMillicores,
-		arg.MemoryMib,
 		arg.Command,
 		arg.Healthcheck,
-		arg.RegionConfig,
 		arg.ShutdownSignal,
 		arg.SentinelConfig,
 		arg.CreatedAt,
