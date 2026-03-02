@@ -20,6 +20,15 @@ const RootKeysTableActions = dynamic(
   },
 );
 
+export const ROOT_KEY_COLUMN_IDS = {
+  ROOT_KEY: "root_key",
+  KEY: "key",
+  PERMISSIONS: "permissions",
+  CREATED_AT: "created_at",
+  LAST_UPDATED: "last_updated",
+  ACTION: "action",
+} as const;
+
 type CreateRootKeyColumnsOptions = {
   selectedRootKeyId?: string;
   onEditKey: (rootKey: RootKey) => void;
@@ -30,10 +39,10 @@ export const createRootKeyColumns = ({
   onEditKey,
 }: CreateRootKeyColumnsOptions): DataTableColumnDef<RootKey>[] => [
   {
-    id: "root_key",
+    id: ROOT_KEY_COLUMN_IDS.ROOT_KEY,
     accessorKey: "name",
     header: ({ header }) => (
-      <SortableHeader key="root_key" header={header}>
+      <SortableHeader key={ROOT_KEY_COLUMN_IDS.ROOT_KEY} header={header}>
         Name
       </SortableHeader>
     ),
@@ -49,7 +58,7 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: "key",
+    id: ROOT_KEY_COLUMN_IDS.KEY,
     accessorKey: "start",
     header: "Key",
     meta: {
@@ -77,7 +86,7 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: "permissions",
+    id: ROOT_KEY_COLUMN_IDS.PERMISSIONS,
     header: "Permissions",
     meta: {
       width: "15%",
@@ -93,10 +102,10 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: "created_at",
+    id: ROOT_KEY_COLUMN_IDS.CREATED_AT,
     accessorKey: "createdAt",
     header: ({ header }) => (
-      <SortableHeader key="created_at" header={header}>
+      <SortableHeader key={ROOT_KEY_COLUMN_IDS.CREATED_AT} header={header}>
         Created At
       </SortableHeader>
     ),
@@ -114,10 +123,10 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: "last_updated",
+    id: ROOT_KEY_COLUMN_IDS.LAST_UPDATED,
     accessorKey: "lastUpdatedAt",
     header: ({ header }) => (
-      <SortableHeader key="last_updated" header={header}>
+      <SortableHeader key={ROOT_KEY_COLUMN_IDS.LAST_UPDATED} header={header}>
         Last Updated
       </SortableHeader>
     ),
@@ -135,7 +144,7 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: "action",
+    id: ROOT_KEY_COLUMN_IDS.ACTION,
     header: "",
     meta: {
       width: "auto",

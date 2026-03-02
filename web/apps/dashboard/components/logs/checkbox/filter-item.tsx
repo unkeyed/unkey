@@ -33,12 +33,6 @@ export const FilterItem = ({
   const itemRef = useRef<HTMLDivElement>(null); // Ref for the trigger div
   const contentRef = useRef<HTMLDivElement>(null); // Ref for the DroverContent
 
-  // Synchronize internal open state with the parent's isActive prop
-  // React shopuld handle state
-  // useEffect(() => {
-  //   setOpen(isActive ?? false);
-  // }, [isActive]);
-
   // Focus the trigger div when parent indicates it's focused in the main list
   // biome-ignore lint/correctness/useExhaustiveDependencies:  no need to react for label
   useEffect(() => {

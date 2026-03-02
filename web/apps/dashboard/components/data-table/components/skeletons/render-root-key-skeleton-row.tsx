@@ -1,4 +1,5 @@
 import type { DataTableColumnDef } from "@/components/data-table";
+import { ROOT_KEY_COLUMN_IDS } from "@/components/data-table/columns/create-root-key-columns";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
 import {
@@ -21,16 +22,16 @@ export const renderRootKeySkeletonRow = ({ columns, rowHeight }: RenderRootKeySk
       key={column.id}
       className={cn(
         "text-xs align-middle whitespace-nowrap",
-        column.id === "root_key" ? "py-[6px]" : "py-1",
+        column.id === ROOT_KEY_COLUMN_IDS.ROOT_KEY ? "py-[6px]" : "py-1",
         column.meta?.cellClassName,
       )}
       style={{ height: `${rowHeight}px` }}
     >
-      {column.id === "root_key" && <RootKeyColumnSkeleton />}
-      {column.id === "key" && <KeyColumnSkeleton />}
-      {column.id === "created_at" && <CreatedAtColumnSkeleton />}
-      {column.id === "permissions" && <PermissionsColumnSkeleton />}
-      {column.id === "last_updated" && <LastUpdatedColumnSkeleton />}
-      {column.id === "action" && <ActionColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.ROOT_KEY && <RootKeyColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.KEY && <KeyColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.CREATED_AT && <CreatedAtColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.PERMISSIONS && <PermissionsColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.LAST_UPDATED && <LastUpdatedColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.ACTION && <ActionColumnSkeleton />}
     </td>
   ));

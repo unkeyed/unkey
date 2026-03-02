@@ -6,7 +6,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { DataTableColumnDef } from "../types";
 
 interface UseDataTableProps<TData> {
@@ -45,13 +45,10 @@ export const useDataTable = <TData>({
   const rowSelection = controlledRowSelection ?? internalRowSelection;
   const onRowSelectionChange = controlledOnRowSelectionChange ?? setInternalRowSelection;
 
-  // Memoize columns to prevent unnecessary re-renders
-  const memoizedColumns = useMemo(() => columns, [columns]);
-
   // Create table instance
   const table = useReactTable({
     data,
-    columns: memoizedColumns,
+    columns,
     getRowId,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,

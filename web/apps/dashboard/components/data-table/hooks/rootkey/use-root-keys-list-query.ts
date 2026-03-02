@@ -5,11 +5,17 @@ import {
 import type { RootKeysFilterValue } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/settings/root-keys/hooks/use-filters";
 import { trpc } from "@/lib/trpc/client";
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 
 // Mirrors LIMIT in query.ts — kept here to avoid importing the server-side router into the client bundle
 const DEFAULT_PAGE_SIZE = 50;
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import type { RootKeysQueryPayload } from "../../schema/query-logs.schema";
 
 function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysQueryPayload {
@@ -36,56 +42,6 @@ function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysQueryPayload 
   }
 
   return params;
-}
-
-export function useRootKeysListQuery() {
-  const { filters } = useFilters();
-
-  const queryParams = useMemo(() => buildQueryParams(filters), [filters]);
-
-  const {
-    data: rootKeyData,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = trpc.settings.rootKeys.query.useInfiniteQuery(queryParams, {
-    getNextPageParam: (lastPage: { nextCursor?: number }) => lastPage.nextCursor,
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const rootKeys = useMemo<RootKey[]>(() => {
-    if (!rootKeyData) {
-      return [];
-    }
-
-    const seen = new Set<string>();
-    const result: RootKey[] = [];
-
-    for (const page of rootKeyData.pages) {
-      for (const key of page.keys) {
-        if (!seen.has(key.id)) {
-          seen.add(key.id);
-          result.push(key);
-        }
-      }
-    }
-
-    return result;
-  }, [rootKeyData]);
-
-  const totalCount = rootKeyData?.pages[0]?.total ?? 0;
-
-  return {
-    rootKeys,
-    isLoading,
-    hasMore: hasNextPage,
-    loadMore: fetchNextPage,
-    isLoadingMore: isFetchingNextPage,
-    totalCount,
-  };
 }
 
 export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
@@ -130,15 +86,18 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const onPageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages || !pageCursors.current.has(newPage)) {
-      return;
-    }
+  const onPageChange = useCallback(
+    (newPage: number) => {
+      if (newPage < 1 || newPage > totalPages || !pageCursors.current.has(newPage)) {
+        return;
+      }
 
-    startTransition(() => {
-      setPage(newPage);
-    });
-  };
+      startTransition(() => {
+        setPage(newPage);
+      });
+    },
+    [totalPages],
+  );
 
   return {
     rootKeys: data?.keys ?? [],

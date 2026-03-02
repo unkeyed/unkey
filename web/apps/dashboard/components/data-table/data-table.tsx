@@ -65,7 +65,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
   } = props;
 
   // Merge configs
-  const config = { ...DEFAULT_CONFIG, ...userConfig };
+  const config = useMemo(() => ({ ...DEFAULT_CONFIG, ...userConfig }), [userConfig]);
   const isGridLayout = config.layout === "grid";
 
   // Refs
@@ -110,6 +110,9 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
     () => columns.map((col) => calculateColumnWidth(col.meta?.width)),
     [columns],
   );
+
+  // Build a Set of realtime row IDs for separator boundary detection
+  const realtimeIds = useMemo(() => new Set(realtimeData.map(getRowId)), [realtimeData, getRowId]);
 
   // Keyboard navigation handler
   const handleKeyDown = useCallback(
@@ -212,9 +215,6 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
       </div>
     );
   }
-
-  // Build a Set of realtime row IDs for separator boundary detection
-  const realtimeIds = new Set(realtimeData.map(getRowId));
 
   // Main render
   return (
