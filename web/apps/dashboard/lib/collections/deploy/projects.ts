@@ -144,8 +144,8 @@ export const projects = createCollection<Project, string>(
       });
       const result = await mutation;
       transaction.metadata = {
-        projectId: result.id
-      }
+        projectId: result.id,
+      };
     },
   }),
 );
