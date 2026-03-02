@@ -299,6 +299,7 @@ type Querier interface {
 	//      d.workspace_id,
 	//      d.project_id,
 	//      d.environment_id,
+	//      d.app_id,
 	//      d.build_id,
 	//      d.image,
 	//      dt.region,
