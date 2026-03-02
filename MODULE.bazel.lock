@@ -650,11 +650,54 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "0Rb07t3cgiQkuTidEfKIxvYjKa6YtzAs3OAQyEW/MSc=",
-        "usagesDigest": "/O1PwnnkqSBmI9Oe08ZYYqjM4IS8JR+/9rjgzVTNDaQ=",
+        "usagesDigest": "TuCdUnTZfCV6LOLwJN5MLHAy7dPwwmZVHna0mM0BtM0=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
+          "distroless_static_linux_amd64": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "gcr.io",
+              "repository": "distroless/static-debian12",
+              "identifier": "sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838",
+              "platform": "linux/amd64",
+              "target_name": "distroless_static_linux_amd64",
+              "bazel_tags": []
+            }
+          },
+          "distroless_static_linux_arm64_v8": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "gcr.io",
+              "repository": "distroless/static-debian12",
+              "identifier": "sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838",
+              "platform": "linux/arm64/v8",
+              "target_name": "distroless_static_linux_arm64_v8",
+              "bazel_tags": []
+            }
+          },
+          "distroless_static": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_alias",
+            "attributes": {
+              "target_name": "distroless_static",
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "gcr.io",
+              "repository": "distroless/static-debian12",
+              "identifier": "sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838",
+              "platforms": {
+                "@@platforms//cpu:x86_64": "@distroless_static_linux_amd64",
+                "@@platforms//cpu:arm64": "@distroless_static_linux_arm64_v8"
+              },
+              "bzlmod_repository": "distroless_static",
+              "reproducible": true
+            }
+          },
           "oci_crane_darwin_amd64": {
             "repoRuleId": "@@rules_oci+//oci:repositories.bzl%crane_repositories",
             "attributes": {
@@ -770,7 +813,11 @@
           }
         },
         "moduleExtensionMetadata": {
-          "explicitRootModuleDirectDeps": [],
+          "explicitRootModuleDirectDeps": [
+            "distroless_static",
+            "distroless_static_linux_amd64",
+            "distroless_static_linux_arm64_v8"
+          ],
           "explicitRootModuleDirectDevDeps": [],
           "useAllRepos": "NO",
           "reproducible": false
