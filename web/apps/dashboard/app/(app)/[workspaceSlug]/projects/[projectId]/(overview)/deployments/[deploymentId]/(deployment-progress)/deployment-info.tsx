@@ -35,13 +35,6 @@ export function DeploymentInfo({ title = "Deployment" }: { title?: string }) {
                   {formatMemory(deployment.memoryMib)}
                 </div>
               </InfoChip>
-              <DisabledWrapper tooltipContent="Storage metrics coming soon">
-                <InfoChip icon={Harddrive}>
-                  <div className="text-grayA-10 text-xs">
-                    <span className="text-gray-12 font-medium">—</span> GB
-                  </div>
-                </InfoChip>
-              </DisabledWrapper>
             </div>
             <RegionFlags instances={deployment.instances} />
             {projectLayout && (
