@@ -98,10 +98,10 @@ function SettingCard({
   const borderClass = inGroup
     ? {}
     : {
-      "border border-grayA-4": border !== "none",
-      "border-t-0": border === "bottom",
-      "border-b-0": border === "top",
-    };
+        "border border-grayA-4": border !== "none",
+        "border-t-0": border === "bottom",
+        "border-b-0": border === "top",
+      };
 
   const expandedBottomRadius =
     !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
@@ -154,7 +154,12 @@ function SettingCard({
       >
         <div className="flex gap-4 items-center">
           {icon && (
-            <div className={cn("bg-gray-3 size-8 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20", iconClassName)}>
+            <div
+              className={cn(
+                "bg-gray-3 size-8 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
+                iconClassName,
+              )}
+            >
               {icon}
             </div>
           )}

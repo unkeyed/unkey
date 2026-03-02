@@ -1,8 +1,8 @@
 import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Check, Github, Magnifier, XMark } from "@unkey/icons";
 import { Input, toast, useStepWizard } from "@unkey/ui";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef, useState } from "react";
 import { RepoListItem } from "./repo-list-item";
 import { SelectRepoSkeleton } from "./skeleton";
@@ -163,9 +163,7 @@ export const SelectRepo = ({
                     ref={virtualizer.measureElement}
                     data-index={virtualRow.index}
                     className={
-                      virtualRow.index < filteredRepos.length - 1
-                        ? "border-b border-grayA-5"
-                        : ""
+                      virtualRow.index < filteredRepos.length - 1 ? "border-b border-grayA-5" : ""
                     }
                     style={{
                       position: "absolute",
