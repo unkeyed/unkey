@@ -58,7 +58,7 @@ export const RepoListItem = ({
           {repoName}
         </div>
         <div className="font-medium text-[13px] text-gray-10 leading-3">
-          <TimestampInfo value={repo.pushedAt} displayType="relative" />{" "}
+          <TimestampInfo value={repo.pushedAt ?? 0} displayType="relative" />{" "}
         </div>
       </div>
       <div className="flex gap-2 items-center ml-auto">
