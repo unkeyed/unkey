@@ -54,8 +54,12 @@ export const RepoListItem = ({
         <CircleDotted iconSize="sm-medium" className="text-gray-9" />
       </div>
       <div className="flex flex-col gap-1 w-[160px]">
-        <div className="font-medium text-[13px] text-gray-12 leading-4 truncate max-w-[160px]">{repoName}</div>
-        <div className="font-medium text-[13px] text-gray-10 leading-3"><TimestampInfo value={repo.pushedAt} displayType="relative" /> </div>
+        <div className="font-medium text-[13px] text-gray-12 leading-4 truncate max-w-[160px]">
+          {repoName}
+        </div>
+        <div className="font-medium text-[13px] text-gray-10 leading-3">
+          <TimestampInfo value={repo.pushedAt} displayType="relative" />{" "}
+        </div>
       </div>
       <div className="flex gap-2 items-center ml-auto">
         {isLoading ? (
@@ -85,11 +89,7 @@ export const RepoListItem = ({
               </SelectTrigger>
               <SelectContent className="max-h-[200px]">
                 {(details.branches ?? []).map((branch) => (
-                  <SelectItem
-                    key={branch}
-                    value={branch}
-                    className="cursor-pointer text-[13px]"
-                  >
+                  <SelectItem key={branch} value={branch} className="cursor-pointer text-[13px]">
                     {branch}
                   </SelectItem>
                 ))}

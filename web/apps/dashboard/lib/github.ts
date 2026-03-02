@@ -38,7 +38,6 @@ const repositoryBranchesSchema = z.array(
   }),
 );
 
-
 const GITHUB_API_HEADERS = {
   Accept: "application/vnd.github+json",
   "X-GitHub-Api-Version": "2022-11-28",
@@ -59,7 +58,6 @@ async function fetchGitHubApi(url: string, token: string): Promise<unknown> {
 
   return response.json();
 }
-
 
 function base64UrlEncode(data: string): string {
   return Buffer.from(data).toString("base64url");
@@ -89,7 +87,6 @@ function generateAppJWT(): string {
 
   return `${signatureInput}.${signature}`;
 }
-
 
 export async function getInstallationAccessToken(
   installationId: number,

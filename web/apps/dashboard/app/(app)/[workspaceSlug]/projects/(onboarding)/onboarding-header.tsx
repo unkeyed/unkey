@@ -43,6 +43,7 @@ const IconRow = () => (
   >
     <div className="flex gap-6 items-center justify-center text-gray-12">
       {iconItems.map((item, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: its okay
         <IconBox key={i} large={item.large} className={item.opacity}>
           {item.icon}
         </IconBox>
@@ -84,13 +85,13 @@ const stepConfigs: Record<string, StepConfig> = {
     title: "Select a repository",
     subtitle: (
       <>
-        Choose a repository and a branch containing your project.<br />
+        Choose a repository and a branch containing your project.
+        <br />
         We’ll automatically detect Dockerfiles.
       </>
     ),
     showIconRow: false,
   },
-
 };
 
 type OnboardingHeaderProps = {

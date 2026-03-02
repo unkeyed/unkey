@@ -98,13 +98,16 @@ export const SelectRepo = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search repositories..."
-              leftIcon={<Magnifier iconSize="sm-regular" className="text-gray-12 shrink-0 size-3" />}
+              leftIcon={
+                <Magnifier iconSize="sm-regular" className="text-gray-12 shrink-0 size-3" />
+              }
             />
-          </div>) : null}
+          </div>
+        ) : null}
       </div>
 
-      {(reposData?.repositories ?? []).length > 0 && (
-        filteredRepos.length > 0 ? (
+      {(reposData?.repositories ?? []).length > 0 &&
+        (filteredRepos.length > 0 ? (
           <ul className="mt-3 flex flex-col border rounded-[14px] border-grayA-5 divide-y divide-grayA-5 min-w-[640px]">
             {filteredRepos.map((repo) => (
               <li key={repo.id} className="animate-in fade-in duration-300">
@@ -121,8 +124,7 @@ export const SelectRepo = ({
           <div className="mt-3 flex items-center justify-center min-w-[640px] h-[200px] border border-dashed rounded-[14px] border-grayA-5">
             <p className="text-sm text-gray-9">No repositories found</p>
           </div>
-        )
-      )}
+        ))}
     </div>
   );
 };
