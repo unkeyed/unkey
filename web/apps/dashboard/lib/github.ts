@@ -10,6 +10,7 @@ const gitHubRepositorySchema = z.object({
   html_url: z.string(),
   default_branch: z.string(),
   pushed_at: z.string().nullable(),
+  language: z.string().nullable(),
 });
 
 export type GitHubRepository = z.infer<typeof gitHubRepositorySchema>;

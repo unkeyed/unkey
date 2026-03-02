@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc/client";
-import { Check, ChevronDown, CircleDotted, CodeBranch } from "@unkey/icons";
+import { Check, ChevronDown, CodeBranch } from "@unkey/icons";
 import {
   Button,
   Select,
@@ -10,6 +10,7 @@ import {
   TimestampInfo,
 } from "@unkey/ui";
 import { useState } from "react";
+import { LanguageIcon } from "./language-icon";
 
 export type RepoItem = {
   id: number;
@@ -17,6 +18,7 @@ export type RepoItem = {
   installationId: number;
   defaultBranch: string;
   pushedAt: string | null;
+  language: string | null;
 };
 
 export const RepoListItem = ({
@@ -52,9 +54,7 @@ export const RepoListItem = ({
 
   return (
     <div className="flex px-4 py-5 items-center">
-      <div className="size-[26px] grid place-content-center p-[7px] border rounded-lg border-grayA-5 shadow-md mr-11 ">
-        <CircleDotted iconSize="sm-medium" className="text-gray-9" />
-      </div>
+      <LanguageIcon language={repo.language} />
       <div className="flex flex-col gap-1 w-[160px]">
         <div className="font-medium text-[13px] text-gray-12 leading-4 truncate max-w-[160px]">
           {repoName}

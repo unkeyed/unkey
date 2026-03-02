@@ -246,6 +246,7 @@ export const githubRouter = t.router({
         defaultBranch: string;
         installationId: number;
         pushedAt: string | null;
+        language: string | null;
       }> = [];
 
       for (const installation of githubContext.installations) {
@@ -268,6 +269,7 @@ export const githubRouter = t.router({
             defaultBranch: repo.default_branch,
             installationId: installation.installationId,
             pushedAt: repo.pushed_at,
+            language: repo.language,
           });
         }
       }
