@@ -412,6 +412,20 @@ type Querier interface {
 	//    AND sticky IN (/*SLICE:sticky*/?)
 	//  ORDER BY created_at ASC
 	FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
+	//FindGithubRepoConnectionByAppId
+	//
+	//  SELECT
+	//      pk,
+	//      project_id,
+	//      app_id,
+	//      installation_id,
+	//      repository_id,
+	//      repository_full_name,
+	//      created_at,
+	//      updated_at
+	//  FROM github_repo_connections
+	//  WHERE app_id = ?
+	FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, appID string) (GithubRepoConnection, error)
 	//FindGithubRepoConnectionByProjectId
 	//
 	//  SELECT
@@ -424,7 +438,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM github_repo_connections
 	//  WHERE project_id = ?
-	FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (GithubRepoConnection, error)
+	FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (FindGithubRepoConnectionByProjectIdRow, error)
 	//FindIdentities
 	//
 	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at

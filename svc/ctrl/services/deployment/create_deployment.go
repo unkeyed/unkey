@@ -25,18 +25,25 @@ const (
 	maxCommitAuthorAvatarLength = 512
 )
 
+// dockerSourceInfo holds the Docker image and inherited git metadata from a
+// live deployment, used when redeploying a non-git project.
+type dockerSourceInfo struct {
+	commitSHA       string
+	branch          string
+	commitMessage   string
+	authorHandle    string
+	authorAvatarURL string
+	commitTimestamp int64
+	dockerImage     string
+}
+
 // CreateDeployment creates a new deployment record and initiates an async Restate
-// workflow. The deployment source must be a prebuilt Docker image.
+// workflow. When source is omitted, the handler auto-detects: git-connected
+// apps deploy HEAD of their default branch, non-git apps reuse the live
+// deployment's Docker image.
 //
-// The method looks up the project and app to infer the workspace, validates the
-// environment exists, fetches app-scoped environment variables with template
-// resolution, and persists the deployment with status "pending" before triggering
-// the workflow. Git commit metadata is optional but validated when provided:
-// timestamps must be Unix epoch milliseconds and cannot be more than one hour
-// in the future.
-//
-// The workflow runs asynchronously keyed by app ID, so only one deployment
-// per app executes at a time. Returns the deployment ID and initial status.
+// The workflow runs asynchronously keyed by project ID, so only one deployment
+// per project executes at a time. Returns the deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
@@ -44,12 +51,6 @@ func (s *Service) CreateDeployment(
 	if req.Msg.GetProjectId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("project_id is required"))
-	}
-
-	dockerImage := req.Msg.GetDockerImage()
-	if dockerImage == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("docker_image is required"))
 	}
 
 	// Lookup project and infer workspace from it
@@ -88,7 +89,6 @@ func (s *Service) CreateDeployment(
 	app := appWithSettings.App
 	appBuildSettings := appWithSettings.AppBuildSetting
 	appRuntimeSettings := appWithSettings.AppRuntimeSetting
-	_ = appBuildSettings // build settings used by the workflow, not here
 
 	// Verify the environment exists
 	envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
@@ -126,61 +126,120 @@ func (s *Service) CreateDeployment(
 			secretsConfig.Secrets[ev.Key] = ev.Value
 		}
 
-		var err error
 		secretsBlob, err = protojson.Marshal(secretsConfig)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal,
 				fmt.Errorf("failed to marshal secrets config: %w", err))
 		}
 	}
-	// Get git branch name for the deployment
-	gitBranch := ""
-	if gc := req.Msg.GetGitCommit(); gc != nil {
-		gitBranch = gc.GetBranch()
-	}
-	if gitBranch == "" {
-		gitBranch = project.DefaultBranch.String
-		if gitBranch == "" {
-			gitBranch = "main" // fallback default
-		}
-	}
-
-	// Validate git commit timestamp if provided (must be Unix epoch milliseconds)
-	if req.Msg.GetGitCommit() != nil && req.Msg.GetGitCommit().GetTimestamp() != 0 {
-		timestamp := req.Msg.GetGitCommit().GetTimestamp()
-		if timestamp < 1_000_000_000_000 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("git_commit_timestamp must be Unix epoch milliseconds, got %d (appears to be seconds format)", timestamp))
-		}
-
-		maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
-		if timestamp > maxValidTimestamp {
-			return nil,
-				connect.NewError(
-					connect.CodeInvalidArgument,
-					fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp),
-				)
-		}
-	}
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
 
-	var gitCommitSha, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarURL string
+	var gitCommitSha, gitBranch, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarURL string
 	var gitCommitTimestamp int64
+	var deployReq *hydrav1.DeployRequest
 
-	if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
-		gitCommitSha = gitCommit.GetCommitSha()
-		gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
-		gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
-		gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
-		gitCommitTimestamp = gitCommit.GetTimestamp()
+	// Resolve request-level overrides once so all branches can use them.
+	keyspaceID := req.Msg.GetKeyspaceId()
+	var keyAuthID *string
+	if keyspaceID != "" {
+		keyAuthID = &keyspaceID
 	}
+	command := req.Msg.GetCommand()
 
-	logger.Info("deployment will use prebuilt image",
-		"deployment_id", deploymentID,
-		"app_id", app.ID,
-		"image", dockerImage)
+	if dockerImage := req.Msg.GetDockerImage(); dockerImage != "" {
+		// Explicit docker image (CLI, REST API)
+		gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), project.DefaultBranch)
+
+		if tsErr := validateGitCommitTimestamp(req.Msg.GetGitCommit()); tsErr != nil {
+			return nil, tsErr
+		}
+
+		if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
+			gitCommitSha = gitCommit.GetCommitSha()
+			gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
+			gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
+			gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
+			gitCommitTimestamp = gitCommit.GetTimestamp()
+		}
+
+		logger.Info("deployment will use prebuilt image",
+			"deployment_id", deploymentID,
+			"app_id", app.ID,
+			"image", dockerImage)
+
+		deployReq = &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			KeyAuthId:    keyAuthID,
+			Command:      command,
+			Source: &hydrav1.DeployRequest_DockerImage{
+				DockerImage: &hydrav1.DockerImage{
+					Image: dockerImage,
+				},
+			},
+		}
+	} else {
+		// Source omitted (dashboard redeploy w/o commit SHA): auto-detect from app config
+		repoConn, repoErr := db.Query.FindGithubRepoConnectionByAppId(ctx, s.db.RO(), app.ID)
+		hasRepoConnection := repoErr == nil
+		if repoErr != nil && !db.IsNotFound(repoErr) {
+			return nil, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("failed to lookup github repo connection: %w", repoErr))
+		}
+
+		if hasRepoConnection {
+			// Has github_repo_connections row: build from git source.
+			gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), project.DefaultBranch)
+
+			if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
+				gitCommitSha = gitCommit.GetCommitSha()
+				gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
+				gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
+				gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
+				gitCommitTimestamp = gitCommit.GetTimestamp()
+			}
+
+			deployReq = &hydrav1.DeployRequest{
+				DeploymentId: deploymentID,
+				KeyAuthId:    keyAuthID,
+				Command:      command,
+				Source: &hydrav1.DeployRequest_Git{
+					Git: &hydrav1.GitSource{
+						InstallationId: repoConn.InstallationID,
+						Repository:     repoConn.RepositoryFullName,
+						CommitSha:      gitCommitSha,
+						ContextPath:    appBuildSettings.DockerContext,
+						DockerfilePath: appBuildSettings.Dockerfile,
+						Branch:         gitBranch,
+					},
+				},
+			}
+		} else {
+			// No repo connection: redeploy the live deployment's Docker image
+			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, app, deploymentID)
+			if dockerErr != nil {
+				return nil, dockerErr
+			}
+			gitCommitSha = dockerInfo.commitSHA
+			gitBranch = dockerInfo.branch
+			gitCommitMessage = dockerInfo.commitMessage
+			gitCommitAuthorHandle = dockerInfo.authorHandle
+			gitCommitAuthorAvatarURL = dockerInfo.authorAvatarURL
+			gitCommitTimestamp = dockerInfo.commitTimestamp
+
+			deployReq = &hydrav1.DeployRequest{
+				DeploymentId: deploymentID,
+				KeyAuthId:    keyAuthID,
+				Command:      command,
+				Source: &hydrav1.DeployRequest_DockerImage{
+					DockerImage: &hydrav1.DockerImage{
+						Image: dockerInfo.dockerImage,
+					},
+				},
+			}
+		}
+	}
 
 	// Insert deployment into database, snapshotting settings from app
 	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
@@ -198,7 +257,7 @@ func (s *Service) CreateDeployment(
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
 		GitCommitSha:                  sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
-		GitBranch:                     sql.NullString{String: gitBranch, Valid: true},
+		GitBranch:                     sql.NullString{String: gitBranch, Valid: gitBranch != ""},
 		GitCommitMessage:              sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},
 		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
@@ -222,26 +281,8 @@ func (s *Service) CreateDeployment(
 		"environment", env.ID,
 	)
 
-	// Start the deployment workflow
-	keyspaceID := req.Msg.GetKeyspaceId()
-	var keySpaceID *string
-	if keyspaceID != "" {
-		keySpaceID = &keyspaceID
-	}
-
-	deployReq := &hydrav1.DeployRequest{
-		DeploymentId: deploymentID,
-		KeyAuthId:    keySpaceID,
-		Command:      req.Msg.GetCommand(),
-		Source: &hydrav1.DeployRequest_DockerImage{
-			DockerImage: &hydrav1.DockerImage{
-				Image: dockerImage,
-			},
-		},
-	}
-
-	// Send deployment request asynchronously (fire-and-forget), keyed by app ID
-	invocation, err := s.deploymentClient(app.ID).
+	// Send deployment request asynchronously, keyed by project ID
+	invocation, err := s.deploymentClient(project.ID).
 		Deploy().
 		Send(ctx, deployReq)
 	if err != nil {
@@ -268,6 +309,83 @@ func (s *Service) CreateDeployment(
 		DeploymentId: deploymentID,
 		Status:       ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
 	}), nil
+}
+
+// branchFromGitCommit extracts the branch from GitCommitInfo, falling back
+// to the project's default branch or "main".
+func branchFromGitCommit(gitCommit *ctrlv1.GitCommitInfo, defaultBranch sql.NullString) string {
+	if gitCommit != nil && gitCommit.GetBranch() != "" {
+		return gitCommit.GetBranch()
+	}
+	if defaultBranch.Valid && defaultBranch.String != "" {
+		return defaultBranch.String
+	}
+	return "main"
+}
+
+// validateGitCommitTimestamp validates the timestamp in GitCommitInfo if present.
+func validateGitCommitTimestamp(gitCommit *ctrlv1.GitCommitInfo) error {
+	if gitCommit == nil || gitCommit.GetTimestamp() == 0 {
+		return nil
+	}
+	timestamp := gitCommit.GetTimestamp()
+
+	if timestamp < 1_000_000_000_000 {
+		return connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("git_commit_timestamp must be Unix epoch milliseconds, got %d (appears to be seconds format)", timestamp))
+	}
+
+	maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
+	if timestamp > maxValidTimestamp {
+		return connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp))
+	}
+	return nil
+}
+
+// buildDockerSource looks up the app's live deployment's Docker image and carries
+// over its git metadata for the new deployment record.
+func buildDockerSource(
+	ctx context.Context,
+	database db.Database,
+	app db.App,
+	deploymentID string,
+) (dockerSourceInfo, error) {
+	if !app.LiveDeploymentID.Valid || app.LiveDeploymentID.String == "" {
+		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("app %q has no live deployment and no git connection; cannot redeploy", app.ID))
+	}
+
+	liveDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), app.LiveDeploymentID.String)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("live deployment %q not found", app.LiveDeploymentID.String))
+		}
+		return dockerSourceInfo{}, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to lookup live deployment: %w", err))
+	}
+
+	if !liveDeployment.Image.Valid || liveDeployment.Image.String == "" {
+		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("live deployment %q has no Docker image; cannot redeploy without git connection",
+				app.LiveDeploymentID.String))
+	}
+
+	logger.Info("deployment will reuse live deployment image",
+		"deployment_id", deploymentID,
+		"live_deployment_id", app.LiveDeploymentID.String,
+		"image", liveDeployment.Image.String)
+
+	return dockerSourceInfo{
+		dockerImage:     liveDeployment.Image.String,
+		commitSHA:       liveDeployment.GitCommitSha.String,
+		branch:          liveDeployment.GitBranch.String,
+		commitMessage:   liveDeployment.GitCommitMessage.String,
+		authorHandle:    liveDeployment.GitCommitAuthorHandle.String,
+		authorAvatarURL: liveDeployment.GitCommitAuthorAvatarUrl.String,
+		commitTimestamp: liveDeployment.GitCommitTimestamp.Int64,
+	}, nil
 }
 
 // trimLength truncates s to the specified number of characters. Note this
