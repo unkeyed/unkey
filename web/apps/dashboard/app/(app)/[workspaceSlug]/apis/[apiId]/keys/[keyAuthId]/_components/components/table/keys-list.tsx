@@ -1,11 +1,11 @@
 "use client";
-import { HiddenValueCell } from "@/components/data-table";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Dots, Focus, Key } from "@unkey/icons";
+import { HiddenValueCell } from "@unkey/ui";
 import { Button, Checkbox, Empty, InfoTooltip, Loading } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";

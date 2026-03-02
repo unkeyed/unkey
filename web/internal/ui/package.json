@@ -19,6 +19,7 @@
     "typescript": "5.9.3"
   },
   "dependencies": {
+    "@tanstack/react-table": "8.21.3",
     "@radix-ui/colors": "3.0.0",
     "@radix-ui/react-checkbox": "1.3.3",
     "@radix-ui/react-dialog": "1.1.15",

@@ -1,16 +1,14 @@
 "use client";
 import {
-  DataTable,
-  EmptyRootKeys,
-  PaginationFooter,
   createRootKeyColumns,
+  getRowClassName,
   renderRootKeySkeletonRow,
-} from "@/components/data-table";
-import { useRootKeysListPaginated } from "@/components/data-table/hooks/rootkey/use-root-keys-list-query";
-import { getRowClassName } from "@/components/data-table/utils/get-row-class";
+  useRootKeysListPaginated,
+} from "@/components/root-keys-table";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { unkeyPermissionValidation } from "@unkey/rbac";
+import { DataTable, EmptyRootKeys, PaginationFooter } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { RootKeyDialog } from "../dialog/root-key-dialog";
 

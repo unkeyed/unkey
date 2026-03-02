@@ -1,1 +1,0 @@
-export { BREATHING_SPACE, DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT } from "./constants";
