@@ -12,6 +12,7 @@ export const addCustomDomain = workspaceProcedure
   .input(
     z.object({
       projectId: z.string().min(1, "Project ID is required"),
+      appId: z.string().min(1, "App ID is required"),
       environmentId: z.string().min(1, "Environment ID is required"),
       domain: z.string().min(1, "Domain is required").max(253, "Domain too long"),
     }),
@@ -74,6 +75,7 @@ export const addCustomDomain = workspaceProcedure
       const response = await ctrl.addCustomDomain({
         workspaceId: ctx.workspace.id,
         projectId: input.projectId,
+        appId: input.appId,
         environmentId: input.environmentId,
         domain: input.domain,
       });

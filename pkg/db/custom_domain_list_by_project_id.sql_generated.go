@@ -10,7 +10,7 @@ import (
 )
 
 const listCustomDomainsByProjectID = `-- name: ListCustomDomainsByProjectID :many
-SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
 FROM custom_domains
 WHERE project_id = ?
 ORDER BY created_at DESC
@@ -18,7 +18,7 @@ ORDER BY created_at DESC
 
 // ListCustomDomainsByProjectID
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
 //	FROM custom_domains
 //	WHERE project_id = ?
 //	ORDER BY created_at DESC
@@ -36,6 +36,7 @@ func (q *Queries) ListCustomDomainsByProjectID(ctx context.Context, db DBTX, pro
 			&i.ID,
 			&i.WorkspaceID,
 			&i.ProjectID,
+			&i.AppID,
 			&i.EnvironmentID,
 			&i.Domain,
 			&i.ChallengeType,
