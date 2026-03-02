@@ -181,8 +181,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"environment", envSlug,
 		)
 
-		// Start deploy workflow with GitSource, keyed by app ID
-		deployClient := hydrav1.NewDeployServiceClient(ctx, app.ID)
+		// Start deploy workflow with GitSource, keyed by project ID
+		deployClient := hydrav1.NewDeployServiceClient(ctx, project.ID)
 		deployClient.Deploy().Send(&hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Source: &hydrav1.DeployRequest_Git{
