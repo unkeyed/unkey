@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingState } from "@/components/loading-state";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { useParams } from "next/navigation";
 import { createContext, useContext } from "react";
@@ -19,10 +20,13 @@ export const DeploymentLayoutProvider = ({ children }: { children: React.ReactNo
     throw new Error("DeploymentLayoutProvider must be used within a deployment route");
   }
 
-  const { getDeploymentById } = useProjectData();
+  const { getDeploymentById, isDeploymentsLoading } = useProjectData();
   const deployment = getDeploymentById(deploymentId);
 
   if (!deployment) {
+    if (isDeploymentsLoading) {
+      return <LoadingState message="Loading deployment..." />;
+    }
     throw new Error(`Deployment not found: ${deploymentId}`);
   }
 
