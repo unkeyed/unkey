@@ -89,7 +89,7 @@ export const DeploymentsList = () => {
                         {project?.isRolledBack ? (
                           <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
                         ) : (
-                          <EnvStatusBadge variant="live" text="Live" />
+                          <EnvStatusBadge variant="live" text="Current" />
                         )}
                       </div>
                     ) : null}
