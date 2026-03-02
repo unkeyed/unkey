@@ -97,14 +97,12 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   // Page 1 always starts from the beginning (undefined cursor).
   const pageCursors = useRef<Map<number, number | undefined>>(new Map([[1, undefined]]));
 
-  // Stable key representing the current filter state.
-  const filterKey = useMemo(() => JSON.stringify(filters), [filters]);
-
   // Reset pagination whenever filters change.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: filters is an intentional trigger — not consumed in the body but must cause this effect to re-run on change
   useEffect(() => {
     pageCursors.current = new Map([[1, undefined]]);
     setPage(1);
-  }, [filterKey]);
+  }, [filters]);
 
   const baseParams = useMemo(() => buildQueryParams(filters), [filters]);
 

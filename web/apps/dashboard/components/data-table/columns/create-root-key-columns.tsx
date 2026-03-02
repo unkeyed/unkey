@@ -95,7 +95,11 @@ export const createRootKeyColumns = ({
   {
     id: "created_at",
     accessorKey: "createdAt",
-    header: "Created At",
+    header: ({ header }) => (
+      <SortableHeader key="created_at" header={header}>
+        Created At
+      </SortableHeader>
+    ),
     meta: {
       width: "14%",
     },
@@ -112,7 +116,11 @@ export const createRootKeyColumns = ({
   {
     id: "last_updated",
     accessorKey: "lastUpdatedAt",
-    header: "Last Updated",
+    header: ({ header }) => (
+      <SortableHeader key="last_updated" header={header}>
+        Last Updated
+      </SortableHeader>
+    ),
     meta: {
       width: "20%",
     },

@@ -1,7 +1,18 @@
 import { cn } from "@/lib/utils";
 import { flexRender } from "@tanstack/react-table";
 import { useIsMobile } from "@unkey/ui";
-import { Fragment, forwardRef, useImperativeHandle, useMemo, useRef } from "react";
+import {
+  Fragment,
+  type KeyboardEvent,
+  type ReactElement,
+  type ReactNode,
+  type Ref,
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
 import { LoadMoreFooter } from "./components/footer/load-more-footer";
 import { Pagination } from "./components/pagination";
 import { SkeletonRow } from "./components/rows/skeleton-row";
@@ -11,7 +22,7 @@ import { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
 import { useRealtimeData } from "./hooks/use-realtime-data";
 import { useTableHeight } from "./hooks/use-table-height";
-import type { DataTableProps, SeparatorItem } from "./types";
+import type { DataTableProps } from "./types";
 import { calculateColumnWidth } from "./utils/column-width";
 
 export type DataTableRef = {
@@ -22,7 +33,7 @@ export type DataTableRef = {
 /**
  * Main DataTable component with TanStack Table + TanStack Virtual
  */
-function DataTableInner<TData>(props: DataTableProps<TData>, ref: React.Ref<DataTableRef>) {
+function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableRef>) {
   const {
     data: historicData,
     realtimeData = [],
@@ -100,6 +111,45 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: React.Ref<Data
     [columns],
   );
 
+  // Keyboard navigation handler
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLTableRowElement>, rowIndex: number) => {
+      if (!enableKeyboardNav) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onRowClick?.(null);
+        const activeElement = document.activeElement as HTMLElement;
+        activeElement?.blur();
+      }
+
+      if (event.key === "ArrowDown" || event.key === "j") {
+        event.preventDefault();
+        const nextElement = document.querySelector(
+          `[data-row-index="${rowIndex + 1}"]`,
+        ) as HTMLElement;
+        if (nextElement) {
+          nextElement.focus();
+          nextElement.click();
+        }
+      }
+
+      if (event.key === "ArrowUp" || event.key === "k") {
+        event.preventDefault();
+        const prevElement = document.querySelector(
+          `[data-row-index="${rowIndex - 1}"]`,
+        ) as HTMLElement;
+        if (prevElement) {
+          prevElement.focus();
+          prevElement.click();
+        }
+      }
+    },
+    [enableKeyboardNav, onRowClick],
+  );
+
   // CSS classes
   const hasPadding = config.containerPadding !== "px-0";
 
@@ -163,41 +213,8 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: React.Ref<Data
     );
   }
 
-  // Keyboard navigation handler
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, rowIndex: number) => {
-    if (!enableKeyboardNav) {
-      return;
-    }
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onRowClick?.(null);
-      const activeElement = document.activeElement as HTMLElement;
-      activeElement?.blur();
-    }
-
-    if (event.key === "ArrowDown" || event.key === "j") {
-      event.preventDefault();
-      const nextElement = document.querySelector(
-        `[data-row-index="${rowIndex + 1}"]`,
-      ) as HTMLElement;
-      if (nextElement) {
-        nextElement.focus();
-        nextElement.click();
-      }
-    }
-
-    if (event.key === "ArrowUp" || event.key === "k") {
-      event.preventDefault();
-      const prevElement = document.querySelector(
-        `[data-row-index="${rowIndex - 1}"]`,
-      ) as HTMLElement;
-      if (prevElement) {
-        prevElement.focus();
-        prevElement.click();
-      }
-    }
-  };
+  // Build a Set of realtime row IDs for separator boundary detection
+  const realtimeIds = new Set(realtimeData.map(getRowId));
 
   // Main render
   return (
@@ -272,110 +289,111 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: React.Ref<Data
                     )}
                   </tr>
                 ))
-              : // Data rows
-                tableDataHelper.data.map((item, index) => {
-                  // Separator row
-                  const separator = item as SeparatorItem;
-                  if (separator.isSeparator) {
-                    return (
-                      <Fragment key="separator">
-                        <tr style={{ height: "4px" }} />
-                        <tr>
-                          <td colSpan={columns.length} className="p-0">
-                            <RealtimeSeparator />
-                          </td>
-                        </tr>
-                      </Fragment>
-                    );
-                  }
+              : // Data rows — iterate TanStack's sorted row model for correct ordering
+                (() => {
+                  let separatorInserted = realtimeData.length === 0;
+                  return table.getRowModel().rows.flatMap((tableRow, index) => {
+                    const typedItem = tableRow.original;
+                    const rowId = tableRow.id;
+                    const isSelected = selectedItem ? getRowId(selectedItem) === rowId : false;
+                    const elements: ReactNode[] = [];
 
-                  // Data row
-                  const typedItem = item as TData;
-                  const rowId = getRowId(typedItem);
-                  const tableRow = table.getRowModel().rows.find((r) => r.id === rowId);
+                    // Insert separator at boundary between realtime and historic items
+                    if (!separatorInserted && !realtimeIds.has(rowId)) {
+                      separatorInserted = true;
+                      elements.push(
+                        <Fragment key="separator">
+                          <tr style={{ height: "4px" }} />
+                          <tr>
+                            <td colSpan={columns.length} className="p-0">
+                              <RealtimeSeparator />
+                            </td>
+                          </tr>
+                        </Fragment>,
+                      );
+                    }
 
-                  if (!tableRow) {
-                    return null;
-                  }
+                    const visibleCells = tableRow.getVisibleCells();
 
-                  const isSelected = selectedItem ? getRowId(selectedItem) === rowId : false;
-
-                  // Grid layout (no spacing)
-                  if (isGridLayout) {
-                    return (
-                      <tr
-                        key={rowId}
-                        tabIndex={index}
-                        data-row-index={index}
-                        aria-selected={isSelected}
-                        onClick={() => onRowClick?.(typedItem)}
-                        onMouseEnter={() => onRowMouseEnter?.(typedItem)}
-                        onMouseLeave={() => onRowMouseLeave?.()}
-                        onKeyDown={(e) => handleKeyDown(e, index)}
-                        className={cn(
-                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
-                          config.rowBorders && "border-b border-gray-4",
-                          rowClassName?.(typedItem),
-                          selectedClassName?.(typedItem, isSelected),
-                        )}
-                        style={{ height: `${config.rowHeight}px` }}
-                      >
-                        {tableRow.getVisibleCells().map((cell, idx) => (
-                          <td
-                            key={cell.id}
+                    // Grid layout (no spacing)
+                    if (isGridLayout) {
+                      elements.push(
+                        <tr
+                          key={rowId}
+                          tabIndex={index}
+                          data-row-index={index}
+                          aria-selected={isSelected}
+                          onClick={() => onRowClick?.(typedItem)}
+                          onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                          onMouseLeave={() => onRowMouseLeave?.()}
+                          onKeyDown={(e) => handleKeyDown(e, index)}
+                          className={cn(
+                            "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
+                            config.rowBorders && "border-b border-gray-4",
+                            rowClassName?.(typedItem),
+                            selectedClassName?.(typedItem, isSelected),
+                          )}
+                          style={{ height: `${config.rowHeight}px` }}
+                        >
+                          {visibleCells.map((cell, idx) => (
+                            <td
+                              key={cell.id}
+                              className={cn(
+                                "text-xs align-middle whitespace-nowrap pr-4",
+                                idx === 0 ? "rounded-l-md" : "",
+                                idx === visibleCells.length - 1 ? "rounded-r-md" : "",
+                                cell.column.columnDef.meta?.cellClassName,
+                              )}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>,
+                      );
+                    } else {
+                      // Classic layout (with spacing)
+                      elements.push(
+                        <Fragment key={rowId}>
+                          {(config.rowSpacing ?? 4) > 0 && (
+                            <tr style={{ height: `${config.rowSpacing ?? 4}px` }} />
+                          )}
+                          <tr
+                            tabIndex={index}
+                            data-row-index={index}
+                            aria-selected={isSelected}
+                            onClick={() => onRowClick?.(typedItem)}
+                            onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                            onMouseLeave={() => onRowMouseLeave?.()}
+                            onKeyDown={(e) => handleKeyDown(e, index)}
                             className={cn(
-                              "text-xs align-middle whitespace-nowrap pr-4",
-                              idx === 0 ? "rounded-l-md" : "",
-                              idx === tableRow.getVisibleCells().length - 1 ? "rounded-r-md" : "",
-                              cell.column.columnDef.meta?.cellClassName,
+                              "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
+                              config.rowBorders && "border-b border-gray-4",
+                              rowClassName?.(typedItem),
+                              selectedClassName?.(typedItem, isSelected),
                             )}
+                            style={{ height: `${config.rowHeight}px` }}
                           >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  }
+                            {visibleCells.map((cell, idx) => (
+                              <td
+                                key={cell.id}
+                                className={cn(
+                                  "text-xs align-middle whitespace-nowrap pr-4",
+                                  idx === 0 ? "rounded-l-md" : "",
+                                  idx === visibleCells.length - 1 ? "rounded-r-md" : "",
+                                  cell.column.columnDef.meta?.cellClassName,
+                                )}
+                              >
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </td>
+                            ))}
+                          </tr>
+                        </Fragment>,
+                      );
+                    }
 
-                  // Classic layout (with spacing)
-                  return (
-                    <Fragment key={rowId}>
-                      {(config.rowSpacing ?? 4) > 0 && (
-                        <tr style={{ height: `${config.rowSpacing ?? 4}px` }} />
-                      )}
-                      <tr
-                        tabIndex={index}
-                        data-row-index={index}
-                        aria-selected={isSelected}
-                        onClick={() => onRowClick?.(typedItem)}
-                        onMouseEnter={() => onRowMouseEnter?.(typedItem)}
-                        onMouseLeave={() => onRowMouseLeave?.()}
-                        onKeyDown={(e) => handleKeyDown(e, index)}
-                        className={cn(
-                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
-                          config.rowBorders && "border-b border-gray-4",
-                          rowClassName?.(typedItem),
-                          selectedClassName?.(typedItem, isSelected),
-                        )}
-                        style={{ height: `${config.rowHeight}px` }}
-                      >
-                        {tableRow.getVisibleCells().map((cell, idx) => (
-                          <td
-                            key={cell.id}
-                            className={cn(
-                              "text-xs align-middle whitespace-nowrap pr-4",
-                              idx === 0 ? "rounded-l-md" : "",
-                              idx === tableRow.getVisibleCells().length - 1 ? "rounded-r-md" : "",
-                              cell.column.columnDef.meta?.cellClassName,
-                            )}
-                          >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    </Fragment>
-                  );
-                })}
+                    return elements;
+                  });
+                })()}
           </tbody>
         </table>
       </div>
@@ -408,5 +426,5 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: React.Ref<Data
  * Exported DataTable component with proper generic type support
  */
 export const DataTable = forwardRef(DataTableInner) as <TData>(
-  props: DataTableProps<TData> & { ref?: React.Ref<DataTableRef> },
-) => React.ReactElement;
+  props: DataTableProps<TData> & { ref?: Ref<DataTableRef> },
+) => ReactElement;

@@ -1,7 +1,8 @@
+import { getPageNumbers } from "@/components/data-table/utils/get-page-numbers";
 import { cn } from "@/lib/utils";
 import { ArrowsToAllDirections, ArrowsToCenter, ChevronLeft, ChevronRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 interface PaginationFooterProps {
   page: number;
@@ -26,48 +27,8 @@ export function PaginationFooter({
 }: PaginationFooterProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  const handleClose = useCallback(() => {
-    setIsOpen(false);
-  }, []);
-
-  const handleOpen = useCallback(() => {
-    setIsOpen(true);
-  }, []);
-
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, totalCount);
-
-  const getPageNumbers = (): Array<number | "ellipsis"> => {
-    const pages: Array<number | "ellipsis"> = [];
-    const maxVisible = 5;
-
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-
-      if (page > 3) {
-        pages.push("ellipsis");
-      }
-
-      const startPage = Math.max(2, page - 1);
-      const endPage = Math.min(totalPages - 1, page + 1);
-
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-      }
-
-      if (page < totalPages - 2) {
-        pages.push("ellipsis");
-      }
-
-      pages.push(totalPages);
-    }
-
-    return pages;
-  };
 
   if (hide) {
     return null;
@@ -79,7 +40,7 @@ export function PaginationFooter({
       <div className="fixed bottom-6 right-6 z-10 transition-all duration-300 ease-out animate-slide-in-from-bottom">
         <button
           type="button"
-          onClick={handleOpen}
+          onClick={() => setIsOpen(true)}
           className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 transition-all duration-200 hover:shadow-xl hover:scale-105 group"
           title={`Page ${page} of ${totalPages} • ${start}-${end} of ${totalCount} ${itemLabel}`}
         >
@@ -98,7 +59,7 @@ export function PaginationFooter({
     );
   }
 
-  const pageNumbers = getPageNumbers();
+  const pageNumbers = getPageNumbers(page, totalPages);
 
   return (
     <div
@@ -203,7 +164,7 @@ export function PaginationFooter({
                   size="icon"
                   variant="ghost"
                   className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
-                  onClick={handleClose}
+                  onClick={() => setIsOpen(false)}
                   aria-label="Minimize"
                   title="Minimize"
                 >

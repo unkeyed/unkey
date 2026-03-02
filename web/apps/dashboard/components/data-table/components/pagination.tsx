@@ -1,3 +1,4 @@
+import { getPageNumbers } from "@/components/data-table/utils/get-page-numbers";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -24,44 +25,7 @@ export function Pagination({
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, totalCount);
 
-  // Generate page numbers to display
-  const getPageNumbers = () => {
-    const pages: (number | "ellipsis")[] = [];
-    const maxVisible = 7; // Max page buttons to show
-
-    if (totalPages <= maxVisible) {
-      // Show all pages
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-
-      if (page > 3) {
-        pages.push("ellipsis");
-      }
-
-      // Show pages around current page
-      const startPage = Math.max(2, page - 1);
-      const endPage = Math.min(totalPages - 1, page + 1);
-
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-      }
-
-      if (page < totalPages - 2) {
-        pages.push("ellipsis");
-      }
-
-      // Always show last page
-      pages.push(totalPages);
-    }
-
-    return pages;
-  };
-
-  const pageNumbers = getPageNumbers();
+  const pageNumbers = getPageNumbers(page, totalPages, 7);
 
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-gray-6">

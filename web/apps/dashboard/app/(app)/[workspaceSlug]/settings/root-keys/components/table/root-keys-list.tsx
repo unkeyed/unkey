@@ -1,6 +1,9 @@
 "use client";
 import { DataTable, EmptyRootKeys, createRootKeyColumns } from "@/components/data-table";
 import { PaginationFooter } from "@/components/data-table/components/footer/pagination-footer";
+import { renderRootKeySkeletonRow } from "@/components/data-table/components/skeletons/render-root-key-skeleton-row";
+import { useRootKeysListPaginated } from "@/components/data-table/hooks/rootkey/use-root-keys-list-query";
+import { getRowClassName } from "@/components/data-table/utils/get-row-class";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { unkeyPermissionValidation } from "@unkey/rbac";
@@ -12,13 +15,26 @@ const isUnkeyPermission = (permissionName: string): permissionName is UnkeyPermi
   const result = unkeyPermissionValidation.safeParse(permissionName);
   return result.success;
 };
-import { renderRootKeySkeletonRow } from "@/components/data-table/components/skeletons/render-root-key-skeleton-row";
-import { useRootKeysListPaginated } from "@/components/data-table/hooks/rootkey/use-root-keys-list-query";
-import { getRowClassName } from "@/components/data-table/utils/get-row-class";
+
+const TABLE_CONFIG = {
+  rowHeight: 40,
+  layout: "grid" as const,
+  rowBorders: true,
+  containerPadding: "px-0",
+};
 
 export const RootKeysList = () => {
-  const { rootKeys, isLoading, isFetching, isPending, totalCount, onPageChange, page, pageSize, totalPages } =
-    useRootKeysListPaginated();
+  const {
+    rootKeys,
+    isLoading,
+    isFetching,
+    isPending,
+    totalCount,
+    onPageChange,
+    page,
+    pageSize,
+    totalPages,
+  } = useRootKeysListPaginated();
   const [selectedRootKey, setSelectedRootKey] = useState<RootKey | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<RootKey | null>(null);
@@ -28,10 +44,8 @@ export const RootKeysList = () => {
     setEditDialogOpen(true);
   }, []);
 
-  // Memoize the selected root key ID to prevent unnecessary re-renders
   const selectedRootKeyId = selectedRootKey?.id;
 
-  // Memoize the row click handler
   const handleRowClick = useCallback((rootKey: RootKey | null) => {
     if (rootKey) {
       setEditingKey(rootKey);
@@ -42,30 +56,11 @@ export const RootKeysList = () => {
     }
   }, []);
 
-  // Memoize the row className function
   const getRowClassNameMemoized = useCallback(
     (rootKey: RootKey) => getRowClassName(rootKey, selectedRootKey),
     [selectedRootKey],
   );
 
-  // Memoize the emptyState to prevent unnecessary re-renders
-  const emptyState = useMemo(() => <EmptyRootKeys />, []);
-
-  // Memoize the config to prevent unnecessary re-renders
-  const config = useMemo(
-    () => ({
-      rowHeight: 40,
-      layout: "grid" as const,
-      rowBorders: true,
-      containerPadding: "px-0",
-    }),
-    [],
-  );
-
-  // Memoize the renderSkeletonRow function to prevent unnecessary re-renders
-  const renderSkeletonRow = useCallback(renderRootKeySkeletonRow, []);
-
-  // Memoize the existingKey object to prevent unnecessary re-renders
   const existingKey = useMemo(() => {
     if (!editingKey) {
       return null;
@@ -97,9 +92,9 @@ export const RootKeysList = () => {
         onRowClick={handleRowClick}
         selectedItem={selectedRootKey}
         rowClassName={getRowClassNameMemoized}
-        emptyState={emptyState}
-        config={config}
-        renderSkeletonRow={renderSkeletonRow}
+        emptyState={<EmptyRootKeys />}
+        config={TABLE_CONFIG}
+        renderSkeletonRow={renderRootKeySkeletonRow}
         enableSorting={true}
       />
       <PaginationFooter
