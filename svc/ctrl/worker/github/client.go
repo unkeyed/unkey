@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -19,6 +20,28 @@ import (
 	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
+
+// ghCommitResponse is the subset of GitHub's GET /repos/{owner}/{repo}/commits/{ref}
+// response that we need.
+type ghCommitResponse struct {
+	SHA    string         `json:"sha"`
+	Commit ghCommitDetail `json:"commit"`
+	Author ghUser         `json:"author"`
+}
+
+type ghCommitDetail struct {
+	Message string         `json:"message"`
+	Author  ghCommitAuthor `json:"author"`
+}
+
+type ghCommitAuthor struct {
+	Date string `json:"date"`
+}
+
+type ghUser struct {
+	Login     string `json:"login"`
+	AvatarURL string `json:"avatar_url"`
+}
 
 // ClientConfig holds configuration for creating a [Client] instance.
 type ClientConfig struct {
@@ -152,13 +175,83 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 			return cache.WriteValue
 		},
 	)
-
 	if err != nil {
 		return InstallationToken{}, err
 	}
 
 	// Return a copy to avoid aliasing
 	return value, nil
+}
+
+// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
+// repository. It uses an installation token to authenticate the request.
+// The repo parameter must be in "owner/repo" format.
+func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error) {
+	token, err := c.GetInstallationToken(installationID)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to get installation token for branch head lookup"))
+	}
+
+	requestURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
+
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to create request"))
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to fetch branch head commit"))
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return CommitInfo{}, fault.New(
+			"failed to fetch branch head commit",
+			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+		)
+	}
+
+	var commit ghCommitResponse
+	if err := json.NewDecoder(resp.Body).Decode(&commit); err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to decode commit response"))
+	}
+
+	return CommitInfoFromRaw(
+		commit.SHA,
+		commit.Commit.Message,
+		commit.Author.Login,
+		commit.Author.AvatarURL,
+		commit.Commit.Author.Date,
+	), nil
+}
+
+// CommitInfoFromRaw constructs a CommitInfo, truncating the message to the
+// first line and parsing an RFC3339 timestamp string.
+func CommitInfoFromRaw(sha, message, authorHandle, authorAvatarURL, timestamp string) CommitInfo {
+	if idx := strings.Index(message, "\n"); idx != -1 {
+		message = message[:idx]
+	}
+
+	var ts time.Time
+	if timestamp != "" {
+		if parsed, err := time.Parse(time.RFC3339, timestamp); err == nil {
+			ts = parsed
+		}
+	}
+
+	return CommitInfo{
+		SHA:             sha,
+		Message:         message,
+		AuthorHandle:    authorHandle,
+		AuthorAvatarURL: authorAvatarURL,
+		Timestamp:       ts,
+	}
 }
 
 // VerifyWebhookSignature verifies a GitHub webhook signature using constant-time

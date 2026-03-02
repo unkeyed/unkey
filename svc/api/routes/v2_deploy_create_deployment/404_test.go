@@ -53,6 +53,47 @@ func TestProjectNotFound(t *testing.T) {
 	require.Equal(t, "The requested project does not exist or has been deleted.", res.Body.Error.Detail)
 }
 
+func TestProjectBelongsToDifferentWorkspace(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	attackerSetup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"project.*.create_deployment"},
+	})
+	victimSetup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"project.*.create_deployment"},
+	})
+
+	route := &handler.Handler{
+		DB:   h.DB,
+		Keys: h.Keys,
+		CtrlClient: &testutil.MockDeploymentClient{
+			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
+				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil
+			},
+		},
+	}
+	h.Register(route)
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", attackerSetup.RootKey)},
+	}
+
+	req := handler.Request{
+		ProjectId:       victimSetup.Project.ID, // Victim's project
+		Branch:          "main",
+		EnvironmentSlug: "production",
+		DockerImage:     "nginx:latest",
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+	require.NotNil(t, res.Body)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_not_found", res.Body.Error.Type)
+	require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+	require.Equal(t, "The requested project does not exist or has been deleted.", res.Body.Error.Detail)
+}
+
 func TestEnvironmentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 

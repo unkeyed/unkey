@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "namespace",
+    srcs = [
+        "parse.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/ratelimit/namespace",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//pkg/db",
+    ],
+)

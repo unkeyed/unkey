@@ -8,7 +8,7 @@ import { workspaceProcedure } from "../../trpc";
 export const optWorkspaceIntoBeta = workspaceProcedure
   .input(
     z.object({
-      feature: z.enum(["rbac", "ratelimit", "identities", "logsPage", "deployments"]),
+      feature: z.enum(["rbac", "ratelimit", "identities", "logsPage", "deployments", "portal"]),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -23,6 +23,10 @@ export const optWorkspaceIntoBeta = workspaceProcedure
       }
       case "deployments": {
         ctx.workspace.betaFeatures.deployments = true;
+        break;
+      }
+      case "portal": {
+        ctx.workspace.betaFeatures.portal = true;
         break;
       }
     }

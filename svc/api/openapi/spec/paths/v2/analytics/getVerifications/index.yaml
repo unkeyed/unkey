@@ -54,7 +54,7 @@ post:
       description: Query exceeds resource limits (timeout, memory, rows scanned, or result size)
     "429":
       content:
-        application/json:
+        application/problem+json:
           schema:
             $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
       description: Query quota exceeded

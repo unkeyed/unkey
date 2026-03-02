@@ -7,7 +7,7 @@ post:
 
     Use this endpoint on every incoming request to your protected resources. It checks key validity, permissions, rate limits, and usage quotas in a single call.
 
-    **Important**: Always returns HTTP 200. Check the `valid` field in response data to determine if the key is authorized.
+    **Important**: Returns HTTP 200 for all verification outcomes — check the `valid` field in response data to determine if the key is authorized. A 429 may be returned if the workspace exceeds its API rate limit.
 
     **Common use cases:**
     - Authenticate API requests before processing
@@ -85,6 +85,12 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
     "500":
       description: Internal server error
       content:

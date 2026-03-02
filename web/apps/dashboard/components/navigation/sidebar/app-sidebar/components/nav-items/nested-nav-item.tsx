@@ -26,10 +26,12 @@ export const NestedNavItem = ({
   maxDepth = 2,
   isSubItem = false,
   className,
+  isResourceLevel = false,
 }: NavProps & {
   depth?: number;
   maxDepth?: number;
   isSubItem?: boolean;
+  isResourceLevel?: boolean;
 }) => {
   const sidebar = useSidebar();
   const [parentIsPending, startParentTransition] = useTransition();
@@ -69,6 +71,11 @@ export const NestedNavItem = ({
         setIsOpen(true);
       }
     }
+
+    // Resource-level menus are always expanded
+    if (isResourceLevel) {
+      setIsOpen(true);
+    }
   }, [
     pathname,
     item.items,
@@ -76,9 +83,20 @@ export const NestedNavItem = ({
     hasChildren,
     userManuallyCollapsed,
     childrenUserManuallyCollapsed,
+    isResourceLevel,
   ]);
 
   const handleMenuItemClick = (e: React.MouseEvent) => {
+    // Resource-level menus cannot be collapsed
+    if (isResourceLevel) {
+      if (item.href) {
+        startParentTransition(() => {
+          item.external ? window.open(item.href, "_blank") : router.push(item.href);
+        });
+      }
+      return;
+    }
+
     // If the item has children, toggle the open state
     if (sidebar.open && hasChildren && !isSubItem) {
       e.preventDefault();
@@ -226,10 +244,14 @@ export const NestedNavItem = ({
               <Icon iconSize="xl-medium" />
             )
           ) : null}
-          <span className="truncate max-w-[180px]">{item.label}</span>
+          {item.loading ? (
+            <div className="h-4 w-24 bg-gray-6 animate-pulse rounded" />
+          ) : (
+            <span className="truncate max-w-[180px]">{item.label}</span>
+          )}
           {item.tag && <div className="ml-auto mr-2">{item.tag}</div>}
-          {/* Chevron icon to indicate there are children */}
-          {item.items && item.items.length > 0 && (
+          {/* Chevron icon to indicate there are children - hidden for resource-level */}
+          {item.items && item.items.length > 0 && !isResourceLevel && (
             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
               <CaretRight
                 className={cn(

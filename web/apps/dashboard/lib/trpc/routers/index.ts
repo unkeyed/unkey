@@ -48,6 +48,7 @@ import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
 import { promote } from "./deploy/deployment/promote";
+import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
@@ -451,6 +452,7 @@ export const router = t.router({
       getOpenApiDiff: getOpenApiDiff,
       rollback,
       promote,
+      redeploy,
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,

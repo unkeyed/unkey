@@ -40,6 +40,8 @@ type userUnprocessableEntity struct {
 type userTooManyRequests struct {
 	// QueryQuotaExceeded indicates the workspace has exceeded their query quota for the current window.
 	QueryQuotaExceeded Code
+	// WorkspaceRateLimited indicates the workspace has exceeded its API rate limit for the current window.
+	WorkspaceRateLimited Code
 }
 
 // UserErrors defines all user-related errors in the Unkey system.
@@ -76,6 +78,7 @@ var User = UserErrors{
 		QueryRowsLimitExceeded:   Code{SystemUser, CategoryUserUnprocessableEntity, "query_rows_limit_exceeded"},
 	},
 	TooManyRequests: userTooManyRequests{
-		QueryQuotaExceeded: Code{SystemUser, CategoryUserTooManyRequests, "query_quota_exceeded"},
+		QueryQuotaExceeded:   Code{SystemUser, CategoryUserTooManyRequests, "query_quota_exceeded"},
+		WorkspaceRateLimited: Code{SystemUser, CategoryUserTooManyRequests, "workspace_rate_limited"},
 	},
 }

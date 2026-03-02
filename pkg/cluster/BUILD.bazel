@@ -38,6 +38,7 @@ go_test(
     deps = [
         "//gen/proto/cache/v1:cache",
         "//gen/proto/cluster/v1:cluster",
+        "@com_github_hashicorp_memberlist//:memberlist",
         "@com_github_stretchr_testify//require",
     ],
 )

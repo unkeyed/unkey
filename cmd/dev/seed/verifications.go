@@ -65,6 +65,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		Region:       "test",
 		UsageLimiter: nil,
 		KeyCache:     nil,
+		QuotaCache:   nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
