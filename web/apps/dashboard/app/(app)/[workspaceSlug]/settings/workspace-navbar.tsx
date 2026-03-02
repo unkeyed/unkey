@@ -6,6 +6,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { ChevronExpandY, Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
+import { CreateRootKeyButton } from "./root-keys/components/root-key/create-rootkey-button";
 
 const settingsNavbar = [
   {
@@ -41,7 +42,7 @@ export const WorkspaceNavbar = ({
   const workspace = useWorkspaceNavigation();
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full relative z-10">
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gear />}>
           <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/settings`}>
@@ -67,11 +68,7 @@ export const WorkspaceNavbar = ({
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
           {activePage.href === "general" && workspace && <CopyableIDButton value={workspace.id} />}
-          {activePage.href === "root-keys" && (
-            <Link key="create-root-key" href={`/${workspace.slug}/settings/root-keys/new`}>
-              <Button variant="primary">Create New Root Key</Button>
-            </Link>
-          )}
+          {activePage.href === "root-keys" && <CreateRootKeyButton />}
           {activePage.href === "billing" && (
             <>
               <Link
