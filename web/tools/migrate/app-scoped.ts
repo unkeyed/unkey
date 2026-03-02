@@ -190,6 +190,11 @@ async function main() {
     sql`UPDATE github_repo_connections grc JOIN apps a ON a.project_id = grc.project_id AND a.slug = 'default' SET grc.app_id = a.id WHERE grc.app_id = ''`,
   );
 
+  console.log("Backfilling app_id on custom_domains...");
+  await db.execute(
+    sql`UPDATE custom_domains cd JOIN apps a ON a.project_id = cd.project_id AND a.slug = 'default' SET cd.app_id = a.id WHERE cd.app_id = ''`,
+  );
+
   console.log("Migration complete!");
   await conn.end();
 }
