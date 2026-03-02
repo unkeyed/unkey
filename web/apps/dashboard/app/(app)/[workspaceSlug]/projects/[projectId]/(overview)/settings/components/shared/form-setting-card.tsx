@@ -3,8 +3,6 @@ import { Button, InfoTooltip, SettingCard, type SettingCardBorder } from "@unkey
 import type React from "react";
 import { SelectedConfig } from "./selected-config";
 
-
-
 type EditableSettingCardProps = {
   icon: React.ReactNode;
   title: string;
@@ -86,7 +84,6 @@ export const FormSettingCard = ({
   );
 };
 
-
 export type SaveState =
   | { status: "ready" }
   | { status: "disabled"; reason?: string }
@@ -94,7 +91,9 @@ export type SaveState =
 
 export function resolveSaveState(checks: ReadonlyArray<[boolean, SaveState]>): SaveState {
   for (const [condition, state] of checks) {
-    if (condition) { return state };
+    if (condition) {
+      return state;
+    }
   }
   return { status: "ready" };
 }

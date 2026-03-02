@@ -41,7 +41,9 @@ export const OnboardingEnvironmentSettingsProvider = ({ children }: PropsWithChi
 
   useSyncSettingsToOtherEnvironments(settings, otherEnvIds);
 
-  if (!settings) return null;
+  if (!settings) {
+    return null;
+  }
 
   return <EnvironmentContext.Provider value={{ settings }}>{children}</EnvironmentContext.Provider>;
 };
