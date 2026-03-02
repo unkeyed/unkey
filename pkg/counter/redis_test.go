@@ -12,17 +12,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-func newRedisURL(t *testing.T) string {
-	t.Helper()
-
-	cluster := dockertest.New(t)
-	redis := cluster.Redis()
-	return redis.HostURL
-}
-
 func TestRedisCounter(t *testing.T) {
 	ctx := context.Background()
-	redisURL := newRedisURL(t)
+	redisURL := dockertest.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -328,7 +320,7 @@ func TestRedisCounterConnection(t *testing.T) {
 
 func TestRedisCounterMultiGet(t *testing.T) {
 	ctx := context.Background()
-	redisURL := newRedisURL(t)
+	redisURL := dockertest.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -449,7 +441,7 @@ func TestRedisCounterMultiGet(t *testing.T) {
 
 func TestRedisCounterDecrement(t *testing.T) {
 	ctx := context.Background()
-	redisURL := newRedisURL(t)
+	redisURL := dockertest.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -540,7 +532,7 @@ func TestRedisCounterDecrement(t *testing.T) {
 
 func TestRedisCounterDecrementIfExists(t *testing.T) {
 	ctx := context.Background()
-	redisURL := newRedisURL(t)
+	redisURL := dockertest.Redis(t)
 
 	// Create a Redis counter
 	ctr, err := NewRedis(RedisConfig{
@@ -651,7 +643,7 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 // TestRedisCounterDelete tests the Delete operation on the Redis counter.
 func TestRedisCounterDelete(t *testing.T) {
 	ctx := context.Background()
-	redisURL := newRedisURL(t)
+	redisURL := dockertest.Redis(t)
 
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,
@@ -729,7 +721,7 @@ func TestRedisCounterDelete(t *testing.T) {
 // TestRedisCounterDecrementLogic tests the decrement logic that avoids negative values
 func TestRedisCounterDecrementLogic(t *testing.T) {
 	ctx := context.Background()
-	redisURL := newRedisURL(t)
+	redisURL := dockertest.Redis(t)
 
 	ctr, err := NewRedis(RedisConfig{
 		RedisURL: redisURL,

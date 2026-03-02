@@ -36,7 +36,10 @@ jobs:
         run: docker compose -f ./dev/docker-compose.yaml up clickhouse mysql -d --wait
 
       - name: Load images
-        run: bazel run //:unkey_image_load
+        run: |
+          bazel run //:oci_load_unkey
+          bazel run //:oci_load_clickhouse
+          bazel run //:oci_load_mysql
 
       - name: Run tests
         run: bazel test //... --test_output=errors

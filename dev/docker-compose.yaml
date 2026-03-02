@@ -4,9 +4,8 @@ services:
     networks:
       - default
     container_name: mysql
-    build:
-      context: ..
-      dockerfile: dev/Dockerfile.mysql
+    image: unkey/mysql:latest
+    pull_policy: never
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -100,9 +99,8 @@ services:
     networks:
       - default
     container_name: vault
-    build:
-      context: ../
-      dockerfile: Dockerfile
+    image: unkey/unkey:latest
+    pull_policy: never
     command: ["run", "vault", "--config", "/etc/unkey/vault.toml"]
     ports:
       - "8060:8060"
@@ -121,9 +119,8 @@ services:
   clickhouse:
     networks:
       - default
-    build:
-      context: ..
-      dockerfile: dev/Dockerfile.clickhouse
+    image: unkey/clickhouse:latest
+    pull_policy: never
     container_name: clickhouse
     environment:
       CLICKHOUSE_ADMIN_USER: default

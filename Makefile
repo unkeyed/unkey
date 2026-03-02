@@ -60,7 +60,7 @@ pull: ## Pull latest Docker images for services
 	@docker compose -f ./dev/docker-compose.yaml pull
 
 .PHONY: up
-up: pull ## Start all infrastructure services
+up: pull oci-load-images ## Start all infrastructure services
 	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel restate ctrl-api --wait
 
 .PHONY: clean
@@ -90,9 +90,15 @@ generate: generate-sql ## Generate code from protobuf and other sources
 	go fmt ./...
 	pnpm --dir=web fmt
 
+.PHONY: oci-load-images
+oci-load-images: ## Load Bazel-built OCI images into local Docker
+	bazel run //dev:oci_load_unkey
+	bazel run //dev:oci_load_clickhouse
+	bazel run //dev:oci_load_mysql
+
 .PHONY: test
-test: ## Run tests with bazel
-	bazel run //:unkey_image_load
+test: oci-load-images ## Run tests with bazel
+
 	docker compose -f ./dev/docker-compose.yaml up -d s3 vault mysql clickhouse  --wait
 	bazel test //...
 	make clean-docker-test

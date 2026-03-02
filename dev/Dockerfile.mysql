@@ -1,7 +1,7 @@
 FROM mysql:9.4.0
 
 # Copy database initialization script
-COPY dev/init-databases.sql /docker-entrypoint-initdb.d/00-init-databases.sql
+COPY dev/00-init-databases.sql /docker-entrypoint-initdb.d/00-init-databases.sql
 
 # Copy schemas from their respective packages
 COPY pkg/db/schema.sql /docker-entrypoint-initdb.d/01-main-schema.sql

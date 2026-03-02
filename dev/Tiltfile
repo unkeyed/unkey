@@ -129,15 +129,28 @@ local_resource(
 k8s_yaml('k8s/manifests/redis.yaml')
 k8s_resource('redis', port_forwards='6379:6379', resource_deps=[], labels=['database'])
 
+# Preload database images via Bazel OCI rules
+local_resource(
+    'oci-load-mysql',
+    'cd .. && bazel run //dev:oci_load_mysql',
+    deps=['./BUILD.bazel', './00-init-databases.sql', './04-seed-workspace.sql', '../pkg/db/schema.sql'],
+    labels=['database'],
+)
+
+local_resource(
+    'oci-load-clickhouse',
+    'cd .. && bazel run //dev:oci_load_clickhouse',
+    deps=['./BUILD.bazel', './clickhouse-local-admin.sql', './init-clickhouse.sh', '../pkg/clickhouse/migrations'],
+    labels=['database'],
+)
+
 # MySQL service
-docker_build('unkey/mysql:local', '..', dockerfile='./Dockerfile.mysql')
 k8s_yaml('k8s/manifests/mysql.yaml')
-k8s_resource('mysql', port_forwards='3306:3306', resource_deps=[], labels=['database'])
+k8s_resource('mysql', port_forwards='3306:3306', resource_deps=['oci-load-mysql'], labels=['database'])
 
 # ClickHouse service
-docker_build('unkey/clickhouse:local', '..', dockerfile='./Dockerfile.clickhouse')
 k8s_yaml('k8s/manifests/clickhouse.yaml')
-k8s_resource('clickhouse', port_forwards=['8123:8123','9000:9000'], resource_deps=[], labels=['database'])
+k8s_resource('clickhouse', port_forwards=['8123:8123','9000:9000'], resource_deps=['oci-load-clickhouse'], labels=['database'])
 
 # Vector Logs (collects logs from krane-managed deployments -> ClickHouse)
 k8s_yaml('k8s/manifests/vector-logs.yaml')

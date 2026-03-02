@@ -34,7 +34,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: clickhouse
-          image: unkey/clickhouse:local
+          image: unkey/clickhouse:latest
           ports:
             - containerPort: 8123
               name: http

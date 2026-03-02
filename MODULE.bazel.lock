@@ -248,7 +248,7 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "9rwpNoYiKXM6VqTjYhJkHJY5MzRZgf5ZC/+QQLb2Ulg=",
-        "usagesDigest": "ENF06HDXhsre7SaTp0FF8W+G/KRjKcolbMZPEYBQFBc=",
+        "usagesDigest": "aVkhSzcfx1KqJfdN9znQUXVLuY/96XK3svCJmaLu+Hw=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -293,6 +293,92 @@
                 "@@platforms//cpu:arm64": "@distroless_static_linux_arm64"
               },
               "bzlmod_repository": "distroless_static",
+              "reproducible": true
+            }
+          },
+          "mysql_9_4_0_linux_amd64": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/mysql",
+              "identifier": "9.4.0",
+              "platform": "linux/amd64",
+              "target_name": "mysql_9_4_0_linux_amd64",
+              "bazel_tags": []
+            }
+          },
+          "mysql_9_4_0_linux_arm64_v8": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/mysql",
+              "identifier": "9.4.0",
+              "platform": "linux/arm64/v8",
+              "target_name": "mysql_9_4_0_linux_arm64_v8",
+              "bazel_tags": []
+            }
+          },
+          "mysql_9_4_0": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_alias",
+            "attributes": {
+              "target_name": "mysql_9_4_0",
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/mysql",
+              "identifier": "9.4.0",
+              "platforms": {
+                "@@platforms//cpu:x86_64": "@mysql_9_4_0_linux_amd64",
+                "@@platforms//cpu:arm64": "@mysql_9_4_0_linux_arm64_v8"
+              },
+              "bzlmod_repository": "mysql_9_4_0",
+              "reproducible": true
+            }
+          },
+          "bitnamilegacy_clickhouse_25_6_4_linux_amd64": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "bitnamilegacy/clickhouse",
+              "identifier": "25.6.4",
+              "platform": "linux/amd64",
+              "target_name": "bitnamilegacy_clickhouse_25_6_4_linux_amd64",
+              "bazel_tags": []
+            }
+          },
+          "bitnamilegacy_clickhouse_25_6_4_linux_arm64": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "bitnamilegacy/clickhouse",
+              "identifier": "25.6.4",
+              "platform": "linux/arm64",
+              "target_name": "bitnamilegacy_clickhouse_25_6_4_linux_arm64",
+              "bazel_tags": []
+            }
+          },
+          "bitnamilegacy_clickhouse_25_6_4": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_alias",
+            "attributes": {
+              "target_name": "bitnamilegacy_clickhouse_25_6_4",
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "bitnamilegacy/clickhouse",
+              "identifier": "25.6.4",
+              "platforms": {
+                "@@platforms//cpu:x86_64": "@bitnamilegacy_clickhouse_25_6_4_linux_amd64",
+                "@@platforms//cpu:arm64": "@bitnamilegacy_clickhouse_25_6_4_linux_arm64"
+              },
+              "bzlmod_repository": "bitnamilegacy_clickhouse_25_6_4",
               "reproducible": true
             }
           },
@@ -414,7 +500,13 @@
           "explicitRootModuleDirectDeps": [
             "distroless_static",
             "distroless_static_linux_amd64",
-            "distroless_static_linux_arm64"
+            "distroless_static_linux_arm64",
+            "mysql_9_4_0",
+            "mysql_9_4_0_linux_amd64",
+            "mysql_9_4_0_linux_arm64_v8",
+            "bitnamilegacy_clickhouse_25_6_4",
+            "bitnamilegacy_clickhouse_25_6_4_linux_amd64",
+            "bitnamilegacy_clickhouse_25_6_4_linux_arm64"
           ],
           "explicitRootModuleDirectDevDeps": [],
           "useAllRepos": "NO",

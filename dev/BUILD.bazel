@@ -1,0 +1,119 @@
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+
+pkg_tar(
+    name = "unkey_tar",
+    srcs = select({
+        "@platforms//cpu:arm64": ["//:unkey_linux_arm64"],
+        "@platforms//cpu:x86_64": ["//:unkey_linux_amd64"],
+        "//conditions:default": ["//:unkey_linux_amd64"],
+    }),
+    package_dir = "/",
+    remap_paths = {
+        "bin/unkey": "unkey",
+    },
+    strip_prefix = "bin",
+)
+
+genrule(
+    name = "mysql_main_schema_sql",
+    srcs = [
+        "//pkg/db:schema.sql",
+    ],
+    outs = [
+        "01-main-schema.sql",
+    ],
+    cmd = "cp $(location //pkg/db:schema.sql) $@",
+)
+
+oci_image(
+    name = "unkey_image",
+    base = "@distroless_static",
+    entrypoint = ["/unkey"],
+    tars = [":unkey_tar"],
+)
+
+oci_load(
+    name = "oci_load_unkey",
+    image = ":unkey_image",
+    repo_tags = ["unkey/unkey:latest"],
+    visibility = ["//visibility:public"],
+)
+
+pkg_tar(
+    name = "mysql_init_tar",
+    srcs = [
+        ":00-init-databases.sql",
+        ":04-seed-workspace.sql",
+        ":mysql_main_schema_sql",
+    ],
+    package_dir = "/docker-entrypoint-initdb.d",
+    remap_paths = {
+        "dev/00-init-databases.sql": "00-init-databases.sql",
+        "dev/01-main-schema.sql": "01-main-schema.sql",
+        "dev/04-seed-workspace.sql": "04-seed-workspace.sql",
+    },
+)
+
+oci_image(
+    name = "mysql_image",
+    base = select({
+        "@platforms//cpu:arm64": "@mysql_9_4_0_linux_arm64_v8",
+        "@platforms//cpu:x86_64": "@mysql_9_4_0_linux_amd64",
+        "//conditions:default": "@mysql_9_4_0_linux_amd64",
+    }),
+    tars = [":mysql_init_tar"],
+)
+
+oci_load(
+    name = "oci_load_mysql",
+    image = ":mysql_image",
+    repo_tags = ["unkey/mysql:latest"],
+    visibility = ["//visibility:public"],
+)
+
+pkg_tar(
+    name = "clickhouse_migrations_tar",
+    srcs = ["//pkg/clickhouse:clickhouse_migrations"],
+    package_dir = "/opt/clickhouse-schemas",
+    strip_prefix = "pkg/clickhouse/migrations",
+)
+
+pkg_tar(
+    name = "clickhouse_admin_sql_tar",
+    srcs = [":clickhouse-local-admin.sql"],
+    package_dir = "/opt/clickhouse-schemas",
+    remap_paths = {
+        "dev/clickhouse-local-admin.sql": "99_local_admin.sql",
+    },
+)
+
+pkg_tar(
+    name = "clickhouse_init_script_tar",
+    srcs = [":init-clickhouse.sh"],
+    package_dir = "/docker-entrypoint-initdb.d",
+    remap_paths = {
+        "dev/init-clickhouse.sh": "init-clickhouse.sh",
+    },
+)
+
+oci_image(
+    name = "clickhouse_image",
+    base = select({
+        "@platforms//cpu:arm64": "@bitnamilegacy_clickhouse_25_6_4_linux_arm64",
+        "@platforms//cpu:x86_64": "@bitnamilegacy_clickhouse_25_6_4_linux_amd64",
+        "//conditions:default": "@bitnamilegacy_clickhouse_25_6_4_linux_amd64",
+    }),
+    tars = [
+        ":clickhouse_migrations_tar",
+        ":clickhouse_admin_sql_tar",
+        ":clickhouse_init_script_tar",
+    ],
+)
+
+oci_load(
+    name = "oci_load_clickhouse",
+    image = ":clickhouse_image",
+    repo_tags = ["unkey/clickhouse:latest"],
+    visibility = ["//visibility:public"],
+)

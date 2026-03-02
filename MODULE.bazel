@@ -87,7 +87,6 @@ use_repo(
     "com_github_kisielk_errcheck",
     "com_github_nishanths_exhaustive",
     "com_github_unkeyed_sdks_api_go_v2",
-    "in_gopkg_yaml_v3",
     "org_golang_x_term",
     "team_gaijin_dev_go_exhaustruct_v4",
 )
@@ -102,9 +101,33 @@ oci.pull(
         "linux/arm64",
     ],
 )
+oci.pull(
+    name = "mysql_9_4_0",
+    image = "index.docker.io/library/mysql",
+    platforms = [
+        "linux/amd64",
+        "linux/arm64/v8",
+    ],
+    tag = "9.4.0",
+)
+oci.pull(
+    name = "bitnamilegacy_clickhouse_25_6_4",
+    image = "index.docker.io/bitnamilegacy/clickhouse",
+    platforms = [
+        "linux/amd64",
+        "linux/arm64",
+    ],
+    tag = "25.6.4",
+)
 use_repo(
     oci,
+    "bitnamilegacy_clickhouse_25_6_4",
+    "bitnamilegacy_clickhouse_25_6_4_linux_amd64",
+    "bitnamilegacy_clickhouse_25_6_4_linux_arm64",
     "distroless_static",
     "distroless_static_linux_amd64",
     "distroless_static_linux_arm64",
+    "mysql_9_4_0",
+    "mysql_9_4_0_linux_amd64",
+    "mysql_9_4_0_linux_arm64_v8",
 )
