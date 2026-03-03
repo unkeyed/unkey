@@ -39,8 +39,8 @@ message CreateDeploymentRequest {
   // If not specified, the container's default entrypoint/cmd is used
   repeated string command = 6;
 
-  // App slug within the project. Defaults to "default" if empty.
-  string app_slug = 7;
+  // App ID to deploy. Required.
+  string app_id = 7;
 }
 
 message GitCommitInfo {

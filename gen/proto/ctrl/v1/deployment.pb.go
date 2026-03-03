@@ -147,8 +147,8 @@ type CreateDeploymentRequest struct {
 	// Container command override (e.g., ["./app", "serve"])
 	// If not specified, the container's default entrypoint/cmd is used
 	Command []string `protobuf:"bytes,6,rep,name=command,proto3" json:"command,omitempty"`
-	// App slug within the project. Defaults to "default" if empty.
-	AppSlug       string `protobuf:"bytes,7,opt,name=app_slug,json=appSlug,proto3" json:"app_slug,omitempty"`
+	// App ID to deploy. Required.
+	AppId         string `protobuf:"bytes,7,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,9 +225,9 @@ func (x *CreateDeploymentRequest) GetCommand() []string {
 	return nil
 }
 
-func (x *CreateDeploymentRequest) GetAppSlug() string {
+func (x *CreateDeploymentRequest) GetAppId() string {
 	if x != nil {
-		return x.AppSlug
+		return x.AppId
 	}
 	return ""
 }
@@ -1055,7 +1055,7 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xbc\x02\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xb8\x02\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
@@ -1065,8 +1065,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"git_commit\x18\x04 \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12$\n" +
 	"\vkeyspace_id\x18\x05 \x01(\tH\x01R\n" +
 	"keyspaceId\x88\x01\x01\x12\x18\n" +
-	"\acommand\x18\x06 \x03(\tR\acommand\x12\x19\n" +
-	"\bapp_slug\x18\a \x01(\tR\aappSlugB\r\n" +
+	"\acommand\x18\x06 \x03(\tR\acommand\x12\x15\n" +
+	"\x06app_id\x18\a \x01(\tR\x05appIdB\r\n" +
 	"\v_git_commitB\x0e\n" +
 	"\f_keyspace_id\"\xdc\x01\n" +
 	"\rGitCommitInfo\x12\x1d\n" +

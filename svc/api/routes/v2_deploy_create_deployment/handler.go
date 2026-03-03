@@ -83,9 +83,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// Resolve app slug to app ID
+	appSlug := "default"
+	if req.AppSlug != nil && *req.AppSlug != "" {
+		appSlug = *req.AppSlug
+	}
+	appRow, err := db.Query.FindAppByProjectAndSlug(ctx, h.DB.RO(), db.FindAppByProjectAndSlugParams{
+		ProjectID:       req.ProjectId,
+		EnvironmentSlug: req.EnvironmentSlug,
+		Slug:            appSlug,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("app not found",
+				fault.Code(codes.Data.Project.NotFound.URN()),
+				fault.Internal("app not found"),
+				fault.Public("The requested app does not exist in this project and environment."),
+			)
+		}
+		return fault.Wrap(err, fault.Internal("failed to find app"))
+	}
+
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       req.ProjectId,
+		AppId:           appRow.App.ID,
 		EnvironmentSlug: req.EnvironmentSlug,
 		DockerImage:     req.DockerImage,
 		GitCommit: &ctrlv1.GitCommitInfo{
