@@ -1,6 +1,6 @@
 import { and, db, eq } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { apps, environments } from "@unkey/db/src/schema";
+import { environments } from "@unkey/db/src/schema";
 
 /**
  * Resolves all app IDs for the project that the given environment belongs to.
