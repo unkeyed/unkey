@@ -5,7 +5,7 @@ import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const dockerfileSchema = z.object({
   dockerfile: z.string().min(1, "Dockerfile path is required"),
@@ -28,6 +28,12 @@ export const Dockerfile = () => {
 
   const currentDockerfile = useWatch({ control, name: "dockerfile" });
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [currentDockerfile === defaultValue, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   const onSubmit = async (values: z.infer<typeof dockerfileSchema>) => {
     collection.environmentSettings.update(environmentId, (draft) => {
       draft.dockerfile = values.dockerfile;
@@ -41,8 +47,7 @@ export const Dockerfile = () => {
       description="Dockerfile location used for docker build. (e.g., services/api/Dockerfile)"
       displayValue={defaultValue}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && currentDockerfile !== defaultValue}
-      isSaving={isSubmitting}
+      saveState={saveState}
     >
       <FormInput
         required

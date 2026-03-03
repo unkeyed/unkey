@@ -10,7 +10,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
 import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 
 const instancesSchema = z.object({
@@ -55,6 +55,17 @@ export const Instances = () => {
   };
 
   const hasChanges = currentInstances !== defaultInstances;
+  const hasRegions = Object.keys(regionConfig).length > 0;
+
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [
+      !hasRegions,
+      { status: "disabled", reason: "Select at least one region before setting instance count" },
+    ],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
 
   return (
     <FormSettingCard
@@ -70,8 +81,7 @@ export const Instances = () => {
         </div>
       }
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={isSubmitting}
+      saveState={saveState}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Instances per region</span>

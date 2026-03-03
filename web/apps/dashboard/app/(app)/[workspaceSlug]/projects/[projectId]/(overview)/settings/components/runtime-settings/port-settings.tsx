@@ -5,7 +5,7 @@ import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const portSchema = z.object({
   port: z.number().int().min(2000).max(54000),
@@ -28,6 +28,12 @@ export const Port = () => {
 
   const currentPort = useWatch({ control, name: "port" });
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [currentPort === defaultValue, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   const onSubmit = async (values: z.infer<typeof portSchema>) => {
     collection.environmentSettings.update(environmentId, (draft) => {
       draft.port = values.port;
@@ -41,8 +47,7 @@ export const Port = () => {
       description="Port your application listens on"
       displayValue={String(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && currentPort !== defaultValue}
-      isSaving={isSubmitting}
+      saveState={saveState}
     >
       <FormInput
         required
