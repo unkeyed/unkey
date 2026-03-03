@@ -100,9 +100,8 @@ services:
     networks:
       - default
     container_name: vault
-    build:
-      context: ../
-      dockerfile: Dockerfile
+    image: unkey/unkey:latest
+    pull_policy: never
     command: ["run", "vault", "--config", "/etc/unkey/vault.toml"]
     ports:
       - "8060:8060"

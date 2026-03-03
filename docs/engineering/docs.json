@@ -271,7 +271,6 @@
               "infra/operations/cli/index",
               "infra/operations/cli/deploy/index",
               "infra/operations/cli/healthcheck/index",
-              "infra/operations/cli/quotacheck/index",
               {
                 "group": "Run",
                 "root": "infra/operations/cli/run/index",

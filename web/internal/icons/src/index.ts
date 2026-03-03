@@ -65,6 +65,7 @@ export * from "./icons/connections3";
 export * from "./icons/connections";
 export * from "./icons/conversion";
 export * from "./icons/cube";
+export * from "./icons/discord";
 export * from "./icons/dots";
 export * from "./icons/double-chevron-left";
 export * from "./icons/double-chevron-right";

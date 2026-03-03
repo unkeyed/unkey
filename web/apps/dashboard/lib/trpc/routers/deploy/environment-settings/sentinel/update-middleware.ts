@@ -53,7 +53,7 @@ export const updateMiddleware = workspaceProcedure
         id: "keyauth-policy",
         name: "API Key Auth",
         enabled: true,
-        keyauth: { keySpaceIds: ["ks_NNh4XwVsZiwG"] },
+        keyauth: { keySpaceIds: keyspaces.map((ks) => ks.id) },
       });
     }
     await db

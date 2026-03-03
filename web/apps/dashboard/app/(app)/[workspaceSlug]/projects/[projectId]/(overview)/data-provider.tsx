@@ -39,12 +39,18 @@ type ProjectDataContextType = {
 
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
 
-export const ProjectDataProvider = ({ children }: PropsWithChildren) => {
-  const params = useParams();
-  const projectId = params?.projectId;
+type ProjectDataProviderProps = PropsWithChildren<{ projectId?: string }>;
 
-  if (!projectId || typeof projectId !== "string") {
-    throw new Error("ProjectDataProvider must be used within a project route");
+export const ProjectDataProvider = ({
+  children,
+  projectId: projectIdProp,
+}: ProjectDataProviderProps) => {
+  const params = useParams();
+  const projectId =
+    projectIdProp ?? (typeof params?.projectId === "string" ? params.projectId : undefined);
+
+  if (!projectId) {
+    throw new Error("ProjectDataProvider requires a projectId prop or a [projectId] route param");
   }
 
   const deploymentsQuery = useLiveQuery(
