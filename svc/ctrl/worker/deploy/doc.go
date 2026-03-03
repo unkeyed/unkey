@@ -51,11 +51,12 @@
 //
 // # Domain Generation
 //
-// [buildDomains] produces three domain patterns per deployment:
+// [buildDomains] produces three or four domain patterns per deployment:
 //
-//   - Per-commit: <project>-git-<sha>-<workspace>.<apex>  (non-sticky, immutable)
-//   - Per-branch: <project>-git-<branch>-<workspace>.<apex>  (sticky to branch)
-//   - Per-environment: <project>-<env>-<workspace>.<apex>  (sticky to environment)
+//   - Per-commit: <project>-<app>-git-<sha>-<workspace>.<apex>  (non-sticky, immutable)
+//   - Per-branch: <project>-<app>-git-<branch>-<workspace>.<apex>  (sticky to branch)
+//   - Per-environment: <project>-<app>-<env>-<workspace>.<apex>  (sticky to environment)
+//   - Per-live (production only): <project>-<app>-<workspace>.<apex>  (sticky to live)
 //
 // Sticky domains automatically follow the latest deployment matching their
 // criteria; commit domains never move. CLI uploads add a random numeric suffix
