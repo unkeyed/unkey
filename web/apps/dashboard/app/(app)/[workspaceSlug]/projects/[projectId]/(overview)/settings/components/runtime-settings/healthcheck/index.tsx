@@ -14,7 +14,7 @@ import {
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
-import { FormSettingCard } from "../../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { MethodBadge } from "./method-badge";
 import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
 import { intervalToSeconds, secondsToInterval } from "./utils";
@@ -72,6 +72,12 @@ export const Healthcheck = () => {
     currentPath !== defaultValues.path ||
     currentInterval !== defaultValues.interval;
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   return (
     <FormSettingCard
       icon={<HeartPulse className="text-gray-12" iconSize="xl-medium" />}
@@ -87,8 +93,7 @@ export const Healthcheck = () => {
         ) : null
       }
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={isSubmitting}
+      saveState={saveState}
     >
       <div className="flex flex-col gap-3 w-[520px]">
         {/* TODO: multi-check when API supports

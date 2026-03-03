@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const keyspacesSchema = z.object({
   keyspaces: z.array(z.string()).min(1, "Select at least one region"),
@@ -114,6 +114,12 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
     currentKeyspaceIds.length !== defaultKeyspaceIds.length ||
     currentKeyspaceIds.some((r) => !defaultKeyspaceIds.includes(r));
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   const displayValue =
     defaultKeyspaceIds.length === 0 ? (
       "No keyspaces selected"
@@ -153,8 +159,7 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
       description="Enforce key authentication in your sentinel."
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={isSubmitting}
+      saveState={saveState}
     >
       <FormCombobox
         label="Keyspaces"

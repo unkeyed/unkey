@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const commandSchema = z.object({
   command: z.string(),
@@ -40,6 +40,12 @@ export const Command = () => {
   const currentCommand = useWatch({ control, name: "command" });
   const hasChanges = currentCommand !== defaultCommand;
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   const onSubmit = async (values: CommandFormValues) => {
     const trimmed = values.command.trim();
     const command = trimmed === "" ? [] : trimmed.split(/\s+/).filter(Boolean);
@@ -63,8 +69,7 @@ export const Command = () => {
         ) : null
       }
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={isSubmitting}
+      saveState={saveState}
     >
       <FormTextarea
         label="Command"

@@ -6,7 +6,7 @@ import { Harddrive } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 import { indexToValue, valueToIndex } from "../shared/slider-utils";
 
@@ -52,6 +52,11 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
   const hasChanges = currentStorage !== defaultStorage;
   const currentIndex = valueToIndex(STORAGE_OPTIONS, currentStorage);
 
+  const saveState = resolveSaveState([
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   return (
     <FormSettingCard
       icon={<Harddrive className="text-gray-12" iconSize="xl-medium" />}
@@ -67,8 +72,7 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
         );
       })()}
       onSubmit={(e) => e.preventDefault()}
-      canSave={isValid && hasChanges}
-      isSaving={false}
+      saveState={saveState}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Storage per instance</span>

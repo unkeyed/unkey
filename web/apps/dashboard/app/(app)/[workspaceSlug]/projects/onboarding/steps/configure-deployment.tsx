@@ -3,7 +3,7 @@
 import { Button } from "@unkey/ui";
 import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
 import { DeploymentSettings } from "../../[projectId]/(overview)/settings/deployment-settings";
-import { EnvironmentSettingsProvider } from "../../[projectId]/(overview)/settings/environment-provider";
+import { OnboardingEnvironmentSettingsProvider } from "./onboarding-environment-provider";
 
 type ConfigureDeploymentStepProps = {
   projectId: string;
@@ -12,7 +12,7 @@ type ConfigureDeploymentStepProps = {
 export const ConfigureDeploymentStep = ({ projectId }: ConfigureDeploymentStepProps) => {
   return (
     <ProjectDataProvider projectId={projectId}>
-      <EnvironmentSettingsProvider>
+      <OnboardingEnvironmentSettingsProvider>
         <div className="w-[900px]">
           <DeploymentSettings githubReadOnly />
           <div className="flex justify-end mt-6 mb-10 flex-col gap-4">
@@ -25,7 +25,7 @@ export const ConfigureDeploymentStep = ({ projectId }: ConfigureDeploymentStepPr
             </span>
           </div>
         </div>
-      </EnvironmentSettingsProvider>
+      </OnboardingEnvironmentSettingsProvider>
     </ProjectDataProvider>
   );
 };
