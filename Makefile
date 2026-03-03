@@ -91,8 +91,7 @@ generate: generate-sql ## Generate code from protobuf and other sources
 	pnpm --dir=web fmt
 
 .PHONY: test
-test: ## Run tests with bazel
-	bazel run //:oci_load_unkey
+test: oci-load ## Run tests with bazel
 	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 vault --wait
 	bazel test //...
 	make clean-docker-test
@@ -122,8 +121,12 @@ down: ## Stop tilt (keeps cluster)
 nuke: ## Delete minikube cluster entirely
 	@minikube delete
 
+.PHONY: oci-load
+oci-load: build ## Build and load OCI images into Docker
+	bazel run //:oci_load_unkey
+
 .PHONY: local-dashboard
-local-dashboard: install build ## Run local development setup for dashboard
+local-dashboard: install oci-load ## Run local development setup for dashboard
 	pnpm --dir=web/apps/dashboard local
 
 .PHONY: build-local-image
