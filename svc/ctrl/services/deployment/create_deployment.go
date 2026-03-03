@@ -64,22 +64,17 @@ func (s *Service) CreateDeployment(
 	}
 	workspaceID := project.WorkspaceID
 
-	// Default app_slug to "default" for backwards compatibility
-	appSlug := req.Msg.GetAppSlug()
-	if appSlug == "" {
-		appSlug = "default"
+	appID := req.Msg.GetAppId()
+	if appID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("app_id is required"))
 	}
 
-	// Lookup app with build and runtime settings for this environment
-	appWithSettings, err := db.Query.FindAppWithSettings(ctx, s.db.RO(), db.FindAppWithSettingsParams{
-		ProjectID:     project.ID,
-		Slug:          appSlug,
-		EnvironmentID: req.Msg.GetEnvironmentSlug(),
-	})
+	// Lookup app with build and runtime settings
+	appWithSettings, err := db.Query.FindAppWithSettings(ctx, s.db.RO(), appID)
 	if err != nil && db.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeNotFound,
-			fmt.Errorf("app '%s' not found in project '%s' or missing settings for environment '%s'",
-				appSlug, req.Msg.GetProjectId(), req.Msg.GetEnvironmentSlug()))
+			fmt.Errorf("app '%s' not found or missing settings", appID))
 	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,

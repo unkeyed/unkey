@@ -15,17 +15,10 @@ SELECT
     abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
     ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 FROM apps a
-INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
-INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
-WHERE a.project_id = ?
-  AND a.slug = ?
+INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = a.environment_id
+INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = a.environment_id
+WHERE a.id = ?
 `
-
-type FindAppWithSettingsParams struct {
-	EnvironmentID string `db:"environment_id"`
-	ProjectID     string `db:"project_id"`
-	Slug          string `db:"slug"`
-}
 
 type FindAppWithSettingsRow struct {
 	App               App               `db:"app"`
@@ -40,17 +33,11 @@ type FindAppWithSettingsRow struct {
 //	    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
 //	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 //	FROM apps a
-//	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
-//	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
-//	WHERE a.project_id = ?
-//	  AND a.slug = ?
-func (q *Queries) FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error) {
-	row := db.QueryRowContext(ctx, findAppWithSettings,
-		arg.EnvironmentID,
-		arg.EnvironmentID,
-		arg.ProjectID,
-		arg.Slug,
-	)
+//	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = a.environment_id
+//	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = a.environment_id
+//	WHERE a.id = ?
+func (q *Queries) FindAppWithSettings(ctx context.Context, db DBTX, id string) (FindAppWithSettingsRow, error) {
+	row := db.QueryRowContext(ctx, findAppWithSettings, id)
 	var i FindAppWithSettingsRow
 	err := row.Scan(
 		&i.App.Pk,

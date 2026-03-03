@@ -133,19 +133,15 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			return
 		}
 
-		// Look up default app
-		appRow, appErr := db.Query.FindAppByProjectAndSlug(ctx, s.db.RO(), db.FindAppByProjectAndSlugParams{
-			ProjectID: project.ID,
-			Slug:      "default",
-		})
+		// Look up app from repo connection
+		appRow, appErr := db.Query.FindAppById(ctx, s.db.RO(), repo.AppID)
 		if appErr != nil {
 			if db.IsNotFound(appErr) {
-				logger.Info("No default app found for project", "projectId", project.ID)
+				logger.Info("App not found for repo connection", "appId", repo.AppID)
 				continue
 			}
-			logger.Error("failed to find default app", "error", appErr, "projectId", project.ID)
-			http.Error(w, "failed to find default app", http.StatusInternalServerError)
-			return
+			logger.Error("failed to find app", "error", appErr, "appId", repo.AppID)
+			continue
 		}
 
 		defaultBranch := "main"

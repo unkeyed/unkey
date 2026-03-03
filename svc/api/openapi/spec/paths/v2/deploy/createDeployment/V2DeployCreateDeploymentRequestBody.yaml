@@ -11,6 +11,11 @@ properties:
     description: Unkey project ID
     example: "proj_123abc"
     pattern: "^proj_[a-zA-Z0-9]+$"
+  appSlug:
+    type: string
+    description: App slug within the project. Defaults to "default" if not specified.
+    example: "default"
+    default: "default"
   keyspaceId:
     type: string
     description: Optional keyspace ID for authentication context

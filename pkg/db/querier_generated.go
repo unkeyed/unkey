@@ -178,8 +178,10 @@ type Querier interface {
 	//
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.environment_id, apps.name, apps.slug, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
-	//  WHERE project_id = ?
-	//    AND slug = ?
+	//  JOIN environments ON environments.id = apps.environment_id
+	//  WHERE apps.project_id = ?
+	//    AND environments.slug = ?
+	//    AND apps.slug = ?
 	FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error)
 	//FindAppEnvVarsByAppAndEnv
 	//
@@ -202,11 +204,10 @@ type Querier interface {
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 	//  FROM apps a
-	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
-	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
-	//  WHERE a.project_id = ?
-	//    AND a.slug = ?
-	FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
+	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = a.environment_id
+	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = a.environment_id
+	//  WHERE a.id = ?
+	FindAppWithSettings(ctx context.Context, db DBTX, id string) (FindAppWithSettingsRow, error)
 	//FindAuditLogTargetByID
 	//
 	//  SELECT audit_log_target.pk, audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.pk, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at

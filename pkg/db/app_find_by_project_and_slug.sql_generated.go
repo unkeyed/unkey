@@ -12,13 +12,16 @@ import (
 const findAppByProjectAndSlug = `-- name: FindAppByProjectAndSlug :one
 SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.environment_id, apps.name, apps.slug, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 FROM apps
-WHERE project_id = ?
-  AND slug = ?
+JOIN environments ON environments.id = apps.environment_id
+WHERE apps.project_id = ?
+  AND environments.slug = ?
+  AND apps.slug = ?
 `
 
 type FindAppByProjectAndSlugParams struct {
-	ProjectID string `db:"project_id"`
-	Slug      string `db:"slug"`
+	ProjectID       string `db:"project_id"`
+	EnvironmentSlug string `db:"environment_slug"`
+	Slug            string `db:"slug"`
 }
 
 type FindAppByProjectAndSlugRow struct {
@@ -29,10 +32,12 @@ type FindAppByProjectAndSlugRow struct {
 //
 //	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.environment_id, apps.name, apps.slug, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 //	FROM apps
-//	WHERE project_id = ?
-//	  AND slug = ?
+//	JOIN environments ON environments.id = apps.environment_id
+//	WHERE apps.project_id = ?
+//	  AND environments.slug = ?
+//	  AND apps.slug = ?
 func (q *Queries) FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error) {
-	row := db.QueryRowContext(ctx, findAppByProjectAndSlug, arg.ProjectID, arg.Slug)
+	row := db.QueryRowContext(ctx, findAppByProjectAndSlug, arg.ProjectID, arg.EnvironmentSlug, arg.Slug)
 	var i FindAppByProjectAndSlugRow
 	err := row.Scan(
 		&i.App.Pk,
