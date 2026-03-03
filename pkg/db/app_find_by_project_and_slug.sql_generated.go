@@ -10,7 +10,7 @@ import (
 )
 
 const findAppByProjectAndSlug = `-- name: FindAppByProjectAndSlug :one
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.environment_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
 FROM apps
 WHERE project_id = ?
   AND slug = ?
@@ -27,7 +27,7 @@ type FindAppByProjectAndSlugRow struct {
 
 // FindAppByProjectAndSlug
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.environment_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
 //	FROM apps
 //	WHERE project_id = ?
 //	  AND slug = ?
@@ -39,6 +39,7 @@ func (q *Queries) FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg Find
 		&i.App.ID,
 		&i.App.WorkspaceID,
 		&i.App.ProjectID,
+		&i.App.EnvironmentID,
 		&i.App.Name,
 		&i.App.Slug,
 		&i.App.LiveDeploymentID,

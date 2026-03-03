@@ -15,6 +15,7 @@ INSERT INTO apps (
     id,
     workspace_id,
     project_id,
+    environment_id,
     name,
     slug,
     live_deployment_id,
@@ -34,6 +35,7 @@ INSERT INTO apps (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
@@ -42,6 +44,7 @@ type InsertAppParams struct {
 	ID               string         `db:"id"`
 	WorkspaceID      string         `db:"workspace_id"`
 	ProjectID        string         `db:"project_id"`
+	EnvironmentID    string         `db:"environment_id"`
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
 	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
@@ -58,6 +61,7 @@ type InsertAppParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
+//	    environment_id,
 //	    name,
 //	    slug,
 //	    live_deployment_id,
@@ -77,6 +81,7 @@ type InsertAppParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) error {
@@ -84,6 +89,7 @@ func (q *Queries) InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) e
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.EnvironmentID,
 		arg.Name,
 		arg.Slug,
 		arg.LiveDeploymentID,
