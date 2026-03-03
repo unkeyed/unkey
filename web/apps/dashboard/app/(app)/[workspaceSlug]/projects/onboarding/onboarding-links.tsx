@@ -5,7 +5,7 @@ export const OnboardingLinks = () => (
   <div className="flex gap-3 items-center">
     <Button
       variant="outline"
-      className="text-gray-12 text-[13px] font-medium border border-grayA-4 rounded-full px-3 py-1.5 transition-all "
+      className="text-gray-12 text-[13px] font-medium border border-grayA-4 rounded-full px-3 py-1.5 transition-all  shadow-sm hover:shadow-md"
     >
       <a
         href="https://www.unkey.com/docs/introduction"
@@ -19,7 +19,7 @@ export const OnboardingLinks = () => (
     </Button>
     <Button
       variant="outline"
-      className="text-gray-12 text-[13px] font-medium border border-grayA-4 rounded-full px-3 py-1.5 transition-all "
+      className="text-gray-12 text-[13px] font-medium border border-grayA-4 rounded-full px-3 py-1.5 transition-all  shadow-sm hover:shadow-md"
     >
       <a
         href="https://unkey.com/discord"
