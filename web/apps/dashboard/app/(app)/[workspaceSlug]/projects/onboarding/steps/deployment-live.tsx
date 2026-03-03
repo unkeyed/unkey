@@ -54,7 +54,7 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
 
   useEffect(() => {
     if (countdown === 0) {
-      router.push(deploymentUrl);
+      router.replace(deploymentUrl);
     }
   }, [countdown, router, deploymentUrl]);
 
