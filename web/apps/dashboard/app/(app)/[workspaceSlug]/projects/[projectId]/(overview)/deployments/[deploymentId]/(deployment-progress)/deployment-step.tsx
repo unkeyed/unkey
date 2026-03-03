@@ -13,6 +13,7 @@ type DeploymentStepProps = {
   status: "pending" | "started" | "completed" | "error";
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
+  badgeText?: string;
 };
 
 export function DeploymentStep({
