@@ -23,16 +23,8 @@ export default function DeploymentOverview() {
   return (
     <ProjectContentWrapper centered>
       <DeploymentInfo />
-      {ready ? (
-        <div key="ready" className="flex flex-col gap-5 animate-fade-slide-in">
-          <DeploymentDomainsCard />
-          <DeploymentNetworkSection />
-        </div>
-      ) : (
-        <div key="progress" className="animate-fade-slide-in">
-          <DeploymentProgress />
-        </div>
-      )}
+      <DeploymentProgress />
+
     </ProjectContentWrapper>
   );
 }

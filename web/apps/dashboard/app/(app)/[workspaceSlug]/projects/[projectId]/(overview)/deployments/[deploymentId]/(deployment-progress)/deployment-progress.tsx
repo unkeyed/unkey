@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc/client";
 import { CloudUp, Earth, Hammer2, LayerFront } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
@@ -50,6 +50,14 @@ export function DeploymentProgress() {
 
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
 
+  // Latch true once we observe the build actively in progress; stays true after it completes
+  const hasFreshBuild = useRef(false);
+  if (building && !building.endedAt) {
+    hasFreshBuild.current = true;
+  }
+  const isPrebuilt = !hasFreshBuild.current;
+
+
   useEffect(() => {
     if (network?.completed) {
       router.push(`/${workspaceSlug}/projects/${projectId}/deployments/${deployment.id}`);
@@ -81,14 +89,15 @@ export function DeploymentProgress() {
           }
         />
         <DeploymentStep
+          key={isPrebuilt ? "prebuilt" : "building"}
           icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
           title="Building Image"
           description={
             building
               ? building.endedAt
-                ? (building.error ?? "Build Complete")
+                ? (building.error ?? (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"))
                 : (buildSteps.data?.steps.at(-1)?.name ?? "Building...")
-              : "Waiting for build runner"
+              : "Image was prebuilt"
           }
           duration={building ? (building.endedAt ?? now) - building.startedAt : undefined}
           status={
@@ -100,12 +109,12 @@ export function DeploymentProgress() {
                   ? "started"
                   : "pending"
           }
-          expandable={
+          expandable={isPrebuilt ? null :
             <div className="bg-grayA-2">
               <DeploymentBuildStepsTable steps={buildSteps.data?.steps ?? []} />
             </div>
           }
-          defaultExpanded
+          defaultExpanded={!isPrebuilt}
         />
         <DeploymentStep
           icon={<CloudUp iconSize="sm-medium" className="size-[18px]" />}

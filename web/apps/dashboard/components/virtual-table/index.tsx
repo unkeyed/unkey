@@ -180,7 +180,10 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           <table className={tableClassName}>
             <colgroup>
               {columns.map((column, idx) => (
-                <col key={column.key} style={{ width: colWidths[idx].width }} />
+                <col
+                  key={column.key}
+                  style={{ width: colWidths[idx].width }}
+                />
               ))}
             </colgroup>
             {hasHeaders && (
@@ -226,7 +229,10 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
           <table className={tableClassName}>
             <colgroup>
               {columns.map((column, idx) => (
-                <col key={column.key} style={{ width: colWidths[idx].width }} />
+                <col
+                  key={column.key}
+                  style={{ width: colWidths[idx].width }}
+                />
               ))}
             </colgroup>
             {hasHeaders && (

@@ -20,13 +20,10 @@ import { DomainList } from "./components/domain_list";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {
   ActionColumnSkeleton,
-  AuthorColumnSkeleton,
   CreatedAtColumnSkeleton,
   DeploymentIdColumnSkeleton,
   EnvColumnSkeleton,
   InstancesColumnSkeleton,
-  SizeColumnSkeleton,
-  SourceColumnSkeleton,
   StatusColumnSkeleton,
 } from "./components/skeletons";
 import { getRowClassName } from "./utils/get-row-class";
@@ -73,7 +70,7 @@ export const DeploymentsList = () => {
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
-                <div className="shrink-0">{iconContainer}</div>
+                <div className="flex-shrink-0">{iconContainer}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <div
@@ -85,7 +82,7 @@ export const DeploymentsList = () => {
                       {shortenId(deployment.id)}
                     </div>
                     {isLive ? (
-                      <div className="shrink-0">
+                      <div className="flex-shrink-0">
                         {project?.isRolledBack ? (
                           <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
                         ) : (
@@ -117,7 +114,7 @@ export const DeploymentsList = () => {
       {
         key: "domains",
         header: "Domains",
-        width: "20%",
+        width: "10%",
         render: ({ deployment }) => {
           return (
             <div className="flex items-center min-h-[52px]">
@@ -127,88 +124,63 @@ export const DeploymentsList = () => {
         },
       },
       {
-        key: "instances" as const,
-        header: "Instances",
-        width: "8%",
-        headerClassName: "hidden 2xl:table-cell",
-        cellClassName: "hidden 2xl:table-cell",
+        key: "details",
+        header: "",
+        width: "15%",
         render: ({ deployment }: { deployment: Deployment }) => {
-          return deployment.status === "failed" ? (
-            <span className="text-gray-9">—</span>
-          ) : (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit h-[22px]">
-              <Connections3 className="text-gray-12" iconSize="sm-regular" />
-              <div className="flex gap-0.5">
-                <span className="font-semibold text-grayA-12 tabular-nums">
-                  {deployment.instances.length}
-                </span>
-                <span>VMs</span>
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        key: "size" as const,
-        header: "Size",
-        width: "14%",
-        render: ({ deployment }: { deployment: Deployment }) => {
-          if (deployment.status === "failed") {
-            return <span className="text-gray-9">—</span>;
-          }
-          const cpu = formatCpuParts(deployment.cpuMillicores);
-          const mem = formatMemoryParts(deployment.memoryMib);
+          const isFailed = deployment.status === "failed";
+          const cpu = isFailed ? null : formatCpuParts(deployment.cpuMillicores);
+          const mem = isFailed ? null : formatMemoryParts(deployment.memoryMib);
           return (
-            <div className="flex gap-1.5">
-              <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md relative text-grayA-11 w-fit h-[22px]">
-                <Bolt className="text-gray-12" iconSize="sm-regular" />
-                <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12">{cpu.value}</span>
-                  <span>{cpu.unit}</span>
-                </div>
-              </div>
-              <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md relative text-grayA-11 w-fit h-[22px]">
-                <ScanCode className="text-gray-12" iconSize="sm-regular" />
-                <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12">{mem.value}</span>
-                  <span>{mem.unit}</span>
-                </div>
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        key: "source",
-        header: "Source",
-        width: "12%",
-        headerClassName: "hidden 2xl:table-cell",
-        cellClassName: "hidden 2xl:table-cell",
-        render: ({ deployment }) => {
-          const iconContainer = (
-            <div className="size-5 rounded-sm flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
-              <CodeBranch iconSize="sm-regular" className="text-gray-12" />
-            </div>
-          );
-          return (
-            <div className="flex flex-col items-start py-1.5">
-              <div className="flex gap-3 items-center w-full">
-                <div className="shrink-0">{iconContainer}</div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={cn(
-                        "font-normal font-mono truncate leading-5 text-[13px]",
-                        "text-accent-12",
-                      )}
-                    >
-                      {deployment.gitBranch}
-                    </div>
+            <div className="flex items-center gap-7">
+              <div className="hidden 2xl:flex items-center">
+                {isFailed ? (
+                  <span className="text-gray-9">—</span>
+                ) : (
+                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
+                    <Connections3 className="text-gray-12" iconSize="sm-regular" />
+                    <span className="font-semibold text-grayA-12 tabular-nums">
+                      {deployment.instances.length}
+                    </span>
+                    <span>VMs</span>
                   </div>
-                  <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
+                )}
+              </div>
+              {!isFailed && cpu && mem && (
+                <div className="hidden 2xl:flex gap-1.5">
+                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
+                    <Bolt className="text-gray-12" iconSize="sm-regular" />
+                    <span className="font-semibold text-grayA-12">{cpu.value}</span>
+                    <span>{cpu.unit}</span>
+                  </div>
+                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
+                    <ScanCode className="text-gray-12" iconSize="sm-regular" />
+                    <span className="font-semibold text-grayA-12">{mem.value}</span>
+                    <span>{mem.unit}</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-2 items-center">
+                <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3">
+                  <CodeBranch iconSize="sm-regular" className="text-gray-12" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-mono truncate text-[13px] text-accent-12">
+                    {deployment.gitBranch}
+                  </div>
+                  <div className="font-mono text-xs text-gray-9">
                     {deployment.gitCommitSha?.slice(0, 7)}
                   </div>
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Avatar
+                  src={deployment.gitCommitAuthorAvatarUrl}
+                  alt={deployment.gitCommitAuthorHandle ?? "Author"}
+                />
+                <span className="font-medium text-grayA-12 text-xs">
+                  {deployment.gitCommitAuthorHandle || "—"}
+                </span>
               </div>
             </div>
           );
@@ -225,26 +197,6 @@ export const DeploymentsList = () => {
               displayType="relative"
               className="font-mono group-hover:underline decoration-dotted"
             />
-          );
-        },
-      },
-      {
-        key: "author" as const,
-        header: "Author",
-        width: "8%",
-        headerClassName: "hidden 2xl:table-cell",
-        cellClassName: "hidden 2xl:table-cell",
-        render: ({ deployment }: { deployment: Deployment }) => {
-          return (
-            <div className="flex items-center gap-2">
-              <Avatar
-                src={deployment.gitCommitAuthorAvatarUrl}
-                alt={deployment.gitCommitAuthorHandle ?? "Author"}
-              />
-              <span className="font-medium text-grayA-12 text-xs">
-                {deployment.gitCommitAuthorHandle || "—"}
-              </span>
-            </div>
           );
         },
       },
@@ -334,22 +286,13 @@ export const DeploymentsList = () => {
             {column.key === "deployment_id" && <DeploymentIdColumnSkeleton />}
             {column.key === "env" && <EnvColumnSkeleton />}
             {column.key === "status" && <StatusColumnSkeleton />}
-            {column.key === "instances" && <InstancesColumnSkeleton />}
-            {column.key === "size" && <SizeColumnSkeleton />}
+            {column.key === "details" && <InstancesColumnSkeleton />}
             {column.key === "domains" && (
               <div className="flex items-center min-h-[52px]">
-                <div className="h-4 bg-grayA-3 rounded-sm w-32 animate-pulse" />
+                <div className="h-4 bg-grayA-3 rounded w-32 animate-pulse" />
               </div>
             )}
-            {column.key === "source" && <SourceColumnSkeleton />}
             {column.key === "created_at" && <CreatedAtColumnSkeleton />}
-            {column.key === "author" && <AuthorColumnSkeleton />}
-            {column.key === "author_created" && (
-              <div className="flex flex-col gap-1">
-                <AuthorColumnSkeleton />
-                <CreatedAtColumnSkeleton />
-              </div>
-            )}
             {column.key === "action" && <ActionColumnSkeleton />}
           </td>
         ))
