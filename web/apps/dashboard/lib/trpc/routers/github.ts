@@ -12,6 +12,7 @@ import { t, workspaceProcedure } from "../trpc";
 
 const state = z.object({
   projectId: z.string().min(1),
+  returnTo: z.enum(["settings"]).optional(),
 });
 
 const fetchGithubContext = async (workspaceId: string, projectId: string) => {
@@ -194,6 +195,7 @@ export const githubRouter = t.router({
       return {
         workspaceSlug: ctx.workspace.slug,
         projectId,
+        returnTo: parsedState.returnTo ?? null,
       };
     }),
 

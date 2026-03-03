@@ -1,4 +1,5 @@
 "use server";
+import { LoadingState } from "@/components/loading-state";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
@@ -19,7 +20,7 @@ export default async function ProjectsPage() {
     return notFound();
   }
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<LoadingState message="Loading projects..." />}>
       <ProjectsClient />
     </Suspense>
   );
