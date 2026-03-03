@@ -28,7 +28,7 @@ function extractDomain(input: string): string {
 }
 
 type AddCustomDomainProps = {
-  environments: Array<{ id: string; slug: string }>;
+  environments: Array<{ id: string; slug: string; appId: string }>;
   getExistingDomain: (domain: string) => CustomDomain | undefined;
   onDismiss: () => void;
 };
@@ -89,11 +89,14 @@ export function AddCustomDomain({
       return;
     }
 
+    const appId = environments.find((e) => e.id === environmentId)?.appId ?? "";
+
     collection.customDomains.insert({
       id: crypto.randomUUID(),
       domain,
       workspaceId: "",
       projectId,
+      appId,
       environmentId,
       verificationStatus: "pending",
       verificationToken: "",

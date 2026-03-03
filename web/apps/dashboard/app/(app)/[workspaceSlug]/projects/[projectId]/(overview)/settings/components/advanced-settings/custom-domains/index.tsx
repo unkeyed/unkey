@@ -36,7 +36,7 @@ export const CustomDomains = () => {
 };
 
 type CustomDomainSettingsProps = {
-  environments: { id: string; slug: string }[];
+  environments: { id: string; slug: string; appId: string }[];
   customDomains: CustomDomain[];
   projectId: string;
   defaultEnvironmentId: string;
@@ -70,11 +70,14 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       setError("domain", { message: "Domain already registered" });
       return;
     }
+    const appId = environments.find((e) => e.id === values.environmentId)?.appId ?? "";
+
     collection.customDomains.insert({
       id: crypto.randomUUID(),
       domain: trimmedDomain,
       workspaceId: "",
       projectId,
+      appId,
       environmentId: values.environmentId,
       verificationStatus: "pending",
       verificationToken: "",

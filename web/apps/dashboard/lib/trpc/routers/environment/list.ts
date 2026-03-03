@@ -12,7 +12,7 @@ export const listEnvironments = workspaceProcedure
   )
   .query(async ({ ctx, input }) => {
     try {
-      return await db.query.environments.findMany({
+      const rows = await db.query.environments.findMany({
         where: and(
           eq(environments.workspaceId, ctx.workspace.id),
           eq(environments.projectId, input.projectId),
@@ -22,7 +22,19 @@ export const listEnvironments = workspaceProcedure
           projectId: true,
           slug: true,
         },
+        with: {
+          apps: {
+            columns: { id: true },
+          },
+        },
       });
+
+      return rows.map((row) => ({
+        id: row.id,
+        projectId: row.projectId,
+        slug: row.slug,
+        appId: row.apps[0]?.id ?? "",
+      }));
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;
