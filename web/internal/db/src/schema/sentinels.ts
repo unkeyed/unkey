@@ -24,7 +24,7 @@ export const sentinels = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
-    k8sName: varchar("k8s_name", { length: 64 }).notNull().unique(),
+    k8sName: varchar("k8s_name", { length: 64 }).unique(),
     k8sAddress: varchar("k8s_address", { length: 255 }).notNull().unique(),
     /*
      * `us-east-1`, `us-west-2` etc

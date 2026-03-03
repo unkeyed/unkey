@@ -5,6 +5,7 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,7 +58,7 @@ func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
 				}
 
 				err := c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
-					K8SName:           sentinel.Name,
+					Id:                uid.FromDNS1035(sentinel.GetName()),
 					AvailableReplicas: sentinel.Status.AvailableReplicas,
 					Health:            health,
 				})
@@ -72,7 +73,7 @@ func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
 				}
 				logger.Info("sentinel deleted", "name", sentinel.Name)
 				err := c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
-					K8SName:           sentinel.Name,
+					Id:                uid.FromDNS1035(sentinel.GetName()),
 					AvailableReplicas: 0,
 					Health:            ctrlv1.Health_HEALTH_UNHEALTHY,
 				})

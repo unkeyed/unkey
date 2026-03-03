@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const insertSentinel = `-- name: InsertSentinel :exec
@@ -51,7 +52,7 @@ type InsertSentinelParams struct {
 	EnvironmentID     string          `db:"environment_id"`
 	ProjectID         string          `db:"project_id"`
 	K8sAddress        string          `db:"k8s_address"`
-	K8sName           string          `db:"k8s_name"`
+	K8sName           sql.NullString  `db:"k8s_name"`
 	Region            string          `db:"region"`
 	Image             string          `db:"image"`
 	Health            SentinelsHealth `db:"health"`
