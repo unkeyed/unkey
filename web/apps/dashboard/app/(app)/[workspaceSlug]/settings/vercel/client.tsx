@@ -113,7 +113,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                   </Button>
                 </div>
 
-                <ul className="w-full mt-2 overflow-hidden border divide-y rounded">
+                <ul className="w-full mt-2 overflow-hidden border divide-y rounded-sm">
                   {Object.entries(environments).map(([e, envLabel]) => {
                     const environment = e as VercelBinding["environment"];
                     const binding = project.bindings[environment];

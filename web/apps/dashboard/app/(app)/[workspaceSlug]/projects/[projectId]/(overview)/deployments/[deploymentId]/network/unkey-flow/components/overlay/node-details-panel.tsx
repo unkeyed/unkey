@@ -185,31 +185,31 @@ export function NodeDetailsPanel({ node, onClose }: Props) {
       >
         <Button
           variant="outline"
-          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium"
+          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium"
         >
           Logs
         </Button>
         <Button
           variant="outline"
-          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium"
+          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium"
         >
           Restart
         </Button>
         <Button
           variant="outline"
-          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium"
+          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium"
         >
           Drain
         </Button>
         <Button
           variant="outline"
-          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium"
+          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium"
         >
           Shell
         </Button>
         <Button
           variant="outline"
-          className="bg-gray-1 rounded-lg shadow-sm text-[13px] font-medium ml-auto size-[26px]"
+          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium ml-auto size-[26px]"
         >
           <Dots className="text-gray-9" iconSize="sm-regular" />
         </Button>

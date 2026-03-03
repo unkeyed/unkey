@@ -77,7 +77,7 @@ export function EnvironmentVariablesSection({
               }}
               className="size-7 bg-gray-3 hover:bg-gray-4 mb-0.5"
             >
-              <Plus iconSize="sm-regular" className="text-accent-12 !size-3" />
+              <Plus iconSize="sm-regular" className="text-accent-12 size-3!" />
             </Button>
           )}
           <Button
@@ -89,7 +89,7 @@ export function EnvironmentVariablesSection({
             <ChevronDown
               iconSize="sm-regular"
               className={cn(
-                "text-accent-12 !size-3 transition-transform duration-200",
+                "text-accent-12 size-3! transition-transform duration-200",
                 isExpanded && "rotate-180",
               )}
             />
@@ -155,7 +155,7 @@ export function EnvironmentVariablesSection({
                 }
               >
                 <Button size="sm" variant="primary" onClick={startAdding} className="gap-1.5 mt-1">
-                  <Plus className="!size-3" />
+                  <Plus className="size-3!" />
                   Add variable
                 </Button>
               </EmptySection>

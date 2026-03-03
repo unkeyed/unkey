@@ -33,7 +33,7 @@ export const OutcomeDistributionSection = ({
                 <div className="flex items-center text-left text-gray-11 whitespace-nowrap">
                   <div
                     className={cn(
-                      "size-[10px] rounded-[2px] shadow-sm mr-2",
+                      "size-[10px] rounded-[2px] shadow-xs mr-2",
                       getOutcomeColor(outcome),
                     )}
                   />

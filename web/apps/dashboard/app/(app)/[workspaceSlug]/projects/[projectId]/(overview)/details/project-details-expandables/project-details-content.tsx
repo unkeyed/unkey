@@ -47,7 +47,7 @@ export const ProjectDetailsContent = () => {
             variant="outline"
             className="size-12 p-0 bg-grayA-3 border border-grayA-3 rounded-xl"
           >
-            <Cube iconSize="2xl-medium" className="!size-[20px]" />
+            <Cube iconSize="2xl-medium" className="size-[20px]!" />
           </Button>
           <div className="flex flex-col gap-1">
             <span className="text-accent-12 font-medium text-sm truncate">{data.project.name}</span>

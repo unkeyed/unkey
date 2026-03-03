@@ -83,7 +83,7 @@ export const GrantedAccess = ({
 
       <motion.div
         layout
-        className="h-[1px] bg-grayA-3 w-full"
+        className="h-px bg-grayA-3 w-full"
         initial={{ scaleX: 0 }}
         animate={{ scaleX: 1 }}
         transition={{ duration: 0.4, delay: 0.1 }}
@@ -92,7 +92,7 @@ export const GrantedAccess = ({
       <motion.div
         layout
         className={`
-          flex flex-wrap gap-1 items-center min-h-[2rem]
+          flex flex-wrap gap-1 items-center min-h-8
           transition-opacity duration-300 ease-in-out
           ${isLoading ? "opacity-50" : "opacity-100"}
         `}
