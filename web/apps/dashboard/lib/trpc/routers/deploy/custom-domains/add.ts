@@ -12,7 +12,6 @@ export const addCustomDomain = workspaceProcedure
   .input(
     z.object({
       projectId: z.string().min(1, "Project ID is required"),
-      appId: z.string().min(1, "App ID is required"),
       environmentId: z.string().min(1, "Environment ID is required"),
       domain: z.string().min(1, "Domain is required").max(253, "Domain too long"),
     }),
@@ -42,12 +41,17 @@ export const addCustomDomain = workspaceProcedure
       });
     }
 
-    // Verify environment belongs to project
+    // Verify environment belongs to project and resolve the app
     const environment = await db.query.environments.findFirst({
       where: (table, { eq, and }) =>
         and(eq(table.id, input.environmentId), eq(table.projectId, input.projectId)),
       columns: {
         id: true,
+      },
+      with: {
+        apps: {
+          columns: { id: true },
+        },
       },
     });
 
@@ -55,6 +59,14 @@ export const addCustomDomain = workspaceProcedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Environment not found",
+      });
+    }
+
+    const appId = environment.apps[0]?.id;
+    if (!appId) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "No app found for this environment",
       });
     }
 
@@ -75,7 +87,7 @@ export const addCustomDomain = workspaceProcedure
       const response = await ctrl.addCustomDomain({
         workspaceId: ctx.workspace.id,
         projectId: input.projectId,
-        appId: input.appId,
+        appId,
         environmentId: input.environmentId,
         domain: input.domain,
       });
