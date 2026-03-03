@@ -340,7 +340,7 @@ export const githubRouter = t.router({
     .input(
       z.object({
         projectId: z.string(),
-        appId: z.string(),
+        appId: z.string().optional(),
         repositoryId: z.number().int(),
         repositoryFullName: z.string(),
         installationId: z.number().int(),
@@ -367,6 +367,23 @@ export const githubRouter = t.router({
         });
       }
 
+      // Resolve appId: use provided value or find the default app for the project
+      let appId = input.appId;
+      if (!appId) {
+        const app = await db.query.apps.findFirst({
+          where: (table, { eq, and }) =>
+            and(eq(table.projectId, input.projectId), eq(table.slug, "default")),
+          columns: { id: true },
+        });
+        if (!app) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "No default app found for this project",
+          });
+        }
+        appId = app.id;
+      }
+
       const verifiedRepo = await getRepositoryById(input.installationId, input.repositoryId).catch(
         () => {
           throw new TRPCError({
@@ -387,7 +404,7 @@ export const githubRouter = t.router({
         .insert(schema.githubRepoConnections)
         .values({
           projectId: input.projectId,
-          appId: input.appId,
+          appId,
           installationId: input.installationId,
           repositoryId: verifiedRepo.id,
           repositoryFullName: verifiedRepo.full_name,
