@@ -191,7 +191,7 @@ async function main() {
 
   console.log("Backfilling app_id on custom_domains...");
   await db.execute(
-    sql`UPDATE custom_domains cd JOIN apps a ON a.project_id = cd.project_id AND a.slug = 'default' JOIN environments e ON e.id = a.environment_id AND e.slug = 'production' SET cd.app_id = a.id WHERE cd.app_id = ''`,
+    sql`UPDATE custom_domains cd JOIN apps a ON a.environment_id = cd.environment_id AND a.slug = 'default' SET cd.app_id = a.id WHERE cd.app_id = ''`,
   );
 
   console.log("Migration complete!");
