@@ -3,10 +3,10 @@ import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 
 /**
- * Resolves all app IDs for the project that the given environment belongs to.
- * Used to fan out settings changes to all apps in a project.
+ * Resolves all environment IDs for the project that the given environment belongs to.
+ * Used to fan out settings changes to all environments in a project.
  */
-export async function resolveProjectAppIds(
+export async function resolveProjectEnvironmentIds(
   workspaceId: string,
   environmentId: string,
 ): Promise<string[]> {
@@ -17,7 +17,7 @@ export async function resolveProjectAppIds(
       project: {
         columns: {},
         with: {
-          apps: {
+          environments: {
             columns: { id: true },
           },
         },
@@ -32,5 +32,5 @@ export async function resolveProjectAppIds(
     });
   }
 
-  return env.project.apps.map((a) => a.id);
+  return env.project.environments.map((e) => e.id);
 }

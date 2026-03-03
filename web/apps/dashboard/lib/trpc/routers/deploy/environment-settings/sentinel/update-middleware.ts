@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
-import { resolveProjectAppIds } from "../utils";
+import { resolveProjectEnvironmentIds } from "../utils";
 
 export type SentinelConfig = {
   policies: {
@@ -58,7 +58,7 @@ export const updateMiddleware = workspaceProcedure
       });
     }
 
-    const appIds = await resolveProjectAppIds(ctx.workspace.id, input.environmentId);
+    const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
 
     await db
       .update(appRuntimeSettings)
@@ -66,7 +66,7 @@ export const updateMiddleware = workspaceProcedure
       .where(
         and(
           eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
-          inArray(appRuntimeSettings.appId, appIds),
+          inArray(appRuntimeSettings.environmentId, envIds),
         ),
       );
   });
