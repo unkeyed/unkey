@@ -104,7 +104,7 @@ export const SelectRepo = ({
   return (
     <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       {!isBannerDismissed && (
-        <div className="absolute top-2 left-2 right-2 z-50 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-gradient-to-r from-successA-4 via-successA-1 to-success-1">
+        <div className="absolute top-2 left-2 right-2 z-50 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-linear-to-r from-successA-4 via-successA-1 to-success-1">
           <Check iconSize="sm-regular" />
           <div className="flex items-center gap-1">
             <span className="font-medium text-[13px] text-success-12">

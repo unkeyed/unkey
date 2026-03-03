@@ -70,7 +70,7 @@ export const DeploymentsList = () => {
           return (
             <div className="flex flex-col items-start px-[18px] py-1.5">
               <div className="flex gap-3 items-center w-full">
-                <div className="flex-shrink-0">{iconContainer}</div>
+                <div className="shrink-0">{iconContainer}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <div
@@ -82,7 +82,7 @@ export const DeploymentsList = () => {
                       {shortenId(deployment.id)}
                     </div>
                     {isLive ? (
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         {project?.isRolledBack ? (
                           <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
                         ) : (

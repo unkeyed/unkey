@@ -90,7 +90,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
         )}
       </div>
       {!isCollapsed && (
-        <ChevronExpandY className="w-4 h-4 shrink-0 [stroke-width:1px] text-gray-9" />
+        <ChevronExpandY className="w-4 h-4 shrink-0 stroke-[1px] text-gray-9" />
       )}
     </button>
   );

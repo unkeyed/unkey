@@ -270,7 +270,7 @@ const NavigableDialogBody = ({
   className?: string;
 }) => {
   return (
-    <div className={cn("flex flex-grow overflow-x-hidden overflow-y-hidden", className)}>
+    <div className={cn("flex grow overflow-x-hidden overflow-y-hidden", className)}>
       {children}
     </div>
   );
