@@ -1,34 +1,44 @@
 import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
-import { Github, Magnifier } from "@unkey/icons";
-import { Input, toast } from "@unkey/ui";
+import { Check, Github, Magnifier, XMark } from "@unkey/icons";
+import { Input, toast, useStepWizard } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { RepoListItem } from "./repo-list-item";
 import { SelectRepoSkeleton } from "./skeleton";
 
 export const SelectRepo = ({
-  projectId = "",
+  projectId,
 }: {
-  projectId?: string;
+  projectId: string;
 }) => {
-  const utils = trpc.useUtils();
+  const { next } = useStepWizard();
+  const trpcUtils = trpc.useUtils();
   const [selectedOwner, setSelectedOwner] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+  const [mutatingRepoId, setMutatingRepoId] = useState<number | null>(null);
 
   const { data: reposData, isLoading: isLoadingRepos } = trpc.github.listRepositories.useQuery(
     {
       projectId,
     },
     {
-      enabled: Boolean(projectId),
       refetchOnWindowFocus: false,
     },
   );
 
   const selectRepoMutation = trpc.github.selectRepository.useMutation({
-    onSuccess: async () => {
-      toast.success("Repository connected");
-      await utils.github.getInstallations.invalidate();
+    onSuccess: async (_data, variables) => {
+      trpcUtils.github.getInstallations.invalidate();
+      const name =
+        variables.repositoryFullName.length > 40
+          ? `${variables.repositoryFullName.slice(0, 37)}...`
+          : variables.repositoryFullName;
+      toast.success(
+        <span className="text-gray-11">
+          <span className="text-gray-12 font-medium">{name} </span>linked
+        </span>,
+      );
     },
     onError: (error) => {
       toast.error(error.message);
@@ -63,22 +73,45 @@ export const SelectRepo = ({
     setSearchQuery("");
   };
 
-  const handleSelectRepository = (repo: {
+  const handleSelectRepository = async (repo: {
     id: number;
     fullName: string;
     installationId: number;
   }) => {
-    selectRepoMutation.mutate({
-      projectId,
-      repositoryId: repo.id,
-      repositoryFullName: repo.fullName,
-      installationId: repo.installationId,
-    });
+    setMutatingRepoId(repo.id);
+    try {
+      await selectRepoMutation.mutateAsync({
+        projectId,
+        repositoryId: repo.id,
+        repositoryFullName: repo.fullName,
+        installationId: repo.installationId,
+      });
+      next();
+    } finally {
+      setMutatingRepoId(null);
+    }
   };
 
   return (
     <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-      <div className="flex gap-2 w-full">
+      {!isBannerDismissed && (
+        <div className="absolute top-2 left-2 right-2 z-50 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-gradient-to-r from-successA-4 via-successA-1 to-success-1">
+          <Check iconSize="sm-regular" />
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-[13px] text-success-12">
+              GitHub connected successfully.
+            </span>
+            <span className="text-[13px] text-success-12">
+              You can now select a repository to deploy
+            </span>
+          </div>
+          <button type="button" onClick={() => setIsBannerDismissed(true)} className="ml-auto">
+            <XMark iconSize="sm-regular" />
+          </button>
+        </div>
+      )}
+
+      <div className="flex gap-2 w-full min-w-[600px]">
         {isLoadingRepos ? (
           <SelectRepoSkeleton />
         ) : ownerOptions.length ? (
@@ -115,7 +148,8 @@ export const SelectRepo = ({
                   repo={repo}
                   projectId={projectId}
                   onSelect={handleSelectRepository}
-                  disabled={selectRepoMutation.isLoading}
+                  disabled={mutatingRepoId !== null}
+                  loading={mutatingRepoId === repo.id}
                 />
               </li>
             ))}

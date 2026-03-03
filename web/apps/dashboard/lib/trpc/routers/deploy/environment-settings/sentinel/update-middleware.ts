@@ -29,10 +29,7 @@ export const updateMiddleware = workspaceProcedure
       const keyspaces = await db.query.keyAuth
         .findMany({
           where: (table, { and, inArray }) =>
-            and(
-              inArray(table.id, input.keyspaceIds),
-              eq(table.workspaceId, ctx.workspace.id),
-            ),
+            and(inArray(table.id, input.keyspaceIds), eq(table.workspaceId, ctx.workspace.id)),
           columns: { id: true },
         })
         .catch((err) => {
