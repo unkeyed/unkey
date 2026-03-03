@@ -1,6 +1,11 @@
 import { db, eq, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
-import { getInstallationRepositories, getRepositoryById } from "@/lib/github";
+import {
+  getInstallationRepositories,
+  getRepositoryBranches,
+  getRepositoryById,
+  getRepositoryTree,
+} from "@/lib/github";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
@@ -232,6 +237,7 @@ export const githubRouter = t.router({
         htmlUrl: string;
         defaultBranch: string;
         installationId: number;
+        pushedAt: string | null;
       }> = [];
 
       for (const installation of githubContext.installations) {
@@ -253,6 +259,7 @@ export const githubRouter = t.router({
             htmlUrl: repo.html_url,
             defaultBranch: repo.default_branch,
             installationId: installation.installationId,
+            pushedAt: repo.pushed_at,
           });
         }
       }
@@ -260,6 +267,50 @@ export const githubRouter = t.router({
       allRepos.sort((a, b) => a.fullName.localeCompare(b.fullName));
 
       return { repositories: allRepos };
+    }),
+
+  getRepositoryDetails: workspaceProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        installationId: z.number().int(),
+        owner: z.string(),
+        repo: z.string(),
+        defaultBranch: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      if (!githubContext) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
+      }
+
+      const hasInstallation = githubContext.installations.some(
+        (i) => i.installationId === input.installationId,
+      );
+      if (!hasInstallation) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Installation not found for this workspace",
+        });
+      }
+
+      const [tree, branchesData] = await Promise.all([
+        getRepositoryTree(input.installationId, input.owner, input.repo, input.defaultBranch),
+        getRepositoryBranches(input.installationId, input.owner, input.repo),
+      ]);
+
+      const hasDockerfile = tree.some(
+        (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
+      );
+
+      return {
+        hasDockerfile,
+        branches: branchesData.map((b) => b.name),
+      };
     }),
 
   selectRepository: workspaceProcedure

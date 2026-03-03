@@ -1,7 +1,6 @@
 "use client";
-
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import * as React from "react";
+import React from "react";
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useReducer } from "react";
 import { cn } from "../../lib/utils";
@@ -217,11 +216,11 @@ const StepWizardStep = ({
   return (
     <div
       className={cn(
-        "w-full absolute inset-0 overflow-y-auto scrollbar-hide",
-        "transition-all duration-300 ease-out",
+        "w-full scrollbar-hide",
+        "transition-[opacity,transform] duration-300 ease-out",
         isActive
-          ? "opacity-100 translate-x-0 z-10"
-          : "opacity-0 translate-x-5 z-0 pointer-events-none",
+          ? "opacity-100 translate-x-0 z-10 overflow-y-auto"
+          : "opacity-0 translate-x-5 z-0 pointer-events-none h-0 overflow-hidden",
       )}
       aria-hidden={!isActive}
     >
