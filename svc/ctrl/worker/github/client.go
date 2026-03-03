@@ -231,6 +231,48 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 	), nil
 }
 
+// GetBranchHeadCommitPublic retrieves the HEAD commit of a branch using the
+// public GitHub API without authentication. Only works for public repositories.
+// The repo parameter must be in "owner/repo" format.
+func (c *Client) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error) {
+	requestURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
+
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to create request"))
+	}
+
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to fetch branch head commit"))
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return CommitInfo{}, fault.New(
+			"failed to fetch branch head commit (public)",
+			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+		)
+	}
+
+	var commit ghCommitResponse
+	if err := json.NewDecoder(resp.Body).Decode(&commit); err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to decode commit response"))
+	}
+
+	return CommitInfoFromRaw(
+		commit.SHA,
+		commit.Commit.Message,
+		commit.Author.Login,
+		commit.Author.AvatarURL,
+		commit.Commit.Author.Date,
+	), nil
+}
+
 // CommitInfoFromRaw constructs a CommitInfo, truncating the message to the
 // first line and parsing an RFC3339 timestamp string.
 func CommitInfoFromRaw(sha, message, authorHandle, authorAvatarURL, timestamp string) CommitInfo {
