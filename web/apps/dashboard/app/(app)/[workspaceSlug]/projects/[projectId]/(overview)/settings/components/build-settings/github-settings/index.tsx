@@ -11,7 +11,13 @@ type GitHubConnectionState =
   | { status: "loading" }
   | { status: "no-app"; installUrl: string }
   | { status: "no-repo"; appId: string; installUrl: string }
-  | { status: "connected"; appId: string; repoFullName: string; repositoryId: number; installUrl: string };
+  | {
+      status: "connected";
+      appId: string;
+      repoFullName: string;
+      repositoryId: number;
+      installUrl: string;
+    };
 
 type GitHubProps = {
   readOnly?: boolean;
@@ -68,7 +74,13 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
       );
     // User connected to unkey, but haven't selected a repo yet
     case "no-repo":
-      return <GitHubNoRepo projectId={projectId} appId={connectionState.appId} installUrl={connectionState.installUrl} />;
+      return (
+        <GitHubNoRepo
+          projectId={projectId}
+          appId={connectionState.appId}
+          installUrl={connectionState.installUrl}
+        />
+      );
     case "connected":
       if (readOnly) {
         return (
