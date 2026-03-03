@@ -2,7 +2,7 @@ import { and, db, eq, inArray } from "@/lib/db";
 import { appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
-import { resolveProjectAppIds } from "../utils";
+import { resolveProjectEnvironmentIds } from "../utils";
 
 export const updatePort = workspaceProcedure
   .input(
@@ -12,7 +12,7 @@ export const updatePort = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const appIds = await resolveProjectAppIds(ctx.workspace.id, input.environmentId);
+    const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
 
     await db
       .update(appRuntimeSettings)
@@ -20,7 +20,7 @@ export const updatePort = workspaceProcedure
       .where(
         and(
           eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
-          inArray(appRuntimeSettings.appId, appIds),
+          inArray(appRuntimeSettings.environmentId, envIds),
         ),
       );
   });
