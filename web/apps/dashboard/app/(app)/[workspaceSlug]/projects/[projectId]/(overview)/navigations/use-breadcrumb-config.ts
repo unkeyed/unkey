@@ -56,12 +56,6 @@ export const useBreadcrumbConfig = ({
   // Sub-pages configuration - matches the existing structure
   const subPages: SubPage[] = [
     {
-      id: "overview",
-      label: "Overview",
-      href: `${basePath}/${projectId}`,
-      segment: undefined,
-    },
-    {
       id: "deployments",
       label: "Deployments",
       href: `${basePath}/${projectId}/deployments`,

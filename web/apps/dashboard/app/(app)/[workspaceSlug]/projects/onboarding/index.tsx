@@ -1,5 +1,6 @@
 "use client";
 import { collection } from "@/lib/collections";
+import { trpc } from "@/lib/trpc/client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { StepWizard } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
@@ -8,6 +9,7 @@ import { OnboardingStepHeader } from "./onboarding-step-header";
 import { ConfigureDeploymentStep } from "./steps/configure-deployment";
 import { ConnectGithubStep } from "./steps/connect-github";
 import { CreateProjectStep } from "./steps/create-project";
+import { DeploymentLiveStep } from "./steps/deployment-live";
 import { SelectRepo } from "./steps/select-repo";
 
 export const Onboarding = () => {
@@ -23,6 +25,9 @@ export const Onboarding = () => {
   const initialProjectId = searchParams.get("projectId") ?? undefined;
 
   const [projectId, setProjectId] = useState<string | null>(initialProjectId ?? null);
+  const [deploymentId, setDeploymentId] = useState<string | null>(null);
+
+  const { data: installationData } = trpc.github.hasInstallations.useQuery();
 
   return (
     <div>
@@ -43,24 +48,26 @@ export const Onboarding = () => {
             <CreateProjectStep onProjectCreated={setProjectId} />
           </div>
         </StepWizard.Step>
-        <StepWizard.Step id="connect-github" label="Connect GitHub">
-          {projectId ? (
-            <div className="flex flex-col items-center justify-center h-screen">
-              <OnboardingStepHeader
-                title={isFirstProject ? "Deploy your first project" : "Deploy your project"}
-                showIconRow
-                subtitle={
-                  <>
-                    Connect a GitHub repo and get a live URL in minutes.
-                    <br />
-                    Unkey handles builds, infra, scaling, and routing.
-                  </>
-                }
-              />
-              <ConnectGithubStep projectId={projectId} />
-            </div>
-          ) : null}
-        </StepWizard.Step>
+        {!installationData?.hasInstallation && (
+          <StepWizard.Step id="connect-github" label="Connect GitHub">
+            {projectId ? (
+              <div className="flex flex-col items-center justify-center h-screen">
+                <OnboardingStepHeader
+                  title="Deploy your first project"
+                  showIconRow
+                  subtitle={
+                    <>
+                      Connect a GitHub repo and get a live URL in minutes.
+                      <br />
+                      Unkey handles builds, infra, scaling, and routing.
+                    </>
+                  }
+                />
+                <ConnectGithubStep projectId={projectId} />
+              </div>
+            ) : null}
+          </StepWizard.Step>
+        )}
         <StepWizard.Step id="select-repo" label="Select repository">
           {projectId ? (
             <div className="flex flex-col items-center justify-center mt-14">
@@ -86,8 +93,16 @@ export const Onboarding = () => {
                 subtitle="Review the defaults. Edit anything you'd like to adjust."
                 allowBack
               />
-              <ConfigureDeploymentStep projectId={projectId} />
+              <ConfigureDeploymentStep
+                projectId={projectId}
+                onDeploymentCreated={setDeploymentId}
+              />
             </div>
+          ) : null}
+        </StepWizard.Step>
+        <StepWizard.Step id="deploying" label="Deploying" preventBack>
+          {projectId && deploymentId ? (
+            <DeploymentLiveStep projectId={projectId} deploymentId={deploymentId} />
           ) : null}
         </StepWizard.Step>
       </StepWizard.Root>

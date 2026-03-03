@@ -11,7 +11,7 @@ type DeploymentCardProps = {
 };
 
 export const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCardProps) => (
-  <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
+  <div className="bg-white dark:bg-black border border-grayA-4 rounded-[14px] p-4 relative">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <StatusIndicator withSignal={showSignal} />

@@ -114,6 +114,14 @@ const fetchProjectInstallation = async (
 };
 
 export const githubRouter = t.router({
+  hasInstallations: workspaceProcedure.query(async ({ ctx }) => {
+    const installation = await db.query.githubAppInstallations.findFirst({
+      where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
+      columns: { pk: true },
+    });
+    return { hasInstallation: Boolean(installation) };
+  }),
+
   registerInstallation: workspaceProcedure
     .input(
       z.object({
@@ -238,6 +246,7 @@ export const githubRouter = t.router({
         defaultBranch: string;
         installationId: number;
         pushedAt: string | null;
+        language: string | null;
       }> = [];
 
       for (const installation of githubContext.installations) {
@@ -260,6 +269,7 @@ export const githubRouter = t.router({
             defaultBranch: repo.default_branch,
             installationId: installation.installationId,
             pushedAt: repo.pushed_at,
+            language: repo.language,
           });
         }
       }

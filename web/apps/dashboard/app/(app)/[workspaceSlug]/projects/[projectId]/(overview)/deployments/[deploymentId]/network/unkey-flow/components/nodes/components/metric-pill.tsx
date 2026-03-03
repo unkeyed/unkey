@@ -2,7 +2,7 @@ import { InfoTooltip } from "@unkey/ui";
 
 type MetricPillProps = {
   icon: React.ReactNode;
-  value: string | number;
+  value: React.ReactNode;
   tooltip: string;
 };
 

@@ -1,18 +1,23 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
-import { Check, ChevronRight, TriangleWarning2, Ufo } from "@unkey/icons";
-import { Badge, Loading } from "@unkey/ui";
-import ms from "ms";
+import { CloudUp, Earth, Hammer2, LayerFront } from "@unkey/icons";
+import { SettingCardGroup } from "@unkey/ui";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Card } from "../../../../../components/card";
-import { useDeployment } from "../../../layout-provider";
-import { DeploymentBuildStepsTable } from "../table/deployment-build-steps-table";
-import { DeploymentInfoSection } from "./deployment-info-section";
+import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
+import { useProjectData } from "../../../data-provider";
+import { useDeployment } from "../layout-provider";
+import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
+import { DeploymentStep } from "./deployment-step";
 
-export function DeploymentProgressSection() {
+export function DeploymentProgress() {
   const { deployment } = useDeployment();
+  const router = useRouter();
+  const params = useParams();
+  const workspaceSlug = params.workspaceSlug as string;
+  const projectId = params.projectId as string;
+
   const steps = trpc.deploy.deployment.steps.useQuery(
     {
       deploymentId: deployment.id,
@@ -25,11 +30,14 @@ export function DeploymentProgressSection() {
   const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
     {
       deploymentId: deployment.id,
+      includeStepLogs: true,
     },
     {
       refetchInterval: 1000,
     },
   );
+
+  const { getDomainsForDeployment } = useProjectData();
 
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -40,13 +48,19 @@ export function DeploymentProgressSection() {
   }, []);
   const { building, deploying, network, queued } = steps.data ?? {};
 
-  return (
-    <>
-      <DeploymentInfoSection />
+  const domainsForDeployment = getDomainsForDeployment(deployment.id);
 
-      <Card className="rounded-[14px] divide-y divide-gray-4 flex justify-between flex-col overflow-hidden border-gray-4">
-        <Step
-          icon={<Ufo />}
+  useEffect(() => {
+    if (network?.completed) {
+      router.push(`/${workspaceSlug}/projects/${projectId}/deployments/${deployment.id}`);
+    }
+  }, [network?.completed, router, workspaceSlug, projectId, deployment.id]);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <SettingCardGroup>
+        <DeploymentStep
+          icon={<LayerFront iconSize="sm-medium" className="size-[18px]" />}
           title="Deployment Queued"
           description={
             queued
@@ -65,10 +79,9 @@ export function DeploymentProgressSection() {
                   ? "started"
                   : "pending"
           }
-          defaultExpanded={true}
         />
-        <Step
-          icon={<Ufo />}
+        <DeploymentStep
+          icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
           title="Building Image"
           description={
             building
@@ -87,11 +100,15 @@ export function DeploymentProgressSection() {
                   ? "started"
                   : "pending"
           }
-          expanded={<DeploymentBuildStepsTable steps={buildSteps.data?.steps ?? []} />}
-          defaultExpanded={true}
+          expandable={
+            <div className="bg-grayA-2">
+              <DeploymentBuildStepsTable steps={buildSteps.data?.steps ?? []} />
+            </div>
+          }
+          defaultExpanded
         />
-        <Step
-          icon={<Ufo />}
+        <DeploymentStep
+          icon={<CloudUp iconSize="sm-medium" className="size-[18px]" />}
           title="Deploying Containers"
           description={
             deploying
@@ -111,13 +128,13 @@ export function DeploymentProgressSection() {
                   : "pending"
           }
         />
-        <Step
-          icon={<Ufo />}
+        <DeploymentStep
+          icon={<Earth iconSize="sm-medium" className="size-[18px]" />}
           title="Assigning Domains"
           description={
             network
               ? network.endedAt
-                ? (network.error ?? "Assigned all domains")
+                ? (network.error ?? `Domains assigned · ${domainsForDeployment.length} records`)
                 : "Assigning domains"
               : "Waiting for deployments"
           }
@@ -132,74 +149,12 @@ export function DeploymentProgressSection() {
                   : "pending"
           }
         />
-      </Card>
-    </>
-  );
-}
-
-type StepProps = {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  duration?: number;
-  status: "pending" | "started" | "completed" | "error";
-  defaultExpanded?: boolean;
-  expanded?: React.ReactNode;
-};
-
-const Step: React.FC<StepProps> = ({
-  icon,
-  title,
-  description,
-  duration,
-  status,
-  defaultExpanded,
-  expanded,
-}) => {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-
-  return (
-    <div className="py-4 flex justify-between flex-col overflow-hidden">
-      <div className="px-4 flex w-full justify-between items-center ">
-        <div className="flex gap-5 items-center">
-          {icon}
-          <div className="flex flex-col gap-1">
-            <div className=" gap-2 flex items-center">
-              <span className="text-gray-12 font-medium text-sm">{title}</span>
-              {status === "completed" ? (
-                <Badge variant="success" size="sm">
-                  Complete
-                </Badge>
-              ) : null}
-            </div>
-            <p className="text-gray-10 text-xs">{description}</p>
-          </div>
+      </SettingCardGroup>
+      {network?.completed && (
+        <div className="animate-fade-slide-in">
+          <DeploymentDomainsCard glow />
         </div>
-        <div className="items-center flex gap-2">
-          <div className="flex gap-2 items-center">
-            <span className="text-gray-10 text-xs">{duration ? ms(duration) : null}</span>
-            {status === "completed" ? (
-              <Check iconSize="md-thin" className="text-success-11" />
-            ) : status === "started" ? (
-              <Loading />
-            ) : status === "error" ? (
-              <TriangleWarning2 className="text-error-11" />
-            ) : null}
-            <div className="w-4">
-              {expanded ? (
-                <button onClick={() => setIsExpanded(!isExpanded)} type="button">
-                  <ChevronRight
-                    iconSize="md-thin"
-                    className={cn("text-gray-10", { "rotate-90": isExpanded })}
-                  />
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div>{isExpanded ? expanded : null}</div>
+      )}
     </div>
   );
-};
+}

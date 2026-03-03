@@ -1,7 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { formatMemory } from "@/lib/utils/deployment-formatters";
+import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ScanCode } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
@@ -73,11 +73,11 @@ export const Memory = () => {
       title="Memory"
       description="Memory allocation for each instance"
       displayValue={(() => {
-        const [value, unit] = parseMemoryDisplay(defaultMemory);
+        const parts = formatMemoryParts(defaultMemory);
         return (
           <div className="space-x-1">
-            <span className="font-medium text-gray-12">{value}</span>
-            <span className="text-gray-11 font-normal">{unit}</span>
+            <span className="font-medium text-gray-12">{parts.value}</span>
+            <span className="text-gray-11 font-normal">{parts.unit}</span>
           </div>
         );
       })()}
@@ -108,7 +108,10 @@ export const Memory = () => {
             }}
           />
           <span className="text-[13px]">
-            <span className="font-medium text-gray-12">{formatMemory(currentMemory)}</span>
+            <span className="font-medium text-gray-12">
+              {formatMemoryParts(currentMemory).value}
+            </span>{" "}
+            <span className="text-gray-11">{formatMemoryParts(currentMemory).unit}</span>
           </span>
         </div>
         <SettingDescription>
@@ -119,10 +122,3 @@ export const Memory = () => {
     </FormSettingCard>
   );
 };
-
-function parseMemoryDisplay(mib: number): [string, string] {
-  if (mib >= 1024) {
-    return [`${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)}`, "GiB"];
-  }
-  return [`${mib}`, "MiB"];
-}

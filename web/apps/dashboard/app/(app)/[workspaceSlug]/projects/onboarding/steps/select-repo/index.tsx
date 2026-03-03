@@ -1,8 +1,9 @@
 import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Check, Github, Magnifier, XMark } from "@unkey/icons";
 import { Input, toast, useStepWizard } from "@unkey/ui";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { RepoListItem } from "./repo-list-item";
 import { SelectRepoSkeleton } from "./skeleton";
 
@@ -67,6 +68,14 @@ export const SelectRepo = ({
       }),
     [reposData?.repositories, selectedOwner, searchQuery],
   );
+
+  const parentRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: filteredRepos.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 77,
+    overscan: 3,
+  });
 
   const handleSelectOwner = (value: string) => {
     setSelectedOwner(value);
@@ -141,19 +150,41 @@ export const SelectRepo = ({
 
       {(reposData?.repositories ?? []).length > 0 &&
         (filteredRepos.length > 0 ? (
-          <ul className="mt-3 flex flex-col border rounded-[14px] border-grayA-5 divide-y divide-grayA-5 min-w-[640px]">
-            {filteredRepos.map((repo) => (
-              <li key={repo.id} className="animate-in fade-in duration-300">
-                <RepoListItem
-                  repo={repo}
-                  projectId={projectId}
-                  onSelect={handleSelectRepository}
-                  disabled={mutatingRepoId !== null}
-                  loading={mutatingRepoId === repo.id}
-                />
-              </li>
-            ))}
-          </ul>
+          <div
+            ref={parentRef}
+            className="mt-3 border rounded-[14px] border-grayA-5 min-w-[640px] max-h-[462px] overflow-y-auto"
+          >
+            <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
+              {virtualizer.getVirtualItems().map((virtualRow) => {
+                const repo = filteredRepos[virtualRow.index];
+                return (
+                  <div
+                    key={repo.id}
+                    ref={virtualizer.measureElement}
+                    data-index={virtualRow.index}
+                    className={
+                      virtualRow.index < filteredRepos.length - 1 ? "border-b border-grayA-5" : ""
+                    }
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    <RepoListItem
+                      repo={repo}
+                      projectId={projectId}
+                      onSelect={handleSelectRepository}
+                      disabled={mutatingRepoId !== null}
+                      loading={mutatingRepoId === repo.id}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         ) : (
           <div className="mt-3 flex items-center justify-center min-w-[640px] h-[200px] border border-dashed rounded-[14px] border-grayA-5">
             <p className="text-sm text-gray-9">No repositories found</p>

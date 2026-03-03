@@ -29,7 +29,7 @@ export function DeploymentNetworkSection() {
         title="Network"
       />
       <div className="flex gap-2 flex-col">
-        <Card className="rounded-[14px] flex justify-between flex-col overflow-hidden border-gray-4 h-[600px] gap-2">
+        <Card className="flex justify-between flex-col overflow-hidden h-[600px] gap-2">
           <DeploymentNetworkView />
         </Card>
         <div className="flex gap-2">

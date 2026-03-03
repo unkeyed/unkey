@@ -1,5 +1,5 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
-import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
+import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { Bolt, ChartActivity, Focus } from "@unkey/icons";
 import type { SentinelNode } from "../types";
 import { MetricPill } from "./metric-pill";
@@ -37,24 +37,42 @@ export function CardFooter(props: CardFooterProps) {
         />
       )}
       <div className="flex items-center gap-2 ml-auto">
-        {cpu !== undefined && (
-          <MetricPill
-            icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
-            value={formatCpu(cpu)}
-            tooltip={
-              isSentinel ? "CPU allocated to this sentinel" : "CPU allocated to this instance"
-            }
-          />
-        )}
-        {memory !== undefined && (
-          <MetricPill
-            icon={<Focus iconSize="sm-regular" className="shrink-0" />}
-            value={formatMemory(memory)}
-            tooltip={
-              isSentinel ? "Memory allocated to this sentinel" : "Memory allocated to this instance"
-            }
-          />
-        )}
+        {cpu !== undefined &&
+          (() => {
+            const parts = formatCpuParts(cpu);
+            return (
+              <MetricPill
+                icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
+                value={
+                  <>
+                    <span className="font-medium">{parts.value}</span> {parts.unit}
+                  </>
+                }
+                tooltip={
+                  isSentinel ? "CPU allocated to this sentinel" : "CPU allocated to this instance"
+                }
+              />
+            );
+          })()}
+        {memory !== undefined &&
+          (() => {
+            const parts = formatMemoryParts(memory);
+            return (
+              <MetricPill
+                icon={<Focus iconSize="sm-regular" className="shrink-0" />}
+                value={
+                  <>
+                    <span className="font-medium">{parts.value}</span> {parts.unit}
+                  </>
+                }
+                tooltip={
+                  isSentinel
+                    ? "Memory allocated to this sentinel"
+                    : "Memory allocated to this instance"
+                }
+              />
+            );
+          })()}
       </div>
     </div>
   );

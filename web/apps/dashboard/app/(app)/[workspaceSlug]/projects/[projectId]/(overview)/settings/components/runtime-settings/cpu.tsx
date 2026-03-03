@@ -1,7 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { formatCpu } from "@/lib/utils/deployment-formatters";
+import { formatCpuParts } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Bolt } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
@@ -73,11 +73,11 @@ export const Cpu = () => {
       title="CPU"
       description="CPU allocation for each instance"
       displayValue={(() => {
-        const [value, unit] = parseCpuDisplay(defaultCpu);
+        const parts = formatCpuParts(defaultCpu);
         return (
           <div className="space-x-1">
-            <span className="font-medium text-gray-12">{value}</span>
-            <span className="text-gray-11 font-normal">{unit}</span>
+            <span className="font-medium text-gray-12">{parts.value}</span>
+            <span className="text-gray-11 font-normal">{parts.unit}</span>
           </div>
         );
       })()}
@@ -105,7 +105,8 @@ export const Cpu = () => {
             }}
           />
           <span className="text-[13px]">
-            <span className="font-medium text-gray-12">{formatCpu(currentCpu)}</span>
+            <span className="font-medium text-gray-12">{formatCpuParts(currentCpu).value}</span>{" "}
+            <span className="text-gray-11">{formatCpuParts(currentCpu).unit}</span>
           </span>
         </div>
         <SettingDescription>
@@ -115,19 +116,3 @@ export const Cpu = () => {
     </FormSettingCard>
   );
 };
-
-function parseCpuDisplay(millicores: number): [string, string] {
-  if (millicores === 256) {
-    return ["1/4", "vCPU"];
-  }
-  if (millicores === 512) {
-    return ["1/2", "vCPU"];
-  }
-  if (millicores === 768) {
-    return ["3/4", "vCPU"];
-  }
-  if (millicores >= 1024 && millicores % 1024 === 0) {
-    return [`${millicores / 1024}`, "vCPU"];
-  }
-  return [`${millicores}m`, "vCPU"];
-}

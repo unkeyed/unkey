@@ -10,4 +10,5 @@ export const DEFAULT_CONFIG: TableConfig = {
   rowBorders: false, // Default to no borders
   containerPadding: "px-2", // Default container padding
   rowSpacing: 4, // Default spacing between rows (classic mode)
+  className: "bg-white dark:bg-black", // Default background
 } as const;

@@ -1,6 +1,5 @@
 "use client";
-
-import { PageLoading } from "@/components/dashboard/page-loading";
+import { LoadingState } from "@/components/loading-state";
 import { trpc } from "@/lib/trpc/client";
 import { Empty, toast } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -78,5 +77,5 @@ export default function Page() {
     );
   }
 
-  return <PageLoading message="Finalizing GitHub installation..." />;
+  return <LoadingState message="Finalizing GitHub installation..." />;
 }

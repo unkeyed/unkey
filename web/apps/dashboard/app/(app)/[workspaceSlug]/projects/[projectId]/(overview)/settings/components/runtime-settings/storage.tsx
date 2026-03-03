@@ -1,6 +1,6 @@
 "use client";
 
-import { formatMemory } from "@/lib/utils/deployment-formatters";
+import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Harddrive } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
@@ -63,11 +63,11 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
       title="Storage"
       description="Ephemeral disk space per instance"
       displayValue={(() => {
-        const [value, unit] = parseStorageDisplay(defaultStorage);
+        const parts = formatMemoryParts(defaultStorage);
         return (
           <div className="space-x-1">
-            <span className="font-medium text-gray-12">{value}</span>
-            <span className="text-gray-11 font-normal">{unit}</span>
+            <span className="font-medium text-gray-12">{parts.value}</span>
+            <span className="text-gray-11 font-normal">{parts.unit}</span>
           </div>
         );
       })()}
@@ -98,7 +98,10 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
             }}
           />
           <span className="text-[13px]">
-            <span className="font-medium text-gray-12">{formatMemory(currentStorage)}</span>
+            <span className="font-medium text-gray-12">
+              {formatMemoryParts(currentStorage).value}
+            </span>{" "}
+            <span className="text-gray-11">{formatMemoryParts(currentStorage).unit}</span>
           </span>
         </div>
         <SettingDescription>
@@ -108,10 +111,3 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
     </FormSettingCard>
   );
 };
-
-function parseStorageDisplay(mib: number): [string, string] {
-  if (mib >= 1024) {
-    return [`${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)}`, "GiB"];
-  }
-  return [`${mib}`, "MiB"];
-}
