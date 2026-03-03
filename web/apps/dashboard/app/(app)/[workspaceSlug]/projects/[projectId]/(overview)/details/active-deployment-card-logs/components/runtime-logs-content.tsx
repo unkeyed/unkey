@@ -15,8 +15,8 @@ const ANIMATION_STYLES = {
 } as const;
 
 const SEVERITY_STYLES = {
-  ERROR: "bg-gradient-to-r from-errorA-3 to-errorA-1 text-errorA-12",
-  WARN: "bg-gradient-to-r from-warningA-3 to-warningA-1 text-warningA-12",
+  ERROR: "bg-linear-to-r from-errorA-3 to-errorA-1 text-errorA-12",
+  WARN: "bg-linear-to-r from-warningA-3 to-warningA-1 text-warningA-12",
   INFO: "text-grayA-12",
   DEBUG: "text-grayA-9",
 } as const;
@@ -76,7 +76,7 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
           variant="ghost"
           wrapperClassName="ml-4"
           className="min-h-[26px] text-xs rounded-lg placeholder:text-grayA-8"
-          leftIcon={<Magnifier iconSize="sm-medium" className="text-accent-9 !size-[14px]" />}
+          leftIcon={<Magnifier iconSize="sm-medium" className="text-accent-9 size-[14px]!" />}
           placeholder="Find in logs..."
           value={searchTerm}
           onChange={handleSearchChange}
@@ -160,7 +160,7 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
       </div>
 
       {showFade && (
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-1 to-transparent pointer-events-none transition-opacity duration-300 ease-out" />
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-gray-1 to-transparent pointer-events-none transition-opacity duration-300 ease-out" />
       )}
     </div>
   );
