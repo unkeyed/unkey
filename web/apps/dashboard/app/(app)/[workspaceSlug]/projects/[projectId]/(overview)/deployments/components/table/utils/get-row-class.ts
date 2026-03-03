@@ -42,7 +42,7 @@ export const ROLLED_BACK_STYLES = {
 
 export const LIVE_STATUS_STYLES = {
   base: "text-grayA-9 bg-feature-2",
-  hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-feature-4",
+  hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-feature-3",
   badge: {
     default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
   },

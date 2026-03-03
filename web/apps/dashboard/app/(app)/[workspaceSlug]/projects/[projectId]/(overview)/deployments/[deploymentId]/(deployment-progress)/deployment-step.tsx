@@ -41,7 +41,7 @@ export function DeploymentStep({
             className={cn(
               "w-full h-full rounded-[10px] flex items-center justify-center shrink-0",
               showGlow &&
-              "relative dark:bg-white dark:text-black bg-black text-white shadow-md shadow-black/40",
+                "relative dark:bg-white dark:text-black bg-black text-white shadow-md shadow-black/40",
             )}
           >
             {icon}

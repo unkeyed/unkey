@@ -57,7 +57,6 @@ export function DeploymentProgress() {
   }
   const isPrebuilt = !hasFreshBuild.current;
 
-
   useEffect(() => {
     if (network?.completed) {
       router.push(`/${workspaceSlug}/projects/${projectId}/deployments/${deployment.id}`);
@@ -95,7 +94,8 @@ export function DeploymentProgress() {
           description={
             building
               ? building.endedAt
-                ? (building.error ?? (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"))
+                ? (building.error ??
+                  (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"))
                 : (buildSteps.data?.steps.at(-1)?.name ?? "Building...")
               : "Image was prebuilt"
           }
@@ -109,10 +109,12 @@ export function DeploymentProgress() {
                   ? "started"
                   : "pending"
           }
-          expandable={isPrebuilt ? null :
-            <div className="bg-grayA-2">
-              <DeploymentBuildStepsTable steps={buildSteps.data?.steps ?? []} />
-            </div>
+          expandable={
+            isPrebuilt ? null : (
+              <div className="bg-grayA-2">
+                <DeploymentBuildStepsTable steps={buildSteps.data?.steps ?? []} />
+              </div>
+            )
           }
           defaultExpanded={!isPrebuilt}
         />
