@@ -170,7 +170,7 @@ async function main() {
 
   console.log("Backfilling app_id on instances...");
   await db.execute(
-    sql`UPDATE instances i JOIN apps a ON a.environment_id = i.environment_id AND a.slug = 'default' SET i.app_id = a.id WHERE i.app_id = ''`,
+    sql`UPDATE instances i JOIN deployments d ON d.id = i.deployment_id JOIN apps a ON a.environment_id = d.environment_id AND a.slug = 'default' SET i.app_id = a.id WHERE i.app_id = ''`,
   );
 
   console.log("Backfilling app_id on frontline_routes...");
