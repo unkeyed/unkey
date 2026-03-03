@@ -1,7 +1,8 @@
-import { and, db, eq } from "@/lib/db";
-import { environmentBuildSettings } from "@unkey/db/src/schema";
+import { and, db, eq, inArray } from "@/lib/db";
+import { appBuildSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
+import { resolveProjectAppIds } from "../utils";
 
 export const updateDockerfile = workspaceProcedure
   .input(
@@ -11,13 +12,15 @@ export const updateDockerfile = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const appIds = await resolveProjectAppIds(ctx.workspace.id, input.environmentId);
+
     await db
-      .update(environmentBuildSettings)
+      .update(appBuildSettings)
       .set({ dockerfile: input.dockerfile })
       .where(
         and(
-          eq(environmentBuildSettings.workspaceId, ctx.workspace.id),
-          eq(environmentBuildSettings.environmentId, input.environmentId),
+          eq(appBuildSettings.workspaceId, ctx.workspace.id),
+          inArray(appBuildSettings.appId, appIds),
         ),
       );
   });
