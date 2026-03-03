@@ -1,4 +1,3 @@
-import React from "react";
 import { BookBookmark } from "@unkey/icons";
 import { buttonVariants } from "../../../buttons/button";
 import { Empty } from "../../../empty";

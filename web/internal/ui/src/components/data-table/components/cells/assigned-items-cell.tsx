@@ -1,4 +1,3 @@
-import React from "react";
 import { Page2 } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
 

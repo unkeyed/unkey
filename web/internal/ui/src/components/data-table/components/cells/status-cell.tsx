@@ -1,4 +1,3 @@
-import React from "react";
 import { Check, Clock, XMark } from "@unkey/icons";
 import { Badge } from "../../../badge";
 

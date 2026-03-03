@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { Badge } from "../../../badge";
 
 export interface BadgeCellProps {

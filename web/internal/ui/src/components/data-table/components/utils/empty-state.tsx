@@ -1,5 +1,5 @@
-import React from "react";
 import { BookBookmark } from "@unkey/icons";
+import type React from "react";
 import { Button } from "../../../buttons/button";
 import { Empty } from "../../../empty";
 

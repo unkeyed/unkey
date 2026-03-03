@@ -1,4 +1,3 @@
-import React from "react";
 import { ChartActivity2, Dots, Key2, Page2 } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
 

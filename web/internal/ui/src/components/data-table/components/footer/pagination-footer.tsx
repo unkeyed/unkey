@@ -1,6 +1,6 @@
 "use client";
 import { ArrowsToAllDirections, ArrowsToCenter, ChevronLeft, ChevronRight } from "@unkey/icons";
-import React from "react";
+import type React from "react";
 import { useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";

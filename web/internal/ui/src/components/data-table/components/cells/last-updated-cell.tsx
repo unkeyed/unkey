@@ -1,6 +1,6 @@
 "use client";
 import { ChartActivity2 } from "@unkey/icons";
-import React from "react";
+import type React from "react";
 import { useRef, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";

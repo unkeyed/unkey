@@ -1,4 +1,3 @@
-import React from "react";
 import { Dots } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
 

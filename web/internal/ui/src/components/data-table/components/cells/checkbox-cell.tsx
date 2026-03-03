@@ -1,4 +1,3 @@
-import React from "react";
 import type { Row, Table } from "@tanstack/react-table";
 import { Checkbox } from "../../../form/checkbox";
 

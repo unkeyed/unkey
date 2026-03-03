@@ -1,5 +1,4 @@
 "use client";
-import React from "react";
 import { Clipboard } from "@unkey/icons";
 import { useState } from "react";
 import { cn } from "../../../../lib/utils";
