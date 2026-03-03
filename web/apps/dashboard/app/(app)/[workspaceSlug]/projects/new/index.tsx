@@ -45,26 +45,24 @@ export const Onboarding = () => {
             <CreateProjectStep onProjectCreated={setProjectId} />
           </div>
         </StepWizard.Step>
-        {!context?.hasGithubInstallation && (
-          <StepWizard.Step id="connect-github" label="Connect GitHub">
-            {projectId ? (
-              <div className="flex flex-col items-center justify-center h-screen">
-                <OnboardingStepHeader
-                  title={isFirstProject ? "Deploy your first project" : "Deploy your project"}
-                  showIconRow
-                  subtitle={
-                    <>
-                      Connect a GitHub repo and get a live URL in minutes.
-                      <br />
-                      Unkey handles builds, infra, scaling, and routing.
-                    </>
-                  }
-                />
-                <ConnectGithubStep projectId={projectId} />
-              </div>
-            ) : null}
-          </StepWizard.Step>
-        )}
+        <StepWizard.Step id="connect-github" label="Connect GitHub">
+          {projectId ? (
+            <div className="flex flex-col items-center justify-center h-screen">
+              <OnboardingStepHeader
+                title={isFirstProject ? "Deploy your first project" : "Deploy your project"}
+                showIconRow
+                subtitle={
+                  <>
+                    Connect a GitHub repo and get a live URL in minutes.
+                    <br />
+                    Unkey handles builds, infra, scaling, and routing.
+                  </>
+                }
+              />
+              <ConnectGithubStep projectId={projectId} />
+            </div>
+          ) : null}
+        </StepWizard.Step>
         <StepWizard.Step id="select-repo" label="Select repository">
           {projectId ? (
             <div className="flex flex-col items-center justify-center mt-14">
