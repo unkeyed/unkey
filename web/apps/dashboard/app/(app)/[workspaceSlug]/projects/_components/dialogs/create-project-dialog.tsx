@@ -9,7 +9,7 @@ export const CreateProjectDialog = () => {
 
   return (
     <Link href={`/${workspace.slug}/projects/new`}>
-      <NavbarActionButton title="Create new project">
+      <NavbarActionButton title="Create new project" className="cursor-pointer">
         <Plus />
         Create new project
       </NavbarActionButton>

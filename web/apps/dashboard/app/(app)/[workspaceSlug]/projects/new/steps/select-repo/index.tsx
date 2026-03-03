@@ -2,7 +2,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Check, Github, Magnifier, XMark } from "@unkey/icons";
-import { Input, toast, useStepWizard } from "@unkey/ui";
+import { Button, Input, toast, useStepWizard } from "@unkey/ui";
 import { useMemo, useRef, useState } from "react";
 import { RepoListItem } from "./repo-list-item";
 import { SelectRepoSkeleton } from "./skeleton";
@@ -19,7 +19,11 @@ export const SelectRepo = ({
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [mutatingRepoId, setMutatingRepoId] = useState<number | null>(null);
 
-  const { data: reposData, isLoading: isLoadingRepos } = trpc.github.listRepositories.useQuery(
+  const {
+    data: reposData,
+    isLoading: isLoadingRepos,
+    error: reposError,
+  } = trpc.github.listRepositories.useQuery(
     {
       projectId,
     },
@@ -123,6 +127,21 @@ export const SelectRepo = ({
       <div className="flex gap-2 w-full min-w-[600px]">
         {isLoadingRepos ? (
           <SelectRepoSkeleton />
+        ) : reposError ? (
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[640px] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
+            <p className="text-[15px] text-accent-12 font-semibold">Failed to load repositories</p>
+            <p className="text-[13px] text-accent-11 text-center whitespace-pre-line w-[350px]">
+              {reposError.message}
+            </p>
+            <Button
+              variant="primary"
+              className="px-3"
+              size="sm"
+              onClick={() => trpcUtils.github.listRepositories.invalidate()}
+            >
+              Retry
+            </Button>
+          </div>
         ) : ownerOptions.length ? (
           <div className="flex gap-2 w-full pt-1">
             <Combobox
@@ -186,8 +205,8 @@ export const SelectRepo = ({
             </div>
           </div>
         ) : (
-          <div className="mt-3 flex items-center justify-center min-w-[640px] h-[200px] border border-dashed rounded-[14px] border-grayA-5">
-            <p className="text-sm text-gray-9">No repositories found</p>
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[640px] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
+            <p className="text-[15px] text-accent-12 font-semibold">No repositories found</p>
           </div>
         ))}
     </div>
