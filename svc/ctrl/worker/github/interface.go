@@ -6,6 +6,19 @@ import "time"
 type GitHubClient interface {
 	// GetInstallationToken retrieves an access token for a specific installation.
 	GetInstallationToken(installationID int64) (InstallationToken, error)
+
+	// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
+	// repository using the given installation's credentials.
+	GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error)
+}
+
+// CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.
+type CommitInfo struct {
+	SHA             string
+	Message         string
+	AuthorHandle    string
+	AuthorAvatarURL string
+	Timestamp       time.Time
 }
 
 // InstallationToken represents a GitHub installation access token. The token

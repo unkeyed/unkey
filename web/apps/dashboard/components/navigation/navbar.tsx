@@ -3,6 +3,7 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
 import React from "react";
+import { UserButton } from "./sidebar/user-button";
 
 type BaseProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
 
@@ -38,71 +39,28 @@ interface GlobalNavbarComponent
   extends React.ForwardRefExoticComponent<BaseProps & React.RefAttributes<HTMLElement>> {
   Actions: React.ForwardRefExoticComponent<BaseProps & React.RefAttributes<HTMLDivElement>>;
   Breadcrumbs: BreadcrumbsComponent;
+  User: React.ForwardRefExoticComponent<BaseProps & React.RefAttributes<HTMLDivElement>>;
 }
 
-export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
-  ({ children, className, ...props }, ref) => (
-    <nav
-      ref={ref}
-      className={cn(
-        "w-full p-4 border-b border-gray-4 bg-transparent justify-between flex min-h-[65px]",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </nav>
-  ),
-) as GlobalNavbarComponent;
-
-Navbar.Actions = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+const NavbarActions = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div ref={ref} className={cn("flex items-center gap-3", className)} {...props}>
       {props.children}
     </div>
   ),
 );
+NavbarActions.displayName = "GlobalNavbar.Actions";
 
-const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.ReactNode }>(
-  ({ children, className, icon, ...props }, ref) => {
-    const childrenArray = React.Children.toArray(children);
-    return (
-      <nav ref={ref} aria-label="breadcrumb" className={cn("flex", className)} {...props}>
-        <ol className="flex items-center gap-3">
-          <li>
-            <Button
-              variant="outline"
-              className="size-6 p-0 [&>svg]:size-[18px] bg-gray-4 hover:bg-gray-5"
-            >
-              {icon}
-            </Button>
-          </li>
-          {childrenArray.map((child, index) => {
-            if (!React.isValidElement(child)) {
-              return null;
-            }
-            if (child.type === Breadcrumbs.Link) {
-              const childProps = child.props;
-              if (typeof childProps === "object" && childProps !== null) {
-                const enhancedProps = {
-                  ...childProps,
-                  isLast: index === childrenArray.length - 1,
-                  key: child.key || `breadcrumb-${index}`,
-                };
-                return React.cloneElement(child, enhancedProps);
-              }
-            }
+const NavbarUser = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("hidden md:flex items-center ml-3", className)} {...props}>
+      <UserButton />
+    </div>
+  ),
+);
+NavbarUser.displayName = "GlobalNavbar.User";
 
-            // biome-ignore lint/suspicious/noArrayIndexKey: Usage of index is acceptable here.
-            return React.cloneElement(child, { key: index });
-          })}
-        </ol>
-      </nav>
-    );
-  },
-) as BreadcrumbsComponent;
-
-Breadcrumbs.Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
+const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
   ({ children, href, className, active, isIdentifier: dynamic, isLast, noop, ...props }, ref) => (
     <li className="flex items-center gap-3">
       {noop ? (
@@ -140,8 +98,9 @@ Breadcrumbs.Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
     </li>
   ),
 );
+BreadcrumbsLink.displayName = "GlobalNavbar.Breadcrumbs.Link";
 
-Breadcrumbs.Ellipsis = React.forwardRef<HTMLLIElement, React.HTMLAttributes<HTMLLIElement>>(
+const BreadcrumbsEllipsis = React.forwardRef<HTMLLIElement, React.HTMLAttributes<HTMLLIElement>>(
   ({ className, ...props }, ref) => (
     <li ref={ref} className={cn("flex gap-3 items-end", className)} {...props}>
       <span className="text-sm text-accent-10" aria-label="More pages">
@@ -153,11 +112,82 @@ Breadcrumbs.Ellipsis = React.forwardRef<HTMLLIElement, React.HTMLAttributes<HTML
     </li>
   ),
 );
+BreadcrumbsEllipsis.displayName = "GlobalNavbar.Breadcrumbs.Ellipsis";
 
-Navbar.Breadcrumbs = Breadcrumbs;
+const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.ReactNode }>(
+  ({ children, className, icon, ...props }, ref) => {
+    const childrenArray = React.Children.toArray(children);
+    return (
+      <nav ref={ref} aria-label="breadcrumb" className={cn("flex", className)} {...props}>
+        <ol className="flex items-center gap-3">
+          <li>
+            <Button
+              variant="outline"
+              className="size-6 p-0 [&>svg]:size-[18px] bg-gray-4 hover:bg-gray-5"
+            >
+              {icon}
+            </Button>
+          </li>
+          {childrenArray.map((child, index) => {
+            if (!React.isValidElement(child)) {
+              return null;
+            }
+            if (child.type === BreadcrumbsLink) {
+              const childProps = child.props;
+              if (typeof childProps === "object" && childProps !== null) {
+                const enhancedProps = {
+                  ...childProps,
+                  isLast: index === childrenArray.length - 1,
+                  key: child.key || `breadcrumb-${index}`,
+                };
+                return React.cloneElement(child, enhancedProps);
+              }
+            }
 
+            // biome-ignore lint/suspicious/noArrayIndexKey: Usage of index is acceptable here.
+            return React.cloneElement(child, { key: index });
+          })}
+        </ol>
+      </nav>
+    );
+  },
+) as BreadcrumbsComponent;
+Breadcrumbs.displayName = "GlobalNavbar.Breadcrumbs";
+Breadcrumbs.Link = BreadcrumbsLink;
+Breadcrumbs.Ellipsis = BreadcrumbsEllipsis;
+
+export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
+  ({ children, className, ...props }, ref) => {
+    const childrenArray = React.Children.toArray(children);
+    const breadcrumbs = childrenArray.find(
+      (child) => React.isValidElement(child) && child.type === Breadcrumbs,
+    );
+    const actions = childrenArray.find(
+      (child) => React.isValidElement(child) && child.type === NavbarActions,
+    );
+    const user = childrenArray.find(
+      (child) => React.isValidElement(child) && child.type === NavbarUser,
+    );
+
+    return (
+      <nav
+        ref={ref}
+        className={cn(
+          "w-full p-4 border-b border-gray-4 bg-transparent flex items-center min-h-[65px]",
+          className,
+        )}
+        {...props}
+      >
+        {breadcrumbs}
+        <div className="flex-1" />
+        {actions}
+        {user || <NavbarUser />}
+      </nav>
+    );
+  },
+) as GlobalNavbarComponent;
 Navbar.displayName = "GlobalNavbar";
-Navbar.Actions.displayName = "GlobalNavbar.Actions";
-Navbar.Breadcrumbs.displayName = "GlobalNavbar.Breadcrumbs";
-Navbar.Breadcrumbs.Link.displayName = "GlobalNavbar.Breadcrumbs.Link";
-Navbar.Breadcrumbs.Ellipsis.displayName = "GlobalNavbar.Breadcrumbs.Ellipsis";
+
+Navbar.Actions = NavbarActions;
+Navbar.User = NavbarUser;
+Navbar.Breadcrumbs = Breadcrumbs;

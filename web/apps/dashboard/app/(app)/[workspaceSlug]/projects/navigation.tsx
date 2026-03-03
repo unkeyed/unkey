@@ -13,7 +13,9 @@ export function ProjectsListNavigation() {
           Projects
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
-      <CreateProjectDialog />
+      <Navbar.Actions>
+        <CreateProjectDialog />
+      </Navbar.Actions>
     </Navbar>
   );
 }

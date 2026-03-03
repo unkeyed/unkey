@@ -12,9 +12,8 @@ import (
 // workflow execution to Restate.
 type Service struct {
 	ctrlv1connect.UnimplementedDeployServiceHandler
-	db               db.Database
-	restate          *restateingress.Client
-	availableRegions []string
+	db      db.Database
+	restate *restateingress.Client
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeployService
@@ -29,8 +28,6 @@ type Config struct {
 	Database db.Database
 	// Restate is the ingress client for triggering durable workflows.
 	Restate *restateingress.Client
-	// AvailableRegions lists the regions where deployments can be created.
-	AvailableRegions []string
 }
 
 // New creates a new [Service] with the given configuration. All fields in
@@ -40,6 +37,5 @@ func New(cfg Config) *Service {
 		UnimplementedDeployServiceHandler: ctrlv1connect.UnimplementedDeployServiceHandler{},
 		db:                                cfg.Database,
 		restate:                           cfg.Restate,
-		availableRegions:                  cfg.AvailableRegions,
 	}
 }

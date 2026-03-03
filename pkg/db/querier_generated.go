@@ -202,7 +202,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
+	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration
 	//  FROM `clickhouse_workspace_settings` c
 	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
 	//  WHERE c.workspace_id = ?
@@ -366,6 +366,19 @@ type Querier interface {
 	//    AND sticky IN (/*SLICE:sticky*/?)
 	//  ORDER BY created_at ASC
 	FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
+	//FindGithubRepoConnectionByProjectId
+	//
+	//  SELECT
+	//      pk,
+	//      project_id,
+	//      installation_id,
+	//      repository_id,
+	//      repository_full_name,
+	//      created_at,
+	//      updated_at
+	//  FROM github_repo_connections
+	//  WHERE project_id = ?
+	FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (GithubRepoConnection, error)
 	//FindIdentities
 	//
 	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
@@ -909,12 +922,35 @@ type Querier interface {
 	//  WHERE workspace_id = ? AND slug = ?
 	//  LIMIT 1
 	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
+	//FindProjectWithEnvironmentSettingsAndVars
+	//
+	//  SELECT
+	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.live_deployment_id, p.is_rolled_back, p.default_branch, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
+	//      ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
+	//      ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(JSON_OBJECT('key', ev.`key`, 'value', ev.value))
+	//           FROM environment_variables ev
+	//           WHERE ev.environment_id = e.id),
+	//          JSON_ARRAY()
+	//      ) AS environment_variables
+	//  FROM projects p
+	//  INNER JOIN environments e
+	//      ON e.project_id = p.id AND e.workspace_id = p.workspace_id
+	//  INNER JOIN environment_build_settings ebs
+	//      ON ebs.environment_id = e.id
+	//  INNER JOIN environment_runtime_settings ers
+	//      ON ers.environment_id = e.id
+	//  WHERE p.id = ?
+	//    AND e.slug = ?
+	FindProjectWithEnvironmentSettingsAndVars(ctx context.Context, db DBTX, arg FindProjectWithEnvironmentSettingsAndVarsParams) (FindProjectWithEnvironmentSettingsAndVarsRow, error)
 	//FindQuotaByWorkspaceID
 	//
-	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team
+	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration
 	//  FROM `quota`
 	//  WHERE workspace_id = ?
-	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotum, error)
+	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error)
 	//FindRatelimitNamespace
 	//
 	//  SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
@@ -2207,7 +2243,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team
+	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
 	//  WHERE w.id > ?
@@ -2429,6 +2465,19 @@ type Querier interface {
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
+	//UpdateDeploymentGitMetadata
+	//
+	//  UPDATE deployments
+	//  SET
+	//      git_commit_sha = ?,
+	//      git_branch = ?,
+	//      git_commit_message = ?,
+	//      git_commit_author_handle = ?,
+	//      git_commit_author_avatar_url = ?,
+	//      git_commit_timestamp = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentGitMetadata(ctx context.Context, db DBTX, arg UpdateDeploymentGitMetadataParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
@@ -2747,12 +2796,16 @@ type Querier interface {
 	//      requests_per_month,
 	//      audit_logs_retention_days,
 	//      logs_retention_days,
-	//      team
-	//  ) VALUES (?, ?, ?, ?, ?)
+	//      team,
+	//      ratelimit_api_limit,
+	//      ratelimit_api_duration
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      requests_per_month = VALUES(requests_per_month),
 	//      audit_logs_retention_days = VALUES(audit_logs_retention_days),
-	//      logs_retention_days = VALUES(logs_retention_days)
+	//      logs_retention_days = VALUES(logs_retention_days),
+	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
+	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
 	UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error
 	//UpsertWorkspace
 	//

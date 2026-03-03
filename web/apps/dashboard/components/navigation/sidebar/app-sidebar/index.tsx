@@ -1,10 +1,13 @@
 "use client";
-import { WorkspaceSwitcher } from "@/components/navigation/sidebar/team-switcher";
-import { UserButton } from "@/components/navigation/sidebar/user-button";
+import { ContextNavigation } from "@/components/navigation/sidebar/context-navigation";
 import {
-  type NavItem,
-  createWorkspaceNavigation,
-} from "@/components/navigation/sidebar/workspace-navigations";
+  RESOURCE_TYPE_PLURAL,
+  RESOURCE_TYPE_ROUTES,
+} from "@/components/navigation/sidebar/navigation-configs";
+import { ProductSwitcher } from "@/components/navigation/sidebar/product-switcher";
+import { ResourceHeading } from "@/components/navigation/sidebar/resource-heading";
+import { WorkspaceSwitcher } from "@/components/navigation/sidebar/team-switcher";
+import { WorkspaceSection } from "@/components/navigation/sidebar/workspace-section";
 import {
   Sidebar,
   SidebarContent,
@@ -14,28 +17,60 @@ import {
   SidebarMenu,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useNavigationContext } from "@/hooks/use-navigation-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Quotas, Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
-import { useRouter, useSelectedLayoutSegments } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { ChevronLeft, SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HelpButton } from "../help-button";
 import { UsageBanner } from "../usage-banner";
-import { NavItems } from "./components/nav-items";
+import type { NavItem } from "../workspace-navigations";
 import { ToggleSidebarButton } from "./components/nav-items/toggle-sidebar-button";
-import { useApiNavigation } from "./hooks/use-api-navigation";
-import { useProjectNavigation } from "./hooks/use-projects-navigation";
-import { useRatelimitNavigation } from "./hooks/use-ratelimit-navigation";
+
+const TOGGLE_NAV_ITEM: NavItem = {
+  label: "Toggle Sidebar",
+  href: "#",
+  icon: SidebarLeftShow,
+  active: false,
+  tooltip: "Toggle Sidebar",
+};
 
 export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   workspace: Workspace & { quotas: Quotas | null };
 }) {
-  const segments = useSelectedLayoutSegments() ?? [];
   const router = useRouter();
+  const context = useNavigationContext();
   const workspace = useWorkspaceNavigation();
+  const [fetchedResourceData, setFetchedResourceData] = useState<{
+    name: string | undefined;
+    contextKey: string;
+  }>();
+
+  // Create a stable key from context to track changes
+  const contextKey = useMemo(() => {
+    if (context.type === "resource") {
+      return `${context.resourceType}-${context.resourceId}`;
+    }
+    return context.product;
+  }, [context]);
+
+  // Callback to receive fetched resource name from ContextNavigation
+  const handleResourceNameFetched = useCallback(
+    (name: string | undefined) => {
+      setFetchedResourceData({ name, contextKey });
+    },
+    [contextKey],
+  );
+
+  // Derive the current resource name - only use fetched name if it matches current context
+  const fetchedResourceName =
+    fetchedResourceData?.contextKey === contextKey ? fetchedResourceData.name : undefined;
 
   // Refresh the router when workspace changes to update sidebar
   useEffect(() => {
@@ -45,87 +80,146 @@ export function AppSidebar({
     router.refresh();
   }, [router, props.workspace.id]);
 
-  // Create base navigation items
-  const baseNavItems = useMemo(
-    () => createWorkspaceNavigation(segments, workspace),
-    [segments, workspace],
-  );
-
-  const { enhancedNavItems: apiAddedNavItems } = useApiNavigation(baseNavItems);
-
-  const { enhancedNavItems: ratelimitAddedNavItems } = useRatelimitNavigation(apiAddedNavItems);
-
-  const { enhancedNavItems: projectAddedNavItems } = useProjectNavigation(ratelimitAddedNavItems);
-
-  const toggleNavItem: NavItem = useMemo(
-    () => ({
-      label: "Toggle Sidebar",
-      href: "#",
-      icon: SidebarLeftShow,
-      active: false,
-      tooltip: "Toggle Sidebar",
-    }),
-    [],
-  );
-
-  const { state, isMobile, toggleSidebar, openMobile } = useSidebar();
+  const { state, isMobile, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
+
+  // Determine which product to show in the switcher
+  const currentProduct = useMemo((): "api-management" | "deploy" => {
+    switch (context.type) {
+      case "product":
+        return context.product;
+      case "resource": {
+        switch (context.resourceType) {
+          case "api":
+          case "namespace":
+            return "api-management";
+          case "project":
+            return "deploy";
+          default: {
+            // Exhaustiveness check - will cause compile error if new resource type added
+            const _exhaustive: never = context.resourceType;
+            return _exhaustive;
+          }
+        }
+      }
+      default: {
+        // Exhaustiveness check - will cause compile error if new context type added
+        const _exhaustive: never = context;
+        return _exhaustive;
+      }
+    }
+  }, [context]);
 
   const headerContent = useMemo(
     () => (
-      <div
-        className={cn(
-          "flex w-full",
-          isCollapsed ? "justify-center" : "items-center justify-between gap-4",
-        )}
-      >
-        <WorkspaceSwitcher />
-        {state !== "collapsed" && !isMobile && (
-          <button type="button" onClick={toggleSidebar}>
-            <SidebarLeftHide className="text-gray-8" iconSize="xl-medium" />
-          </button>
+      <div className="flex flex-col w-full gap-2">
+        {/* Product Switcher - always visible */}
+        <div
+          className={cn(
+            "flex w-full",
+            isCollapsed ? "justify-center" : "items-center justify-between gap-4",
+          )}
+        >
+          <ProductSwitcher workspace={props.workspace} currentProduct={currentProduct} />
+          {!isCollapsed && !isMobile && (
+            <button type="button" onClick={toggleSidebar} aria-label="Collapse sidebar">
+              <SidebarLeftHide className="text-gray-8" iconSize="xl-medium" />
+            </button>
+          )}
+        </div>
+
+        {/* Resource Heading - only at resource-level, only when expanded */}
+        {context.type === "resource" && !isCollapsed && (
+          <ResourceHeading
+            resourceType={context.resourceType}
+            resourceId={context.resourceId}
+            resourceName={fetchedResourceName ?? context.resourceName}
+          />
         )}
       </div>
     ),
-    [isCollapsed, state, isMobile, toggleSidebar],
+    [
+      isCollapsed,
+      isMobile,
+      toggleSidebar,
+      context,
+      props.workspace,
+      currentProduct,
+      fetchedResourceName,
+    ],
   );
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="px-4 items-center pt-4">{headerContent}</SidebarHeader>
-      <SidebarContent className="px-2 flex flex-col justify-between">
-        <SidebarGroup>
-          <SidebarMenu className="gap-2">
-            {state === "collapsed" && (
-              <ToggleSidebarButton toggleNavItem={toggleNavItem} toggleSidebar={toggleSidebar} />
+    <TooltipProvider>
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader className="px-4 items-center pt-4">{headerContent}</SidebarHeader>
+        <SidebarContent className="px-2 flex flex-col justify-between">
+          {/* Context-aware navigation */}
+          <div className="flex flex-col gap-4">
+            {isCollapsed && (
+              <SidebarGroup>
+                <SidebarMenu className="gap-2">
+                  <ToggleSidebarButton
+                    toggleNavItem={TOGGLE_NAV_ITEM}
+                    toggleSidebar={toggleSidebar}
+                  />
+
+                  {/* Back button - only in collapsed state when viewing a resource */}
+                  {context.type === "resource" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={`/${workspace.slug}/${RESOURCE_TYPE_ROUTES[context.resourceType]}`}
+                          className="flex items-center  justify-center h-10 w-10 text-gray-11 hover:text-gray-12 hover:bg-gray-3 rounded-md transition-colors"
+                          aria-label={`Back to All ${RESOURCE_TYPE_PLURAL[context.resourceType]}`}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={8}>
+                        <p className="text-xs">
+                          Back to All {RESOURCE_TYPE_PLURAL[context.resourceType]}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </SidebarMenu>
+              </SidebarGroup>
             )}
 
-            {projectAddedNavItems.map((item) => (
-              <NavItems key={item.label as string} item={item} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+            <ContextNavigation
+              context={context}
+              onResourceNameFetched={handleResourceNameFetched}
+            />
 
-        <SidebarGroup>
-          <UsageBanner quotas={props.workspace.quotas} />
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter>
-        <div
-          className={cn("flex items-center justify-between gap-2", {
-            "flex-col-reverse": state === "collapsed",
-            "flex-row": state === "expanded",
-          })}
-        >
-          <UserButton
-            isCollapsed={(state === "collapsed" || isMobile) && !(isMobile && openMobile)}
-            isMobile={isMobile}
-            isMobileSidebarOpen={openMobile}
-          />
+            {/* Workspace section with border-top separator */}
+            <div className="border-t border-grayA-4 pt-4">
+              <WorkspaceSection />
+            </div>
+          </div>
 
-          <HelpButton />
-        </div>
-      </SidebarFooter>
-    </Sidebar>
+          {/* Bottom section: Usage banner */}
+          <div className="flex flex-col gap-2">
+            <SidebarGroup>
+              <UsageBanner quotas={props.workspace.quotas} />
+            </SidebarGroup>
+          </div>
+        </SidebarContent>
+        <SidebarFooter>
+          {/* Workspace switcher with help button - hidden on mobile */}
+          {!isMobile && (
+            <div
+              className={cn(
+                "flex items-center gap-2",
+                isCollapsed ? "flex-col" : "justify-between",
+              )}
+            >
+              <WorkspaceSwitcher />
+              <HelpButton />
+            </div>
+          )}
+        </SidebarFooter>
+      </Sidebar>
+    </TooltipProvider>
   );
 }

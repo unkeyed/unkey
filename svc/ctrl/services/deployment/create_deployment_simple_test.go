@@ -158,11 +158,11 @@ func TestCreateDeploymentTimestampValidation_InvalidSecondsFormat(t *testing.T) 
 	// Create proto request directly with seconds timestamp (should be rejected)
 	req := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       "proj_test456",
-		Branch:          "main",
 		EnvironmentSlug: "production",
 		DockerImage:     "registry.example.com/app:v1.0.0",
 		GitCommit: &ctrlv1.GitCommitInfo{
 			CommitSha: "abc123def456",
+			Branch:    "main",
 			Timestamp: time.Now().Unix(), // This is in seconds - should be rejected
 		},
 	}
@@ -256,7 +256,6 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			name: "all_git_fields_populated",
 			request: &ctrlv1.CreateDeploymentRequest{
 				ProjectId:       "proj_test456",
-				Branch:          "feature/test-branch",
 				EnvironmentSlug: "production",
 				DockerImage:     "registry.example.com/app:v1.0.0",
 				GitCommit: &ctrlv1.GitCommitInfo{
@@ -265,6 +264,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 					AuthorHandle:    "janedoe",
 					AuthorAvatarUrl: "https://github.com/janedoe.png",
 					Timestamp:       1724251845123, // Fixed millisecond timestamp
+					Branch:          "feature/test-branch",
 				},
 			},
 			expected: struct {
@@ -299,7 +299,6 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			name: "empty_git_fields",
 			request: &ctrlv1.CreateDeploymentRequest{
 				ProjectId:       "proj_test456",
-				Branch:          "main",
 				EnvironmentSlug: "production",
 				DockerImage:     "registry.example.com/app:v1.0.0",
 				GitCommit: &ctrlv1.GitCommitInfo{
@@ -308,6 +307,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 					AuthorHandle:    "",
 					AuthorAvatarUrl: "",
 					Timestamp:       0,
+					Branch:          "main",
 				},
 			},
 			expected: struct {
@@ -342,7 +342,6 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			name: "mixed_populated_and_empty_fields",
 			request: &ctrlv1.CreateDeploymentRequest{
 				ProjectId:       "proj_test456",
-				Branch:          "hotfix/urgent-fix",
 				EnvironmentSlug: "production",
 				DockerImage:     "registry.example.com/app:v1.0.0",
 				GitCommit: &ctrlv1.GitCommitInfo{
@@ -351,6 +350,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 					AuthorHandle:    "", // Empty
 					AuthorAvatarUrl: "", // Empty
 					Timestamp:       1724251845999,
+					Branch:          "hotfix/urgent-fix",
 				},
 			},
 			expected: struct {
@@ -400,6 +400,11 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			}
 
 			// Simulate the mapping logic from create_deployment.go
+			gitBranch := ""
+			if gitCommit := tt.request.GetGitCommit(); gitCommit != nil {
+				gitBranch = gitCommit.GetBranch()
+			}
+
 			// nolint: all
 			params := db.InsertDeploymentParams{
 				ID:                       "test_deployment_id",
@@ -407,7 +412,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 				ProjectID:                tt.request.GetProjectId(),
 				EnvironmentID:            "env_test",
 				GitCommitSha:             sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
-				GitBranch:                sql.NullString{String: tt.request.GetBranch(), Valid: true},
+				GitBranch:                sql.NullString{String: gitBranch, Valid: gitBranch != ""},
 				GitCommitMessage:         sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},
 				GitCommitAuthorHandle:    sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 				GitCommitAuthorAvatarUrl: sql.NullString{String: gitCommitAuthorAvatarUrl, Valid: gitCommitAuthorAvatarUrl != ""},

@@ -30,6 +30,9 @@ jobs:
       - name: Build
         run: bazel build //...
 
+      - name: Load Docker images
+        run: bazel run //:oci_load_unkey
+
       # Running containers is temporary until we moved them inside of bazel,
       # at that point they are only created if they are actually needed
       - name: Start containers

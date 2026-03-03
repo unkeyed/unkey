@@ -44,9 +44,9 @@ func TestWorkspacePermissions(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
-		DB:                      h.DB,
-		Keys:                    h.Keys,
-		RatelimitNamespaceCache: h.Caches.RatelimitNamespace,
+		DB:             h.DB,
+		Keys:           h.Keys,
+		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)

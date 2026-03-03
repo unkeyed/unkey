@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -91,10 +92,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}()
 
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
-
 		var ws db.Workspace
 		err := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-
 			found, err := db.Query.FindWorkspaceByID(txCtx, tx, deployment.WorkspaceID)
 			if err != nil {
 				if db.IsNotFound(err) {
@@ -118,7 +117,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		})
 		return ws, err
 	}, restate.WithName("find workspace"))
-
 	if err != nil {
 		return nil, err
 	}
@@ -150,10 +148,47 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	case *hydrav1.DeployRequest_DockerImage:
 		dockerImage = source.DockerImage.GetImage()
 	case *hydrav1.DeployRequest_Git:
+		commitSHA := source.Git.GetCommitSha()
+
+		// Resolve branch→SHA when commit_sha is empty (e.g. CreateDeployment with
+		// a GitTarget that specifies only a branch)
+		if commitSHA == "" && source.Git.GetBranch() != "" {
+			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
+				return w.github.GetBranchHeadCommit(
+					source.Git.GetInstallationId(),
+					source.Git.GetRepository(),
+					source.Git.GetBranch(),
+				)
+			}, restate.WithName("resolve branch head"))
+			if resolveErr != nil {
+				return nil, restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr))
+			}
+			commitSHA = info.SHA
+
+			resolveErr = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return db.Query.UpdateDeploymentGitMetadata(runCtx, w.db.RW(), db.UpdateDeploymentGitMetadataParams{
+					ID:                       deployment.ID,
+					GitCommitSha:             sql.NullString{String: info.SHA, Valid: true},
+					GitBranch:                sql.NullString{String: source.Git.GetBranch(), Valid: true},
+					GitCommitMessage:         sql.NullString{String: info.Message, Valid: info.Message != ""},
+					GitCommitAuthorHandle:    sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""},
+					GitCommitAuthorAvatarUrl: sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""},
+					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
+					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				})
+			}, restate.WithName("update deployment git metadata"))
+			if resolveErr != nil {
+				return nil, fmt.Errorf("failed to update deployment git metadata: %w", resolveErr)
+			}
+
+			deployment.GitCommitSha = sql.NullString{String: info.SHA, Valid: true}
+			deployment.GitBranch = sql.NullString{String: source.Git.GetBranch(), Valid: true}
+		}
+
 		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{
 			InstallationID: source.Git.GetInstallationId(),
 			Repository:     source.Git.GetRepository(),
-			CommitSHA:      source.Git.GetCommitSha(),
+			CommitSHA:      commitSHA,
 			ContextPath:    source.Git.GetContextPath(),
 			DockerfilePath: source.Git.GetDockerfilePath(),
 			ProjectID:      deployment.ProjectID,
@@ -336,7 +371,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	readygates := make([]restate.Future, len(topologies))
 	for i, region := range topologies {
 		promise := restate.RunAsync(ctx, func(runCtx restate.RunContext) (bool, error) {
-
 			for {
 				time.Sleep(time.Second)
 
@@ -362,7 +396,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				}
 
 			}
-
 		}, restate.WithName(fmt.Sprintf("wait for instances in %s", region.Region)))
 		readygates[i] = promise
 	}
@@ -418,7 +451,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					return "", err
 				}
 				return found.ID, nil
-
 			})
 		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)))
 		if getFrontlineRouteErr != nil {

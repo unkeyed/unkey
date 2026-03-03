@@ -10,11 +10,19 @@ export type NavProps = {
   };
   onLoadMore?: (item: NavItem) => void;
   className?: string;
+  isResourceLevel?: boolean;
 };
 
-export const NavItems = ({ item, onLoadMore, className }: NavProps) => {
+export const NavItems = ({ item, onLoadMore, className, isResourceLevel }: NavProps) => {
   if (!item.items || item.items.length === 0) {
     return <FlatNavItem item={item} onLoadMore={onLoadMore} className={className} />;
   }
-  return <NestedNavItem item={item} onLoadMore={onLoadMore} className={className} />;
+  return (
+    <NestedNavItem
+      item={item}
+      onLoadMore={onLoadMore}
+      className={className}
+      isResourceLevel={isResourceLevel}
+    />
+  );
 };

@@ -147,13 +147,17 @@ type GitSource struct {
 	InstallationId int64 `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
 	// Full repository identifier (e.g., "owner/repo").
 	Repository string `protobuf:"bytes,2,opt,name=repository,proto3" json:"repository,omitempty"`
-	CommitSha  string `protobuf:"bytes,3,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
+	// Commit SHA to build.
+	CommitSha string `protobuf:"bytes,3,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
 	// Subdirectory within the repository to use as the Docker build context.
 	ContextPath string `protobuf:"bytes,4,opt,name=context_path,json=contextPath,proto3" json:"context_path,omitempty"`
 	// Path to the Dockerfile, relative to context_path.
 	DockerfilePath string `protobuf:"bytes,5,opt,name=dockerfile_path,json=dockerfilePath,proto3" json:"dockerfile_path,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Branch name used to resolve commit_sha when it is empty. The deploy worker
+	// calls GitHub to look up the HEAD commit of this branch.
+	Branch        string `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GitSource) Reset() {
@@ -217,6 +221,13 @@ func (x *GitSource) GetContextPath() string {
 func (x *GitSource) GetDockerfilePath() string {
 	if x != nil {
 		return x.DockerfilePath
+	}
+	return ""
+}
+
+func (x *GitSource) GetBranch() string {
+	if x != nil {
+		return x.Branch
 	}
 	return ""
 }
@@ -546,7 +557,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"&ScaleDownIdlePreviewDeploymentsRequest\")\n" +
 	"'ScaleDownIdlePreviewDeploymentsResponse\"#\n" +
 	"\vDockerImage\x12\x14\n" +
-	"\x05image\x18\x01 \x01(\tR\x05image\"\xbf\x01\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\"\xd7\x01\n" +
 	"\tGitSource\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12\x1e\n" +
 	"\n" +
@@ -555,7 +566,8 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\n" +
 	"commit_sha\x18\x03 \x01(\tR\tcommitSha\x12!\n" +
 	"\fcontext_path\x18\x04 \x01(\tR\vcontextPath\x12'\n" +
-	"\x0fdockerfile_path\x18\x05 \x01(\tR\x0edockerfilePath\"\xf2\x01\n" +
+	"\x0fdockerfile_path\x18\x05 \x01(\tR\x0edockerfilePath\x12\x16\n" +
+	"\x06branch\x18\x06 \x01(\tR\x06branch\"\xf2\x01\n" +
 	"\rDeployRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12#\n" +
 	"\vkey_auth_id\x18\x02 \x01(\tH\x01R\tkeyAuthId\x88\x01\x01\x12'\n" +
