@@ -1048,6 +1048,7 @@ type App struct {
 	ID               string         `db:"id"`
 	WorkspaceID      string         `db:"workspace_id"`
 	ProjectID        string         `db:"project_id"`
+	EnvironmentID    string         `db:"environment_id"`
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
 	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
