@@ -66,13 +66,11 @@ export const customDomains = createCollection<CustomDomain, string>(
       const addInput = z
         .object({
           projectId: z.string().min(1),
-          appId: z.string().min(1),
           environmentId: z.string().min(1),
           domain: z.string().min(1),
         })
         .parse({
           projectId: changes.projectId,
-          appId: changes.appId,
           environmentId: changes.environmentId,
           domain: changes.domain,
         });
