@@ -6,6 +6,7 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { deployments } from "./deployments";
+import { environments } from "./environments";
 import { frontlineRoutes } from "./frontline_routes";
 import { githubRepoConnections } from "./github_app";
 export const projects = mysqlTable(
@@ -34,6 +35,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     fields: [projects.workspaceId],
     references: [workspaces.id],
   }),
+  environments: many(environments),
   apps: many(apps),
   deployments: many(deployments),
   activeDeployment: one(deployments, {

@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -23,7 +24,7 @@ export const environments = mysqlTable(
   (table) => [uniqueIndex("environments_project_id_slug_idx").on(table.projectId, table.slug)],
 );
 
-export const environmentsRelations = relations(environments, ({ one }) => ({
+export const environmentsRelations = relations(environments, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [environments.workspaceId],
     references: [workspaces.id],
@@ -32,4 +33,5 @@ export const environmentsRelations = relations(environments, ({ one }) => ({
     fields: [environments.projectId],
     references: [projects.id],
   }),
+  apps: many(apps),
 }));
