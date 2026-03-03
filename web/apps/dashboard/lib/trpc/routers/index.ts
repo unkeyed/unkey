@@ -79,6 +79,7 @@ import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
 import { createProject } from "./deploy/project/create";
+import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
 
@@ -404,6 +405,7 @@ export const router = t.router({
       list: listProjects,
       create: createProject,
       delete: deleteProject,
+      creationContext,
     }),
     environmentSettings: t.router({
       get: getEnvironmentSettings,
