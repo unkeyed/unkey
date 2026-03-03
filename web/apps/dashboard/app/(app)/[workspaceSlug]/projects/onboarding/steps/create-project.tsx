@@ -51,11 +51,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
         regions: [],
       });
       await tx.isPersisted.promise;
-      // await collection.projects.utils.refetch();
-      const created = collection.projects.toArray.find((p) => p.slug === values.slug);
-      if (created) {
-        onProjectCreated(created.id);
-      }
+      onProjectCreated((tx.metadata as { projectId: string }).projectId);
       next();
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

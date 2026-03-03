@@ -10,6 +10,10 @@ type GitHubClient interface {
 	// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
 	// repository using the given installation's credentials.
 	GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error)
+
+	// GetBranchHeadCommitPublic retrieves the HEAD commit of a branch using
+	// the public GitHub API without authentication. Only works for public repos.
+	GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error)
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.
