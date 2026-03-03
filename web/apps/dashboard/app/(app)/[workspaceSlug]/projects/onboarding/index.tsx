@@ -61,7 +61,7 @@ export const Onboarding = () => {
             </div>
           ) : null}
         </StepWizard.Step>
-        <StepWizard.Step id="select-repo" label="Connect GitHub">
+        <StepWizard.Step id="select-repo" label="Select repository">
           {projectId ? (
             <div className="flex flex-col items-center justify-center mt-14">
               <OnboardingStepHeader
