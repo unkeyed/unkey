@@ -452,6 +452,7 @@ CREATE TABLE `apps` (
 	`id` varchar(64) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(64) NOT NULL,
+	`environment_id` varchar(128) NOT NULL DEFAULT '',
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`live_deployment_id` varchar(256),
@@ -462,7 +463,7 @@ CREATE TABLE `apps` (
 	`updated_at` bigint,
 	CONSTRAINT `apps_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `apps_id_unique` UNIQUE(`id`),
-	CONSTRAINT `apps_project_slug_idx` UNIQUE(`project_id`,`slug`)
+	CONSTRAINT `apps_env_slug_idx` UNIQUE(`environment_id`,`slug`)
 );
 
 CREATE TABLE `app_build_settings` (
