@@ -108,9 +108,7 @@ export const WorkspaceSwitcher: React.FC = () => {
           )}
         >
           <Avatar className="w-5 h-5 rounded border border-grayA-6 shrink-0">
-            <AvatarFallback className="text-gray-700 bg-gray-100 border border-gray-500 rounded">
-              {workspace?.name.slice(0, 1).toUpperCase()}
-            </AvatarFallback>
+            <AvatarFallback name={workspace.name} variant="marble" square />
           </Avatar>
           {isUserMembershipsLoading ? (
             <Loading type="dots" size={24} />

@@ -2,7 +2,6 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
-import { getGradientForUser } from "@/lib/avatar-gradient";
 import { trpc } from "@/lib/trpc/client";
 import { Card, CardContent } from "@unkey/ui";
 import { Button, ConfirmPopover, Empty, Loading, toast } from "@unkey/ui";
@@ -100,11 +99,7 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <Avatar className="h-8 w-8">
                       {member.avatarUrl && <AvatarImage src={member.avatarUrl} />}
-                      <AvatarFallback
-                        style={{
-                          background: `linear-gradient(to bottom right, ${getGradientForUser(member.email).from}, ${getGradientForUser(member.email).to})`,
-                        }}
-                      />
+                      <AvatarFallback name={member.fullName ?? member.email} />
                     </Avatar>
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2">
