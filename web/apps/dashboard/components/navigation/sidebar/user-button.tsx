@@ -34,7 +34,7 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0",
+          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0 cursor-pointer",
           isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 grow h-8",
           className,
         )}
@@ -65,13 +65,13 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
           <Tabs value={theme} onValueChange={setTheme}>
             <TabsList className="w-full">
-              <TabsTrigger className="w-full" value="light">
+              <TabsTrigger className="w-full cursor-pointer" value="light">
                 <Sun className="size-4" />
               </TabsTrigger>
-              <TabsTrigger className="w-full" value="dark">
+              <TabsTrigger className="w-full cursor-pointer" value="dark">
                 <MoonStars className="size-4" />
               </TabsTrigger>
-              <TabsTrigger className="w-full" value="system">
+              <TabsTrigger className="w-full cursor-pointer" value="system">
                 <Laptop2 className="size-4" />
               </TabsTrigger>
             </TabsList>
