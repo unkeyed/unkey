@@ -66,7 +66,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	projectID := uid.New(uid.ProjectPrefix)
 	projectSlug := fmt.Sprintf("%s-api", slug)
 	projectName := fmt.Sprintf("%s API", titleCase)
-	appID := uid.New(uid.AppPrefix)
+	prodAppID := uid.New(uid.AppPrefix)
+	previewAppID := uid.New(uid.AppPrefix)
 	rootWorkspaceID := "ws_unkey"
 	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
 	rootApiID := "api_unkey"
@@ -131,21 +132,38 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create project: %w", err)
 		}
 
-		err = db.Query.InsertApp(ctx, tx, db.InsertAppParams{
-			ID:               appID,
-			WorkspaceID:      workspaceID,
-			ProjectID:        projectID,
-			Name:             projectName,
-			Slug:             "default",
-			LiveDeploymentID: sql.NullString{},
-			IsRolledBack:     false,
-			DepotProjectID:   sql.NullString{},
-			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
-			CreatedAt:        now,
-			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+		err = db.BulkQuery.InsertApps(ctx, tx, []db.InsertAppParams{
+			{
+				ID:               prodAppID,
+				WorkspaceID:      workspaceID,
+				ProjectID:        projectID,
+				EnvironmentID:    productionEnvID,
+				Name:             projectName,
+				Slug:             "default",
+				LiveDeploymentID: sql.NullString{},
+				IsRolledBack:     false,
+				DepotProjectID:   sql.NullString{},
+				DeleteProtection: sql.NullBool{Valid: false, Bool: false},
+				CreatedAt:        now,
+				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+			},
+			{
+				ID:               previewAppID,
+				WorkspaceID:      workspaceID,
+				ProjectID:        projectID,
+				EnvironmentID:    previewEnvID,
+				Name:             projectName,
+				Slug:             "default",
+				LiveDeploymentID: sql.NullString{},
+				IsRolledBack:     false,
+				DepotProjectID:   sql.NullString{},
+				DeleteProtection: sql.NullBool{Valid: false, Bool: false},
+				CreatedAt:        now,
+				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+			},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create default app: %w", err)
+			return fmt.Errorf("failed to create apps: %w", err)
 		}
 
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
@@ -175,7 +193,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		err = db.BulkQuery.UpsertAppRuntimeSettings(ctx, tx, []db.UpsertAppRuntimeSettingsParams{
 			{
 				WorkspaceID:    workspaceID,
-				AppID:          appID,
+				AppID:          previewAppID,
 				EnvironmentID:  previewEnvID,
 				Port:           8080,
 				CpuMillicores:  256,
@@ -190,7 +208,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			},
 			{
 				WorkspaceID:    workspaceID,
-				AppID:          appID,
+				AppID:          prodAppID,
 				EnvironmentID:  productionEnvID,
 				Port:           8080,
 				CpuMillicores:  256,
@@ -212,7 +230,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		err = db.BulkQuery.UpsertAppBuildSettings(ctx, tx, []db.UpsertAppBuildSettingsParams{
 			{
 				WorkspaceID:   workspaceID,
-				AppID:         appID,
+				AppID:         previewAppID,
 				EnvironmentID: previewEnvID,
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",
@@ -221,7 +239,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			},
 			{
 				WorkspaceID:   workspaceID,
-				AppID:         appID,
+				AppID:         prodAppID,
 				EnvironmentID: productionEnvID,
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",
