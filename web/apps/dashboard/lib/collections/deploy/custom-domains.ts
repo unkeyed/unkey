@@ -13,6 +13,7 @@ const schema = z.object({
   domain: z.string(),
   workspaceId: z.string(),
   projectId: z.string(),
+  appId: z.string(),
   environmentId: z.string(),
   verificationStatus: verificationStatusSchema,
   verificationToken: z.string(),
