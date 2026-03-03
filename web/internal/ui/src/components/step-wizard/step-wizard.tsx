@@ -220,7 +220,7 @@ const StepWizardStep = ({
         "transition-[opacity,transform] duration-300 ease-out",
         isActive
           ? "opacity-100 translate-x-0 z-10 overflow-y-auto"
-          : "opacity-0 translate-x-5 z-0 pointer-events-none h-0 overflow-hidden",
+          : "opacity-0 translate-x-5 z-0 pointer-events-none h-0 w-0 overflow-hidden",
       )}
       aria-hidden={!isActive}
     >

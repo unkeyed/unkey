@@ -24,11 +24,13 @@ export const RepoListItem = ({
   projectId,
   onSelect,
   disabled,
+  loading,
 }: {
   repo: RepoItem;
   projectId: string;
   onSelect: (repo: RepoItem) => void;
   disabled: boolean;
+  loading: boolean;
 }) => {
   const [owner, repoName] = repo.fullName.split("/");
   const [selectedBranch, setSelectedBranch] = useState(repo.defaultBranch);
@@ -101,6 +103,7 @@ export const RepoListItem = ({
           variant="outline"
           className="rounded-lg border-grayA-4 shadow-md transition-all h-7"
           disabled={disabled || isLoading}
+          loading={loading}
           onClick={() => onSelect(repo)}
         >
           <span className="text-[13px] text-gray-12 font-medium">Select</span>

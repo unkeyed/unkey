@@ -1,10 +1,10 @@
 "use client";
 import { Github, Layers3 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { OnboardingLinks } from "./onboarding-links";
+import { OnboardingLinks } from "../onboarding-links";
 
 type ConnectGithubStepProps = {
-  projectId: string | null;
+  projectId: string;
 };
 
 export const ConnectGithubStep = ({ projectId }: ConnectGithubStepProps) => {
@@ -12,7 +12,7 @@ export const ConnectGithubStep = ({ projectId }: ConnectGithubStepProps) => {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="border border-grayA-5 rounded-[14px] flex justify-center items-center gap-4 py-[18px] px-4 min-w-[600px]">
+      <div className="border border-grayA-5 rounded-[14px] flex justify-start items-center gap-4 py-[18px] px-4 min-w-[600px]">
         <div className="size-8 rounded-[10px] bg-gray-12 grid place-items-center">
           <Layers3 className="size-[18px] text-gray-1" iconSize="md-medium" />
         </div>
@@ -22,17 +22,10 @@ export const ConnectGithubStep = ({ projectId }: ConnectGithubStepProps) => {
             Add a repo from your GitHub account
           </span>
         </div>
-        <a
-          href={installUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={projectId ? "" : "pointer-events-none opacity-50"}
-          aria-disabled={!projectId}
-        >
+        <a href={installUrl} rel="noopener noreferrer" className="ml-auto">
           <Button
             variant="outline"
-            className="ml-20 rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
-            disabled={!projectId}
+            className="rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
           >
             <Github className="!size-[18px] text-gray-12 shrink-0" />
             <span className="text-[13px] text-gray-12 font-medium">Import from GitHub</span>

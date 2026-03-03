@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Button, FormInput, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
-import { OnboardingLinks } from "./onboarding-links";
+import { OnboardingLinks } from "../onboarding-links";
 
 type CreateProjectStepProps = {
   onProjectCreated: (id: string) => void;
