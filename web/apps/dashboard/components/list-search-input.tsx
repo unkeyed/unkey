@@ -137,7 +137,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
           )}
         >
           <div className="flex items-center gap-2 w-full flex-1 md:w-80">
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <Magnifier className="text-accent-9 size-4" />
             </div>
             <div className="flex-1">
@@ -154,7 +154,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
       <Input
         leftIcon={<Magnifier className="text-accent-9 size-4" />}
         className={cn(
-          "truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6 w-full h-8",
+          "truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-hidden focus:ring-0 focus:outline-hidden placeholder:text-accent-12 selection:bg-gray-6 w-full h-8",
           "focus-within:bg-gray-4",
           "transition-all duration-200",
         )}
@@ -163,7 +163,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
             <Button
               variant="ghost"
               onClick={handleClear}
-              className="text-accent-9 hover:text-accent-12 rounded transition-colors flex-shrink-0 cursor-pointer z-10"
+              className="text-accent-9 hover:text-accent-12 rounded-sm transition-colors shrink-0 cursor-pointer z-10"
               size="icon"
               aria-label="Clear search"
             >

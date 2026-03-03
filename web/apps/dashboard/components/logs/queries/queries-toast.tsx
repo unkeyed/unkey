@@ -14,7 +14,7 @@ export const QueriesToast = ({ children, message, undoBookmarked }: QueriesToast
       </span>
       <Button
         variant="ghost"
-        className="flex-shrink-0 px-[10px] py-[2px] m-0 w-[54px] h-[28px] rounded-[8px] border-[1px] border-gray-a6 bg-base-12 text-accent-12"
+        className="shrink-0 px-[10px] py-[2px] m-0 w-[54px] h-[28px] rounded-[8px] border border-gray-a6 bg-base-12 text-accent-12"
         onClick={undoBookmarked}
       >
         Undo

@@ -1,11 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /*
 All colors are taken from Radix
 https://www.radix-ui.com/colors/docs/palette-composition/scales
+
+In Tailwind v4, consuming apps should import Tailwind in their own CSS.
+This file only provides color variable definitions.
 */
+
 @layer base {
   :root {
     /* Gray */

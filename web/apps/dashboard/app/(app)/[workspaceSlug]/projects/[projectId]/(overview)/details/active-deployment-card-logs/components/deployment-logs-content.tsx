@@ -76,7 +76,7 @@ export function DeploymentLogsContent({ projectId, deploymentId }: Props) {
           variant="ghost"
           wrapperClassName="ml-4"
           className="min-h-[26px] text-xs rounded-lg placeholder:text-grayA-8"
-          leftIcon={<Magnifier iconSize="sm-medium" className="text-accent-9 !size-[14px]" />}
+          leftIcon={<Magnifier iconSize="sm-medium" className="text-accent-9 size-[14px]!" />}
           placeholder="Find in logs..."
           value={searchTerm}
           onChange={handleSearchChange}
@@ -116,9 +116,9 @@ export function DeploymentLogsContent({ projectId, deploymentId }: Props) {
                     "transition-all duration-300 ease-out text-grayA-12 ",
                     isExpanded ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
                     log.level === "warning"
-                      ? "bg-gradient-to-r from-warningA-3 to-warningA-1 text-warningA-12"
+                      ? "bg-linear-to-r from-warningA-3 to-warningA-1 text-warningA-12"
                       : log.level === "error"
-                        ? "bg-gradient-to-r from-errorA-3 to-errorA-1 text-errorA-12"
+                        ? "bg-linear-to-r from-errorA-3 to-errorA-1 text-errorA-12"
                         : "",
                   )}
                   style={{
@@ -138,7 +138,7 @@ export function DeploymentLogsContent({ projectId, deploymentId }: Props) {
 
       {/* Fade overlay */}
       {showFade && (
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-1 to-transparent pointer-events-none transition-opacity duration-300 ease-out" />
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-linear-to-t from-gray-1 to-transparent pointer-events-none transition-opacity duration-300 ease-out" />
       )}
     </div>
   );

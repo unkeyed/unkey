@@ -299,7 +299,7 @@ export function AddEnvVars({
 
       <div className="px-4 py-2 flex items-center justify-between border-t border-gray-4 sticky bottom-0 bg-gray-2">
         <Button size="sm" variant="ghost" onClick={addEntry} className="text-xs gap-1 px-3">
-          <Plus className="!size-3" />
+          <Plus className="size-3!" />
           Add more
         </Button>
         <div className="flex items-center gap-2">

@@ -98,7 +98,7 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
                 .join("\n\n")}
               shape="square"
               variant="outline"
-              className="h-6 w-6 rounded-sm bg-gray-2 hover:bg-gray-2"
+              className="h-6 w-6 rounded-xs bg-gray-2 hover:bg-gray-2"
               aria-label="Copy all permissions"
             />
           )}

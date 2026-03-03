@@ -56,7 +56,7 @@ export const getStatusStyle = (status: number): StatusStyle => {
 };
 
 export const WARNING_ICON_STYLES = {
-  base: "size-[13px] mb-[1px]",
+  base: "size-[13px] mb-px",
   warning: "text-warning-11",
   error: "text-error-11",
 };
@@ -97,7 +97,7 @@ export const getRowClassName = (
     style.base,
     style.hover,
     "group rounded-md",
-    "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
     style.focusRing,
   ];
 

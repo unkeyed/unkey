@@ -92,7 +92,7 @@ export const FilterOperatorInput = <T extends string>({
         {options.map((option, index) => (
           <div
             key={option.id}
-            className={cn("group relative w-full rounded-lg", "focus-within:outline-none")}
+            className={cn("group relative w-full rounded-lg", "focus-within:outline-hidden")}
           >
             <button
               type="button"
@@ -108,7 +108,7 @@ export const FilterOperatorInput = <T extends string>({
                 "px-2 py-1.5 rounded-lg",
                 "text-[13px] font-medium text-accent-12 text-left",
                 "hover:bg-gray-3",
-                "focus:outline-none focus:ring-2 focus:ring-accent-7",
+                "focus:outline-hidden focus:ring-2 focus:ring-accent-7",
                 "focus:bg-gray-3",
                 selectedOption === option.id && "bg-gray-3",
               )}

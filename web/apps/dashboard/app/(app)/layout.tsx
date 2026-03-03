@@ -59,7 +59,7 @@ export default function Layout({ children }: LayoutProps) {
   const isImpersonator = user?.impersonator;
 
   return (
-    <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
+    <div className="h-dvh relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}

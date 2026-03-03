@@ -52,7 +52,7 @@ export function StatusIndicator({
       <div className="relative">
         <div
           className={cn(
-            "size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3",
+            "size-5 rounded-sm flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3",
             className,
           )}
         >

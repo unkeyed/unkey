@@ -125,7 +125,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       <DialogContent
-        className="drop-shadow-2xl transform-gpu border-gray-4 !rounded-2xl p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="drop-shadow-2xl transform-gpu border-gray-4 rounded-2xl! p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         showCloseWarning
         onAttemptClose={() => handleCloseAttempt("close")}
       >
@@ -160,13 +160,13 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
               </div>
             </div>
             <div className="p-1 w-full my-4">
-              <div className="h-[1px] bg-grayA-3 w-full" />
+              <div className="h-px bg-grayA-3 w-full" />
             </div>
             <div className="flex flex-col gap-2 items-start w-full">
               <div className="text-gray-12 text-sm font-semibold">Key Details</div>
               <div className="bg-white dark:bg-black border rounded-xl border-grayA-5 px-6 w-full">
                 <div className="flex gap-6 items-center">
-                  <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded ">
+                  <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded-sm ">
                     <Key2 iconSize="sm-regular" />
                   </div>
                   <div className="flex flex-col gap-1 py-6">

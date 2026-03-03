@@ -170,7 +170,7 @@ function SettingCard({
           {shouldShowChevron && (
             <ChevronRight
               className={cn(
-                "text-gray-10 transition-all duration-300 ease-out flex-shrink-0",
+                "text-gray-10 transition-all duration-300 ease-out shrink-0",
                 isExpanded && "rotate-90",
                 effectiveChevronState !== "disabled" && "group-hover:text-gray-11",
                 effectiveChevronState === "disabled" && "opacity-40 cursor-not-allowed",
