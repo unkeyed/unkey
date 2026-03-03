@@ -29,7 +29,10 @@ export const updateMiddleware = workspaceProcedure
       const keyspaces = await db.query.keyAuth
         .findMany({
           where: (table, { and, inArray }) =>
-            and(inArray(table.id, input.keyspaceIds), eq(table.workspaceId, ctx.workspace.id)),
+            and(
+              inArray(table.id, input.keyspaceIds),
+              eq(table.workspaceId, ctx.workspace.id),
+            ),
           columns: { id: true },
         })
         .catch((err) => {
@@ -53,7 +56,7 @@ export const updateMiddleware = workspaceProcedure
         id: "keyauth-policy",
         name: "API Key Auth",
         enabled: true,
-        keyauth: { keySpaceIds: ["ks_NNh4XwVsZiwG"] },
+        keyauth: { keySpaceIds: keyspaces.map((ks) => ks.id) },
       });
     }
     await db
