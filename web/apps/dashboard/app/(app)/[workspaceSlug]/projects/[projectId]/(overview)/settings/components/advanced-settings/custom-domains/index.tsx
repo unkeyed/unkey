@@ -15,7 +15,7 @@ import {
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../../environment-provider";
-import { FormSettingCard } from "../../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { CustomDomainRow } from "./custom-domain-row";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
@@ -90,6 +90,11 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     reset({ environmentId: values.environmentId, domain: "" });
   };
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+  ]);
+
   const displayValue =
     customDomains.length === 0 ? null : (
       <div className="space-x-1">
@@ -107,8 +112,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       description="Serve your deployment from your own domain name"
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting}
-      isSaving={isSubmitting}
+      saveState={saveState}
     >
       <div className="flex flex-col gap-3 w-full">
         <div className="flex items-center gap-3">

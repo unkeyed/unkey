@@ -12,7 +12,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
 import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const regionsSchema = z.object({
   regions: z.array(z.string()).min(1, "Select at least one region"),
@@ -99,6 +99,12 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
     currentRegions.length !== defaultRegions.length ||
     currentRegions.some((r) => !defaultRegions.includes(r));
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   const displayValue =
     defaultRegions.length === 0 ? null : defaultRegions.length <= 2 ? (
       <span className="flex items-center gap-1.5">
@@ -143,8 +149,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       description="Geographic regions where your project will run"
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={isSubmitting}
+      saveState={saveState}
     >
       <FormCombobox
         label="Regions"
