@@ -35,7 +35,7 @@ export const ActiveDeploymentCard = ({
 
   return (
     <Card className="pt-[14px] flex justify-between flex-col overflow-hidden">
-      <div className="flex w-full justify-between items-center px-[22px]">
+      <div className="flex w-full justify-between items-center px-4">
         <div className="flex gap-5 items-center">
           <StatusIndicator withSignal />
           <div className="flex flex-col gap-1">
@@ -64,7 +64,7 @@ export const ActiveDeploymentCard = ({
           <div className="absolute top-0 left-0 right-0 h-4 border-b border-gray-4 rounded-b-[14px] bg-white dark:bg-black" />
         </div>
 
-        <div className="pb-2.5 pt-2 flex justify-between items-center px-3">
+        <div className="pb-2.5 pt-2 flex justify-between items-center px-4">
           <div className="flex items-center gap-2.5">
             <TimestampInfo
               value={deployment.createdAt}

@@ -20,7 +20,7 @@ type GitHubProps = {
 export const GitHub = ({ readOnly = false }: GitHubProps) => {
   const { projectId } = useProjectData();
 
-  const state = JSON.stringify({ projectId });
+  const state = JSON.stringify({ projectId, returnTo: "settings" });
   const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
 
   const { data, isLoading } = trpc.github.getInstallations.useQuery(

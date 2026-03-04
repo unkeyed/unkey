@@ -82,7 +82,7 @@ export const RepoListItem = ({
           ) : (
             <Select value={selectedBranch} onValueChange={setSelectedBranch}>
               <SelectTrigger
-                className="!min-h-7 !h-7 rounded-lg border-grayA-4 text-[13px] bg-transparent w-full font-medium shadow-md"
+                className="min-h-7! h-7! rounded-lg border-grayA-4 text-[13px] bg-transparent w-full font-medium shadow-md"
                 wrapperClassName="w-full"
                 leftIcon={<CodeBranch className="text-gray-12 size-3" iconSize="sm-regular" />}
                 rightIcon={<ChevronDown className="text-gray-9 size-3 right-2 absolute" />}

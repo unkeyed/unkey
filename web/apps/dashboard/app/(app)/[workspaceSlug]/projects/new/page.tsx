@@ -1,5 +1,6 @@
 "use server";
 
+import { LoadingState } from "@/components/loading-state";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
@@ -20,7 +21,7 @@ export default async function OnboardingPage() {
     return notFound();
   }
   return (
-    <Suspense fallback={<div>Loading project onboarding...</div>}>
+    <Suspense fallback={<LoadingState message="Loading projects onboarding..." />}>
       <Onboarding />
     </Suspense>
   );

@@ -13,6 +13,7 @@ type DeploymentStepProps = {
   status: "pending" | "started" | "completed" | "error";
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
+  badgeText?: string;
 };
 
 export function DeploymentStep({
@@ -32,7 +33,7 @@ export function DeploymentStep({
           <div
             className={cn(
               "absolute inset-[-4px] rounded-[10px] blur-[14px]",
-              "bg-gradient-to-l from-feature-8 to-info-9",
+              "bg-linear-to-l from-feature-8 to-info-9",
               showGlow ? "animate-pulse opacity-20" : "opacity-0 transition-opacity duration-300",
             )}
           />

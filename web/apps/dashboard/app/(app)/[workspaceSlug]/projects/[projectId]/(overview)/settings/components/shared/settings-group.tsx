@@ -36,7 +36,7 @@ export const SettingsGroup = ({
             <>
               {expanded ? "Hide" : "Show"}
               <ChevronRight
-                className="text-gray-10 group-hover:text-gray-11 transition-all duration-300 flex-shrink-0"
+                className="text-gray-10 group-hover:text-gray-11 transition-all duration-300 shrink-0"
                 iconSize="sm-medium"
                 style={{
                   transitionTimingFunction: "cubic-bezier(.62,.16,.13,1.01)",

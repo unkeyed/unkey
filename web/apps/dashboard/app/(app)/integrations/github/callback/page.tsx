@@ -22,9 +22,13 @@ export default function Page() {
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
       toast.success("GitHub App installed");
-      router.replace(
-        `/${data.workspaceSlug}/projects/onboarding?step=select-repo&projectId=${data.projectId}`,
-      );
+      if (data.returnTo === "settings") {
+        router.replace(`/${data.workspaceSlug}/projects/${data.projectId}/settings`);
+      } else {
+        router.replace(
+          `/${data.workspaceSlug}/projects/new?step=select-repo&projectId=${data.projectId}`,
+        );
+      }
     },
     onError: (error) => {
       toast.error(error.message);

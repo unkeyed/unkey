@@ -21,23 +21,15 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
   const redeploy = trpc.deploy.deployment.redeploy.useMutation({
     onSuccess: (data) => {
       utils.invalidate();
-      toast.success("Redeploy triggered", {
-        description: "A new deployment has been queued",
-        action: {
-          label: "View deployment",
-          onClick: () => {
-            router.push(
-              `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${data.deploymentId}`,
-            );
-          },
-        },
-      });
       try {
         collection.deployments.utils.refetch();
       } catch (error) {
         console.error("Refetch error:", error);
       }
       onClose();
+      router.push(
+        `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${data.deploymentId}`,
+      );
     },
     onError: (error) => {
       toast.error("Redeploy failed", {

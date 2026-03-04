@@ -92,7 +92,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
             {domain.domain}
           </a>
           {environmentSlug && (
-            <span className="text-[11px] text-gray-11 bg-gray-3 px-1.5 py-0.5 rounded font-mono flex-shrink-0">
+            <span className="text-[11px] text-gray-11 bg-gray-3 px-1.5 py-0.5 rounded font-mono shrink-0">
               {environmentSlug}
             </span>
           )}

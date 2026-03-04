@@ -67,7 +67,7 @@ export function DeploymentDomainsCard({
                   <div
                     className={cn(
                       "absolute inset-[-4px] rounded-[10px] blur-[14px]",
-                      "bg-gradient-to-l from-feature-8 to-info-9",
+                      "bg-linear-to-l from-feature-8 to-info-9",
                       "animate-pulse opacity-20",
                     )}
                   />
@@ -118,7 +118,7 @@ export function DeploymentDomainsCard({
                       variant="outline"
                     >
                       Show URLs
-                      <ChevronDown className="text-gray-9 !size-3" iconSize="sm-regular" />
+                      <ChevronDown className="text-gray-9 size-3!" iconSize="sm-regular" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent side="bottom" align="end" className="p-0 max-w-[300px]">
@@ -127,7 +127,7 @@ export function DeploymentDomainsCard({
                         key={d.id}
                         className="flex items-center justify-left w-full h-10 border-b border-gray-4 px-3 py-[14px] gap-2"
                       >
-                        <Link4 className="text-gray-9 !size-3 shrink-0" iconSize="sm-regular" />
+                        <Link4 className="text-gray-9 size-3! shrink-0" iconSize="sm-regular" />
                         <a
                           href={`https://${d.fullyQualifiedDomainName}`}
                           target="_blank"
