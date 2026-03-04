@@ -76,22 +76,22 @@ export const rollback = workspaceProcedure
         });
       }
 
-      // Get liveDeploymentId from the app (moved from projects to apps)
+      // Get currentDeploymentId from the app
       const app = await db.query.apps.findFirst({
         where: and(eq(apps.id, targetDeployment.appId), eq(apps.workspaceId, ctx.workspace.id)),
-        columns: { liveDeploymentId: true },
+        columns: { currentDeploymentId: true },
       });
 
-      if (!app?.liveDeploymentId) {
+      if (!app?.currentDeploymentId) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message: `Project ${targetDeployment.project.name} doesn't have a live deployment to roll back.`,
+          message: `Project ${targetDeployment.project.name} doesn't have a current deployment to roll back.`,
         });
       }
 
       await ctrl
         .rollback({
-          sourceDeploymentId: app.liveDeploymentId,
+          sourceDeploymentId: app.currentDeploymentId,
           targetDeploymentId: targetDeployment.id,
         })
         .catch((err) => {
