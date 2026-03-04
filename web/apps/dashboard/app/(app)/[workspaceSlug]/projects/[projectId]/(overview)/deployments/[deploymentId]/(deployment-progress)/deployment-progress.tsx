@@ -1,10 +1,11 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { CloudUp, Earth, Hammer2, LayerFront } from "@unkey/icons";
-import { SettingCardGroup } from "@unkey/ui";
+import { CloudUp, Earth, Hammer2, LayerFront, TriangleWarning2 } from "@unkey/icons";
+import { Button, SettingCardGroup } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
@@ -17,13 +18,14 @@ export function DeploymentProgress() {
   const params = useParams();
   const workspaceSlug = params.workspaceSlug as string;
   const projectId = params.projectId as string;
+  const isFailed = deployment.status === "failed";
 
   const steps = trpc.deploy.deployment.steps.useQuery(
     {
       deploymentId: deployment.id,
     },
     {
-      refetchInterval: 1_000,
+      refetchInterval: isFailed ? false : 1_000,
     },
   );
 
@@ -33,7 +35,7 @@ export function DeploymentProgress() {
       includeStepLogs: true,
     },
     {
-      refetchInterval: 1000,
+      refetchInterval: isFailed ? false : 1_000,
     },
   );
 
@@ -41,13 +43,17 @@ export function DeploymentProgress() {
 
   const [now, setNow] = useState(0);
   useEffect(() => {
+    if (isFailed) {
+      return;
+    }
     const interval = setInterval(() => setNow(Date.now()), 500);
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [isFailed]);
   const { building, deploying, network, queued } = steps.data ?? {};
 
+  const [redeployOpen, setRedeployOpen] = useState(false);
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
 
   // Latch true once we observe the build actively in progress; stays true after it completes
@@ -126,7 +132,9 @@ export function DeploymentProgress() {
               ? deploying.endedAt
                 ? (deploying.error ?? "Deployed to all machines")
                 : "Deploying to all machines"
-              : "Waiting for build"
+              : isFailed
+                ? "Skipped"
+                : "Waiting for build"
           }
           duration={deploying ? (deploying.endedAt ?? now) - deploying.startedAt : undefined}
           status={
@@ -136,7 +144,9 @@ export function DeploymentProgress() {
                 ? "completed"
                 : deploying
                   ? "started"
-                  : "pending"
+                  : isFailed
+                    ? "skipped"
+                    : "pending"
           }
         />
         <DeploymentStep
@@ -147,7 +157,9 @@ export function DeploymentProgress() {
               ? network.endedAt
                 ? (network.error ?? `Domains assigned · ${domainsForDeployment.length} records`)
                 : "Assigning domains"
-              : "Waiting for deployments"
+              : isFailed
+                ? "Skipped"
+                : "Waiting for deployments"
           }
           duration={network ? (network.endedAt ?? now) - network.startedAt : undefined}
           status={
@@ -157,10 +169,35 @@ export function DeploymentProgress() {
                 ? "completed"
                 : network
                   ? "started"
-                  : "pending"
+                  : isFailed
+                    ? "skipped"
+                    : "pending"
           }
         />
       </SettingCardGroup>
+      {isFailed && (
+        <div className="flex flex-col gap-3 animate-fade-slide-in">
+          <div className="border border-errorA-4 bg-errorA-2 rounded-[14px] p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-error-11">Deployment failed</span>
+                <span className="text-xs text-gray-11">
+                  {[queued, building, deploying, network].find((s) => s?.error)?.error ??
+                    "Deployment failed"}
+                </span>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setRedeployOpen(true)} className="px-3">
+              Redeploy
+            </Button>
+          </div>
+          <RedeployDialog
+            isOpen={redeployOpen}
+            onClose={() => setRedeployOpen(false)}
+            selectedDeployment={deployment}
+          />
+        </div>
+      )}
       {network?.completed && (
         <div className="animate-fade-slide-in">
           <DeploymentDomainsCard glow />
