@@ -25,7 +25,10 @@ interface OrgSelectorProps {
   lastOrgId?: string;
 }
 
-export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrgId }) => {
+export const OrgSelector: React.FC<OrgSelectorProps> = ({
+  organizations,
+  lastOrgId,
+}) => {
   const context = useContext(SignInContext);
   if (!context) {
     throw new Error("OrgSelector must be used within SignInProvider");
@@ -108,7 +111,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
 
   return (
     <DialogContainer
-      className="dark bg-black"
+      className="dark bg-black text-white"
       isOpen={isOpen}
       onOpenChange={(open) => {
         if (!open && !isLoading) {
@@ -125,75 +128,89 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
     >
       <div className="flex flex-col gap-6 w-full">
         {/* Workspace selector */}
-        {sortedOrgs.length === 0 ? (
-          <Empty>
-            <div className="flex flex-col items-center gap-4 text-center">
-              <h3 className="text-lg font-medium text-content">No workspaces found</h3>
-              <p className="text-sm text-content-subtle max-w-md">
-                You don&apos;t have access to any workspaces. Please contact your administrator or
-                create a new workspace.
-              </p>
-              <div className="flex flex-col gap-2 w-full max-w-sm">
-                <Button
-                  onClick={() => {
-                    window.location.href = "mailto:support@unkey.com";
-                  }}
-                  className="w-full"
-                  size="lg"
-                >
-                  Contact Support
-                </Button>
-                <Button
-                  onClick={() => {
-                    window.location.href = "/auth/sign-out";
-                  }}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                >
-                  Sign Out
-                </Button>
-              </div>
-            </div>
-          </Empty>
-        ) : (
-          <>
-            <div className="flex flex-col gap-4">
-              <label htmlFor="workspace-selector" className="text-sm font-medium text-content">
-                Workspace
-              </label>
-              <Select value={selectedOrgId} onValueChange={setSelectedOrgId} disabled={isLoading}>
-                <SelectTrigger id="workspace-selector">
-                  <SelectValue placeholder="Select a workspace..." />
-                </SelectTrigger>
-                <SelectContent className="dark overflow-y-auto max-h-[400px]">
-                  {sortedOrgs.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Submit button */}
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading || !selectedOrgId}
-              className="w-full"
-              size="lg"
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loading type="spinner" />
-                  <span>Signing in...</span>
+        <div className="dark">
+          {sortedOrgs.length === 0 ? (
+            <Empty>
+              <div className="flex flex-col items-center gap-4 text-center">
+                <h3 className="text-lg font-medium text-content">
+                  No workspaces found
+                </h3>
+                <p className="text-sm text-content-subtle max-w-md">
+                  You don&apos;t have access to any workspaces. Please contact
+                  your administrator or create a new workspace.
+                </p>
+                <div className="flex flex-col gap-2 w-full max-w-sm">
+                  <Button
+                    onClick={() => {
+                      window.location.href = "mailto:support@unkey.com";
+                    }}
+                    className="w-full"
+                    size="lg"
+                  >
+                    Contact Support
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      window.location.href = "/auth/sign-out";
+                    }}
+                    variant="outline"
+                    className="w-full"
+                    size="lg"
+                  >
+                    Sign Out
+                  </Button>
                 </div>
-              ) : (
-                "Continue"
-              )}
-            </Button>
-          </>
-        )}
+              </div>
+            </Empty>
+          ) : (
+            <>
+              <div className="flex flex-col gap-4">
+                <label
+                  htmlFor="workspace-selector"
+                  className="text-sm font-medium text-content"
+                >
+                  Workspace
+                </label>
+                <Select
+                  value={selectedOrgId}
+                  onValueChange={setSelectedOrgId}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger
+                    id="workspace-selector"
+                    className="dark bg-black border-gray-700 text-white"
+                  >
+                    <SelectValue placeholder="Select a workspace..." />
+                  </SelectTrigger>
+                  <SelectContent className="dark bg-black border-gray-700 text-white overflow-y-auto max-h-[400px]">
+                    {sortedOrgs.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Submit button */}
+              <Button
+                onClick={handleSubmit}
+                disabled={isLoading || !selectedOrgId}
+                className="w-full"
+                size="lg"
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loading type="spinner" />
+                    <span>Signing in...</span>
+                  </div>
+                ) : (
+                  "Continue"
+                )}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
     </DialogContainer>
   );
