@@ -1,10 +1,10 @@
 type: object
 description: Container for multi-limit rate limit check results
 required:
-  - passed
+  - success
   - limits
 properties:
-  passed:
+  success:
     type: boolean
     description: |-
       Overall success indicator for all rate limit checks. This is true if ALL individual rate limit checks passed (all have success: true), and false if ANY check failed.

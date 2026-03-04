@@ -225,7 +225,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		limits[i] = openapi.V2RatelimitMultiLimitCheck{
 			Namespace:  meta.namespaceName,
 			Identifier: meta.identifier,
-			Passed:     result.Success,
+			Success:    result.Success,
 			Limit:      meta.limit,
 			Remaining:  result.Remaining,
 			Reset:      result.Reset.UnixMilli(),
@@ -242,8 +242,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2RatelimitMultiLimitResponseData{
-			Passed: allPassed,
-			Limits: limits,
+			Success: allPassed,
+			Limits:  limits,
 		},
 	})
 }

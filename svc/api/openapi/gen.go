@@ -2161,11 +2161,6 @@ type V2RatelimitMultiLimitCheck struct {
 	// - Understanding why limits differ from default values
 	OverrideId string `json:"overrideId,omitempty"`
 
-	// Passed Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.
-	//
-	// You MUST check this field to determine if the request should proceed, as the endpoint always returns `HTTP 200` even when rate limited.
-	Passed bool `json:"passed"`
-
 	// Remaining The number of operations remaining in the current window before the rate limit is exceeded. Applications should use this value to:
 	//
 	// - Implement client-side throttling before hitting limits
@@ -2186,6 +2181,11 @@ type V2RatelimitMultiLimitCheck struct {
 	//
 	// The reset time is based on a sliding window from the first request in the current window.
 	Reset int64 `json:"reset"`
+
+	// Success Whether the request passed the rate limit check. If true, the request is allowed to proceed. If false, the request has exceeded the rate limit and should be blocked or rejected.
+	//
+	// You MUST check this field to determine if the request should proceed, as the endpoint always returns `HTTP 200` even when rate limited.
+	Success bool `json:"success"`
 }
 
 // V2RatelimitMultiLimitRequestBody Array of rate limit checks to perform
@@ -2205,10 +2205,10 @@ type V2RatelimitMultiLimitResponseData struct {
 	// Limits Array of individual rate limit check results, one for each rate limit check in the request
 	Limits []V2RatelimitMultiLimitCheck `json:"limits"`
 
-	// Passed Overall success indicator for all rate limit checks. This is true if ALL individual rate limit checks passed (all have success: true), and false if ANY check failed.
+	// Success Overall success indicator for all rate limit checks. This is true if ALL individual rate limit checks passed (all have success: true), and false if ANY check failed.
 	//
 	// Use this as a quick indicator to determine if the request should proceed.
-	Passed bool `json:"passed"`
+	Success bool `json:"success"`
 }
 
 // V2RatelimitSetOverrideRequestBody Sets a new or overwrites an existing rate limit override. Overrides allow you to apply special rate limit rules to specific identifiers, providing custom limits that differ from the default.
