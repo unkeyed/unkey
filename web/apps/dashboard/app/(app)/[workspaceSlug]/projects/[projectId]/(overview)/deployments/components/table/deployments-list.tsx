@@ -133,7 +133,7 @@ export const DeploymentsList = () => {
           const mem = isFailed ? null : formatMemoryParts(deployment.memoryMib);
           return (
             <div className="flex items-center gap-7">
-              <div className="hidden 2xl:flex items-center">
+              <div className="hidden 2xl:flex items-center w-[80px]">
                 {isFailed ? (
                   <span className="text-gray-9">—</span>
                 ) : (
@@ -146,20 +146,24 @@ export const DeploymentsList = () => {
                   </div>
                 )}
               </div>
-              {!isFailed && cpu && mem && (
-                <div className="hidden 2xl:flex gap-1.5">
-                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
-                    <Bolt className="text-gray-12" iconSize="sm-regular" />
-                    <span className="font-semibold text-grayA-12">{cpu.value}</span>
-                    <span>{cpu.unit}</span>
-                  </div>
-                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
-                    <ScanCode className="text-gray-12" iconSize="sm-regular" />
-                    <span className="font-semibold text-grayA-12">{mem.value}</span>
-                    <span>{mem.unit}</span>
-                  </div>
-                </div>
-              )}
+              <div className="hidden 2xl:flex gap-1.5 w-[180px]">
+                {isFailed || !cpu || !mem ? (
+                  <span className="text-gray-9">—</span>
+                ) : (
+                  <>
+                    <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
+                      <Bolt className="text-gray-12" iconSize="sm-regular" />
+                      <span className="font-semibold text-grayA-12">{cpu.value}</span>
+                      <span>{cpu.unit}</span>
+                    </div>
+                    <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
+                      <ScanCode className="text-gray-12" iconSize="sm-regular" />
+                      <span className="font-semibold text-grayA-12">{mem.value}</span>
+                      <span>{mem.unit}</span>
+                    </div>
+                  </>
+                )}
+              </div>
               <div className="flex gap-2 items-center">
                 <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3">
                   <CodeBranch iconSize="sm-regular" className="text-gray-12" />
