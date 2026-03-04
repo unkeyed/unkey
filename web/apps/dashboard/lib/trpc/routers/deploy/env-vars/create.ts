@@ -2,7 +2,7 @@ import { and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
-import { environments } from "@unkey/db/src/schema";
+import { apps, environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
@@ -35,6 +35,7 @@ export const createEnvVars = workspaceProcedure
         ),
         columns: {
           id: true,
+          projectId: true,
         },
       });
 
@@ -42,6 +43,25 @@ export const createEnvVars = workspaceProcedure
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Environment not found",
+        });
+      }
+
+      // Find the app for this environment and project
+      const app = await db.query.apps.findFirst({
+        where: and(
+          eq(apps.projectId, environment.projectId),
+          eq(apps.environmentId, input.environmentId),
+          eq(apps.workspaceId, ctx.workspace.id),
+        ),
+        columns: {
+          id: true,
+        },
+      });
+
+      if (!app) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "App not found for this environment",
         });
       }
 
@@ -55,6 +75,7 @@ export const createEnvVars = workspaceProcedure
           return {
             id: newId("environmentVariable"),
             workspaceId: ctx.workspace.id,
+            appId: app.id,
             environmentId: input.environmentId,
             key: v.key,
             value: encrypted,
@@ -64,7 +85,7 @@ export const createEnvVars = workspaceProcedure
         }),
       );
 
-      await db.insert(schema.environmentVariables).values(encryptedVars);
+      await db.insert(schema.appEnvironmentVariables).values(encryptedVars);
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

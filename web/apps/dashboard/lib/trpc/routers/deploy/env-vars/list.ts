@@ -1,6 +1,6 @@
 import { and, db, eq, inArray } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { environmentVariables, environments } from "@unkey/db/src/schema";
+import { appEnvironmentVariables, apps, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
@@ -25,7 +25,7 @@ export const listEnvVars = workspaceProcedure
   )
   .query(async ({ ctx, input }) => {
     try {
-      // Fetch all environments for this project
+      // Fetch all environments for this project (needed for slugs)
       const envs = await db.query.environments.findMany({
         where: and(
           eq(environments.workspaceId, ctx.workspace.id),
@@ -37,21 +37,50 @@ export const listEnvVars = workspaceProcedure
         },
       });
 
-      const envIds = envs.map((e) => e.id);
-
-      if (envIds.length === 0) {
+      if (envs.length === 0) {
         return {};
       }
 
-      // Fetch all environment variables in one query
-      const allVariables = await db.query.environmentVariables.findMany({
+      // Fetch all apps for this project to get their IDs
+      const projectApps = await db.query.apps.findMany({
         where: and(
-          eq(environmentVariables.workspaceId, ctx.workspace.id),
-          inArray(environmentVariables.environmentId, envIds),
+          eq(apps.workspaceId, ctx.workspace.id),
+          eq(apps.projectId, input.projectId),
         ),
         columns: {
           id: true,
           environmentId: true,
+        },
+      });
+
+      const appIds = projectApps.map((a) => a.id);
+
+      if (appIds.length === 0) {
+        // No apps yet — return empty environments
+        const result: Record<string, z.infer<typeof environmentOutputSchema>> = {};
+        for (const env of envs) {
+          result[env.slug] = { id: env.id, variables: [] };
+        }
+        return result;
+      }
+
+      // Build a lookup from environmentId -> appIds for that environment
+      const envIdToAppIds = new Map<string, string[]>();
+      for (const app of projectApps) {
+        const existing = envIdToAppIds.get(app.environmentId) ?? [];
+        existing.push(app.id);
+        envIdToAppIds.set(app.environmentId, existing);
+      }
+
+      // Fetch all app environment variables in one query
+      const allVariables = await db.query.appEnvironmentVariables.findMany({
+        where: and(
+          eq(appEnvironmentVariables.workspaceId, ctx.workspace.id),
+          inArray(appEnvironmentVariables.appId, appIds),
+        ),
+        columns: {
+          id: true,
+          appId: true,
           key: true,
           value: true,
           type: true,
@@ -59,10 +88,16 @@ export const listEnvVars = workspaceProcedure
         },
       });
 
+      // Build a lookup from appId -> environmentId
+      const appIdToEnvId = new Map<string, string>();
+      for (const app of projectApps) {
+        appIdToEnvId.set(app.id, app.environmentId);
+      }
+
       const result: Record<string, z.infer<typeof environmentOutputSchema>> = {};
 
       for (const env of envs) {
-        const vars = allVariables.filter((v) => v.environmentId === env.id);
+        const vars = allVariables.filter((v) => appIdToEnvId.get(v.appId) === env.id);
 
         result[env.slug] = {
           id: env.id,
