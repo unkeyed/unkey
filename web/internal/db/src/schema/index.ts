@@ -10,7 +10,6 @@ export * from "./identity";
 export * from "./quota";
 export * from "./audit_logs";
 export * from "./environments";
-export * from "./environment_variables";
 export * from "./clickhouse_workspace_settings";
 
 // Deployment platform tables
