@@ -168,13 +168,6 @@ type Querier interface {
 	//
 	//  SELECT pk, id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
-	//FindAppBuildSettingsByAppAndEnv
-	//
-	//  SELECT app_build_settings.pk, app_build_settings.workspace_id, app_build_settings.app_id, app_build_settings.environment_id, app_build_settings.dockerfile, app_build_settings.docker_context, app_build_settings.created_at, app_build_settings.updated_at
-	//  FROM app_build_settings
-	//  WHERE app_id = ?
-	//    AND environment_id = ?
-	FindAppBuildSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingsByAppAndEnvParams) (FindAppBuildSettingsByAppAndEnvRow, error)
 	//FindAppById
 	//
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.environment_id, apps.name, apps.slug, apps.live_deployment_id, apps.is_rolled_back, apps.depot_project_id, apps.delete_protection, apps.created_at, apps.updated_at
