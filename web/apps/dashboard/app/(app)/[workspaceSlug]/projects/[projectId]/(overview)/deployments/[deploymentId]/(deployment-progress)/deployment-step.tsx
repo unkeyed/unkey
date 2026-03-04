@@ -47,7 +47,8 @@ export function DeploymentStep({
                 "w-full h-full rounded-[10px] flex items-center justify-center shrink-0",
                 isError
                   ? "relative bg-errorA-3 dark:text-error-11 text-error-11"
-                  : showGlow && "relative dark:bg-white dark:text-black bg-black text-white shadow-md shadow-black/40",
+                  : showGlow &&
+                      "relative dark:bg-white dark:text-black bg-black text-white shadow-md shadow-black/40",
               )}
             >
               {icon}

@@ -1,13 +1,13 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { CloudUp, Earth, Hammer2, LayerFront, TriangleWarning2 } from "@unkey/icons";
+import { CloudUp, Earth, Hammer2, LayerFront } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
+import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import { useDeployment } from "../layout-provider";
 import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
 import { DeploymentStep } from "./deployment-step";
@@ -61,7 +61,7 @@ export function DeploymentProgress() {
   if (building && !building.endedAt) {
     hasFreshBuild.current = true;
   }
-  const isPrebuilt = !hasFreshBuild.current;
+  const isPrebuilt = !hasFreshBuild.current && !building?.error;
 
   useEffect(() => {
     if (network?.completed) {
@@ -187,7 +187,12 @@ export function DeploymentProgress() {
                 </span>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setRedeployOpen(true)} className="px-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRedeployOpen(true)}
+              className="px-3"
+            >
               Redeploy
             </Button>
           </div>
