@@ -1948,6 +1948,22 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	//ListEnvVarsForRepoConnections
+	//
+	//  SELECT aev.app_id, aev.`key`, aev.value
+	//  FROM app_environment_variables aev
+	//  INNER JOIN apps a ON a.id = aev.app_id AND a.environment_id = aev.environment_id
+	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
+	//  INNER JOIN projects p ON p.id = gc.project_id
+	//  INNER JOIN environments e ON e.id = a.environment_id
+	//  WHERE gc.installation_id = ?
+	//    AND gc.repository_id = ?
+	//    AND e.slug = CASE
+	//      WHEN ? = COALESCE(NULLIF(p.default_branch, ''), 'main')
+	//      THEN 'production'
+	//      ELSE 'preview'
+	//    END
+	ListEnvVarsForRepoConnections(ctx context.Context, db DBTX, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
@@ -1956,21 +1972,6 @@ type Querier interface {
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
-	//ListGithubRepoConnections
-	//
-	//  SELECT
-	//      pk,
-	//      project_id,
-	//      app_id,
-	//      installation_id,
-	//      repository_id,
-	//      repository_full_name,
-	//      created_at,
-	//      updated_at
-	//  FROM github_repo_connections
-	//  WHERE installation_id = ?
-	//    AND repository_id = ?
-	ListGithubRepoConnections(ctx context.Context, db DBTX, arg ListGithubRepoConnectionsParams) ([]GithubRepoConnection, error)
 	//ListIdentities
 	//
 	//  SELECT
@@ -2248,6 +2249,29 @@ type Querier interface {
 	//  WHERE key_id IN (/*SLICE:key_ids*/?)
 	//  ORDER BY key_id, id
 	ListRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []sql.NullString) ([]ListRatelimitsByKeyIDsRow, error)
+	//ListRepoConnectionDeployContexts
+	//
+	//  SELECT
+	//      gc.pk, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
+	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.default_branch, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
+	//      a.pk, a.id, a.workspace_id, a.project_id, a.environment_id, a.name, a.slug, a.live_deployment_id, a.is_rolled_back, a.depot_project_id, a.delete_protection, a.created_at, a.updated_at,
+	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
+	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
+	//  FROM github_repo_connections gc
+	//  INNER JOIN apps a ON a.id = gc.app_id
+	//  INNER JOIN projects p ON p.id = gc.project_id
+	//  INNER JOIN environments e ON e.id = a.environment_id
+	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = a.environment_id
+	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = a.environment_id
+	//  WHERE gc.installation_id = ?
+	//    AND gc.repository_id = ?
+	//    AND e.slug = CASE
+	//      WHEN ? = COALESCE(NULLIF(p.default_branch, ''), 'main')
+	//      THEN 'production'
+	//      ELSE 'preview'
+	//    END
+	ListRepoConnectionDeployContexts(ctx context.Context, db DBTX, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
 	//ListRoles
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(

@@ -14,8 +14,8 @@ import (
 )
 
 // HandlePush processes a GitHub push event durably via Restate. It looks up
-// repo connections, resolves project/environment/app/settings, creates
-// deployment records, and fires off DeployService.Deploy() for each deployment.
+// repo connections with full deploy context (project, environment, app, settings)
+// in a single query, creates deployment records, and fires off DeployService.Deploy().
 func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest) (*hydrav1.HandlePushResponse, error) {
 	logger.Info("handling GitHub push in Restate",
 		"delivery_id", req.GetDeliveryId(),
@@ -24,106 +24,70 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		"commit_sha", req.GetAfter(),
 	)
 
-	repoConnections, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.GithubRepoConnection, error) {
-		return db.Query.ListGithubRepoConnections(runCtx, s.db.RO(), db.ListGithubRepoConnectionsParams{
+	branch := sql.NullString{String: req.GetBranch(), Valid: req.GetBranch() != ""}
+
+	// Single query: connections + apps + projects + environments + build/runtime settings
+	// Filters by environment slug based on branch vs project default_branch in SQL.
+	contexts, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListRepoConnectionDeployContextsRow, error) {
+		return db.Query.ListRepoConnectionDeployContexts(runCtx, s.db.RO(), db.ListRepoConnectionDeployContextsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
+			Branch:         branch,
 		})
-	}, restate.WithName("list repo connections"))
+	}, restate.WithName("list deploy contexts"))
 	if err != nil {
 		return nil, err
 	}
 
-	for _, repo := range repoConnections {
-		project, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindProjectByIdRow, error) {
-			return db.Query.FindProjectById(runCtx, s.db.RO(), repo.ProjectID)
-		}, restate.WithName("find project"))
-		if err != nil {
-			if db.IsNotFound(err) {
-				logger.Info("No project found for repo connection", "projectId", repo.ProjectID)
-				continue
-			}
-			logger.Error("failed to find project for repo connection", "projectId", repo.ProjectID, "error", err)
-			continue
-		}
+	if len(contexts) == 0 {
+		logger.Info("no deploy contexts found",
+			"installation_id", req.GetInstallationId(),
+			"repository_id", req.GetRepositoryId(),
+			"branch", req.GetBranch(),
+		)
+		return &hydrav1.HandlePushResponse{}, nil
+	}
 
-		defaultBranch := "main"
-		if project.DefaultBranch.Valid && project.DefaultBranch.String != "" {
-			defaultBranch = project.DefaultBranch.String
-		}
+	// Single query: all env vars for the matched apps
+	allEnvVars, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListEnvVarsForRepoConnectionsRow, error) {
+		return db.Query.ListEnvVarsForRepoConnections(runCtx, s.db.RO(), db.ListEnvVarsForRepoConnectionsParams{
+			InstallationID: req.GetInstallationId(),
+			RepositoryID:   req.GetRepositoryId(),
+			Branch:         branch,
+		})
+	}, restate.WithName("list env vars"))
+	if err != nil {
+		return nil, err
+	}
 
-		envSlug := "preview"
-		if req.GetBranch() == defaultBranch {
-			envSlug = "production"
-		}
+	// Group env vars by app ID
+	envVarsByApp := make(map[string][]db.ListEnvVarsForRepoConnectionsRow)
+	for _, ev := range allEnvVars {
+		envVarsByApp[ev.AppID] = append(envVarsByApp[ev.AppID], ev)
+	}
 
-		env, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-			return db.Query.FindEnvironmentByProjectIdAndSlug(runCtx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
-				WorkspaceID: project.WorkspaceID,
-				ProjectID:   project.ID,
-				Slug:        envSlug,
-			})
-		}, restate.WithName("find environment"))
-		if err != nil {
-			logger.Error("failed to find environment for repo connection", "projectId", repo.ProjectID, "appId", repo.AppID, "envSlug", envSlug, "error", err)
-			continue
-		}
+	for _, row := range contexts {
+		project := row.Project
+		env := row.Environment
+		app := row.App
+		runtimeSettings := row.AppRuntimeSetting
+		buildSettings := row.AppBuildSetting
+		repo := row.GithubRepoConnection
 
-		appRow, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppByIdRow, error) {
-			return db.Query.FindAppById(runCtx, s.db.RO(), repo.AppID)
-		}, restate.WithName("find app"))
-		if err != nil {
-			logger.Error("failed to find app for repo connection", "appId", repo.AppID, "error", err)
-			continue
-		}
-		app := appRow.App
-
-		runtimeRow, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppRuntimeSettingsByAppAndEnvRow, error) {
-			return db.Query.FindAppRuntimeSettingsByAppAndEnv(runCtx, s.db.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
-				AppID:         app.ID,
-				EnvironmentID: env.ID,
-			})
-		}, restate.WithName("find runtime settings"))
-		if err != nil {
-			logger.Error("failed to find runtime settings", "appId", app.ID, "envId", env.ID, "error", err)
-			continue
-		}
-		runtimeSettings := runtimeRow.AppRuntimeSetting
-
-		buildRow, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppBuildSettingsByAppAndEnvRow, error) {
-			return db.Query.FindAppBuildSettingsByAppAndEnv(runCtx, s.db.RO(), db.FindAppBuildSettingsByAppAndEnvParams{
-				AppID:         app.ID,
-				EnvironmentID: env.ID,
-			})
-		}, restate.WithName("find build settings"))
-		if err != nil {
-			logger.Error("failed to find build settings", "appId", app.ID, "envId", env.ID, "error", err)
-			continue
-		}
-		buildSettings := buildRow.AppBuildSetting
-
-		envVars, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindAppEnvVarsByAppAndEnvRow, error) {
-			return db.Query.FindAppEnvVarsByAppAndEnv(runCtx, s.db.RO(), db.FindAppEnvVarsByAppAndEnvParams{
-				AppID:         app.ID,
-				EnvironmentID: env.ID,
-			})
-		}, restate.WithName("find env vars"))
-		if err != nil {
-			logger.Error("failed to find env vars", "appId", app.ID, "envId", env.ID, "error", err)
-			continue
-		}
-
+		// Build secrets blob from env vars
+		appEnvVars := envVarsByApp[app.ID]
 		secretsBlob := []byte{}
-		if len(envVars) > 0 {
+		if len(appEnvVars) > 0 {
 			secretsConfig := &ctrlv1.SecretsConfig{
-				Secrets: make(map[string]string, len(envVars)),
+				Secrets: make(map[string]string, len(appEnvVars)),
 			}
-			for _, ev := range envVars {
+			for _, ev := range appEnvVars {
 				secretsConfig.Secrets[ev.Key] = ev.Value
 			}
-			secretsBlob, err = protojson.Marshal(secretsConfig)
-			if err != nil {
-				logger.Error("failed to marshal secrets config", "appId", app.ID, "error", err)
+			var marshalErr error
+			secretsBlob, marshalErr = protojson.Marshal(secretsConfig)
+			if marshalErr != nil {
+				logger.Error("failed to marshal secrets config", "appId", app.ID, "error", marshalErr)
 				continue
 			}
 		}
@@ -178,10 +142,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"repository", req.GetRepositoryFullName(),
 			"commit_sha", req.GetAfter(),
 			"branch", req.GetBranch(),
-			"environment", envSlug,
+			"environment", env.Slug,
 		)
 
-		// Start deploy workflow with GitSource, keyed by project ID
+		// Start deploy workflow keyed by project ID
 		deployClient := hydrav1.NewDeployServiceClient(ctx, project.ID)
 		deployClient.Deploy().Send(&hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
