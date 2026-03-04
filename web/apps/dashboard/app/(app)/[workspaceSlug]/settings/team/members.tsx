@@ -99,7 +99,7 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <Avatar className="h-8 w-8">
                       {member.avatarUrl && <AvatarImage src={member.avatarUrl} />}
-                      <AvatarFallback name={member.fullName ?? member.email} />
+                      <AvatarFallback name={member.email} />
                     </Avatar>
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2">

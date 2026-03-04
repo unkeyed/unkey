@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Check, ChevronExpandY, Plus, UserPlus } from "@unkey/icons";
-import { InfoTooltip, Loading, toast } from "@unkey/ui";
+import { InfoTooltip, Loading, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, toast } from "@unkey/ui";
 import Link from "next/link";
 import type React from "react";
 import { useMemo, useState } from "react";
@@ -27,6 +27,7 @@ export const WorkspaceSwitcher: React.FC = () => {
   const workspace = useWorkspaceNavigation();
   // Only collapsed in desktop mode, not in mobile mode
   const isCollapsed = state === "collapsed" && !isMobile;
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const { data: user } = trpc.user.getCurrentUser.useQuery();
   const { data: memberships, isLoading: isUserMembershipsLoading } =
@@ -93,92 +94,118 @@ export const WorkspaceSwitcher: React.FC = () => {
     );
   }, [search, userMemberships]);
 
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
+  const trigger = (
+    <button
+      type="button"
+      className={cn(
+        "flex items-center bg-base-12 overflow-hidden rounded-lg bg-background border-gray-6 border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content",
+        isCollapsed ? "justify-center w-8 h-8 p-0" : "justify-between h-8 gap-2 px-2 flex-1",
+      )}
+    >
+      <div
         className={cn(
-          "flex items-center overflow-hidden rounded-lg bg-background border-gray-6 border hover:bg-background-subtle cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content",
-          isCollapsed ? "justify-center w-10 h-8 p-0" : "justify-between h-8 gap-2 px-2 flex-1",
+          "flex items-center gap-2 overflow-hidden whitespace-nowrap min-w-0",
+          isCollapsed ? "justify-center" : "",
         )}
       >
-        <div
-          className={cn(
-            "flex items-center gap-2 overflow-hidden whitespace-nowrap min-w-0",
-            isCollapsed ? "justify-center" : "",
-          )}
-        >
-          <Avatar className="w-5 h-5 rounded border border-grayA-6 shrink-0">
-            <AvatarFallback name={workspace.name} variant="marble" square />
-          </Avatar>
-          {isUserMembershipsLoading ? (
-            <Loading type="dots" size={24} />
-          ) : isCollapsed ? null : (
-            <InfoTooltip
-              variant="inverted"
-              position={{ side: "right", sideOffset: 10 }}
-              content={<span>{workspace?.name}</span>}
-              className="text-xs font-medium py-2"
-              asChild={true}
-            >
-              <span className="overflow-hidden text-sm font-medium text-ellipsis min-w-0 flex-1">
-                {workspace?.name}
-              </span>
-            </InfoTooltip>
-          )}
-        </div>
-        {!isCollapsed && (
-          <ChevronExpandY className="w-4 h-4 shrink-0 md:block stroke-[1px] text-gray-9" />
+        <Avatar className="w-5 h-5 rounded border border-grayA-6 shrink-0">
+          <AvatarFallback name={workspace.name} variant="marble" square />
+        </Avatar>
+        {isUserMembershipsLoading ? (
+          <Loading type="dots" size={24} />
+        ) : isCollapsed ? null : (
+          <InfoTooltip
+            variant="inverted"
+            position={{ side: "right", sideOffset: 10 }}
+            content={<span>{workspace?.name}</span>}
+            className="text-xs font-medium py-2"
+            asChild={true}
+          >
+            <span className="overflow-hidden text-sm font-medium text-ellipsis min-w-0 flex-1">
+              {workspace?.name}
+            </span>
+          </InfoTooltip>
         )}
-      </DropdownMenuTrigger>
+      </div>
+      {!isCollapsed && (
+        <ChevronExpandY className="w-4 h-4 shrink-0 md:block [stroke-width:1px] text-gray-9" />
+      )}
+    </button>
+  );
 
-      <DropdownMenuContent
-        className="w-72 lg:w-96 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
-        align="start"
-        side="top"
-        sideOffset={8}
-      >
-        <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-        <DropdownMenuGroup>
-          <ScrollArea className="h-96">
-            {filteredOrgs.map((membership) => (
-              <DropdownMenuItem
-                key={membership.id}
-                className="flex items-center justify-between hover:bg-grayA-3 cursor-pointer"
-                onClick={async () => changeWorkspace.mutateAsync(membership.organization.id)}
+  const dropdownContent = (
+    <DropdownMenuContent
+      className="w-72 lg:w-96 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
+      align="start"
+      side="top"
+      sideOffset={8}
+    >
+      <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+      <DropdownMenuGroup>
+        <ScrollArea className="h-96">
+          {filteredOrgs.map((membership) => (
+            <DropdownMenuItem
+              key={membership.id}
+              className="flex items-center justify-between hover:bg-grayA-3"
+              onClick={async () => changeWorkspace.mutateAsync(membership.organization.id)}
+            >
+              <span
+                className={
+                  membership.organization.id === currentOrgMembership?.organization.id
+                    ? "font-medium"
+                    : undefined
+                }
               >
-                <span
-                  className={
-                    membership.organization.id === currentOrgMembership?.organization.id
-                      ? "font-medium"
-                      : undefined
-                  }
-                >
-                  {" "}
-                  {membership.organization.name}
-                </span>
-                {membership.organization.id === currentOrgMembership?.organization.id ? (
-                  <Check className="w-4 h-4" />
-                ) : null}
-              </DropdownMenuItem>
-            ))}
-          </ScrollArea>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <Link href="/new" className="flex items-center">
-              <Plus iconSize="md-regular" className="w-4 h-4 mr-2" />
-              <span>Create Workspace</span>
-            </Link>
-          </DropdownMenuItem>
-          {currentOrgMembership?.role === "admin" ? (
-            <Link href={`/${workspace.slug}/settings/team`}>
-              <DropdownMenuItem>
-                <UserPlus iconSize="md-regular" className="w-4 h-4 mr-2 " />
-                <span className="cursor-pointer">Invite Member</span>
-              </DropdownMenuItem>
-            </Link>
-          ) : null}
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
+                {" "}
+                {membership.organization.name}
+              </span>
+              {membership.organization.id === currentOrgMembership?.organization.id ? (
+                <Check className="w-4 h-4" />
+              ) : null}
+            </DropdownMenuItem>
+          ))}
+        </ScrollArea>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <Link href="/new" className="flex items-center">
+            <Plus iconSize="md-regular" className="w-4 h-4 mr-2" />
+            <span>Create Workspace</span>
+          </Link>
+        </DropdownMenuItem>
+        {currentOrgMembership?.role === "admin" ? (
+          <Link href={`/${workspace.slug}/settings/team`}>
+            <DropdownMenuItem>
+              <UserPlus iconSize="md-regular" className="w-4 h-4 mr-2 " />
+              <span className="cursor-pointer">Invite Member</span>
+            </DropdownMenuItem>
+          </Link>
+        ) : null}
+      </DropdownMenuGroup>
+    </DropdownMenuContent>
+  );
+
+  if (isCollapsed) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+            </TooltipTrigger>
+            {dropdownContent}
+          </DropdownMenu>
+          <TooltipContent side="right" sideOffset={8}>
+            <p className="text-xs">{workspace.name}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      {dropdownContent}
     </DropdownMenu>
   );
 };
