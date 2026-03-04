@@ -25,7 +25,7 @@ export function DeploymentProgress() {
       deploymentId: deployment.id,
     },
     {
-      refetchInterval: isFailed ? false : 1_000,
+      refetchInterval: 1_000,
     },
   );
 
@@ -35,7 +35,7 @@ export function DeploymentProgress() {
       includeStepLogs: true,
     },
     {
-      refetchInterval: isFailed ? false : 1_000,
+      refetchInterval: 1_000,
     },
   );
 
@@ -51,6 +51,7 @@ export function DeploymentProgress() {
       clearInterval(interval);
     };
   }, [isFailed]);
+
   const { building, deploying, network, queued } = steps.data ?? {};
 
   const [redeployOpen, setRedeployOpen] = useState(false);

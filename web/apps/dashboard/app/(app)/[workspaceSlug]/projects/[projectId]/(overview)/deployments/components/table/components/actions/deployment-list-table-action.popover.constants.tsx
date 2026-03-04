@@ -36,7 +36,8 @@ export const DeploymentListTableActions = ({
       selectedDeployment.status === "ready" &&
       selectedDeployment.id !== liveDeployment.id;
 
-    const canRedeploy = selectedDeployment.status === "ready";
+    const canRedeploy =
+      selectedDeployment.status === "ready" || selectedDeployment.status === "failed";
 
     return [
       {
