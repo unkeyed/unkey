@@ -20,7 +20,7 @@ const instancesSchema = z.object({
 type InstancesFormValues = z.infer<typeof instancesSchema>;
 
 export const Instances = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { environmentId, regionConfig } = settings;
 
   const selectedRegions = Object.keys(regionConfig);
@@ -82,6 +82,7 @@ export const Instances = () => {
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      autoSave={autoSave}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Instances per region</span>
@@ -96,6 +97,15 @@ export const Instances = () => {
                 setValue("instances", value, { shouldValidate: true });
               }
             }}
+            onValueCommit={
+              autoSave
+                ? ([value]) => {
+                    if (value !== undefined) {
+                      handleSubmit(onSubmit)();
+                    }
+                  }
+                : undefined
+            }
             className="flex-1 max-w-[480px]"
             rangeStyle={{
               background:

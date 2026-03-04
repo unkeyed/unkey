@@ -4,6 +4,7 @@ import {
   type EnvironmentSettings,
   buildSettingsMutations,
 } from "@/lib/collections/deploy/environment-settings";
+import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { type PropsWithChildren, useEffect, useMemo, useRef } from "react";
 import { useProjectData } from "../../[projectId]/(overview)/data-provider";
@@ -39,13 +40,41 @@ export const OnboardingEnvironmentSettingsProvider = ({ children }: PropsWithChi
 
   const settings = data.at(0);
 
+  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
+    undefined,
+    { enabled: Boolean(prodEnvId) },
+  );
+
+  const hasInitializedRegionsRef = useRef<boolean>(false);
+
+  // Settings are empty initially so we set all of them by default for the user.
+  // Later he can change it in the settings
+  useEffect(() => {
+    if (!settings || !availableRegions || hasInitializedRegionsRef.current) {
+      return;
+    }
+    hasInitializedRegionsRef.current = true;
+    if (Object.keys(settings.regionConfig).length > 0) {
+      return;
+    }
+    collection.environmentSettings.update(settings.environmentId, (draft) => {
+      for (const region of availableRegions) {
+        draft.regionConfig[region] = 1;
+      }
+    });
+  }, [settings, availableRegions]);
+
   useSyncSettingsToOtherEnvironments(settings, otherEnvIds);
 
   if (!settings) {
     return null;
   }
 
-  return <EnvironmentContext.Provider value={{ settings }}>{children}</EnvironmentContext.Provider>;
+  return (
+    <EnvironmentContext.Provider value={{ settings, autoSave: true }}>
+      {children}
+    </EnvironmentContext.Provider>
+  );
 };
 
 function useSyncSettingsToOtherEnvironments(

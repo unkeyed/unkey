@@ -20,7 +20,7 @@ import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./s
 import { intervalToSeconds, secondsToInterval } from "./utils";
 
 export const Healthcheck = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { healthcheck, environmentId } = settings;
 
   const defaultValues: HealthcheckFormValues = {
@@ -94,6 +94,7 @@ export const Healthcheck = () => {
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      autoSave={autoSave}
     >
       <div className="flex flex-col gap-3 w-[520px]">
         {/* TODO: multi-check when API supports

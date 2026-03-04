@@ -9,6 +9,7 @@ import { useProjectData } from "../data-provider";
 
 type EnvironmentContextType = {
   settings: EnvironmentSettings;
+  autoSave?: boolean;
 };
 
 export const EnvironmentContext = createContext<EnvironmentContextType | null>(null);

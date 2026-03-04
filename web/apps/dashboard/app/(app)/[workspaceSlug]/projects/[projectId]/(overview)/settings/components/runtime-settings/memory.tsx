@@ -31,7 +31,7 @@ const memorySchema = z.object({
 type MemoryFormValues = z.infer<typeof memorySchema>;
 
 export const Memory = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { memoryMib: defaultMemory, environmentId } = settings;
 
   const {
@@ -83,6 +83,7 @@ export const Memory = () => {
       })()}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      autoSave={autoSave}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Memory per instance</span>
@@ -99,6 +100,7 @@ export const Memory = () => {
                 });
               }
             }}
+            onValueCommit={autoSave ? () => handleSubmit(onSubmit)() : undefined}
             className="flex-1 max-w-[480px]"
             rangeStyle={{
               background:

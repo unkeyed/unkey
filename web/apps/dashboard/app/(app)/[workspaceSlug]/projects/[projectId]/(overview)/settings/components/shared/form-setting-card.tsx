@@ -18,6 +18,7 @@ type EditableSettingCardProps = {
 
   ref?: React.Ref<HTMLFormElement>;
   className?: string;
+  autoSave?: boolean;
 };
 
 export const FormSettingCard = ({
@@ -31,6 +32,7 @@ export const FormSettingCard = ({
   saveState,
   ref,
   className,
+  autoSave,
 }: EditableSettingCardProps) => {
   return (
     <SettingCard
@@ -49,31 +51,42 @@ export const FormSettingCard = ({
             e.preventDefault();
             onSubmit(e);
           }}
+          onBlur={(e) => {
+            if (!autoSave || saveState.status !== "ready") {
+              return;
+            }
+            const relatedTarget = e.relatedTarget instanceof Node ? e.relatedTarget : null;
+            if (!e.currentTarget.contains(relatedTarget)) {
+              e.currentTarget.requestSubmit();
+            }
+          }}
         >
-          <div className="px-4 pt-4 pb-2 flex flex-col gap-3 overflow-y-auto max-h-[500px]">
+          <div className={cn("px-4 pt-4 flex flex-col gap-3 overflow-y-auto max-h-[500px]", autoSave ? "pb-4" : "pb-2")}>
             {children}
           </div>
-          <div className="px-4 pt-2 pb-4 flex justify-end">
-            <InfoTooltip
-              content={saveState.status === "disabled" ? saveState.reason : undefined}
-              disabled={
-                saveState.status !== "disabled" || !("reason" in saveState && saveState.reason)
-              }
-              asChild
-              variant="inverted"
-            >
-              <Button
-                type="submit"
-                variant="primary"
-                className="px-3 py-3"
-                size="sm"
-                disabled={saveState.status !== "ready"}
-                loading={saveState.status === "saving"}
+          {!autoSave && (
+            <div className="px-4 pt-2 pb-4 flex justify-end">
+              <InfoTooltip
+                content={saveState.status === "disabled" ? saveState.reason : undefined}
+                disabled={
+                  saveState.status !== "disabled" || !("reason" in saveState && saveState.reason)
+                }
+                asChild
+                variant="inverted"
               >
-                Save
-              </Button>
-            </InfoTooltip>
-          </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="px-3 py-3"
+                  size="sm"
+                  disabled={saveState.status !== "ready"}
+                  loading={saveState.status === "saving"}
+                >
+                  Save
+                </Button>
+              </InfoTooltip>
+            </div>
+          )}
         </form>
       }
     >

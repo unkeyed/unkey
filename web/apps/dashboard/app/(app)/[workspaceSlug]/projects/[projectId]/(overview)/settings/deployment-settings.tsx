@@ -29,8 +29,10 @@ type DeploymentSettingsProps = {
   sections?: Partial<Record<DeploymentSection, true>>;
 };
 
-
-export const DeploymentSettings = ({ githubReadOnly = false, sections = { build: true, runtime: true, advanced: true, sentinel: true } }: DeploymentSettingsProps) => {
+export const DeploymentSettings = ({
+  githubReadOnly = false,
+  sections = { build: true, runtime: true, advanced: true, sentinel: true },
+}: DeploymentSettingsProps) => {
   return (
     <div className="flex flex-col gap-6">
       <SettingCardGroup>
@@ -38,7 +40,11 @@ export const DeploymentSettings = ({ githubReadOnly = false, sections = { build:
         <RootDirectory />
         <Dockerfile />
       </SettingCardGroup>
-      <SettingsGroup icon={<CircleHalfDottedClock iconSize="md-medium" />} title="Runtime settings" defaultExpanded={Boolean(sections.runtime)}>
+      <SettingsGroup
+        icon={<CircleHalfDottedClock iconSize="md-medium" />}
+        title="Runtime settings"
+        defaultExpanded={Boolean(sections.runtime)}
+      >
         <SettingCardGroup>
           <Regions />
           <Instances />
@@ -53,17 +59,25 @@ export const DeploymentSettings = ({ githubReadOnly = false, sections = { build:
           {/* <Scaling /> */}
         </SettingCardGroup>
       </SettingsGroup>
-      <SettingsGroup icon={<Gear iconSize="md-medium" />} title="Advanced configurations" defaultExpanded={Boolean(sections.advanced)}>
+      <SettingsGroup
+        icon={<Gear iconSize="md-medium" />}
+        title="Advanced configurations"
+        defaultExpanded={Boolean(sections.advanced)}
+      >
         <SettingCardGroup>
           <EnvVars />
           <CustomDomains />
         </SettingCardGroup>
       </SettingsGroup>
-      <SettingsGroup icon={<StackPerspective2 iconSize="md-medium" />} title="Sentinel configurations" defaultExpanded={Boolean(sections.sentinel)}>
+      <SettingsGroup
+        icon={<StackPerspective2 iconSize="md-medium" />}
+        title="Sentinel configurations"
+        defaultExpanded={Boolean(sections.sentinel)}
+      >
         <SettingCardGroup>
           <Keyspaces />
         </SettingCardGroup>
       </SettingsGroup>
     </div>
-  )
-}
+  );
+};

@@ -19,7 +19,7 @@ const keyspacesSchema = z.object({
 type KeyspacesFormValues = z.infer<typeof keyspacesSchema>;
 
 export const Keyspaces = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { environmentId } = settings;
 
   const { data: availableKeyspaces } =
@@ -39,6 +39,7 @@ export const Keyspaces = () => {
       environmentId={environmentId}
       defaultKeyspaceIds={defaultKeyspaceIds}
       availableKeyspaces={availableKeyspaces ?? {}}
+      autoSave={autoSave}
     />
   );
 };
@@ -47,12 +48,14 @@ type KeyspacesFormProps = {
   environmentId: string;
   defaultKeyspaceIds: string[];
   availableKeyspaces: Record<string, { id: string; api: { name: string } }>;
+  autoSave?: boolean;
 };
 
 const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
   environmentId,
   defaultKeyspaceIds,
   availableKeyspaces,
+  autoSave,
 }) => {
   const {
     handleSubmit,
@@ -160,6 +163,7 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      autoSave={autoSave}
     >
       <FormCombobox
         label="Keyspaces"

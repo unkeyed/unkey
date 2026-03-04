@@ -31,7 +31,7 @@ const cpuSchema = z.object({
 type CpuFormValues = z.infer<typeof cpuSchema>;
 
 export const Cpu = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { environmentId, cpuMillicores: defaultCpu } = settings;
 
   const {
@@ -83,6 +83,7 @@ export const Cpu = () => {
       })()}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      autoSave={autoSave}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">CPU per instance</span>
@@ -97,6 +98,7 @@ export const Cpu = () => {
                 setValue("cpu", indexToValue(CPU_OPTIONS, value, 256), { shouldValidate: true });
               }
             }}
+            onValueCommit={autoSave ? () => handleSubmit(onSubmit)() : undefined}
             className="flex-1 max-w-[480px]"
             rangeStyle={{
               background: "linear-gradient(to right, hsla(var(--infoA-4)), hsla(var(--infoA-12)))",
