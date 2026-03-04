@@ -8,7 +8,7 @@ type ProjectRow = {
   name: string;
   slug: string;
   repository_full_name: string | null;
-  live_deployment_id: string | null;
+  current_deployment_id: string | null;
   is_rolled_back: boolean;
   git_commit_message: string | null;
   git_branch: string | null;
@@ -22,7 +22,7 @@ type ProjectRow = {
 export const listProjects = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .query(async ({ ctx }) => {
-    // Pick the most recently updated app that has a live deployment.
+    // Pick the most recently updated app that has a current deployment.
     // This avoids hardcoding slug = 'default' and works for any number of apps.
     const result = await db.execute(sql`
       SELECT
@@ -37,10 +37,10 @@ export const listProjects = workspaceProcedure
           LIMIT 1
         ) as repository_full_name,
         (
-          SELECT a.live_deployment_id
+          SELECT a.current_deployment_id
           FROM apps a
           WHERE a.project_id = ${projects.id}
-            AND a.live_deployment_id IS NOT NULL
+            AND a.current_deployment_id IS NOT NULL
           ORDER BY a.updated_at DESC
           LIMIT 1
         ) as live_deployment_id,
@@ -48,7 +48,7 @@ export const listProjects = workspaceProcedure
           SELECT a.is_rolled_back
           FROM apps a
           WHERE a.project_id = ${projects.id}
-            AND a.live_deployment_id IS NOT NULL
+            AND a.current_deployment_id IS NOT NULL
           ORDER BY a.updated_at DESC
           LIMIT 1
         ) as is_rolled_back,
@@ -69,10 +69,10 @@ export const listProjects = workspaceProcedure
       FROM ${projects}
       LEFT JOIN ${deployments}
         ON ${deployments.id} = (
-          SELECT a2.live_deployment_id
+          SELECT a2.current_deployment_id
           FROM apps a2
           WHERE a2.project_id = ${projects.id}
-            AND a2.live_deployment_id IS NOT NULL
+            AND a2.current_deployment_id IS NOT NULL
           ORDER BY a2.updated_at DESC
           LIMIT 1
         )
@@ -93,7 +93,7 @@ export const listProjects = workspaceProcedure
         name: row.name,
         slug: row.slug,
         repositoryFullName: row.repository_full_name,
-        liveDeploymentId: row.live_deployment_id,
+        currentDeploymentId: row.current_deployment_id,
         isRolledBack: row.is_rolled_back,
         commitTitle: row.git_commit_message,
         branch: row.git_branch ?? "main",

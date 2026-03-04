@@ -49,9 +49,8 @@ async function main() {
         name: "Default",
         slug: "default",
         // Only the production app inherits project-level deployment/depot settings
-        liveDeploymentId: isProd ? (project.liveDeploymentId ?? null) : null,
+        currentDeploymentId: isProd ? (project.liveDeploymentId ?? null) : null,
         isRolledBack: isProd ? (project.isRolledBack ?? false) : false,
-        depotProjectId: isProd ? (project.depotProjectId ?? null) : null,
         createdAt: Date.now(),
       });
 
