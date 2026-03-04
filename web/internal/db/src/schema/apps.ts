@@ -20,9 +20,8 @@ export const apps = mysqlTable(
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
 
-    liveDeploymentId: varchar("live_deployment_id", { length: 256 }),
+    currentDeploymentId: varchar("current_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
-    depotProjectId: varchar("depot_project_id", { length: 255 }),
 
     ...deleteProtection,
     ...lifecycleDates,

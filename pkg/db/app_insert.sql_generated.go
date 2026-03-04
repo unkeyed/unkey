@@ -18,14 +18,12 @@ INSERT INTO apps (
     environment_id,
     name,
     slug,
-    live_deployment_id,
+    current_deployment_id,
     is_rolled_back,
-    depot_project_id,
     delete_protection,
     created_at,
     updated_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -41,18 +39,17 @@ INSERT INTO apps (
 `
 
 type InsertAppParams struct {
-	ID               string         `db:"id"`
-	WorkspaceID      string         `db:"workspace_id"`
-	ProjectID        string         `db:"project_id"`
-	EnvironmentID    string         `db:"environment_id"`
-	Name             string         `db:"name"`
-	Slug             string         `db:"slug"`
-	LiveDeploymentID sql.NullString `db:"live_deployment_id"`
-	IsRolledBack     bool           `db:"is_rolled_back"`
-	DepotProjectID   sql.NullString `db:"depot_project_id"`
-	DeleteProtection sql.NullBool   `db:"delete_protection"`
-	CreatedAt        int64          `db:"created_at"`
-	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	ID                  string         `db:"id"`
+	WorkspaceID         string         `db:"workspace_id"`
+	ProjectID           string         `db:"project_id"`
+	EnvironmentID       string         `db:"environment_id"`
+	Name                string         `db:"name"`
+	Slug                string         `db:"slug"`
+	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
+	IsRolledBack        bool           `db:"is_rolled_back"`
+	DeleteProtection    sql.NullBool   `db:"delete_protection"`
+	CreatedAt           int64          `db:"created_at"`
+	UpdatedAt           sql.NullInt64  `db:"updated_at"`
 }
 
 // InsertApp
@@ -64,14 +61,12 @@ type InsertAppParams struct {
 //	    environment_id,
 //	    name,
 //	    slug,
-//	    live_deployment_id,
+//	    current_deployment_id,
 //	    is_rolled_back,
-//	    depot_project_id,
 //	    delete_protection,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -92,9 +87,8 @@ func (q *Queries) InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) e
 		arg.EnvironmentID,
 		arg.Name,
 		arg.Slug,
-		arg.LiveDeploymentID,
+		arg.CurrentDeploymentID,
 		arg.IsRolledBack,
-		arg.DepotProjectID,
 		arg.DeleteProtection,
 		arg.CreatedAt,
 		arg.UpdatedAt,
