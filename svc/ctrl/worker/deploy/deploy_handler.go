@@ -57,7 +57,7 @@ const (
 //
 // Returns terminal errors for validation failures and retryable errors for
 // transient system failures.
-func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
+func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
 	finishedSuccessfully := false
 	var currentStep *db.DeploymentStepsStep
 	var failureReason string
@@ -92,7 +92,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		if currentStep != nil {
 			msg := failureReason
 			if msg == "" {
-				msg = fault.UserFacingMessage(err)
+				msg = fault.UserFacingMessage(retErr)
 			}
 			if msg == "" {
 				msg = fmt.Sprintf("Deployment failed during %s step", string(*currentStep))
@@ -102,8 +102,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			}
 		}
 
-		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); err != nil {
-			logger.Error("deployment failed but we can not set the status", "error", err.Error())
+		if statusErr := w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); statusErr != nil {
+			logger.Error("deployment failed but we can not set the status", "error", statusErr.Error())
 		}
 	}()
 
@@ -330,6 +330,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
 		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
 	}, restate.WithName("find existing sentinels"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to find existing sentinels: %w", err)
+	}
 
 	existingSentinelsByRegion := make(map[string]db.Sentinel)
 	for _, sentinel := range existingSentinels {
