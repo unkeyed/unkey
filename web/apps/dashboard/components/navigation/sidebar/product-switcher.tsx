@@ -70,7 +70,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
     <button
       type="button"
       className={cn(
-        "flex items-center rounded-lg bg-background border-gray-6 border hover:bg-background-subtle hover:cursor-pointer ring-0 focus:ring-0 focus:outline-none text-content transition-colors",
+        "flex items-center rounded-lg bg-background border-gray-6 border hover:bg-background-subtle cursor-pointer ring-0 focus:ring-0 focus:outline-none text-content transition-colors",
         isCollapsed
           ? "justify-center w-10 h-8 p-0"
           : "justify-between w-[200px] h-8 gap-2 px-2 flex-1",
@@ -89,9 +89,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
           </span>
         )}
       </div>
-      {!isCollapsed && (
-        <ChevronExpandY className="w-4 h-4 shrink-0 [stroke-width:1px] text-gray-9" />
-      )}
+      {!isCollapsed && <ChevronExpandY className="w-4 h-4 shrink-0 stroke-[1px] text-gray-9" />}
     </button>
   );
 
