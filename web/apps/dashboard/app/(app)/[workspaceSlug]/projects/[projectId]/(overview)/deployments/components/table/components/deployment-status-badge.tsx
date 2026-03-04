@@ -86,7 +86,7 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
   return (
     <div
       className={cn(
-        "items-center flex gap-2 p-1.5 rounded-md w-fit relative",
+        "items-center flex gap-2 p-1.5 rounded-md w-fit relative h-5.5",
         animated && "overflow-hidden",
         bgColor,
         className,

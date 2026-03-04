@@ -12,7 +12,7 @@ const portSchema = z.object({
 });
 
 export const Port = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { environmentId, port: defaultValue } = settings;
 
   const {
@@ -48,6 +48,7 @@ export const Port = () => {
       displayValue={String(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      autoSave={autoSave}
     >
       <FormInput
         required

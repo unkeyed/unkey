@@ -55,8 +55,8 @@ export const RepoListItem = ({
   return (
     <div className="flex px-4 py-5 items-center">
       <LanguageIcon language={repo.language} />
-      <div className="flex flex-col gap-1 w-[160px]">
-        <div className="font-medium text-[13px] text-gray-12 leading-4 truncate max-w-[160px]">
+      <div className="flex flex-col gap-1 w-40">
+        <div className="font-medium text-[13px] text-gray-12 leading-4 truncate max-w-40">
           {repoName}
         </div>
         <div className="font-medium text-[13px] text-gray-10 leading-3">
@@ -76,7 +76,7 @@ export const RepoListItem = ({
         )}
       </div>
       <div className="flex gap-2 items-center">
-        <div className="ml-6 w-[140px]">
+        <div className="ml-6 w-35">
           {isLoading ? (
             <div className="h-8 w-full bg-grayA-3 rounded-lg animate-pulse" />
           ) : (
@@ -89,7 +89,7 @@ export const RepoListItem = ({
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="max-h-[200px]">
+              <SelectContent className="max-h-50">
                 {(details.branches ?? []).map((branch) => (
                   <SelectItem key={branch} value={branch} className="cursor-pointer text-[13px]">
                     {branch}

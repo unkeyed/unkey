@@ -21,7 +21,7 @@ const regionsSchema = z.object({
 type RegionsFormValues = z.infer<typeof regionsSchema>;
 
 export const Regions = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { environmentId, regionConfig } = settings;
   const defaultRegions = Object.keys(regionConfig);
 
@@ -35,6 +35,7 @@ export const Regions = () => {
       environmentId={environmentId}
       defaultRegions={defaultRegions}
       availableRegions={availableRegions ?? []}
+      autoSave={autoSave}
     />
   );
 };
@@ -43,12 +44,14 @@ type RegionsFormProps = {
   environmentId: string;
   defaultRegions: string[];
   availableRegions: string[];
+  autoSave?: boolean;
 };
 
 const RegionsForm: React.FC<RegionsFormProps> = ({
   environmentId,
   defaultRegions,
   availableRegions,
+  autoSave,
 }) => {
   const {
     handleSubmit,
@@ -150,6 +153,7 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      autoSave={autoSave}
     >
       <FormCombobox
         label="Regions"

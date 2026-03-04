@@ -12,7 +12,7 @@ const dockerfileSchema = z.object({
 });
 
 export const Dockerfile = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { environmentId, dockerfile: defaultValue } = settings;
 
   const {
@@ -48,6 +48,7 @@ export const Dockerfile = () => {
       displayValue={defaultValue}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      autoSave={autoSave}
     >
       <FormInput
         required

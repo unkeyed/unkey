@@ -33,8 +33,8 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
               />
             </td>
             <td className="py-0" />
-            <td colSpan={3} className="h-[26px] py-px">
-              <span className="whitespace-pre-wrap font-mono text-xs text-gray-12 break-all">
+            <td colSpan={3} className="h-[26px] py-px ">
+              <span className="whitespace-pre-wrap font-mono text-xs text-gray-12 break-all ">
                 {log.message}
               </span>
             </td>

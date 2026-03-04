@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight } from "@unkey/icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 type SettingsGroupProps = {
   icon: React.ReactNode;
@@ -20,6 +20,10 @@ export const SettingsGroup = ({
 }: SettingsGroupProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
+  useEffect(() => {
+    setExpanded(defaultExpanded);
+  }, [defaultExpanded]);
+
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between mb-4 px-2">
@@ -30,7 +34,7 @@ export const SettingsGroup = ({
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
-          className="flex items-center gap-1 text-xs text-gray-10 hover:text-gray-11 transition-colors group duration-300"
+          className="flex items-center gap-1 text-xs text-gray-10 hover:text-gray-11 transition-colors group duration-300 cursor-pointer"
         >
           {!hideChevron && (
             <>
