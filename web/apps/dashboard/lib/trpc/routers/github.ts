@@ -227,6 +227,13 @@ export const githubRouter = t.router({
       }),
     )
     .query(async ({ ctx, input }) => {
+      if (!githubAppEnv()) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "GitHub App not configured",
+        });
+      }
+
       const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
       if (!githubContext) {
         throw new TRPCError({
