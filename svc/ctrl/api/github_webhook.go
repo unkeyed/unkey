@@ -133,17 +133,6 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			return
 		}
 
-		// Look up app from repo connection
-		appRow, appErr := db.Query.FindAppById(ctx, s.db.RO(), repo.AppID)
-		if appErr != nil {
-			if db.IsNotFound(appErr) {
-				logger.Info("App not found for repo connection", "appId", repo.AppID)
-				continue
-			}
-			logger.Error("failed to find app", "error", appErr, "appId", repo.AppID)
-			continue
-		}
-
 		defaultBranch := "main"
 		if project.DefaultBranch.Valid && project.DefaultBranch.String != "" {
 			defaultBranch = project.DefaultBranch.String
@@ -155,56 +144,36 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			envSlug = "production"
 		}
 
-		env, err := db.Query.FindEnvironmentByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByProjectIdAndSlugParams{
-			WorkspaceID: project.WorkspaceID,
-			ProjectID:   project.ID,
-			Slug:        envSlug,
-		})
-		if err != nil {
-			logger.Error("failed to find environment", "error", err, "projectId", project.ID, "envSlug", envSlug)
-			http.Error(w, "failed to find environment", http.StatusInternalServerError)
-			return
-		}
-
-		// Look up default app for the project
+		// Find the default app for this environment
 		appRow, err := db.Query.FindAppByProjectAndSlug(ctx, s.db.RO(), db.FindAppByProjectAndSlugParams{
-			ProjectID: project.ID,
-			Slug:      "default",
+			ProjectID:       project.ID,
+			EnvironmentSlug: envSlug,
+			Slug:            "default",
 		})
 		if err != nil {
-			logger.Error("failed to find default app", "error", err, "projectId", project.ID)
-			http.Error(w, "failed to find default app", http.StatusInternalServerError)
-			return
+			if db.IsNotFound(err) {
+				logger.Info("No default app found for environment", "projectId", project.ID, "envSlug", envSlug)
+				continue
+			}
+			logger.Error("failed to find default app", "error", err, "projectId", project.ID, "envSlug", envSlug)
+			continue
 		}
 		app := appRow.App
 
-		// Fetch app-scoped runtime and build settings
-		runtimeRow, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, s.db.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
-			AppID:         app.ID,
-			EnvironmentID: env.ID,
-		})
+		// Fetch app with build and runtime settings in one query
+		appWithSettings, err := db.Query.FindAppWithSettings(ctx, s.db.RO(), app.ID)
 		if err != nil {
-			logger.Error("failed to find app runtime settings", "error", err, "appId", app.ID, "envId", env.ID)
-			http.Error(w, "failed to find app runtime settings", http.StatusInternalServerError)
+			logger.Error("failed to find app settings", "error", err, "appId", app.ID)
+			http.Error(w, "failed to find app settings", http.StatusInternalServerError)
 			return
 		}
-		runtimeSettings := runtimeRow.AppRuntimeSetting
-
-		buildRow, err := db.Query.FindAppBuildSettingsByAppAndEnv(ctx, s.db.RO(), db.FindAppBuildSettingsByAppAndEnvParams{
-			AppID:         app.ID,
-			EnvironmentID: env.ID,
-		})
-		if err != nil {
-			logger.Error("failed to find app build settings", "error", err, "appId", app.ID, "envId", env.ID)
-			http.Error(w, "failed to find app build settings", http.StatusInternalServerError)
-			return
-		}
-		buildSettings := buildRow.AppBuildSetting
+		runtimeSettings := appWithSettings.AppRuntimeSetting
+		buildSettings := appWithSettings.AppBuildSetting
 
 		// Fetch app-scoped environment variables and build secrets blob
 		envVars, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, s.db.RO(), db.FindAppEnvVarsByAppAndEnvParams{
 			AppID:         app.ID,
-			EnvironmentID: env.ID,
+			EnvironmentID: app.EnvironmentID,
 		})
 		if err != nil {
 			logger.Error("failed to fetch environment variables", "error", err)
@@ -240,7 +209,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 			WorkspaceID:                   project.WorkspaceID,
 			ProjectID:                     project.ID,
 			AppID:                         app.ID,
-			EnvironmentID:                 env.ID,
+			EnvironmentID:                 app.EnvironmentID,
 			SentinelConfig:                runtimeSettings.SentinelConfig,
 			EncryptedEnvironmentVariables: secretsBlob,
 			Command:                       runtimeSettings.Command,
