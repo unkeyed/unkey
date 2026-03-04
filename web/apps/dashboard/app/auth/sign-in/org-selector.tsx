@@ -108,7 +108,8 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
 
   return (
     <DialogContainer
-      className="dark bg-black"
+      className="dark border border-gray-700"
+      contentClassName="bg-gray-950 border border-none"
       isOpen={isOpen}
       onOpenChange={(open) => {
         if (!open && !isLoading) {
@@ -158,17 +159,30 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
           </Empty>
         ) : (
           <>
-            <div className="flex flex-col gap-4">
-              <label htmlFor="workspace-selector" className="text-sm font-medium text-content">
+            <div className="dark flex flex-col gap-4 focus:outline-none!">
+              <label
+                htmlFor="workspace-selector"
+                className="dark text-sm font-medium text-gray-1 focus:outline-none!"
+              >
                 Workspace
               </label>
               <Select value={selectedOrgId} onValueChange={setSelectedOrgId} disabled={isLoading}>
-                <SelectTrigger id="workspace-selector">
-                  <SelectValue placeholder="Select a workspace..." />
+                <SelectTrigger
+                  id="workspace-selector"
+                  className="dark bg-black text-gray-400 border border-gray-500/30 focus:outline-none! focus:ring-0 focus:border-gray-400"
+                >
+                  <SelectValue
+                    placeholder="Select a workspace..."
+                    className="dark bg-black border border-gray-800 text-gray-400/30 focus:outline-none! focus:border-gray-500/30"
+                  />
                 </SelectTrigger>
-                <SelectContent className="dark overflow-y-auto max-h-[400px]">
+                <SelectContent className="dark overflow-y-auto max-h-100 bg-gray-950 text-gray-400 focus:outline-none! border focus:border-gray-400 border-gray-500/30">
                   {sortedOrgs.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
+                    <SelectItem
+                      key={org.id}
+                      value={org.id}
+                      className="dark bg-gray-950 text-gray-4 hover:bg-gray-900 hover-text-white focus:bg-gray-12 focus:outline-none! focus:border-grayA-4"
+                    >
                       {org.name}
                     </SelectItem>
                   ))}
@@ -180,7 +194,8 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
             <Button
               onClick={handleSubmit}
               disabled={isLoading || !selectedOrgId}
-              className="w-full"
+              className="w-full bg-white hover:bg-gray-200"
+              variant="primary"
               size="lg"
             >
               {isLoading ? (
