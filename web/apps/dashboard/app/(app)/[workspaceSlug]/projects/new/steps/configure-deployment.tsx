@@ -35,8 +35,8 @@ export const ConfigureDeploymentStep = ({
   return (
     <ProjectDataProvider projectId={projectId}>
       <OnboardingEnvironmentSettingsProvider>
-        <div className="w-[900px]">
-          <DeploymentSettings githubReadOnly />
+        <div className="w-225">
+          <DeploymentSettings githubReadOnly sections={{ build: true }} />
           <div className="flex justify-end mt-6 mb-10 flex-col gap-4">
             <Button
               type="button"
