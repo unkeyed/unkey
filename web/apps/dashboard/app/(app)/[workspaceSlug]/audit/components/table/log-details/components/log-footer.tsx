@@ -16,7 +16,7 @@ export const LogFooter = ({ log }: Props) => {
       <div className="flex items-center gap-2">
         <Avatar className="w-6 h-6">
           {log.user?.imageUrl && <AvatarImage src={log.user.imageUrl} />}
-          <AvatarFallback name={log.user?.username ?? log.auditLog.actor.id}/>
+          <AvatarFallback name={log.user?.username ?? log.auditLog.actor.id} />
         </Avatar>
         <span className="text-sm">{log.user?.username ?? "Unknown Username"}</span>
       </div>

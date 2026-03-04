@@ -263,7 +263,8 @@ const ConnectedResource: React.FC<{
             <Input disabled value={props.binding?.resourceId} />
           </TooltipTrigger>
           <TooltipContent>
-            Because we don&apos;t store the root key itself, you can not select a different existing key.
+            Because we don&apos;t store the root key itself, you can not select a different existing
+            key.
             <br />
             Use the button on the right to generate a new key and update the environment variable in
             Vercel.
@@ -297,7 +298,10 @@ const ConnectedResource: React.FC<{
                       alt={props.binding?.updatedBy.name}
                     />
                   )}
-                  <AvatarFallback className="w-6 h-6 lg:w-5 lg:h-5" name={props.binding?.updatedBy.name ?? "Unknown Username"} />
+                  <AvatarFallback
+                    className="w-6 h-6 lg:w-5 lg:h-5"
+                    name={props.binding?.updatedBy.name ?? "Unknown Username"}
+                  />
                 </Avatar>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

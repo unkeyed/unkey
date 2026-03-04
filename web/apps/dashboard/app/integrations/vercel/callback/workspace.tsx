@@ -86,7 +86,9 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       <DropdownMenuTrigger className="flex items-center justify-between w-full gap-2">
         <div className="flex items-center gap-2">
           <Avatar className="w-6 h-6">
-            {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user?.fullName ?? "Profile picture"} />}
+            {user?.avatarUrl && (
+              <AvatarImage src={user.avatarUrl} alt={user?.fullName ?? "Profile picture"} />
+            )}
             <AvatarFallback name={user?.fullName ?? user?.email ?? "Unknown Username"} />
           </Avatar>
           {isUserMembershipsLoading || isLoading ? (

@@ -1,12 +1,12 @@
 "use client";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { Card, CardContent } from "@unkey/ui";
 import { Button, Empty, Loading, toast } from "@unkey/ui";
 import { memo, useState } from "react";
 import { StatusBadge } from "./status-badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 type InvitationsProps = {
   organization: Organization;
@@ -54,8 +54,8 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
           {invitations.map((invitation) => (
             <div key={invitation.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                 <Avatar className="w-8 h-8 rounded-full shrink-0">
-                    <AvatarFallback name={invitation.email}/>
+                <Avatar className="w-8 h-8 rounded-full shrink-0">
+                  <AvatarFallback name={invitation.email} />
                 </Avatar>
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-sm text-content truncate secret">{invitation.email}</span>
