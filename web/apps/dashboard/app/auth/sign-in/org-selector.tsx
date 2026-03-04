@@ -194,7 +194,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
             <Button
               onClick={handleSubmit}
               disabled={isLoading || !selectedOrgId}
-              className="w-full bg-white hover:bg-gray-200"
+              className="w-full bg-white hover:bg-gray-200 text-gray-900"
               variant="primary"
               size="lg"
             >
