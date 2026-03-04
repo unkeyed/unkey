@@ -27,7 +27,7 @@ message HandlePushRequest {
   int64 repository_id = 2;
   string repository_full_name = 3;
   string branch = 4;
-  string after = 5;  // commit SHA
+  string after = 5; // commit SHA
   string commit_message = 6;
   string commit_author_handle = 7;
   string commit_author_avatar_url = 8;
