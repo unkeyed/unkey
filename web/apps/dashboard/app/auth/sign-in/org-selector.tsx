@@ -162,7 +162,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
             <div className="dark flex flex-col gap-4 focus:outline-none!">
               <label
                 htmlFor="workspace-selector"
-                className="dark text-sm font-medium text-gray-1 focus:outline-none!"
+                className="dark text-sm font-medium text-gray-300 focus:outline-none!"
               >
                 Workspace
               </label>
@@ -181,7 +181,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
                     <SelectItem
                       key={org.id}
                       value={org.id}
-                      className="dark bg-gray-950 text-gray-4 hover:bg-gray-900 hover-text-white focus:bg-gray-12 focus:outline-none! focus:border-grayA-4"
+                      className="dark bg-gray-950 text-gray-400 hover:bg-gray-900 hover:text-white focus:bg-gray-800 focus:outline-none! focus:border-grayA-4"
                     >
                       {org.name}
                     </SelectItem>
