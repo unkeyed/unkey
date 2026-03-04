@@ -534,48 +534,6 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
-type EnvironmentVariablesType string
-
-const (
-	EnvironmentVariablesTypeRecoverable EnvironmentVariablesType = "recoverable"
-	EnvironmentVariablesTypeWriteonly   EnvironmentVariablesType = "writeonly"
-)
-
-func (e *EnvironmentVariablesType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = EnvironmentVariablesType(s)
-	case string:
-		*e = EnvironmentVariablesType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for EnvironmentVariablesType: %T", src)
-	}
-	return nil
-}
-
-type NullEnvironmentVariablesType struct {
-	EnvironmentVariablesType EnvironmentVariablesType
-	Valid                    bool // Valid is true if EnvironmentVariablesType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullEnvironmentVariablesType) Scan(value interface{}) error {
-	if value == nil {
-		ns.EnvironmentVariablesType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.EnvironmentVariablesType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullEnvironmentVariablesType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.EnvironmentVariablesType), nil
-}
-
 type FrontlineRoutesSticky string
 
 const (
@@ -1243,20 +1201,6 @@ type Environment struct {
 	DeleteProtection sql.NullBool  `db:"delete_protection"`
 	CreatedAt        int64         `db:"created_at"`
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
-}
-
-type EnvironmentVariable struct {
-	Pk               uint64                   `db:"pk"`
-	ID               string                   `db:"id"`
-	WorkspaceID      string                   `db:"workspace_id"`
-	EnvironmentID    string                   `db:"environment_id"`
-	Key              string                   `db:"key"`
-	Value            string                   `db:"value"`
-	Type             EnvironmentVariablesType `db:"type"`
-	Description      sql.NullString           `db:"description"`
-	DeleteProtection sql.NullBool             `db:"delete_protection"`
-	CreatedAt        int64                    `db:"created_at"`
-	UpdatedAt        sql.NullInt64            `db:"updated_at"`
 }
 
 type FrontlineRoute struct {

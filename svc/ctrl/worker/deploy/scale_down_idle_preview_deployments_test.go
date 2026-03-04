@@ -36,11 +36,20 @@ func TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequest
 		SentinelConfig:   nil,
 		DeleteProtection: false,
 	})
+	app := h.Seed.CreateApp(h.Ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   ws.ID,
+		ProjectID:     project.ID,
+		EnvironmentID: env.ID,
+		Name:          "default",
+		Slug:          "default",
+	})
 
 	dep := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 		ID:            "",
 		WorkspaceID:   ws.ID,
 		ProjectID:     project.ID,
+		AppID:         app.ID,
 		EnvironmentID: env.ID,
 		Status:        db.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
@@ -77,11 +86,20 @@ func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentReq
 		SentinelConfig:   nil,
 		DeleteProtection: false,
 	})
+	app := h.Seed.CreateApp(h.Ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   ws.ID,
+		ProjectID:     project.ID,
+		EnvironmentID: env.ID,
+		Name:          "default",
+		Slug:          "default",
+	})
 
 	dep := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 		ID:            "",
 		WorkspaceID:   ws.ID,
 		ProjectID:     project.ID,
+		AppID:         app.ID,
 		EnvironmentID: env.ID,
 		Status:        db.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
@@ -120,11 +138,20 @@ func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testin
 		SentinelConfig:   nil,
 		DeleteProtection: false,
 	})
+	app := h.Seed.CreateApp(h.Ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   ws.ID,
+		ProjectID:     project.ID,
+		EnvironmentID: env.ID,
+		Name:          "default",
+		Slug:          "default",
+	})
 
 	dep := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 		ID:            "",
 		WorkspaceID:   ws.ID,
 		ProjectID:     project.ID,
+		AppID:         app.ID,
 		EnvironmentID: env.ID,
 		Status:        db.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
@@ -161,11 +188,20 @@ func TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus(t *t
 		SentinelConfig:   nil,
 		DeleteProtection: false,
 	})
+	app := h.Seed.CreateApp(h.Ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   ws.ID,
+		ProjectID:     project.ID,
+		EnvironmentID: env.ID,
+		Name:          "default",
+		Slug:          "default",
+	})
 
 	dep := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 		ID:            "",
 		WorkspaceID:   ws.ID,
 		ProjectID:     project.ID,
+		AppID:         app.ID,
 		EnvironmentID: env.ID,
 		Status:        db.DeploymentsStatusPending,
 		CreatedAt:     oldTime,
@@ -200,12 +236,21 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments(t *te
 		SentinelConfig:   nil,
 		DeleteProtection: false,
 	})
+	app := h.Seed.CreateApp(h.Ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   ws.ID,
+		ProjectID:     project.ID,
+		EnvironmentID: env.ID,
+		Name:          "default",
+		Slug:          "default",
+	})
 
 	recentTime := time.Now().Add(-1 * time.Hour).UnixMilli()
 	dep := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 		ID:            "",
 		WorkspaceID:   ws.ID,
 		ProjectID:     project.ID,
+		AppID:         app.ID,
 		EnvironmentID: env.ID,
 		Status:        db.DeploymentsStatusReady,
 		CreatedAt:     recentTime,
@@ -241,12 +286,21 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments(t *te
 		SentinelConfig:   nil,
 		DeleteProtection: false,
 	})
+	app := h.Seed.CreateApp(h.Ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   ws.ID,
+		ProjectID:     project.ID,
+		EnvironmentID: env.ID,
+		Name:          "default",
+		Slug:          "default",
+	})
 
 	recentUpdate := time.Now().Add(-1 * time.Hour).UnixMilli()
 	dep := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 		ID:            "",
 		WorkspaceID:   ws.ID,
 		ProjectID:     project.ID,
+		AppID:         app.ID,
 		EnvironmentID: env.ID,
 		Status:        db.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
@@ -287,11 +341,20 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 			SentinelConfig:   nil,
 			DeleteProtection: false,
 		})
+		app := h.Seed.CreateApp(h.Ctx, seed.CreateAppRequest{
+			ID:            uid.New("app"),
+			WorkspaceID:   ws.ID,
+			ProjectID:     project.ID,
+			EnvironmentID: env.ID,
+			Name:          "default",
+			Slug:          "default",
+		})
 
 		idle := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 			ID:            "",
 			WorkspaceID:   ws.ID,
 			ProjectID:     project.ID,
+			AppID:         app.ID,
 			EnvironmentID: env.ID,
 			Status:        db.DeploymentsStatusReady,
 			CreatedAt:     oldTime,
@@ -303,6 +366,7 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 			ID:            "",
 			WorkspaceID:   ws.ID,
 			ProjectID:     project.ID,
+			AppID:         app.ID,
 			EnvironmentID: env.ID,
 			Status:        db.DeploymentsStatusReady,
 			CreatedAt:     oldTime,
@@ -351,11 +415,20 @@ func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsA
 			SentinelConfig:   nil,
 			DeleteProtection: false,
 		})
+		app := h.Seed.CreateApp(h.Ctx, seed.CreateAppRequest{
+			ID:            uid.New("app"),
+			WorkspaceID:   ws.ID,
+			ProjectID:     project.ID,
+			EnvironmentID: env.ID,
+			Name:          "default",
+			Slug:          "default",
+		})
 
 		dep := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 			ID:            "",
 			WorkspaceID:   project.WorkspaceID,
 			ProjectID:     project.ID,
+			AppID:         app.ID,
 			EnvironmentID: env.ID,
 			Status:        db.DeploymentsStatusReady,
 			CreatedAt:     oldTime,

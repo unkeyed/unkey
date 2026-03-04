@@ -364,23 +364,6 @@ CREATE TABLE `environments` (
 	CONSTRAINT `environments_project_id_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 
-CREATE TABLE `environment_variables` (
-	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(128) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`environment_id` varchar(128) NOT NULL,
-	`key` varchar(256) NOT NULL,
-	`value` varchar(4096) NOT NULL,
-	`type` enum('recoverable','writeonly') NOT NULL,
-	`description` varchar(255),
-	`delete_protection` boolean DEFAULT false,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `environment_variables_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `environment_variables_id_unique` UNIQUE(`id`),
-	CONSTRAINT `environment_id_key` UNIQUE(`environment_id`,`key`)
-);
-
 CREATE TABLE `clickhouse_workspace_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,

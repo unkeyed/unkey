@@ -43,10 +43,7 @@ export const listEnvVars = workspaceProcedure
 
       // Fetch all apps for this project to get their IDs
       const projectApps = await db.query.apps.findMany({
-        where: and(
-          eq(apps.workspaceId, ctx.workspace.id),
-          eq(apps.projectId, input.projectId),
-        ),
+        where: and(eq(apps.workspaceId, ctx.workspace.id), eq(apps.projectId, input.projectId)),
         columns: {
           id: true,
           environmentId: true,

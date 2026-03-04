@@ -137,7 +137,6 @@ go_library(
         "environment_insert.sql_generated.go",
         "environment_list_preview.sql_generated.go",
         "environment_upsert.sql_generated.go",
-        "environment_variables_find_by_environment_id.sql_generated.go",
         "frontline_route_delete_by_fqdn.sql_generated.go",
         "generate.go",
         "github_repo_connection_find_by_app_id.sql_generated.go",

@@ -107,6 +107,15 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		DeleteProtection: false,
 	})
 
+	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		EnvironmentID: env.ID,
+		Name:          "default",
+		Slug:          "default",
+	})
+
 	deploymentID := uid.New("dep")
 	k8sName := uid.New("k8s")
 
@@ -115,7 +124,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		K8sName:                       k8sName,
 		WorkspaceID:                   workspaceID,
 		ProjectID:                     project.ID,
-		AppID:                         "",
+		AppID:                         app.ID,
 		EnvironmentID:                 env.ID,
 		GitCommitSha:                  sql.NullString{Valid: false},
 		GitBranch:                     sql.NullString{Valid: false},
