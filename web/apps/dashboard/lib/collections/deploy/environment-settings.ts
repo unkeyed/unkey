@@ -86,7 +86,8 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
     id: "environmentSettings",
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
-      await dispatchSettingsMutations(original, modified);
+      const silent = transaction.metadata?.silent === true;
+      await dispatchSettingsMutations(original, modified, silent);
     },
   }),
 );
@@ -244,6 +245,7 @@ export function buildSettingsMutations(
 async function dispatchSettingsMutations(
   original: EnvironmentSettings,
   modified: EnvironmentSettings,
+  silent = false,
 ): Promise<void> {
   const mutations = buildSettingsMutations(original.environmentId, original, modified);
 
@@ -252,13 +254,15 @@ async function dispatchSettingsMutations(
   }
 
   const allMutations = Promise.all(mutations);
-  toast.promise(allMutations, {
-    loading: "Saving settings...",
-    success: "Settings updated",
-    error: (err) => ({
-      message: "Failed to update settings",
-      description: err instanceof Error ? err.message : "An unexpected error occurred",
-    }),
-  });
+  if (!silent) {
+    toast.promise(allMutations, {
+      loading: "Saving settings...",
+      success: "Settings updated",
+      error: (err) => ({
+        message: "Failed to update settings",
+        description: err instanceof Error ? err.message : "An unexpected error occurred",
+      }),
+    });
+  }
   await allMutations;
 }

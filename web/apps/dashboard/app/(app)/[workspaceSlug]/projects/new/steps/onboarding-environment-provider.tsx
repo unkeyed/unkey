@@ -17,7 +17,10 @@ import { EnvironmentContext } from "../../[projectId]/(overview)/settings/enviro
  * but syncs production setting changes to every other environment so new
  * projects start with consistent config.
  */
-export const OnboardingEnvironmentSettingsProvider = ({ children }: PropsWithChildren) => {
+export const OnboardingEnvironmentSettingsProvider = ({
+  children,
+  isActive,
+}: PropsWithChildren<{ isActive: boolean }>) => {
   const { environments } = useProjectData();
 
   const prodEnvId = useMemo(
@@ -45,25 +48,7 @@ export const OnboardingEnvironmentSettingsProvider = ({ children }: PropsWithChi
     { enabled: Boolean(prodEnvId) },
   );
 
-  const hasInitializedRegionsRef = useRef<boolean>(false);
-
-  // Settings are empty initially so we set all of them by default for the user.
-  // Later he can change it in the settings
-  useEffect(() => {
-    if (!settings || !availableRegions || hasInitializedRegionsRef.current) {
-      return;
-    }
-    hasInitializedRegionsRef.current = true;
-    if (Object.keys(settings.regionConfig).length > 0) {
-      return;
-    }
-    collection.environmentSettings.update(settings.environmentId, (draft) => {
-      for (const region of availableRegions) {
-        draft.regionConfig[region] = 1;
-      }
-    });
-  }, [settings, availableRegions]);
-
+  useInitializeSettings(settings, availableRegions, isActive);
   useSyncSettingsToOtherEnvironments(settings, otherEnvIds);
 
   if (!settings) {
@@ -76,6 +61,56 @@ export const OnboardingEnvironmentSettingsProvider = ({ children }: PropsWithChi
     </EnvironmentContext.Provider>
   );
 };
+
+// Settings are empty initially so we set all of them by default for the user.
+// Later they can change it in the settings.
+function useInitializeSettings(
+  settings: EnvironmentSettings | undefined,
+  availableRegions: string[] | undefined,
+  isActive: boolean,
+) {
+  const hasInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!settings || !availableRegions || !isActive) {
+      return;
+    }
+    if (hasInitializedRef.current) {
+      return;
+    }
+    hasInitializedRef.current = true;
+
+    collection.environmentSettings.update(
+      settings.environmentId,
+      { metadata: { silent: true } },
+      (draft) => {
+        if (!draft.dockerfile) {
+          draft.dockerfile = "Dockerfile";
+        }
+        if (!draft.dockerContext) {
+          draft.dockerContext = ".";
+        }
+        if (!draft.port) {
+          draft.port = 8080;
+        }
+        if (!draft.cpuMillicores) {
+          draft.cpuMillicores = 256;
+        }
+        if (!draft.memoryMib) {
+          draft.memoryMib = 256;
+        }
+        if (!draft.shutdownSignal) {
+          draft.shutdownSignal = "SIGTERM";
+        }
+        if (Object.keys(draft.regionConfig).length === 0) {
+          for (const region of availableRegions) {
+            draft.regionConfig[region] = 1;
+          }
+        }
+      },
+    );
+  }, [settings, availableRegions, isActive]);
+}
 
 function useSyncSettingsToOtherEnvironments(
   settings: EnvironmentSettings | undefined,

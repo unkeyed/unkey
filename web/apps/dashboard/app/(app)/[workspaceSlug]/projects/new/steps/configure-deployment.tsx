@@ -16,7 +16,7 @@ export const ConfigureDeploymentStep = ({
   projectId,
   onDeploymentCreated,
 }: ConfigureDeploymentStepProps) => {
-  const { next } = useStepWizard();
+  const { next, activeStepId } = useStepWizard();
 
   const deploy = trpc.deploy.deployment.create.useMutation({
     onSuccess: async (data) => {
@@ -34,7 +34,7 @@ export const ConfigureDeploymentStep = ({
 
   return (
     <ProjectDataProvider projectId={projectId}>
-      <OnboardingEnvironmentSettingsProvider>
+      <OnboardingEnvironmentSettingsProvider isActive={activeStepId === "configure-deployment"}>
         <div className="w-225">
           <DeploymentSettings githubReadOnly sections={{ build: true }} />
           <div className="flex justify-end mt-6 mb-10 flex-col gap-4">
