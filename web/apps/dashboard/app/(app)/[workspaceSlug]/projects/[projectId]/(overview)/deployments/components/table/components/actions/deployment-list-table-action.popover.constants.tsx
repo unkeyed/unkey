@@ -47,12 +47,12 @@ export const DeploymentListTableActions = ({
         ActionComponent:
           liveDeployment && canRollbackAndRollback
             ? (props) => (
-                <RollbackDialog
-                  {...props}
-                  liveDeployment={liveDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
+              <RollbackDialog
+                {...props}
+                liveDeployment={liveDeployment}
+                targetDeployment={selectedDeployment}
+              />
+            )
             : undefined,
       },
       {
@@ -63,12 +63,12 @@ export const DeploymentListTableActions = ({
         ActionComponent:
           liveDeployment && canRollbackAndRollback
             ? (props) => (
-                <PromotionDialog
-                  {...props}
-                  liveDeployment={liveDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
+              <PromotionDialog
+                {...props}
+                liveDeployment={liveDeployment}
+                targetDeployment={selectedDeployment}
+              />
+            )
             : undefined,
       },
       {
@@ -96,7 +96,7 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${selectedDeployment.id}/logs`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/logs`,
           );
         },
       },
