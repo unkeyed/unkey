@@ -149,7 +149,7 @@ export function Combobox({
         </PopoverTrigger>
       </div>
       <PopoverContent
-        className="p-0 w-full min-w-[var(--radix-popover-trigger-width)] rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-[200] overflow-visible"
+        className="p-0 w-full min-w-(--radix-popover-trigger-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible"
         onOpenAutoFocus={(e) => {
           // Prevent auto-focus to allow proper keyboard navigation
           e.preventDefault();

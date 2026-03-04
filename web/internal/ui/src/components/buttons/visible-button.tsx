@@ -35,7 +35,7 @@ function VisibleButton({
       type="button"
       title={isVisible ? `Hide ${title}` : `Show ${title}`}
       variant={variant}
-      className={cn("focus:ring-0 focus:border-grayA-6 w-6 h-6", className)}
+      className={cn("cursor-pointer focus:ring-0 focus:border-grayA-6 w-6 h-6", className)}
       onClick={(e) => {
         if (!e.defaultPrevented) {
           setIsVisible(!isVisible);
