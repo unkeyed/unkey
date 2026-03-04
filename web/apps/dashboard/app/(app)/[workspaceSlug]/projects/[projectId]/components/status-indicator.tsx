@@ -43,11 +43,12 @@ export function StatusIndicator({
   return (
     <InfoTooltip
       content={getTooltipContent(status)}
+      asChild
       position={{
         side: "bottom",
         align: "center",
       }}
-      className="max-w-[300px]"
+      className="max-w-75"
     >
       <div className="relative">
         <div
