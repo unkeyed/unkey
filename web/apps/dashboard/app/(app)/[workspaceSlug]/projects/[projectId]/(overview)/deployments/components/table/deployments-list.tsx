@@ -42,7 +42,7 @@ const DeploymentListTableActions = dynamic(
 export const DeploymentsList = () => {
   const { deployments } = useDeployments();
   const { project, getDeploymentById } = useProjectData();
-  const liveDeploymentId = project?.liveDeploymentId;
+  const currentDeploymentId = project?.currentDeploymentId;
 
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
@@ -65,8 +65,8 @@ export const DeploymentsList = () => {
         width: "12%",
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
-          const isLive = liveDeploymentId === deployment.id;
-          const iconContainer = <StatusIndicator withSignal={isLive} />;
+          const isCurrent = currentDeploymentId === deployment.id;
+          const iconContainer = <StatusIndicator withSignal={isCurrent} />;
           return (
             <div className="flex flex-col items-start px-4.5 py-1.5">
               <div className="flex gap-3 items-center w-full">
@@ -81,12 +81,12 @@ export const DeploymentsList = () => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {isLive ? (
+                    {isCurrent ? (
                       <div className="shrink-0">
                         {project?.isRolledBack ? (
                           <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
                         ) : (
-                          <EnvStatusBadge variant="live" text="Current" />
+                          <EnvStatusBadge variant="current" text="Current" />
                         )}
                       </div>
                     ) : null}
@@ -215,14 +215,14 @@ export const DeploymentsList = () => {
           deployment: Deployment;
           environment?: Environment;
         }) => {
-          const liveDeployment = project?.liveDeploymentId
-            ? getDeploymentById(project?.liveDeploymentId)
+          const currentDeployment = project?.currentDeploymentId
+            ? getDeploymentById(project?.currentDeploymentId)
             : undefined;
           return (
             <div className="pl-5">
               <DeploymentListTableActions
                 selectedDeployment={deployment}
-                liveDeployment={liveDeployment}
+                currentDeployment={currentDeployment}
                 environment={environment}
               />
             </div>
@@ -247,7 +247,7 @@ export const DeploymentsList = () => {
       }}
       keyExtractor={(deployment) => deployment.id}
       rowClassName={(deployment) =>
-        getRowClassName(deployment, liveDeploymentId ?? null, project?.isRolledBack ?? false)
+        getRowClassName(deployment, currentDeploymentId ?? null, project?.isRolledBack ?? false)
       }
       emptyState={
         <div className="w-full flex justify-center items-center h-full">

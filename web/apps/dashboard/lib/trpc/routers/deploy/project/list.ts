@@ -43,7 +43,7 @@ export const listProjects = workspaceProcedure
             AND a.current_deployment_id IS NOT NULL
           ORDER BY a.updated_at DESC
           LIMIT 1
-        ) as live_deployment_id,
+        ) as current_deployment_id,
         (
           SELECT a.is_rolled_back
           FROM apps a

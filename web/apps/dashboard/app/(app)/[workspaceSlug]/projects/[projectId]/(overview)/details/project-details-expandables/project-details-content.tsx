@@ -7,15 +7,15 @@ import { createDetailSections } from "./sections";
 export const ProjectDetailsContent = () => {
   const { getDomainsForDeployment, project, getDeploymentById } = useProjectData();
 
-  const deployment = project?.liveDeploymentId
-    ? getDeploymentById(project.liveDeploymentId)
+  const deployment = project?.currentDeploymentId
+    ? getDeploymentById(project.currentDeploymentId)
     : undefined;
 
   const data = project && deployment ? { project, deployment } : undefined;
 
   // Get domains from provider and transform
-  const domainsData = data?.project.liveDeploymentId
-    ? getDomainsForDeployment(data.project.liveDeploymentId)
+  const domainsData = data?.project.currentDeploymentId
+    ? getDomainsForDeployment(data.project.currentDeploymentId)
         .map((d) => ({
           domain: d.fullyQualifiedDomainName,
           environment: d.sticky,
