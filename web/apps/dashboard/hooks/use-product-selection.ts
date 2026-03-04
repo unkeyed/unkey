@@ -10,7 +10,7 @@ export const STORAGE_KEY = "selected-product";
 export const DEFAULT_PRODUCT: Product = "api-management";
 export const STORAGE_EVENT = "product-selection-changed";
 
-const PRODUCT_HOME_ROUTES: Record<Product, string> = {
+export const PRODUCT_HOME_ROUTES: Record<Product, string> = {
   "api-management": "apis",
   deploy: "projects",
 };
