@@ -95,7 +95,11 @@ export const PromotionDialog = ({
           showSignal={true}
         />
         <DomainsSection domains={domains.data} />
-        <DeploymentSection title="Target Deployment" deployment={targetDeployment} isCurrent={false} />
+        <DeploymentSection
+          title="Target Deployment"
+          deployment={targetDeployment}
+          isCurrent={false}
+        />
       </div>
     </DialogContainer>
   );

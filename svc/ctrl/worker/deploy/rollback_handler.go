@@ -144,10 +144,10 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 	// Update app's current deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
-			ID:               app.ID,
+			ID:                  app.ID,
 			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
-			IsRolledBack:     true,
-			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			IsRolledBack:        true,
+			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
 			return restate.Void{}, fmt.Errorf("failed to update app's current deployment id: %w", err)

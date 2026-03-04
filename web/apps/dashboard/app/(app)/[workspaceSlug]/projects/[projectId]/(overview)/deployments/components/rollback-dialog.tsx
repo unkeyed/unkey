@@ -15,7 +15,12 @@ type DeploymentSectionProps = {
   showSignal?: boolean;
 };
 
-const DeploymentSection = ({ title, deployment, isCurrent, showSignal }: DeploymentSectionProps) => (
+const DeploymentSection = ({
+  title,
+  deployment,
+  isCurrent,
+  showSignal,
+}: DeploymentSectionProps) => (
   <div className="space-y-2">
     <div className="flex items-center gap-2">
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
@@ -121,7 +126,11 @@ export const RollbackDialog = ({
             </div>
           ))}
         </div>
-        <DeploymentSection title="Target Deployment" deployment={targetDeployment} isCurrent={false} />
+        <DeploymentSection
+          title="Target Deployment"
+          deployment={targetDeployment}
+          isCurrent={false}
+        />
       </div>
     </DialogContainer>
   );
