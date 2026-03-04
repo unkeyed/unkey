@@ -26,7 +26,7 @@ const (
 )
 
 // dockerSourceInfo holds the Docker image and inherited git metadata from a
-// live deployment, used when redeploying a non-git project.
+// current deployment, used when redeploying a non-git project.
 type dockerSourceInfo struct {
 	commitSHA       string
 	branch          string
@@ -210,7 +210,7 @@ func (s *Service) CreateDeployment(
 				},
 			}
 		} else {
-			// No repo connection: redeploy the live deployment's Docker image
+			// No repo connection: redeploy the current deployment's Docker image
 			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, app, deploymentID)
 			if dockerErr != nil {
 				return nil, dockerErr
@@ -337,7 +337,7 @@ func validateGitCommitTimestamp(gitCommit *ctrlv1.GitCommitInfo) error {
 	return nil
 }
 
-// buildDockerSource looks up the app's live deployment's Docker image and carries
+// buildDockerSource looks up the app's current deployment's Docker image and carries
 // over its git metadata for the new deployment record.
 func buildDockerSource(
 	ctx context.Context,
@@ -345,40 +345,40 @@ func buildDockerSource(
 	app db.App,
 	deploymentID string,
 ) (dockerSourceInfo, error) {
-	if !app.LiveDeploymentID.Valid || app.LiveDeploymentID.String == "" {
+	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("app %q has no live deployment and no git connection; cannot redeploy", app.ID))
+			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", app.ID))
 	}
 
-	liveDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), app.LiveDeploymentID.String)
+	currentDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), app.CurrentDeploymentID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("live deployment %q not found", app.LiveDeploymentID.String))
+				fmt.Errorf("current deployment %q not found", app.CurrentDeploymentID.String))
 		}
 		return dockerSourceInfo{}, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to lookup live deployment: %w", err))
+			fmt.Errorf("failed to lookup current deployment: %w", err))
 	}
 
-	if !liveDeployment.Image.Valid || liveDeployment.Image.String == "" {
+	if !currentDeployment.Image.Valid || currentDeployment.Image.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("live deployment %q has no Docker image; cannot redeploy without git connection",
-				app.LiveDeploymentID.String))
+			fmt.Errorf("current deployment %q has no Docker image; cannot redeploy without git connection",
+				app.CurrentDeploymentID.String))
 	}
 
-	logger.Info("deployment will reuse live deployment image",
+	logger.Info("deployment will reuse current deployment image",
 		"deployment_id", deploymentID,
-		"live_deployment_id", app.LiveDeploymentID.String,
-		"image", liveDeployment.Image.String)
+		"current_deployment_id", app.CurrentDeploymentID.String,
+		"image", currentDeployment.Image.String)
 
 	return dockerSourceInfo{
-		dockerImage:     liveDeployment.Image.String,
-		commitSHA:       liveDeployment.GitCommitSha.String,
-		branch:          liveDeployment.GitBranch.String,
-		commitMessage:   liveDeployment.GitCommitMessage.String,
-		authorHandle:    liveDeployment.GitCommitAuthorHandle.String,
-		authorAvatarURL: liveDeployment.GitCommitAuthorAvatarUrl.String,
-		commitTimestamp: liveDeployment.GitCommitTimestamp.Int64,
+		dockerImage:     currentDeployment.Image.String,
+		commitSHA:       currentDeployment.GitCommitSha.String,
+		branch:          currentDeployment.GitBranch.String,
+		commitMessage:   currentDeployment.GitCommitMessage.String,
+		authorHandle:    currentDeployment.GitCommitAuthorHandle.String,
+		authorAvatarURL: currentDeployment.GitCommitAuthorAvatarUrl.String,
+		commitTimestamp: currentDeployment.GitCommitTimestamp.Int64,
 	}, nil
 }
 

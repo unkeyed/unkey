@@ -273,8 +273,8 @@ func (s *Service) onVerificationSuccess(
 		}
 
 		deploymentID := ""
-		if appRow.App.LiveDeploymentID.Valid {
-			deploymentID = appRow.App.LiveDeploymentID.String
+		if appRow.App.CurrentDeploymentID.Valid {
+			deploymentID = appRow.App.CurrentDeploymentID.String
 		}
 
 		return restate.Void{}, db.Query.InsertFrontlineRoute(stepCtx, s.db.RW(), db.InsertFrontlineRouteParams{

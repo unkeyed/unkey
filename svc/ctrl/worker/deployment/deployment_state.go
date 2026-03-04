@@ -106,8 +106,8 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 				return err
 			}
 
-			if appRow.App.LiveDeploymentID.Valid && appRow.App.LiveDeploymentID.String == deploymentID {
-				return restate.TerminalErrorf("not allowed to modify the current live deployment")
+			if appRow.App.CurrentDeploymentID.Valid && appRow.App.CurrentDeploymentID.String == deploymentID {
+				return restate.TerminalErrorf("not allowed to modify the current deployment")
 			}
 
 			err = db.Query.UpdateDeploymentDesiredState(txCtx, tx, db.UpdateDeploymentDesiredStateParams{

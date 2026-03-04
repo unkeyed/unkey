@@ -522,8 +522,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	// not auto-promote this new deployment.
 	autoPromote := false
 	if environment.Slug == "production" {
-		if !app.LiveDeploymentID.Valid {
-			// No live deployment yet — first deploy, auto-promote
+		if !app.CurrentDeploymentID.Valid {
+			// No current deployment yet — first deploy, auto-promote
 			autoPromote = true
 		} else {
 			prevLatest, prevErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
@@ -533,7 +533,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					ExcludeID:     deployment.ID,
 				})
 			}, restate.WithName("check rolled back state"))
-			if prevErr == nil && prevLatest == app.LiveDeploymentID.String {
+			if prevErr == nil && prevLatest == app.CurrentDeploymentID.String {
 				autoPromote = true
 			}
 		}
@@ -579,10 +579,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	if autoPromote {
-		// Atomically read the current live deployment and swap it to the new one.
+		// Atomically read the current deployment and swap it to the new one.
 		// This prevents a race where two concurrent deploys both capture the same
-		// previousLiveDeploymentID and one of them never gets scheduled for standby.
-		previousLiveDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
+		// previousCurrentDeploymentID and one of them never gets scheduled for standby.
+		previousCurrentDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 			return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
 				currentApp, findErr := db.Query.FindAppById(txCtx, tx, app.ID)
 				if findErr != nil {
@@ -591,7 +591,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 				updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
 					ID:               app.ID,
-					LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
+					CurrentDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
 					IsRolledBack:     false,
 					UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
@@ -599,15 +599,15 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					return sql.NullString{}, updateErr
 				}
 
-				return currentApp.App.LiveDeploymentID, nil
+				return currentApp.App.CurrentDeploymentID, nil
 			})
-		}, restate.WithName("swapping app live deployment"))
+		}, restate.WithName("swapping app current deployment"))
 		if err != nil {
 			return nil, err
 		}
 
-		if previousLiveDeploymentID.Valid {
-			_, err = hydrav1.NewDeploymentServiceClient(ctx, previousLiveDeploymentID.String).
+		if previousCurrentDeploymentID.Valid {
+			_, err = hydrav1.NewDeploymentServiceClient(ctx, previousCurrentDeploymentID.String).
 				ScheduleDesiredStateChange().Request(
 				&hydrav1.ScheduleDesiredStateChangeRequest{
 					DelayMillis: (30 * time.Minute).Milliseconds(),
