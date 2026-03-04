@@ -199,6 +199,12 @@ func startContainer(t *testing.T, cfg containerConfig) *Container {
 			PortBindings: portBindings,
 			AutoRemove:   false, // We handle removal in t.Cleanup
 			Tmpfs:        cfg.Tmpfs,
+			// Ensure host.docker.internal resolves inside containers.
+			// Docker Desktop adds this automatically, but alternative runtimes
+			// like OrbStack do not. Without it, containers that need to call
+			// back to host-bound test servers (e.g. Restate → worker handler)
+			// fail with DNS resolution errors.
+			ExtraHosts: []string{"host.docker.internal:host-gateway"},
 		},
 		nil, // NetworkingConfig
 		nil, // Platform
