@@ -1,11 +1,8 @@
 "use client";
+import { PRODUCT_HOME_ROUTES, useProductSelection } from "@/hooks/use-product-selection";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import {
-  PRODUCT_HOME_ROUTES,
-  useProductSelection,
-} from "@/hooks/use-product-selection";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 
 export default function WorkspacePage() {
   const router = useRouter();
