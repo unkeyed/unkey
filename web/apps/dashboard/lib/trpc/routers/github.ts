@@ -283,7 +283,14 @@ export const githubRouter = t.router({
         }
       }
 
-      allRepos.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      allRepos.sort((a, b) => {
+        const aTime = a.pushedAt ? new Date(a.pushedAt).getTime() : 0;
+        const bTime = b.pushedAt ? new Date(b.pushedAt).getTime() : 0;
+        if (aTime !== bTime) {
+          return bTime - aTime;
+        }
+        return a.fullName.localeCompare(b.fullName);
+      });
 
       return { repositories: allRepos };
     }),

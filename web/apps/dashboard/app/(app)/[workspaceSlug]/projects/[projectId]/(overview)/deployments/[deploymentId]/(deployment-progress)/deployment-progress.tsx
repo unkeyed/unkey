@@ -17,7 +17,6 @@ export function DeploymentProgress() {
   const router = useRouter();
   const params = useParams();
   const workspaceSlug = params.workspaceSlug as string;
-  const projectId = params.projectId as string;
   const isFailed = deployment.status === "failed";
 
   const steps = trpc.deploy.deployment.steps.useQuery(
@@ -39,7 +38,7 @@ export function DeploymentProgress() {
     },
   );
 
-  const { getDomainsForDeployment } = useProjectData();
+  const { getDomainsForDeployment, projectId } = useProjectData();
 
   const [now, setNow] = useState(0);
   useEffect(() => {
