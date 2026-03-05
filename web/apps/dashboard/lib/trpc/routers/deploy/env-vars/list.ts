@@ -10,6 +10,7 @@ const envVarOutputSchema = z.object({
   value: z.string(),
   type: z.enum(["recoverable", "writeonly"]),
   description: z.string().nullable(),
+  createdAt: z.number(),
 });
 
 const environmentOutputSchema = z.object({
@@ -66,6 +67,7 @@ export const listEnvVars = workspaceProcedure
           value: true,
           type: true,
           description: true,
+          createdAt: true,
         },
       });
 
@@ -83,6 +85,7 @@ export const listEnvVars = workspaceProcedure
             value: "••••••••",
             type: v.type,
             description: v.description,
+            createdAt: v.createdAt,
           })),
         };
       }

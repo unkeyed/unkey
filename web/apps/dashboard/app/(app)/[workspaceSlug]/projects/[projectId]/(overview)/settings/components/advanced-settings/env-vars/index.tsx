@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Nodes2 } from "@unkey/icons";
-import { useMemo } from "react";
+import { toast } from "@unkey/ui";
+import { useEffect, useMemo, useRef } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../../environment-provider";
@@ -30,12 +31,15 @@ export const EnvVars = () => {
     if (!envVarData) {
       return [];
     }
-    return envVarData.map((v) => ({
-      id: v.id,
-      key: v.key,
-      type: v.type,
-      environmentId: v.environmentId,
-    }));
+    return [...envVarData]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((v) => ({
+        id: v.id,
+        key: v.key,
+        type: v.type,
+        environmentId: v.environmentId,
+        createdAt: v.createdAt,
+      }));
   }, [envVarData]);
 
   const { decryptedValues, isDecrypting } = useDecryptedValues(allVariables);
@@ -55,15 +59,8 @@ export const EnvVars = () => {
     };
   }, [allVariables, decryptedValues, defaultEnvironmentId]);
 
-  const formKey = useMemo(() => {
-    const varIds = allVariables.map((v) => v.id).join("-") || "empty";
-    const decryptedIds = Object.keys(decryptedValues).sort().join("-") || "none";
-    return `${varIds}:${decryptedIds}`;
-  }, [allVariables, decryptedValues]);
-
   return (
     <EnvVarsForm
-      key={formKey}
       defaultValues={defaultValues}
       defaultEnvironmentId={defaultEnvironmentId}
       environments={environments}
@@ -99,8 +96,17 @@ const EnvVarsForm = ({
     defaultValues,
   });
 
+  const prevDefaultsRef = useRef(defaultValues);
+
+  useEffect(() => {
+    if (prevDefaultsRef.current !== defaultValues) {
+      prevDefaultsRef.current = defaultValues;
+      reset(defaultValues);
+    }
+  }, [defaultValues, reset]);
+
   const { ref, isDragging } = useDropZone(reset, defaultEnvironmentId);
-  const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
+  const { fields, prepend, remove } = useFieldArray({ control, name: "envVars" });
 
   const onSubmit = async (values: EnvVarsFormValues) => {
     const { toDelete, toCreate, toUpdate } = computeEnvVarsDiff(
@@ -110,31 +116,42 @@ const EnvVarsForm = ({
 
     const createsByEnv = groupByEnvironment(toCreate);
 
-    await Promise.all([
-      ...toDelete.map(async (id) => {
-        collection.envVars.delete(id);
-      }),
-      ...[...createsByEnv.entries()].map(async ([envId, vars]) => {
-        for (const v of vars) {
-          collection.envVars.insert({
-            id: crypto.randomUUID(),
-            environmentId: envId,
-            projectId,
-            key: v.key,
-            value: v.value,
-            type: toTrpcType(v.secret) as "recoverable" | "writeonly",
-            description: null,
+    toast.promise(
+      Promise.all([
+        ...toDelete.map(async (id) => {
+          collection.envVars.delete(id);
+        }),
+        ...[...createsByEnv.entries()].map(async ([envId, vars]) => {
+          for (const v of vars) {
+            collection.envVars.insert({
+              id: crypto.randomUUID(),
+              environmentId: envId,
+              projectId,
+              key: v.key,
+              value: v.value,
+              type: toTrpcType(v.secret) as "recoverable" | "writeonly",
+              description: null,
+              createdAt: Date.now(),
+            });
+          }
+        }),
+        ...toUpdate.map(async (v) => {
+          collection.envVars.update(v.id as string, (draft) => {
+            draft.key = v.key;
+            draft.value = v.value;
+            draft.type = toTrpcType(v.secret) as "recoverable" | "writeonly";
           });
-        }
-      }),
-      ...toUpdate.map(async (v) => {
-        collection.envVars.update(v.id as string, (draft) => {
-          draft.key = v.key;
-          draft.value = v.value;
-          draft.type = toTrpcType(v.secret) as "recoverable" | "writeonly";
-        });
-      }),
-    ]);
+        }),
+      ]),
+      {
+        loading: "Saving environment variable(s)...",
+        success: `Saved ${toDelete.length + toCreate.length + toUpdate.length} variable(s)`,
+        error: (err) => ({
+          message: "Failed to save environment variable(s)",
+          description: err instanceof Error ? err.message : "An unexpected error occurred",
+        }),
+      },
+    );
   };
 
   const saveState = resolveSaveState([
@@ -189,7 +206,7 @@ const EnvVarsForm = ({
             <EnvVarRow
               key={`${field.id}-${index}`}
               index={index}
-              isLast={index === fields.length - 1}
+              isFirst={index === 0}
               isOnly={fields.length === 1}
               keyError={errors.envVars?.[index]?.key?.message}
               environmentError={errors.envVars?.[index]?.environmentId?.message}
@@ -198,7 +215,7 @@ const EnvVarsForm = ({
               control={control}
               register={register}
               trigger={trigger}
-              onAdd={() => append(createEmptyRow(defaultEnvironmentId))}
+              onAdd={() => prepend(createEmptyRow(defaultEnvironmentId))}
               onRemove={() => {
                 remove(index);
                 trigger("envVars");
