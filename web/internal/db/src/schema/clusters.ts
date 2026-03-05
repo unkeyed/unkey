@@ -7,9 +7,7 @@ import { regions } from "./regions";
 //
 // we might use this as service discovery later to push updates to clusters to speed up reconciliation
 export const clusters = mysqlTable("clusters", {
-  pk: bigint("pk", { mode: "number", unsigned: true })
-    .autoincrement()
-    .primaryKey(),
+  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
   id: varchar("id", { length: 64 }).notNull().unique(),
   regionPk: bigint("region_pk", {

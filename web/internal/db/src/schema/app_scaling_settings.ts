@@ -3,7 +3,6 @@ import {
   bigint,
   index,
   int,
-  mysqlEnum,
   mysqlTable,
   tinyint,
   uniqueIndex,
@@ -22,9 +21,7 @@ import { workspaces } from "./workspaces";
 export const appScalingSettings = mysqlTable(
   "app_scaling_settings",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true })
-      .autoincrement()
-      .primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     appId: varchar("app_id", { length: 64 }).notNull(),
@@ -46,29 +43,22 @@ export const appScalingSettings = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    uniqueIndex("unique_app_env_region").on(
-      table.appId,
-      table.environmentId,
-      table.regionId,
-    ),
+    uniqueIndex("unique_app_env_region").on(table.appId, table.environmentId, table.regionId),
     index("workspace_idx").on(table.workspaceId),
   ],
 );
 
-export const appScalingSettingsRelations = relations(
-  appScalingSettings,
-  ({ one }) => ({
-    workspace: one(workspaces, {
-      fields: [appScalingSettings.workspaceId],
-      references: [workspaces.id],
-    }),
-    app: one(apps, {
-      fields: [appScalingSettings.appId],
-      references: [apps.id],
-    }),
-    environment: one(environments, {
-      fields: [appScalingSettings.environmentId],
-      references: [environments.id],
-    }),
+export const appScalingSettingsRelations = relations(appScalingSettings, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [appScalingSettings.workspaceId],
+    references: [workspaces.id],
   }),
-);
+  app: one(apps, {
+    fields: [appScalingSettings.appId],
+    references: [apps.id],
+  }),
+  environment: one(environments, {
+    fields: [appScalingSettings.environmentId],
+    references: [environments.id],
+  }),
+}));
