@@ -1,0 +1,114 @@
+---
+title: Disabling Keys
+description: "Temporarily disable keys without deleting them"
+---
+
+Disabling a key makes it invalid for verification without permanently deleting it. The key can be re-enabled at any time, restoring full access.
+
+## When to use this
+
+<CardGroup cols={2}>
+  <Card title="Payment issues" icon="credit-card">
+    Customer's payment failed — disable their key until billing is resolved.
+  </Card>
+  <Card title="Suspicious activity" icon="shield-exclamation">
+    Investigate potential abuse without losing the key's configuration.
+  </Card>
+  <Card title="Scheduled maintenance" icon="wrench">
+    Temporarily block access during system updates.
+  </Card>
+  <Card title="Account suspension" icon="user-slash">
+    Suspend a user's API access while keeping their key for potential
+    reactivation.
+  </Card>
+</CardGroup>
+
+## Disable a key
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "enabled": false
+  }'
+```
+
+```typescript TypeScript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+try {
+  const { meta, data } = await unkey.keys.update({
+    keyId: "key_...",
+    enabled: false,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+</CodeGroup>
+
+## Verification response
+
+When a disabled key is verified, it returns `valid: false` with code `DISABLED`:
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "valid": false,
+    "code": "DISABLED",
+    "keyId": "key_...",
+    "enabled": false
+  }
+}
+```
+
+## Re-enable a key
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keyId": "key_...",
+    "enabled": true
+  }'
+```
+
+```typescript TypeScript
+try {
+  const { meta, data } = await unkey.keys.update({
+    keyId: "key_...",
+    enabled: true,
+  });
+} catch (err) {
+  console.error(err);
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+```
+
+</CodeGroup>
+
+## Disabled vs Deleted
+
+| Action               | Disabled                 | Deleted                   |
+| -------------------- | ------------------------ | ------------------------- |
+| Key verifies?        | ❌ No (`code: DISABLED`) | ❌ No (`code: NOT_FOUND`) |
+| Can be restored?     | ✅ Yes                   | ❌ No                     |
+| Keeps configuration? | ✅ Yes                   | ❌ No                     |
+| Keeps analytics?     | ✅ Yes                   | ⚠️ Limited                |
+
+<Tip>
+  Use disabling for temporary blocks. Only delete keys when you're sure the user
+  won't need them again.
+</Tip>

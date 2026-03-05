@@ -35,9 +35,7 @@ Create a `.env` file:
 UNKEY_ROOT_KEY="unkey_..."
 ```
 
-<Warning>
-Never commit your `.env` file. Add it to `.gitignore`.
-</Warning>
+<Warning>Never commit your `.env` file. Add it to `.gitignore`.</Warning>
 
 </Step>
 
@@ -57,7 +55,7 @@ const port = process.env.PORT || 3000;
 const limiter = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY,
   namespace: "express-api",
-  limit: 10,       // 10 requests...
+  limit: 10, // 10 requests...
   duration: "60s", // ...per minute
 });
 
@@ -69,9 +67,7 @@ app.get("/", (req, res) => {
 // Rate-limited route
 app.get("/api/data", async (req, res) => {
   // 1. Identify the user (IP, user ID, API key, etc.)
-  const identifier = req.headers["x-user-id"] 
-    || req.ip 
-    || "anonymous";
+  const identifier = req.headers["x-user-id"] || req.ip || "anonymous";
 
   // 2. Check the rate limit
   const { success, remaining, reset } = await limiter.limit(identifier);
@@ -91,7 +87,7 @@ app.get("/api/data", async (req, res) => {
   }
 
   // 4. Request allowed
-  res.json({ 
+  res.json({
     message: "Here's your data!",
     remaining,
   });
@@ -139,12 +135,12 @@ First 10 requests succeed. Requests 11+ get:
 
 `limiter.limit()` returns:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `success` | `boolean` | `true` if allowed, `false` if rate limited |
-| `remaining` | `number` | Requests left in current window |
-| `reset` | `number` | Unix timestamp (ms) when window resets |
-| `limit` | `number` | The configured limit |
+| Field       | Type      | Description                                |
+| ----------- | --------- | ------------------------------------------ |
+| `success`   | `boolean` | `true` if allowed, `false` if rate limited |
+| `remaining` | `number`  | Requests left in current window            |
+| `reset`     | `number`  | Unix timestamp (ms) when window resets     |
+| `limit`     | `number`  | The configured limit                       |
 
 ## Using as middleware
 
@@ -244,13 +240,21 @@ app.post("/login", createMiddleware(authLimiter), loginHandler);
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="How it works" icon="bolt" href="/ratelimiting/modes">
+  <Card title="How it works" icon="bolt" href="/platform/ratelimiting/modes">
     Understand the architecture
   </Card>
-  <Card title="Per-user overrides" icon="sliders" href="/ratelimiting/overrides">
+  <Card
+    title="Per-user overrides"
+    icon="sliders"
+    href="/platform/ratelimiting/overrides"
+  >
     Give specific users higher limits
   </Card>
-  <Card title="SDK Reference" icon="book" href="/libraries/ts/ratelimit/ratelimit">
+  <Card
+    title="SDK Reference"
+    icon="book"
+    href="/libraries/ts/ratelimit/ratelimit"
+  >
     All configuration options
   </Card>
   <Card title="Add API key auth" icon="key" href="/quickstart/apis/express">
@@ -262,19 +266,14 @@ app.post("/login", createMiddleware(authLimiter), loginHandler);
 
 <AccordionGroup>
   <Accordion title="Rate limit not applying?">
-    - Verify `UNKEY_ROOT_KEY` is set and has `ratelimit.*.limit` permission
-    - Make sure you're using a consistent identifier per user
-    - Check that `.env` is loaded before creating the limiter
+    - Verify `UNKEY_ROOT_KEY` is set and has `ratelimit.*.limit` permission -
+    Make sure you're using a consistent identifier per user - Check that `.env`
+    is loaded before creating the limiter
   </Accordion>
-  
+
   <Accordion title="TypeScript version?">
-    Install types and use imports:
-    ```bash
-    npm install -D typescript @types/express @types/node
-    ```
-    ```ts
-    import express from "express";
-    import { Ratelimit } from "@unkey/ratelimit";
-    ```
+    Install types and use imports: ```bash npm install -D typescript
+    @types/express @types/node ``` ```ts import express from "express"; import{" "}
+    {Ratelimit} from "@unkey/ratelimit"; ```
   </Accordion>
 </AccordionGroup>

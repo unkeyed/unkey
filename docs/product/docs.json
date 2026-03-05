@@ -6,13 +6,7 @@
     "primary": "#999999"
   },
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity"
-    ]
+    "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
   },
   "favicon": "/unkey.png",
   "fonts": {
@@ -55,48 +49,155 @@
     }
   },
   "navigation": {
-    "dropdowns": [
+    "tabs": [
       {
-        "dropdown": "Documentation",
+        "tab": "Documentation",
         "groups": [
           {
             "group": "Getting Started",
-            "pages": [
-              "introduction",
-              "quickstart/quickstart",
-              "glossary"
-            ]
+            "pages": ["introduction", "quickstart/quickstart", "glossary"]
           },
           {
-            "group": "Framework Guides",
-            "icon": "code",
+            "expanded": false,
+            "group": "Platform",
+            "icon": "grid-2",
             "pages": [
               {
-                "expanded": false,
-                "group": "API Key Authentication",
+                "group": "Projects",
+                "pages": ["platform/projects/overview"]
+              },
+              {
+                "group": "Apps",
+                "pages": ["platform/apps/overview", "platform/apps/settings"]
+              },
+              {
+                "group": "APIs",
+                "pages": ["platform/apis/overview"]
+              },
+              {
+                "group": "Keys",
                 "pages": [
-                  "quickstart/apis/nextjs",
-                  "quickstart/apis/express",
-                  "quickstart/apis/bun",
-                  "quickstart/apis/hono",
-                  "quickstart/apis/go",
-                  "quickstart/apis/python"
+                  "platform/apis/keys",
+                  "platform/apis/introduction",
+                  "platform/apis/features/ratelimiting/overview",
+                  "platform/apis/features/remaining",
+                  "platform/apis/features/refill",
+                  "platform/apis/features/temp-keys",
+                  {
+                    "group": "Authorization",
+                    "pages": [
+                      "platform/apis/features/authorization/introduction",
+                      "platform/apis/features/authorization/roles-and-permissions",
+                      "platform/apis/features/authorization/verifying",
+                      "platform/apis/features/authorization/example"
+                    ]
+                  },
+                  "platform/apis/features/revocation",
+                  "platform/apis/features/rerolling-key",
+                  "platform/apis/features/enabled",
+                  "platform/apis/features/environments",
+                  {
+                    "group": "Migrations",
+                    "pages": [
+                      "platform/migrations/introduction",
+                      "platform/migrations/keys"
+                    ]
+                  }
                 ]
               },
               {
-                "expanded": false,
                 "group": "Rate Limiting",
                 "pages": [
-                  "quickstart/ratelimiting/nextjs",
-                  "quickstart/ratelimiting/express",
-                  "quickstart/ratelimiting/bun",
-                  "quickstart/ratelimiting/hono"
+                  "platform/ratelimiting/introduction",
+                  "platform/ratelimiting/modes",
+                  "platform/ratelimiting/overrides",
+                  "platform/ratelimiting/automated-overrides"
                 ]
               },
-              "quickstart/identities/shared-ratelimits"
+              {
+                "group": "Identities",
+                "pages": [
+                  "platform/identities/overview",
+                  "platform/identities/ratelimits"
+                ]
+              },
+              {
+                "group": "Sentinel",
+                "pages": [
+                  "platform/sentinel/overview",
+                  "platform/sentinel/routing",
+                  "platform/sentinel/authentication",
+                  "platform/sentinel/rate-limiting",
+                  "platform/sentinel/policies"
+                ]
+              },
+              {
+                "group": "Analytics",
+                "pages": [
+                  "platform/analytics/overview",
+                  {
+                    "expanded": false,
+                    "group": "Reference",
+                    "pages": [
+                      "platform/analytics/getting-started",
+                      "platform/analytics/quick-reference",
+                      "platform/analytics/query-examples",
+                      "platform/analytics/schema-reference",
+                      "platform/analytics/query-restrictions",
+                      "platform/analytics/troubleshooting"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+
+          {
+            "expanded": false,
+            "group": "Build & Deploy",
+            "icon": "rocket",
+            "pages": [
+              "build-and-deploy/overview",
+              "builds/overview",
+              "build-and-deploy/deployments",
+              "build-and-deploy/regions",
+              "build-and-deploy/rollbacks",
+              "build-and-deploy/github",
+              "environments/overview",
+              "platform/variables/overview"
+            ]
+          },
+
+          {
+            "expanded": false,
+            "group": "Networking",
+            "icon": "network-wired",
+            "pages": [
+              "networking/overview",
+              "networking/public-networking",
+              "networking/private-networking",
+              "networking/wildcard-domains",
+              "networking/domains"
             ]
           },
           {
+            "expanded": false,
+            "group": "Observability",
+            "icon": "eye",
+            "pages": [
+              "observability/overview",
+              "observability/logs",
+              "observability/metrics"
+            ]
+          },
+          {
+            "expanded": false,
+            "group": "CLI",
+            "icon": "terminal",
+            "pages": ["cli/overview"]
+          },
+          {
+            "expanded": false,
             "group": "Cookbook",
             "icon": "book-open",
             "pages": [
@@ -143,76 +244,37 @@
             ]
           },
           {
-            "group": "API Keys",
-            "icon": "key",
+            "expanded": false,
+            "group": "Framework Guides",
+            "icon": "code",
             "pages": [
-              "apis/introduction",
-              "apis/features/ratelimiting/overview",
-              "apis/features/remaining",
-              "apis/features/refill",
-              "apis/features/temp-keys",
-              "apis/features/analytics",
-              {
-                "group": "Authorization",
-                "pages": [
-                  "apis/features/authorization/introduction",
-                  "apis/features/authorization/roles-and-permissions",
-                  "apis/features/authorization/verifying",
-                  "apis/features/authorization/example"
-                ]
-              },
-              "apis/features/revocation",
-              "apis/features/rerolling-key",
-              "apis/features/enabled",
-              "apis/features/environments"
-            ]
-          },
-          {
-            "group": "Rate Limiting",
-            "icon": "gauge-high",
-            "pages": [
-              "ratelimiting/introduction",
-              "ratelimiting/modes",
-              "ratelimiting/overrides",
-              "ratelimiting/automated-overrides"
-            ]
-          },
-          {
-            "group": "Identities",
-            "icon": "fingerprint",
-            "pages": [
-              "concepts/identities/overview",
-              "concepts/identities/ratelimits"
-            ]
-          },
-          {
-            "group": "Analytics",
-            "icon": "chart-line",
-            "pages": [
-              "analytics/overview",
               {
                 "expanded": false,
-                "group": "Reference",
+                "group": "API Key Authentication",
                 "pages": [
-                  "analytics/getting-started",
-                  "analytics/quick-reference",
-                  "analytics/query-examples",
-                  "analytics/schema-reference",
-                  "analytics/query-restrictions",
-                  "analytics/troubleshooting"
+                  "quickstart/apis/nextjs",
+                  "quickstart/apis/express",
+                  "quickstart/apis/bun",
+                  "quickstart/apis/hono",
+                  "quickstart/apis/go",
+                  "quickstart/apis/python"
                 ]
-              }
+              },
+              {
+                "expanded": false,
+                "group": "Rate Limiting",
+                "pages": [
+                  "quickstart/ratelimiting/nextjs",
+                  "quickstart/ratelimiting/express",
+                  "quickstart/ratelimiting/bun",
+                  "quickstart/ratelimiting/hono"
+                ]
+              },
+              "quickstart/identities/shared-ratelimits"
             ]
           },
           {
-            "group": "Audit Logs",
-            "icon": "scroll",
-            "pages": [
-              "audit-log/introduction",
-              "audit-log/types"
-            ]
-          },
-          {
+            "expanded": false,
             "group": "Security",
             "icon": "shield",
             "pages": [
@@ -223,7 +285,7 @@
                 "pages": [
                   "security/root-keys",
                   "security/recovering-keys",
-                  "apis/features/whitelist",
+                  "platform/apis/features/whitelist",
                   "security/github-scanning",
                   "security/delete-protection"
                 ]
@@ -231,6 +293,7 @@
             ]
           },
           {
+            "expanded": false,
             "group": "AI Code Gen",
             "icon": "robot",
             "pages": [
@@ -247,14 +310,13 @@
             ]
           },
           {
-            "group": "Migrations",
-            "icon": "arrows-rotate",
-            "pages": [
-              "migrations/introduction",
-              "migrations/keys"
-            ]
+            "expanded": false,
+            "group": "Audit Logs",
+            "icon": "scroll",
+            "pages": ["audit-log/introduction", "audit-log/types"]
           },
           {
+            "expanded": false,
             "group": "Errors",
             "icon": "triangle-exclamation",
             "pages": [
@@ -358,43 +420,29 @@
         "icon": "book-open"
       },
       {
-        "dropdown": "API Reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "api.unkey.com/v2",
+            "group": "api.unkey.com",
             "pages": [
-              "api-reference/v2/overview",
-              "api-reference/v2/auth",
-              "api-reference/v2/rpc",
-              "api-reference/v2/errors"
+              "api-reference/overview",
+              "api-reference/auth",
+              "api-reference/rpc",
+              "api-reference/errors"
             ]
           },
           {
             "group": "Endpoints",
             "openapi": {
-              "directory": "api-reference/v2",
+              "directory": "api-reference",
               "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples"
             }
-          },
-          {
-            "group": "v1 → v2 Migration",
-            "icon": "arrows-rotate",
-            "pages": [
-              "api-reference/v1/migration/index",
-              "api-reference/v1/migration/keys",
-              "api-reference/v1/migration/apis",
-              "api-reference/v1/migration/identities",
-              "api-reference/v1/migration/permissions",
-              "api-reference/v1/migration/ratelimiting",
-              "api-reference/v1/migration/analytics",
-              "api-reference/v1/migration/errors"
-            ]
           }
         ],
         "icon": "terminal"
       },
       {
-        "dropdown": "SDKs",
+        "tab": "SDKs",
         "groups": [
           {
             "group": "Official Libraries",
@@ -427,17 +475,11 @@
               },
               {
                 "group": "Go",
-                "pages": [
-                  "libraries/go/overview",
-                  "libraries/go/api"
-                ]
+                "pages": ["libraries/go/overview", "libraries/go/api"]
               },
               {
                 "group": "Python",
-                "pages": [
-                  "libraries/py/overview",
-                  "libraries/py/api"
-                ]
+                "pages": ["libraries/py/overview", "libraries/py/api"]
               }
             ]
           },
@@ -446,9 +488,7 @@
             "pages": [
               {
                 "group": "Nuxt",
-                "pages": [
-                  "libraries/nuxt/overview"
-                ]
+                "pages": ["libraries/nuxt/overview"]
               }
             ]
           }
@@ -479,7 +519,7 @@
       "source": "/quickstart/onboarding/onboarding-ratelimiting"
     },
     {
-      "destination": "/api-reference/v2/overview",
+      "destination": "/api-reference/overview",
       "source": "/api-reference"
     },
     {
@@ -495,27 +535,7 @@
       "source": "/integrations/vercel"
     },
     {
-      "destination": "/api-reference/v1/migration/index",
-      "source": "/api-reference/v1/overview"
-    },
-    {
-      "destination": "/api-reference/v1/migration/index",
-      "source": "/api-reference/v1/authentication"
-    },
-    {
-      "destination": "/api-reference/v1/migration/keys",
-      "source": "/api-reference/v1/keys/:path*"
-    },
-    {
-      "destination": "/api-reference/v1/migration/apis",
-      "source": "/api-reference/v1/apis/:path*"
-    },
-    {
-      "destination": "/api-reference/v1/migration/index",
-      "source": "/api-reference/v1/liveness"
-    },
-    {
-      "destination": "/analytics/overview",
+      "destination": "/platform/analytics/overview",
       "source": "/apis/features/analytics"
     },
     {
@@ -527,9 +547,9 @@
       "source": "/docs/security/roles"
     },
     {
-      "destination": "/docs/api-reference/v2/overview",
+      "destination": "/docs/api-reference/overview",
       "source": "/docs/api-reference/overview"
     }
   ],
-  "theme": "maple"
+  "theme": "willow"
 }

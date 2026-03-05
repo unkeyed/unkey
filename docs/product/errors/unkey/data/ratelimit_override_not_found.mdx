@@ -3,10 +3,7 @@ title: "ratelimit_override_not_found"
 description: "The requested rate limit override was not found"
 ---
 
-<Danger>
-err:unkey:data:ratelimit_override_not_found
-</Danger>
-
+<Danger>err:unkey:data:ratelimit_override_not_found</Danger>
 
 ```json Example
 {
@@ -27,6 +24,7 @@ err:unkey:data:ratelimit_override_not_found
 This error occurs when you're trying to perform an operation on a rate limit override that doesn't exist in the Unkey system. Rate limit overrides are used to create custom rate limits for specific identifiers within a namespace.
 
 Common scenarios that trigger this error:
+
 - Using an incorrect override ID
 - Referencing an override that has been deleted
 - Trying to get or modify an override for an identifier that doesn't have one
@@ -86,6 +84,7 @@ curl -X POST https://api.unkey.com/v2/ratelimit.setOverride \
 - **Assuming defaults are overrides**: Trying to get an override for an identifier that's using default limits
 
 ## Related Errors
+
 - [err:unkey:data:ratelimit_namespace_not_found](./ratelimit_namespace_not_found) - When the requested rate limit namespace doesn't exist
 - [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on rate limit overrides
 - [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist
