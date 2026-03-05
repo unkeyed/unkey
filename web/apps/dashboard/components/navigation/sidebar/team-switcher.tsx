@@ -155,7 +155,7 @@ export const WorkspaceSwitcher: React.FC = () => {
             <DropdownMenuItem
               key={membership.id}
               className="flex items-center justify-between hover:bg-grayA-3"
-              onClick={async () => changeWorkspace.mutateAsync(membership.organization.id)}
+              onClick={() => changeWorkspace.mutate(membership.organization.id)}
             >
               <span
                 className={
@@ -181,12 +181,12 @@ export const WorkspaceSwitcher: React.FC = () => {
           </Link>
         </DropdownMenuItem>
         {currentOrgMembership?.role === "admin" ? (
-          <Link href={`/${workspace.slug}/settings/team`}>
-            <DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={`/${workspace.slug}/settings/team`} className="flex items-center">
               <UserPlus iconSize="md-regular" className="w-4 h-4 mr-2 " />
-              <span className="cursor-pointer">Invite Member</span>
-            </DropdownMenuItem>
-          </Link>
+              <span>Invite Member</span>
+            </Link>
+          </DropdownMenuItem>
         ) : null}
       </DropdownMenuGroup>
     </DropdownMenuContent>
