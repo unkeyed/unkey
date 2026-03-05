@@ -25,7 +25,6 @@ go_library(
         "api_insert.sql_generated.go",
         "api_soft_delete.sql_generated.go",
         "api_update_delete_protection.sql_generated.go",
-        "app_build_settings_find.sql_generated.go",
         "app_build_settings_upsert.sql_generated.go",
         "app_environment_variables_find.sql_generated.go",
         "app_find_by_id.sql_generated.go",

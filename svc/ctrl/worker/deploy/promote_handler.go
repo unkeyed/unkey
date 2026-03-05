@@ -62,10 +62,10 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	if targetDeployment.Status != db.DeploymentsStatusReady {
 		return nil, restate.TerminalError(fmt.Errorf("deployment status must be ready, got: %s", targetDeployment.Status), 400)
 	}
-	if !app.LiveDeploymentID.Valid {
+	if !app.CurrentDeploymentID.Valid {
 		return nil, restate.TerminalError(fmt.Errorf("app has no live deployment"), 400)
 	}
-	if targetDeployment.ID == app.LiveDeploymentID.String {
+	if targetDeployment.ID == app.CurrentDeploymentID.String {
 		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400)
 	}
 
@@ -109,7 +109,7 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
 			ID:               app.ID,
-			LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 			IsRolledBack:     false,
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
@@ -130,7 +130,7 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	}
 
 	// schedule old deployment to be spun down
-	hydrav1.NewDeploymentServiceClient(ctx, app.LiveDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
+	hydrav1.NewDeploymentServiceClient(ctx, app.CurrentDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 		State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
 		DelayMillis: (30 * time.Minute).Milliseconds(),
 	})

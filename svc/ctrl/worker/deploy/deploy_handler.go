@@ -559,8 +559,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if !app.IsRolledBack && environment.Slug == "production" {
 		// Atomically read the current live deployment and swap it to the new one.
 		// This prevents a race where two concurrent deploys both capture the same
-		// previousLiveDeploymentID and one of them never gets scheduled for standby.
-		previousLiveDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
+		// previousCurrentDeploymentID and one of them never gets scheduled for standby.
+		previousCurrentDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 			return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
 				currentApp, findErr := db.Query.FindAppById(txCtx, tx, app.ID)
 				if findErr != nil {
@@ -570,22 +570,22 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
 					IsRolledBack:     false,
 					ID:               app.ID,
-					LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
+					CurrentDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
 					UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
 				if updateErr != nil {
 					return sql.NullString{}, updateErr
 				}
 
-				return currentApp.App.LiveDeploymentID, nil
+				return currentApp.App.CurrentDeploymentID, nil
 			})
 		}, restate.WithName("swapping app live deployment"))
 		if err != nil {
 			return nil, err
 		}
 
-		if previousLiveDeploymentID.Valid {
-			_, err = hydrav1.NewDeploymentServiceClient(ctx, previousLiveDeploymentID.String).
+		if previousCurrentDeploymentID.Valid {
+			_, err = hydrav1.NewDeploymentServiceClient(ctx, previousCurrentDeploymentID.String).
 				ScheduleDesiredStateChange().Request(
 				&hydrav1.ScheduleDesiredStateChangeRequest{
 					DelayMillis: (30 * time.Minute).Milliseconds(),

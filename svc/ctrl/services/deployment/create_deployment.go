@@ -346,16 +346,16 @@ func buildDockerSource(
 	app db.App,
 	deploymentID string,
 ) (dockerSourceInfo, error) {
-	if !app.LiveDeploymentID.Valid || app.LiveDeploymentID.String == "" {
+	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("app %q has no live deployment and no git connection; cannot redeploy", app.ID))
 	}
 
-	liveDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), app.LiveDeploymentID.String)
+	liveDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), app.CurrentDeploymentID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("live deployment %q not found", app.LiveDeploymentID.String))
+				fmt.Errorf("live deployment %q not found", app.CurrentDeploymentID.String))
 		}
 		return dockerSourceInfo{}, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup live deployment: %w", err))
@@ -364,12 +364,12 @@ func buildDockerSource(
 	if !liveDeployment.Image.Valid || liveDeployment.Image.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("live deployment %q has no Docker image; cannot redeploy without git connection",
-				app.LiveDeploymentID.String))
+				app.CurrentDeploymentID.String))
 	}
 
 	logger.Info("deployment will reuse live deployment image",
 		"deployment_id", deploymentID,
-		"live_deployment_id", app.LiveDeploymentID.String,
+		"live_deployment_id", app.CurrentDeploymentID.String,
 		"image", liveDeployment.Image.String)
 
 	return dockerSourceInfo{

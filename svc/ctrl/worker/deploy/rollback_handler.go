@@ -92,7 +92,7 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 	}
 
 	// Validate source deployment is the live deployment
-	if !app.LiveDeploymentID.Valid || app.LiveDeploymentID.String != sourceDeployment.ID {
+	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != sourceDeployment.ID {
 		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current live deployment"), 400)
 	}
 
@@ -145,7 +145,7 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
 			ID:               app.ID,
-			LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 			IsRolledBack:     true,
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
