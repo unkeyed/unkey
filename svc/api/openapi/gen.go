@@ -28,9 +28,11 @@ const (
 	BUILDING    V2DeployGetDeploymentResponseDataStatus = "BUILDING"
 	DEPLOYING   V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
 	FAILED      V2DeployGetDeploymentResponseDataStatus = "FAILED"
+	FINALIZING  V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
 	NETWORK     V2DeployGetDeploymentResponseDataStatus = "NETWORK"
 	PENDING     V2DeployGetDeploymentResponseDataStatus = "PENDING"
 	READY       V2DeployGetDeploymentResponseDataStatus = "READY"
+	STARTING    V2DeployGetDeploymentResponseDataStatus = "STARTING"
 	UNSPECIFIED V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
 

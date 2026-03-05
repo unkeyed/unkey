@@ -1,14 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import {
-  CloudUp,
-  Earth,
-  Hammer2,
-  LayerFront,
-  Pulse,
-  Sparkle3,
-} from "@unkey/icons";
+import { CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -58,8 +51,7 @@ export function DeploymentProgress() {
     };
   }, [isFailed]);
 
-  const { building, deploying, network, queued, starting, finalizing } =
-    steps.data ?? {};
+  const { building, deploying, network, queued, starting, finalizing } = steps.data ?? {};
 
   const [redeployOpen, setRedeployOpen] = useState(false);
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
@@ -73,9 +65,7 @@ export function DeploymentProgress() {
 
   useEffect(() => {
     if (network?.completed) {
-      router.push(
-        `/${workspaceSlug}/projects/${projectId}/deployments/${deployment.id}`,
-      );
+      router.push(`/${workspaceSlug}/projects/${projectId}/deployments/${deployment.id}`);
     }
   }, [network?.completed, router, workspaceSlug, projectId, deployment.id]);
 
@@ -92,9 +82,7 @@ export function DeploymentProgress() {
                 : "Deployment is queued"
               : "Pending"
           }
-          duration={
-            queued ? (queued.endedAt ?? now) - queued.startedAt : undefined
-          }
+          duration={queued ? (queued.endedAt ?? now) - queued.startedAt : undefined}
           status={
             queued?.error
               ? "error"
@@ -115,11 +103,7 @@ export function DeploymentProgress() {
                 : "Deployment has started"
               : "Preparing deployment for building"
           }
-          duration={
-            starting
-              ? (starting.endedAt ?? now) - starting.startedAt
-              : undefined
-          }
+          duration={starting ? (starting.endedAt ?? now) - starting.startedAt : undefined}
           status={
             starting?.error
               ? "error"
@@ -138,17 +122,11 @@ export function DeploymentProgress() {
             building
               ? building.endedAt
                 ? (building.error ??
-                  (hasFreshBuild.current
-                    ? "Build Complete"
-                    : "Image was prebuilt"))
+                  (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"))
                 : (buildSteps.data?.steps.at(-1)?.name ?? "Building...")
               : "Image was prebuilt"
           }
-          duration={
-            building
-              ? (building.endedAt ?? now) - building.startedAt
-              : undefined
-          }
+          duration={building ? (building.endedAt ?? now) - building.startedAt : undefined}
           status={
             building?.error
               ? "error"
@@ -161,9 +139,7 @@ export function DeploymentProgress() {
           expandable={
             isPrebuilt ? null : (
               <div className="bg-grayA-2">
-                <DeploymentBuildStepsTable
-                  steps={buildSteps.data?.steps ?? []}
-                />
+                <DeploymentBuildStepsTable steps={buildSteps.data?.steps ?? []} />
               </div>
             )
           }
@@ -181,11 +157,7 @@ export function DeploymentProgress() {
                 ? "Skipped"
                 : "Pending"
           }
-          duration={
-            deploying
-              ? (deploying.endedAt ?? now) - deploying.startedAt
-              : undefined
-          }
+          duration={deploying ? (deploying.endedAt ?? now) - deploying.startedAt : undefined}
           status={
             deploying?.error
               ? "error"
@@ -204,16 +176,13 @@ export function DeploymentProgress() {
           description={
             network
               ? network.endedAt
-                ? (network.error ??
-                  `Domains assigned · ${domainsForDeployment.length} records`)
+                ? (network.error ?? `Domains assigned · ${domainsForDeployment.length} records`)
                 : "Assigning domains"
               : isFailed
                 ? "Skipped"
                 : "Pending"
           }
-          duration={
-            network ? (network.endedAt ?? now) - network.startedAt : undefined
-          }
+          duration={network ? (network.endedAt ?? now) - network.startedAt : undefined}
           status={
             network?.error
               ? "error"
@@ -236,11 +205,7 @@ export function DeploymentProgress() {
                 : "Finalizing deployment"
               : "Pending"
           }
-          duration={
-            finalizing
-              ? (finalizing.endedAt ?? now) - finalizing.startedAt
-              : undefined
-          }
+          duration={finalizing ? (finalizing.endedAt ?? now) - finalizing.startedAt : undefined}
           status={
             finalizing?.error
               ? "error"
@@ -257,18 +222,11 @@ export function DeploymentProgress() {
           <div className="border border-errorA-4 bg-errorA-2 rounded-[14px] p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-error-11">
-                  Deployment failed
-                </span>
+                <span className="text-sm font-medium text-error-11">Deployment failed</span>
                 <span className="text-xs text-gray-11">
-                  {[
-                    queued,
-                    starting,
-                    building,
-                    deploying,
-                    network,
-                    finalizing,
-                  ].find((s) => s?.error)?.error ?? "Deployment failed"}
+                  {[queued, starting, building, deploying, network, finalizing].find(
+                    (s) => s?.error,
+                  )?.error ?? "Deployment failed"}
                 </span>
               </div>
             </div>

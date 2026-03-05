@@ -12,6 +12,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
@@ -57,7 +58,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		assert.NotEmpty(req.GetDeploymentId(), "deployment_id is required"),
 	)
 	if err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, fault.Wrap(
+			restate.TerminalError(err),
+			fault.Public("This deployment request is invalid."),
+		)
 	}
 
 	// compensations are executed in reverse order on failure to clean up any partial state.
@@ -84,7 +88,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return db.Query.FindDeploymentById(runCtx, w.db.RW(), req.GetDeploymentId())
 	}, restate.WithName("finding deployment"), restate.WithMaxRetryDuration(time.Minute))
 	if err != nil {
-		return nil, err
+		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
 	// --- Dequeue ---
@@ -97,7 +101,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		})
 	})
 	if err != nil {
-		return nil, err
+		return nil, fault.Wrap(err, fault.Public("Deployment could not be started."))
 	}
 
 	var (
@@ -115,9 +119,12 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				found, err := db.Query.FindWorkspaceByID(txCtx, tx, deployment.WorkspaceID)
 				if err != nil {
 					if db.IsNotFound(err) {
-						return restate.TerminalError(errors.New("workspace not found"))
+						return fault.Wrap(
+							restate.TerminalError(errors.New("workspace not found")),
+							fault.Public("The workspace for this deployment no longer exists."),
+						)
 					}
-					return err
+					return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 				}
 				ws = found
 
@@ -136,21 +143,21 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			return ws, err
 		}, restate.WithName("find workspace"))
 		if err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Workspace settings could not be initialized."))
 		}
 
 		project, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindProjectByIdRow, error) {
 			return db.Query.FindProjectById(runCtx, w.db.RW(), deployment.ProjectID)
 		}, restate.WithName("finding project"))
 		if err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
 		environment, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
 			return db.Query.FindEnvironmentById(runCtx, w.db.RW(), deployment.EnvironmentID)
 		}, restate.WithName("finding environment"))
 		if err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
 		return nil
@@ -173,19 +180,19 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 		topologies, err := w.createTopologies(stepCtx, compensation, workspace, deployment)
 		if err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Regional deployment targets could not be prepared."))
 		}
 
 		if err = w.ensureSentinels(stepCtx, workspace, project, environment, topologies); err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Sentinels could not be started."))
 		}
 
 		if err := w.ensureCiliumNetworkPolicy(stepCtx, workspace, project, environment, topologies, deployment); err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Applying network policies failed."))
 		}
 
 		if err = w.waitForDeployments(stepCtx, deployment.ID, topologies); err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Instances did not become healthy in time."))
 		}
 		return nil
 	})
@@ -213,11 +220,11 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			})
 		}, restate.WithName("updating deployment status to ready"))
 		if err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Deployment completed but final status could not be saved."))
 		}
 
 		if err = w.swapLiveDeployment(ctx, deployment, project, environment); err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
 		}
 		return nil
 	})
@@ -270,7 +277,10 @@ func (w *Workflow) buildImage(ctx restate.WorkflowSharedContext, req *hydrav1.De
 				)
 			}, restate.WithName("resolve branch head"))
 			if resolveErr != nil {
-				return restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr))
+				return fault.Wrap(
+					restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr)),
+					fault.Public("Selected Git branch could not be resolved."),
+				)
 			}
 			commitSHA = info.SHA
 
@@ -287,7 +297,10 @@ func (w *Workflow) buildImage(ctx restate.WorkflowSharedContext, req *hydrav1.De
 				})
 			}, restate.WithName("update deployment git metadata"))
 			if resolveErr != nil {
-				return fmt.Errorf("failed to update deployment git metadata: %w", resolveErr)
+				return fault.Wrap(
+					fmt.Errorf("failed to update deployment git metadata: %w", resolveErr),
+					fault.Public("The commit was resolved but metadata could not be saved."),
+				)
 			}
 
 			deployment.GitCommitSha = sql.NullString{String: info.SHA, Valid: true}
@@ -305,7 +318,10 @@ func (w *Workflow) buildImage(ctx restate.WorkflowSharedContext, req *hydrav1.De
 			WorkspaceID:    deployment.WorkspaceID,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to build docker image from git: %w", err)
+			return fault.Wrap(
+				fmt.Errorf("failed to build docker image from git: %w", err),
+				fault.Public("Build failed. Please check the build logs for details."),
+			)
 		}
 		dockerImage = build.ImageName
 
@@ -317,11 +333,17 @@ func (w *Workflow) buildImage(ctx restate.WorkflowSharedContext, req *hydrav1.De
 			})
 		})
 		if err != nil {
-			return fmt.Errorf("failed to update deployment build ID: %w", err)
+			return fault.Wrap(
+				fmt.Errorf("failed to update deployment build ID: %w", err),
+				fault.Public("Updating build metadata failed."),
+			)
 		}
 
 	default:
-		return restate.TerminalError(fmt.Errorf("unknown source type: %T", source))
+		return fault.Wrap(
+			restate.TerminalError(fmt.Errorf("unknown source type: %T", source)),
+			fault.Public(fmt.Sprintf("Deployment source %s is not supported.", source)),
+		)
 	}
 
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -332,7 +354,7 @@ func (w *Workflow) buildImage(ctx restate.WorkflowSharedContext, req *hydrav1.De
 		})
 	}, restate.WithName("update deployment image"))
 	if err != nil {
-		return err
+		return fault.Wrap(err, fault.Public("Unable to save deployment image."))
 	}
 
 	return nil
@@ -363,7 +385,10 @@ func (w *Workflow) createTopologies(
 		return db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(runCtx, w.db.RO(), deployment.EnvironmentID)
 	}, restate.WithName("find runtime settings for region config"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to find runtime settings for environment %s: %w", deployment.EnvironmentID, err)
+		return nil, fault.Wrap(
+			fmt.Errorf("failed to find runtime settings for environment %s: %w", deployment.EnvironmentID, err),
+			fault.Public("Failed to read from database. Please try again."),
+		)
 	}
 	if len(runtimeSettings.RegionConfig) > 0 {
 		for region, count := range runtimeSettings.RegionConfig {
@@ -385,7 +410,10 @@ func (w *Workflow) createTopologies(
 	for _, region := range regions {
 		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, region).NextVersion().Request(&hydrav1.NextVersionRequest{})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get next version: %w", err)
+			return nil, fault.Wrap(
+				fmt.Errorf("failed to get next version: %w", err),
+				fault.Public("Failed to generate new version."),
+			)
 		}
 
 		replicas := int32(1)
@@ -410,7 +438,10 @@ func (w *Workflow) createTopologies(
 		})
 	}, restate.WithName("insert deployment topologies"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to insert deployment topologies: %w", err)
+		return nil, fault.Wrap(
+			fmt.Errorf("failed to insert deployment topologies: %w", err),
+			fault.Public("Deployment targets could not be saved."),
+		)
 	}
 
 	// In case anything goes wrong, delete the inserted topologies.
@@ -418,7 +449,7 @@ func (w *Workflow) createTopologies(
 	// version and will not be removed by this compensation.
 	for _, topo := range topologies {
 		compensation.Add(
-			fmt.Sprintf("[comp] delete deployment topology %s/%s/%d", topo.DeploymentID, topo.Region, topo.Version),
+			fmt.Sprintf("delete deployment topology %s/%s/%d", topo.DeploymentID, topo.Region, topo.Version),
 			func(runCtx restate.RunContext) error {
 				return db.Query.DeleteDeploymentTopologyByDeploymentRegionVersion(runCtx, w.db.RW(), db.DeleteDeploymentTopologyByDeploymentRegionVersionParams{
 					DeploymentID: topo.DeploymentID,
@@ -452,7 +483,10 @@ func (w *Workflow) ensureSentinels(
 		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
 	}, restate.WithName("find existing sentinels"))
 	if err != nil {
-		return fmt.Errorf("failed to find existing sentinels: %w", err)
+		return fault.Wrap(
+			fmt.Errorf("failed to find existing sentinels: %w", err),
+			fault.Public("Failed to read from database. Please try again."),
+		)
 	}
 
 	existingSentinelsByRegion := make(map[string]db.Sentinel)
@@ -471,7 +505,10 @@ func (w *Workflow) ensureSentinels(
 
 			sentinelVersion, err := hydrav1.NewVersioningServiceClient(ctx, topology.Region).NextVersion().Request(&hydrav1.NextVersionRequest{})
 			if err != nil {
-				return fmt.Errorf("failed to get next version for sentinel: %w", err)
+				return fault.Wrap(
+					fmt.Errorf("failed to get next version for sentinel: %w", err),
+					fault.Public("Traffic proxies could not be versioned in one region."),
+				)
 			}
 
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -507,7 +544,7 @@ func (w *Workflow) ensureSentinels(
 				})
 			}, restate.WithName("ensure sentinel exists in db"))
 			if err != nil {
-				return err
+				return fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
 			}
 
 		}
@@ -571,7 +608,7 @@ func (w *Workflow) configureRouting(
 			})
 		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)))
 		if getFrontlineRouteErr != nil {
-			return getFrontlineRouteErr
+			return fault.Wrap(getFrontlineRouteErr, fault.Public("Route records could not be created."))
 		}
 		if frontlineRouteID != "" {
 			existingRouteIDs = append(existingRouteIDs, frontlineRouteID)
@@ -592,7 +629,10 @@ func (w *Workflow) configureRouting(
 		})
 	}, restate.WithName("finding sticky routes"))
 	if err != nil {
-		return fmt.Errorf("failed to find sticky routes: %w", err)
+		return fault.Wrap(
+			fmt.Errorf("failed to find sticky routes: %w", err),
+			fault.Public("Failed to read from database. Please try again."),
+		)
 	}
 
 	for _, route := range stickyRoutes {
@@ -605,7 +645,10 @@ func (w *Workflow) configureRouting(
 		FrontlineRouteIds: existingRouteIDs,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to assign domains: %w", err)
+		return fault.Wrap(
+			fmt.Errorf("failed to assign domains: %w", err),
+			fault.Public("Domain routing could not be updated."),
+		)
 	}
 
 	return nil
@@ -655,7 +698,7 @@ func (w *Workflow) swapLiveDeployment(
 		})
 	}, restate.WithName("swapping project live deployment"))
 	if err != nil {
-		return err
+		return fault.Wrap(err, fault.Public("Project live deployment could not be updated."))
 	}
 
 	if previousLiveDeploymentID.Valid {
@@ -668,7 +711,7 @@ func (w *Workflow) swapLiveDeployment(
 			restate.WithIdempotencyKey(deployment.ID),
 		)
 		if err != nil {
-			return err
+			return fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
 		}
 	}
 
@@ -691,7 +734,7 @@ func (w *Workflow) waitForDeployments(ctx restate.WorkflowSharedContext, deploym
 		return time.Now().Add(regionReadyTimeout), nil
 	}, restate.WithName("calculate deadline"))
 	if err != nil {
-		return err
+		return fault.Wrap(err, fault.Public("Deployment readiness checks could not start."))
 	}
 
 	readygates := make([]restate.Future, len(topologies))
@@ -738,7 +781,10 @@ func (w *Workflow) waitForDeployments(ctx restate.WorkflowSharedContext, deploym
 		}
 		raf, ok := fut.(restate.RunAsyncFuture[bool])
 		if !ok {
-			return fmt.Errorf("unexpected future type: %T", fut)
+			return fault.Wrap(
+				fmt.Errorf("unexpected future type: %T", fut),
+				fault.Public("Deployment readiness checks returned an unexpected response."),
+			)
 		}
 		ready, err := raf.Result()
 		if err != nil {
@@ -753,7 +799,10 @@ func (w *Workflow) waitForDeployments(ctx restate.WorkflowSharedContext, deploym
 		}
 	}
 	if healthyRegions < requiredHealthyRegions {
-		return fmt.Errorf("only %d healthy regions, required at least %d", healthyRegions, requiredHealthyRegions)
+		return fault.Wrap(
+			fmt.Errorf("only %d healthy regions, required at least %d", healthyRegions, requiredHealthyRegions),
+			fault.Public("Not enough regions became healthy."),
+		)
 	}
 
 	logger.Info("deployments ready", "deployment_id", deploymentID)

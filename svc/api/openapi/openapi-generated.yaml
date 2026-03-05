@@ -2570,9 +2570,11 @@ components:
                     enum:
                         - UNSPECIFIED
                         - PENDING
+                        - STARTING
                         - BUILDING
                         - DEPLOYING
                         - NETWORK
+                        - FINALIZING
                         - READY
                         - FAILED
                     example: "READY"
