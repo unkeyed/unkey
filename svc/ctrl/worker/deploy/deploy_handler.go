@@ -229,6 +229,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			ContextPath:    source.Git.GetContextPath(),
 			DockerfilePath: source.Git.GetDockerfilePath(),
 			ProjectID:      deployment.ProjectID,
+			AppID:          deployment.AppID,
 			DeploymentID:   deployment.ID,
 			WorkspaceID:    deployment.WorkspaceID,
 		})
@@ -516,10 +517,31 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}
 	}
 
+	// Derive rolled-back state: if the current live deployment doesn't match
+	// the previous latest-ready deployment, a rollback occurred and we should
+	// not auto-promote this new deployment.
+	autoPromote := false
+	if environment.Slug == "production" {
+		if !environment.CurrentDeploymentID.Valid {
+			// No current deployment yet — first deploy, auto-promote
+			autoPromote = true
+		} else {
+			prevLatest, prevErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+				return db.Query.FindLatestReadyDeploymentByAppAndEnv(runCtx, w.db.RO(), db.FindLatestReadyDeploymentByAppAndEnvParams{
+					AppID:         app.ID,
+					EnvironmentID: deployment.EnvironmentID,
+					ExcludeID:     deployment.ID,
+				})
+			}, restate.WithName("check rolled back state"))
+			if prevErr == nil && prevLatest == environment.CurrentDeploymentID.String {
+				autoPromote = true
+			}
+		}
+	}
+
 	// Fetch sticky routes for this environment
 	stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
-	if !app.IsRolledBack && environment.Slug == "production" {
-		// Only reassign live routes when not rolled back - rollbacks keep live routes on the previous deployment
+	if autoPromote {
 		stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
 	}
 
@@ -556,30 +578,33 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		return nil, err
 	}
 
-	if !app.IsRolledBack && environment.Slug == "production" {
-		// Atomically read the current live deployment and swap it to the new one.
+	if autoPromote {
+		// Atomically read the current deployment and swap it to the new one.
 		// This prevents a race where two concurrent deploys both capture the same
 		// previousCurrentDeploymentID and one of them never gets scheduled for standby.
 		previousCurrentDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 			return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
-				currentApp, findErr := db.Query.FindAppById(txCtx, tx, app.ID)
+				currentEnv, findErr := db.Query.FindEnvironmentByAppIdAndSlug(txCtx, tx, db.FindEnvironmentByAppIdAndSlugParams{
+					AppID: app.ID,
+					Slug:  environment.Slug,
+				})
 				if findErr != nil {
 					return sql.NullString{}, findErr
 				}
 
-				updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
-					IsRolledBack:        false,
-					ID:                  app.ID,
+				updateErr := db.Query.UpdateEnvironmentDeployments(txCtx, tx, db.UpdateEnvironmentDeploymentsParams{
+					ID:                  environment.ID,
 					CurrentDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
+					IsRolledBack:        false,
 					UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
 				if updateErr != nil {
 					return sql.NullString{}, updateErr
 				}
 
-				return currentApp.App.CurrentDeploymentID, nil
+				return currentEnv.Environment.CurrentDeploymentID, nil
 			})
-		}, restate.WithName("swapping app live deployment"))
+		}, restate.WithName("swapping environment current deployment"))
 		if err != nil {
 			return nil, err
 		}

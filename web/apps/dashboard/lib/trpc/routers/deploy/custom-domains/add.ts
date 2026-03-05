@@ -47,11 +47,7 @@ export const addCustomDomain = workspaceProcedure
         and(eq(table.id, input.environmentId), eq(table.projectId, input.projectId)),
       columns: {
         id: true,
-      },
-      with: {
-        apps: {
-          columns: { id: true },
-        },
+        appId: true,
       },
     });
 
@@ -62,13 +58,7 @@ export const addCustomDomain = workspaceProcedure
       });
     }
 
-    const appId = environment.apps[0]?.id;
-    if (!appId) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "No app found for this environment",
-      });
-    }
+    const appId = environment.appId;
 
     const ctrl = createClient(
       CustomDomainService,

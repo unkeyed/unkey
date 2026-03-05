@@ -35,6 +35,7 @@ export const createEnvVars = workspaceProcedure
         ),
         columns: {
           id: true,
+          appId: true,
         },
       });
 
@@ -55,6 +56,7 @@ export const createEnvVars = workspaceProcedure
           return {
             id: newId("environmentVariable"),
             workspaceId: ctx.workspace.id,
+            appId: environment.appId,
             environmentId: input.environmentId,
             key: v.key,
             value: encrypted,
@@ -64,7 +66,7 @@ export const createEnvVars = workspaceProcedure
         }),
       );
 
-      await db.insert(schema.environmentVariables).values(encryptedVars);
+      await db.insert(schema.appEnvironmentVariables).values(encryptedVars);
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

@@ -58,15 +58,26 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		return nil, fmt.Errorf("failed to get app: %w", err)
 	}
 
+	// Load environment for this deployment to check currentDeploymentId
+	environment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
+		return db.Query.FindEnvironmentById(stepCtx, w.db.RO(), targetDeployment.EnvironmentID)
+	}, restate.WithName("finding environment"))
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, restate.TerminalError(fmt.Errorf("environment not found: %s", targetDeployment.EnvironmentID), 404)
+		}
+		return nil, fmt.Errorf("failed to get environment: %w", err)
+	}
+
 	// Validate preconditions
 	if targetDeployment.Status != db.DeploymentsStatusReady {
 		return nil, restate.TerminalError(fmt.Errorf("deployment status must be ready, got: %s", targetDeployment.Status), 400)
 	}
-	if !app.CurrentDeploymentID.Valid {
-		return nil, restate.TerminalError(fmt.Errorf("app has no live deployment"), 400)
+	if !environment.CurrentDeploymentID.Valid {
+		return nil, restate.TerminalError(fmt.Errorf("environment has no current deployment"), 400)
 	}
-	if targetDeployment.ID == app.CurrentDeploymentID.String {
-		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400)
+	if targetDeployment.ID == environment.CurrentDeploymentID.String {
+		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the current deployment"), 400)
 	}
 
 	// Get all frontlineRoutes for promotion
@@ -105,20 +116,20 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		return nil, fmt.Errorf("failed to switch domains: %w", err)
 	}
 
-	// Update app's live deployment and clear rolled back flag
+	// Update environment's current deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
-			ID:                  app.ID,
+		err = db.Query.UpdateEnvironmentDeployments(stepCtx, w.db.RW(), db.UpdateEnvironmentDeploymentsParams{
+			ID:                  environment.ID,
 			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 			IsRolledBack:        false,
 			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("failed to update app's live deployment id: %w", err)
+			return restate.Void{}, fmt.Errorf("failed to update environment's current deployment id: %w", err)
 		}
-		logger.Info("updated app live deployment", "app_id", app.ID, "live_deployment_id", targetDeployment.ID)
+		logger.Info("updated environment current deployment", "environment_id", environment.ID, "current_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
-	}, restate.WithName("updating app live deployment"))
+	}, restate.WithName("updating environment current deployment"))
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +141,7 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	}
 
 	// schedule old deployment to be spun down
-	hydrav1.NewDeploymentServiceClient(ctx, app.CurrentDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
+	hydrav1.NewDeploymentServiceClient(ctx, environment.CurrentDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 		State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
 		DelayMillis: (30 * time.Minute).Milliseconds(),
 	})

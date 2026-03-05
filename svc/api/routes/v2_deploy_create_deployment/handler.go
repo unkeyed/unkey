@@ -89,9 +89,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		appSlug = *req.AppSlug
 	}
 	appRow, err := db.Query.FindAppByProjectAndSlug(ctx, h.DB.RO(), db.FindAppByProjectAndSlugParams{
-		ProjectID:       req.ProjectId,
-		EnvironmentSlug: req.EnvironmentSlug,
-		Slug:            appSlug,
+		ProjectID: req.ProjectId,
+		Slug:      appSlug,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {

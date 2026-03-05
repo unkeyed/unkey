@@ -58,9 +58,19 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		DeleteProtection: false,
 	})
 
+	app := harness.CreateApp(ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		EnvironmentID: environment.ID,
+		Name:          "default",
+		Slug:          "default",
+	})
+
 	client := ctrlv1connect.NewDeployServiceClient(harness.ConnectClient(), harness.CtrlURL, harness.ConnectOptions()...)
 	resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
 		ProjectId:       project.ID,
+		AppId:           app.ID,
 		EnvironmentSlug: environment.Slug,
 		DockerImage:     "nginx:latest",
 	}))

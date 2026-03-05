@@ -15,23 +15,29 @@ INSERT INTO environments (
     id,
     workspace_id,
     project_id,
+    app_id,
     slug,
     description,
+    current_deployment_id,
+    is_rolled_back,
     created_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
 type InsertEnvironmentParams struct {
-	ID          string        `db:"id"`
-	WorkspaceID string        `db:"workspace_id"`
-	ProjectID   string        `db:"project_id"`
-	Slug        string        `db:"slug"`
-	Description string        `db:"description"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+	ID                  string         `db:"id"`
+	WorkspaceID         string         `db:"workspace_id"`
+	ProjectID           string         `db:"project_id"`
+	AppID               string         `db:"app_id"`
+	Slug                string         `db:"slug"`
+	Description         string         `db:"description"`
+	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
+	IsRolledBack        bool           `db:"is_rolled_back"`
+	CreatedAt           int64          `db:"created_at"`
+	UpdatedAt           sql.NullInt64  `db:"updated_at"`
 }
 
 // InsertEnvironment
@@ -40,20 +46,26 @@ type InsertEnvironmentParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
+//	    app_id,
 //	    slug,
 //	    description,
+//	    current_deployment_id,
+//	    is_rolled_back,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
-//	    ?, ?, ?, ?, ?, ?, ?
+//	    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 //	)
 func (q *Queries) InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error {
 	_, err := db.ExecContext(ctx, insertEnvironment,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.Slug,
 		arg.Description,
+		arg.CurrentDeploymentID,
+		arg.IsRolledBack,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

@@ -97,10 +97,19 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		DeleteProtection: false,
 	})
 
+	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
+		ID:          uid.New("app"),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "default",
+		Slug:        "default",
+	})
+
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:               uid.New("env"),
 		WorkspaceID:      workspaceID,
 		ProjectID:        project.ID,
+		AppID:            app.ID,
 		Slug:             "production",
 		Description:      "",
 		SentinelConfig:   []byte("{}"),
@@ -115,7 +124,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		K8sName:                       k8sName,
 		WorkspaceID:                   workspaceID,
 		ProjectID:                     project.ID,
-		AppID:                         "",
+		AppID:                         app.ID,
 		EnvironmentID:                 env.ID,
 		GitCommitSha:                  sql.NullString{Valid: false},
 		GitBranch:                     sql.NullString{Valid: false},
@@ -199,10 +208,19 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		DeleteProtection: false,
 	})
 
+	sentinelApp := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
+		ID:          uid.New("app"),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "default",
+		Slug:        "default",
+	})
+
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:               uid.New("env"),
 		WorkspaceID:      workspaceID,
 		ProjectID:        project.ID,
+		AppID:            sentinelApp.ID,
 		Slug:             "production",
 		Description:      "",
 		SentinelConfig:   []byte("{}"),

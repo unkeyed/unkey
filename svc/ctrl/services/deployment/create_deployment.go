@@ -26,7 +26,7 @@ const (
 )
 
 // dockerSourceInfo holds the Docker image and inherited git metadata from a
-// live deployment, used when redeploying a non-git project.
+// current deployment, used when redeploying a non-git project.
 type dockerSourceInfo struct {
 	commitSHA       string
 	branch          string
@@ -70,8 +70,26 @@ func (s *Service) CreateDeployment(
 			fmt.Errorf("app_id is required"))
 	}
 
+	// Verify the environment exists
+	env, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByAppIdAndSlugParams{
+		AppID: appID,
+		Slug:  req.Msg.GetEnvironmentSlug(),
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("environment '%s' not found for app '%s'",
+					req.Msg.GetEnvironmentSlug(), appID))
+		}
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to lookup environment: %w", err))
+	}
+
 	// Lookup app with build and runtime settings
-	appWithSettings, err := db.Query.FindAppWithSettings(ctx, s.db.RO(), appID)
+	appWithSettings, err := db.Query.FindAppWithSettings(ctx, s.db.RO(), db.FindAppWithSettingsParams{
+		ID:            appID,
+		EnvironmentID: env.Environment.ID,
+	})
 	if err != nil && db.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeNotFound,
 			fmt.Errorf("app '%s' not found or missing settings", appID))
@@ -85,27 +103,10 @@ func (s *Service) CreateDeployment(
 	appBuildSettings := appWithSettings.AppBuildSetting
 	appRuntimeSettings := appWithSettings.AppRuntimeSetting
 
-	// Verify the environment exists
-	envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
-		WorkspaceID: workspaceID,
-		ProjectID:   project.ID,
-		Slug:        req.Msg.GetEnvironmentSlug(),
-	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("environment '%s' not found in workspace '%s'",
-					req.Msg.GetEnvironmentSlug(), workspaceID))
-		}
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to lookup environment: %w", err))
-	}
-	env := envSettings.Environment
-
 	// Fetch app-scoped environment variables
 	appEnvVars, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, s.db.RO(), db.FindAppEnvVarsByAppAndEnvParams{
 		AppID:         app.ID,
-		EnvironmentID: env.ID,
+		EnvironmentID: env.Environment.ID,
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
@@ -145,7 +146,7 @@ func (s *Service) CreateDeployment(
 
 	if dockerImage := req.Msg.GetDockerImage(); dockerImage != "" {
 		// Explicit docker image (CLI, REST API)
-		gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), project.DefaultBranch)
+		gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), appWithSettings.App.DefaultBranch)
 
 		if tsErr := validateGitCommitTimestamp(req.Msg.GetGitCommit()); tsErr != nil {
 			return nil, tsErr
@@ -185,7 +186,7 @@ func (s *Service) CreateDeployment(
 
 		if hasRepoConnection {
 			// Has github_repo_connections row: build from git source.
-			gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), project.DefaultBranch)
+			gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), appWithSettings.App.DefaultBranch)
 
 			if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
 				gitCommitSha = gitCommit.GetCommitSha()
@@ -211,8 +212,8 @@ func (s *Service) CreateDeployment(
 				},
 			}
 		} else {
-			// No repo connection: redeploy the live deployment's Docker image
-			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, app, deploymentID)
+			// No repo connection: redeploy the current deployment's Docker image
+			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, env.Environment, deploymentID)
 			if dockerErr != nil {
 				return nil, dockerErr
 			}
@@ -243,7 +244,7 @@ func (s *Service) CreateDeployment(
 		WorkspaceID:                   workspaceID,
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
-		EnvironmentID:                 env.ID,
+		EnvironmentID:                 env.Environment.ID,
 		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
@@ -273,7 +274,7 @@ func (s *Service) CreateDeployment(
 		"workspace_id", workspaceID,
 		"project_id", project.ID,
 		"app_id", app.ID,
-		"environment", env.ID,
+		"environment", env.Environment.ID,
 	)
 
 	// Send deployment request asynchronously, keyed by project ID
@@ -307,7 +308,7 @@ func (s *Service) CreateDeployment(
 }
 
 // branchFromGitCommit extracts the branch from GitCommitInfo, falling back
-// to the project's default branch or "main".
+// to the app's default branch or "main".
 func branchFromGitCommit(gitCommit *ctrlv1.GitCommitInfo, defaultBranch sql.NullString) string {
 	if gitCommit != nil && gitCommit.GetBranch() != "" {
 		return gitCommit.GetBranch()
@@ -338,48 +339,48 @@ func validateGitCommitTimestamp(gitCommit *ctrlv1.GitCommitInfo) error {
 	return nil
 }
 
-// buildDockerSource looks up the app's live deployment's Docker image and carries
+// buildDockerSource looks up the environment's current deployment's Docker image and carries
 // over its git metadata for the new deployment record.
 func buildDockerSource(
 	ctx context.Context,
 	database db.Database,
-	app db.App,
+	env db.Environment,
 	deploymentID string,
 ) (dockerSourceInfo, error) {
-	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
+	if !env.CurrentDeploymentID.Valid || env.CurrentDeploymentID.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("app %q has no live deployment and no git connection; cannot redeploy", app.ID))
+			fmt.Errorf("environment %q has no current deployment and no git connection; cannot redeploy", env.ID))
 	}
 
-	liveDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), app.CurrentDeploymentID.String)
+	currentDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), env.CurrentDeploymentID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("live deployment %q not found", app.CurrentDeploymentID.String))
+				fmt.Errorf("current deployment %q not found", env.CurrentDeploymentID.String))
 		}
 		return dockerSourceInfo{}, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to lookup live deployment: %w", err))
+			fmt.Errorf("failed to lookup current deployment: %w", err))
 	}
 
-	if !liveDeployment.Image.Valid || liveDeployment.Image.String == "" {
+	if !currentDeployment.Image.Valid || currentDeployment.Image.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("live deployment %q has no Docker image; cannot redeploy without git connection",
-				app.CurrentDeploymentID.String))
+			fmt.Errorf("current deployment %q has no Docker image; cannot redeploy without git connection",
+				env.CurrentDeploymentID.String))
 	}
 
-	logger.Info("deployment will reuse live deployment image",
+	logger.Info("deployment will reuse current deployment image",
 		"deployment_id", deploymentID,
-		"live_deployment_id", app.CurrentDeploymentID.String,
-		"image", liveDeployment.Image.String)
+		"current_deployment_id", env.CurrentDeploymentID.String,
+		"image", currentDeployment.Image.String)
 
 	return dockerSourceInfo{
-		dockerImage:     liveDeployment.Image.String,
-		commitSHA:       liveDeployment.GitCommitSha.String,
-		branch:          liveDeployment.GitBranch.String,
-		commitMessage:   liveDeployment.GitCommitMessage.String,
-		authorHandle:    liveDeployment.GitCommitAuthorHandle.String,
-		authorAvatarURL: liveDeployment.GitCommitAuthorAvatarUrl.String,
-		commitTimestamp: liveDeployment.GitCommitTimestamp.Int64,
+		dockerImage:     currentDeployment.Image.String,
+		commitSHA:       currentDeployment.GitCommitSha.String,
+		branch:          currentDeployment.GitBranch.String,
+		commitMessage:   currentDeployment.GitCommitMessage.String,
+		authorHandle:    currentDeployment.GitCommitAuthorHandle.String,
+		authorAvatarURL: currentDeployment.GitCommitAuthorAvatarUrl.String,
+		commitTimestamp: currentDeployment.GitCommitTimestamp.Int64,
 	}, nil
 }
 

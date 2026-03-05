@@ -67,8 +67,7 @@ export const createProject = workspaceProcedure
       }
 
       const projectId = newId("project");
-      const prodAppId = newId("app");
-      const previewAppId = newId("app");
+      const appId = newId("app");
 
       await db.transaction(async (tx) => {
         await tx.insert(schema.projects).values({
@@ -82,14 +81,29 @@ export const createProject = workspaceProcedure
           updatedAt: null,
         });
 
+        // Create one app for the project
+        await tx.insert(schema.apps).values({
+          id: appId,
+          workspaceId: ctx.workspace.id,
+          projectId,
+          name: input.name,
+          slug: "default",
+          defaultBranch: "main",
+          deleteProtection: false,
+          createdAt: Date.now(),
+          updatedAt: null,
+        });
+
         const prodEnvId = newId("environment");
         const previewEnvId = newId("environment");
 
+        // Create environments belonging to the app
         await tx.insert(schema.environments).values([
           {
             id: prodEnvId,
             workspaceId: ctx.workspace.id,
             projectId,
+            appId,
             slug: "production",
             description: "Production",
             deleteProtection: false,
@@ -100,33 +114,9 @@ export const createProject = workspaceProcedure
             id: previewEnvId,
             workspaceId: ctx.workspace.id,
             projectId,
+            appId,
             slug: "preview",
             description: "Preview",
-            deleteProtection: false,
-            createdAt: Date.now(),
-            updatedAt: null,
-          },
-        ]);
-
-        await tx.insert(schema.apps).values([
-          {
-            id: prodAppId,
-            workspaceId: ctx.workspace.id,
-            projectId,
-            environmentId: prodEnvId,
-            name: input.name,
-            slug: "default",
-            deleteProtection: false,
-            createdAt: Date.now(),
-            updatedAt: null,
-          },
-          {
-            id: previewAppId,
-            workspaceId: ctx.workspace.id,
-            projectId,
-            environmentId: previewEnvId,
-            name: input.name,
-            slug: "default",
             deleteProtection: false,
             createdAt: Date.now(),
             updatedAt: null,
@@ -136,14 +126,14 @@ export const createProject = workspaceProcedure
         await tx.insert(schema.appBuildSettings).values([
           {
             workspaceId: ctx.workspace.id,
-            appId: prodAppId,
+            appId,
             environmentId: prodEnvId,
             createdAt: Date.now(),
             updatedAt: Date.now(),
           },
           {
             workspaceId: ctx.workspace.id,
-            appId: previewAppId,
+            appId,
             environmentId: previewEnvId,
             createdAt: Date.now(),
             updatedAt: Date.now(),
@@ -152,7 +142,7 @@ export const createProject = workspaceProcedure
         await tx.insert(schema.appRuntimeSettings).values([
           {
             workspaceId: ctx.workspace.id,
-            appId: prodAppId,
+            appId,
             environmentId: prodEnvId,
             sentinelConfig: "{}",
             createdAt: Date.now(),
@@ -160,7 +150,7 @@ export const createProject = workspaceProcedure
           },
           {
             workspaceId: ctx.workspace.id,
-            appId: previewAppId,
+            appId,
             environmentId: previewEnvId,
             sentinelConfig: "{}",
             createdAt: Date.now(),

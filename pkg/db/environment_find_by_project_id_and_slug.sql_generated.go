@@ -10,7 +10,7 @@ import (
 )
 
 const findEnvironmentByProjectIdAndSlug = `-- name: FindEnvironmentByProjectIdAndSlug :one
-SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, slug, description, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
 FROM environments
 WHERE workspace_id = ?
   AND project_id = ?
@@ -25,7 +25,7 @@ type FindEnvironmentByProjectIdAndSlugParams struct {
 
 // FindEnvironmentByProjectIdAndSlug
 //
-//	SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, slug, description, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
 //	FROM environments
 //	WHERE workspace_id = ?
 //	  AND project_id = ?
@@ -38,8 +38,11 @@ func (q *Queries) FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX
 		&i.ID,
 		&i.WorkspaceID,
 		&i.ProjectID,
+		&i.AppID,
 		&i.Slug,
 		&i.Description,
+		&i.CurrentDeploymentID,
+		&i.IsRolledBack,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,
