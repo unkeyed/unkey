@@ -12,13 +12,13 @@ type Props = {
 
 export const LogFooter = ({ log }: Props) => {
   const actorContent =
-    log.auditLog.actor.type === "user" && log.user?.imageUrl ? (
+    log.auditLog.actor.type === "user" ? (
       <div className="flex items-center gap-2">
         <Avatar className="w-6 h-6">
-          <AvatarImage src={log.user.imageUrl} />
-          <AvatarFallback>{log.user?.username?.slice(0, 2)}</AvatarFallback>
+          {log.user?.imageUrl && <AvatarImage src={log.user.imageUrl} />}
+          <AvatarFallback name={log.user?.username ?? log.auditLog.actor.id} />
         </Avatar>
-        <span className="text-sm">{log.user.username}</span>
+        <span className="text-sm">{log.user?.username ?? "Unknown Username"}</span>
       </div>
     ) : log.auditLog.actor.type === "key" ? (
       <div className="flex items-center gap-2">
