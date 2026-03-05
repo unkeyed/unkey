@@ -56,7 +56,9 @@ async function main() {
 
       envToAppId[env.id] = appId;
       appsCreated++;
-      console.log(`Created default app ${appId} for env ${env.slug} (${env.id}) in project ${project.id}`);
+      console.log(
+        `Created default app ${appId} for env ${env.slug} (${env.id}) in project ${project.id}`,
+      );
     }
   }
   console.log(`Apps created: ${appsCreated}`);
@@ -66,7 +68,9 @@ async function main() {
   let buildCopied = 0;
   for (const bs of buildSettings) {
     const appId = envToAppId[bs.environmentId];
-    if (!appId) { continue; }
+    if (!appId) {
+      continue;
+    }
 
     await db
       .insert(schema.appBuildSettings)
@@ -91,7 +95,9 @@ async function main() {
   let runtimeCopied = 0;
   for (const rs of runtimeSettings) {
     const appId = envToAppId[rs.environmentId];
-    if (!appId) { continue; }
+    if (!appId) {
+      continue;
+    }
 
     await db
       .insert(schema.appRuntimeSettings)
@@ -131,7 +137,9 @@ async function main() {
   let varsCopied = 0;
   for (const ev of envVars) {
     const appId = envToAppId[ev.environmentId];
-    if (!appId) { continue; }
+    if (!appId) {
+      continue;
+    }
 
     const id = newId("environmentVariable");
     await db
