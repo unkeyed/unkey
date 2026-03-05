@@ -39,6 +39,18 @@ type Querier interface {
 	//  DELETE FROM instances
 	//  WHERE deployment_id = ? AND region = ?
 	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
+	//DeleteDeploymentTopologyByDeploymentId
+	//
+	//  DELETE FROM `deployment_topology`
+	//  WHERE deployment_id = ?
+	DeleteDeploymentTopologyByDeploymentId(ctx context.Context, db DBTX, deploymentID string) error
+	//DeleteDeploymentTopologyByDeploymentRegionVersion
+	//
+	//  DELETE FROM `deployment_topology`
+	//  WHERE deployment_id = ?
+	//    AND region = ?
+	//    AND version = ?
+	DeleteDeploymentTopologyByDeploymentRegionVersion(ctx context.Context, db DBTX, arg DeleteDeploymentTopologyByDeploymentRegionVersionParams) error
 	//DeleteFrontlineRouteByFQDN
 	//
 	//  DELETE FROM frontline_routes WHERE fully_qualified_domain_name = ?

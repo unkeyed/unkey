@@ -78,7 +78,16 @@ export const deployments = mysqlTable(
     healthcheck: json("healthcheck").$type<import("./environment_runtime_settings").Healthcheck>(),
 
     // Deployment status
-    status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])
+    status: mysqlEnum("status", [
+      "pending",
+      "starting",
+      "building",
+      "deploying",
+      "network",
+      "finalizing",
+      "ready",
+      "failed",
+    ])
       .notNull()
       .default("pending"),
     ...lifecycleDates,

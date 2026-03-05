@@ -230,10 +230,12 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 type DeploymentStepsStep string
 
 const (
-	DeploymentStepsStepQueued    DeploymentStepsStep = "queued"
-	DeploymentStepsStepBuilding  DeploymentStepsStep = "building"
-	DeploymentStepsStepDeploying DeploymentStepsStep = "deploying"
-	DeploymentStepsStepNetwork   DeploymentStepsStep = "network"
+	DeploymentStepsStepQueued     DeploymentStepsStep = "queued"
+	DeploymentStepsStepStarting   DeploymentStepsStep = "starting"
+	DeploymentStepsStepBuilding   DeploymentStepsStep = "building"
+	DeploymentStepsStepDeploying  DeploymentStepsStep = "deploying"
+	DeploymentStepsStepNetwork    DeploymentStepsStep = "network"
+	DeploymentStepsStepFinalizing DeploymentStepsStep = "finalizing"
 )
 
 func (e *DeploymentStepsStep) Scan(src interface{}) error {
@@ -405,12 +407,14 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 type DeploymentsStatus string
 
 const (
-	DeploymentsStatusPending   DeploymentsStatus = "pending"
-	DeploymentsStatusBuilding  DeploymentsStatus = "building"
-	DeploymentsStatusDeploying DeploymentsStatus = "deploying"
-	DeploymentsStatusNetwork   DeploymentsStatus = "network"
-	DeploymentsStatusReady     DeploymentsStatus = "ready"
-	DeploymentsStatusFailed    DeploymentsStatus = "failed"
+	DeploymentsStatusPending    DeploymentsStatus = "pending"
+	DeploymentsStatusStarting   DeploymentsStatus = "starting"
+	DeploymentsStatusBuilding   DeploymentsStatus = "building"
+	DeploymentsStatusDeploying  DeploymentsStatus = "deploying"
+	DeploymentsStatusNetwork    DeploymentsStatus = "network"
+	DeploymentsStatusFinalizing DeploymentsStatus = "finalizing"
+	DeploymentsStatusReady      DeploymentsStatus = "ready"
+	DeploymentsStatusFailed     DeploymentsStatus = "failed"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {

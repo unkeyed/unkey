@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -38,9 +39,12 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	}, restate.WithName("finding target deployment"))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("deployment not found: %s", req.GetTargetDeploymentId()), 404)
+			return nil, fault.Wrap(
+				restate.TerminalError(fmt.Errorf("deployment not found: %s", req.GetTargetDeploymentId()), 404),
+				fault.Public("The deployment could not be found"),
+			)
 		}
-		return nil, fmt.Errorf("failed to get target deployment: %w", err)
+		return nil, fault.Wrap(err, fault.Public("Failed to find the target deployment"))
 	}
 
 	// Get project
@@ -49,20 +53,32 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	}, restate.WithName("finding project"))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("project not found: %s", targetDeployment.ProjectID), 404)
+			return nil, fault.Wrap(
+				restate.TerminalError(fmt.Errorf("project not found: %s", targetDeployment.ProjectID), 404),
+				fault.Public("The project could not be found"),
+			)
 		}
-		return nil, fmt.Errorf("failed to get project: %w", err)
+		return nil, fault.Wrap(err, fault.Public("Failed to find the project"))
 	}
 
 	// Validate preconditions
 	if targetDeployment.Status != db.DeploymentsStatusReady {
-		return nil, restate.TerminalError(fmt.Errorf("deployment status must be ready, got: %s", targetDeployment.Status), 400)
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("deployment status must be ready, got: %s", targetDeployment.Status), 400),
+			fault.Public("The deployment is not ready for promotion"),
+		)
 	}
 	if !project.LiveDeploymentID.Valid {
-		return nil, restate.TerminalError(fmt.Errorf("project has no live deployment"), 400)
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("project has no live deployment"), 400),
+			fault.Public("The project has no live deployment to promote from"),
+		)
 	}
 	if targetDeployment.ID == project.LiveDeploymentID.String {
-		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400)
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400),
+			fault.Public("This deployment is already live"),
+		)
 	}
 
 	// Get all frontlineRoutes for promotion
@@ -76,11 +92,14 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		})
 	}, restate.WithName("finding frontlineRoutes for promotion"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get frontlineRoutes: %w", err)
+		return nil, fault.Wrap(err, fault.Public("Failed to find routes for promotion"))
 	}
 
 	if len(frontlineRoutes) == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no frontlineRoutes found for promotion"), 400)
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("no frontline routes found for promotion"), 400),
+			fault.Public("No routes found to promote"),
+		)
 	}
 
 	logger.Info("found frontlineRoutes for promotion", "count", len(frontlineRoutes), "deployment_id", targetDeployment.ID)
@@ -98,7 +117,7 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		FrontlineRouteIds: routeIDs,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to switch domains: %w", err)
+		return nil, fault.Wrap(err, fault.Public("Failed to switch routes to the promoted deployment"))
 	}
 
 	// Update project's live deployment and clear rolled back flag
@@ -110,19 +129,19 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("failed to update project's live deployment id: %w", err)
+			return restate.Void{}, fault.Wrap(err, fault.Internal("failed to update project's live deployment id"))
 		}
 		logger.Info("updated project live deployment", "project_id", project.ID, "live_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
 	}, restate.WithName("updating project live deployment"))
 	if err != nil {
-		return nil, err
+		return nil, fault.Wrap(err, fault.Public("Failed to update the project after promotion"))
 	}
 
 	// ensure the new promoted deployment does not get spun down from existing scheduled actions
 	_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
 	if err != nil {
-		return nil, err
+		return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the promoted deployment"))
 	}
 
 	// schedule old deployment to be spun down

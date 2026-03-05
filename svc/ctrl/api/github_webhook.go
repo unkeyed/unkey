@@ -186,31 +186,48 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		now := time.Now().UnixMilli()
 		gitCommit := s.extractGitCommitInfo(&payload)
 
-		err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-			ID:                            deploymentID,
-			K8sName:                       uid.DNS1035(12),
-			WorkspaceID:                   project.WorkspaceID,
-			ProjectID:                     project.ID,
-			EnvironmentID:                 env.ID,
-			SentinelConfig:                envSettings.EnvironmentRuntimeSetting.SentinelConfig,
-			EncryptedEnvironmentVariables: secretsBlob,
-			Command:                       envSettings.EnvironmentRuntimeSetting.Command,
-			Status:                        db.DeploymentsStatusPending,
-			CreatedAt:                     now,
-			UpdatedAt:                     sql.NullInt64{Valid: false},
-			GitCommitSha:                  sql.NullString{String: payload.After, Valid: payload.After != ""},
-			GitBranch:                     sql.NullString{String: branch, Valid: branch != ""},
-			GitCommitMessage:              sql.NullString{String: gitCommit.Message, Valid: gitCommit.Message != ""},
-			GitCommitAuthorHandle:         sql.NullString{String: gitCommit.AuthorHandle, Valid: gitCommit.AuthorHandle != ""},
-			GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.AuthorAvatarURL, Valid: gitCommit.AuthorAvatarURL != ""},
-			GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.Timestamp.UnixMilli(), Valid: !gitCommit.Timestamp.IsZero()},
-			OpenapiSpec:                   sql.NullString{Valid: false},
-			CpuMillicores:                 envSettings.EnvironmentRuntimeSetting.CpuMillicores,
-			MemoryMib:                     envSettings.EnvironmentRuntimeSetting.MemoryMib,
-			Port:                          envSettings.EnvironmentRuntimeSetting.Port,
-			ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.EnvironmentRuntimeSetting.ShutdownSignal),
-			Healthcheck:                   envSettings.EnvironmentRuntimeSetting.Healthcheck,
+		err = db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+
+			err = db.Query.InsertDeployment(txCtx, tx, db.InsertDeploymentParams{
+				ID:                            deploymentID,
+				K8sName:                       uid.DNS1035(12),
+				WorkspaceID:                   project.WorkspaceID,
+				ProjectID:                     project.ID,
+				EnvironmentID:                 env.ID,
+				SentinelConfig:                envSettings.EnvironmentRuntimeSetting.SentinelConfig,
+				EncryptedEnvironmentVariables: secretsBlob,
+				Command:                       envSettings.EnvironmentRuntimeSetting.Command,
+				Status:                        db.DeploymentsStatusPending,
+				CreatedAt:                     now,
+				UpdatedAt:                     sql.NullInt64{Valid: false},
+				GitCommitSha:                  sql.NullString{String: payload.After, Valid: payload.After != ""},
+				GitBranch:                     sql.NullString{String: branch, Valid: branch != ""},
+				GitCommitMessage:              sql.NullString{String: gitCommit.Message, Valid: gitCommit.Message != ""},
+				GitCommitAuthorHandle:         sql.NullString{String: gitCommit.AuthorHandle, Valid: gitCommit.AuthorHandle != ""},
+				GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.AuthorAvatarURL, Valid: gitCommit.AuthorAvatarURL != ""},
+				GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.Timestamp.UnixMilli(), Valid: !gitCommit.Timestamp.IsZero()},
+				OpenapiSpec:                   sql.NullString{Valid: false},
+				CpuMillicores:                 envSettings.EnvironmentRuntimeSetting.CpuMillicores,
+				MemoryMib:                     envSettings.EnvironmentRuntimeSetting.MemoryMib,
+				Port:                          envSettings.EnvironmentRuntimeSetting.Port,
+				ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.EnvironmentRuntimeSetting.ShutdownSignal),
+				Healthcheck:                   envSettings.EnvironmentRuntimeSetting.Healthcheck,
+			})
+			if err != nil {
+				return err
+			}
+			err = db.Query.InsertDeploymentStep(txCtx, tx, db.InsertDeploymentStepParams{
+				WorkspaceID:   project.WorkspaceID,
+				ProjectID:     project.ID,
+				EnvironmentID: env.ID,
+				DeploymentID:  deploymentID,
+				Step:          db.DeploymentStepsStepQueued,
+				StartedAt:     uint64(time.Now().UnixMilli()),
+			})
+
+			return nil
 		})
+
 		if err != nil {
 			logger.Error("failed to insert deployment", "error", err)
 			http.Error(w, "failed to create deployment", http.StatusInternalServerError)
