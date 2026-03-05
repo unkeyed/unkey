@@ -160,7 +160,6 @@ export const WorkspaceSwitcher: React.FC = () => {
               <div
                 className={cn(
                   "flex items-center gap-2 overflow-hidden whitespace-nowrap min-w-0",
-                  isCollapsed ? "justify-center" : "",
                   membership.organization.id === currentOrgMembership?.organization.id
                     ? "font-medium"
                     : "",
@@ -178,7 +177,7 @@ export const WorkspaceSwitcher: React.FC = () => {
           ))}
         </ScrollArea>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link href="/new" className="flex items-center">
             <Plus iconSize="md-regular" className="w-4 h-4 mr-2" />
             <span>Create Workspace</span>
