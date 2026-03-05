@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const upsertQuota = `-- name: UpsertQuota :exec
@@ -15,20 +16,26 @@ INSERT INTO quota (
     requests_per_month,
     audit_logs_retention_days,
     logs_retention_days,
-    team
-) VALUES (?, ?, ?, ?, ?)
+    team,
+    ratelimit_api_limit,
+    ratelimit_api_duration
+) VALUES (?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     requests_per_month = VALUES(requests_per_month),
     audit_logs_retention_days = VALUES(audit_logs_retention_days),
-    logs_retention_days = VALUES(logs_retention_days)
+    logs_retention_days = VALUES(logs_retention_days),
+    ratelimit_api_limit = VALUES(ratelimit_api_limit),
+    ratelimit_api_duration = VALUES(ratelimit_api_duration)
 `
 
 type UpsertQuotaParams struct {
-	WorkspaceID            string `db:"workspace_id"`
-	RequestsPerMonth       int64  `db:"requests_per_month"`
-	AuditLogsRetentionDays int32  `db:"audit_logs_retention_days"`
-	LogsRetentionDays      int32  `db:"logs_retention_days"`
-	Team                   bool   `db:"team"`
+	WorkspaceID            string        `db:"workspace_id"`
+	RequestsPerMonth       int64         `db:"requests_per_month"`
+	AuditLogsRetentionDays int32         `db:"audit_logs_retention_days"`
+	LogsRetentionDays      int32         `db:"logs_retention_days"`
+	Team                   bool          `db:"team"`
+	RatelimitApiLimit      sql.NullInt32 `db:"ratelimit_api_limit"`
+	RatelimitApiDuration   sql.NullInt32 `db:"ratelimit_api_duration"`
 }
 
 // UpsertQuota
@@ -38,12 +45,16 @@ type UpsertQuotaParams struct {
 //	    requests_per_month,
 //	    audit_logs_retention_days,
 //	    logs_retention_days,
-//	    team
-//	) VALUES (?, ?, ?, ?, ?)
+//	    team,
+//	    ratelimit_api_limit,
+//	    ratelimit_api_duration
+//	) VALUES (?, ?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    requests_per_month = VALUES(requests_per_month),
 //	    audit_logs_retention_days = VALUES(audit_logs_retention_days),
-//	    logs_retention_days = VALUES(logs_retention_days)
+//	    logs_retention_days = VALUES(logs_retention_days),
+//	    ratelimit_api_limit = VALUES(ratelimit_api_limit),
+//	    ratelimit_api_duration = VALUES(ratelimit_api_duration)
 func (q *Queries) UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error {
 	_, err := db.ExecContext(ctx, upsertQuota,
 		arg.WorkspaceID,
@@ -51,6 +62,8 @@ func (q *Queries) UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParam
 		arg.AuditLogsRetentionDays,
 		arg.LogsRetentionDays,
 		arg.Team,
+		arg.RatelimitApiLimit,
+		arg.RatelimitApiDuration,
 	)
 	return err
 }

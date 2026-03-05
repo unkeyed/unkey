@@ -10,20 +10,20 @@ export const MetricStatsSkeleton = () => {
       <div className="flex gap-[14px] items-center">
         <div className="flex flex-col gap-1">
           <div className="flex gap-2 items-center h-4">
-            <div className="bg-accent-8 rounded h-[10px] w-1 animate-pulse" />
-            <div className="h-3 w-16 bg-grayA-3 rounded animate-pulse" />
+            <div className="bg-accent-8 rounded-sm h-[10px] w-1 animate-pulse" />
+            <div className="h-3 w-16 bg-grayA-3 rounded-sm animate-pulse" />
           </div>
         </div>
         <div className="flex flex-col gap-1">
           <div className="flex gap-2 items-center h-4">
-            <div className="bg-orange-9 rounded h-[10px] w-1 animate-pulse" />
-            <div className="h-3 w-16 bg-grayA-3 rounded animate-pulse" />
+            <div className="bg-orange-9 rounded-sm h-[10px] w-1 animate-pulse" />
+            <div className="h-3 w-16 bg-grayA-3 rounded-sm animate-pulse" />
           </div>
         </div>
       </div>
       <div className="flex items-center gap-2 min-w-0 max-w-[40%] h-4">
-        <Clock className="text-accent-11 flex-shrink-0 opacity-30" />
-        <div className="h-3 w-10 bg-grayA-3 rounded animate-pulse" />
+        <Clock className="text-accent-11 shrink-0 opacity-30" />
+        <div className="h-3 w-10 bg-grayA-3 rounded-sm animate-pulse" />
       </div>
     </>
   );
@@ -35,12 +35,12 @@ export const NamespaceCardSkeleton = () => {
       <ChartSkeleton />
       <div className="p-4 md:p-6 border-t border-gray-6 flex flex-col gap-2">
         <div className="flex justify-between items-center">
-          <div className="flex flex-col flex-grow min-w-0">
+          <div className="flex flex-col grow min-w-0">
             <div className="flex gap-2 md:gap-3 items-center h-6">
-              <div className="flex-shrink-0 opacity-30">
+              <div className="shrink-0 opacity-30">
                 <ProgressBar className="text-accent-11" />
               </div>
-              <div className="h-5 w-32 bg-grayA-3 rounded animate-pulse" />
+              <div className="h-5 w-32 bg-grayA-3 rounded-sm animate-pulse" />
             </div>
           </div>
         </div>

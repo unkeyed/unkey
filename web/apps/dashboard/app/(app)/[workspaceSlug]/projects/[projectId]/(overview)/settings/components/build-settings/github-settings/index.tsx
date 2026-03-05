@@ -2,9 +2,10 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { useProjectData } from "../../../../data-provider";
+import { SelectedConfig } from "../../shared/selected-config";
 import { GitHubConnected } from "./github-connected";
 import { GitHubNoRepo } from "./github-no-repo";
-import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink } from "./shared";
+import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
 
 type GitHubConnectionState =
   | { status: "loading" }
@@ -12,10 +13,14 @@ type GitHubConnectionState =
   | { status: "no-repo"; installUrl: string }
   | { status: "connected"; repoFullName: string; repositoryId: number; installUrl: string };
 
-export const GitHub = () => {
+type GitHubProps = {
+  readOnly?: boolean;
+};
+
+export const GitHub = ({ readOnly = false }: GitHubProps) => {
   const { projectId } = useProjectData();
 
-  const state = JSON.stringify({ projectId });
+  const state = JSON.stringify({ projectId, returnTo: "settings" });
   const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
 
   const { data, isLoading } = trpc.github.getInstallations.useQuery(
@@ -61,6 +66,13 @@ export const GitHub = () => {
     case "no-repo":
       return <GitHubNoRepo projectId={projectId} installUrl={connectionState.installUrl} />;
     case "connected":
+      if (readOnly) {
+        return (
+          <GitHubSettingCard chevronState="disabled">
+            <SelectedConfig label={<RepoNameLabel fullName={connectionState.repoFullName} />} />
+          </GitHubSettingCard>
+        );
+      }
       return (
         <GitHubConnected
           projectId={projectId}

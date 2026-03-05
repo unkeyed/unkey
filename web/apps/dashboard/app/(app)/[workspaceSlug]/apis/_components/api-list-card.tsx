@@ -66,7 +66,7 @@ export const ApiListCard = ({ api }: Props) => {
               <KeyCountSkeleton />
             ) : isKeyCountError ? (
               <div className="flex items-center gap-1.5 max-w-[40%]">
-                <Key className="text-red-11 flex-shrink-0" iconSize="md-medium" />
+                <Key className="text-red-11 shrink-0" iconSize="md-medium" />
                 <InfoTooltip
                   content={keyCountError?.message || "Failed to load key count. Please try again."}
                 >
@@ -75,7 +75,7 @@ export const ApiListCard = ({ api }: Props) => {
               </div>
             ) : (
               <div className="flex items-center gap-1.5 max-w-[40%]">
-                <Key className="text-accent-11 flex-shrink-0" iconSize="md-medium" />
+                <Key className="text-accent-11 shrink-0" iconSize="md-medium" />
                 <InfoTooltip
                   content={`This API has ${keyCount.toLocaleString()} total ${keyCount === 1 ? "key" : "keys"}`}
                 >

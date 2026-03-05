@@ -4,8 +4,8 @@ import type { Column } from "@/components/virtual-table/types";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
-import { BookBookmark, CodeBranch, Cube } from "@unkey/icons";
+import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
+import { Bolt, BookBookmark, CodeBranch, Connections3, ScanCode } from "@unkey/icons";
 import { Button, Empty, TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
@@ -20,13 +20,10 @@ import { DomainList } from "./components/domain_list";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {
   ActionColumnSkeleton,
-  AuthorColumnSkeleton,
   CreatedAtColumnSkeleton,
   DeploymentIdColumnSkeleton,
   EnvColumnSkeleton,
   InstancesColumnSkeleton,
-  SizeColumnSkeleton,
-  SourceColumnSkeleton,
   StatusColumnSkeleton,
 } from "./components/skeletons";
 import { getRowClassName } from "./utils/get-row-class";
@@ -65,15 +62,15 @@ export const DeploymentsList = () => {
       {
         key: "deployment_id",
         header: "Deployment ID",
-        width: "15%",
+        width: "12%",
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
           const isLive = liveDeploymentId === deployment.id;
           const iconContainer = <StatusIndicator withSignal={isLive} />;
           return (
-            <div className="flex flex-col items-start px-[18px] py-1.5">
+            <div className="flex flex-col items-start px-4.5 py-1.5">
               <div className="flex gap-3 items-center w-full">
-                <div className="flex-shrink-0">{iconContainer}</div>
+                <div className="shrink-0">{iconContainer}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <div
@@ -85,11 +82,11 @@ export const DeploymentsList = () => {
                       {shortenId(deployment.id)}
                     </div>
                     {isLive ? (
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         {project?.isRolledBack ? (
                           <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
                         ) : (
-                          <EnvStatusBadge variant="live" text="Live" />
+                          <EnvStatusBadge variant="live" text="Current" />
                         )}
                       </div>
                     ) : null}
@@ -111,13 +108,13 @@ export const DeploymentsList = () => {
       {
         key: "status",
         header: "Status",
-        width: "15%",
+        width: "10%",
         render: ({ deployment }) => <DeploymentStatusBadge status={deployment.status} />,
       },
       {
         key: "domains",
         header: "Domains",
-        width: "25%",
+        width: "10%",
         render: ({ deployment }) => {
           return (
             <div className="flex items-center min-h-[52px]">
@@ -127,85 +124,67 @@ export const DeploymentsList = () => {
         },
       },
       {
-        key: "instances" as const,
-        header: "Instances",
-        width: "10%",
-        headerClassName: "hidden 2xl:table-cell",
-        cellClassName: "hidden 2xl:table-cell",
-        render: ({ deployment }: { deployment: Deployment }) => {
-          return deployment.status === "failed" ? (
-            <span className="text-gray-9">—</span>
-          ) : (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-              <Cube className="text-gray-12" iconSize="sm-regular" />
-              <div className="flex gap-0.5">
-                <span className="font-semibold text-grayA-12 tabular-nums">
-                  {deployment.instances.length}
-                </span>
-                <span>VMs</span>
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        key: "size" as const,
-        header: "Size",
+        key: "details",
+        header: "",
         width: "15%",
         render: ({ deployment }: { deployment: Deployment }) => {
-          return deployment.status === "failed" ? (
-            <span className="text-gray-9">—</span>
-          ) : (
-            <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-              <Cube className="text-gray-12" iconSize="sm-regular" />
-              <div className="flex gap-1">
-                <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12">
-                    {formatCpu(deployment.cpuMillicores)}
-                  </span>
-                </div>
-                <span> / </span>
-                <div className="flex gap-0.5">
-                  <span className="font-semibold text-grayA-12">
-                    {formatMemory(deployment.memoryMib)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        key: "source",
-        header: "Source",
-        width: "15%",
-        headerClassName: "hidden 2xl:table-cell",
-        cellClassName: "hidden 2xl:table-cell",
-        render: ({ deployment }) => {
-          const iconContainer = (
-            <div className="size-5 rounded flex items-center justify-center cursor-pointer border border-grayA-3 transition-all duration-100 bg-grayA-3">
-              <CodeBranch iconSize="sm-regular" className="text-gray-12" />
-            </div>
-          );
+          const isFailed = deployment.status === "failed";
+          const cpu = isFailed ? null : formatCpuParts(deployment.cpuMillicores);
+          const mem = isFailed ? null : formatMemoryParts(deployment.memoryMib);
           return (
-            <div className="flex flex-col items-start py-1.5">
-              <div className="flex gap-3 items-center w-full">
-                <div className="flex-shrink-0">{iconContainer}</div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={cn(
-                        "font-normal font-mono truncate leading-5 text-[13px]",
-                        "text-accent-12",
-                      )}
-                    >
-                      {deployment.gitBranch}
-                    </div>
+            <div className="flex items-center gap-7">
+              <div className="hidden 2xl:flex items-center w-[80px]">
+                {isFailed ? (
+                  <span className="text-gray-9">—</span>
+                ) : (
+                  <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
+                    <Connections3 className="text-gray-12" iconSize="sm-regular" />
+                    <span className="font-semibold text-grayA-12 tabular-nums">
+                      {deployment.instances.length}
+                    </span>
+                    <span>VMs</span>
                   </div>
-                  <div className={cn("font-normal font-mono truncate text-xs mt-1", "text-gray-9")}>
+                )}
+              </div>
+              <div className="hidden 2xl:flex gap-1.5 w-[180px]">
+                {isFailed || !cpu || !mem ? (
+                  <span className="text-gray-9">—</span>
+                ) : (
+                  <>
+                    <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
+                      <Bolt className="text-gray-12" iconSize="sm-regular" />
+                      <span className="font-semibold text-grayA-12">{cpu.value}</span>
+                      <span>{cpu.unit}</span>
+                    </div>
+                    <div className="bg-grayA-3 font-mono text-xs items-center flex gap-1.5 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
+                      <ScanCode className="text-gray-12" iconSize="sm-regular" />
+                      <span className="font-semibold text-grayA-12">{mem.value}</span>
+                      <span>{mem.unit}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-2 items-center">
+                <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3">
+                  <CodeBranch iconSize="sm-regular" className="text-gray-12" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-mono truncate text-[13px] text-accent-12">
+                    {deployment.gitBranch}
+                  </div>
+                  <div className="font-mono text-xs text-gray-9">
                     {deployment.gitCommitSha?.slice(0, 7)}
                   </div>
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Avatar
+                  src={deployment.gitCommitAuthorAvatarUrl}
+                  alt={deployment.gitCommitAuthorHandle ?? "Author"}
+                />
+                <span className="font-medium text-grayA-12 text-xs">
+                  {deployment.gitCommitAuthorHandle || "—"}
+                </span>
               </div>
             </div>
           );
@@ -214,7 +193,7 @@ export const DeploymentsList = () => {
       {
         key: "created_at" as const,
         header: "Created",
-        width: "10%",
+        width: "8%",
         render: ({ deployment }: { deployment: Deployment }) => {
           return (
             <TimestampInfo
@@ -226,29 +205,9 @@ export const DeploymentsList = () => {
         },
       },
       {
-        key: "author" as const,
-        header: "Author",
-        width: "10%",
-        headerClassName: "hidden 2xl:table-cell",
-        cellClassName: "hidden 2xl:table-cell",
-        render: ({ deployment }: { deployment: Deployment }) => {
-          return (
-            <div className="flex items-center gap-2">
-              <Avatar
-                src={deployment.gitCommitAuthorAvatarUrl}
-                alt={deployment.gitCommitAuthorHandle ?? "Author"}
-              />
-              <span className="font-medium text-grayA-12 text-xs">
-                {deployment.gitCommitAuthorHandle || "—"}
-              </span>
-            </div>
-          );
-        },
-      },
-      {
         key: "action",
         header: "",
-        width: "5%",
+        width: "4%",
         render: ({
           deployment,
           environment,
@@ -331,22 +290,13 @@ export const DeploymentsList = () => {
             {column.key === "deployment_id" && <DeploymentIdColumnSkeleton />}
             {column.key === "env" && <EnvColumnSkeleton />}
             {column.key === "status" && <StatusColumnSkeleton />}
-            {column.key === "instances" && <InstancesColumnSkeleton />}
-            {column.key === "size" && <SizeColumnSkeleton />}
+            {column.key === "details" && <InstancesColumnSkeleton />}
             {column.key === "domains" && (
               <div className="flex items-center min-h-[52px]">
                 <div className="h-4 bg-grayA-3 rounded w-32 animate-pulse" />
               </div>
             )}
-            {column.key === "source" && <SourceColumnSkeleton />}
             {column.key === "created_at" && <CreatedAtColumnSkeleton />}
-            {column.key === "author" && <AuthorColumnSkeleton />}
-            {column.key === "author_created" && (
-              <div className="flex flex-col gap-1">
-                <AuthorColumnSkeleton />
-                <CreatedAtColumnSkeleton />
-              </div>
-            )}
             {column.key === "action" && <ActionColumnSkeleton />}
           </td>
         ))

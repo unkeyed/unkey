@@ -1,12 +1,18 @@
 import { db, eq, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
-import { getInstallationRepositories, getRepositoryById } from "@/lib/github";
+import {
+  getInstallationRepositories,
+  getRepositoryBranches,
+  getRepositoryById,
+  getRepositoryTree,
+} from "@/lib/github";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
 
 const state = z.object({
   projectId: z.string().min(1),
+  returnTo: z.enum(["settings"]).optional(),
 });
 
 const fetchGithubContext = async (workspaceId: string, projectId: string) => {
@@ -109,6 +115,14 @@ const fetchProjectInstallation = async (
 };
 
 export const githubRouter = t.router({
+  hasInstallations: workspaceProcedure.query(async ({ ctx }) => {
+    const installation = await db.query.githubAppInstallations.findFirst({
+      where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
+      columns: { pk: true },
+    });
+    return { hasInstallation: Boolean(installation) };
+  }),
+
   registerInstallation: workspaceProcedure
     .input(
       z.object({
@@ -181,6 +195,7 @@ export const githubRouter = t.router({
       return {
         workspaceSlug: ctx.workspace.slug,
         projectId,
+        returnTo: parsedState.returnTo ?? null,
       };
     }),
 
@@ -212,6 +227,13 @@ export const githubRouter = t.router({
       }),
     )
     .query(async ({ ctx, input }) => {
+      if (!githubAppEnv()) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "GitHub App not configured",
+        });
+      }
+
       const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
       if (!githubContext) {
         throw new TRPCError({
@@ -232,6 +254,8 @@ export const githubRouter = t.router({
         htmlUrl: string;
         defaultBranch: string;
         installationId: number;
+        pushedAt: string | null;
+        language: string | null;
       }> = [];
 
       for (const installation of githubContext.installations) {
@@ -253,13 +277,66 @@ export const githubRouter = t.router({
             htmlUrl: repo.html_url,
             defaultBranch: repo.default_branch,
             installationId: installation.installationId,
+            pushedAt: repo.pushed_at,
+            language: repo.language,
           });
         }
       }
 
-      allRepos.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      allRepos.sort((a, b) => {
+        const aTime = a.pushedAt ? new Date(a.pushedAt).getTime() : 0;
+        const bTime = b.pushedAt ? new Date(b.pushedAt).getTime() : 0;
+        if (aTime !== bTime) {
+          return bTime - aTime;
+        }
+        return a.fullName.localeCompare(b.fullName);
+      });
 
       return { repositories: allRepos };
+    }),
+
+  getRepositoryDetails: workspaceProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        installationId: z.number().int(),
+        owner: z.string(),
+        repo: z.string(),
+        defaultBranch: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      if (!githubContext) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
+      }
+
+      const hasInstallation = githubContext.installations.some(
+        (i) => i.installationId === input.installationId,
+      );
+      if (!hasInstallation) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Installation not found for this workspace",
+        });
+      }
+
+      const [tree, branchesData] = await Promise.all([
+        getRepositoryTree(input.installationId, input.owner, input.repo, input.defaultBranch),
+        getRepositoryBranches(input.installationId, input.owner, input.repo),
+      ]);
+
+      const hasDockerfile = tree.some(
+        (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
+      );
+
+      return {
+        hasDockerfile,
+        branches: branchesData.map((b) => b.name),
+      };
     }),
 
   selectRepository: workspaceProcedure

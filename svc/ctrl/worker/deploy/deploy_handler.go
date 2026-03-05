@@ -14,8 +14,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -57,8 +57,10 @@ const (
 //
 // Returns terminal errors for validation failures and retryable errors for
 // transient system failures.
-func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
+func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
 	finishedSuccessfully := false
+	var currentStep *db.DeploymentStepsStep
+	var failureReason string
 
 	err := assert.All(
 		assert.NotEmpty(req.GetDeploymentId(), "deployment_id is required"),
@@ -79,22 +81,35 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err = w.startDeploymentStep(ctx, deployment, db.DeploymentStepsStepQueued); err != nil {
 		return nil, err
 	}
+	queuedStep := db.DeploymentStepsStepQueued
+	currentStep = &queuedStep
 
 	defer func() {
 		if finishedSuccessfully {
 			return
 		}
 
-		if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); err != nil {
-			logger.Error("deployment failed but we can not set the status", "error", err.Error())
+		if currentStep != nil {
+			msg := failureReason
+			if msg == "" {
+				msg = fault.UserFacingMessage(retErr)
+			}
+			if msg == "" {
+				msg = fmt.Sprintf("Deployment failed during %s step", string(*currentStep))
+			}
+			if stepErr := w.endDeploymentStep(ctx, deployment.ID, *currentStep, &msg); stepErr != nil {
+				logger.Error("failed to end deployment step on failure", "step", *currentStep, "error", stepErr)
+			}
+		}
+
+		if statusErr := w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusFailed); statusErr != nil {
+			logger.Error("deployment failed but we can not set the status", "error", statusErr.Error())
 		}
 	}()
 
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
-
 		var ws db.Workspace
 		err := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-
 			found, err := db.Query.FindWorkspaceByID(txCtx, tx, deployment.WorkspaceID)
 			if err != nil {
 				if db.IsNotFound(err) {
@@ -118,7 +133,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		})
 		return ws, err
 	}, restate.WithName("find workspace"))
-
 	if err != nil {
 		return nil, err
 	}
@@ -139,10 +153,13 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepQueued, nil); err != nil {
 		return nil, err
 	}
+	currentStep = nil
 
 	if err = w.startDeploymentStep(ctx, deployment, db.DeploymentStepsStepBuilding); err != nil {
 		return nil, err
 	}
+	buildingStep := db.DeploymentStepsStepBuilding
+	currentStep = &buildingStep
 
 	dockerImage := ""
 
@@ -150,10 +167,53 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	case *hydrav1.DeployRequest_DockerImage:
 		dockerImage = source.DockerImage.GetImage()
 	case *hydrav1.DeployRequest_Git:
+		commitSHA := source.Git.GetCommitSha()
+
+		// Resolve branch→SHA when commit_sha is empty (e.g. CreateDeployment with
+		// a GitTarget that specifies only a branch)
+		if commitSHA == "" && source.Git.GetBranch() != "" {
+			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
+				if w.allowUnauthenticatedDeployments {
+					return w.github.GetBranchHeadCommitPublic(
+						source.Git.GetRepository(),
+						source.Git.GetBranch(),
+					)
+				}
+				return w.github.GetBranchHeadCommit(
+					source.Git.GetInstallationId(),
+					source.Git.GetRepository(),
+					source.Git.GetBranch(),
+				)
+			}, restate.WithName("resolve branch head"))
+			if resolveErr != nil {
+				return nil, restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr))
+			}
+			commitSHA = info.SHA
+
+			resolveErr = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return db.Query.UpdateDeploymentGitMetadata(runCtx, w.db.RW(), db.UpdateDeploymentGitMetadataParams{
+					ID:                       deployment.ID,
+					GitCommitSha:             sql.NullString{String: info.SHA, Valid: true},
+					GitBranch:                sql.NullString{String: source.Git.GetBranch(), Valid: true},
+					GitCommitMessage:         sql.NullString{String: info.Message, Valid: info.Message != ""},
+					GitCommitAuthorHandle:    sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""},
+					GitCommitAuthorAvatarUrl: sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""},
+					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
+					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				})
+			}, restate.WithName("update deployment git metadata"))
+			if resolveErr != nil {
+				return nil, fmt.Errorf("failed to update deployment git metadata: %w", resolveErr)
+			}
+
+			deployment.GitCommitSha = sql.NullString{String: info.SHA, Valid: true}
+			deployment.GitBranch = sql.NullString{String: source.Git.GetBranch(), Valid: true}
+		}
+
 		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{
 			InstallationID: source.Git.GetInstallationId(),
 			Repository:     source.Git.GetRepository(),
-			CommitSHA:      source.Git.GetCommitSha(),
+			CommitSHA:      commitSHA,
 			ContextPath:    source.Git.GetContextPath(),
 			DockerfilePath: source.Git.GetDockerfilePath(),
 			ProjectID:      deployment.ProjectID,
@@ -161,9 +221,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			WorkspaceID:    deployment.WorkspaceID,
 		})
 		if err != nil {
-			buildErr := fmt.Errorf("failed to build docker image from git: %w", err)
-			_ = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepBuilding, ptr.P(fault.UserFacingMessage(err)))
-			return nil, buildErr
+			failureReason = fault.UserFacingMessage(err)
+			return nil, fmt.Errorf("failed to build docker image from git: %w", err)
 		}
 		dockerImage = build.ImageName
 
@@ -196,6 +255,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepBuilding, nil); err != nil {
 		return nil, err
 	}
+	currentStep = nil
 
 	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusDeploying); err != nil {
 		return nil, err
@@ -204,6 +264,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err = w.startDeploymentStep(ctx, deployment, db.DeploymentStepsStepDeploying); err != nil {
 		return nil, err
 	}
+	deployingStep := db.DeploymentStepsStepDeploying
+	currentStep = &deployingStep
 
 	// Read region config from runtime settings to determine per-region replica counts.
 	// If regionConfig is empty, deploy to all available regions with 1 replica each (default).
@@ -268,6 +330,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
 		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
 	}, restate.WithName("find existing sentinels"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to find existing sentinels: %w", err)
+	}
 
 	existingSentinelsByRegion := make(map[string]db.Sentinel)
 	for _, sentinel := range existingSentinels {
@@ -336,7 +401,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	readygates := make([]restate.Future, len(topologies))
 	for i, region := range topologies {
 		promise := restate.RunAsync(ctx, func(runCtx restate.RunContext) (bool, error) {
-
 			for {
 				time.Sleep(time.Second)
 
@@ -362,7 +426,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				}
 
 			}
-
 		}, restate.WithName(fmt.Sprintf("wait for instances in %s", region.Region)))
 		readygates[i] = promise
 	}
@@ -378,10 +441,13 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepDeploying, nil); err != nil {
 		return nil, err
 	}
+	currentStep = nil
 
 	if err = w.startDeploymentStep(ctx, deployment, db.DeploymentStepsStepNetwork); err != nil {
 		return nil, err
 	}
+	networkStep := db.DeploymentStepsStepNetwork
+	currentStep = &networkStep
 
 	allDomains := buildDomains(
 		workspace.Slug,
@@ -419,7 +485,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					return "", err
 				}
 				return found.ID, nil
-
 			})
 		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)))
 		if getFrontlineRouteErr != nil {
@@ -463,6 +528,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	if err = w.endDeploymentStep(ctx, deployment.ID, db.DeploymentStepsStepNetwork, nil); err != nil {
 		return nil, err
 	}
+	currentStep = nil
 
 	if err = w.updateDeploymentStatus(ctx, deployment.ID, db.DeploymentsStatusReady); err != nil {
 		return nil, err

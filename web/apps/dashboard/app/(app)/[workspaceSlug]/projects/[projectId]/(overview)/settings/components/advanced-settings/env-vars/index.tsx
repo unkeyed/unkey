@@ -9,7 +9,7 @@ import { useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../../environment-provider";
-import { FormSettingCard } from "../../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyRow, envVarsSchema } from "./schema";
 import { useDecryptedValues } from "./use-decrypted-values";
@@ -136,6 +136,13 @@ const EnvVarsForm = ({
     ]);
   };
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [isDecrypting, { status: "disabled", reason: "Decrypting values…" }],
+    [!isValid, { status: "disabled" }],
+    [!isDirty, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   const varCount = defaultValues.envVars.filter((v) => v.key !== "").length;
   const displayValue =
     varCount === 0 ? null : (
@@ -152,8 +159,7 @@ const EnvVarsForm = ({
       description="Set environment variables available at runtime. Changes apply on next deploy."
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && !isDecrypting && isDirty}
-      isSaving={isSubmitting}
+      saveState={saveState}
       ref={ref}
       className={cn("relative", isDragging && "bg-primary/5")}
     >

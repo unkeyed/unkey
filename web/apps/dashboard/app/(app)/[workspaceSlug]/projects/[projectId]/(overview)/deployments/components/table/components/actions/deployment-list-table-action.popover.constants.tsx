@@ -7,6 +7,7 @@ import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { PromotionDialog } from "./promotion-dialog";
+import { RedeployDialog } from "./redeploy-dialog";
 import { RollbackDialog } from "./rollback-dialog";
 
 type DeploymentListTableActionsProps = {
@@ -34,6 +35,9 @@ export const DeploymentListTableActions = ({
       environment?.slug === "production" &&
       selectedDeployment.status === "ready" &&
       selectedDeployment.id !== liveDeployment.id;
+
+    const canRedeploy =
+      selectedDeployment.status === "ready" || selectedDeployment.status === "failed";
 
     return [
       {
@@ -69,6 +73,15 @@ export const DeploymentListTableActions = ({
             : undefined,
       },
       {
+        id: "redeploy",
+        label: "Redeploy",
+        icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
+        disabled: !canRedeploy,
+        ActionComponent: canRedeploy
+          ? (props) => <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
+          : undefined,
+      },
+      {
         id: "sentinel-logs",
         label: "Go to requests...",
         icon: <Layers3 iconSize="md-regular" />,
@@ -83,9 +96,7 @@ export const DeploymentListTableActions = ({
         label: "Go to logs...",
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
-          router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${selectedDeployment.id}/logs`,
-          );
+          router.push(`/${workspace.slug}/projects/${selectedDeployment.projectId}/logs`);
         },
       },
     ];

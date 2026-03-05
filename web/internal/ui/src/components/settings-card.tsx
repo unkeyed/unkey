@@ -16,6 +16,7 @@ type SettingCardProps = {
   border?: SettingCardBorder;
   contentWidth?: string;
   icon?: React.ReactNode;
+  iconClassName?: string;
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
   chevronState?: ChevronState;
@@ -26,7 +27,7 @@ const SettingCardGroupContext = React.createContext(false);
 function SettingCardGroup({ children }: { children: React.ReactNode }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border border-grayA-4 rounded-xl overflow-hidden divide-y divide-grayA-4">
+      <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
         {children}
       </div>
     </SettingCardGroupContext.Provider>
@@ -42,6 +43,7 @@ function SettingCard({
   border = "default",
   contentWidth = "w-[420px]",
   icon,
+  iconClassName,
   expandable,
   defaultExpanded = false,
   chevronState,
@@ -81,14 +83,14 @@ function SettingCard({
       return "";
     }
     if (border === "top") {
-      return "rounded-t-xl";
+      return "rounded-t-[14px]";
     }
     if (border === "bottom") {
-      return !expandable || !isExpanded ? "rounded-b-xl" : "";
+      return !expandable || !isExpanded ? "rounded-b-[14px]" : "";
     }
     if (border === "both") {
-      const bottom = !expandable || !isExpanded ? "rounded-b-xl" : "";
-      return cn("rounded-t-xl", bottom);
+      const bottom = !expandable || !isExpanded ? "rounded-b-[14px]" : "";
+      return cn("rounded-t-[14px]", bottom);
     }
     return "";
   };
@@ -103,7 +105,7 @@ function SettingCard({
 
   const expandedBottomRadius =
     !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
-      ? "rounded-b-xl"
+      ? "rounded-b-[14px]"
       : "";
 
   const handleToggle = () => {
@@ -135,7 +137,7 @@ function SettingCard({
     <div className={cn("w-full", getBorderRadiusClass(), borderClass, expandedBottomRadius)}>
       <div
         className={cn(
-          "px-6 py-6 lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row group",
+          "px-4 py-[18px] lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row group",
           isInteractive && "cursor-pointer",
           className,
         )}
@@ -152,7 +154,12 @@ function SettingCard({
       >
         <div className="flex gap-4 items-center">
           {icon && (
-            <div className="bg-gray-3 size-8 rounded-[10px] flex items-center justify-center">
+            <div
+              className={cn(
+                "bg-gray-3 size-8 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
+                iconClassName,
+              )}
+            >
               {icon}
             </div>
           )}
@@ -170,7 +177,7 @@ function SettingCard({
           {shouldShowChevron && (
             <ChevronRight
               className={cn(
-                "text-gray-10 transition-all duration-300 ease-out flex-shrink-0",
+                "text-gray-10 transition-all duration-300 ease-out shrink-0",
                 isExpanded && "rotate-90",
                 effectiveChevronState !== "disabled" && "group-hover:text-gray-11",
                 effectiveChevronState === "disabled" && "opacity-40 cursor-not-allowed",

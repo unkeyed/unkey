@@ -338,7 +338,8 @@
                   {
                     "group": "Too Many Requests",
                     "pages": [
-                      "errors/user/too_many_requests/query_quota_exceeded"
+                      "errors/user/too_many_requests/query_quota_exceeded",
+                      "errors/user/too_many_requests/workspace_rate_limited"
                     ]
                   },
                   {

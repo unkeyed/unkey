@@ -10,7 +10,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
 import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 
 const instancesSchema = z.object({
@@ -20,7 +20,7 @@ const instancesSchema = z.object({
 type InstancesFormValues = z.infer<typeof instancesSchema>;
 
 export const Instances = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { environmentId, regionConfig } = settings;
 
   const selectedRegions = Object.keys(regionConfig);
@@ -55,6 +55,17 @@ export const Instances = () => {
   };
 
   const hasChanges = currentInstances !== defaultInstances;
+  const hasRegions = Object.keys(regionConfig).length > 0;
+
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [
+      !hasRegions,
+      { status: "disabled", reason: "Select at least one region before setting instance count" },
+    ],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
 
   return (
     <FormSettingCard
@@ -70,8 +81,8 @@ export const Instances = () => {
         </div>
       }
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={isSubmitting}
+      saveState={saveState}
+      autoSave={autoSave}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Instances per region</span>
@@ -86,6 +97,15 @@ export const Instances = () => {
                 setValue("instances", value, { shouldValidate: true });
               }
             }}
+            onValueCommit={
+              autoSave
+                ? ([value]) => {
+                    if (value !== undefined) {
+                      handleSubmit(onSubmit)();
+                    }
+                  }
+                : undefined
+            }
             className="flex-1 max-w-[480px]"
             rangeStyle={{
               background:

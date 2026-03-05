@@ -4,8 +4,9 @@ import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
+import { LoadingState } from "@/components/loading-state";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Empty, Loading } from "@unkey/ui";
+import { Empty } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -13,19 +14,6 @@ import { QueryTimeProvider } from "../../providers/query-time-provider";
 
 interface LayoutProps {
   children: React.ReactNode;
-}
-
-function LoadingState({ message = "Loading..." }: { message?: string }) {
-  return (
-    <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
-      <div className="flex items-center justify-center w-full h-full">
-        <div className="flex flex-col items-center gap-4">
-          <Loading size={24} />
-          <p className="text-sm text-gray-600 dark:text-gray-400">{message}</p>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default function Layout({ children }: LayoutProps) {
@@ -71,7 +59,7 @@ export default function Layout({ children }: LayoutProps) {
   const isImpersonator = user?.impersonator;
 
   return (
-    <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
+    <div className="h-dvh relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}

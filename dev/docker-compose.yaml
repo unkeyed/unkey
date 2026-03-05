@@ -64,9 +64,8 @@ services:
       replicas: 3
       endpoint_mode: vip
     command: ["run", "api", "--config", "/etc/unkey/api.toml"]
-    build:
-      context: ../
-      dockerfile: ./Dockerfile
+    image: unkey/unkey:latest
+    pull_policy: never
     depends_on:
       mysql:
         condition: service_healthy
@@ -100,9 +99,8 @@ services:
     networks:
       - default
     container_name: vault
-    build:
-      context: ../
-      dockerfile: Dockerfile
+    image: unkey/unkey:latest
+    pull_policy: never
     command: ["run", "vault", "--config", "/etc/unkey/vault.toml"]
     ports:
       - "8060:8060"
@@ -175,11 +173,8 @@ services:
       interval: 5s
 
   krane:
-    build:
-      context: ../
-      dockerfile: Dockerfile
-      args:
-        VERSION: "latest"
+    image: unkey/unkey:latest
+    pull_policy: never
     container_name: krane
     command: ["run", "krane", "--config", "/etc/unkey/krane.toml"]
     ports:
@@ -219,11 +214,8 @@ services:
   ctrl-api:
     networks:
       - default
-    build:
-      context: ../
-      dockerfile: Dockerfile
-      args:
-        VERSION: "latest"
+    image: unkey/unkey:latest
+    pull_policy: never
     container_name: ctrl-api
     command: ["run", "ctrl", "api", "--config", "/etc/unkey/ctrl-api.toml"]
     ports:
@@ -249,11 +241,8 @@ services:
   ctrl-worker:
     networks:
       - default
-    build:
-      context: ../
-      dockerfile: Dockerfile
-      args:
-        VERSION: "latest"
+    image: unkey/unkey:latest
+    pull_policy: never
     container_name: ctrl-worker
     command: ["run", "ctrl", "worker", "--config", "/etc/unkey/ctrl-worker.toml"]
     env_file:

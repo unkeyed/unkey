@@ -14,3 +14,7 @@ export const useProjectLayout = () => {
   }
   return context;
 };
+
+export const useOptionalProjectLayout = (): ProjectLayoutContextType | null => {
+  return useContext(ProjectLayoutContext);
+};

@@ -98,7 +98,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
           {children}
         </PopoverTrigger>
         <PopoverContent
-          className="flex flex-col min-w-[430px] w-full h-[calc(100dvh-120px)] max-h-[840px] bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-lg border-r border-gray-4"
+          className="flex flex-col min-w-107 max-w-200 h-[calc(100dvh-120px)] max-h-190 bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-lg border-r border-gray-4"
           align="start"
           onKeyDown={handleKeyNavigation}
         >
@@ -107,7 +107,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
           </div>
           <QueriesTabs selectedTab={focusedTabIndex} onChange={handleTabChange} />
           <div
-            className="flex flex-col w-full h-full overflow-y-scroll m-0 p-0 pt-[8px] scrollbar-hide"
+            className="flex flex-col w-full h-full overflow-y-scroll m-0 p-0 pt-2 scrollbar-hide"
             ref={containerRef}
           >
             <QueriesContent
@@ -125,7 +125,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
 const PopoverHeader = () => {
   return (
     <div className="flex justify-between w-full h-8 ">
-      <span className="text-text text-gray-9 text-[13px] w-full leading-6 text-normal tracking-[0.1px] mt-[4px] ml-[6px]">
+      <span className="text-text text-gray-9 text-[13px] w-full leading-6 text-normal tracking-[0.1px] mt-1 ml-1.5">
         Select a query...
       </span>
       <KeyboardButton

@@ -1,7 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { formatCpu } from "@/lib/utils/deployment-formatters";
+import { formatCpuParts } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Bolt } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 import { indexToValue, valueToIndex } from "../shared/slider-utils";
 
@@ -31,7 +31,7 @@ const cpuSchema = z.object({
 type CpuFormValues = z.infer<typeof cpuSchema>;
 
 export const Cpu = () => {
-  const { settings } = useEnvironmentSettings();
+  const { settings, autoSave } = useEnvironmentSettings();
   const { environmentId, cpuMillicores: defaultCpu } = settings;
 
   const {
@@ -61,23 +61,29 @@ export const Cpu = () => {
   const hasChanges = currentCpu !== defaultCpu;
   const currentIndex = valueToIndex(CPU_OPTIONS, currentCpu);
 
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   return (
     <FormSettingCard
       icon={<Bolt className="text-gray-12" iconSize="xl-medium" />}
       title="CPU"
       description="CPU allocation for each instance"
       displayValue={(() => {
-        const [value, unit] = parseCpuDisplay(defaultCpu);
+        const parts = formatCpuParts(defaultCpu);
         return (
           <div className="space-x-1">
-            <span className="font-medium text-gray-12">{value}</span>
-            <span className="text-gray-11 font-normal">{unit}</span>
+            <span className="font-medium text-gray-12">{parts.value}</span>
+            <span className="text-gray-11 font-normal">{parts.unit}</span>
           </div>
         );
       })()}
       onSubmit={handleSubmit(onSubmit)}
-      canSave={isValid && !isSubmitting && hasChanges}
-      isSaving={isSubmitting}
+      saveState={saveState}
+      autoSave={autoSave}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">CPU per instance</span>
@@ -92,6 +98,7 @@ export const Cpu = () => {
                 setValue("cpu", indexToValue(CPU_OPTIONS, value, 256), { shouldValidate: true });
               }
             }}
+            onValueCommit={autoSave ? () => handleSubmit(onSubmit)() : undefined}
             className="flex-1 max-w-[480px]"
             rangeStyle={{
               background: "linear-gradient(to right, hsla(var(--infoA-4)), hsla(var(--infoA-12)))",
@@ -100,7 +107,8 @@ export const Cpu = () => {
             }}
           />
           <span className="text-[13px]">
-            <span className="font-medium text-gray-12">{formatCpu(currentCpu)}</span>
+            <span className="font-medium text-gray-12">{formatCpuParts(currentCpu).value}</span>{" "}
+            <span className="text-gray-11">{formatCpuParts(currentCpu).unit}</span>
           </span>
         </div>
         <SettingDescription>
@@ -110,19 +118,3 @@ export const Cpu = () => {
     </FormSettingCard>
   );
 };
-
-function parseCpuDisplay(millicores: number): [string, string] {
-  if (millicores === 256) {
-    return ["1/4", "vCPU"];
-  }
-  if (millicores === 512) {
-    return ["1/2", "vCPU"];
-  }
-  if (millicores === 768) {
-    return ["3/4", "vCPU"];
-  }
-  if (millicores >= 1024 && millicores % 1024 === 0) {
-    return [`${millicores / 1024}`, "vCPU"];
-  }
-  return [`${millicores}m`, "vCPU"];
-}

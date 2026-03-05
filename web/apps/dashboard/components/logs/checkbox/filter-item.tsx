@@ -114,7 +114,7 @@ export const FilterItem = ({
           className={cn(
             "flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer",
             "hover:bg-gray-3 data-[state=open]:bg-gray-3",
-            "focus:outline-none focus:ring-2 focus:ring-accent-7",
+            "focus:outline-hidden focus:ring-2 focus:ring-accent-7",
             isFocused && !isActive ? "bg-gray-4" : "",
             isActive ? "bg-gray-3" : "",
           )}
@@ -137,7 +137,7 @@ export const FilterItem = ({
           </div>
           <div className="flex items-center gap-1.5 pointer-events-none">
             {filterCount > 0 && (
-              <div className="bg-gray-6 rounded size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
+              <div className="bg-gray-6 rounded-sm size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
                 {filterCount}
               </div>
             )}

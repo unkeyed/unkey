@@ -1,6 +1,5 @@
 "use client";
-
-import { PageLoading } from "@/components/dashboard/page-loading";
+import { LoadingState } from "@/components/loading-state";
 import { trpc } from "@/lib/trpc/client";
 import { Empty, toast } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,8 +21,13 @@ export default function Page() {
 
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
-      toast.success("GitHub App installed");
-      router.push(`/${data.workspaceSlug}/projects/${data.projectId}/settings`);
+      if (data.returnTo === "settings") {
+        router.replace(`/${data.workspaceSlug}/projects/${data.projectId}/settings`);
+      } else {
+        router.replace(
+          `/${data.workspaceSlug}/projects/new?step=select-repo&projectId=${data.projectId}`,
+        );
+      }
     },
     onError: (error) => {
       toast.error(error.message);
@@ -76,5 +80,5 @@ export default function Page() {
     );
   }
 
-  return <PageLoading message="Finalizing GitHub installation..." />;
+  return <LoadingState message="Finalizing GitHub installation..." />;
 }

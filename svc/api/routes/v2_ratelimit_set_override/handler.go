@@ -27,10 +27,10 @@ type (
 
 // Handler implements zen.Route interface for the v2 ratelimit set override endpoint
 type Handler struct {
-	DB                      db.Database
-	Keys                    keys.KeyService
-	Auditlogs               auditlogs.AuditLogService
-	RatelimitNamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
+	DB             db.Database
+	Keys           keys.KeyService
+	Auditlogs      auditlogs.AuditLogService
+	NamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
 // Method returns the HTTP method this route responds to
@@ -41,6 +41,12 @@ func (h *Handler) Method() string {
 // Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/ratelimit.setOverride"
+}
+
+type setOverrideResult struct {
+	overrideID    string
+	namespaceName string
+	namespaceID   string
 }
 
 // Handle processes the HTTP request
@@ -56,33 +62,34 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	overrideID, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
-		var namespace db.FindRatelimitNamespaceRow
-		namespace, err = db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
+	// Keep the namespace lookup inside the transaction for transactional read consistency.
+	result, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (setOverrideResult, error) {
+		var zero setOverrideResult
+		nsRow, txErr := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			Namespace:   req.Namespace,
 		})
-		if err != nil {
-			if db.IsNotFound(err) {
-				return "", fault.New("namespace not found",
+		if txErr != nil {
+			if db.IsNotFound(txErr) {
+				return zero, fault.New("namespace not found",
 					fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 					fault.Public("This namespace does not exist."),
 				)
 			}
-			return "", err
+			return zero, txErr
 		}
 
-		if namespace.DeletedAtM.Valid {
-			return "", fault.New("namespace was deleted",
+		if nsRow.DeletedAtM.Valid {
+			return zero, fault.New("namespace was deleted",
 				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 				fault.Public("This namespace does not exist."),
 			)
 		}
 
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		txErr = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
-				ResourceID:   namespace.ID,
+				ResourceID:   nsRow.ID,
 				Action:       rbac.SetOverride,
 			}),
 			rbac.T(rbac.Tuple{
@@ -91,51 +98,50 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.SetOverride,
 			}),
 		)))
-		if err != nil {
-			return "", err
+		if txErr != nil {
+			return zero, txErr
 		}
 
-		var override db.RatelimitOverride
-		override, err = db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
+		override, txErr := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			NamespaceID: namespace.ID,
+			NamespaceID: nsRow.ID,
 			Identifier:  req.Identifier,
 		})
 
-		if err != nil && !db.IsNotFound(err) {
-			return "", fault.Wrap(err,
+		if txErr != nil && !db.IsNotFound(txErr) {
+			return zero, fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed"),
 				fault.Public("The database is unavailable."),
 			)
 		}
 
-		overrideID := uid.New(uid.RatelimitOverridePrefix)
-		if !db.IsNotFound(err) {
-			overrideID = override.ID
+		ovrID := uid.New(uid.RatelimitOverridePrefix)
+		if txErr == nil {
+			ovrID = override.ID
 		}
 
 		now := time.Now().UnixMilli()
 
-		err = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
-			ID:          overrideID,
+		txErr = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
+			ID:          ovrID,
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			NamespaceID: namespace.ID,
+			NamespaceID: nsRow.ID,
 			Identifier:  req.Identifier,
 			Limit:       int32(req.Limit),    // nolint:gosec
 			Duration:    int32(req.Duration), //nolint:gosec
 			CreatedAt:   now,
 			UpdatedAt:   sql.NullInt64{Int64: now, Valid: true},
 		})
-		if err != nil {
-			return "", fault.Wrap(err,
+		if txErr != nil {
+			return zero, fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database failed"),
 				fault.Public("The database is unavailable."),
 			)
 		}
 
-		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+		txErr = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Event:       auditlog.RatelimitSetOverrideEvent,
@@ -145,11 +151,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorMeta:   map[string]any{},
 				RemoteIP:    s.Location(),
 				UserAgent:   s.UserAgent(),
-				Display:     fmt.Sprintf("Set ratelimit override for %s and %s", namespace.ID, req.Identifier),
+				Display:     fmt.Sprintf("Set ratelimit override for %s and %s", nsRow.ID, req.Identifier),
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        auditlog.RatelimitOverrideResourceType,
-						ID:          overrideID,
+						ID:          ovrID,
 						Name:        req.Identifier,
 						DisplayName: req.Identifier,
 						Meta:        nil,
@@ -157,33 +163,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				},
 			},
 		})
-		if err != nil {
-			return "", err
+		if txErr != nil {
+			return zero, txErr
 		}
 
-		h.RatelimitNamespaceCache.Remove(ctx,
-			cache.ScopedKey{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Key:         namespace.ID,
-			},
-			cache.ScopedKey{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Key:         namespace.Name,
-			},
-		)
-
-		return overrideID, nil
+		return setOverrideResult{
+			overrideID:    ovrID,
+			namespaceName: nsRow.Name,
+			namespaceID:   nsRow.ID,
+		}, nil
 	})
 	if err != nil {
 		return err
 	}
+
+	// Invalidate cache for this namespace after the transaction commits
+	h.NamespaceCache.Remove(ctx,
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.namespaceID},
+		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.namespaceName},
+	)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2RatelimitSetOverrideResponseData{
-			OverrideId: overrideID,
+			OverrideId: result.overrideID,
 		},
 	})
 }

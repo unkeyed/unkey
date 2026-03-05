@@ -13,14 +13,15 @@ export type BuildStepRow = BuildStep & {
 export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
     key: "expand",
-    width: "32px",
+    width: "25px",
+    cellClassName: "p-0",
     render: (step) =>
       step.has_logs ? (
-        <div className="size-4 flex items-center justify-center ">
+        <div className="size-4 flex items-center justify-center w-full">
           <CaretRight
             iconSize="sm-regular"
             className={cn(
-              "shrink-0 transition-transform text-gray-9  ",
+              "shrink-0 transition-transform text-gray-11",
               step._isExpanded && "rotate-90",
             )}
           />
@@ -29,10 +30,9 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   },
   {
     key: "started_at",
-    //header: "Started At",
-    width: "180px",
+    width: "85px",
     render: (step) => (
-      <div className="font-mono text-xs truncate max-w-[300px] flex items-center gap-2 ">
+      <div className="font-mono text-xs truncate max-w-75 flex items-center gap-2 ">
         <TimestampInfo
           displayType="local_hours_with_millis"
           value={step.started_at}
@@ -46,12 +46,12 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
     width: "32px",
     render: (step) => {
       if (step.error) {
-        return <TriangleWarning className="text-error-11" />;
+        return <TriangleWarning className="text-error-11" iconSize="md-regular" />;
       }
       if (step.cached) {
         return (
           <InfoTooltip content="This step was cached" asChild>
-            <Bolt className="text-primary-11" />
+            <Bolt className="text-primary-11" iconSize="md-regular" />
           </InfoTooltip>
         );
       }
@@ -60,28 +60,25 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   },
   {
     key: "name",
-    // header: "Step",
     width: "250px",
     render: (step) => (
       <div
-        className="font-mono text-xs truncate max-w-[300px] flex items-center gap-2"
+        className="font-mono text-xs truncate max-w-75 flex items-center gap-2 text-gray-12"
         title={step.name}
       >
         <span className="truncate">{step.name}</span>
       </div>
     ),
   },
-
   {
     key: "error",
-    //header: "Error",
-    width: "300px",
+    width: "auto",
     render: (step) => {
       if (!step.error) {
         return null;
       }
       return (
-        <span className="truncate font-mono" title={step.error}>
+        <span className="block truncate font-mono max-w-[300px]" title={step.error}>
           {step.error}
         </span>
       );
@@ -89,8 +86,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   },
   {
     key: "duration",
-    //header: "Duration",
-    width: "10%",
+    width: "115px",
     render: (step) => {
       const duration = step.completed_at - step.started_at;
       return (

@@ -21,19 +21,19 @@ const comboboxTriggerVariants = cva(
       variant: {
         default: [
           "border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black",
-          "focus:border focus:border-accent-12 focus:ring-2 focus:ring-gray-5 focus-visible:outline-none focus:ring-offset-0",
+          "focus:border focus:border-accent-12 focus:ring-2 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
         ],
         success: [
           "border border-success-9 hover:border-success-10 bg-gray-2 dark:bg-black",
-          "focus:border-success-8 focus:ring-2 focus:ring-success-2 focus-visible:outline-none",
+          "focus:border-success-8 focus:ring-2 focus:ring-success-2 focus-visible:outline-hidden",
         ],
         warning: [
           "border border-warning-9 hover:border-warning-10 bg-gray-2 dark:bg-black",
-          "focus:border-warning-8 focus:ring-2 focus:ring-warning-2 focus-visible:outline-none",
+          "focus:border-warning-8 focus:ring-2 focus:ring-warning-2 focus-visible:outline-hidden",
         ],
         error: [
           "border border-error-9 hover:border-error-10 bg-gray-2 dark:bg-black",
-          "focus:border-error-8 focus:ring-2 focus:ring-error-2 focus-visible:outline-none",
+          "focus:border-error-8 focus:ring-2 focus:ring-error-2 focus-visible:outline-hidden",
         ],
       },
     },
@@ -149,7 +149,7 @@ export function Combobox({
         </PopoverTrigger>
       </div>
       <PopoverContent
-        className="p-0 w-full min-w-[var(--radix-popover-trigger-width)] rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-[200] overflow-visible"
+        className="p-0 w-full min-w-(--radix-popover-trigger-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible"
         onOpenAutoFocus={(e) => {
           // Prevent auto-focus to allow proper keyboard navigation
           e.preventDefault();

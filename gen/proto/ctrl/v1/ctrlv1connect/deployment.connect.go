@@ -47,7 +47,8 @@ const (
 
 // DeployServiceClient is a client for the ctrl.v1.DeployService service.
 type DeployServiceClient interface {
-	// Create a new deployment with a prebuilt docker image
+	// Create a new deployment from a docker image or by auto-detecting
+	// the appropriate source for the project.
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
@@ -125,7 +126,8 @@ func (c *deployServiceClient) Promote(ctx context.Context, req *connect.Request[
 
 // DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
 type DeployServiceHandler interface {
-	// Create a new deployment with a prebuilt docker image
+	// Create a new deployment from a docker image or by auto-detecting
+	// the appropriate source for the project.
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)

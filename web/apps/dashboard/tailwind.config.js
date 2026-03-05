@@ -123,10 +123,20 @@ module.exports = {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
+        "expand-down": {
+          from: { "grid-template-rows": "0fr" },
+          to: { "grid-template-rows": "1fr" },
+        },
+        "fade-slide-in": {
+          from: { opacity: 0, transform: "translateY(8px)" },
+          to: { opacity: 1, transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "expand-down": "expand-down 0.2s ease-out forwards",
+        "fade-slide-in": "fade-slide-in 0.3s ease-out",
         "shiny-text": "shiny-text 10s infinite",
         shimmer: "shimmer 1.2s ease-in-out infinite",
       },

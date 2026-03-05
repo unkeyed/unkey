@@ -286,7 +286,7 @@ const PopoverItem = ({
         ref={itemRef}
         className={cn(
           "flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer",
-          "hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-none",
+          "hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-hidden",
           (isFocused || isActive) && "bg-gray-3",
           itemClassName,
         )}

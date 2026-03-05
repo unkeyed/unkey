@@ -1,12 +1,12 @@
 "use client";
 
-import { formatMemory } from "@/lib/utils/deployment-formatters";
+import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Harddrive } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { FormSettingCard } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
 import { indexToValue, valueToIndex } from "../shared/slider-utils";
 
@@ -52,23 +52,27 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
   const hasChanges = currentStorage !== defaultStorage;
   const currentIndex = valueToIndex(STORAGE_OPTIONS, currentStorage);
 
+  const saveState = resolveSaveState([
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
   return (
     <FormSettingCard
       icon={<Harddrive className="text-gray-12" iconSize="xl-medium" />}
       title="Storage"
       description="Ephemeral disk space per instance"
       displayValue={(() => {
-        const [value, unit] = parseStorageDisplay(defaultStorage);
+        const parts = formatMemoryParts(defaultStorage);
         return (
           <div className="space-x-1">
-            <span className="font-medium text-gray-12">{value}</span>
-            <span className="text-gray-11 font-normal">{unit}</span>
+            <span className="font-medium text-gray-12">{parts.value}</span>
+            <span className="text-gray-11 font-normal">{parts.unit}</span>
           </div>
         );
       })()}
       onSubmit={(e) => e.preventDefault()}
-      canSave={isValid && hasChanges}
-      isSaving={false}
+      saveState={saveState}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Storage per instance</span>
@@ -94,7 +98,10 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
             }}
           />
           <span className="text-[13px]">
-            <span className="font-medium text-gray-12">{formatMemory(currentStorage)}</span>
+            <span className="font-medium text-gray-12">
+              {formatMemoryParts(currentStorage).value}
+            </span>{" "}
+            <span className="text-gray-11">{formatMemoryParts(currentStorage).unit}</span>
           </span>
         </div>
         <SettingDescription>
@@ -104,10 +111,3 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
     </FormSettingCard>
   );
 };
-
-function parseStorageDisplay(mib: number): [string, string] {
-  if (mib >= 1024) {
-    return [`${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)}`, "GiB"];
-  }
-  return [`${mib}`, "MiB"];
-}

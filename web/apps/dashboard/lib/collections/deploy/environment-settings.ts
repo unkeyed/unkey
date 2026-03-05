@@ -86,7 +86,8 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
     id: "environmentSettings",
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
-      await dispatchSettingsMutations(original, modified);
+      const silent = transaction.metadata?.silent === true;
+      await dispatchSettingsMutations(original, modified, silent);
     },
   }),
 );
@@ -123,11 +124,17 @@ function flattenSettingsResponse(
   };
 }
 
-async function dispatchSettingsMutations(
+/**
+ * Build an array of tRPC mutation promises for settings that changed between
+ * `original` and `modified`, targeting `environmentId`.
+ *
+ * Pure function — no toasts, no side-effects beyond the network calls.
+ */
+export function buildSettingsMutations(
+  environmentId: string,
   original: EnvironmentSettings,
   modified: EnvironmentSettings,
-): Promise<void> {
-  const { environmentId } = original;
+): Promise<unknown>[] {
   const mutations: Promise<unknown>[] = [];
 
   if (modified.dockerfile !== original.dockerfile) {
@@ -232,18 +239,30 @@ async function dispatchSettingsMutations(
     );
   }
 
+  return mutations;
+}
+
+async function dispatchSettingsMutations(
+  original: EnvironmentSettings,
+  modified: EnvironmentSettings,
+  silent = false,
+): Promise<void> {
+  const mutations = buildSettingsMutations(original.environmentId, original, modified);
+
   if (mutations.length === 0) {
     return;
   }
 
   const allMutations = Promise.all(mutations);
-  toast.promise(allMutations, {
-    loading: "Saving settings...",
-    success: "Settings updated",
-    error: (err) => ({
-      message: "Failed to update settings",
-      description: err instanceof Error ? err.message : "An unexpected error occurred",
-    }),
-  });
+  if (!silent) {
+    toast.promise(allMutations, {
+      loading: "Saving settings...",
+      success: "Settings updated",
+      error: (err) => ({
+        message: "Failed to update settings",
+        description: err instanceof Error ? err.message : "An unexpected error occurred",
+      }),
+    });
+  }
   await allMutations;
 }

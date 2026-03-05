@@ -112,10 +112,14 @@ export const createProject = workspaceProcedure
           {
             workspaceId: ctx.workspace.id,
             environmentId: prodEnvId,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
           },
           {
             workspaceId: ctx.workspace.id,
             environmentId: previewEnvId,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
           },
         ]);
         await tx.insert(schema.environmentRuntimeSettings).values([
@@ -123,11 +127,15 @@ export const createProject = workspaceProcedure
             workspaceId: ctx.workspace.id,
             environmentId: prodEnvId,
             sentinelConfig: "{}",
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
           },
           {
             workspaceId: ctx.workspace.id,
             environmentId: previewEnvId,
             sentinelConfig: "{}",
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
           },
         ]);
       });

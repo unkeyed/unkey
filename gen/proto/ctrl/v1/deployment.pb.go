@@ -135,19 +135,18 @@ func (SourceType) EnumDescriptor() ([]byte, []int) {
 
 type CreateDeploymentRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	ProjectId       string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Branch          string                 `protobuf:"bytes,3,opt,name=branch,proto3" json:"branch,omitempty"`
-	EnvironmentSlug string                 `protobuf:"bytes,4,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
-	// Build source - currently only prebuilt docker images are supported via API
-	// GitHub source builds are triggered automatically via webhook
-	DockerImage string `protobuf:"bytes,6,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"` // Prebuilt image reference
+	ProjectId       string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	EnvironmentSlug string                 `protobuf:"bytes,2,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
+	// When omitted: git-connected projects deploy HEAD of default branch;
+	// projects without a repo connection reuse the live deployment's Docker image.
+	DockerImage string `protobuf:"bytes,3,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
 	// Git information
-	GitCommit *GitCommitInfo `protobuf:"bytes,7,opt,name=git_commit,json=gitCommit,proto3,oneof" json:"git_commit,omitempty"`
+	GitCommit *GitCommitInfo `protobuf:"bytes,4,opt,name=git_commit,json=gitCommit,proto3,oneof" json:"git_commit,omitempty"`
 	// Authentication
-	KeyspaceId *string `protobuf:"bytes,8,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
+	KeyspaceId *string `protobuf:"bytes,5,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
 	// Container command override (e.g., ["./app", "serve"])
 	// If not specified, the container's default entrypoint/cmd is used
-	Command       []string `protobuf:"bytes,9,rep,name=command,proto3" json:"command,omitempty"`
+	Command       []string `protobuf:"bytes,6,rep,name=command,proto3" json:"command,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -185,13 +184,6 @@ func (*CreateDeploymentRequest) Descriptor() ([]byte, []int) {
 func (x *CreateDeploymentRequest) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetBranch() string {
-	if x != nil {
-		return x.Branch
 	}
 	return ""
 }
@@ -238,6 +230,7 @@ type GitCommitInfo struct {
 	AuthorHandle    string                 `protobuf:"bytes,3,opt,name=author_handle,json=authorHandle,proto3" json:"author_handle,omitempty"`
 	AuthorAvatarUrl string                 `protobuf:"bytes,4,opt,name=author_avatar_url,json=authorAvatarUrl,proto3" json:"author_avatar_url,omitempty"`
 	Timestamp       int64                  `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"` // Unix epoch milliseconds
+	Branch          string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`        // branch metadata for docker_image deployments
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -305,6 +298,13 @@ func (x *GitCommitInfo) GetTimestamp() int64 {
 		return x.Timestamp
 	}
 	return 0
+}
+
+func (x *GitCommitInfo) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
 }
 
 type CreateDeploymentResponse struct {
@@ -474,8 +474,7 @@ type Deployment struct {
 	// Deployment steps
 	Steps []*DeploymentStep `protobuf:"bytes,16,rep,name=steps,proto3" json:"steps,omitempty"`
 	// Extended git information
-	GitCommitMessage string `protobuf:"bytes,17,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
-	// Removed: email is PII and not stored
+	GitCommitMessage         string `protobuf:"bytes,17,opt,name=git_commit_message,json=gitCommitMessage,proto3" json:"git_commit_message,omitempty"`
 	GitCommitAuthorHandle    string `protobuf:"bytes,18,opt,name=git_commit_author_handle,json=gitCommitAuthorHandle,proto3" json:"git_commit_author_handle,omitempty"`
 	GitCommitAuthorAvatarUrl string `protobuf:"bytes,19,opt,name=git_commit_author_avatar_url,json=gitCommitAuthorAvatarUrl,proto3" json:"git_commit_author_avatar_url,omitempty"`
 	GitCommitTimestamp       int64  `protobuf:"varint,20,opt,name=git_commit_timestamp,json=gitCommitTimestamp,proto3" json:"git_commit_timestamp,omitempty"` // Unix epoch milliseconds
@@ -1039,27 +1038,27 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xbf\x02\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xa1\x02\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
-	"\x06branch\x18\x03 \x01(\tR\x06branch\x12)\n" +
-	"\x10environment_slug\x18\x04 \x01(\tR\x0fenvironmentSlug\x12!\n" +
-	"\fdocker_image\x18\x06 \x01(\tR\vdockerImage\x12:\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
+	"\x10environment_slug\x18\x02 \x01(\tR\x0fenvironmentSlug\x12!\n" +
+	"\fdocker_image\x18\x03 \x01(\tR\vdockerImage\x12:\n" +
 	"\n" +
-	"git_commit\x18\a \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12$\n" +
-	"\vkeyspace_id\x18\b \x01(\tH\x01R\n" +
+	"git_commit\x18\x04 \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12$\n" +
+	"\vkeyspace_id\x18\x05 \x01(\tH\x01R\n" +
 	"keyspaceId\x88\x01\x01\x12\x18\n" +
-	"\acommand\x18\t \x03(\tR\acommandB\r\n" +
+	"\acommand\x18\x06 \x03(\tR\acommandB\r\n" +
 	"\v_git_commitB\x0e\n" +
-	"\f_keyspace_idJ\x04\b\x01\x10\x02\"\xc4\x01\n" +
+	"\f_keyspace_id\"\xdc\x01\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x01 \x01(\tR\tcommitSha\x12%\n" +
 	"\x0ecommit_message\x18\x02 \x01(\tR\rcommitMessage\x12#\n" +
 	"\rauthor_handle\x18\x03 \x01(\tR\fauthorHandle\x12*\n" +
 	"\x11author_avatar_url\x18\x04 \x01(\tR\x0fauthorAvatarUrl\x12\x1c\n" +
-	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\"r\n" +
+	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\x12\x16\n" +
+	"\x06branch\x18\x06 \x01(\tR\x06branch\"r\n" +
 	"\x18CreateDeploymentResponse\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +

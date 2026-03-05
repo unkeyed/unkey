@@ -43,11 +43,13 @@ import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
 import { retryVerification } from "./deploy/custom-domains/retry";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
+import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
 import { promote } from "./deploy/deployment/promote";
+import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
@@ -77,6 +79,7 @@ import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
 import { createProject } from "./deploy/project/create";
+import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
 
@@ -402,6 +405,7 @@ export const router = t.router({
       list: listProjects,
       create: createProject,
       delete: deleteProject,
+      creationContext,
     }),
     environmentSettings: t.router({
       get: getEnvironmentSettings,
@@ -451,6 +455,8 @@ export const router = t.router({
       getOpenApiDiff: getOpenApiDiff,
       rollback,
       promote,
+      redeploy,
+      create: createDeploy,
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,

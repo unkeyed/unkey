@@ -57,7 +57,7 @@ export function MetricCard({
   const config = METRIC_CONFIGS[metricType];
 
   return (
-    <div className="border border-gray-4 w-full rounded-xl flex flex-col">
+    <div className="border border-gray-4 w-full rounded-[14px] flex flex-col">
       <div className="flex items-start w-full pt-[10px] px-[14px]">
         <div className="flex items-center w-full gap-2">
           <div className="flex items-center justify-center rounded-md bg-grayA-3 text-gray-12 size-5">

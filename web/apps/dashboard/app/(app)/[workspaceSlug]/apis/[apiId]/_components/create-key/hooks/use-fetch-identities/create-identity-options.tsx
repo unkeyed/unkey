@@ -57,7 +57,7 @@ export function createIdentityOptions({
             side="right"
             align="start"
             sideOffset={30}
-            className="drop-shadow-2xl transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-[320px] z-[100]"
+            className="drop-shadow-2xl transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-[320px] z-100"
           >
             <div className="flex flex-col h-full">
               {/* Header - Always shown */}
@@ -88,11 +88,11 @@ export function createIdentityOptions({
                         </pre>
                       </div>
                       {/* Copy Button */}
-                      <div className="p-2 flex-shrink-0">
+                      <div className="p-2 shrink-0">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="bg-white dark:bg-grayA-3 hover:bg-grayA-3 dark:hover:bg-grayA-4 shadow-sm"
+                          className="bg-white dark:bg-grayA-3 hover:bg-grayA-3 dark:hover:bg-grayA-4 shadow-xs"
                         >
                           <div className="flex items-center justify-center">
                             <CopyButton value={JSON.stringify(identity.meta, null, 4)} />
@@ -137,7 +137,7 @@ export function createIdentityOptions({
             e.stopPropagation();
             loadMore();
           }}
-          className="text-xs text-accent-12 px-2 py-0.5 hover:bg-grayA-3 rounded w-full bg-transparent hover:bg-transparent focus:ring-0 font-medium"
+          className="text-xs text-accent-12 px-2 py-0.5 hover:bg-grayA-3 rounded-sm w-full bg-transparent hover:bg-transparent focus:ring-0 font-medium"
         >
           Load more...
         </Button>

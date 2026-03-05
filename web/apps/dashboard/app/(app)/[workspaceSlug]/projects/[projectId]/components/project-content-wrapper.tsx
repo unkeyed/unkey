@@ -36,7 +36,7 @@ export function ProjectContentWrapper({
       )}
     >
       {centered ? (
-        <div className="flex flex-col w-full mt-4 gap-5" style={{ maxWidth }}>
+        <div className="flex flex-col w-full mt-6 gap-5" style={{ maxWidth }}>
           {children}
         </div>
       ) : (
