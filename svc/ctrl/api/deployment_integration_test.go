@@ -62,9 +62,9 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		ID:            uid.New("app"),
 		WorkspaceID:   workspaceID,
 		ProjectID:     project.ID,
-		EnvironmentID: environment.ID,
 		Name:          "default",
 		Slug:          "default",
+		DefaultBranch: "main",
 	})
 
 	client := ctrlv1connect.NewDeployServiceClient(harness.ConnectClient(), harness.CtrlURL, harness.ConnectOptions()...)

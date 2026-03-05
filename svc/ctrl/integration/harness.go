@@ -98,11 +98,12 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	})
 
 	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
-		ID:          uid.New("app"),
-		WorkspaceID: workspaceID,
-		ProjectID:   project.ID,
-		Name:        "default",
-		Slug:        "default",
+		ID:            uid.New("app"),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		Name:          "default",
+		Slug:          "default",
+		DefaultBranch: "main",
 	})
 
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
@@ -209,11 +210,12 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 	})
 
 	sentinelApp := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
-		ID:          uid.New("app"),
-		WorkspaceID: workspaceID,
-		ProjectID:   project.ID,
-		Name:        "default",
-		Slug:        "default",
+		ID:            uid.New("app"),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		Name:          "default",
+		Slug:          "default",
+		DefaultBranch: "main",
 	})
 
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{

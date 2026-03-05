@@ -347,6 +347,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			ID:               uid.New(uid.EnvironmentPrefix),
 			WorkspaceID:      workspace.ID,
 			ProjectID:        project.ID,
+			AppID:            "",
 			Slug:             config.EnvironmentSlug,
 			Description:      config.EnvironmentSlug + " environment",
 			DeleteProtection: false,
