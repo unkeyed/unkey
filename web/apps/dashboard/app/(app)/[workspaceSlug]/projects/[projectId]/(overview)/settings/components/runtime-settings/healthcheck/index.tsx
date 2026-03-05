@@ -15,6 +15,7 @@ import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
+import { RemoveButton } from "../../shared/remove-button";
 import { MethodBadge } from "./method-badge";
 import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
 import { intervalToSeconds, secondsToInterval } from "./utils";
@@ -25,10 +26,9 @@ export const Healthcheck = () => {
 
   const defaultValues: HealthcheckFormValues = {
     method: healthcheck?.method ?? "GET",
-    path: healthcheck?.path ?? "/health",
-    interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
+    path: healthcheck?.path ?? "",
+    interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "",
   };
-  const hasPreviousData = Boolean(healthcheck);
 
   const {
     handleSubmit,
@@ -67,6 +67,13 @@ export const Healthcheck = () => {
     });
   };
 
+  const handleRemove = () => {
+    collection.environmentSettings.update(environmentId, (draft) => {
+      draft.healthcheck = null;
+    });
+    reset({ method: "GET", path: "", interval: "" });
+  };
+
   const hasChanges =
     currentMethod !== defaultValues.method ||
     currentPath !== defaultValues.path ||
@@ -84,11 +91,11 @@ export const Healthcheck = () => {
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
       displayValue={
-        hasPreviousData ? (
+        healthcheck ? (
           <div className="flex gap-1.5 items-center justify-center">
-            <MethodBadge method={defaultValues.method} />
-            <span className="font-medium text-gray-12">{defaultValues.path}</span>
-            <span className="text-gray-11 font-normal">every {defaultValues.interval}</span>
+            <MethodBadge method={healthcheck.method} />
+            <span className="font-medium text-gray-12">{healthcheck.path}</span>
+            <span className="text-gray-11 font-normal">every {healthcheck.intervalSeconds}</span>
           </div>
         ) : null
       }
@@ -96,7 +103,7 @@ export const Healthcheck = () => {
       saveState={saveState}
       autoSave={autoSave}
     >
-      <div className="flex flex-col gap-3 w-[520px]">
+      <div className="flex flex-col gap-2 w-120">
         {/* TODO: multi-check when API supports
         {fields.map((field, index) => (
           <div key={field.id} className="flex items-end gap-3">
@@ -105,11 +112,11 @@ export const Healthcheck = () => {
         ))}
         */}
         <div className="flex items-center gap-3">
-          <span className="w-20 text-[13px] text-gray-11">Method</span>
+          <span className="w-24 text-[13px] text-gray-11">Method</span>
           <span className="flex-1 text-[13px] text-gray-11">Path</span>
           <span className="flex-1 text-[13px] text-gray-11">Interval</span>
         </div>
-        <div className="flex items-start gap-3">
+        <div className="relative flex items-start gap-3">
           <Controller
             control={control}
             name="method"
@@ -117,17 +124,22 @@ export const Healthcheck = () => {
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger
                   className="h-9"
-                  wrapperClassName="w-20"
+                  wrapperClassName="w-24"
                   variant={errors.method ? "error" : "default"}
-                  rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                  rightIcon={
+                    <ChevronDown
+                      className="absolute right-3 size-3 text-gray-11"
+                      iconSize="sm-medium"
+                    />
+                  }
                 >
-                  <SelectValue>
+                  <SelectValue placeholder={<MethodBadge method={"GET"} />}>
                     <MethodBadge method={field.value} />
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {HTTP_METHODS.map((method) => (
-                    <SelectItem key={method} value={method}>
+                    <SelectItem key={method} value={method} className="focus:bg-gray-3">
                       <MethodBadge method={method} />
                     </SelectItem>
                   ))}
@@ -147,6 +159,9 @@ export const Healthcheck = () => {
             error={errors.interval?.message}
             {...register("interval")}
           />
+          {healthcheck && (
+            <RemoveButton onClick={handleRemove} className="absolute -right-11 top-0" />
+          )}
         </div>
       </div>
     </FormSettingCard>
