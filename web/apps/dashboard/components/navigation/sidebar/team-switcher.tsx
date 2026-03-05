@@ -155,38 +155,41 @@ export const WorkspaceSwitcher: React.FC = () => {
             <DropdownMenuItem
               key={membership.id}
               className="flex items-center justify-between hover:bg-grayA-3"
-              onClick={async () => changeWorkspace.mutateAsync(membership.organization.id)}
+              onClick={() => changeWorkspace.mutate(membership.organization.id)}
             >
-              <span
-                className={
+              <div
+                className={cn(
+                  "flex items-center gap-2 overflow-hidden whitespace-nowrap min-w-0",
                   membership.organization.id === currentOrgMembership?.organization.id
                     ? "font-medium"
-                    : undefined
-                }
+                    : "",
+                )}
               >
-                {" "}
+                <Avatar className="w-5 h-5 rounded border border-grayA-6 shrink-0">
+                  <AvatarFallback name={membership.organization.name} variant="marble" square />
+                </Avatar>
                 {membership.organization.name}
-              </span>
-              {membership.organization.id === currentOrgMembership?.organization.id ? (
+              </div>
+              {membership.organization.id === currentOrgMembership?.organization.id && (
                 <Check className="w-4 h-4" />
-              ) : null}
+              )}
             </DropdownMenuItem>
           ))}
         </ScrollArea>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link href="/new" className="flex items-center">
             <Plus iconSize="md-regular" className="w-4 h-4 mr-2" />
             <span>Create Workspace</span>
           </Link>
         </DropdownMenuItem>
         {currentOrgMembership?.role === "admin" ? (
-          <Link href={`/${workspace.slug}/settings/team`}>
-            <DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={`/${workspace.slug}/settings/team`} className="flex items-center">
               <UserPlus iconSize="md-regular" className="w-4 h-4 mr-2 " />
-              <span className="cursor-pointer">Invite Member</span>
-            </DropdownMenuItem>
-          </Link>
+              <span>Invite Member</span>
+            </Link>
+          </DropdownMenuItem>
         ) : null}
       </DropdownMenuGroup>
     </DropdownMenuContent>
