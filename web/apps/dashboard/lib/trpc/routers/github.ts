@@ -440,6 +440,15 @@ export const githubRouter = t.router({
           });
         });
 
+      // Persist the repo's default branch to the app so branch→environment
+      // resolution uses the actual GitHub default instead of hardcoded "main".
+      if (verifiedRepo.default_branch) {
+        await db
+          .update(schema.apps)
+          .set({ defaultBranch: verifiedRepo.default_branch, updatedAt: Date.now() })
+          .where(eq(schema.apps.id, appId));
+      }
+
       return { success: true };
     }),
 
