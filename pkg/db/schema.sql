@@ -364,6 +364,7 @@ CREATE TABLE `environments` (
 	`updated_at` bigint,
 	CONSTRAINT `environments_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `environments_id_unique` UNIQUE(`id`),
+	CONSTRAINT `environments_project_id_slug_idx` UNIQUE(`project_id`,`slug`),
 	CONSTRAINT `environments_app_slug_idx` UNIQUE(`app_id`,`slug`)
 );
 
@@ -391,6 +392,8 @@ CREATE TABLE `projects` (
 	`workspace_id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
+	`live_deployment_id` varchar(256),
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`default_branch` varchar(256) DEFAULT 'main',
 	`depot_project_id` varchar(255),
 	`delete_protection` boolean DEFAULT false,
@@ -406,14 +409,18 @@ CREATE TABLE `apps` (
 	`id` varchar(64) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(64) NOT NULL,
+	`environment_id` varchar(128) NOT NULL DEFAULT '',
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`default_branch` varchar(256) DEFAULT 'main',
+	`current_deployment_id` varchar(256),
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `apps_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `apps_id_unique` UNIQUE(`id`),
+	CONSTRAINT `apps_env_slug_idx` UNIQUE(`environment_id`,`slug`),
 	CONSTRAINT `apps_project_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 
@@ -465,6 +472,53 @@ CREATE TABLE `app_environment_variables` (
 	CONSTRAINT `app_environment_variables_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `app_environment_variables_id_unique` UNIQUE(`id`),
 	CONSTRAINT `app_env_id_key` UNIQUE(`app_id`,`environment_id`,`key`)
+);
+
+CREATE TABLE `environment_build_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
+	`docker_context` varchar(500) NOT NULL DEFAULT '.',
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_build_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `env_build_settings_environment_id_idx` UNIQUE(`environment_id`)
+);
+
+CREATE TABLE `environment_runtime_settings` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`port` int NOT NULL DEFAULT 8080,
+	`cpu_millicores` int NOT NULL DEFAULT 256,
+	`memory_mib` int NOT NULL DEFAULT 256,
+	`command` json NOT NULL DEFAULT ('[]'),
+	`healthcheck` json,
+	`region_config` json NOT NULL DEFAULT ('{}'),
+	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
+	`sentinel_config` longblob NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_runtime_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `env_runtime_settings_environment_id_idx` UNIQUE(`environment_id`)
+);
+
+CREATE TABLE `environment_variables` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`environment_id` varchar(128) NOT NULL,
+	`key` varchar(256) NOT NULL,
+	`value` varchar(4096) NOT NULL,
+	`type` enum('recoverable','writeonly') NOT NULL,
+	`description` varchar(255),
+	`delete_protection` boolean DEFAULT false,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `environment_variables_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `environment_variables_id_unique` UNIQUE(`id`),
+	CONSTRAINT `environment_id_key` UNIQUE(`environment_id`,`key`)
 );
 
 CREATE TABLE `deployments` (

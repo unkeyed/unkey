@@ -26,6 +26,7 @@ export const environments = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
+    uniqueIndex("environments_project_id_slug_idx").on(table.projectId, table.slug),
     uniqueIndex("environments_app_slug_idx").on(table.appId, table.slug),
     index("environments_project_idx").on(table.projectId),
   ],
