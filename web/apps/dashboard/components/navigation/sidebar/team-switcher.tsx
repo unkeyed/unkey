@@ -157,10 +157,13 @@ export const WorkspaceSwitcher: React.FC = () => {
               className="flex items-center justify-between hover:bg-grayA-3"
               onClick={() => changeWorkspace.mutate(membership.organization.id)}
             >
-              <div className={cn(
+              <div
+                className={cn(
                   "flex items-center gap-2 overflow-hidden whitespace-nowrap min-w-0",
                   isCollapsed ? "justify-center" : "",
-                  membership.organization.id === currentOrgMembership?.organization.id ? "font-medium" : ""
+                  membership.organization.id === currentOrgMembership?.organization.id
+                    ? "font-medium"
+                    : "",
                 )}
               >
                 <Avatar className="w-5 h-5 rounded border border-grayA-6 shrink-0">
@@ -168,9 +171,9 @@ export const WorkspaceSwitcher: React.FC = () => {
                 </Avatar>
                 {membership.organization.name}
               </div>
-              {(membership.organization.id === currentOrgMembership?.organization.id) && 
+              {membership.organization.id === currentOrgMembership?.organization.id && (
                 <Check className="w-4 h-4" />
-              }
+              )}
             </DropdownMenuItem>
           ))}
         </ScrollArea>
