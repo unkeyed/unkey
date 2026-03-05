@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { useEffect } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { RemoveButton } from "../../shared/remove-button";
@@ -35,7 +35,7 @@ export const Healthcheck = () => {
     control,
     register,
     reset,
-    formState: { isValid, isSubmitting, errors },
+    formState: { isValid, isSubmitting, isDirty, errors },
   } = useForm<HealthcheckFormValues>({
     resolver: zodResolver(healthcheckSchema),
     mode: "onChange",
@@ -46,10 +46,6 @@ export const Healthcheck = () => {
   useEffect(() => {
     reset(defaultValues);
   }, [defaultValues.method, defaultValues.path, defaultValues.interval, reset]);
-
-  const currentMethod = useWatch({ control, name: "method" });
-  const currentPath = useWatch({ control, name: "path" });
-  const currentInterval = useWatch({ control, name: "interval" });
 
   const onSubmit = async (values: HealthcheckFormValues) => {
     collection.environmentSettings.update(environmentId, (draft) => {
@@ -74,15 +70,10 @@ export const Healthcheck = () => {
     reset({ method: "GET", path: "", interval: "" });
   };
 
-  const hasChanges =
-    currentMethod !== defaultValues.method ||
-    currentPath !== defaultValues.path ||
-    currentInterval !== defaultValues.interval;
-
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+    [!isDirty, { status: "disabled", reason: "No changes to save" }],
   ]);
 
   return (
