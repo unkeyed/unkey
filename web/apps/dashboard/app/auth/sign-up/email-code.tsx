@@ -133,7 +133,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
 
         <button
           type="submit"
-          className="flex items-center justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          className="flex items-center cursor-pointer justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
           disabled={isLoading}
         >
           {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}

@@ -107,7 +107,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
       {timeLeft === 0 && (
         <p className="mt-2 text-sm text-white/40">
           Didn't receive the code?{" "}
-          <button type="button" className="text-white" onClick={resendCode}>
+          <button type="button" className="text-white cursor-pointer" onClick={resendCode}>
             Resend
           </button>
         </p>
@@ -122,6 +122,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
       >
         <OTPInput
           data-1p-ignore
+          className="[&_input]:text-white!"
           value={otp}
           onChange={setOtp}
           onComplete={() => verifyCode(otp)}
@@ -138,7 +139,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
 
         <button
           type="submit"
-          className="flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          className="flex items-center cursor-pointer justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
           disabled={isLoading}
           onClick={() => verifyCode(otp)}
         >
