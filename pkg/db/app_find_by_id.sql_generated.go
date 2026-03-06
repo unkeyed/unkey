@@ -10,36 +10,32 @@ import (
 )
 
 const findAppById = `-- name: FindAppById :one
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
 FROM apps
 WHERE id = ?
 `
 
-type FindAppByIdRow struct {
-	App App `db:"app"`
-}
-
 // FindAppById
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+//	SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
 //	FROM apps
 //	WHERE id = ?
-func (q *Queries) FindAppById(ctx context.Context, db DBTX, id string) (FindAppByIdRow, error) {
+func (q *Queries) FindAppById(ctx context.Context, db DBTX, id string) (App, error) {
 	row := db.QueryRowContext(ctx, findAppById, id)
-	var i FindAppByIdRow
+	var i App
 	err := row.Scan(
-		&i.App.Pk,
-		&i.App.ID,
-		&i.App.WorkspaceID,
-		&i.App.ProjectID,
-		&i.App.Name,
-		&i.App.Slug,
-		&i.App.DefaultBranch,
-		&i.App.CurrentDeploymentID,
-		&i.App.IsRolledBack,
-		&i.App.DeleteProtection,
-		&i.App.CreatedAt,
-		&i.App.UpdatedAt,
+		&i.Pk,
+		&i.ID,
+		&i.WorkspaceID,
+		&i.ProjectID,
+		&i.Name,
+		&i.Slug,
+		&i.DefaultBranch,
+		&i.CurrentDeploymentID,
+		&i.IsRolledBack,
+		&i.DeleteProtection,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

@@ -26,21 +26,36 @@ type newDomain struct {
 //
 // The function creates three or four types of domains:
 //
-// 1. Per-commit domain: `<project>-<app>-git-<sha>-<workspace>.<apex>`
+// 1. Per-commit domain: `<prefix>-git-<sha>-<workspace>.<apex>`
 //   - Never reassigned, provides stable URL for specific commit
 //   - For CLI uploads, adds random suffix to prevent collisions
 //
-// 2. Per-branch domain: `<project>-<app>-git-<branch>-<workspace>.<apex>`
+// 2. Per-branch domain: `<prefix>-git-<branch>-<workspace>.<apex>`
 //   - Sticky to branch, always points to latest deployment of that branch
 //   - Branch name is sluggified for URL safety
 //
-// 3. Per-environment domain: `<project>-<app>-<environment>-<workspace>.<apex>`
+// 3. Per-environment domain: `<prefix>-<environment>-<workspace>.<apex>`
 //   - Sticky to environment, points to latest deployment in that environment
 //   - Can be rolled back to previous deployment
 //
-// 4. Per-live domain (production only): `<project>-<app>-<workspace>.<apex>`
+// 4. Per-live domain (production only): `<prefix>-<workspace>.<apex>`
 //   - Sticky to live, points to the active production deployment
+//
+// Where <prefix> is `<project>-<app>` for custom app slugs, or just `<project>`
+// when the app slug is "default" (see TODO above).
+// TODO: Once users can configure custom app slugs, include the app slug in all
+// generated domains. Currently the only app slug is "default" which adds no
+// useful information to the domain and just makes URLs longer. Remove this
+// exclusion and always include appSlug once the dashboard supports renaming apps.
 func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, branchName, apex string, source ctrlv1.SourceType) []newDomain {
+	// Build the project-app prefix for domain names.
+	// Skip "default" app slug since it's not configurable yet and would just
+	// add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
+	prefix := projectSlug
+	if appSlug != "default" {
+		prefix = projectSlug + "-" + appSlug
+	}
+
 	// Deploying via CLI often sends the same git sha, and we want to make them unique,
 	// to prevent changes from overwriting each other.
 	randomSuffix := ""
@@ -59,7 +74,7 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 		short += randomSuffix
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-%s-git-%s-%s.%s", projectSlug, appSlug, short, workspaceSlug, apex),
+				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, short, workspaceSlug, apex),
 				//nolint: exhaustruct
 				sticky: db.FrontlineRoutesStickyNone,
 			},
@@ -70,7 +85,7 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 		domains = append(
 			domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-%s-git-%s-%s.%s", projectSlug, appSlug, sluggify(branchName), workspaceSlug, apex),
+				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, sluggify(branchName), workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyBranch,
 			},
 		)
@@ -79,7 +94,7 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 	domains = append(
 		domains,
 		newDomain{
-			domain: fmt.Sprintf("%s-%s-%s-%s.%s", projectSlug, appSlug, environmentSlug, workspaceSlug, apex),
+			domain: fmt.Sprintf("%s-%s-%s.%s", prefix, environmentSlug, workspaceSlug, apex),
 			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
@@ -87,7 +102,7 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 	if environmentSlug == "production" {
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-%s-%s.%s", projectSlug, appSlug, workspaceSlug, apex),
+				domain: fmt.Sprintf("%s-%s.%s", prefix, workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyLive,
 			})
 	}

@@ -10,35 +10,30 @@ import (
 )
 
 const findEnvironmentById = `-- name: FindEnvironmentById :one
-SELECT id, workspace_id, project_id, app_id, slug, description
+SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
 FROM environments
 WHERE id = ?
 `
 
-type FindEnvironmentByIdRow struct {
-	ID          string `db:"id"`
-	WorkspaceID string `db:"workspace_id"`
-	ProjectID   string `db:"project_id"`
-	AppID       string `db:"app_id"`
-	Slug        string `db:"slug"`
-	Description string `db:"description"`
-}
-
 // FindEnvironmentById
 //
-//	SELECT id, workspace_id, project_id, app_id, slug, description
+//	SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
 //	FROM environments
 //	WHERE id = ?
-func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error) {
+func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentById, id)
-	var i FindEnvironmentByIdRow
+	var i Environment
 	err := row.Scan(
+		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.AppID,
 		&i.Slug,
 		&i.Description,
+		&i.DeleteProtection,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
