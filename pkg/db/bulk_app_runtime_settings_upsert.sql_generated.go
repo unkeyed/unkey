@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// bulkUpsertEnvironmentRuntimeSettings is the base query for bulk insert
-const bulkUpsertEnvironmentRuntimeSettings = `INSERT INTO environment_runtime_settings ( workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, sentinel_config, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+// bulkUpsertAppRuntimeSettings is the base query for bulk insert
+const bulkUpsertAppRuntimeSettings = `INSERT INTO app_runtime_settings ( workspace_id, app_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, sentinel_config, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
     memory_mib = VALUES(memory_mib),
@@ -20,8 +20,8 @@ const bulkUpsertEnvironmentRuntimeSettings = `INSERT INTO environment_runtime_se
     sentinel_config = VALUES(sentinel_config),
     updated_at = VALUES(updated_at)`
 
-// UpsertEnvironmentRuntimeSettings performs bulk insert in a single query
-func (q *BulkQueries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, args []UpsertEnvironmentRuntimeSettingsParams) error {
+// UpsertAppRuntimeSettings performs bulk insert in a single query
+func (q *BulkQueries) UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -30,15 +30,16 @@ func (q *BulkQueries) UpsertEnvironmentRuntimeSettings(ctx context.Context, db D
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
-	bulkQuery := fmt.Sprintf(bulkUpsertEnvironmentRuntimeSettings, strings.Join(valueClauses, ", "))
+	bulkQuery := fmt.Sprintf(bulkUpsertAppRuntimeSettings, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.AppID)
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.Port)
 		allArgs = append(allArgs, arg.CpuMillicores)

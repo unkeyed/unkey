@@ -263,6 +263,11 @@ func (h *Harness) CreateProject(req seed.CreateProjectRequest) db.Project {
 	return h.seeder.CreateProject(context.Background(), req)
 }
 
+// CreateApp creates an app within a project.
+func (h *Harness) CreateApp(req seed.CreateAppRequest) db.App {
+	return h.seeder.CreateApp(context.Background(), req)
+}
+
 // CreateEnvironment creates an environment within a project.
 func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Environment {
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
@@ -278,6 +283,7 @@ type DeploymentTestSetup struct {
 	Workspace   db.Workspace
 	RootKey     string
 	Project     db.Project
+	App         db.App
 	Environment db.Environment
 }
 
@@ -337,8 +343,16 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Name:             config.ProjectName,
 		ID:               uid.New(uid.ProjectPrefix),
 		Slug:             config.ProjectSlug,
-		DefaultBranch:    "",
 		DeleteProtection: false,
+	})
+
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:            uid.New(uid.AppPrefix),
+		WorkspaceID:   workspace.ID,
+		ProjectID:     project.ID,
+		Name:          "Default",
+		Slug:          "default",
+		DefaultBranch: "main",
 	})
 
 	var environment db.Environment
@@ -347,6 +361,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			ID:               uid.New(uid.EnvironmentPrefix),
 			WorkspaceID:      workspace.ID,
 			ProjectID:        project.ID,
+			AppID:            app.ID,
 			Slug:             config.EnvironmentSlug,
 			Description:      config.EnvironmentSlug + " environment",
 			DeleteProtection: false,
@@ -358,6 +373,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Workspace:   workspace,
 		RootKey:     rootKey,
 		Project:     project,
+		App:         app,
 		Environment: environment,
 	}
 }

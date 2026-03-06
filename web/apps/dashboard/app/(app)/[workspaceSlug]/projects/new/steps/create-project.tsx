@@ -38,7 +38,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
         name: values.name,
         slug: values.slug,
         repositoryFullName: null,
-        liveDeploymentId: null,
+        currentDeploymentId: null,
         isRolledBack: false,
         id: "will-be-replace-by-server",
         latestDeploymentId: null,

@@ -48,6 +48,7 @@ export const redeploy = workspaceProcedure
         columns: {
           id: true,
           projectId: true,
+          appId: true,
           image: true,
           gitCommitSha: true,
           gitBranch: true,
@@ -72,6 +73,7 @@ export const redeploy = workspaceProcedure
       const result = await ctrl
         .createDeployment({
           projectId: deployment.project.id,
+          appId: deployment.appId,
           environmentSlug: deployment.environment?.slug ?? "",
           dockerImage: deployment.image ?? "",
           ...(deployment.gitCommitSha

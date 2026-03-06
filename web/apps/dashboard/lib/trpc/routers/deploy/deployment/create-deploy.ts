@@ -4,10 +4,11 @@ import { createConnectTransport } from "@connectrpc/connect-web";
 
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
-import { db } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 export const createDeploy = workspaceProcedure
@@ -54,9 +55,27 @@ export const createDeploy = workspaceProcedure
         });
       }
 
+      // Look up the environment to find the app
+      const environment = await db.query.environments.findFirst({
+        where: and(
+          eq(environments.projectId, input.projectId),
+          eq(environments.slug, input.environmentSlug),
+          eq(environments.workspaceId, ctx.workspace.id),
+        ),
+        columns: { id: true, appId: true },
+      });
+
+      if (!environment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Environment '${input.environmentSlug}' not found`,
+        });
+      }
+
       const result = await ctrl
         .createDeployment({
           projectId: input.projectId,
+          appId: environment.appId,
           environmentSlug: input.environmentSlug,
         })
         .catch((err) => {

@@ -10,13 +10,14 @@ export * from "./identity";
 export * from "./quota";
 export * from "./audit_logs";
 export * from "./environments";
-export * from "./environment_variables";
-export * from "./environment_build_settings";
-export * from "./environment_runtime_settings";
 export * from "./clickhouse_workspace_settings";
 
 // Deployment platform tables
 export * from "./projects";
+export * from "./apps";
+export * from "./app_build_settings";
+export * from "./app_runtime_settings";
+export * from "./app_environment_variables";
 export * from "./deployments";
 export * from "./deployment_steps";
 export * from "./deployment_topology";

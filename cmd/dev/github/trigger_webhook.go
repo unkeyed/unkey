@@ -221,6 +221,7 @@ func (s *Service) ensureGithubConnection(ctx context.Context, projectID string, 
 	// Try to insert, ignore if already exists
 	err := db.Query.InsertGithubRepoConnection(ctx, s.db.RW(), db.InsertGithubRepoConnectionParams{
 		ProjectID:          projectID,
+		AppID:              "",
 		InstallationID:     installationID,
 		RepositoryID:       repositoryID,
 		RepositoryFullName: repository,

@@ -98,6 +98,7 @@ func (s *Service) AddCustomDomain(
 		ID:                 domainID,
 		WorkspaceID:        req.Msg.GetWorkspaceId(),
 		ProjectID:          req.Msg.GetProjectId(),
+		AppID:              req.Msg.GetAppId(),
 		EnvironmentID:      req.Msg.GetEnvironmentId(),
 		Domain:             domain,
 		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,

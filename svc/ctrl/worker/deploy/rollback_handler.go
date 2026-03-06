@@ -20,12 +20,12 @@ import (
 //
 // The workflow validates that source and target are different deployments, that
 // the source deployment is the current live deployment, that both deployments
-// belong to the same project and environment, and that there are sticky frontline
+// belong to the same app and environment, and that there are sticky frontline
 // routes to rollback.
 //
 // Before switching routes, any pending scheduled state changes on the target
 // deployment are cleared so it won't be spun down while serving live traffic.
-// After switching routes, the project is marked as rolled back to prevent new
+// After switching routes, the app is marked as rolled back to prevent new
 // deployments from automatically taking over the live routes.
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
@@ -72,20 +72,28 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, restate.TerminalError(fmt.Errorf("deployments must be in the same project"), 400)
 	}
 
-	// Get project
-	project, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindProjectByIdRow, error) {
-		return db.Query.FindProjectById(stepCtx, w.db.RO(), sourceDeployment.ProjectID)
-	}, restate.WithName("finding project"))
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("project not found: %s", sourceDeployment.ProjectID), 404)
-		}
-		return nil, fmt.Errorf("failed to get project: %w", err)
+	if targetDeployment.AppID != sourceDeployment.AppID {
+		return nil, restate.TerminalError(fmt.Errorf("deployments must be in the same app"), 400)
 	}
 
-	// Validate source deployment is the live deployment
-	if !project.LiveDeploymentID.Valid || project.LiveDeploymentID.String != sourceDeployment.ID {
-		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current live deployment"), 400)
+	// Get app from deployment's app_id
+	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
+		row, err := db.Query.FindAppById(stepCtx, w.db.RO(), sourceDeployment.AppID)
+		if err != nil {
+			return db.App{}, err
+		}
+		return row.App, nil
+	}, restate.WithName("finding app"))
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, restate.TerminalError(fmt.Errorf("app not found: %s", sourceDeployment.AppID), 404)
+		}
+		return nil, fmt.Errorf("failed to get app: %w", err)
+	}
+
+	// Validate source deployment is the current deployment
+	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != sourceDeployment.ID {
+		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current deployment"), 400)
 	}
 
 	// ensure the rolled back deployment does not get spun down from existing scheduled actions
@@ -94,7 +102,7 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, err
 	}
 
-	// Get all frontlineRoutes on the live deployment that are sticky
+	// Get all frontlineRoutes on the current deployment that are sticky
 	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesForRollbackRow, error) {
 		return db.Query.FindFrontlineRoutesForRollback(stepCtx, w.db.RO(), db.FindFrontlineRoutesForRollbackParams{
 			EnvironmentID: sourceDeployment.EnvironmentID,
@@ -123,8 +131,8 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		}
 	}
 
-	// Call RoutingService to switch frontlineRoutes atomically
-	routingClient := hydrav1.NewRoutingServiceClient(ctx, project.ID)
+	// Call RoutingService to switch frontlineRoutes atomically, keyed by app ID
+	routingClient := hydrav1.NewRoutingServiceClient(ctx, app.ID)
 	_, err = routingClient.AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      targetDeployment.ID,
 		FrontlineRouteIds: routeIDs,
@@ -133,20 +141,20 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, fmt.Errorf("failed to switch frontlineRoutes: %w", err)
 	}
 
-	// Update project's live deployment
+	// Update app's current deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		err = db.Query.UpdateProjectDeployments(stepCtx, w.db.RW(), db.UpdateProjectDeploymentsParams{
-			ID:               project.ID,
-			LiveDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
-			IsRolledBack:     true,
-			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
+			ID:                  app.ID,
+			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+			IsRolledBack:        true,
+			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("failed to update project's live deployment id: %w", err)
+			return restate.Void{}, fmt.Errorf("failed to update app's current deployment id: %w", err)
 		}
-		logger.Info("updated project live deployment", "project_id", project.ID, "live_deployment_id", targetDeployment.ID)
+		logger.Info("updated app current deployment", "app_id", app.ID, "current_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
-	}, restate.WithName("updating project live deployment"))
+	}, restate.WithName("updating app current deployment"))
 	if err != nil {
 		return nil, err
 	}

@@ -1,20 +1,19 @@
 import { relations } from "drizzle-orm";
 import { bigint, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { apps } from "./apps";
+import { environments } from "./environments";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
-import { environments } from "./environments";
-
-export const environmentVariables = mysqlTable(
-  "environment_variables",
+export const appEnvironmentVariables = mysqlTable(
+  "app_environment_variables",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 128 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    environmentId: varchar("environment_id", {
-      length: 128,
-    }).notNull(),
+    appId: varchar("app_id", { length: 64 }).notNull(),
+    environmentId: varchar("environment_id", { length: 128 }).notNull(),
 
     key: varchar("key", { length: 256 }).notNull(),
 
@@ -31,16 +30,20 @@ export const environmentVariables = mysqlTable(
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => [uniqueIndex("environment_id_key").on(table.environmentId, table.key)],
+  (table) => [uniqueIndex("app_env_id_key").on(table.appId, table.environmentId, table.key)],
 );
 
-export const environmentVariablesRelations = relations(environmentVariables, ({ one }) => ({
+export const appEnvironmentVariablesRelations = relations(appEnvironmentVariables, ({ one }) => ({
   workspace: one(workspaces, {
-    fields: [environmentVariables.workspaceId],
+    fields: [appEnvironmentVariables.workspaceId],
     references: [workspaces.id],
   }),
-  project: one(environments, {
-    fields: [environmentVariables.environmentId],
+  app: one(apps, {
+    fields: [appEnvironmentVariables.appId],
+    references: [apps.id],
+  }),
+  environment: one(environments, {
+    fields: [appEnvironmentVariables.environmentId],
     references: [environments.id],
   }),
 }));

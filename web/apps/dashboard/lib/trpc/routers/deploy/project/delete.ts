@@ -34,18 +34,21 @@ export const deleteProject = workspaceProcedure
     }
 
     await db.transaction(async (tx) => {
-      // 1. Delete environment variables (via environments)
-      const environments = await tx.query.environments.findMany({
+      // 1. Delete app environment variables and apps (via project)
+      const projectApps = await tx.query.apps.findMany({
         where: (table, { eq }) => eq(table.projectId, input.projectId),
         columns: { id: true },
       });
 
-      if (environments.length > 0) {
-        const environmentIds = environments.map((e) => e.id);
+      if (projectApps.length > 0) {
+        const appIds = projectApps.map((a) => a.id);
         await tx
-          .delete(schema.environmentVariables)
-          .where(inArray(schema.environmentVariables.environmentId, environmentIds));
+          .delete(schema.appEnvironmentVariables)
+          .where(inArray(schema.appEnvironmentVariables.appId, appIds));
       }
+
+      // Delete apps
+      await tx.delete(schema.apps).where(eq(schema.apps.projectId, input.projectId));
 
       // Delete environments
       await tx
