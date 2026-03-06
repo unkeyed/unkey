@@ -75,7 +75,6 @@ export const createProject = workspaceProcedure
           workspaceId: ctx.workspace.id,
           name: input.name,
           slug: input.slug,
-          defaultBranch: "main",
           deleteProtection: false,
           createdAt: Date.now(),
           updatedAt: null,
