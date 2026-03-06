@@ -344,22 +344,22 @@ components:
         V2DeployCreateDeploymentRequestBody:
             type: object
             required:
-                - projectId
+                - project
+                - app
                 - branch
                 - environmentSlug
                 - dockerImage
             properties:
-                projectId:
+                project:
                     type: string
                     minLength: 1
-                    description: Unkey project ID
-                    example: "proj_123abc"
-                    pattern: "^proj_[a-zA-Z0-9]+$"
-                appSlug:
+                    description: Project slug
+                    example: "my-project"
+                app:
                     type: string
-                    description: App slug within the project. Defaults to "default" if not specified.
+                    minLength: 1
+                    description: App slug within the project
                     example: "default"
-                    default: "default"
                 keyspaceId:
                     type: string
                     description: Optional keyspace ID for authentication context
