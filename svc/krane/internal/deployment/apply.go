@@ -2,7 +2,6 @@ package deployment
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -63,6 +62,31 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return err
 	}
 
+	// Ensure registry pull secret exists in the namespace
+	if err := c.ensureRegistryPullSecret(ctx, req.GetK8SNamespace()); err != nil {
+		return fmt.Errorf("failed to ensure registry pull secret: %w", err)
+	}
+
+	// Decrypt secrets at deploy time and create K8s Secret
+	plaintext, err := c.decryptSecrets(ctx, req.GetEncryptedEnvironmentVariables(), req.GetEnvironmentId())
+	if err != nil {
+		return fmt.Errorf("failed to decrypt secrets: %w", err)
+	}
+
+	secretName, err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext)
+	if err != nil {
+		return fmt.Errorf("failed to ensure deployment secret: %w", err)
+	}
+
+	// Create per-deployment RBAC (ServiceAccount + Role + RoleBinding)
+	saName := ""
+	if secretName != "" {
+		saName, err = c.ensureDeploymentRBAC(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), secretName)
+		if err != nil {
+			return fmt.Errorf("failed to ensure deployment RBAC: %w", err)
+		}
+	}
+
 	usedLabels := labels.New().
 		WorkspaceID(req.GetWorkspaceId()).
 		ProjectID(req.GetProjectId()).
@@ -71,14 +95,12 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		DeploymentID(req.GetDeploymentId()).
 		BuildID(req.GetBuildId()).
 		ManagedByKrane().
-		ComponentDeployment().
-		Inject()
+		ComponentDeployment()
 
 	container := corev1.Container{
 		Image:           req.GetImage(),
 		Name:            "deployment",
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		Command:         req.GetCommand(),
 		Env:             buildDeploymentEnv(req),
 		Ports: []corev1.ContainerPort{{
 			ContainerPort: req.GetPort(),
@@ -122,6 +144,33 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
+	// Mount the deployment secret as env vars if present
+	if secretName != "" {
+		container.EnvFrom = []corev1.EnvFromSource{{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+			},
+		}}
+	}
+
+	podSpec := corev1.PodSpec{
+		RuntimeClassName:             ptr.P(runtimeClassGvisor),
+		RestartPolicy:                corev1.RestartPolicyAlways,
+		AutomountServiceAccountToken: ptr.P(false),
+		Tolerations:                  []corev1.Toleration{untrustedToleration},
+		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId()),
+		Affinity:                     deploymentAffinity(req.GetEnvironmentId()),
+		Containers:                   []corev1.Container{container},
+	}
+
+	if saName != "" {
+		podSpec.ServiceAccountName = saName
+	}
+
+	if c.registry != nil {
+		podSpec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: registryPullSecretName}}
+	}
+
 	desired := &appsv1.ReplicaSet{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -143,14 +192,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 					GenerateName: fmt.Sprintf("%s-", req.GetK8SName()),
 					Labels:       usedLabels,
 				},
-				Spec: corev1.PodSpec{
-					RuntimeClassName:          ptr.P(runtimeClassGvisor),
-					RestartPolicy:             corev1.RestartPolicyAlways,
-					Tolerations:               []corev1.Toleration{untrustedToleration},
-					TopologySpreadConstraints: deploymentTopologySpread(req.GetDeploymentId()),
-					Affinity:                  deploymentAffinity(req.GetEnvironmentId()),
-					Containers:                []corev1.Container{container},
-				},
+				Spec: podSpec,
 			},
 		},
 	}
@@ -184,25 +226,16 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 }
 
 // buildDeploymentEnv constructs the environment variables injected into deployment
-// containers. It includes the PORT, workspace/project/environment/deployment IDs,
-// and optionally the base64-encoded encrypted environment variables if present.
+// containers. It includes the PORT and workspace/project/environment/deployment IDs.
+// User-defined secrets are mounted separately via envFrom secretRef.
 func buildDeploymentEnv(req *ctrlv1.ApplyDeployment) []corev1.EnvVar {
-	env := []corev1.EnvVar{
+	return []corev1.EnvVar{
 		{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
 		{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
 		{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
 		{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
 		{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
 	}
-
-	if len(req.GetEncryptedEnvironmentVariables()) > 0 {
-		env = append(env, corev1.EnvVar{
-			Name:  "UNKEY_ENCRYPTED_ENV",
-			Value: base64.StdEncoding.EncodeToString(req.GetEncryptedEnvironmentVariables()),
-		})
-	}
-
-	return env
 }
 
 // buildProbeHandler creates the K8s probe handler based on the healthcheck method.

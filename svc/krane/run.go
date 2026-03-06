@@ -11,7 +11,6 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -25,8 +24,6 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
-	"github.com/unkeyed/unkey/svc/krane/secrets"
-	"github.com/unkeyed/unkey/svc/krane/secrets/token"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -34,25 +31,10 @@ import (
 
 // Run starts the krane agent server with the provided configuration.
 //
-// This function initializes all required services including Kubernetes client,
-// vault service for secrets management, gRPC servers for API endpoints, and
-// Prometheus metrics server. It blocks until the context is cancelled or a
-// fatal error occurs.
-//
-// The function performs these steps in order:
-// 1. Validates the configuration
-// 2. Creates structured logger with instance metadata
-// 3. Initializes vault service if master keys and S3 config are provided
-// 4. Creates Kubernetes client using in-cluster configuration
-// 5. Sets up gRPC server with SchedulerService handler
-// 6. Registers SecretsService handler if vault is configured
-// 7. Starts Prometheus metrics server if port is configured
-// 8. Blocks until context cancellation or signal
-// 9. Performs graceful shutdown of all services
-//
-// Returns an error if configuration validation fails, service initialization
-// fails, or during shutdown. Context cancellation results in clean shutdown
-// with nil error.
+// It initializes Kubernetes clients, vault for secrets decryption, controller
+// loops (cilium, deployment, sentinel), an HTTP health endpoint, and optional
+// Prometheus metrics. It blocks until the context is cancelled or a fatal error
+// occurs.
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -114,6 +96,19 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
 	}
 
+	// Create vault client for deploy-time secret decryption
+	var vaultClient vault.VaultServiceClient
+	if cfg.Vault.URL != "" {
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
+			http.DefaultClient,
+			cfg.Vault.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": "Bearer " + cfg.Vault.Token,
+			})),
+		))
+		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
+	}
+
 	// Start the cilium controller (independent control loop)
 	ciliumCtrl := cilium.New(cilium.Config{
 		ClientSet:     clientset,
@@ -126,12 +121,24 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(ciliumCtrl.Stop)
 
+	// Build registry config for pull secret creation
+	var registryCfg *deployment.RegistryConfig
+	if cfg.Registry != nil {
+		registryCfg = &deployment.RegistryConfig{
+			URL:      cfg.Registry.URL,
+			Username: cfg.Registry.Username,
+			Password: cfg.Registry.Password,
+		}
+	}
+
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
 		ClientSet:     clientset,
 		DynamicClient: dynamicClient,
 		Cluster:       cluster,
 		Region:        cfg.Region,
+		Vault:         vaultClient,
+		Registry:      registryCfg,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
@@ -162,38 +169,10 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	r.Defer(func() error { stopHeartbeat(); return nil })
 
-	// Create vault client for secrets decryption
-	var vaultClient vault.VaultServiceClient
-	if cfg.Vault.URL != "" {
-		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
-			http.DefaultClient,
-			cfg.Vault.URL,
-			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": "Bearer " + cfg.Vault.Token,
-			})),
-		))
-		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
-	}
 
 	// Create the connect handler
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux)
-
-	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
-		Clientset: clientset,
-	})
-
-	// Register secrets service if vault is configured
-	if vaultClient != nil {
-		secretsSvc := secrets.New(secrets.Config{
-			Vault:          vaultClient,
-			TokenValidator: tokenValidator,
-		})
-		mux.Handle(kranev1connect.NewSecretsServiceHandler(secretsSvc))
-		logger.Info("Secrets service registered")
-	} else {
-		logger.Info("Secrets service not enabled (missing vault configuration)")
-	}
 
 	addr := fmt.Sprintf(":%d", cfg.RPCPort)
 	server := &http.Server{

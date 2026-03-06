@@ -6,6 +6,7 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -25,6 +26,8 @@ type Controller struct {
 	clientSet       kubernetes.Interface
 	dynamicClient   dynamic.Interface
 	cluster         ctrl.ClusterServiceClient
+	vault           vault.VaultServiceClient
+	registry        *RegistryConfig
 	cb              circuitbreaker.CircuitBreaker[any]
 	done            chan struct{}
 	region          string
@@ -50,6 +53,13 @@ type Config struct {
 
 	// Region identifies the cluster region for filtering deployment streams.
 	Region string
+
+	// Vault provides secrets decryption. Nil disables deploy-time secret decryption.
+	Vault vault.VaultServiceClient
+
+	// Registry holds container registry credentials for creating imagePullSecrets.
+	// Nil disables pull secret creation.
+	Registry *RegistryConfig
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -62,6 +72,8 @@ func New(cfg Config) *Controller {
 		clientSet:       cfg.ClientSet,
 		dynamicClient:   cfg.DynamicClient,
 		cluster:         cfg.Cluster,
+		vault:           cfg.Vault,
+		registry:        cfg.Registry,
 		cb:              circuitbreaker.New[any]("deployment_state_update"),
 		done:            make(chan struct{}),
 		region:          cfg.Region,
