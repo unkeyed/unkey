@@ -2,7 +2,7 @@ import { CircleWarning } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
-type DeploymentStatus = "pending" | "building" | "deploying" | "network" | "ready" | "failed";
+type DeploymentStatus = "pending" | "starting" | "building" | "deploying" | "network" | "finalizing" | "ready" | "failed";
 
 type StatusConfig = {
   variant: "warning" | "success" | "error" | "secondary";
@@ -13,6 +13,10 @@ const STATUS_CONFIG: Record<DeploymentStatus, StatusConfig> = {
   pending: {
     variant: "secondary",
     text: "Queued",
+  },
+  starting: {
+    variant: "secondary",
+    text: "Starting",
   },
   building: {
     variant: "secondary",
@@ -25,6 +29,10 @@ const STATUS_CONFIG: Record<DeploymentStatus, StatusConfig> = {
   network: {
     variant: "secondary",
     text: "Assigning Domains",
+  },
+  finalizing: {
+    variant: "secondary",
+    text: "Finalizing",
   },
   ready: {
     variant: "success",
