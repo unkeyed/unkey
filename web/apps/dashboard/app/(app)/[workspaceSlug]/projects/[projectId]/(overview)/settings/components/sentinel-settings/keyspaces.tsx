@@ -13,7 +13,7 @@ import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const keyspacesSchema = z.object({
-  keyspaces: z.array(z.string()).min(1, "Select at least one region"),
+  keyspaces: z.array(z.string()).min(0, "Select at least one region"),
 });
 
 type KeyspacesFormValues = z.infer<typeof keyspacesSchema>;
@@ -184,25 +184,23 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
                 >
                   {availableKeyspaces[keyspaceId]?.api?.name ?? keyspaceId}
-                  {currentKeyspaceIds.length > 1 && (
-                    //biome-ignore lint/a11y/useKeyWithClickEvents: we can't use button here otherwise we'll nest two buttons
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeKeyspace(keyspaceId);
-                      }}
-                      className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
-                    >
-                      <XMark iconSize="sm-regular" />
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeKeyspace(keyspaceId);
+                    }}
+                    className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
+                  >
+                    <XMark iconSize="sm-regular" />
+                  </button>
                 </span>
               ))}
             </div>
           )
         }
         searchPlaceholder="Search keyspaces..."
-        emptyMessage={<div className="mt-2">No keyspaces available.</div>}
+        emptyMessage={<div className="mt-2"> No keyspaces available.</div>}
       />
     </FormSettingCard>
   );

@@ -15,6 +15,7 @@ import {
   Refresh3,
 } from "@unkey/icons";
 import { Button, InfoTooltip, Separator } from "@unkey/ui";
+import { useParams } from "next/navigation";
 import { useRef } from "react";
 import { RepoDisplay } from "../../../_components/list/repo-display";
 import { DisabledWrapper } from "../../components/disabled-wrapper";
@@ -48,6 +49,9 @@ export const ProjectNavigation = ({
     ? { id: project.id, name: project.name, repositoryFullName: project.repositoryFullName }
     : undefined;
 
+  const params = useParams();
+  const isOnDeploymentDetail = Boolean(params?.deploymentId);
+
   const basePath = `/${workspace.slug}/projects`;
   const breadcrumbs = useBreadcrumbConfig({
     projectId,
@@ -55,10 +59,6 @@ export const ProjectNavigation = ({
     projects: projects.data || [],
     activeProject,
   });
-
-  const isOnDeploymentDetail = Boolean(
-    breadcrumbs.find((p) => p.id === "deployment-detail")?.active,
-  );
 
   const anchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -164,35 +164,35 @@ export const ProjectNavigation = ({
           </Navbar.Breadcrumbs.Link>
         ))}
       </Navbar.Breadcrumbs>
-      <div className="flex gap-4 items-center">
-        {activeProject.repositoryFullName && (
-          <>
-            <div className="text-gray-11 text-xs flex items-center gap-2.5">
-              <Refresh3 className="text-gray-12" iconSize="sm-regular" />
-              <span>Auto-deploys from pushes to </span>
-              <RepoDisplay
-                url={`https://github.com/${activeProject.repositoryFullName}`}
-                className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
-              />
+      {!isOnDeploymentDetail && (
+        <div className="flex gap-4 items-center">
+          {activeProject.repositoryFullName && (
+            <>
+              <div className="text-gray-11 text-xs flex items-center gap-2.5">
+                <Refresh3 className="text-gray-12" iconSize="sm-regular" />
+                <span>Auto-deploys from pushes to </span>
+                <RepoDisplay
+                  url={`https://github.com/${activeProject.repositoryFullName}`}
+                  className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
+                />
+              </div>
+              <Separator orientation="vertical" className="h-5 mx-2 bg-grayA-5" />
+            </>
+          )}
+          <DisabledWrapper tooltipContent="Actions coming soon">
+            <div className="gap-2.5 items-center flex">
+              <NavbarActionButton title="Visit Project URL">Visit Project URL</NavbarActionButton>
+              <Button className="size-7" variant="outline">
+                <ListRadio iconSize="sm-regular" />
+              </Button>
+              <Button className="size-7" variant="outline">
+                <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
+              </Button>
+              <Button className="size-7" variant="outline">
+                <Dots iconSize="sm-regular" />
+              </Button>
             </div>
-            <Separator orientation="vertical" className="h-5 mx-2 bg-grayA-5" />
-          </>
-        )}
-        <DisabledWrapper tooltipContent="Actions coming soon">
-          <div className="gap-2.5 items-center flex">
-            <NavbarActionButton title="Visit Project URL">Visit Project URL</NavbarActionButton>
-            <Button className="size-7" variant="outline">
-              <ListRadio iconSize="sm-regular" />
-            </Button>
-            <Button className="size-7" variant="outline">
-              <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
-            </Button>
-            <Button className="size-7" variant="outline">
-              <Dots iconSize="sm-regular" />
-            </Button>
-          </div>
-        </DisabledWrapper>
-        {!isOnDeploymentDetail && (
+          </DisabledWrapper>
           <InfoTooltip
             asChild
             content={getTooltipContent()}
@@ -210,8 +210,8 @@ export const ProjectNavigation = ({
               <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
             </Button>
           </InfoTooltip>
-        )}
-      </div>
+        </div>
+      )}
     </Navbar>
   );
 };

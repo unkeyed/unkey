@@ -1,5 +1,4 @@
 "use client";
-import { usePathname } from "next/navigation";
 import { type PropsWithChildren, useState } from "react";
 import { ProjectDataProvider, useProjectData } from "./(overview)/data-provider";
 import { ProjectDetailsExpandable } from "./(overview)/details/project-details-expandables";
@@ -22,12 +21,8 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const pathname = usePathname();
-  const isOnDeploymentDetail =
-    pathname?.includes("/deployments/") && pathname.split("/").filter(Boolean).length >= 5; // /workspace/projects/projectId/deployments/deploymentId/*
-
   const { project } = useProjectData();
-  const currentDeploymentId = project?.currentDeploymentId;
+  const liveDeploymentId = project?.liveDeploymentId;
 
   return (
     <ProjectLayoutContext.Provider
@@ -37,19 +32,17 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
       }}
     >
       <div className="h-screen flex flex-col overflow-hidden">
-        {!isOnDeploymentDetail && (
-          <ProjectNavigation
-            onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-            isDetailsOpen={isDetailsOpen}
-            currentDeploymentId={currentDeploymentId}
-            onMount={setTableDistanceToTop}
-          />
-        )}
+        <ProjectNavigation
+          onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+          isDetailsOpen={isDetailsOpen}
+          liveDeploymentId={liveDeploymentId}
+          onMount={setTableDistanceToTop}
+        />
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 overflow-auto">{children}</div>
           <ProjectDetailsExpandable
             tableDistanceToTop={tableDistanceToTop}
-            isOpen={isDetailsOpen && Boolean(currentDeploymentId)}
+            isOpen={isDetailsOpen && Boolean(liveDeploymentId)}
             onClose={() => setIsDetailsOpen(false)}
           />
         </div>
