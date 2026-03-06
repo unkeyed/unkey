@@ -1,7 +1,8 @@
-import { and, db, eq } from "@/lib/db";
-import { environmentRuntimeSettings } from "@unkey/db/src/schema";
+import { and, db, eq, inArray } from "@/lib/db";
+import { appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
+import { resolveProjectEnvironmentIds } from "../utils";
 
 export const updateInstances = workspaceProcedure
   .input(
@@ -11,10 +12,12 @@ export const updateInstances = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const existing = await db.query.environmentRuntimeSettings.findFirst({
+    const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
+
+    const existing = await db.query.appRuntimeSettings.findFirst({
       where: and(
-        eq(environmentRuntimeSettings.workspaceId, ctx.workspace.id),
-        eq(environmentRuntimeSettings.environmentId, input.environmentId),
+        eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
+        eq(appRuntimeSettings.environmentId, input.environmentId),
       ),
     });
 
@@ -35,12 +38,12 @@ export const updateInstances = workspaceProcedure
     }
 
     await db
-      .update(environmentRuntimeSettings)
+      .update(appRuntimeSettings)
       .set({ regionConfig })
       .where(
         and(
-          eq(environmentRuntimeSettings.workspaceId, ctx.workspace.id),
-          eq(environmentRuntimeSettings.environmentId, input.environmentId),
+          eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
+          inArray(appRuntimeSettings.environmentId, envIds),
         ),
       );
   });

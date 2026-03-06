@@ -11,13 +11,13 @@ import { RedeployDialog } from "./redeploy-dialog";
 import { RollbackDialog } from "./rollback-dialog";
 
 type DeploymentListTableActionsProps = {
-  liveDeployment?: Deployment;
+  currentDeployment?: Deployment;
   selectedDeployment: Deployment;
   environment?: Environment;
 };
 
 export const DeploymentListTableActions = ({
-  liveDeployment,
+  currentDeployment,
   selectedDeployment,
   environment,
 }: DeploymentListTableActionsProps) => {
@@ -31,10 +31,10 @@ export const DeploymentListTableActions = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
   const menuItems = useMemo((): MenuItem[] => {
     const canRollbackAndRollback =
-      liveDeployment &&
+      currentDeployment &&
       environment?.slug === "production" &&
       selectedDeployment.status === "ready" &&
-      selectedDeployment.id !== liveDeployment.id;
+      selectedDeployment.id !== currentDeployment.id;
 
     const canRedeploy =
       selectedDeployment.status === "ready" || selectedDeployment.status === "failed";
@@ -46,11 +46,11 @@ export const DeploymentListTableActions = ({
         icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
         disabled: !canRollbackAndRollback,
         ActionComponent:
-          liveDeployment && canRollbackAndRollback
+          currentDeployment && canRollbackAndRollback
             ? (props) => (
                 <RollbackDialog
                   {...props}
-                  liveDeployment={liveDeployment}
+                  currentDeployment={currentDeployment}
                   targetDeployment={selectedDeployment}
                 />
               )
@@ -62,11 +62,11 @@ export const DeploymentListTableActions = ({
         icon: <ChevronUp iconSize="md-regular" />,
         disabled: !canRollbackAndRollback,
         ActionComponent:
-          liveDeployment && canRollbackAndRollback
+          currentDeployment && canRollbackAndRollback
             ? (props) => (
                 <PromotionDialog
                   {...props}
-                  liveDeployment={liveDeployment}
+                  currentDeployment={currentDeployment}
                   targetDeployment={selectedDeployment}
                 />
               )
@@ -103,7 +103,7 @@ export const DeploymentListTableActions = ({
   }, [
     selectedDeployment.id,
     selectedDeployment.status,
-    liveDeployment?.id,
+    currentDeployment?.id,
     environment?.slug,
     data,
   ]);

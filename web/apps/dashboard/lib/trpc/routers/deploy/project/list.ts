@@ -1,19 +1,14 @@
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import {
-  deployments,
-  frontlineRoutes,
-  githubRepoConnections,
-  projects,
-} from "@unkey/db/src/schema";
+import { apps, deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
   id: string;
   name: string;
   slug: string;
   repository_full_name: string | null;
-  live_deployment_id: string | null;
+  current_deployment_id: string | null;
   is_rolled_back: boolean;
   git_commit_message: string | null;
   git_branch: string | null;
@@ -27,15 +22,36 @@ type ProjectRow = {
 export const listProjects = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .query(async ({ ctx }) => {
+    // Pick the most recently updated app that has a current deployment.
+    // This avoids hardcoding slug = 'default' and works for any number of apps.
     const result = await db.execute(sql`
       SELECT
         ${projects.id},
         ${projects.name},
         ${projects.slug},
         ${projects.updatedAt},
-        ${githubRepoConnections.repositoryFullName},
-        ${projects.liveDeploymentId},
-        ${projects.isRolledBack},
+        (
+          SELECT grc.repository_full_name
+          FROM github_repo_connections grc
+          WHERE grc.project_id = ${projects.id}
+          LIMIT 1
+        ) as repository_full_name,
+        (
+          SELECT a.current_deployment_id
+          FROM ${apps} a
+          WHERE a.project_id = ${projects.id}
+            AND a.current_deployment_id IS NOT NULL
+          ORDER BY a.updated_at DESC
+          LIMIT 1
+        ) as current_deployment_id,
+        (
+          SELECT a.is_rolled_back
+          FROM ${apps} a
+          WHERE a.project_id = ${projects.id}
+            AND a.current_deployment_id IS NOT NULL
+          ORDER BY a.updated_at DESC
+          LIMIT 1
+        ) as is_rolled_back,
         ${deployments.gitCommitMessage},
         ${deployments.gitBranch},
         ${deployments.gitCommitAuthorHandle},
@@ -52,12 +68,17 @@ export const listProjects = workspaceProcedure
         ) as latest_deployment_id
       FROM ${projects}
       LEFT JOIN ${deployments}
-        ON ${projects.liveDeploymentId} = ${deployments.id}
+        ON ${deployments.id} = (
+          SELECT a2.current_deployment_id
+          FROM ${apps} a2
+          WHERE a2.project_id = ${projects.id}
+            AND a2.current_deployment_id IS NOT NULL
+          ORDER BY a2.updated_at DESC
+          LIMIT 1
+        )
         AND ${deployments.workspaceId} = ${ctx.workspace.id}
       LEFT JOIN ${frontlineRoutes}
         ON ${projects.id} = ${frontlineRoutes.projectId}
-      LEFT JOIN ${githubRepoConnections}
-        ON ${projects.id} = ${githubRepoConnections.projectId}
       WHERE ${projects.workspaceId} = ${ctx.workspace.id}
       ORDER BY ${projects.updatedAt} DESC
     `);
@@ -72,7 +93,7 @@ export const listProjects = workspaceProcedure
         name: row.name,
         slug: row.slug,
         repositoryFullName: row.repository_full_name,
-        liveDeploymentId: row.live_deployment_id,
+        currentDeploymentId: row.current_deployment_id,
         isRolledBack: row.is_rolled_back,
         commitTitle: row.git_commit_message,
         branch: row.git_branch ?? "main",

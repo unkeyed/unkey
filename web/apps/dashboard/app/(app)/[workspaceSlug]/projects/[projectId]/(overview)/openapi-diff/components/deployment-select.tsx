@@ -37,15 +37,15 @@ export function DeploymentSelect({
   disabledDeploymentId,
 }: DeploymentSelectProps) {
   const { project } = useProjectData();
-  const liveDeploymentId = project?.liveDeploymentId;
+  const currentDeploymentId = project?.currentDeploymentId;
   const latestDeploymentId = deployments.find(
-    ({ deployment }) => deployment.id !== liveDeploymentId,
+    ({ deployment }) => deployment.id !== currentDeploymentId,
   )?.deployment.id;
 
   const getTooltipContent = (
     deploymentId: string,
     isDisabled: boolean,
-    isLive: boolean,
+    isCurrent: boolean,
     isLatest: boolean,
   ): string | undefined => {
     if (isDisabled) {
@@ -53,8 +53,8 @@ export function DeploymentSelect({
         ? "Already selected for comparison"
         : "No OpenAPI spec available";
     }
-    if (isLive) {
-      return "Live deployment";
+    if (isCurrent) {
+      return "Current deployment";
     }
     if (isLatest) {
       return "Latest preview deployment";
@@ -63,8 +63,8 @@ export function DeploymentSelect({
   };
 
   const getTriggerTitle = (): string => {
-    if (value === liveDeploymentId) {
-      return "Live deployment";
+    if (value === currentDeploymentId) {
+      return "Current deployment";
     }
     if (value === latestDeploymentId) {
       return "Latest preview deployment";
@@ -91,8 +91,8 @@ export function DeploymentSelect({
       const isDisabled = deployment.id === disabledDeploymentId || !deployment.hasOpenApiSpec;
       const deployedAt = format(deployment.createdAt, "MMM d, h:mm a");
       const isLatest = deployment.id === latestDeploymentId;
-      const isLive = deployment.id === liveDeploymentId;
-      const tooltipContent = getTooltipContent(deployment.id, isDisabled, isLive, isLatest);
+      const isCurrent = deployment.id === currentDeploymentId;
+      const tooltipContent = getTooltipContent(deployment.id, isDisabled, isCurrent, isLatest);
 
       return (
         <SelectItem key={deployment.id} value={deployment.id} disabled={isDisabled}>
@@ -109,8 +109,8 @@ export function DeploymentSelect({
               <span className="text-grayA-12 font-medium truncate">{shortenId(deployment.id)}</span>
               <span className="text-grayA-9">•</span>
               <span className="text-grayA-9">{deployedAt}</span>
-              {isLive && <PulseIndicator />}
-              {isLatest && !isLive && (
+              {isCurrent && <PulseIndicator />}
+              {isLatest && !isCurrent && (
                 <PulseIndicator
                   colors={["bg-gray-9", "bg-gray-7", "bg-gray-8", "bg-gray-9"]}
                   coreColor="bg-gray-9"

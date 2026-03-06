@@ -10,7 +10,7 @@ import (
 )
 
 const findEnvironmentById = `-- name: FindEnvironmentById :one
-SELECT id, workspace_id, project_id, slug, description
+SELECT id, workspace_id, project_id, app_id, slug, description
 FROM environments
 WHERE id = ?
 `
@@ -19,13 +19,14 @@ type FindEnvironmentByIdRow struct {
 	ID          string `db:"id"`
 	WorkspaceID string `db:"workspace_id"`
 	ProjectID   string `db:"project_id"`
+	AppID       string `db:"app_id"`
 	Slug        string `db:"slug"`
 	Description string `db:"description"`
 }
 
 // FindEnvironmentById
 //
-//	SELECT id, workspace_id, project_id, slug, description
+//	SELECT id, workspace_id, project_id, app_id, slug, description
 //	FROM environments
 //	WHERE id = ?
 func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error) {
@@ -35,6 +36,7 @@ func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (
 		&i.ID,
 		&i.WorkspaceID,
 		&i.ProjectID,
+		&i.AppID,
 		&i.Slug,
 		&i.Description,
 	)

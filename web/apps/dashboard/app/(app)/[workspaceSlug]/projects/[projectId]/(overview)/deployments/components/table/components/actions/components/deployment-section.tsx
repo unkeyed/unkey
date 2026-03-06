@@ -5,14 +5,14 @@ import { DeploymentCard } from "./deployment-card";
 type DeploymentSectionProps = {
   title: string;
   deployment: Deployment;
-  isLive: boolean;
+  isCurrent: boolean;
   showSignal?: boolean;
 };
 
 export const DeploymentSection = ({
   title,
   deployment,
-  isLive,
+  isCurrent,
   showSignal,
 }: DeploymentSectionProps) => (
   <div className="space-y-2">
@@ -20,6 +20,6 @@ export const DeploymentSection = ({
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
       <CircleInfo iconSize="sm-regular" className="text-gray-9" />
     </div>
-    <DeploymentCard deployment={deployment} isLive={isLive} showSignal={showSignal} />
+    <DeploymentCard deployment={deployment} isCurrent={isCurrent} showSignal={showSignal} />
   </div>
 );

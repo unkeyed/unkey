@@ -176,6 +176,10 @@ func (h *webhookHarness) CreateEnvironment(ctx context.Context, req seed.CreateE
 	return h.Seed.CreateEnvironment(ctx, req)
 }
 
+func (h *webhookHarness) CreateApp(ctx context.Context, req seed.CreateAppRequest) db.App {
+	return h.Seed.CreateApp(ctx, req)
+}
+
 type restateRegistration struct {
 	adminURL   string
 	registerAs string

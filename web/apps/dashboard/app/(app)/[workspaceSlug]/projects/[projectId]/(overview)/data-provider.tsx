@@ -77,12 +77,12 @@ export const ProjectDataProvider = ({
         .orderBy(({ domain }) => domain.createdAt, "desc"),
     [projectId],
   );
-  // refetch domains when live deployment changes
+  // refetch domains when current deployment changes
   useEffect(() => {
-    if (project?.liveDeploymentId) {
+    if (project?.currentDeploymentId) {
       collection.domains.utils.refetch();
     }
-  }, [project?.liveDeploymentId]);
+  }, [project?.currentDeploymentId]);
 
   const environmentsQuery = useLiveQuery(
     (q) =>
