@@ -86,7 +86,7 @@ export const Healthcheck = () => {
           <div className="flex gap-1.5 items-center justify-center">
             <MethodBadge method={healthcheck.method} />
             <span className="font-medium text-gray-12">{healthcheck.path}</span>
-            <span className="text-gray-11 font-normal">every {healthcheck.intervalSeconds}</span>
+            <span className="text-gray-11 font-normal">every {healthcheck.intervalSeconds}s</span>
           </div>
         ) : null
       }
