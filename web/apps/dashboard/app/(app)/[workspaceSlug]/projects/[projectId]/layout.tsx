@@ -22,7 +22,7 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const { project } = useProjectData();
-  const liveDeploymentId = project?.liveDeploymentId;
+  const currentDeploymentId = project?.currentDeploymentId;
 
   return (
     <ProjectLayoutContext.Provider
@@ -35,14 +35,14 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
         <ProjectNavigation
           onClick={() => setIsDetailsOpen(!isDetailsOpen)}
           isDetailsOpen={isDetailsOpen}
-          liveDeploymentId={liveDeploymentId}
+          currentDeploymentId={currentDeploymentId}
           onMount={setTableDistanceToTop}
         />
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 overflow-auto">{children}</div>
           <ProjectDetailsExpandable
             tableDistanceToTop={tableDistanceToTop}
-            isOpen={isDetailsOpen && Boolean(liveDeploymentId)}
+            isOpen={isDetailsOpen && Boolean(currentDeploymentId)}
             onClose={() => setIsDetailsOpen(false)}
           />
         </div>
