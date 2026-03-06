@@ -180,6 +180,10 @@ func (h *webhookHarness) CreateApp(ctx context.Context, req seed.CreateAppReques
 	return h.Seed.CreateApp(ctx, req)
 }
 
+func (h *webhookHarness) CreateAppWithSettings(ctx context.Context, req seed.CreateAppRequest, environmentID string) db.App {
+	return h.Seed.CreateAppWithSettings(ctx, req, environmentID)
+}
+
 type restateRegistration struct {
 	adminURL   string
 	registerAs string

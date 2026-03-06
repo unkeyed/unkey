@@ -48,17 +48,19 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		DeleteProtection: false,
 	})
 
-	app := harness.CreateApp(ctx, seed.CreateAppRequest{
+	envID := uid.New("env")
+
+	app := harness.CreateAppWithSettings(ctx, seed.CreateAppRequest{
 		ID:            uid.New("app"),
 		WorkspaceID:   workspaceID,
 		ProjectID:     project.ID,
 		Name:          "default",
 		Slug:          "default",
 		DefaultBranch: "main",
-	})
+	}, envID)
 
 	environment := harness.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
-		ID:               uid.New("env"),
+		ID:               envID,
 		WorkspaceID:      workspaceID,
 		ProjectID:        project.ID,
 		AppID:            app.ID,
