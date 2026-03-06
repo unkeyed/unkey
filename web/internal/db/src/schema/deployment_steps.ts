@@ -28,7 +28,6 @@ export const deploymentSteps = mysqlTable(
   },
   (table) => [
     index("workspace_idx").on(table.workspaceId),
-    index("deployment_idx").on(table.deploymentId),
     uniqueIndex("unique_step_per_deployment").on(table.deploymentId, table.step),
   ],
 );
