@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -23,8 +22,6 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
-	"github.com/unkeyed/unkey/svc/krane/secrets"
-	"github.com/unkeyed/unkey/svc/krane/secrets/token"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -32,25 +29,10 @@ import (
 
 // Run starts the krane agent server with the provided configuration.
 //
-// This function initializes all required services including Kubernetes client,
-// vault service for secrets management, gRPC servers for API endpoints, and
-// Prometheus metrics server. It blocks until the context is cancelled or a
-// fatal error occurs.
-//
-// The function performs these steps in order:
-// 1. Validates the configuration
-// 2. Creates structured logger with instance metadata
-// 3. Initializes vault service if master keys and S3 config are provided
-// 4. Creates Kubernetes client using in-cluster configuration
-// 5. Sets up gRPC server with SchedulerService handler
-// 6. Registers SecretsService handler if vault is configured
-// 7. Starts Prometheus metrics server if port is configured
-// 8. Blocks until context cancellation or signal
-// 9. Performs graceful shutdown of all services
-//
-// Returns an error if configuration validation fails, service initialization
-// fails, or during shutdown. Context cancellation results in clean shutdown
-// with nil error.
+// It initializes Kubernetes clients, vault for secrets decryption, controller
+// loops (cilium, deployment, sentinel), an HTTP health endpoint, and optional
+// Prometheus metrics. It blocks until the context is cancelled or a fatal error
+// occurs.
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -115,8 +97,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
 	}
 
-	// Create vault client for secrets decryption (used by both deployment
-	// controller for deploy-time decryption and the legacy secrets service)
+	// Create vault client for deploy-time secret decryption
 	var vaultClient vault.VaultServiceClient
 	if cfg.Vault.URL != "" {
 		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
@@ -180,22 +161,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// Create the connect handler
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux)
-
-	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
-		Clientset: clientset,
-	})
-
-	// TODO(cleanup): The secrets service is kept temporarily for backwards
-	// compatibility during rollout. Once all deployments use direct K8s secrets,
-	// remove it along with svc/krane/secrets/.
-	if vaultClient != nil {
-		secretsSvc := secrets.New(secrets.Config{
-			Vault:          vaultClient,
-			TokenValidator: tokenValidator,
-		})
-		mux.Handle(kranev1connect.NewSecretsServiceHandler(secretsSvc))
-		logger.Info("Secrets service registered (legacy)")
-	}
 
 	addr := fmt.Sprintf(":%d", cfg.RPCPort)
 	server := &http.Server{
