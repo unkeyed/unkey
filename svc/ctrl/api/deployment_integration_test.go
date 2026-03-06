@@ -45,7 +45,6 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		WorkspaceID:      workspaceID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 	environment := harness.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{

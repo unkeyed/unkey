@@ -93,7 +93,6 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Name:        "test-project",
 		Slug:        uid.New("slug"),
 
-		DefaultBranch:    "",
 		DeleteProtection: false,
 	})
 
@@ -205,7 +204,6 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		Name:        "test-project-sentinel",
 		Slug:        uid.New("slug"),
 
-		DefaultBranch:    "",
 		DeleteProtection: false,
 	})
 

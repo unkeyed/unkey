@@ -16,7 +16,6 @@ SELECT
     workspace_id,
     name,
     slug,
-    default_branch,
     delete_protection,
     created_at,
     updated_at,
@@ -30,7 +29,6 @@ type FindProjectByIdRow struct {
 	WorkspaceID      string         `db:"workspace_id"`
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
-	DefaultBranch    sql.NullString `db:"default_branch"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
@@ -44,7 +42,6 @@ type FindProjectByIdRow struct {
 //	    workspace_id,
 //	    name,
 //	    slug,
-//	    default_branch,
 //	    delete_protection,
 //	    created_at,
 //	    updated_at,
@@ -59,7 +56,6 @@ func (q *Queries) FindProjectById(ctx context.Context, db DBTX, id string) (Find
 		&i.WorkspaceID,
 		&i.Name,
 		&i.Slug,
-		&i.DefaultBranch,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,
