@@ -115,6 +115,20 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
 	}
 
+	// Create vault client for secrets decryption (used by both deployment
+	// controller for deploy-time decryption and the legacy secrets service)
+	var vaultClient vault.VaultServiceClient
+	if cfg.Vault.URL != "" {
+		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
+			http.DefaultClient,
+			cfg.Vault.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": "Bearer " + cfg.Vault.Token,
+			})),
+		))
+		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
+	}
+
 	// Start the cilium controller (independent control loop)
 	ciliumCtrl := cilium.New(cilium.Config{
 		ClientSet:     clientset,
@@ -127,12 +141,24 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(ciliumCtrl.Stop)
 
+	// Build registry config for pull secret creation
+	var registryCfg *deployment.RegistryConfig
+	if cfg.Registry != nil {
+		registryCfg = &deployment.RegistryConfig{
+			URL:      cfg.Registry.URL,
+			Username: cfg.Registry.Username,
+			Password: cfg.Registry.Password,
+		}
+	}
+
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
 		ClientSet:     clientset,
 		DynamicClient: dynamicClient,
 		Cluster:       cluster,
 		Region:        cfg.Region,
+		Vault:         vaultClient,
+		Registry:      registryCfg,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
@@ -151,19 +177,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(sentinelCtrl.Stop)
 
-	// Create vault client for secrets decryption
-	var vaultClient vault.VaultServiceClient
-	if cfg.Vault.URL != "" {
-		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
-			http.DefaultClient,
-			cfg.Vault.URL,
-			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": "Bearer " + cfg.Vault.Token,
-			})),
-		))
-		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
-	}
-
 	// Create the connect handler
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux)
@@ -172,16 +185,16 @@ func Run(ctx context.Context, cfg Config) error {
 		Clientset: clientset,
 	})
 
-	// Register secrets service if vault is configured
+	// TODO(cleanup): The secrets service is kept temporarily for backwards
+	// compatibility during rollout. Once all deployments use direct K8s secrets,
+	// remove it along with svc/krane/secrets/.
 	if vaultClient != nil {
 		secretsSvc := secrets.New(secrets.Config{
 			Vault:          vaultClient,
 			TokenValidator: tokenValidator,
 		})
 		mux.Handle(kranev1connect.NewSecretsServiceHandler(secretsSvc))
-		logger.Info("Secrets service registered")
-	} else {
-		logger.Info("Secrets service not enabled (missing vault configuration)")
+		logger.Info("Secrets service registered (legacy)")
 	}
 
 	addr := fmt.Sprintf(":%d", cfg.RPCPort)
