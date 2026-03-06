@@ -173,6 +173,39 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 	}
 }
 
+// CreateAppRequest configures the app to create.
+type CreateAppRequest struct {
+	ID            string
+	WorkspaceID   string
+	ProjectID     string
+	Name          string
+	Slug          string
+	DefaultBranch string
+}
+
+// CreateApp creates an app within a project.
+func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
+	now := time.Now().UnixMilli()
+
+	err := db.Query.InsertApp(ctx, s.DB.RW(), db.InsertAppParams{
+		ID:               req.ID,
+		WorkspaceID:      req.WorkspaceID,
+		ProjectID:        req.ProjectID,
+		Name:             req.Name,
+		Slug:             req.Slug,
+		DefaultBranch:    req.DefaultBranch,
+		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
+		CreatedAt:        now,
+		UpdatedAt:        sql.NullInt64{Valid: false},
+	})
+	require.NoError(s.t, err)
+
+	row, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
+	require.NoError(s.t, err)
+
+	return row.App
+}
+
 // CreateEnvironmentRequest configures the environment to create.
 type CreateEnvironmentRequest struct {
 	ID               string
