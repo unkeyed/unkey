@@ -170,13 +170,13 @@ type Querier interface {
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (FindAppByIdRow, error)
 	//FindAppByProjectAndSlug
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE apps.project_id = ?
 	//    AND apps.slug = ?
@@ -198,7 +198,7 @@ type Querier interface {
 	//FindAppWithSettings
 	//
 	//  SELECT
-	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.delete_protection, a.created_at, a.updated_at,
+	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 	//  FROM apps a
@@ -320,18 +320,18 @@ type Querier interface {
 	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.current_deployment_id, environments.is_rolled_back, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
 	//  WHERE app_id = ? AND slug = ?
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT id, workspace_id, project_id, app_id, slug, description, current_deployment_id, is_rolled_back
+	//  SELECT id, workspace_id, project_id, app_id, slug, description
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE workspace_id = ?
 	//    AND project_id = ?
@@ -1422,12 +1422,10 @@ type Querier interface {
 	//      app_id,
 	//      slug,
 	//      description,
-	//      current_deployment_id,
-	//      is_rolled_back,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
 	//InsertFrontlineRoute
@@ -1855,7 +1853,7 @@ type Querier interface {
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
 	//ListAppsByProject
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE project_id = ?
 	//  ORDER BY created_at ASC
@@ -2214,7 +2212,7 @@ type Querier interface {
 	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE slug = 'preview'
 	//  AND pk > ?
@@ -2261,8 +2259,8 @@ type Querier interface {
 	//  SELECT
 	//      gc.pk, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
 	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.current_deployment_id, e.is_rolled_back, e.delete_protection, e.created_at, e.updated_at,
-	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.delete_protection, a.created_at, a.updated_at,
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
+	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 	//  FROM github_repo_connections gc
@@ -2487,6 +2485,15 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateAppDeployments
+	//
+	//  UPDATE apps
+	//  SET
+	//    current_deployment_id = ?,
+	//    is_rolled_back = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	UpdateAppDeployments(ctx context.Context, db DBTX, arg UpdateAppDeploymentsParams) error
 	//UpdateCiliumNetworkPolicyByEnvironmentRegionAndName
 	//
 	//  UPDATE cilium_network_policies
@@ -2596,15 +2603,6 @@ type Querier interface {
 	//  SET desired_status = ?, version = ?, updated_at = ?
 	//  WHERE deployment_id = ? AND region = ?
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
-	//UpdateEnvironmentDeployments
-	//
-	//  UPDATE environments
-	//  SET
-	//    current_deployment_id = ?,
-	//    is_rolled_back = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateEnvironmentDeployments(ctx context.Context, db DBTX, arg UpdateEnvironmentDeploymentsParams) error
 	//UpdateFrontlineRouteDeploymentId
 	//
 	//  UPDATE frontline_routes
