@@ -1,12 +1,4 @@
 -- name: FindProjectById :one
-SELECT
-    id,
-    workspace_id,
-    name,
-    slug,
-    delete_protection,
-    created_at,
-    updated_at,
-    depot_project_id
+SELECT *
 FROM projects
 WHERE id = ?;

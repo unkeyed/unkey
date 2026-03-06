@@ -39,8 +39,8 @@ type ciliumPolicySpec struct {
 func (w *Workflow) ensureCiliumNetworkPolicy(
 	ctx restate.WorkflowSharedContext,
 	workspace db.Workspace,
-	project db.FindProjectByIdRow,
-	environment db.FindEnvironmentByIdRow,
+	project db.Project,
+	environment db.Environment,
 	topologies []db.InsertDeploymentTopologyParams,
 	deployment db.Deployment,
 ) error {
@@ -138,7 +138,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 // buildPolicySpecs returns the ingress and egress policy specs for a deployment.
 func buildPolicySpecs(
 	workspace db.Workspace,
-	environment db.FindEnvironmentByIdRow,
+	environment db.Environment,
 	deployment db.Deployment,
 ) []ciliumPolicySpec {
 	portStr := fmt.Sprintf("%d", deployment.Port)

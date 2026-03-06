@@ -39,6 +39,18 @@ type Querier interface {
 	//  DELETE FROM instances
 	//  WHERE deployment_id = ? AND region = ?
 	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
+	//DeleteDeploymentTopologyByDeploymentId
+	//
+	//  DELETE FROM `deployment_topology`
+	//  WHERE deployment_id = ?
+	DeleteDeploymentTopologyByDeploymentId(ctx context.Context, db DBTX, deploymentID string) error
+	//DeleteDeploymentTopologyByDeploymentRegionVersion
+	//
+	//  DELETE FROM `deployment_topology`
+	//  WHERE deployment_id = ?
+	//    AND region = ?
+	//    AND version = ?
+	DeleteDeploymentTopologyByDeploymentRegionVersion(ctx context.Context, db DBTX, arg DeleteDeploymentTopologyByDeploymentRegionVersionParams) error
 	//DeleteFrontlineRouteByFQDN
 	//
 	//  DELETE FROM frontline_routes WHERE fully_qualified_domain_name = ?
@@ -170,10 +182,10 @@ type Querier interface {
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
 	//  FROM apps
 	//  WHERE id = ?
-	FindAppById(ctx context.Context, db DBTX, id string) (FindAppByIdRow, error)
+	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
 	//FindAppByProjectAndSlug
 	//
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
@@ -325,10 +337,10 @@ type Querier interface {
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT id, workspace_id, project_id, app_id, slug, description
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE id = ?
-	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
+	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
@@ -930,18 +942,10 @@ type Querier interface {
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
 	//FindProjectById
 	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      name,
-	//      slug,
-	//      delete_protection,
-	//      created_at,
-	//      updated_at,
-	//      depot_project_id
+	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
 	//  FROM projects
 	//  WHERE id = ?
-	FindProjectById(ctx context.Context, db DBTX, id string) (FindProjectByIdRow, error)
+	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
 	//FindProjectByWorkspaceSlug
 	//
 	//  SELECT

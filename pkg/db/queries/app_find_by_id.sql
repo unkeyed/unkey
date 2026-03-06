@@ -1,4 +1,4 @@
 -- name: FindAppById :one
-SELECT sqlc.embed(apps)
+SELECT *
 FROM apps
 WHERE id = sqlc.arg(id);

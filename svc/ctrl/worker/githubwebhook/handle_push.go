@@ -1,6 +1,7 @@
 package githubwebhook
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -102,32 +103,53 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		commitTimestamp := req.GetCommitTimestamp()
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Query.InsertDeployment(runCtx, s.db.RW(), db.InsertDeploymentParams{
-				ID:                            deploymentID,
-				K8sName:                       uid.DNS1035(12),
-				WorkspaceID:                   project.WorkspaceID,
-				ProjectID:                     project.ID,
-				AppID:                         app.ID,
-				EnvironmentID:                 env.ID,
-				SentinelConfig:                runtimeSettings.SentinelConfig,
-				EncryptedEnvironmentVariables: secretsBlob,
-				Command:                       runtimeSettings.Command,
-				Status:                        db.DeploymentsStatusPending,
-				CreatedAt:                     now,
-				UpdatedAt:                     sql.NullInt64{Valid: false},
-				GitCommitSha:                  sql.NullString{String: req.GetAfter(), Valid: req.GetAfter() != ""},
-				GitBranch:                     sql.NullString{String: req.GetBranch(), Valid: req.GetBranch() != ""},
-				GitCommitMessage:              sql.NullString{String: commitMessage, Valid: commitMessage != ""},
-				GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
-				GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
-				GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
-				OpenapiSpec:                   sql.NullString{Valid: false},
-				CpuMillicores:                 runtimeSettings.CpuMillicores,
-				MemoryMib:                     runtimeSettings.MemoryMib,
-				Port:                          runtimeSettings.Port,
-				ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
-				Healthcheck:                   runtimeSettings.Healthcheck,
+			return db.Tx(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+				err = db.Query.InsertDeployment(txCtx, tx, db.InsertDeploymentParams{
+					ID:                            deploymentID,
+					K8sName:                       uid.DNS1035(12),
+					WorkspaceID:                   project.WorkspaceID,
+					ProjectID:                     project.ID,
+					AppID:                         app.ID,
+					EnvironmentID:                 env.ID,
+					SentinelConfig:                runtimeSettings.SentinelConfig,
+					EncryptedEnvironmentVariables: secretsBlob,
+					Command:                       runtimeSettings.Command,
+					Status:                        db.DeploymentsStatusPending,
+					CreatedAt:                     now,
+					UpdatedAt:                     sql.NullInt64{Valid: false},
+					GitCommitSha:                  sql.NullString{String: req.GetAfter(), Valid: req.GetAfter() != ""},
+					GitBranch:                     sql.NullString{String: req.GetBranch(), Valid: req.GetBranch() != ""},
+					GitCommitMessage:              sql.NullString{String: commitMessage, Valid: commitMessage != ""},
+					GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
+					GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
+					GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
+					OpenapiSpec:                   sql.NullString{Valid: false},
+					CpuMillicores:                 runtimeSettings.CpuMillicores,
+					MemoryMib:                     runtimeSettings.MemoryMib,
+					Port:                          runtimeSettings.Port,
+					ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
+					Healthcheck:                   runtimeSettings.Healthcheck,
+				})
+				if err != nil {
+					return err
+				}
+
+				err = db.Query.InsertDeploymentStep(txCtx, tx, db.InsertDeploymentStepParams{
+					WorkspaceID:   app.WorkspaceID,
+					ProjectID:     app.ProjectID,
+					AppID:         app.ID,
+					EnvironmentID: env.ID,
+					DeploymentID:  deploymentID,
+					Step:          db.DeploymentStepsStepQueued,
+					StartedAt:     uint64(now),
+				})
+				if err != nil {
+					return err
+				}
+				return nil
+
 			})
+
 		}, restate.WithName("insert deployment"))
 		if err != nil {
 			logger.Error("failed to insert deployment", "appId", app.ID, "error", err)

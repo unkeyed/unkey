@@ -78,11 +78,7 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 
 	// Get app from deployment's app_id
 	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
-		row, err := db.Query.FindAppById(stepCtx, w.db.RO(), sourceDeployment.AppID)
-		if err != nil {
-			return db.App{}, err
-		}
-		return row.App, nil
+		return db.Query.FindAppById(stepCtx, w.db.RO(), sourceDeployment.AppID)
 	}, restate.WithName("finding app"))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -144,7 +140,7 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 	// Update app's current deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
-			ID:                  app.ID,
+			AppID:               app.ID,
 			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 			IsRolledBack:        true,
 			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

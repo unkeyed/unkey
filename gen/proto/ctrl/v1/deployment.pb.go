@@ -27,9 +27,11 @@ type DeploymentStatus int32
 const (
 	DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED DeploymentStatus = 0
 	DeploymentStatus_DEPLOYMENT_STATUS_PENDING     DeploymentStatus = 1
+	DeploymentStatus_DEPLOYMENT_STATUS_STARTING    DeploymentStatus = 7
 	DeploymentStatus_DEPLOYMENT_STATUS_BUILDING    DeploymentStatus = 2
 	DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING   DeploymentStatus = 3
 	DeploymentStatus_DEPLOYMENT_STATUS_NETWORK     DeploymentStatus = 4
+	DeploymentStatus_DEPLOYMENT_STATUS_FINALIZING  DeploymentStatus = 8
 	DeploymentStatus_DEPLOYMENT_STATUS_READY       DeploymentStatus = 5
 	DeploymentStatus_DEPLOYMENT_STATUS_FAILED      DeploymentStatus = 6
 )
@@ -39,18 +41,22 @@ var (
 	DeploymentStatus_name = map[int32]string{
 		0: "DEPLOYMENT_STATUS_UNSPECIFIED",
 		1: "DEPLOYMENT_STATUS_PENDING",
+		7: "DEPLOYMENT_STATUS_STARTING",
 		2: "DEPLOYMENT_STATUS_BUILDING",
 		3: "DEPLOYMENT_STATUS_DEPLOYING",
 		4: "DEPLOYMENT_STATUS_NETWORK",
+		8: "DEPLOYMENT_STATUS_FINALIZING",
 		5: "DEPLOYMENT_STATUS_READY",
 		6: "DEPLOYMENT_STATUS_FAILED",
 	}
 	DeploymentStatus_value = map[string]int32{
 		"DEPLOYMENT_STATUS_UNSPECIFIED": 0,
 		"DEPLOYMENT_STATUS_PENDING":     1,
+		"DEPLOYMENT_STATUS_STARTING":    7,
 		"DEPLOYMENT_STATUS_BUILDING":    2,
 		"DEPLOYMENT_STATUS_DEPLOYING":   3,
 		"DEPLOYMENT_STATUS_NETWORK":     4,
+		"DEPLOYMENT_STATUS_FINALIZING":  8,
 		"DEPLOYMENT_STATUS_READY":       5,
 		"DEPLOYMENT_STATUS_FAILED":      6,
 	}
@@ -1141,13 +1147,15 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x10RollbackResponse\"B\n" +
 	"\x0ePromoteRequest\x120\n" +
 	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
-	"\x0fPromoteResponse*\xef\x01\n" +
+	"\x0fPromoteResponse*\xb1\x02\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
+	"\x1aDEPLOYMENT_STATUS_STARTING\x10\a\x12\x1e\n" +
 	"\x1aDEPLOYMENT_STATUS_BUILDING\x10\x02\x12\x1f\n" +
 	"\x1bDEPLOYMENT_STATUS_DEPLOYING\x10\x03\x12\x1d\n" +
-	"\x19DEPLOYMENT_STATUS_NETWORK\x10\x04\x12\x1b\n" +
+	"\x19DEPLOYMENT_STATUS_NETWORK\x10\x04\x12 \n" +
+	"\x1cDEPLOYMENT_STATUS_FINALIZING\x10\b\x12\x1b\n" +
 	"\x17DEPLOYMENT_STATUS_READY\x10\x05\x12\x1c\n" +
 	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06*Z\n" +
 	"\n" +

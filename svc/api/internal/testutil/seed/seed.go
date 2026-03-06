@@ -200,10 +200,10 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	})
 	require.NoError(s.t, err)
 
-	row, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
+	app, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)
 
-	return row.App
+	return app
 }
 
 // CreateEnvironmentRequest configures the environment to create.

@@ -230,10 +230,10 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	})
 	require.NoError(s.t, err)
 
-	row, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
+	app, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)
 
-	return row.App
+	return app
 }
 
 // CreateAppWithSettings creates an app plus its build and runtime settings for a given environment.
