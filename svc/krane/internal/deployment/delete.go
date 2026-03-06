@@ -5,12 +5,13 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// DeleteDeployment removes a user workload's ReplicaSet from the cluster.
+// DeleteDeployment removes a user workload's ReplicaSet and associated resources
+// (Secret, ServiceAccount, Role, RoleBinding) from the cluster.
 //
 // Not-found errors are ignored since the desired end state (resource gone) is
 // already achieved. After deletion, the method reports the deletion to the control
@@ -24,9 +25,21 @@ func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 		"name", req.GetK8SName(),
 	)
 
-	err := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
+	// Get deployment ID from ReplicaSet labels before deleting it
+	var deploymentID string
+	rs, err := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).Get(ctx, req.GetK8SName(), metav1.GetOptions{})
+	if err == nil {
+		deploymentID, _ = labels.GetDeploymentID(rs.Labels)
+	}
+
+	err = c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
+	}
+
+	// Clean up associated Secret, ServiceAccount, Role, RoleBinding
+	if deploymentID != "" {
+		c.cleanupDeploymentResources(ctx, req.GetK8SNamespace(), deploymentID)
 	}
 
 	err = c.reportDeploymentStatus(ctx, &ctrlv1.ReportDeploymentStatusRequest{
@@ -40,5 +53,5 @@ func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 		return err
 	}
 
-	return client.IgnoreNotFound(err)
+	return nil
 }
