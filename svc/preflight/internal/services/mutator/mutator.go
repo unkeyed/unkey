@@ -57,7 +57,28 @@ func (m *Mutator) ShouldMutate(pod *corev1.Pod) bool {
 		return false
 	}
 
-	return labels[LabelDeploymentID] != ""
+	if labels[LabelDeploymentID] == "" {
+		return false
+	}
+
+	// Guard against duplicate injection if the webhook is invoked more than
+	// once for the same pod (e.g. reinvocation after another mutating webhook).
+	if m.alreadyInjected(pod) {
+		return false
+	}
+
+	return true
+}
+
+// alreadyInjected returns true when the pod already carries the inject-bin
+// volume, which means a prior webhook invocation already mutated it.
+func (m *Mutator) alreadyInjected(pod *corev1.Pod) bool {
+	for _, v := range pod.Spec.Volumes {
+		if v.Name == injectVolumeName {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Mutator) Mutate(ctx context.Context, pod *corev1.Pod, namespace string) (*Result, error) {
