@@ -19,7 +19,16 @@ const schema = z.object({
   // OpenAPI
   hasOpenApiSpec: z.boolean(),
   // Deployment status
-  status: z.enum(["pending", "starting", "building", "deploying", "network", "finalizing", "ready", "failed"]),
+  status: z.enum([
+    "pending",
+    "starting",
+    "building",
+    "deploying",
+    "network",
+    "finalizing",
+    "ready",
+    "failed",
+  ]),
   instances: z.array(
     z.object({
       id: z.string(),
