@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const listEnvVarsForRepoConnections = `-- name: ListEnvVarsForRepoConnections :many
@@ -26,9 +25,9 @@ WHERE gc.installation_id = ?
 `
 
 type ListEnvVarsForRepoConnectionsParams struct {
-	InstallationID int64          `db:"installation_id"`
-	RepositoryID   int64          `db:"repository_id"`
-	Branch         sql.NullString `db:"branch"`
+	InstallationID int64  `db:"installation_id"`
+	RepositoryID   int64  `db:"repository_id"`
+	Branch         string `db:"branch"`
 }
 
 type ListEnvVarsForRepoConnectionsRow struct {

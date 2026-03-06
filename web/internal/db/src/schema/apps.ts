@@ -20,7 +20,7 @@ export const apps = mysqlTable(
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
 
-    defaultBranch: varchar("default_branch", { length: 256 }).default("main"),
+    defaultBranch: varchar("default_branch", { length: 256 }).notNull().default("main"),
     currentDeploymentId: varchar("current_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 

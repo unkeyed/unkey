@@ -138,7 +138,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ProjectID:        projectID,
 				Name:             projectName,
 				Slug:             "default",
-				DefaultBranch:    sql.NullString{Valid: true, String: "main"},
+				DefaultBranch:    "main",
 				DeleteProtection: sql.NullBool{Valid: false, Bool: false},
 				CreatedAt:        now,
 				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},

@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const listRepoConnectionDeployContexts = `-- name: ListRepoConnectionDeployContexts :many
@@ -34,9 +33,9 @@ WHERE gc.installation_id = ?
 `
 
 type ListRepoConnectionDeployContextsParams struct {
-	Branch         sql.NullString `db:"branch"`
-	InstallationID int64          `db:"installation_id"`
-	RepositoryID   int64          `db:"repository_id"`
+	Branch         string `db:"branch"`
+	InstallationID int64  `db:"installation_id"`
+	RepositoryID   int64  `db:"repository_id"`
 }
 
 type ListRepoConnectionDeployContextsRow struct {

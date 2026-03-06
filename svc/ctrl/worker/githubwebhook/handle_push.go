@@ -24,7 +24,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		"commit_sha", req.GetAfter(),
 	)
 
-	branch := sql.NullString{String: req.GetBranch(), Valid: req.GetBranch() != ""}
+	branch := req.GetBranch()
 
 	// Single query: connections + apps + projects + environments + build/runtime settings
 	// Filters by environment slug based on branch vs project default_branch in SQL.

@@ -1051,7 +1051,7 @@ type App struct {
 	EnvironmentID       string         `db:"environment_id"`
 	Name                string         `db:"name"`
 	Slug                string         `db:"slug"`
-	DefaultBranch       sql.NullString `db:"default_branch"`
+	DefaultBranch       string         `db:"default_branch"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`

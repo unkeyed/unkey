@@ -309,12 +309,12 @@ func (s *Service) CreateDeployment(
 
 // branchFromGitCommit extracts the branch from GitCommitInfo, falling back
 // to the app's default branch or "main".
-func branchFromGitCommit(gitCommit *ctrlv1.GitCommitInfo, defaultBranch sql.NullString) string {
+func branchFromGitCommit(gitCommit *ctrlv1.GitCommitInfo, defaultBranch string) string {
 	if gitCommit != nil && gitCommit.GetBranch() != "" {
 		return gitCommit.GetBranch()
 	}
-	if defaultBranch.Valid && defaultBranch.String != "" {
-		return defaultBranch.String
+	if defaultBranch != "" {
+		return defaultBranch
 	}
 	return "main"
 }
