@@ -47,6 +47,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Resolve project + app in a single query by workspace + slugs
+	row, err := db.Query.FindAppByWorkspaceAndSlugs(ctx, h.DB.RO(), db.FindAppByWorkspaceAndSlugsParams{
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		ProjectSlug: req.Project,
+		AppSlug:     req.App,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("project or app not found",
+				fault.Code(codes.Data.Project.NotFound.URN()),
+				fault.Internal("project or app not found"),
+				fault.Public("The requested project or app does not exist."),
+			)
+		}
+		return fault.Wrap(err, fault.Internal("failed to find project and app"))
+	}
+
 	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
@@ -55,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
-			ResourceID:   req.ProjectId,
+			ResourceID:   row.Project.ID,
 			Action:       rbac.CreateDeployment,
 		}),
 	)))
@@ -63,50 +80,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Verify project belongs to the authenticated workspace
-	project, err := db.Query.FindProjectById(ctx, h.DB.RO(), req.ProjectId)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("project not found",
-				fault.Code(codes.Data.Project.NotFound.URN()),
-				fault.Internal("project not found"),
-				fault.Public("The requested project does not exist or has been deleted."),
-			)
-		}
-		return fault.Wrap(err, fault.Internal("failed to find project"))
-	}
-	if project.WorkspaceID != auth.AuthorizedWorkspaceID {
-		return fault.New("wrong workspace",
-			fault.Code(codes.Data.Project.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"),
-			fault.Public("The requested project does not exist or has been deleted."),
-		)
-	}
-
-	// Resolve app slug to app ID
-	appSlug := "default"
-	if req.AppSlug != nil && *req.AppSlug != "" {
-		appSlug = *req.AppSlug
-	}
-	appRow, err := db.Query.FindAppByProjectAndSlug(ctx, h.DB.RO(), db.FindAppByProjectAndSlugParams{
-		ProjectID: req.ProjectId,
-		Slug:      appSlug,
-	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("app not found",
-				fault.Code(codes.Data.Project.NotFound.URN()),
-				fault.Internal("app not found"),
-				fault.Public("The requested app does not exist in this project and environment."),
-			)
-		}
-		return fault.Wrap(err, fault.Internal("failed to find app"))
-	}
-
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       req.ProjectId,
-		AppId:           appRow.App.ID,
+		ProjectId:       row.Project.ID,
+		AppId:           row.App.ID,
 		EnvironmentSlug: req.EnvironmentSlug,
 		DockerImage:     req.DockerImage,
 		GitCommit: &ctrlv1.GitCommitInfo{
