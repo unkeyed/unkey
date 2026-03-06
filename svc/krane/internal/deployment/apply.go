@@ -67,24 +67,19 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to ensure registry pull secret: %w", err)
 	}
 
-	// Decrypt secrets at deploy time and create K8s Secret
+	// Decrypt secrets at deploy time
 	plaintext, err := c.decryptSecrets(ctx, req.GetEncryptedEnvironmentVariables(), req.GetEnvironmentId())
 	if err != nil {
 		return fmt.Errorf("failed to decrypt secrets: %w", err)
 	}
 
-	secretName, err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext)
-	if err != nil {
-		return fmt.Errorf("failed to ensure deployment secret: %w", err)
-	}
-
-	// Create per-deployment RBAC (ServiceAccount + Role + RoleBinding)
+	// Determine secret and SA names upfront so the RS pod spec can reference them.
+	// The actual resources are created after the RS so we can set ownerReferences.
+	secretName := ""
 	saName := ""
-	if secretName != "" {
-		saName, err = c.ensureDeploymentRBAC(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), secretName)
-		if err != nil {
-			return fmt.Errorf("failed to ensure deployment RBAC: %w", err)
-		}
+	if len(plaintext) > 0 {
+		secretName = deploymentSecretName(req.GetDeploymentId())
+		saName = fmt.Sprintf("deploy-%s", sanitizeForK8s(req.GetDeploymentId()))
 	}
 
 	usedLabels := labels.New().
@@ -101,7 +96,24 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		Image:           req.GetImage(),
 		Name:            "deployment",
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		Env:             buildDeploymentEnv(req),
+		Env: []corev1.EnvVar{
+			{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
+			{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
+			{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
+			{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
+			{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
+			// Override kubelet-injected K8s service env vars with empty strings.
+			// These can't be suppressed via enableServiceLinks, but setting them
+			// explicitly prevents leaking cluster internals to customer code.
+			{Name: "KUBERNETES_SERVICE_HOST", Value: ""},
+			{Name: "KUBERNETES_SERVICE_PORT", Value: ""},
+			{Name: "KUBERNETES_SERVICE_PORT_HTTPS", Value: ""},
+			{Name: "KUBERNETES_PORT", Value: ""},
+			{Name: "KUBERNETES_PORT_443_TCP", Value: ""},
+			{Name: "KUBERNETES_PORT_443_TCP_PROTO", Value: ""},
+			{Name: "KUBERNETES_PORT_443_TCP_PORT", Value: ""},
+			{Name: "KUBERNETES_PORT_443_TCP_ADDR", Value: ""},
+		},
 		Ports: []corev1.ContainerPort{{
 			ContainerPort: req.GetPort(),
 			Name:          "deployment",
@@ -157,6 +169,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		RuntimeClassName:             ptr.P(runtimeClassGvisor),
 		RestartPolicy:                corev1.RestartPolicyAlways,
 		AutomountServiceAccountToken: ptr.P(false),
+		EnableServiceLinks:           ptr.P(false),
 		Tolerations:                  []corev1.Toleration{untrustedToleration},
 		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId()),
 		Affinity:                     deploymentAffinity(req.GetEnvironmentId()),
@@ -204,11 +217,33 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to marshal replicaset: %w", err)
 	}
 
+	// Apply the ReplicaSet first so we get its UID for ownerReferences.
+	// Pods will retry until the secret/SA exist (created immediately after).
 	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
 		FieldManager: fieldManagerKrane,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to apply replicaset: %w", err)
+	}
+
+	// Create owned resources (Secret, SA, Role, RoleBinding) with ownerReferences
+	// so K8s garbage-collects them when the ReplicaSet is deleted.
+	ownerRef := metav1.OwnerReference{
+		APIVersion:         "apps/v1",
+		Kind:               "ReplicaSet",
+		Name:               applied.Name,
+		UID:                applied.UID,
+		Controller:         ptr.P(true),
+		BlockOwnerDeletion: ptr.P(true),
+	}
+
+	if secretName != "" {
+		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext, ownerRef); err != nil {
+			return fmt.Errorf("failed to ensure deployment secret: %w", err)
+		}
+		if err := c.ensureDeploymentRBAC(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), secretName, ownerRef); err != nil {
+			return fmt.Errorf("failed to ensure deployment RBAC: %w", err)
+		}
 	}
 
 	status, err := c.buildDeploymentStatus(ctx, applied)
@@ -223,19 +258,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	return nil
-}
-
-// buildDeploymentEnv constructs the environment variables injected into deployment
-// containers. It includes the PORT and workspace/project/environment/deployment IDs.
-// User-defined secrets are mounted separately via envFrom secretRef.
-func buildDeploymentEnv(req *ctrlv1.ApplyDeployment) []corev1.EnvVar {
-	return []corev1.EnvVar{
-		{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
-		{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
-		{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
-		{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
-		{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
-	}
 }
 
 // buildProbeHandler creates the K8s probe handler based on the healthcheck method.
