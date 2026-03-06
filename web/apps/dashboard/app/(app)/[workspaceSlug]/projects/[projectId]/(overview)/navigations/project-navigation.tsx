@@ -26,13 +26,13 @@ type ProjectNavigationProps = {
   onMount: (distanceToTop: number) => void;
   onClick: () => void;
   isDetailsOpen: boolean;
-  liveDeploymentId?: string | null;
+  currentDeploymentId?: string | null;
 };
 
 export const ProjectNavigation = ({
   onMount,
   isDetailsOpen,
-  liveDeploymentId,
+  currentDeploymentId,
   onClick,
 }: ProjectNavigationProps) => {
   const workspace = useWorkspaceNavigation();
@@ -71,7 +71,7 @@ export const ProjectNavigation = ({
   };
 
   const getTooltipContent = () => {
-    if (!liveDeploymentId) {
+    if (!currentDeploymentId) {
       return "No deployments available. Deploy your project to view details.";
     }
     return isDetailsOpen ? "Hide deployment details" : "Show deployment details";
@@ -204,7 +204,7 @@ export const ProjectNavigation = ({
             <Button
               variant="outline"
               className="size-7"
-              disabled={!liveDeploymentId}
+              disabled={!currentDeploymentId}
               onClick={onClick}
             >
               <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />

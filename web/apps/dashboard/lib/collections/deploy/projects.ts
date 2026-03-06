@@ -10,7 +10,7 @@ const schema = z.object({
   slug: z.string(),
   repositoryFullName: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
-  liveDeploymentId: z.string().nullable(),
+  currentDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
   // Flattened deployment fields for UI
   commitTitle: z.string().nullable(),

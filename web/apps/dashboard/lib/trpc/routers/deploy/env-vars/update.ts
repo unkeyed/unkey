@@ -23,10 +23,10 @@ export const updateEnvVar = workspaceProcedure
   )
   .mutation(async ({ ctx, input }) => {
     try {
-      const envVar = await db.query.environmentVariables.findFirst({
+      const envVar = await db.query.appEnvironmentVariables.findFirst({
         where: and(
-          eq(schema.environmentVariables.id, input.envVarId),
-          eq(schema.environmentVariables.workspaceId, ctx.workspace.id),
+          eq(schema.appEnvironmentVariables.id, input.envVarId),
+          eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
         ),
         columns: {
           id: true,
@@ -63,13 +63,13 @@ export const updateEnvVar = workspaceProcedure
       });
 
       await db
-        .update(schema.environmentVariables)
+        .update(schema.appEnvironmentVariables)
         .set({
           key: input.key ?? envVar.key,
           value: encrypted,
           type: input.type,
         })
-        .where(eq(schema.environmentVariables.id, input.envVarId));
+        .where(eq(schema.appEnvironmentVariables.id, input.envVarId));
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

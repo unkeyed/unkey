@@ -27,7 +27,7 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
     pathname?.includes("/deployments/") && pathname.split("/").filter(Boolean).length >= 5; // /workspace/projects/projectId/deployments/deploymentId/*
 
   const { project } = useProjectData();
-  const liveDeploymentId = project?.liveDeploymentId;
+  const currentDeploymentId = project?.currentDeploymentId;
 
   return (
     <ProjectLayoutContext.Provider
@@ -41,7 +41,7 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
           <ProjectNavigation
             onClick={() => setIsDetailsOpen(!isDetailsOpen)}
             isDetailsOpen={isDetailsOpen}
-            liveDeploymentId={liveDeploymentId}
+            currentDeploymentId={currentDeploymentId}
             onMount={setTableDistanceToTop}
           />
         )}
@@ -49,7 +49,7 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
           <div className="flex-1 overflow-auto">{children}</div>
           <ProjectDetailsExpandable
             tableDistanceToTop={tableDistanceToTop}
-            isOpen={isDetailsOpen && Boolean(liveDeploymentId)}
+            isOpen={isDetailsOpen && Boolean(currentDeploymentId)}
             onClose={() => setIsDetailsOpen(false)}
           />
         </div>

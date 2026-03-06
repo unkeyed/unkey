@@ -10,8 +10,14 @@ import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel
 type GitHubConnectionState =
   | { status: "loading" }
   | { status: "no-app"; installUrl: string }
-  | { status: "no-repo"; installUrl: string }
-  | { status: "connected"; repoFullName: string; repositoryId: number; installUrl: string };
+  | { status: "no-repo"; appId: string; installUrl: string }
+  | {
+      status: "connected";
+      appId: string;
+      repoFullName: string;
+      repositoryId: number;
+      installUrl: string;
+    };
 
 type GitHubProps = {
   readOnly?: boolean;
@@ -36,12 +42,16 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
     if (!hasInstallations) {
       return { status: "no-app", installUrl };
     }
+    const appId = data?.appId;
+    if (!appId) {
+      return { status: "no-app", installUrl };
+    }
     const repoFullName = data?.repoConnection?.repositoryFullName;
     if (repoFullName) {
       const repositoryId = data?.repoConnection?.repositoryId ?? 0;
-      return { status: "connected", repoFullName, repositoryId, installUrl };
+      return { status: "connected", appId, repoFullName, repositoryId, installUrl };
     }
-    return { status: "no-repo", installUrl };
+    return { status: "no-repo", appId, installUrl };
   })();
 
   switch (connectionState.status) {
@@ -64,7 +74,13 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
       );
     // User connected to unkey, but haven't selected a repo yet
     case "no-repo":
-      return <GitHubNoRepo projectId={projectId} installUrl={connectionState.installUrl} />;
+      return (
+        <GitHubNoRepo
+          projectId={projectId}
+          appId={connectionState.appId}
+          installUrl={connectionState.installUrl}
+        />
+      );
     case "connected":
       if (readOnly) {
         return (
@@ -75,7 +91,7 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
       }
       return (
         <GitHubConnected
-          projectId={projectId}
+          appId={connectionState.appId}
           installUrl={connectionState.installUrl}
           repoFullName={connectionState.repoFullName}
         />

@@ -39,18 +39,25 @@ export const queryRuntimeLogs = workspaceProcedure
         and(eq(table.id, input.projectId), eq(table.workspaceId, workspace.id)),
       columns: { id: true },
       with: {
-        activeDeployment: {
-          columns: {
-            environmentId: true,
-          },
+        environments: {
+          columns: { id: true },
+          limit: 1,
         },
       },
     });
 
-    if (!project?.activeDeployment?.environmentId) {
+    if (!project) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Project not found or access denied",
+      });
+    }
+
+    const environmentId = input.environmentId ?? project.environments[0]?.id;
+    if (!environmentId) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "No environment found for this project",
       });
     }
 
@@ -60,7 +67,7 @@ export const queryRuntimeLogs = workspaceProcedure
       workspaceId: workspace.id,
       projectId: project.id,
       deploymentId: input.deploymentId ?? null,
-      environmentId: input.environmentId ?? project.activeDeployment?.environmentId,
+      environmentId,
     });
 
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);

@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertCustomDomain is the base query for bulk insert
-const bulkInsertCustomDomain = `INSERT INTO custom_domains ( id, workspace_id, project_id, environment_id, domain, challenge_type, verification_status, verification_token, target_cname, invocation_id, created_at ) VALUES %s`
+const bulkInsertCustomDomain = `INSERT INTO custom_domains ( id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, target_cname, invocation_id, created_at ) VALUES %s`
 
 // InsertCustomDomains performs bulk insert in a single query
 func (q *BulkQueries) InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertCustomDomains(ctx context.Context, db DBTX, args []I
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertCustomDomain, strings.Join(valueClauses, ", "))
@@ -32,6 +32,7 @@ func (q *BulkQueries) InsertCustomDomains(ctx context.Context, db DBTX, args []I
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.ProjectID)
+		allArgs = append(allArgs, arg.AppID)
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.Domain)
 		allArgs = append(allArgs, arg.ChallengeType)

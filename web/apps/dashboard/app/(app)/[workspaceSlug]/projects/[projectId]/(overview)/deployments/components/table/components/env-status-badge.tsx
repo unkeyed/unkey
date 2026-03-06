@@ -11,12 +11,12 @@ const statusBadgeVariants = cva(
       variant: {
         enabled: "text-successA-11 bg-successA-3",
         disabled: "text-warningA-11 bg-warningA-3",
-        live: "text-feature-11 bg-feature-4",
+        current: "text-feature-11 bg-feature-4",
         rolledBack: "text-warningA-11 bg-warningA-4",
       },
     },
     defaultVariants: {
-      variant: "live",
+      variant: "current",
     },
   },
 );
@@ -24,7 +24,7 @@ const statusBadgeVariants = cva(
 const tooltipContent = {
   enabled: "This environment is enabled and ready to receive deployments.",
   disabled: "This environment is disabled and cannot receive deployments.",
-  live: "This environment is currently receiving live traffic.",
+  current: "This environment is currently receiving live traffic.",
   rolledBack: "This environment was previously live but has been rolled back.",
 } as const;
 
@@ -35,7 +35,7 @@ type EnvStatusBadgeProps = HTMLAttributes<HTMLDivElement> & {
 };
 
 export const EnvStatusBadge = ({
-  variant = "live",
+  variant = "current",
   icon,
   text,
   className,

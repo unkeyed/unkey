@@ -82,6 +82,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 						DeploymentID:  deployment.ID,
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
+						AppID:         deployment.AppID,
 						Region:        region,
 						K8sName:       instance.GetK8SName(),
 						Address:       instance.GetAddress(),

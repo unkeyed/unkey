@@ -8,14 +8,14 @@ import (
 	"strings"
 )
 
-// bulkUpsertEnvironmentBuildSettings is the base query for bulk insert
-const bulkUpsertEnvironmentBuildSettings = `INSERT INTO environment_build_settings ( workspace_id, environment_id, dockerfile, docker_context, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+// bulkUpsertAppBuildSettings is the base query for bulk insert
+const bulkUpsertAppBuildSettings = `INSERT INTO app_build_settings ( workspace_id, app_id, environment_id, dockerfile, docker_context, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     dockerfile = VALUES(dockerfile),
     docker_context = VALUES(docker_context),
     updated_at = VALUES(updated_at)`
 
-// UpsertEnvironmentBuildSettings performs bulk insert in a single query
-func (q *BulkQueries) UpsertEnvironmentBuildSettings(ctx context.Context, db DBTX, args []UpsertEnvironmentBuildSettingsParams) error {
+// UpsertAppBuildSettings performs bulk insert in a single query
+func (q *BulkQueries) UpsertAppBuildSettings(ctx context.Context, db DBTX, args []UpsertAppBuildSettingsParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -24,15 +24,16 @@ func (q *BulkQueries) UpsertEnvironmentBuildSettings(ctx context.Context, db DBT
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ? )"
 	}
 
-	bulkQuery := fmt.Sprintf(bulkUpsertEnvironmentBuildSettings, strings.Join(valueClauses, ", "))
+	bulkQuery := fmt.Sprintf(bulkUpsertAppBuildSettings, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.AppID)
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.Dockerfile)
 		allArgs = append(allArgs, arg.DockerContext)

@@ -41,6 +41,7 @@ func (w *Workflow) DeploymentStep(
 			if err := db.Query.InsertDeploymentStep(txCtx, tx, db.InsertDeploymentStepParams{
 				WorkspaceID:   deployment.WorkspaceID,
 				ProjectID:     deployment.ProjectID,
+				AppID:         deployment.AppID,
 				EnvironmentID: deployment.EnvironmentID,
 				DeploymentID:  deployment.ID,
 				Step:          step,

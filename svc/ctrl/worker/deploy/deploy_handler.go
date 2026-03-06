@@ -106,8 +106,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 
 	var (
 		workspace   db.Workspace
-		project     db.FindProjectByIdRow
-		environment db.FindEnvironmentByIdRow
+		project     db.Project
+		app         db.App
+		environment db.Environment
 	)
 
 	// --- Starting ---
@@ -146,14 +147,21 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			return fault.Wrap(err, fault.Public("Workspace settings could not be initialized."))
 		}
 
-		project, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindProjectByIdRow, error) {
+		project, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
 			return db.Query.FindProjectById(runCtx, w.db.RW(), deployment.ProjectID)
 		}, restate.WithName("finding project"))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
-		environment, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
+		app, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
+			return db.Query.FindAppById(runCtx, w.db.RW(), deployment.AppID)
+		}, restate.WithName("finding app"))
+		if err != nil {
+			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
+		}
+
+		environment, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
 			return db.Query.FindEnvironmentById(runCtx, w.db.RW(), deployment.EnvironmentID)
 		}, restate.WithName("finding environment"))
 		if err != nil {
@@ -204,7 +212,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	// --- Network ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.WorkflowSharedContext) error {
 
-		return w.configureRouting(stepCtx, workspace, project, environment, deployment)
+		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
 	if err != nil {
 		return nil, err
@@ -223,7 +231,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 			return fault.Wrap(err, fault.Public("Deployment completed but final status could not be saved."))
 		}
 
-		if err = w.swapLiveDeployment(ctx, deployment, project, environment); err != nil {
+		if err = w.swapLiveDeployment(ctx, deployment, app, environment); err != nil {
 			return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
 		}
 		return nil
@@ -314,6 +322,7 @@ func (w *Workflow) buildImage(ctx restate.WorkflowSharedContext, req *hydrav1.De
 			ContextPath:    source.Git.GetContextPath(),
 			DockerfilePath: source.Git.GetDockerfilePath(),
 			ProjectID:      deployment.ProjectID,
+			AppID:          deployment.AppID,
 			DeploymentID:   deployment.ID,
 			WorkspaceID:    deployment.WorkspaceID,
 		})
@@ -381,8 +390,11 @@ func (w *Workflow) createTopologies(
 	// If regionConfig is empty, deploy to all available regions with 1 replica each (default).
 	// If regionConfig has entries, only deploy to those regions with the specified counts.
 	regionConfig := map[string]int{}
-	runtimeSettings, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.EnvironmentRuntimeSetting, error) {
-		return db.Query.FindEnvironmentRuntimeSettingsByEnvironmentId(runCtx, w.db.RO(), deployment.EnvironmentID)
+	runtimeSettings, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppRuntimeSettingsByAppAndEnvRow, error) {
+		return db.Query.FindAppRuntimeSettingsByAppAndEnv(runCtx, w.db.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID:         deployment.AppID,
+			EnvironmentID: deployment.EnvironmentID,
+		})
 	}, restate.WithName("find runtime settings for region config"))
 	if err != nil {
 		return nil, fault.Wrap(
@@ -390,8 +402,8 @@ func (w *Workflow) createTopologies(
 			fault.Public("Failed to read from database. Please try again."),
 		)
 	}
-	if len(runtimeSettings.RegionConfig) > 0 {
-		for region, count := range runtimeSettings.RegionConfig {
+	if len(runtimeSettings.AppRuntimeSetting.RegionConfig) > 0 {
+		for region, count := range runtimeSettings.AppRuntimeSetting.RegionConfig {
 			regionConfig[region] = count
 		}
 	}
@@ -475,8 +487,8 @@ func (w *Workflow) createTopologies(
 func (w *Workflow) ensureSentinels(
 	ctx restate.WorkflowSharedContext,
 	workspace db.Workspace,
-	project db.FindProjectByIdRow,
-	environment db.FindEnvironmentByIdRow,
+	project db.Project,
+	environment db.Environment,
 	topologies []db.InsertDeploymentTopologyParams,
 ) error {
 	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
@@ -566,13 +578,15 @@ func (w *Workflow) ensureSentinels(
 func (w *Workflow) configureRouting(
 	ctx restate.WorkflowSharedContext,
 	workspace db.Workspace,
-	project db.FindProjectByIdRow,
-	environment db.FindEnvironmentByIdRow,
+	project db.Project,
+	app db.App,
+	environment db.Environment,
 	deployment db.Deployment,
 ) error {
 	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
+		app.Slug,
 		environment.Slug,
 		deployment.GitCommitSha.String,
 		deployment.GitBranch.String,
@@ -592,6 +606,7 @@ func (w *Workflow) configureRouting(
 						err = db.Query.InsertFrontlineRoute(runCtx, tx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
 							ProjectID:                project.ID,
+							AppID:                    app.ID,
 							DeploymentID:             deployment.ID,
 							EnvironmentID:            deployment.EnvironmentID,
 							FullyQualifiedDomainName: domain.domain,
@@ -615,10 +630,31 @@ func (w *Workflow) configureRouting(
 		}
 	}
 
+	// Derive rolled-back state: if the current live deployment doesn't match
+	// the previous latest-ready deployment, a rollback occurred and we should
+	// not auto-promote this new deployment.
+	autoPromote := false
+	if environment.Slug == "production" {
+		if !app.CurrentDeploymentID.Valid {
+			// No current deployment yet — first deploy, auto-promote
+			autoPromote = true
+		} else {
+			prevLatest, prevErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+				return db.Query.FindLatestReadyDeploymentByAppAndEnv(runCtx, w.db.RO(), db.FindLatestReadyDeploymentByAppAndEnvParams{
+					AppID:         app.ID,
+					EnvironmentID: deployment.EnvironmentID,
+					ExcludeID:     deployment.ID,
+				})
+			}, restate.WithName("check rolled back state"))
+			if prevErr == nil && prevLatest == app.CurrentDeploymentID.String {
+				autoPromote = true
+			}
+		}
+	}
+
 	// Fetch sticky routes for this environment
 	stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
-	if !project.IsRolledBack && environment.Slug == "production" {
-		// Only reassign live routes when not rolled back - rollbacks keep live routes on the previous deployment
+	if autoPromote {
 		stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
 	}
 
@@ -639,7 +675,8 @@ func (w *Workflow) configureRouting(
 		existingRouteIDs = append(existingRouteIDs, route.ID)
 	}
 
-	_, err = hydrav1.NewRoutingServiceClient(ctx, project.ID).
+	// Key routing service by app ID for per-app serialization
+	_, err = hydrav1.NewRoutingServiceClient(ctx, app.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
 		FrontlineRouteIds: existingRouteIDs,
@@ -667,10 +704,10 @@ func (w *Workflow) configureRouting(
 func (w *Workflow) swapLiveDeployment(
 	ctx restate.WorkflowSharedContext,
 	deployment db.Deployment,
-	project db.FindProjectByIdRow,
-	environment db.FindEnvironmentByIdRow,
+	app db.App,
+	environment db.Environment,
 ) error {
-	if project.IsRolledBack || environment.Slug != "production" {
+	if app.IsRolledBack || environment.Slug != "production" {
 		return nil
 	}
 
@@ -679,22 +716,22 @@ func (w *Workflow) swapLiveDeployment(
 	// previousLiveDeploymentID and one of them never gets scheduled for standby.
 	previousLiveDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 		return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
-			currentProject, findErr := db.Query.FindProjectById(txCtx, tx, deployment.ProjectID)
+			currentApp, findErr := db.Query.FindAppById(txCtx, tx, deployment.AppID)
 			if findErr != nil {
 				return sql.NullString{}, findErr
 			}
 
-			updateErr := db.Query.UpdateProjectDeployments(txCtx, tx, db.UpdateProjectDeploymentsParams{
-				IsRolledBack:     false,
-				ID:               deployment.ProjectID,
-				LiveDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
-				UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
+				IsRolledBack:        false,
+				AppID:               currentApp.ID,
+				CurrentDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
+				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 			if updateErr != nil {
 				return sql.NullString{}, updateErr
 			}
 
-			return currentProject.LiveDeploymentID, nil
+			return currentApp.CurrentDeploymentID, nil
 		})
 	}, restate.WithName("swapping project live deployment"))
 	if err != nil {

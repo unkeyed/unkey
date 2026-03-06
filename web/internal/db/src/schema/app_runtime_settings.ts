@@ -8,10 +8,8 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
+import { apps } from "./apps";
 import { environments } from "./environments";
-import { lifecycleDates } from "./util/lifecycle_dates";
-import { longblob } from "./util/longblob";
-import { workspaces } from "./workspaces";
 
 export type Healthcheck = {
   method: "GET" | "POST";
@@ -21,13 +19,17 @@ export type Healthcheck = {
   failureThreshold: number;
   initialDelaySeconds: number;
 };
+import { lifecycleDates } from "./util/lifecycle_dates";
+import { longblob } from "./util/longblob";
+import { workspaces } from "./workspaces";
 
-export const environmentRuntimeSettings = mysqlTable(
-  "environment_runtime_settings",
+export const appRuntimeSettings = mysqlTable(
+  "app_runtime_settings",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    appId: varchar("app_id", { length: 64 }).notNull(),
     environmentId: varchar("environment_id", { length: 128 }).notNull(),
 
     port: int("port").notNull().default(8080),
@@ -53,19 +55,20 @@ export const environmentRuntimeSettings = mysqlTable(
 
     ...lifecycleDates,
   },
-  (table) => [uniqueIndex("env_runtime_settings_environment_id_idx").on(table.environmentId)],
+  (table) => [uniqueIndex("app_runtime_settings_app_env_idx").on(table.appId, table.environmentId)],
 );
 
-export const environmentRuntimeSettingsRelations = relations(
-  environmentRuntimeSettings,
-  ({ one }) => ({
-    workspace: one(workspaces, {
-      fields: [environmentRuntimeSettings.workspaceId],
-      references: [workspaces.id],
-    }),
-    environment: one(environments, {
-      fields: [environmentRuntimeSettings.environmentId],
-      references: [environments.id],
-    }),
+export const appRuntimeSettingsRelations = relations(appRuntimeSettings, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [appRuntimeSettings.workspaceId],
+    references: [workspaces.id],
   }),
-);
+  app: one(apps, {
+    fields: [appRuntimeSettings.appId],
+    references: [apps.id],
+  }),
+  environment: one(environments, {
+    fields: [appRuntimeSettings.environmentId],
+    references: [environments.id],
+  }),
+}));

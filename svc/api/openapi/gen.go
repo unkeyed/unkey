@@ -681,6 +681,9 @@ type V2ApisListKeysResponseData = []KeyResponseData
 
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
 type V2DeployCreateDeploymentRequestBody struct {
+	// AppSlug App slug within the project. Defaults to "default" if not specified.
+	AppSlug *string `json:"appSlug,omitempty"`
+
 	// Branch Git branch name
 	Branch string `json:"branch"`
 
