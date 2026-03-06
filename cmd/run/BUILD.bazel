@@ -10,7 +10,6 @@ go_library(
         "//cmd/ctrl",
         "//cmd/frontline",
         "//cmd/krane",
-        "//cmd/preflight",
         "//cmd/sentinel",
         "//cmd/vault",
         "//pkg/cli",

@@ -258,30 +258,6 @@ k8s_resource(
 
 
 
-# Preflight (mutating admission controller for secrets and credentials injection)
-
-# Build inject binary and image (auto-detect arch from minikube)
-local_resource(
-    'build-inject',
-    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/inject ./cmd/inject && docker build -t inject:latest -f dev/Dockerfile.inject . && minikube image load inject:latest',
-    deps=['../cmd/inject', '../pkg/secrets', '../pkg/cli'],
-    allow_parallel=True,
-    labels=['build'],
-)
-
-k8s_yaml('k8s/manifests/preflight.yaml')
-preflight_deps = ['build-unkey', 'build-inject']
-if has_depot_credentials:
-    preflight_deps.append('depot-credentials')
-k8s_resource(
-  'preflight',
-  port_forwards='8090:8080',
-  resource_deps=preflight_deps,
-  labels=['unkey'],
-  auto_init=True,
-  trigger_mode=TRIGGER_MODE_AUTO
-)
-
 # Sentinel image (same Go binary, used by ctrl to spawn sentinels)
 # Build locally and load into minikube
 local_resource(
