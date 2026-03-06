@@ -107,15 +107,15 @@ const MemorySingle = () => {
           onValueCommit={
             variant === "onboarding"
               ? ([value]) => {
-                if (value !== undefined) {
-                  const memory = indexToValue(MEMORY_OPTIONS, value, 256);
-                  if (memory !== defaultMemory) {
-                    collection.environmentSettings.update(settings.environmentId, (draft) => {
-                      draft.memoryMib = memory;
-                    });
+                  if (value !== undefined) {
+                    const memory = indexToValue(MEMORY_OPTIONS, value, 256);
+                    if (memory !== defaultMemory) {
+                      collection.environmentSettings.update(settings.environmentId, (draft) => {
+                        draft.memoryMib = memory;
+                      });
+                    }
                   }
                 }
-              }
               : undefined
           }
           className="flex-1 max-w-[480px]"

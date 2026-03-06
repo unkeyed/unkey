@@ -107,15 +107,15 @@ const CpuSingle = () => {
           onValueCommit={
             variant === "onboarding"
               ? ([value]) => {
-                if (value !== undefined) {
-                  const cpu = indexToValue(CPU_OPTIONS, value, 256);
-                  if (cpu !== defaultCpu) {
-                    collection.environmentSettings.update(settings.environmentId, (draft) => {
-                      draft.cpuMillicores = cpu;
-                    });
+                  if (value !== undefined) {
+                    const cpu = indexToValue(CPU_OPTIONS, value, 256);
+                    if (cpu !== defaultCpu) {
+                      collection.environmentSettings.update(settings.environmentId, (draft) => {
+                        draft.cpuMillicores = cpu;
+                      });
+                    }
                   }
                 }
-              }
               : undefined
           }
           className="flex-1 max-w-[480px]"
