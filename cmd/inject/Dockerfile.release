@@ -1,4 +1,0 @@
-FROM cgr.dev/chainguard/busybox:latest
-ARG TARGETPLATFORM
-COPY ${TARGETPLATFORM}/inject /inject
-ENTRYPOINT ["/inject"]

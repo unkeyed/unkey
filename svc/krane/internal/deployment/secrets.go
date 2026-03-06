@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -45,16 +46,19 @@ func (c *Controller) decryptSecrets(ctx context.Context, encrypted []byte, envir
 
 // deploymentSecretName returns the deterministic K8s Secret name for a deployment.
 func deploymentSecretName(deploymentID string) string {
-	return fmt.Sprintf("deploy-%s", deploymentID)
+	return fmt.Sprintf("deploy-%s", sanitizeForK8s(deploymentID))
+}
+
+// sanitizeForK8s converts an ID to a valid RFC 1123 subdomain name by
+// lowercasing and replacing underscores with dashes.
+func sanitizeForK8s(id string) string {
+	return strings.ToLower(strings.ReplaceAll(id, "_", "-"))
 }
 
 // ensureDeploymentSecret creates or updates a K8s Secret containing the plaintext
 // environment variables for the deployment. Uses server-side apply for idempotency.
-func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, deploymentID string, envVars map[string]string) (string, error) {
-	if len(envVars) == 0 {
-		return "", nil
-	}
-
+// The ownerRef ties the secret's lifecycle to the ReplicaSet for automatic GC.
+func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, deploymentID string, envVars map[string]string, ownerRef metav1.OwnerReference) error {
 	secretName := deploymentSecretName(deploymentID)
 
 	secret := &corev1.Secret{
@@ -63,9 +67,10 @@ func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, depl
 			Kind:       "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-			Labels:    labels.New().DeploymentID(deploymentID).ManagedByKrane(),
+			Name:            secretName,
+			Namespace:       namespace,
+			Labels:          labels.New().DeploymentID(deploymentID).ManagedByKrane(),
+			OwnerReferences: []metav1.OwnerReference{ownerRef},
 		},
 		StringData: envVars,
 		Type:       corev1.SecretTypeOpaque,
@@ -73,7 +78,7 @@ func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, depl
 
 	patch, err := json.Marshal(secret)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal secret: %w", err)
+		return fmt.Errorf("failed to marshal secret: %w", err)
 	}
 
 	_, err = c.clientSet.CoreV1().Secrets(namespace).Patch(
@@ -81,8 +86,8 @@ func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, depl
 		metav1.PatchOptions{FieldManager: fieldManagerKrane},
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to apply secret: %w", err)
+		return fmt.Errorf("failed to apply secret: %w", err)
 	}
 
-	return secretName, nil
+	return nil
 }

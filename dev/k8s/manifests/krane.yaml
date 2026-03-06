@@ -19,6 +19,11 @@ data:
     url = "http://vault:8060"
     token = "vault-test-token-123"
 
+    [registry]
+    url = "registry.depot.dev"
+    username = "x-token"
+    password = "${UNKEY_REGISTRY_PASSWORD}"
+
 ---
 apiVersion: v1
 kind: Service
@@ -61,6 +66,13 @@ spec:
           image: unkey/go:latest
           args: ["run", "krane", "--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
+          env:
+            - name: UNKEY_REGISTRY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: depot-credentials
+                  key: UNKEY_DEPOT_TOKEN
+                  optional: true
           ports:
             - containerPort: 8070
           readinessProbe:
