@@ -115,9 +115,20 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	fmt.Printf("Repository: %s (id: %d)\n", repository, repositoryID)
 	fmt.Printf("Project: %s\n", projectID)
 
+	// Resolve the default app for this project
+	fmt.Println("Looking up default app for project...")
+	appRow, err := db.Query.FindAppByProjectAndSlug(ctx, database.RO(), db.FindAppByProjectAndSlugParams{
+		ProjectID: projectID,
+		Slug:      "default",
+	})
+	if err != nil {
+		return fmt.Errorf("failed to find default app for project %s: %w\n\nMake sure the project exists and has a 'default' app", projectID, err)
+	}
+	fmt.Printf("App: %s (id: %s)\n", appRow.App.Slug, appRow.App.ID)
+
 	// Ensure github_repo_connection exists
 	fmt.Println("Ensuring GitHub connection exists in database...")
-	if err := svc.ensureGithubConnection(ctx, projectID, installationID, repositoryID, repository); err != nil {
+	if err := svc.ensureGithubConnection(ctx, projectID, appRow.App.ID, installationID, repositoryID, repository); err != nil {
 		return fmt.Errorf("failed to create GitHub connection: %w", err)
 	}
 	fmt.Println("✔ GitHub connection ready")
@@ -217,11 +228,11 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	}
 }
 
-func (s *Service) ensureGithubConnection(ctx context.Context, projectID string, installationID, repositoryID int64, repository string) error {
+func (s *Service) ensureGithubConnection(ctx context.Context, projectID, appID string, installationID, repositoryID int64, repository string) error {
 	// Try to insert, ignore if already exists
 	err := db.Query.InsertGithubRepoConnection(ctx, s.db.RW(), db.InsertGithubRepoConnectionParams{
 		ProjectID:          projectID,
-		AppID:              "",
+		AppID:              appID,
 		InstallationID:     installationID,
 		RepositoryID:       repositoryID,
 		RepositoryFullName: repository,
