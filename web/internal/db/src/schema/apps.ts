@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
 import { deleteProtection } from "./util/delete_protection";
@@ -15,20 +15,15 @@ export const apps = mysqlTable(
     id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 64 }).notNull(),
-    environmentId: varchar("environment_id", { length: 128 }).notNull().default(""),
-
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
 
     defaultBranch: varchar("default_branch", { length: 256 }).notNull().default("main"),
-    currentDeploymentId: varchar("current_deployment_id", { length: 256 }),
-    isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     ...deleteProtection,
     ...lifecycleDates,
   },
   (table) => [
-    uniqueIndex("apps_env_slug_idx").on(table.environmentId, table.slug),
     uniqueIndex("apps_project_slug_idx").on(table.projectId, table.slug),
     index("apps_workspace_idx").on(table.workspaceId),
     index("apps_project_idx").on(table.projectId),
