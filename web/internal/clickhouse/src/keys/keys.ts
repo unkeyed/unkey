@@ -302,7 +302,7 @@ export function getKeysOverviewLogs(ch: Querier) {
               toInt64(toUnixTimestamp(time) * 1000) as time,
               '' as request_id,
               tags
-          FROM default.key_verifications_per_hour_v2
+          FROM default.key_verifications_per_hour_v3
           WHERE workspace_id = {workspaceId: String}
               AND key_space_id = {keyspaceId: String}
               AND time BETWEEN toDateTime(fromUnixTimestamp64Milli({startTime: UInt64}))
@@ -342,7 +342,7 @@ WITH
           h.key_id,
           h.outcome,
           toUInt64(sum(h.count)) as count
-      FROM default.key_verifications_per_hour_v2 h
+      FROM default.key_verifications_per_hour_v3 h
       INNER JOIN top_keys t ON h.key_id = t.key_id
       WHERE h.workspace_id = {workspaceId: String}
           AND h.key_space_id = {keyspaceId: String}
