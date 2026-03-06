@@ -224,7 +224,9 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 				Step:          db.DeploymentStepsStepQueued,
 				StartedAt:     uint64(time.Now().UnixMilli()),
 			})
-
+			if err != nil {
+				return err
+			}
 			return nil
 		})
 
