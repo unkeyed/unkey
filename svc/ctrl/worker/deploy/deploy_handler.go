@@ -568,10 +568,10 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 				}
 
 				updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
-					IsRolledBack:     false,
-					ID:               app.ID,
+					IsRolledBack:        false,
+					ID:                  app.ID,
 					CurrentDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
-					UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
 				if updateErr != nil {
 					return sql.NullString{}, updateErr
