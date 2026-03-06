@@ -45,7 +45,6 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		WorkspaceID:      workspaceID,
 		Name:             "test-project",
 		Slug:             uid.New("slug"),
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 	environment := harness.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
@@ -58,9 +57,19 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		DeleteProtection: false,
 	})
 
+	app := harness.CreateApp(ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		Name:          "default",
+		Slug:          "default",
+		DefaultBranch: "main",
+	})
+
 	client := ctrlv1connect.NewDeployServiceClient(harness.ConnectClient(), harness.CtrlURL, harness.ConnectOptions()...)
 	resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
 		ProjectId:       project.ID,
+		AppId:           app.ID,
 		EnvironmentSlug: environment.Slug,
 		DockerImage:     "nginx:latest",
 	}))

@@ -12,7 +12,7 @@ export const ciliumNetworkPolicies = mysqlTable(
     id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull().default(""),
+    appId: varchar("app_id", { length: 64 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 128 }).notNull(),
     k8sName: varchar("k8s_name", { length: 64 }).notNull(),

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -14,6 +14,7 @@ export const environments = mysqlTable(
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 256 }).notNull(),
+    appId: varchar("app_id", { length: 64 }).notNull(),
 
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
@@ -21,10 +22,13 @@ export const environments = mysqlTable(
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => [uniqueIndex("environments_project_id_slug_idx").on(table.projectId, table.slug)],
+  (table) => [
+    uniqueIndex("environments_app_slug_idx").on(table.appId, table.slug),
+    index("environments_project_idx").on(table.projectId),
+  ],
 );
 
-export const environmentsRelations = relations(environments, ({ one, many }) => ({
+export const environmentsRelations = relations(environments, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [environments.workspaceId],
     references: [workspaces.id],
@@ -33,5 +37,8 @@ export const environmentsRelations = relations(environments, ({ one, many }) => 
     fields: [environments.projectId],
     references: [projects.id],
   }),
-  apps: many(apps),
+  app: one(apps, {
+    fields: [environments.appId],
+    references: [apps.id],
+  }),
 }));

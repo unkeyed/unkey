@@ -11,14 +11,19 @@ import (
 
 const findAppWithSettings = `-- name: FindAppWithSettings :one
 SELECT
-    a.pk, a.id, a.workspace_id, a.project_id, a.environment_id, a.name, a.slug, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
+    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
     abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
     ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 FROM apps a
-INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = a.environment_id
-INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = a.environment_id
+INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
+INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 WHERE a.id = ?
 `
+
+type FindAppWithSettingsParams struct {
+	EnvironmentID string `db:"environment_id"`
+	ID            string `db:"id"`
+}
 
 type FindAppWithSettingsRow struct {
 	App               App               `db:"app"`
@@ -29,24 +34,24 @@ type FindAppWithSettingsRow struct {
 // FindAppWithSettings
 //
 //	SELECT
-//	    a.pk, a.id, a.workspace_id, a.project_id, a.environment_id, a.name, a.slug, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
+//	    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 //	    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
 //	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 //	FROM apps a
-//	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = a.environment_id
-//	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = a.environment_id
+//	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
+//	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 //	WHERE a.id = ?
-func (q *Queries) FindAppWithSettings(ctx context.Context, db DBTX, id string) (FindAppWithSettingsRow, error) {
-	row := db.QueryRowContext(ctx, findAppWithSettings, id)
+func (q *Queries) FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error) {
+	row := db.QueryRowContext(ctx, findAppWithSettings, arg.EnvironmentID, arg.EnvironmentID, arg.ID)
 	var i FindAppWithSettingsRow
 	err := row.Scan(
 		&i.App.Pk,
 		&i.App.ID,
 		&i.App.WorkspaceID,
 		&i.App.ProjectID,
-		&i.App.EnvironmentID,
 		&i.App.Name,
 		&i.App.Slug,
+		&i.App.DefaultBranch,
 		&i.App.CurrentDeploymentID,
 		&i.App.IsRolledBack,
 		&i.App.DeleteProtection,

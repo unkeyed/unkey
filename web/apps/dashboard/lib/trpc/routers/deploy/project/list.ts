@@ -1,7 +1,7 @@
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
+import { apps, deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
   id: string;
@@ -38,15 +38,15 @@ export const listProjects = workspaceProcedure
         ) as repository_full_name,
         (
           SELECT a.current_deployment_id
-          FROM apps a
+          FROM ${apps} a
           WHERE a.project_id = ${projects.id}
             AND a.current_deployment_id IS NOT NULL
           ORDER BY a.updated_at DESC
           LIMIT 1
-        ) as live_deployment_id,
+        ) as current_deployment_id,
         (
           SELECT a.is_rolled_back
-          FROM apps a
+          FROM ${apps} a
           WHERE a.project_id = ${projects.id}
             AND a.current_deployment_id IS NOT NULL
           ORDER BY a.updated_at DESC
@@ -70,7 +70,7 @@ export const listProjects = workspaceProcedure
       LEFT JOIN ${deployments}
         ON ${deployments.id} = (
           SELECT a2.current_deployment_id
-          FROM apps a2
+          FROM ${apps} a2
           WHERE a2.project_id = ${projects.id}
             AND a2.current_deployment_id IS NOT NULL
           ORDER BY a2.updated_at DESC

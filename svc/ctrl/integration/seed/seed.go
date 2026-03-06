@@ -127,7 +127,6 @@ type CreateProjectRequest struct {
 	WorkspaceID      string
 	Name             string
 	Slug             string
-	DefaultBranch    string
 	DeleteProtection bool
 }
 
@@ -137,7 +136,6 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		WorkspaceID:      req.WorkspaceID,
 		Name:             req.Name,
 		Slug:             req.Slug,
-		DefaultBranch:    sql.NullString{Valid: true, String: req.DefaultBranch},
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        time.Now().UnixMilli(),
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
@@ -152,13 +150,10 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 		WorkspaceID:      project.WorkspaceID,
 		Name:             project.Name,
 		Slug:             project.Slug,
-		DefaultBranch:    project.DefaultBranch,
 		DeleteProtection: project.DeleteProtection,
 		CreatedAt:        project.CreatedAt,
 		UpdatedAt:        project.UpdatedAt,
 		Pk:               0,
-		LiveDeploymentID: sql.NullString{String: "", Valid: false},
-		IsRolledBack:     false,
 		DepotProjectID:   sql.NullString{String: "", Valid: false},
 	}
 }
@@ -167,6 +162,7 @@ type CreateEnvironmentRequest struct {
 	ID               string
 	WorkspaceID      string
 	ProjectID        string
+	AppID            string
 	Slug             string
 	Description      string
 	SentinelConfig   []byte
@@ -181,6 +177,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		ID:          req.ID,
 		WorkspaceID: req.WorkspaceID,
 		ProjectID:   req.ProjectID,
+		AppID:       req.AppID,
 		Slug:        req.Slug,
 		Description: req.Description,
 		CreatedAt:   now,
@@ -188,31 +185,8 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	})
 	require.NoError(s.t, err)
 
-	err = db.Query.UpsertEnvironmentRuntimeSettings(ctx, s.DB.RW(), db.UpsertEnvironmentRuntimeSettingsParams{
-		WorkspaceID:    req.WorkspaceID,
-		EnvironmentID:  req.ID,
-		Port:           8080,
-		CpuMillicores:  256,
-		MemoryMib:      256,
-		Command:        dbtype.StringSlice{},
-		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		RegionConfig:   dbtype.RegionConfig{},
-		SentinelConfig: []byte{},
-		ShutdownSignal: db.EnvironmentRuntimeSettingsShutdownSignalSIGTERM,
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
-	})
-	require.NoError(s.t, err)
-
-	err = db.Query.UpsertEnvironmentBuildSettings(ctx, s.DB.RW(), db.UpsertEnvironmentBuildSettingsParams{
-		WorkspaceID:   req.WorkspaceID,
-		EnvironmentID: req.ID,
-		Dockerfile:    "Dockerfile",
-		DockerContext: ".",
-		CreatedAt:     now,
-		UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-	})
-	require.NoError(s.t, err)
+	// Environment settings are now app-scoped (app_runtime_settings / app_build_settings).
+	// Seed code should create an app and its settings separately.
 
 	environment, err := db.Query.FindEnvironmentById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)
@@ -222,12 +196,82 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		ID:               environment.ID,
 		WorkspaceID:      environment.WorkspaceID,
 		ProjectID:        environment.ProjectID,
+		AppID:            req.AppID,
 		Slug:             environment.Slug,
 		Description:      req.Description,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
 	}
+}
+
+type CreateAppRequest struct {
+	ID            string
+	WorkspaceID   string
+	ProjectID     string
+	Name          string
+	Slug          string
+	DefaultBranch string
+}
+
+func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
+	now := time.Now().UnixMilli()
+
+	err := db.Query.InsertApp(ctx, s.DB.RW(), db.InsertAppParams{
+		ID:               req.ID,
+		WorkspaceID:      req.WorkspaceID,
+		ProjectID:        req.ProjectID,
+		Name:             req.Name,
+		Slug:             req.Slug,
+		DefaultBranch:    req.DefaultBranch,
+		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
+		CreatedAt:        now,
+		UpdatedAt:        sql.NullInt64{Valid: false},
+	})
+	require.NoError(s.t, err)
+
+	row, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
+	require.NoError(s.t, err)
+
+	return row.App
+}
+
+// CreateAppWithSettings creates an app plus its build and runtime settings for a given environment.
+func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest, environmentID string) db.App {
+	app := s.CreateApp(ctx, req)
+	now := time.Now().UnixMilli()
+
+	// Seed default build settings
+	err := db.Query.UpsertAppBuildSettings(ctx, s.DB.RW(), db.UpsertAppBuildSettingsParams{
+		WorkspaceID:   req.WorkspaceID,
+		AppID:         req.ID,
+		EnvironmentID: environmentID,
+		Dockerfile:    "",
+		DockerContext: "",
+		CreatedAt:     now,
+		UpdatedAt:     sql.NullInt64{Valid: false},
+	})
+	require.NoError(s.t, err)
+
+	// Seed default runtime settings
+	err = db.Query.UpsertAppRuntimeSettings(ctx, s.DB.RW(), db.UpsertAppRuntimeSettingsParams{
+		WorkspaceID:    req.WorkspaceID,
+		AppID:          req.ID,
+		EnvironmentID:  environmentID,
+		Port:           8080,
+		CpuMillicores:  256,
+		MemoryMib:      256,
+		Command:        nil,
+		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		RegionConfig:   dbtype.RegionConfig{},
+		ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
+		SentinelConfig: []byte("{}"),
+		CreatedAt:      now,
+		UpdatedAt:      sql.NullInt64{Valid: false},
+	})
+	require.NoError(s.t, err)
+
+	return app
 }
 
 type CreateDeploymentRequest struct {

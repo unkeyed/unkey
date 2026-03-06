@@ -12,24 +12,24 @@ type PromotionDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   targetDeployment: Deployment;
-  liveDeployment: Deployment;
+  currentDeployment: Deployment;
 };
 
 export const PromotionDialog = ({
   isOpen,
   onClose,
   targetDeployment,
-  liveDeployment,
+  currentDeployment,
 }: PromotionDialogProps) => {
   const utils = trpc.useUtils();
   const domains = useLiveQuery(
     (q) =>
       q
         .from({ domain: collection.domains })
-        .where(({ domain }) => eq(domain.projectId, liveDeployment.projectId))
+        .where(({ domain }) => eq(domain.projectId, currentDeployment.projectId))
         .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
-        .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
-    [liveDeployment.projectId, liveDeployment.id],
+        .where(({ domain }) => eq(domain.deploymentId, currentDeployment.id)),
+    [currentDeployment.projectId, currentDeployment.id],
   );
   const promote = trpc.deploy.deployment.promote.useMutation({
     onSuccess: () => {
@@ -89,13 +89,17 @@ export const PromotionDialog = ({
     >
       <div className="space-y-9">
         <DeploymentSection
-          title="Live Deployment"
-          deployment={liveDeployment}
-          isLive={true}
+          title="Current Deployment"
+          deployment={currentDeployment}
+          isCurrent={true}
           showSignal={true}
         />
         <DomainsSection domains={domains.data} />
-        <DeploymentSection title="Target Deployment" deployment={targetDeployment} isLive={false} />
+        <DeploymentSection
+          title="Target Deployment"
+          deployment={targetDeployment}
+          isCurrent={false}
+        />
       </div>
     </DialogContainer>
   );

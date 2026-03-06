@@ -63,10 +63,10 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		return nil, restate.TerminalError(fmt.Errorf("deployment status must be ready, got: %s", targetDeployment.Status), 400)
 	}
 	if !app.CurrentDeploymentID.Valid {
-		return nil, restate.TerminalError(fmt.Errorf("app has no live deployment"), 400)
+		return nil, restate.TerminalError(fmt.Errorf("app has no current deployment"), 400)
 	}
 	if targetDeployment.ID == app.CurrentDeploymentID.String {
-		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400)
+		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the current deployment"), 400)
 	}
 
 	// Get all frontlineRoutes for promotion
@@ -105,7 +105,7 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		return nil, fmt.Errorf("failed to switch domains: %w", err)
 	}
 
-	// Update app's live deployment and clear rolled back flag
+	// Update app's current deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
 			ID:                  app.ID,
@@ -114,11 +114,11 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("failed to update app's live deployment id: %w", err)
+			return restate.Void{}, fmt.Errorf("failed to update app's current deployment id: %w", err)
 		}
-		logger.Info("updated app live deployment", "app_id", app.ID, "live_deployment_id", targetDeployment.ID)
+		logger.Info("updated app current deployment", "app_id", app.ID, "current_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
-	}, restate.WithName("updating app live deployment"))
+	}, restate.WithName("updating app current deployment"))
 	if err != nil {
 		return nil, err
 	}

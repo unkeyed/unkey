@@ -337,7 +337,6 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Name:             config.ProjectName,
 		ID:               uid.New(uid.ProjectPrefix),
 		Slug:             config.ProjectSlug,
-		DefaultBranch:    "",
 		DeleteProtection: false,
 	})
 
@@ -347,6 +346,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			ID:               uid.New(uid.EnvironmentPrefix),
 			WorkspaceID:      workspace.ID,
 			ProjectID:        project.ID,
+			AppID:            "",
 			Slug:             config.EnvironmentSlug,
 			Description:      config.EnvironmentSlug + " environment",
 			DeleteProtection: false,

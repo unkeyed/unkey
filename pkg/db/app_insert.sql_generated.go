@@ -15,17 +15,13 @@ INSERT INTO apps (
     id,
     workspace_id,
     project_id,
-    environment_id,
     name,
     slug,
-    current_deployment_id,
-    is_rolled_back,
+    default_branch,
     delete_protection,
     created_at,
     updated_at
 ) VALUES (
-    ?,
-    ?,
     ?,
     ?,
     ?,
@@ -39,17 +35,15 @@ INSERT INTO apps (
 `
 
 type InsertAppParams struct {
-	ID                  string         `db:"id"`
-	WorkspaceID         string         `db:"workspace_id"`
-	ProjectID           string         `db:"project_id"`
-	EnvironmentID       string         `db:"environment_id"`
-	Name                string         `db:"name"`
-	Slug                string         `db:"slug"`
-	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
-	IsRolledBack        bool           `db:"is_rolled_back"`
-	DeleteProtection    sql.NullBool   `db:"delete_protection"`
-	CreatedAt           int64          `db:"created_at"`
-	UpdatedAt           sql.NullInt64  `db:"updated_at"`
+	ID               string        `db:"id"`
+	WorkspaceID      string        `db:"workspace_id"`
+	ProjectID        string        `db:"project_id"`
+	Name             string        `db:"name"`
+	Slug             string        `db:"slug"`
+	DefaultBranch    string        `db:"default_branch"`
+	DeleteProtection sql.NullBool  `db:"delete_protection"`
+	CreatedAt        int64         `db:"created_at"`
+	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
 // InsertApp
@@ -58,17 +52,13 @@ type InsertAppParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
-//	    environment_id,
 //	    name,
 //	    slug,
-//	    current_deployment_id,
-//	    is_rolled_back,
+//	    default_branch,
 //	    delete_protection,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
-//	    ?,
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -84,11 +74,9 @@ func (q *Queries) InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) e
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
-		arg.EnvironmentID,
 		arg.Name,
 		arg.Slug,
-		arg.CurrentDeploymentID,
-		arg.IsRolledBack,
+		arg.DefaultBranch,
 		arg.DeleteProtection,
 		arg.CreatedAt,
 		arg.UpdatedAt,

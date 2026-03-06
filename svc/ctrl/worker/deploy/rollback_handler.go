@@ -91,9 +91,9 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, fmt.Errorf("failed to get app: %w", err)
 	}
 
-	// Validate source deployment is the live deployment
+	// Validate source deployment is the current deployment
 	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != sourceDeployment.ID {
-		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current live deployment"), 400)
+		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current deployment"), 400)
 	}
 
 	// ensure the rolled back deployment does not get spun down from existing scheduled actions
@@ -102,7 +102,7 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, err
 	}
 
-	// Get all frontlineRoutes on the live deployment that are sticky
+	// Get all frontlineRoutes on the current deployment that are sticky
 	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesForRollbackRow, error) {
 		return db.Query.FindFrontlineRoutesForRollback(stepCtx, w.db.RO(), db.FindFrontlineRoutesForRollbackParams{
 			EnvironmentID: sourceDeployment.EnvironmentID,
@@ -141,7 +141,7 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, fmt.Errorf("failed to switch frontlineRoutes: %w", err)
 	}
 
-	// Update app's live deployment
+	// Update app's current deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
 			ID:                  app.ID,
@@ -150,11 +150,11 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("failed to update app's live deployment id: %w", err)
+			return restate.Void{}, fmt.Errorf("failed to update app's current deployment id: %w", err)
 		}
-		logger.Info("updated app live deployment", "app_id", app.ID, "live_deployment_id", targetDeployment.ID)
+		logger.Info("updated app current deployment", "app_id", app.ID, "current_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
-	}, restate.WithName("updating app live deployment"))
+	}, restate.WithName("updating app current deployment"))
 	if err != nil {
 		return nil, err
 	}

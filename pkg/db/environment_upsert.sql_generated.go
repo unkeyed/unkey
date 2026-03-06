@@ -14,9 +14,10 @@ INSERT INTO environments (
     id,
     workspace_id,
     project_id,
+    app_id,
     slug,
     created_at
-) VALUES (?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE slug = VALUES(slug)
 `
 
@@ -24,6 +25,7 @@ type UpsertEnvironmentParams struct {
 	ID          string `db:"id"`
 	WorkspaceID string `db:"workspace_id"`
 	ProjectID   string `db:"project_id"`
+	AppID       string `db:"app_id"`
 	Slug        string `db:"slug"`
 	CreatedAt   int64  `db:"created_at"`
 }
@@ -34,15 +36,17 @@ type UpsertEnvironmentParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
+//	    app_id,
 //	    slug,
 //	    created_at
-//	) VALUES (?, ?, ?, ?, ?)
+//	) VALUES (?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE slug = VALUES(slug)
 func (q *Queries) UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error {
 	_, err := db.ExecContext(ctx, upsertEnvironment,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.Slug,
 		arg.CreatedAt,
 	)

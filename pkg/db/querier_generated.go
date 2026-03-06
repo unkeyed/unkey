@@ -170,17 +170,15 @@ type Querier interface {
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.environment_id, apps.name, apps.slug, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (FindAppByIdRow, error)
 	//FindAppByProjectAndSlug
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.environment_id, apps.name, apps.slug, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
-	//  JOIN environments ON environments.id = apps.environment_id
 	//  WHERE apps.project_id = ?
-	//    AND environments.slug = ?
 	//    AND apps.slug = ?
 	FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error)
 	//FindAppEnvVarsByAppAndEnv
@@ -200,14 +198,14 @@ type Querier interface {
 	//FindAppWithSettings
 	//
 	//  SELECT
-	//      a.pk, a.id, a.workspace_id, a.project_id, a.environment_id, a.name, a.slug, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
+	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
 	//  FROM apps a
-	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = a.environment_id
-	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = a.environment_id
+	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
+	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 	//  WHERE a.id = ?
-	FindAppWithSettings(ctx context.Context, db DBTX, id string) (FindAppWithSettingsRow, error)
+	FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
 	//FindAuditLogTargetByID
 	//
 	//  SELECT audit_log_target.pk, audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.pk, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at
@@ -320,51 +318,25 @@ type Querier interface {
 	//      AND dt.deployment_id = ?
 	//  LIMIT 1
 	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
-	//FindEnvironmentBuildSettingsByEnvironmentId
+	//FindEnvironmentByAppIdAndSlug
 	//
-	//  SELECT pk, workspace_id, environment_id, dockerfile, docker_context, created_at, updated_at
-	//  FROM environment_build_settings
-	//  WHERE environment_id = ?
-	FindEnvironmentBuildSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentBuildSetting, error)
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+	//  WHERE app_id = ? AND slug = ?
+	FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT id, workspace_id, project_id, slug, description
+	//  SELECT id, workspace_id, project_id, app_id, slug, description
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
-	//  SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE workspace_id = ?
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
-	//FindEnvironmentRuntimeSettingsByEnvironmentId
-	//
-	//  SELECT pk, workspace_id, environment_id, port, cpu_millicores, memory_mib, command, healthcheck, region_config, shutdown_signal, sentinel_config, created_at, updated_at
-	//  FROM environment_runtime_settings
-	//  WHERE environment_id = ?
-	FindEnvironmentRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) (EnvironmentRuntimeSetting, error)
-	//FindEnvironmentVariablesByEnvironmentId
-	//
-	//  SELECT `key`, value
-	//  FROM environment_variables
-	//  WHERE environment_id = ?
-	FindEnvironmentVariablesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) ([]FindEnvironmentVariablesByEnvironmentIdRow, error)
-	//FindEnvironmentWithSettingsByProjectIdAndSlug
-	//
-	//  SELECT
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
-	//      ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
-	//      ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at
-	//  FROM environments e
-	//  INNER JOIN environment_build_settings ebs ON ebs.environment_id = e.id
-	//  INNER JOIN environment_runtime_settings ers ON ers.environment_id = e.id
-	//  WHERE e.workspace_id = ?
-	//    AND e.project_id = ?
-	//    AND e.slug = ?
-	FindEnvironmentWithSettingsByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentWithSettingsByProjectIdAndSlugParams) (FindEnvironmentWithSettingsByProjectIdAndSlugRow, error)
 	//FindFrontlineRouteByFQDN
 	//
 	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
@@ -656,6 +628,17 @@ type Querier interface {
 	//
 	//  SELECT id, hash FROM `keys` WHERE hash IN (/*SLICE:hashes*/?)
 	FindKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error)
+	//FindLatestReadyDeploymentByAppAndEnv
+	//
+	//  SELECT id
+	//  FROM deployments
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND status = 'ready'
+	//    AND id != ?
+	//  ORDER BY created_at DESC
+	//  LIMIT 1
+	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, db DBTX, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
 	//FindLiveApiByID
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
@@ -952,10 +935,7 @@ type Querier interface {
 	//      workspace_id,
 	//      name,
 	//      slug,
-	//      default_branch,
 	//      delete_protection,
-	//      live_deployment_id,
-	//      is_rolled_back,
 	//      created_at,
 	//      updated_at,
 	//      depot_project_id
@@ -969,7 +949,6 @@ type Querier interface {
 	//      workspace_id,
 	//      name,
 	//      slug,
-	//      default_branch,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
@@ -977,29 +956,6 @@ type Querier interface {
 	//  WHERE workspace_id = ? AND slug = ?
 	//  LIMIT 1
 	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
-	//FindProjectWithEnvironmentSettingsAndVars
-	//
-	//  SELECT
-	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.live_deployment_id, p.is_rolled_back, p.default_branch, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
-	//      ebs.pk, ebs.workspace_id, ebs.environment_id, ebs.dockerfile, ebs.docker_context, ebs.created_at, ebs.updated_at,
-	//      ers.pk, ers.workspace_id, ers.environment_id, ers.port, ers.cpu_millicores, ers.memory_mib, ers.command, ers.healthcheck, ers.region_config, ers.shutdown_signal, ers.sentinel_config, ers.created_at, ers.updated_at,
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(JSON_OBJECT('key', ev.`key`, 'value', ev.value))
-	//           FROM environment_variables ev
-	//           WHERE ev.environment_id = e.id),
-	//          JSON_ARRAY()
-	//      ) AS environment_variables
-	//  FROM projects p
-	//  INNER JOIN environments e
-	//      ON e.project_id = p.id AND e.workspace_id = p.workspace_id
-	//  INNER JOIN environment_build_settings ebs
-	//      ON ebs.environment_id = e.id
-	//  INNER JOIN environment_runtime_settings ers
-	//      ON ers.environment_id = e.id
-	//  WHERE p.id = ?
-	//    AND e.slug = ?
-	FindProjectWithEnvironmentSettingsAndVars(ctx context.Context, db DBTX, arg FindProjectWithEnvironmentSettingsAndVarsParams) (FindProjectWithEnvironmentSettingsAndVarsRow, error)
 	//FindQuotaByWorkspaceID
 	//
 	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration
@@ -1207,17 +1163,13 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      project_id,
-	//      environment_id,
 	//      name,
 	//      slug,
-	//      current_deployment_id,
-	//      is_rolled_back,
+	//      default_branch,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?,
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1467,12 +1419,13 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      project_id,
+	//      app_id,
 	//      slug,
 	//      description,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
 	//InsertFrontlineRoute
@@ -1745,12 +1698,11 @@ type Querier interface {
 	//      workspace_id,
 	//      name,
 	//      slug,
-	//      default_branch,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertProject(ctx context.Context, db DBTX, arg InsertProjectParams) error
 	//InsertRatelimitNamespace
@@ -1901,7 +1853,7 @@ type Querier interface {
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
 	//ListAppsByProject
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.environment_id, apps.name, apps.slug, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE project_id = ?
 	//  ORDER BY created_at ASC
@@ -1987,6 +1939,21 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	//ListEnvVarsForRepoConnections
+	//
+	//  SELECT aev.app_id, aev.`key`, aev.value
+	//  FROM app_environment_variables aev
+	//  INNER JOIN apps a ON a.id = aev.app_id
+	//  INNER JOIN environments e ON e.app_id = a.id AND e.id = aev.environment_id
+	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
+	//  WHERE gc.installation_id = ?
+	//    AND gc.repository_id = ?
+	//    AND e.slug = CASE
+	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+	//      THEN 'production'
+	//      ELSE 'preview'
+	//    END
+	ListEnvVarsForRepoConnections(ctx context.Context, db DBTX, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
@@ -2245,7 +2212,7 @@ type Querier interface {
 	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT pk, id, workspace_id, project_id, slug, description, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE slug = 'preview'
 	//  AND pk > ?
@@ -2287,6 +2254,29 @@ type Querier interface {
 	//  WHERE key_id IN (/*SLICE:key_ids*/?)
 	//  ORDER BY key_id, id
 	ListRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []sql.NullString) ([]ListRatelimitsByKeyIDsRow, error)
+	//ListRepoConnectionDeployContexts
+	//
+	//  SELECT
+	//      gc.pk, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
+	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
+	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
+	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
+	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.region_config, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
+	//  FROM github_repo_connections gc
+	//  INNER JOIN apps a ON a.id = gc.app_id
+	//  INNER JOIN projects p ON p.id = gc.project_id
+	//  INNER JOIN environments e ON e.app_id = a.id
+	//    AND e.slug = CASE
+	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+	//      THEN 'production'
+	//      ELSE 'preview'
+	//    END
+	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
+	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+	//  WHERE gc.installation_id = ?
+	//    AND gc.repository_id = ?
+	ListRepoConnectionDeployContexts(ctx context.Context, db DBTX, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
 	//ListRoles
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
@@ -2705,15 +2695,6 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
-	//UpdateProjectDeployments
-	//
-	//  UPDATE projects
-	//  SET
-	//    live_deployment_id = ?,
-	//    is_rolled_back = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateProjectDeployments(ctx context.Context, db DBTX, arg UpdateProjectDeploymentsParams) error
 	//UpdateProjectDepotID
 	//
 	//  UPDATE projects
@@ -2853,53 +2834,12 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      project_id,
+	//      app_id,
 	//      slug,
 	//      created_at
-	//  ) VALUES (?, ?, ?, ?, ?)
+	//  ) VALUES (?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
 	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
-	//UpsertEnvironmentBuildSettings
-	//
-	//  INSERT INTO environment_build_settings (
-	//      workspace_id,
-	//      environment_id,
-	//      dockerfile,
-	//      docker_context,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      dockerfile = VALUES(dockerfile),
-	//      docker_context = VALUES(docker_context),
-	//      updated_at = VALUES(updated_at)
-	UpsertEnvironmentBuildSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentBuildSettingsParams) error
-	//UpsertEnvironmentRuntimeSettings
-	//
-	//  INSERT INTO environment_runtime_settings (
-	//      workspace_id,
-	//      environment_id,
-	//      port,
-	//      cpu_millicores,
-	//      memory_mib,
-	//      command,
-	//      healthcheck,
-	//      region_config,
-	//      shutdown_signal,
-	//      sentinel_config,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      port = VALUES(port),
-	//      cpu_millicores = VALUES(cpu_millicores),
-	//      memory_mib = VALUES(memory_mib),
-	//      command = VALUES(command),
-	//      healthcheck = VALUES(healthcheck),
-	//      region_config = VALUES(region_config),
-	//      shutdown_signal = VALUES(shutdown_signal),
-	//      sentinel_config = VALUES(sentinel_config),
-	//      updated_at = VALUES(updated_at)
-	UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, arg UpsertEnvironmentRuntimeSettingsParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
 	// Use FindIdentityByExternalID after this to get the actual ID.
 	//
