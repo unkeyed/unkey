@@ -20,46 +20,39 @@ async function main() {
   });
   console.log(`Found ${projects.length} projects`);
 
-  // 2. Create a default app per environment for each project
+  // 2. Create a single default app per project, link all environments to it
+  const projectToAppId: Record<string, string> = {};
   const envToAppId: Record<string, string> = {};
-  const envToWorkspaceId: Record<string, string> = {};
   let appsCreated = 0;
 
   for (const project of projects) {
-    const prodEnv = project.environments.find((e) => e.slug === "production");
-
-    for (const env of project.environments) {
-      envToWorkspaceId[env.id] = env.workspaceId;
-
-      // Check if an app already exists for this environment
-      const existing = project.apps.find((a) => a.environmentId === env.id);
-      if (existing) {
-        envToAppId[env.id] = existing.id;
-        continue;
+    // Check if a default app already exists for this project
+    const existingApp = project.apps.find((a) => a.slug === "default");
+    if (existingApp) {
+      projectToAppId[project.id] = existingApp.id;
+      for (const env of project.environments) {
+        envToAppId[env.id] = existingApp.id;
       }
-
-      const appId = newId("app");
-      const isProd = env.id === prodEnv?.id;
-
-      await db.insert(schema.apps).values({
-        id: appId,
-        workspaceId: project.workspaceId,
-        projectId: project.id,
-        environmentId: env.id,
-        name: "Default",
-        slug: "default",
-        // Only the production app inherits project-level deployment/depot settings
-        currentDeploymentId: isProd ? (project.liveDeploymentId ?? null) : null,
-        isRolledBack: isProd ? (project.isRolledBack ?? false) : false,
-        createdAt: Date.now(),
-      });
-
-      envToAppId[env.id] = appId;
-      appsCreated++;
-      console.log(
-        `Created default app ${appId} for env ${env.slug} (${env.id}) in project ${project.id}`,
-      );
+      continue;
     }
+
+    const appId = newId("app");
+
+    await db.insert(schema.apps).values({
+      id: appId,
+      workspaceId: project.workspaceId,
+      projectId: project.id,
+      name: "Default",
+      slug: "default",
+      createdAt: Date.now(),
+    });
+
+    projectToAppId[project.id] = appId;
+    for (const env of project.environments) {
+      envToAppId[env.id] = appId;
+    }
+    appsCreated++;
+    console.log(`Created default app ${appId} for project ${project.id}`);
   }
   console.log(`Apps created: ${appsCreated}`);
 
@@ -164,44 +157,50 @@ async function main() {
   }
   console.log(`Environment variables copied: ${varsCopied}`);
 
-  // 7. Backfill app_id on tables that have environment_id (join through environment)
+  // 7. Backfill app_id on tables via project_id (one default app per project)
   console.log("Backfilling app_id on deployments...");
   await db.execute(
-    sql`UPDATE deployments d JOIN apps a ON a.environment_id = d.environment_id AND a.slug = 'default' SET d.app_id = a.id WHERE d.app_id = ''`,
+    sql`UPDATE deployments d JOIN apps a ON a.project_id = d.project_id AND a.slug = 'default' SET d.app_id = a.id WHERE d.app_id = ''`,
   );
 
   console.log("Backfilling app_id on deployment_steps...");
   await db.execute(
-    sql`UPDATE deployment_steps ds JOIN apps a ON a.environment_id = ds.environment_id AND a.slug = 'default' SET ds.app_id = a.id WHERE ds.app_id = ''`,
+    sql`UPDATE deployment_steps ds JOIN deployments d ON d.id = ds.deployment_id JOIN apps a ON a.project_id = d.project_id AND a.slug = 'default' SET ds.app_id = a.id WHERE ds.app_id = ''`,
   );
 
   console.log("Backfilling app_id on instances...");
   await db.execute(
-    sql`UPDATE instances i JOIN deployments d ON d.id = i.deployment_id JOIN apps a ON a.environment_id = d.environment_id AND a.slug = 'default' SET i.app_id = a.id WHERE i.app_id = ''`,
+    sql`UPDATE instances i JOIN deployments d ON d.id = i.deployment_id JOIN apps a ON a.project_id = d.project_id AND a.slug = 'default' SET i.app_id = a.id WHERE i.app_id = ''`,
   );
 
   console.log("Backfilling app_id on frontline_routes...");
   await db.execute(
-    sql`UPDATE frontline_routes fr JOIN apps a ON a.environment_id = fr.environment_id AND a.slug = 'default' SET fr.app_id = a.id WHERE fr.app_id = ''`,
+    sql`UPDATE frontline_routes fr JOIN environments e ON e.id = fr.environment_id JOIN apps a ON a.project_id = e.project_id AND a.slug = 'default' SET fr.app_id = a.id WHERE fr.app_id = ''`,
   );
 
-  // 8. Backfill app_id on project-scoped tables (use production env's app)
+  // 8. Backfill app_id on project-scoped tables
   console.log("Backfilling app_id on cilium_network_policies...");
   await db.execute(
-    sql`UPDATE cilium_network_policies cnp JOIN apps a ON a.project_id = cnp.project_id AND a.slug = 'default' JOIN environments e ON e.id = a.environment_id AND e.slug = 'production' SET cnp.app_id = a.id WHERE cnp.app_id = ''`,
+    sql`UPDATE cilium_network_policies cnp JOIN apps a ON a.project_id = cnp.project_id AND a.slug = 'default' SET cnp.app_id = a.id WHERE cnp.app_id = ''`,
   );
 
   console.log("Backfilling app_id on github_repo_connections...");
   await db.execute(
-    sql`UPDATE github_repo_connections grc JOIN apps a ON a.project_id = grc.project_id AND a.slug = 'default' JOIN environments e ON e.id = a.environment_id AND e.slug = 'production' SET grc.app_id = a.id WHERE grc.app_id = ''`,
+    sql`UPDATE github_repo_connections grc JOIN apps a ON a.project_id = grc.project_id AND a.slug = 'default' SET grc.app_id = a.id WHERE grc.app_id = ''`,
   );
 
   console.log("Backfilling app_id on custom_domains...");
   await db.execute(
-    sql`UPDATE custom_domains cd JOIN apps a ON a.environment_id = cd.environment_id AND a.slug = 'default' SET cd.app_id = a.id WHERE cd.app_id = ''`,
+    sql`UPDATE custom_domains cd JOIN environments e ON e.id = cd.environment_id JOIN apps a ON a.project_id = e.project_id AND a.slug = 'default' SET cd.app_id = a.id WHERE cd.app_id = ''`,
   );
 
-  // 9. Copy default_branch from projects to apps
+  // 9. Backfill app_id on environments
+  console.log("Backfilling app_id on environments...");
+  await db.execute(
+    sql`UPDATE environments e JOIN apps a ON a.project_id = e.project_id AND a.slug = 'default' SET e.app_id = a.id WHERE e.app_id = ''`,
+  );
+
+  // 10. Copy default_branch from projects to apps
   console.log("Copying default_branch from projects to apps...");
   await db.execute(
     sql`UPDATE apps a
