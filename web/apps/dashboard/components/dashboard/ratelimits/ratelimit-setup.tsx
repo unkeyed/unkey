@@ -85,7 +85,7 @@ export const RatelimitSetup = ({
       : "Turn on to restrict how frequently this identity can be used. Requests beyond the limit will be blocked.";
 
   return (
-    <div className="space-y-5 px-2 py-1">
+    <div className="flex flex-col gap-5 px-2 py-1">
       {!overrideEnabled && (
         <ProtectionSwitch
           description={description}
@@ -118,8 +118,8 @@ export const RatelimitSetup = ({
       <div>
         {/* biome-ignore lint/suspicious/noExplicitAny: useFieldArray with discriminated unions requires type assertion */}
         {(fields as any[]).map((field: any, index: number) => (
-          <div key={field.id} className="space-y-4 w-full border-t border-grayA-3 py-6">
-            <div className="flex items-center gap-[14px] w-full">
+          <div key={field.id} className="flex flex-col gap-4 w-full border-t border-grayA-3 py-6">
+            <div className="flex items-center gap-3.5 w-full">
               <FormInput
                 className={cn(
                   "[&_input:first-of-type]:h-[36px]",

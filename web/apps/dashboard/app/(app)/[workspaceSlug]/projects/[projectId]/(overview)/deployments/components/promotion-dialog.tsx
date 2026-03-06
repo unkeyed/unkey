@@ -21,7 +21,7 @@ const DeploymentSection = ({
   isCurrent,
   showSignal,
 }: DeploymentSectionProps) => (
-  <div className="space-y-2">
+  <div className="flex flex-col gap-2">
     <div className="flex items-center gap-2">
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
       <CircleInfo iconSize="sm-regular" className="text-gray-9" />
@@ -105,7 +105,7 @@ export const PromotionDialog = ({
         </Button>
       }
     >
-      <div className="space-y-9">
+      <div className="flex flex-col gap-9">
         <DeploymentSection
           title="Current Deployment"
           deployment={currentDeployment}
@@ -114,7 +114,7 @@ export const PromotionDialog = ({
         />
         <div>
           {domains.map((domain) => (
-            <div className="space-y-2" key={domain.id}>
+            <div className="flex flex-col gap-2" key={domain.id}>
               <div className="flex items-center gap-2">
                 <h3 className="text-[13px] text-grayA-11">Domain</h3>
                 <CircleInfo iconSize="sm-regular" className="text-gray-9" />

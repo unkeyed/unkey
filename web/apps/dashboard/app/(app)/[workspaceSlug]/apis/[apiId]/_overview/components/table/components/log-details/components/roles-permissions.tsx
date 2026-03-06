@@ -24,12 +24,12 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
   }
 
   return (
-    <div className="flex flex-col gap-1 mt-[16px] px-4">
+    <div className="flex flex-col gap-1 mt-4 px-4">
       <div className="border bg-gray-2 border-gray-4 rounded-[10px]">
-        <div className="text-gray-11 text-xs leading-6 px-[14px] py-1.5 font-sans">
+        <div className="text-gray-11 text-xs leading-6 px-4 py-1.5 font-sans">
           Roles ({roles.length})
         </div>
-        <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2 space-y-2">
+        <div className="flex flex-col border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2 gap-2">
           {roles.map((role) => (
             <div
               key={role.name}
@@ -68,9 +68,9 @@ type PermissionsSectionProps = {
 export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => {
   if (!permissions || permissions.length === 0) {
     return (
-      <div className="flex flex-col gap-1 mt-[16px] px-4">
+      <div className="flex flex-col gap-1 mt-4 px-4">
         <div className="border bg-gray-2 border-gray-4 rounded-[10px]">
-          <div className="text-gray-11 text-[12px] leading-6 px-[14px] py-1.5 font-sans">
+          <div className="text-gray-11 text-[12px] leading-6 px-3.5 py-1.5 font-sans">
             Permissions
           </div>
           <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2">
@@ -82,9 +82,9 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
   }
 
   return (
-    <div className="flex flex-col gap-1 mt-[16px] px-4">
+    <div className="flex flex-col gap-1 mt-4 px-4">
       <div className="border bg-gray-2 border-gray-4 rounded-[10px] relative">
-        <div className="text-gray-11 text-xs leading-6 px-[14px] py-1.5 font-sans flex items-center justify-between">
+        <div className="text-gray-11 text-xs leading-6 px-[14px] py-1.5 font-sans flex items-center justify-between gap-2">
           <span>Permissions ({permissions.length})</span>
           {permissions.length > 1 && (
             <CopyButton
@@ -103,7 +103,7 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
             />
           )}
         </div>
-        <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2 space-y-2">
+        <div className="flex flex-col border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2 gap-2">
           {permissions.map((permission) => (
             <div
               key={permission.name}

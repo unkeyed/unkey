@@ -123,8 +123,8 @@ export const FilterOperatorInput = <T extends string>({
           </div>
         ))}
       </div>
-      <div className="flex flex-col gap-[14px] py-3 w-full md:w-[320px] px-3">
-        <div className="space-y-2">
+      <div className="flex flex-col gap-3.5 py-3 w-full md:w-80 px-3">
+        <div className="flex flex-col gap-2">
           <p className="text-gray-9 text-xs" id="filter-operator-title">
             {label}{" "}
             <span className="font-medium text-gray-12">

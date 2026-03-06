@@ -91,7 +91,7 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
           )
         }
       />
-      <div className="w-[900px] space-y-6">
+      <div className="w-225 flex flex-col gap-6">
         <DeploymentInfo />
         <DeploymentProgress />
       </div>

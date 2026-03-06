@@ -187,7 +187,7 @@ function DnsRecordTable({
   const txtRecordValue = `unkey-domain-verify=${verificationToken}`;
 
   return (
-    <div className="px-4 pb-3 space-y-3">
+    <div className="px-4 pb-3 flex flex-col gap-3">
       <p className="text-xs text-gray-9">Add both DNS records below at your domain provider.</p>
 
       {/* TXT Record (Ownership Verification) */}

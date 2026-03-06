@@ -137,13 +137,13 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           permanently lost.
         </p>
         <form id="delete-api-form" onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <p className="text-gray-11 text-[13px]">
               Type <span className="text-gray-12 font-medium">{api.name}</span> to confirm
             </p>
             <Input {...register("name")} placeholder={`Enter "${api.name}" to confirm`} />
           </div>
-          <div className="space-y-1 mt-6">
+          <div className="flex flex-col gap-1 mt-6">
             <p className="text-gray-11 text-[13px]">
               To verify, type <span className="text-gray-12 font-medium">{intent}</span> to confirm
             </p>
