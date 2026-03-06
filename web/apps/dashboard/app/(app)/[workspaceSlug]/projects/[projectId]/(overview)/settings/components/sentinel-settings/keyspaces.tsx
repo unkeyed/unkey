@@ -19,7 +19,7 @@ const keyspacesSchema = z.object({
 type KeyspacesFormValues = z.infer<typeof keyspacesSchema>;
 
 export const Keyspaces = () => {
-  const { settings, autoSave } = useEnvironmentSettings();
+  const { settings, variant } = useEnvironmentSettings();
   const { environmentId } = settings;
 
   const { data: availableKeyspaces } =
@@ -39,7 +39,7 @@ export const Keyspaces = () => {
       environmentId={environmentId}
       defaultKeyspaceIds={defaultKeyspaceIds}
       availableKeyspaces={availableKeyspaces ?? {}}
-      autoSave={autoSave}
+      autoSave={variant === "onboarding"}
     />
   );
 };
@@ -85,13 +85,13 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
         policies:
           values.keyspaces.length > 0
             ? [
-                {
-                  id: "keyauth-policy",
-                  name: "API Key Auth",
-                  enabled: true,
-                  keyauth: { keySpaceIds: values.keyspaces },
-                },
-              ]
+              {
+                id: "keyauth-policy",
+                name: "API Key Auth",
+                enabled: true,
+                keyauth: { keySpaceIds: values.keyspaces },
+              },
+            ]
             : [],
       };
     });
@@ -125,7 +125,7 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
 
   const displayValue =
     defaultKeyspaceIds.length === 0 ? (
-      "No keyspaces selected"
+      "None"
     ) : defaultKeyspaceIds.length <= 2 ? (
       <span className="flex items-center gap-1.5">
         {defaultKeyspaceIds.map((keyspaceId, i) => (
