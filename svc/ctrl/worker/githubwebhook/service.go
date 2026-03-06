@@ -24,6 +24,6 @@ type Config struct {
 func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedGitHubWebhookServiceServer: hydrav1.UnimplementedGitHubWebhookServiceServer{},
-		db: cfg.DB,
+		db:                                      cfg.DB,
 	}
 }
