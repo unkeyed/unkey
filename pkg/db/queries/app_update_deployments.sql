@@ -1,5 +1,5 @@
--- name: UpdateEnvironmentDeployments :exec
-UPDATE environments
+-- name: UpdateAppDeployments :exec
+UPDATE apps
 SET
   current_deployment_id = sqlc.arg(current_deployment_id),
   is_rolled_back = sqlc.arg(is_rolled_back),

@@ -522,7 +522,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	// not auto-promote this new deployment.
 	autoPromote := false
 	if environment.Slug == "production" {
-		if !environment.CurrentDeploymentID.Valid {
+		if !app.CurrentDeploymentID.Valid {
 			// No current deployment yet — first deploy, auto-promote
 			autoPromote = true
 		} else {
@@ -533,7 +533,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					ExcludeID:     deployment.ID,
 				})
 			}, restate.WithName("check rolled back state"))
-			if prevErr == nil && prevLatest == environment.CurrentDeploymentID.String {
+			if prevErr == nil && prevLatest == app.CurrentDeploymentID.String {
 				autoPromote = true
 			}
 		}
@@ -584,16 +584,16 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		// previousCurrentDeploymentID and one of them never gets scheduled for standby.
 		previousCurrentDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 			return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
-				currentEnv, findErr := db.Query.FindEnvironmentByAppIdAndSlug(txCtx, tx, db.FindEnvironmentByAppIdAndSlugParams{
-					AppID: app.ID,
-					Slug:  environment.Slug,
+				currentApp, findErr := db.Query.FindAppByProjectAndSlug(txCtx, tx, db.FindAppByProjectAndSlugParams{
+					ProjectID: app.ProjectID,
+					Slug:      app.Slug,
 				})
 				if findErr != nil {
 					return sql.NullString{}, findErr
 				}
 
-				updateErr := db.Query.UpdateEnvironmentDeployments(txCtx, tx, db.UpdateEnvironmentDeploymentsParams{
-					ID:                  environment.ID,
+				updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
+					ID:                  app.ID,
 					CurrentDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
 					IsRolledBack:        false,
 					UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -602,9 +602,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 					return sql.NullString{}, updateErr
 				}
 
-				return currentEnv.Environment.CurrentDeploymentID, nil
+				return currentApp.App.CurrentDeploymentID, nil
 			})
-		}, restate.WithName("swapping environment current deployment"))
+		}, restate.WithName("swapping app current deployment"))
 		if err != nil {
 			return nil, err
 		}

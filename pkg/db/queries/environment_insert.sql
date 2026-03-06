@@ -6,10 +6,8 @@ INSERT INTO environments (
     app_id,
     slug,
     description,
-    current_deployment_id,
-    is_rolled_back,
     created_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?
 );

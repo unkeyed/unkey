@@ -197,16 +197,14 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	now := time.Now().UnixMilli()
 
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
-		ID:                  req.ID,
-		WorkspaceID:         req.WorkspaceID,
-		ProjectID:           req.ProjectID,
-		AppID:               req.AppID,
-		Slug:                req.Slug,
-		Description:         req.Description,
-		CurrentDeploymentID: sql.NullString{String: "", Valid: false},
-		IsRolledBack:        false,
-		CreatedAt:           now,
-		UpdatedAt:           sql.NullInt64{Int64: 0, Valid: false},
+		ID:          req.ID,
+		WorkspaceID: req.WorkspaceID,
+		ProjectID:   req.ProjectID,
+		AppID:       req.AppID,
+		Slug:        req.Slug,
+		Description: req.Description,
+		CreatedAt:   now,
+		UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 	})
 	require.NoError(s.t, err)
 
@@ -217,18 +215,16 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	require.NoError(s.t, err)
 
 	return db.Environment{
-		Pk:                  0,
-		ID:                  environment.ID,
-		WorkspaceID:         environment.WorkspaceID,
-		ProjectID:           environment.ProjectID,
-		AppID:               req.AppID,
-		Slug:                environment.Slug,
-		Description:         req.Description,
-		CurrentDeploymentID: sql.NullString{String: "", Valid: false},
-		IsRolledBack:        false,
-		DeleteProtection:    sql.NullBool{Valid: true, Bool: req.DeleteProtection},
-		CreatedAt:           now,
-		UpdatedAt:           sql.NullInt64{Int64: 0, Valid: false},
+		Pk:               0,
+		ID:               environment.ID,
+		WorkspaceID:      environment.WorkspaceID,
+		ProjectID:        environment.ProjectID,
+		AppID:            req.AppID,
+		Slug:             environment.Slug,
+		Description:      req.Description,
+		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
+		CreatedAt:        now,
+		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
 	}
 }
 

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -18,9 +18,6 @@ export const environments = mysqlTable(
 
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
-
-    currentDeploymentId: varchar("current_deployment_id", { length: 256 }),
-    isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     ...deleteProtection,
     ...lifecycleDates,

@@ -9,7 +9,7 @@ import { and, db, eq } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { environments } from "@unkey/db/src/schema";
+import { apps } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 export const rollback = workspaceProcedure
@@ -77,16 +77,13 @@ export const rollback = workspaceProcedure
         });
       }
 
-      // Get currentDeploymentId from the environment
-      const environment = await db.query.environments.findFirst({
-        where: and(
-          eq(environments.id, targetDeployment.environmentId),
-          eq(environments.workspaceId, ctx.workspace.id),
-        ),
+      // Get currentDeploymentId from the app
+      const app = await db.query.apps.findFirst({
+        where: and(eq(apps.id, targetDeployment.appId), eq(apps.workspaceId, ctx.workspace.id)),
         columns: { currentDeploymentId: true },
       });
 
-      if (!environment?.currentDeploymentId) {
+      if (!app?.currentDeploymentId) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message: `Project ${targetDeployment.project.name} doesn't have a current deployment to roll back.`,
@@ -95,7 +92,7 @@ export const rollback = workspaceProcedure
 
       await ctrl
         .rollback({
-          sourceDeploymentId: environment.currentDeploymentId,
+          sourceDeploymentId: app.currentDeploymentId,
           targetDeploymentId: targetDeployment.id,
         })
         .catch((err) => {

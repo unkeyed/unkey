@@ -7,29 +7,26 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findEnvironmentById = `-- name: FindEnvironmentById :one
-SELECT id, workspace_id, project_id, app_id, slug, description, current_deployment_id, is_rolled_back
+SELECT id, workspace_id, project_id, app_id, slug, description
 FROM environments
 WHERE id = ?
 `
 
 type FindEnvironmentByIdRow struct {
-	ID                  string         `db:"id"`
-	WorkspaceID         string         `db:"workspace_id"`
-	ProjectID           string         `db:"project_id"`
-	AppID               string         `db:"app_id"`
-	Slug                string         `db:"slug"`
-	Description         string         `db:"description"`
-	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
-	IsRolledBack        bool           `db:"is_rolled_back"`
+	ID          string `db:"id"`
+	WorkspaceID string `db:"workspace_id"`
+	ProjectID   string `db:"project_id"`
+	AppID       string `db:"app_id"`
+	Slug        string `db:"slug"`
+	Description string `db:"description"`
 }
 
 // FindEnvironmentById
 //
-//	SELECT id, workspace_id, project_id, app_id, slug, description, current_deployment_id, is_rolled_back
+//	SELECT id, workspace_id, project_id, app_id, slug, description
 //	FROM environments
 //	WHERE id = ?
 func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error) {
@@ -42,8 +39,6 @@ func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (
 		&i.AppID,
 		&i.Slug,
 		&i.Description,
-		&i.CurrentDeploymentID,
-		&i.IsRolledBack,
 	)
 	return i, err
 }

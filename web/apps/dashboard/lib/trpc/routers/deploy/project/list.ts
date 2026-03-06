@@ -1,7 +1,7 @@
 import type { Project } from "@/lib/collections/deploy/projects";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
+import { apps, deployments, frontlineRoutes, projects } from "@unkey/db/src/schema";
 
 type ProjectRow = {
   id: string;
@@ -37,19 +37,19 @@ export const listProjects = workspaceProcedure
           LIMIT 1
         ) as repository_full_name,
         (
-          SELECT e.current_deployment_id
-          FROM environments e
-          WHERE e.project_id = ${projects.id}
-            AND e.current_deployment_id IS NOT NULL
-          ORDER BY e.updated_at DESC
+          SELECT a.current_deployment_id
+          FROM ${apps} a
+          WHERE a.project_id = ${projects.id}
+            AND a.current_deployment_id IS NOT NULL
+          ORDER BY a.updated_at DESC
           LIMIT 1
         ) as current_deployment_id,
         (
-          SELECT e.is_rolled_back
-          FROM environments e
-          WHERE e.project_id = ${projects.id}
-            AND e.current_deployment_id IS NOT NULL
-          ORDER BY e.updated_at DESC
+          SELECT a.is_rolled_back
+          FROM ${apps} a
+          WHERE a.project_id = ${projects.id}
+            AND a.current_deployment_id IS NOT NULL
+          ORDER BY a.updated_at DESC
           LIMIT 1
         ) as is_rolled_back,
         ${deployments.gitCommitMessage},
@@ -69,11 +69,11 @@ export const listProjects = workspaceProcedure
       FROM ${projects}
       LEFT JOIN ${deployments}
         ON ${deployments.id} = (
-          SELECT e2.current_deployment_id
-          FROM environments e2
-          WHERE e2.project_id = ${projects.id}
-            AND e2.current_deployment_id IS NOT NULL
-          ORDER BY e2.updated_at DESC
+          SELECT a2.current_deployment_id
+          FROM ${apps} a2
+          WHERE a2.project_id = ${projects.id}
+            AND a2.current_deployment_id IS NOT NULL
+          ORDER BY a2.updated_at DESC
           LIMIT 1
         )
         AND ${deployments.workspaceId} = ${ctx.workspace.id}

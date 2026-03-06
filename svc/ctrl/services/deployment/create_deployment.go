@@ -213,7 +213,7 @@ func (s *Service) CreateDeployment(
 			}
 		} else {
 			// No repo connection: redeploy the current deployment's Docker image
-			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, env.Environment, deploymentID)
+			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, app, deploymentID)
 			if dockerErr != nil {
 				return nil, dockerErr
 			}
@@ -339,24 +339,24 @@ func validateGitCommitTimestamp(gitCommit *ctrlv1.GitCommitInfo) error {
 	return nil
 }
 
-// buildDockerSource looks up the environment's current deployment's Docker image and carries
+// buildDockerSource looks up the app's current deployment's Docker image and carries
 // over its git metadata for the new deployment record.
 func buildDockerSource(
 	ctx context.Context,
 	database db.Database,
-	env db.Environment,
+	app db.App,
 	deploymentID string,
 ) (dockerSourceInfo, error) {
-	if !env.CurrentDeploymentID.Valid || env.CurrentDeploymentID.String == "" {
+	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("environment %q has no current deployment and no git connection; cannot redeploy", env.ID))
+			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", app.ID))
 	}
 
-	currentDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), env.CurrentDeploymentID.String)
+	currentDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), app.CurrentDeploymentID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("current deployment %q not found", env.CurrentDeploymentID.String))
+				fmt.Errorf("current deployment %q not found", app.CurrentDeploymentID.String))
 		}
 		return dockerSourceInfo{}, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup current deployment: %w", err))
@@ -365,12 +365,12 @@ func buildDockerSource(
 	if !currentDeployment.Image.Valid || currentDeployment.Image.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("current deployment %q has no Docker image; cannot redeploy without git connection",
-				env.CurrentDeploymentID.String))
+				app.CurrentDeploymentID.String))
 	}
 
 	logger.Info("deployment will reuse current deployment image",
 		"deployment_id", deploymentID,
-		"current_deployment_id", env.CurrentDeploymentID.String,
+		"current_deployment_id", app.CurrentDeploymentID.String,
 		"image", currentDeployment.Image.String)
 
 	return dockerSourceInfo{

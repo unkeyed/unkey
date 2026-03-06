@@ -375,8 +375,6 @@ CREATE TABLE `environments` (
 	`app_id` varchar(64) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`description` varchar(255) NOT NULL DEFAULT '',
-	`current_deployment_id` varchar(256),
-	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,

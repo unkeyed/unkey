@@ -91,19 +91,8 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, fmt.Errorf("failed to get app: %w", err)
 	}
 
-	// Load environment to check currentDeploymentId
-	environment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.FindEnvironmentByIdRow, error) {
-		return db.Query.FindEnvironmentById(stepCtx, w.db.RO(), sourceDeployment.EnvironmentID)
-	}, restate.WithName("finding environment"))
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("environment not found: %s", sourceDeployment.EnvironmentID), 404)
-		}
-		return nil, fmt.Errorf("failed to get environment: %w", err)
-	}
-
 	// Validate source deployment is the current deployment
-	if !environment.CurrentDeploymentID.Valid || environment.CurrentDeploymentID.String != sourceDeployment.ID {
+	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != sourceDeployment.ID {
 		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current deployment"), 400)
 	}
 
@@ -152,20 +141,20 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, fmt.Errorf("failed to switch frontlineRoutes: %w", err)
 	}
 
-	// Update environment's current deployment
+	// Update app's current deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		err = db.Query.UpdateEnvironmentDeployments(stepCtx, w.db.RW(), db.UpdateEnvironmentDeploymentsParams{
-			ID:                  environment.ID,
+		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
+			ID:                  app.ID,
 			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 			IsRolledBack:        true,
 			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("failed to update environment's current deployment id: %w", err)
+			return restate.Void{}, fmt.Errorf("failed to update app's current deployment id: %w", err)
 		}
-		logger.Info("updated environment current deployment", "environment_id", environment.ID, "current_deployment_id", targetDeployment.ID)
+		logger.Info("updated app current deployment", "app_id", app.ID, "current_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
-	}, restate.WithName("updating environment current deployment"))
+	}, restate.WithName("updating app current deployment"))
 	if err != nil {
 		return nil, err
 	}

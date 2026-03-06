@@ -10,7 +10,7 @@ import (
 )
 
 const findEnvironmentByAppIdAndSlug = `-- name: FindEnvironmentByAppIdAndSlug :one
-SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.current_deployment_id, environments.is_rolled_back, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
 WHERE app_id = ? AND slug = ?
 `
 
@@ -25,7 +25,7 @@ type FindEnvironmentByAppIdAndSlugRow struct {
 
 // FindEnvironmentByAppIdAndSlug
 //
-//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.current_deployment_id, environments.is_rolled_back, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
 //	WHERE app_id = ? AND slug = ?
 func (q *Queries) FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentByAppIdAndSlug, arg.AppID, arg.Slug)
@@ -38,8 +38,6 @@ func (q *Queries) FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, ar
 		&i.Environment.AppID,
 		&i.Environment.Slug,
 		&i.Environment.Description,
-		&i.Environment.CurrentDeploymentID,
-		&i.Environment.IsRolledBack,
 		&i.Environment.DeleteProtection,
 		&i.Environment.CreatedAt,
 		&i.Environment.UpdatedAt,
