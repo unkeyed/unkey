@@ -1,12 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  int,
-  mysqlTable,
-  tinyint,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, int, mysqlTable, tinyint, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -34,14 +27,15 @@ export const horizontalAutoscalingPolicies = mysqlTable(
 
     ...lifecycleDates,
   },
-  (table) => [
-    index("workspace_idx").on(table.workspaceId),
-  ],
+  (table) => [index("workspace_idx").on(table.workspaceId)],
 );
 
-export const horizontalAutoscalingPoliciesRelations = relations(horizontalAutoscalingPolicies, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [horizontalAutoscalingPolicies.workspaceId],
-    references: [workspaces.id],
+export const horizontalAutoscalingPoliciesRelations = relations(
+  horizontalAutoscalingPolicies,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [horizontalAutoscalingPolicies.workspaceId],
+      references: [workspaces.id],
+    }),
   }),
-}));
+);

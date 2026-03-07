@@ -1,7 +1,7 @@
-import { and, db, eq, inArray, notInArray } from "@/lib/db";
+import { and, db, eq, notInArray } from "@/lib/db";
+import { TRPCError } from "@trpc/server";
 import { appRegionalSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { workspaceProcedure } from "../../../../trpc";
 import { resolveProjectEnvironmentIds } from "../utils";
 
@@ -41,13 +41,15 @@ export const updateRegions = workspaceProcedure
 
     for (const envId of envIds) {
       // Delete rows for regions that are no longer selected
-      await db.delete(appRegionalSettings).where(
-        and(
-          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
-          eq(appRegionalSettings.environmentId, envId),
-          notInArray(appRegionalSettings.regionId, input.regionIds),
-        ),
-      );
+      await db
+        .delete(appRegionalSettings)
+        .where(
+          and(
+            eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+            eq(appRegionalSettings.environmentId, envId),
+            notInArray(appRegionalSettings.regionId, input.regionIds),
+          ),
+        );
 
       // Insert rows for newly added regions
       for (const regionId of input.regionIds) {

@@ -80,7 +80,14 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
         environmentId,
       });
 
-      return [flattenSettingsResponse(environmentId, result.buildSettings, result.runtimeSettings, result.regionalSettings)];
+      return [
+        flattenSettingsResponse(
+          environmentId,
+          result.buildSettings,
+          result.runtimeSettings,
+          result.regionalSettings,
+        ),
+      ];
     },
     getKey: (item) => item.environmentId,
     id: "environmentSettings",
@@ -216,7 +223,8 @@ export function buildSettingsMutations(
 
   const origReplicas = original.regions.at(0)?.replicas ?? 1;
   const modReplicas = modified.regions.at(0)?.replicas ?? 1;
-  const instancesChanged = !regionsChanged && modified.regions.length > 0 && modReplicas !== origReplicas;
+  const instancesChanged =
+    !regionsChanged && modified.regions.length > 0 && modReplicas !== origReplicas;
 
   if (instancesChanged) {
     mutations.push(

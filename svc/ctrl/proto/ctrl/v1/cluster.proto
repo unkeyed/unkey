@@ -64,6 +64,11 @@ service ClusterService {
   // GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredCiliumNetworkPolicyState(GetDesiredCiliumNetworkPolicyStateRequest) returns (CiliumNetworkPolicyState);
+
+  // Heartbeat is called periodically by krane agents to register their cluster
+  // and region with the control plane. This populates the cluster_regions and
+  // clusters tables, making regions dynamically discoverable.
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
 
 message WatchCiliumNetworkPoliciesRequest {
@@ -323,3 +328,16 @@ message DeleteDeployment {
   string k8s_namespace = 1;
   string k8s_name = 2;
 }
+
+// HeartbeatRequest is sent periodically by krane agents to register their
+// presence. The control plane uses this to populate cluster_regions and
+// clusters tables.
+message HeartbeatRequest {
+  // region is the geographic region name (e.g. "us-east-1").
+  string region = 1;
+
+  // platform is the infrastructure provider (e.g. "aws", "gcp", "local").
+  string platform = 2;
+}
+
+message HeartbeatResponse {}
