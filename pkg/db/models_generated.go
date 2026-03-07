@@ -500,6 +500,7 @@ const (
 	DeploymentsStatusFinalizing       DeploymentsStatus = "finalizing"
 	DeploymentsStatusReady            DeploymentsStatus = "ready"
 	DeploymentsStatusFailed           DeploymentsStatus = "failed"
+	DeploymentsStatusRejected         DeploymentsStatus = "rejected"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -1400,8 +1401,8 @@ type Project struct {
 	Name                 string         `db:"name"`
 	Slug                 string         `db:"slug"`
 	DepotProjectID       sql.NullString `db:"depot_project_id"`
-	DeleteProtection     sql.NullBool   `db:"delete_protection"`
 	DeploymentProtection bool           `db:"deployment_protection"`
+	DeleteProtection     sql.NullBool   `db:"delete_protection"`
 	CreatedAt            int64          `db:"created_at"`
 	UpdatedAt            sql.NullInt64  `db:"updated_at"`
 }

@@ -94,6 +94,7 @@ export const deployments = mysqlTable(
       "finalizing",
       "ready",
       "failed",
+      "rejected",
     ])
       .notNull()
       .default("pending"),

@@ -18,6 +18,8 @@ type DeployServiceClient interface {
 	GetDeployment(ctx context.Context, req *v1.GetDeploymentRequest) (*v1.GetDeploymentResponse, error)
 	Rollback(ctx context.Context, req *v1.RollbackRequest) (*v1.RollbackResponse, error)
 	Promote(ctx context.Context, req *v1.PromoteRequest) (*v1.PromoteResponse, error)
+	ApproveDeployment(ctx context.Context, req *v1.ApproveDeploymentRequest) (*v1.ApproveDeploymentResponse, error)
+	RejectDeployment(ctx context.Context, req *v1.RejectDeploymentRequest) (*v1.RejectDeploymentResponse, error)
 }
 
 var _ DeployServiceClient = (*ConnectDeployServiceClient)(nil)
@@ -75,6 +77,32 @@ func (c *ConnectDeployServiceClient) Promote(ctx context.Context, req *v1.Promot
 	ctx, span := tracing.Start(ctx, "DeployService.Promote")
 	defer span.End()
 	resp, err := c.inner.Promote(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectDeployServiceClient) ApproveDeployment(ctx context.Context, req *v1.ApproveDeploymentRequest) (*v1.ApproveDeploymentResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.ApproveDeployment")
+	defer span.End()
+	resp, err := c.inner.ApproveDeployment(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectDeployServiceClient) RejectDeployment(ctx context.Context, req *v1.RejectDeploymentRequest) (*v1.RejectDeploymentResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.RejectDeployment")
+	defer span.End()
+	resp, err := c.inner.RejectDeployment(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

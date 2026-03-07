@@ -180,6 +180,13 @@ type Querier interface {
 	//
 	//  SELECT pk, id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
+	//FindAppBuildSettingByAppEnv
+	//
+	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, created_at, updated_at
+	//  FROM `app_build_settings`
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
@@ -195,7 +202,7 @@ type Querier interface {
 	FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error)
 	//FindAppByWorkspaceAndSlugs
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.deployment_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.deployment_protection, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 	//  FROM apps a
 	//  INNER JOIN projects p ON p.id = a.project_id
 	//  WHERE p.workspace_id = ?
@@ -964,7 +971,7 @@ type Querier interface {
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
 	//FindProjectById
 	//
-	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, deployment_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, deployment_protection, delete_protection, created_at, updated_at
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
@@ -2326,7 +2333,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      gc.pk, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
-	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.deployment_protection, p.created_at, p.updated_at,
+	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.deployment_protection, p.delete_protection, p.created_at, p.updated_at,
 	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,

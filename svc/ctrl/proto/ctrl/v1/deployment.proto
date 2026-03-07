@@ -14,6 +14,8 @@ enum DeploymentStatus {
   DEPLOYMENT_STATUS_FINALIZING = 8;
   DEPLOYMENT_STATUS_READY = 5;
   DEPLOYMENT_STATUS_FAILED = 6;
+  DEPLOYMENT_STATUS_AWAITING_APPROVAL = 9;
+  DEPLOYMENT_STATUS_REJECTED = 10;
 }
 
 // Source type for deployment creation
@@ -148,6 +150,19 @@ message PromoteRequest {
 
 message PromoteResponse {}
 
+message ApproveDeploymentRequest {
+  string deployment_id = 1;
+  string approved_by = 2; // user ID of the approver
+}
+
+message ApproveDeploymentResponse {}
+
+message RejectDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message RejectDeploymentResponse {}
+
 service DeployService {
   // Create a new deployment from a docker image or by auto-detecting
   // the appropriate source for the project.
@@ -161,4 +176,10 @@ service DeployService {
 
   // Promote the deployment to the live environment
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
+
+  // Approve a deployment that is awaiting approval from an external contributor
+  rpc ApproveDeployment(ApproveDeploymentRequest) returns (ApproveDeploymentResponse) {}
+
+  // Reject a deployment that is awaiting approval
+  rpc RejectDeployment(RejectDeploymentRequest) returns (RejectDeploymentResponse) {}
 }
