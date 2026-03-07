@@ -28,7 +28,6 @@ export const apps = mysqlTable(
   (table) => [
     uniqueIndex("apps_project_slug_idx").on(table.projectId, table.slug),
     index("apps_workspace_idx").on(table.workspaceId),
-    index("apps_project_idx").on(table.projectId),
   ],
 );
 

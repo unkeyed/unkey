@@ -30,6 +30,7 @@ go_library(
         "app_environment_variables_list_for_connections.sql_generated.go",
         "app_find_by_id.sql_generated.go",
         "app_find_by_project_and_slug.sql_generated.go",
+        "app_find_by_workspace_project_slug_app_slug.sql_generated.go",
         "app_find_with_settings.sql_generated.go",
         "app_insert.sql_generated.go",
         "app_list_by_project.sql_generated.go",
