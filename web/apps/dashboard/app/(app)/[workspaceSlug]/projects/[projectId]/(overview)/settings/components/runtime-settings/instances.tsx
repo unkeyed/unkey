@@ -21,10 +21,10 @@ type InstancesFormValues = z.infer<typeof instancesSchema>;
 
 export const Instances = () => {
   const { settings, autoSave } = useEnvironmentSettings();
-  const { environmentId, regionConfig } = settings;
+  const { environmentId, regions } = settings;
 
-  const selectedRegions = Object.keys(regionConfig);
-  const defaultInstances = Object.values(regionConfig)[0] ?? 1;
+  const selectedRegions = regions.map((r) => r.name);
+  const defaultInstances = regions.at(0)?.replicas ?? 1;
 
   const {
     handleSubmit,
@@ -46,16 +46,14 @@ export const Instances = () => {
 
   const onSubmit = async (values: InstancesFormValues) => {
     collection.environmentSettings.update(environmentId, (draft) => {
-      const updated: Record<string, number> = {};
-      for (const region of Object.keys(draft.regionConfig)) {
-        updated[region] = values.instances;
+      for (const region of draft.regions) {
+        region.replicas = values.instances;
       }
-      draft.regionConfig = updated;
     });
   };
 
   const hasChanges = currentInstances !== defaultInstances;
-  const hasRegions = Object.keys(regionConfig).length > 0;
+  const hasRegions = regions.length > 0;
 
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],

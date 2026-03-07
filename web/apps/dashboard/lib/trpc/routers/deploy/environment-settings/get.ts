@@ -1,5 +1,5 @@
 import { and, db, eq } from "@/lib/db";
-import { appBuildSettings, appRuntimeSettings } from "@unkey/db/src/schema";
+import { appBuildSettings, appRegionalSettings, appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 import type { SentinelConfig } from "./sentinel/update-middleware";
@@ -7,7 +7,7 @@ import type { SentinelConfig } from "./sentinel/update-middleware";
 export const getEnvironmentSettings = workspaceProcedure
   .input(z.object({ environmentId: z.string() }))
   .query(async ({ ctx, input }) => {
-    const [buildSettings, runtimeSettings] = await Promise.all([
+    const [buildSettings, runtimeSettings, regionalSettings] = await Promise.all([
       db.query.appBuildSettings.findFirst({
         where: and(
           eq(appBuildSettings.workspaceId, ctx.workspace.id),
@@ -18,6 +18,12 @@ export const getEnvironmentSettings = workspaceProcedure
         where: and(
           eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
           eq(appRuntimeSettings.environmentId, input.environmentId),
+        ),
+      }),
+      db.query.appRegionalSettings.findMany({
+        where: and(
+          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+          eq(appRegionalSettings.environmentId, input.environmentId),
         ),
       }),
     ]);
@@ -35,5 +41,6 @@ export const getEnvironmentSettings = workspaceProcedure
               : undefined,
           }
         : null,
+      regionalSettings,
     };
   });

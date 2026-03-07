@@ -3,7 +3,7 @@ import { workspaceProcedure } from "../../../trpc";
 
 export const getAvailableRegions = workspaceProcedure.query(async () => {
   const regions = await db.query.clusterRegions.findMany({
-    columns: { name: true },
+    columns: { id: true, name: true },
   });
-  return regions.map((r) => r.name);
+  return regions;
 });

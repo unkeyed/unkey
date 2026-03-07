@@ -42,7 +42,7 @@ const schema = z.object({
   memoryMib: z.number().int(),
   command: z.array(z.string()),
   healthcheck: healthcheckSchema,
-  regionConfig: z.record(z.string(), z.number()),
+  regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
   shutdownSignal: z.string(),
   sentinelConfig: sentinelConfigSchema,
 });
@@ -80,7 +80,7 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
         environmentId,
       });
 
-      return [flattenSettingsResponse(environmentId, result.buildSettings, result.runtimeSettings)];
+      return [flattenSettingsResponse(environmentId, result.buildSettings, result.runtimeSettings, result.regionalSettings)];
     },
     getKey: (item) => item.environmentId,
     id: "environmentSettings",
@@ -108,6 +108,7 @@ function flattenSettingsResponse(
   environmentId: string,
   build: SettingsResponse["buildSettings"],
   runtime: SettingsResponse["runtimeSettings"],
+  regional: SettingsResponse["regionalSettings"],
 ): EnvironmentSettings {
   return {
     environmentId,
@@ -118,7 +119,7 @@ function flattenSettingsResponse(
     memoryMib: runtime?.memoryMib ?? 256,
     command: runtime?.command ?? [],
     healthcheck: runtime?.healthcheck ?? null,
-    regionConfig: runtime?.regionConfig ?? {},
+    regions: regional.map((r) => ({ id: r.regionId, name: r.regionId, replicas: r.replicas })),
     shutdownSignal: "SIGTERM",
     sentinelConfig: runtime?.sentinelConfig,
   };
@@ -200,32 +201,28 @@ export function buildSettingsMutations(
     );
   }
 
-  const origRegions = Object.keys(original.regionConfig).sort();
-  const modRegions = Object.keys(modified.regionConfig).sort();
-  const regionsChanged = changed(origRegions, modRegions);
+  const origRegionIds = original.regions.map((r) => r.id).sort();
+  const modRegionIds = modified.regions.map((r) => r.id).sort();
+  const regionsChanged = changed(origRegionIds, modRegionIds);
 
   if (regionsChanged) {
     mutations.push(
       trpcClient.deploy.environmentSettings.runtime.updateRegions.mutate({
         environmentId,
-        regions: modRegions,
+        regionIds: modRegionIds,
       }),
     );
   }
 
-  const origValues = Object.values(original.regionConfig);
-  const modValues = Object.values(modified.regionConfig);
-  const instancesChanged =
-    !regionsChanged &&
-    origValues.length === modValues.length &&
-    modValues.length > 0 &&
-    modValues[0] !== origValues[0];
+  const origReplicas = original.regions.at(0)?.replicas ?? 1;
+  const modReplicas = modified.regions.at(0)?.replicas ?? 1;
+  const instancesChanged = !regionsChanged && modified.regions.length > 0 && modReplicas !== origReplicas;
 
   if (instancesChanged) {
     mutations.push(
       trpcClient.deploy.environmentSettings.runtime.updateInstances.mutate({
         environmentId,
-        replicasPerRegion: modValues[0],
+        replicasPerRegion: modReplicas,
       }),
     );
   }

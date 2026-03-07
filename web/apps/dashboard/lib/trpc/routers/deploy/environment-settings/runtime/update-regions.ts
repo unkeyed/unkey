@@ -1,5 +1,5 @@
 import { and, db, eq, inArray, notInArray } from "@/lib/db";
-import { appRegionalSettings, clusterRegions, environments } from "@unkey/db/src/schema";
+import { appRegionalSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { workspaceProcedure } from "../../../../trpc";
@@ -9,27 +9,11 @@ export const updateRegions = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      regions: z.array(z.string()).min(1),
+      regionIds: z.array(z.string()).min(1),
     }),
   )
   .mutation(async ({ ctx, input }) => {
     const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
-
-    // Resolve region names to IDs
-    const regions = await db.query.clusterRegions.findMany({
-      where: inArray(clusterRegions.name, input.regions),
-      columns: { id: true, name: true },
-    });
-    const regionIds = regions.map((r) => r.id);
-
-    if (regionIds.length !== input.regions.length) {
-      const found = new Set(regions.map((r) => r.name));
-      const missing = input.regions.filter((r) => !found.has(r));
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Unknown regions: ${missing.join(", ")}`,
-      });
-    }
 
     // Get appId from the environment
     const env = await db.query.environments.findFirst({
@@ -43,7 +27,7 @@ export const updateRegions = workspaceProcedure
       throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
     }
 
-    // Get existing scaling settings to preserve values for new regions
+    // Get existing regional settings to preserve replica counts for existing regions
     const existingSettings = await db.query.appRegionalSettings.findMany({
       where: and(
         eq(appRegionalSettings.workspaceId, ctx.workspace.id),
@@ -61,12 +45,12 @@ export const updateRegions = workspaceProcedure
         and(
           eq(appRegionalSettings.workspaceId, ctx.workspace.id),
           eq(appRegionalSettings.environmentId, envId),
-          notInArray(appRegionalSettings.regionId, regionIds),
+          notInArray(appRegionalSettings.regionId, input.regionIds),
         ),
       );
 
       // Insert rows for newly added regions
-      for (const regionId of regionIds) {
+      for (const regionId of input.regionIds) {
         const existing = existingSettings.find((s) => s.regionId === regionId);
         if (!existing) {
           await db.insert(appRegionalSettings).values({
