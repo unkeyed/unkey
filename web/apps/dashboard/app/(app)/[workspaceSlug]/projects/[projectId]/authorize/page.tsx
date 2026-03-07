@@ -1,6 +1,6 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import { trpc } from "@/lib/trpc/client";
+import { Loading } from "@unkey/ui";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
