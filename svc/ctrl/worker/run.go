@@ -195,8 +195,9 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
-		DB:     database,
-		GitHub: ghClient,
+		DB:           database,
+		GitHub:       ghClient,
+		DashboardURL: cfg.DashboardURL,
 	})))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{

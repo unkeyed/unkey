@@ -128,6 +128,8 @@ spec:
                   name: github-credentials
                   key: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
                   optional: true
+            - name: FORCE_DEPLOYMENT_APPROVAL
+              value: "true"
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock

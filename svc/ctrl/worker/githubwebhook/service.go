@@ -11,16 +11,18 @@ import (
 // to serialize webhook processing per repository.
 type Service struct {
 	hydrav1.UnimplementedGitHubWebhookServiceServer
-	db     db.Database
-	github githubclient.GitHubClient
+	db           db.Database
+	github       githubclient.GitHubClient
+	dashboardURL string
 }
 
 var _ hydrav1.GitHubWebhookServiceServer = (*Service)(nil)
 
 // Config holds the configuration for creating a [Service].
 type Config struct {
-	DB     db.Database
-	GitHub githubclient.GitHubClient
+	DB           db.Database
+	GitHub       githubclient.GitHubClient
+	DashboardURL string
 }
 
 // New creates a new [Service] with the provided configuration.
@@ -29,5 +31,6 @@ func New(cfg Config) *Service {
 		UnimplementedGitHubWebhookServiceServer: hydrav1.UnimplementedGitHubWebhookServiceServer{},
 		db:                                      cfg.DB,
 		github:                                  cfg.GitHub,
+		dashboardURL:                            cfg.DashboardURL,
 	}
 }

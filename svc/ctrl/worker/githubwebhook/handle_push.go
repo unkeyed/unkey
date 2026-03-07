@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -183,6 +184,45 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		)
 
 		if needsApproval {
+			// Create a GitHub Deployment with pending status so the PR shows a blocking check.
+			envLabel := project.Slug + " - " + env.Slug
+			if app.Slug != "default" {
+				envLabel = project.Slug + "/" + app.Slug + " - " + env.Slug
+			}
+			ghDeploymentID, ghErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
+				return s.github.CreateDeployment(
+					repo.InstallationID,
+					req.GetRepositoryFullName(),
+					req.GetAfter(),
+					envLabel,
+					"Awaiting authorization",
+					env.Slug == "production",
+				)
+			}, restate.WithName("create github deployment for approval"), restate.WithMaxRetryDuration(30*time.Second))
+			if ghErr != nil {
+				logger.Error("failed to create GitHub deployment for approval", "error", ghErr, "deployment_id", deploymentID)
+			} else {
+				_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+					return db.Query.UpdateDeploymentGithubDeploymentId(runCtx, s.db.RW(), db.UpdateDeploymentGithubDeploymentIdParams{
+						GithubDeploymentID: sql.NullInt64{Valid: true, Int64: ghDeploymentID},
+						UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+						ID:                 deploymentID,
+					})
+				}, restate.WithName("persist github deployment id"), restate.WithMaxRetryDuration(30*time.Second))
+
+				_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+					return s.github.CreateDeploymentStatus(
+						repo.InstallationID,
+						req.GetRepositoryFullName(),
+						ghDeploymentID,
+						"pending",
+						"",
+						"",
+						"Awaiting authorization from a project member",
+					)
+				}, restate.WithName("github deployment status: pending"), restate.WithMaxRetryDuration(30*time.Second))
+			}
+
 			// Post PR comment if we can find an open PR for this branch
 			s.postApprovalComment(ctx, req, repo, deploymentID)
 			continue
@@ -218,11 +258,21 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 // requiresApproval determines whether a push needs manual approval.
 // Bot accounts (ending in [bot]) and repo collaborators are auto-approved.
+//
+// Set FORCE_DEPLOYMENT_APPROVAL=true to bypass collaborator checks and always
+// require approval. This is useful for testing the approval flow locally.
 func (s *Service) requiresApproval(
 	ctx restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
 	repo db.GithubRepoConnection,
 ) bool {
+	if os.Getenv("FORCE_DEPLOYMENT_APPROVAL") == "true" {
+		logger.Info("FORCE_DEPLOYMENT_APPROVAL is set, requiring approval",
+			"sender", req.GetSenderLogin(),
+		)
+		return true
+	}
+
 	senderLogin := req.GetSenderLogin()
 
 	// No sender info or bot accounts are trusted
@@ -281,8 +331,9 @@ func (s *Service) postApprovalComment(
 		"**Deployment Authorization Required**\n\n"+
 			"This deployment was triggered by @%s who is not a collaborator on this repository.\n\n"+
 			"A project member must authorize this deployment before it will proceed.\n\n"+
-			"[Authorize Deployment](https://app.unkey.com/deployments/%s/approve)",
+			"[Authorize Deployment](%s/deployments/%s/approve)",
 		req.GetSenderLogin(),
+		s.dashboardURL,
 		deploymentID,
 	)
 
