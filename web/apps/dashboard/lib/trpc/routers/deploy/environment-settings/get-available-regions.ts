@@ -1,9 +1,9 @@
+import { db } from "@/lib/db";
 import { workspaceProcedure } from "../../../trpc";
 
-export const getAvailableRegions = workspaceProcedure.query(() => {
-  const regionsEnv = process.env.AVAILABLE_REGIONS ?? "";
-  return regionsEnv
-    .split(",")
-    .map((r) => r.trim())
-    .filter(Boolean);
+export const getAvailableRegions = workspaceProcedure.query(async () => {
+  const regions = await db.query.clusterRegions.findMany({
+    columns: { name: true },
+  });
+  return regions.map((r) => r.name);
 });
