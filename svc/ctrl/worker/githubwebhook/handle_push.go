@@ -167,8 +167,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"environment", env.Slug,
 		)
 
-		// Start deploy workflow keyed by project ID
-		deployClient := hydrav1.NewDeployServiceClient(ctx, project.ID)
+		// Start deploy workflow keyed by workspace ID, to run 1 concurrent build per workspace for now during beta
+		deployClient := hydrav1.NewDeployServiceClient(ctx, app.WorkspaceID)
 		deployClient.Deploy().Send(&hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Source: &hydrav1.DeployRequest_Git{

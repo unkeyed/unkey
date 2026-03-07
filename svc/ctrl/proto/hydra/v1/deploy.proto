@@ -20,7 +20,7 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // targets a single deployment, typically sent with a 30-minute delay after a new
 // deployment replaces it.
 service DeployService {
-  option (dev.restate.sdk.go.service_type) = WORKFLOW;
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
   // Deploy executes the full deployment workflow: build (if git source), provision
   // containers across regions, wait for health, configure domain routing, and

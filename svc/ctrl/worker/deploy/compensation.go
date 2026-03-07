@@ -16,14 +16,14 @@ import (
 // setup sequence that succeeded before a failure.
 type Compensation struct {
 	mu         sync.Mutex
-	operations []func(ctx restate.WorkflowSharedContext) error
+	operations []func(ctx restate.ObjectContext) error
 }
 
 // NewCompensation creates an empty [Compensation].
 func NewCompensation() *Compensation {
 	return &Compensation{
 		mu:         sync.Mutex{},
-		operations: []func(ctx restate.WorkflowSharedContext) error{},
+		operations: []func(ctx restate.ObjectContext) error{},
 	}
 }
 
@@ -34,7 +34,7 @@ func NewCompensation() *Compensation {
 func (c *Compensation) Add(name string, run func(ctx restate.RunContext) error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.operations = append(c.operations, func(ctx restate.WorkflowSharedContext) error {
+	c.operations = append(c.operations, func(ctx restate.ObjectContext) error {
 		return restate.RunVoid(ctx, run, restate.WithName(fmt.Sprintf("[compensation]: %s", name)))
 	})
 }
@@ -44,7 +44,7 @@ func (c *Compensation) Add(name string, run func(ctx restate.RunContext) error) 
 // Execute returns nil when every step succeeds. When multiple steps fail, it
 // joins all failures with [errors.Join]. Execute does not clear registered
 // steps, so calling it more than once re-runs the same compensations.
-func (c *Compensation) Execute(ctx restate.WorkflowSharedContext) error {
+func (c *Compensation) Execute(ctx restate.ObjectContext) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	var errs error

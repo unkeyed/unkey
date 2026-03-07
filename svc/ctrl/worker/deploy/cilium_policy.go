@@ -37,7 +37,7 @@ type ciliumPolicySpec struct {
 // its own policies so that old deployments (serving traffic via SHA URLs) are not broken
 // when a new deployment changes the port.
 func (w *Workflow) ensureCiliumNetworkPolicy(
-	ctx restate.WorkflowSharedContext,
+	ctx restate.ObjectContext,
 	workspace db.Workspace,
 	project db.Project,
 	environment db.Environment,

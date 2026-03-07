@@ -52,7 +52,7 @@ const (
 //
 // Returns terminal errors for validation failures and retryable errors for
 // transient system failures.
-func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
+func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
 
 	err := assert.All(
 		assert.NotEmpty(req.GetDeploymentId(), "deployment_id is required"),
@@ -112,7 +112,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	)
 
 	// --- Starting ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.WorkflowSharedContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
 
 		workspace, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 			var ws db.Workspace
@@ -176,7 +176,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	// --- Build ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(stepCtx restate.WorkflowSharedContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(stepCtx restate.ObjectContext) error {
 		return w.buildImage(stepCtx, req, &deployment)
 	})
 	if err != nil {
@@ -184,7 +184,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	// --- Deploy ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.WorkflowSharedContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.ObjectContext) error {
 
 		topologies, err := w.createTopologies(stepCtx, compensation, workspace, deployment)
 		if err != nil {
@@ -210,7 +210,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	// --- Network ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.WorkflowSharedContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
 
 		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
@@ -219,7 +219,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 	}
 
 	// --- Finalize ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.WorkflowSharedContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
 			return db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 				ID:        deployment.ID,
@@ -259,7 +259,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 //
 // Returns a terminal error for unknown source types and build failures that
 // cannot be retried (e.g. bad Dockerfile).
-func (w *Workflow) buildImage(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest, deployment *db.Deployment) error {
+func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequest, deployment *db.Deployment) error {
 	dockerImage := ""
 
 	switch source := req.GetSource().(type) {
@@ -381,7 +381,7 @@ func (w *Workflow) buildImage(ctx restate.WorkflowSharedContext, req *hydrav1.De
 // topology. Compensation deletes by deployment, region, and version so retries
 // never remove topologies created by a newer attempt.
 func (w *Workflow) createTopologies(
-	ctx restate.WorkflowSharedContext,
+	ctx restate.ObjectContext,
 	compensation *Compensation,
 	workspace db.Workspace,
 	deployment db.Deployment,
@@ -485,7 +485,7 @@ func (w *Workflow) createTopologies(
 // idempotent — if a concurrent workflow already created the sentinel, the
 // duplicate key error is silently ignored.
 func (w *Workflow) ensureSentinels(
-	ctx restate.WorkflowSharedContext,
+	ctx restate.ObjectContext,
 	workspace db.Workspace,
 	project db.Project,
 	environment db.Environment,
@@ -576,7 +576,7 @@ func (w *Workflow) ensureSentinels(
 // [hydrav1.AssignFrontlineRoutesRequest] so that the routing layer atomically
 // switches traffic to this deployment's topologies.
 func (w *Workflow) configureRouting(
-	ctx restate.WorkflowSharedContext,
+	ctx restate.ObjectContext,
 	workspace db.Workspace,
 	project db.Project,
 	app db.App,
@@ -630,39 +630,49 @@ func (w *Workflow) configureRouting(
 		}
 	}
 
-	// Derive rolled-back state: if the current live deployment doesn't match
-	// the previous latest-ready deployment, a rollback occurred and we should
-	// not auto-promote this new deployment.
-	autoPromote := false
-	if environment.Slug == "production" {
-		if !app.CurrentDeploymentID.Valid {
-			// No current deployment yet — first deploy, auto-promote
-			autoPromote = true
-		} else {
-			prevLatest, prevErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-				return db.Query.FindLatestReadyDeploymentByAppAndEnv(runCtx, w.db.RO(), db.FindLatestReadyDeploymentByAppAndEnvParams{
-					AppID:         app.ID,
-					EnvironmentID: deployment.EnvironmentID,
-					ExcludeID:     deployment.ID,
-				})
-			}, restate.WithName("check rolled back state"))
-			if prevErr == nil && prevLatest == app.CurrentDeploymentID.String {
-				autoPromote = true
+	// refresh app, cause it might have changed since we read it at the beginning of the workflow (e.g. another deployment promoted to live and updated current_deployment_id)
+	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
+		return db.Query.FindAppById(runCtx, w.db.RO(), app.ID)
+	})
+	if err != nil {
+		return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
+	}
+
+	routeIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
+
+		// using a transaction here to ensure we read a consistent set of sticky routes that won't change under us as we promote this deployment.
+		// This is important to prevent a race
+		return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) ([]string, error) {
+			// Fetch sticky routes for this environment
+			stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
+			if !app.IsRolledBack {
+				stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
 			}
-		}
-	}
+			app, err := db.Query.FindAppById(txCtx, tx, app.ID)
+			if err != nil {
+				return nil, err
+			}
 
-	// Fetch sticky routes for this environment
-	stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
-	if autoPromote {
-		stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
-	}
+			// if the app is rolled back, we should not consider live sticky routes for promotion, even for production, because the live deployment is not healthy and should not receive traffic
+			if app.IsRolledBack {
+				stickyTypes = []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
+			}
 
-	stickyRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
-		return db.Query.FindFrontlineRouteForPromotion(stepCtx, w.db.RO(), db.FindFrontlineRouteForPromotionParams{
-			EnvironmentID: deployment.EnvironmentID,
-			Sticky:        stickyTypes,
+			routes, err := db.Query.FindFrontlineRouteForPromotion(txCtx, tx, db.FindFrontlineRouteForPromotionParams{
+				EnvironmentID: deployment.EnvironmentID,
+				Sticky:        stickyTypes,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			routeIDs := make([]string, len(routes))
+			for i, route := range routes {
+				routeIDs[i] = route.ID
+			}
+			return routeIDs, nil
 		})
+
 	}, restate.WithName("finding sticky routes"))
 	if err != nil {
 		return fault.Wrap(
@@ -671,15 +681,11 @@ func (w *Workflow) configureRouting(
 		)
 	}
 
-	for _, route := range stickyRoutes {
-		existingRouteIDs = append(existingRouteIDs, route.ID)
-	}
-
 	// Key routing service by app ID for per-app serialization
 	_, err = hydrav1.NewRoutingServiceClient(ctx, app.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
-		FrontlineRouteIds: existingRouteIDs,
+		FrontlineRouteIds: routeIDs,
 	})
 	if err != nil {
 		return fault.Wrap(
@@ -691,7 +697,7 @@ func (w *Workflow) configureRouting(
 	return nil
 }
 
-// swapLiveDeployment atomically updates the project's live deployment pointer to
+// swapLiveDeployment atomically updates the apps's live deployment pointer to
 // this deployment and schedules the previous live deployment for standby after
 // 30 minutes via [hydrav1.DeploymentServiceClient.ScheduleDesiredStateChange].
 //
@@ -702,7 +708,7 @@ func (w *Workflow) configureRouting(
 // This only applies to production environments that are not in a rolled-back state;
 // for all other cases the method is a no-op and returns nil.
 func (w *Workflow) swapLiveDeployment(
-	ctx restate.WorkflowSharedContext,
+	ctx restate.ObjectContext,
 	deployment db.Deployment,
 	app db.App,
 	environment db.Environment,
@@ -711,10 +717,10 @@ func (w *Workflow) swapLiveDeployment(
 		return nil
 	}
 
-	// Atomically read the current live deployment and swap it to the new one.
+	// Atomically read the current deployment and swap it to the new one.
 	// This prevents a race where two concurrent deploys both capture the same
-	// previousLiveDeploymentID and one of them never gets scheduled for standby.
-	previousLiveDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
+	// currentDeploymentID and one of them never gets scheduled for standby.
+	previousDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 		return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
 			currentApp, findErr := db.Query.FindAppById(txCtx, tx, deployment.AppID)
 			if findErr != nil {
@@ -723,7 +729,7 @@ func (w *Workflow) swapLiveDeployment(
 
 			updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
 				IsRolledBack:        false,
-				AppID:               currentApp.ID,
+				AppID:               deployment.AppID,
 				CurrentDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
 				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
@@ -733,19 +739,19 @@ func (w *Workflow) swapLiveDeployment(
 
 			return currentApp.CurrentDeploymentID, nil
 		})
-	}, restate.WithName("swapping project live deployment"))
+	}, restate.WithName("swapping app live deployment"))
 	if err != nil {
-		return fault.Wrap(err, fault.Public("Project live deployment could not be updated."))
+		return fault.Wrap(err, fault.Public("App live deployment could not be updated."))
 	}
 
-	if previousLiveDeploymentID.Valid {
-		_, err = hydrav1.NewDeploymentServiceClient(ctx, previousLiveDeploymentID.String).
+	if previousDeploymentID.Valid {
+		_, err = hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID.String).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: (30 * time.Minute).Milliseconds(),
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
 			},
-			restate.WithIdempotencyKey(deployment.ID),
+			restate.WithIdempotencyKey(previousDeploymentID.String),
 		)
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
@@ -764,7 +770,7 @@ func (w *Workflow) swapLiveDeployment(
 // workflow proceeds to routing, while still allowing single-region deployments
 // to pass. Regions that time out or error are skipped rather than failing the
 // entire deployment, so a degraded region does not block progress.
-func (w *Workflow) waitForDeployments(ctx restate.WorkflowSharedContext, deploymentID string, topologies []db.InsertDeploymentTopologyParams) error {
+func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID string, topologies []db.InsertDeploymentTopologyParams) error {
 	logger.Info("waiting for deployments to be ready", "deployment_id", deploymentID)
 
 	deadline, err := restate.Run(ctx, func(_ restate.RunContext) (time.Time, error) {
