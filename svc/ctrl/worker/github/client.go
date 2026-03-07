@@ -64,15 +64,23 @@ type ClientConfig struct {
 // Ensure Client implements GitHubClient
 var _ GitHubClient = (*Client)(nil)
 
+// collaboratorKey uniquely identifies a user+repo pair for cache lookups.
+type collaboratorKey struct {
+	installationID int64
+	repo           string
+	username       string
+}
+
 // Client provides access to GitHub API using App authentication.
 //
 // Client handles JWT generation for App-level authentication and installation
 // token retrieval for repository-level operations. It is safe for concurrent use.
 type Client struct {
-	config     ClientConfig
-	httpClient *http.Client
-	signer     jwt.Signer[jwt.RegisteredClaims]
-	tokenCache cache.Cache[int64, InstallationToken]
+	config            ClientConfig
+	httpClient        *http.Client
+	signer            jwt.Signer[jwt.RegisteredClaims]
+	tokenCache        cache.Cache[int64, InstallationToken]
+	collaboratorCache cache.Cache[collaboratorKey, bool]
 }
 
 // NewClient creates a [Client] with the given configuration. Returns an error if
@@ -94,11 +102,23 @@ func NewClient(config ClientConfig) (*Client, error) {
 		return nil, err
 	}
 
+	collaboratorCache, err := cache.New(cache.Config[collaboratorKey, bool]{
+		Fresh:    5 * time.Minute,
+		Stale:    1 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "github_collaborator",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
-		config:     config,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
-		signer:     signer,
-		tokenCache: tokenCache,
+		config:            config,
+		httpClient:        &http.Client{Timeout: 30 * time.Second},
+		signer:            signer,
+		tokenCache:        tokenCache,
+		collaboratorCache: collaboratorCache,
 	}, nil
 }
 
@@ -310,4 +330,81 @@ func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deplo
 	}
 
 	return doRequest(c.httpClient, http.MethodPost, apiURL, headers, payload, http.StatusCreated)
+}
+
+// IsCollaborator checks whether a GitHub user is a collaborator on a repository.
+// Results are cached for 5 minutes to avoid redundant API calls for the same user.
+func (c *Client) IsCollaborator(installationID int64, repo string, username string) (bool, error) {
+	key := collaboratorKey{installationID: installationID, repo: repo, username: username}
+
+	value, _, err := c.collaboratorCache.SWR(
+		context.Background(),
+		key,
+		func(_ context.Context) (bool, error) {
+			headers, err := c.ghHeaders(installationID)
+			if err != nil {
+				return false, err
+			}
+
+			apiURL := fmt.Sprintf("https://api.github.com/repos/%s/collaborators/%s", repo, url.PathEscape(username))
+
+			return httpclient.StatusCheck(c.httpClient, http.MethodGet, apiURL, headers, http.StatusNoContent)
+		},
+		func(err error) cache.Op {
+			if err != nil {
+				return cache.Noop
+			}
+			return cache.WriteValue
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+
+	return value, nil
+}
+
+// FindPullRequestForBranch finds an open pull request for the given branch.
+// Returns the PR number, or 0 if no open PR exists.
+func (c *Client) FindPullRequestForBranch(installationID int64, repo string, branch string) (int, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return 0, err
+	}
+
+	parts := strings.SplitN(repo, "/", 2)
+	if len(parts) != 2 {
+		return 0, fault.New("invalid repo format, expected owner/repo")
+	}
+	owner := parts[0]
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/pulls?head=%s:%s&state=open&per_page=1",
+		repo, url.QueryEscape(owner), url.QueryEscape(branch))
+
+	type ghPR struct {
+		Number int `json:"number"`
+	}
+
+	prs, err := httpclient.Request[[]ghPR](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(prs) == 0 {
+		return 0, nil
+	}
+
+	return prs[0].Number, nil
+}
+
+// CreateIssueComment posts a comment on a GitHub issue or pull request.
+func (c *Client) CreateIssueComment(installationID int64, repo string, issueNumber int, body string) error {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/%d/comments", repo, issueNumber)
+
+	return httpclient.Do(c.httpClient, http.MethodPost, apiURL, headers, map[string]string{"body": body}, http.StatusCreated)
 }

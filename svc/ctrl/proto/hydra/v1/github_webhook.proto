@@ -33,6 +33,7 @@ message HandlePushRequest {
   string commit_author_avatar_url = 8;
   int64 commit_timestamp = 9;
   string delivery_id = 10;
+  string sender_login = 11; // GitHub login of the push sender
 }
 
 message HandlePushResponse {}

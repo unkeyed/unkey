@@ -34,6 +34,7 @@ type HandlePushRequest struct {
 	CommitAuthorAvatarUrl string                 `protobuf:"bytes,8,opt,name=commit_author_avatar_url,json=commitAuthorAvatarUrl,proto3" json:"commit_author_avatar_url,omitempty"`
 	CommitTimestamp       int64                  `protobuf:"varint,9,opt,name=commit_timestamp,json=commitTimestamp,proto3" json:"commit_timestamp,omitempty"`
 	DeliveryId            string                 `protobuf:"bytes,10,opt,name=delivery_id,json=deliveryId,proto3" json:"delivery_id,omitempty"`
+	SenderLogin           string                 `protobuf:"bytes,11,opt,name=sender_login,json=senderLogin,proto3" json:"sender_login,omitempty"` // GitHub login of the push sender
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -138,6 +139,13 @@ func (x *HandlePushRequest) GetDeliveryId() string {
 	return ""
 }
 
+func (x *HandlePushRequest) GetSenderLogin() string {
+	if x != nil {
+		return x.SenderLogin
+	}
+	return ""
+}
+
 type HandlePushResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -178,7 +186,7 @@ var File_hydra_v1_github_webhook_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_github_webhook_proto_rawDesc = "" +
 	"\n" +
-	"\x1dhydra/v1/github_webhook.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\x9f\x03\n" +
+	"\x1dhydra/v1/github_webhook.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xc2\x03\n" +
 	"\x11HandlePushRequest\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12#\n" +
 	"\rrepository_id\x18\x02 \x01(\x03R\frepositoryId\x120\n" +
@@ -191,7 +199,8 @@ const file_hydra_v1_github_webhook_proto_rawDesc = "" +
 	"\x10commit_timestamp\x18\t \x01(\x03R\x0fcommitTimestamp\x12\x1f\n" +
 	"\vdelivery_id\x18\n" +
 	" \x01(\tR\n" +
-	"deliveryId\"\x14\n" +
+	"deliveryId\x12!\n" +
+	"\fsender_login\x18\v \x01(\tR\vsenderLogin\"\x14\n" +
 	"\x12HandlePushResponse2g\n" +
 	"\x14GitHubWebhookService\x12I\n" +
 	"\n" +

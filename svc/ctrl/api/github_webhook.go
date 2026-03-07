@@ -134,6 +134,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		CommitAuthorAvatarUrl: gitCommit.AuthorAvatarURL,
 		CommitTimestamp:       gitCommit.Timestamp.UnixMilli(),
 		DeliveryId:            deliveryID,
+		SenderLogin:           payload.Sender.Login,
 	}, sendOpts...)
 	if err != nil {
 		logger.Error("failed to send HandlePush to Restate",

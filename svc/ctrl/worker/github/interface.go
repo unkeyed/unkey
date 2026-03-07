@@ -23,6 +23,16 @@ type GitHubClient interface {
 	// state must be one of: pending, in_progress, success, failure, error.
 	// logURL is shown as "View logs" on GitHub; environmentURL as "View deployment".
 	CreateDeploymentStatus(installationID int64, repo string, deploymentID int64, state string, environmentURL string, logURL string, description string) error
+
+	// IsCollaborator checks whether a GitHub user is a collaborator on a repository.
+	IsCollaborator(installationID int64, repo string, username string) (bool, error)
+
+	// FindPullRequestForBranch finds an open pull request for the given branch.
+	// Returns the PR number, or 0 if no open PR exists.
+	FindPullRequestForBranch(installationID int64, repo string, branch string) (int, error)
+
+	// CreateIssueComment posts a comment on a GitHub issue or pull request.
+	CreateIssueComment(installationID int64, repo string, issueNumber int, body string) error
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.

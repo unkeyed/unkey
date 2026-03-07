@@ -3,6 +3,8 @@ package githubwebhook
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -23,6 +25,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		"repository", req.GetRepositoryFullName(),
 		"branch", req.GetBranch(),
 		"commit_sha", req.GetAfter(),
+		"sender_login", req.GetSenderLogin(),
 	)
 
 	branch := req.GetBranch()
@@ -93,6 +96,12 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			}
 		}
 
+		// --- Deployment Protection Check ---
+		needsApproval := false
+		if project.DeploymentProtection {
+			needsApproval = s.requiresApproval(ctx, req, repo)
+		}
+
 		// Create deployment record
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		now := time.Now().UnixMilli()
@@ -101,6 +110,11 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		authorHandle := req.GetCommitAuthorHandle()
 		authorAvatarURL := req.GetCommitAuthorAvatarUrl()
 		commitTimestamp := req.GetCommitTimestamp()
+
+		deploymentStatus := db.DeploymentsStatusPending
+		if needsApproval {
+			deploymentStatus = db.DeploymentsStatusAwaitingApproval
+		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return db.Tx(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
@@ -114,7 +128,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					SentinelConfig:                runtimeSettings.SentinelConfig,
 					EncryptedEnvironmentVariables: secretsBlob,
 					Command:                       runtimeSettings.Command,
-					Status:                        db.DeploymentsStatusPending,
+					Status:                        deploymentStatus,
 					CreatedAt:                     now,
 					UpdatedAt:                     sql.NullInt64{Valid: false},
 					GitCommitSha:                  sql.NullString{String: req.GetAfter(), Valid: req.GetAfter() != ""},
@@ -165,7 +179,14 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"commit_sha", req.GetAfter(),
 			"branch", req.GetBranch(),
 			"environment", env.Slug,
+			"needs_approval", needsApproval,
 		)
+
+		if needsApproval {
+			// Post PR comment if we can find an open PR for this branch
+			s.postApprovalComment(ctx, req, repo, deploymentID)
+			continue
+		}
 
 		// Start deploy workflow keyed by workspace ID, to run 1 concurrent build per workspace for now during beta
 		deployClient := hydrav1.NewDeployServiceClient(ctx, app.WorkspaceID)
@@ -193,4 +214,84 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	}
 
 	return &hydrav1.HandlePushResponse{}, nil
+}
+
+// requiresApproval determines whether a push needs manual approval.
+// Bot accounts (ending in [bot]) and repo collaborators are auto-approved.
+func (s *Service) requiresApproval(
+	ctx restate.ObjectContext,
+	req *hydrav1.HandlePushRequest,
+	repo db.GithubRepoConnection,
+) bool {
+	senderLogin := req.GetSenderLogin()
+
+	// No sender info or bot accounts are trusted
+	if senderLogin == "" || strings.HasSuffix(senderLogin, "[bot]") {
+		return false
+	}
+
+	isCollaborator, err := restate.Run(ctx, func(_ restate.RunContext) (bool, error) {
+		return s.github.IsCollaborator(
+			repo.InstallationID,
+			req.GetRepositoryFullName(),
+			senderLogin,
+		)
+	}, restate.WithName("check collaborator status"), restate.WithMaxRetryDuration(30*time.Second))
+	if err != nil {
+		// If we can't check, default to allowing (fail open for collaborator check)
+		logger.Error("failed to check collaborator status, allowing deployment",
+			"sender", senderLogin,
+			"error", err,
+		)
+		return false
+	}
+
+	return !isCollaborator
+}
+
+// postApprovalComment finds an open PR for the branch and posts an authorization
+// comment. Fire-and-forget — errors are logged but don't block.
+func (s *Service) postApprovalComment(
+	ctx restate.ObjectContext,
+	req *hydrav1.HandlePushRequest,
+	repo db.GithubRepoConnection,
+	deploymentID string,
+) {
+	prNumber, err := restate.Run(ctx, func(_ restate.RunContext) (int, error) {
+		return s.github.FindPullRequestForBranch(
+			repo.InstallationID,
+			req.GetRepositoryFullName(),
+			req.GetBranch(),
+		)
+	}, restate.WithName("find PR for branch"), restate.WithMaxRetryDuration(30*time.Second))
+	if err != nil {
+		logger.Error("failed to find PR for approval comment", "error", err)
+		return
+	}
+
+	if prNumber == 0 {
+		logger.Info("no open PR found for branch, skipping approval comment",
+			"branch", req.GetBranch(),
+			"deployment_id", deploymentID,
+		)
+		return
+	}
+
+	comment := fmt.Sprintf(
+		"**Deployment Authorization Required**\n\n"+
+			"This deployment was triggered by @%s who is not a collaborator on this repository.\n\n"+
+			"A project member must authorize this deployment before it will proceed.\n\n"+
+			"[Authorize Deployment](https://app.unkey.com/deployments/%s/approve)",
+		req.GetSenderLogin(),
+		deploymentID,
+	)
+
+	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+		return s.github.CreateIssueComment(
+			repo.InstallationID,
+			req.GetRepositoryFullName(),
+			prNumber,
+			comment,
+		)
+	}, restate.WithName("post approval comment"), restate.WithMaxRetryDuration(30*time.Second))
 }

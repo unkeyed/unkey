@@ -14,6 +14,7 @@ go_library(
         "//pkg/db",
         "//pkg/logger",
         "//pkg/uid",
+        "//svc/ctrl/worker/github",
         "@com_github_restatedev_sdk_go//:sdk-go",
         "@org_golang_google_protobuf//encoding/protojson",
     ],
