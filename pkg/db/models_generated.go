@@ -1019,6 +1019,23 @@ type AppRuntimeSetting struct {
 	UpdatedAt      sql.NullInt64                    `db:"updated_at"`
 }
 
+type AppScalingSetting struct {
+	Pk               uint64        `db:"pk"`
+	WorkspaceID      string        `db:"workspace_id"`
+	AppID            string        `db:"app_id"`
+	EnvironmentID    string        `db:"environment_id"`
+	RegionID         string        `db:"region_id"`
+	MemoryThreshold  sql.NullInt16 `db:"memory_threshold"`
+	CpuThreshold     sql.NullInt16 `db:"cpu_threshold"`
+	RpsThreshold     sql.NullInt16 `db:"rps_threshold"`
+	ReplicasMin      int32         `db:"replicas_min"`
+	ReplicasMax      int32         `db:"replicas_max"`
+	MaxCpuMillicores int32         `db:"max_cpu_millicores"`
+	MaxMemoryMib     int32         `db:"max_memory_mib"`
+	CreatedAt        int64         `db:"created_at"`
+	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+}
+
 type AuditLog struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
@@ -1105,6 +1122,20 @@ type ClickhouseWorkspaceSetting struct {
 	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
 	CreatedAt                 int64         `db:"created_at"`
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
+}
+
+type Cluster struct {
+	Pk              uint64 `db:"pk"`
+	ID              string `db:"id"`
+	RegionID        string `db:"region_id"`
+	LastHeartbeatAt uint64 `db:"last_heartbeat_at"`
+}
+
+type ClusterRegion struct {
+	Pk       uint64 `db:"pk"`
+	ID       string `db:"id"`
+	Name     string `db:"name"`
+	Platform string `db:"platform"`
 }
 
 type CustomDomain struct {
