@@ -2,8 +2,8 @@ import { relations } from "drizzle-orm";
 import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { clusters } from "./clusters";
 
-export const clusterRegions = mysqlTable(
-  "cluster_regions",
+export const regions = mysqlTable(
+  "regions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 64 }).notNull().unique(),
@@ -12,9 +12,9 @@ export const clusterRegions = mysqlTable(
     // e.g. aws, gcp, azure, local, etc.
     platform: varchar("platform", { length: 64 }).notNull(),
   },
-  (table) => [uniqueIndex("unique_reqion_per_platform").on(table.name, table.platform)],
+  (table) => [uniqueIndex("unique_region_per_platform").on(table.name, table.platform)],
 );
 
-export const clusterRegionRelations = relations(clusterRegions, ({ many }) => ({
+export const regionRelations = relations(regions, ({ many }) => ({
   clusters: many(clusters),
 }));

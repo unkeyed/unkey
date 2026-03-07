@@ -100,7 +100,7 @@ type ClusterServiceClient interface {
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error)
 	// Heartbeat is called periodically by krane agents to register their cluster
-	// and region with the control plane. This populates the cluster_regions and
+	// and region with the control plane. This populates the regions and
 	// clusters tables, making regions dynamically discoverable.
 	Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error)
 }
@@ -261,7 +261,7 @@ type ClusterServiceHandler interface {
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error)
 	// Heartbeat is called periodically by krane agents to register their cluster
-	// and region with the control plane. This populates the cluster_regions and
+	// and region with the control plane. This populates the regions and
 	// clusters tables, making regions dynamically discoverable.
 	Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error)
 }

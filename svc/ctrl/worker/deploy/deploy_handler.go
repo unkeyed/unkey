@@ -375,7 +375,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 //
 // Region selection uses the environment's runtime settings: if a region config is
 // present, only those regions are used with their configured replica counts;
-// otherwise all of [Workflow.availableRegions] are used with 1 replica each.
+// otherwise the deployment fails with a terminal error.
 //
 // createTopologies also registers compensations for every inserted
 // topology. Compensation deletes by deployment, region, and version so retries
@@ -408,13 +408,16 @@ func (w *Workflow) createTopologies(
 		}
 	}
 
-	var regions []string
 	if len(regionConfig) == 0 {
-		regions = w.availableRegions
-	} else {
-		for r := range regionConfig {
-			regions = append(regions, r)
-		}
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("no regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
+			fault.Public("No regions configured. Please configure at least one region before deploying."),
+		)
+	}
+
+	regions := make([]string, 0, len(regionConfig))
+	for r := range regionConfig {
+		regions = append(regions, r)
 	}
 
 	topologies := make([]db.InsertDeploymentTopologyParams, 0, len(regions))

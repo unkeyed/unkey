@@ -26,7 +26,7 @@ type MockClusterClient struct {
 	GetDesiredDeploymentStateFunc          func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error)
 	ReportDeploymentStatusFunc             func(context.Context, *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error)
 	GetDesiredCiliumNetworkPolicyStateFunc func(context.Context, *ctrlv1.GetDesiredCiliumNetworkPolicyStateRequest) (*ctrlv1.CiliumNetworkPolicyState, error)
-	HeartbeatFunc                         func(context.Context, *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error)
+	HeartbeatFunc                          func(context.Context, *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error)
 	ReportDeploymentStatusCalls            []*ctrlv1.ReportDeploymentStatusRequest
 	ReportSentinelStatusCalls              []*ctrlv1.ReportSentinelStatusRequest
 }

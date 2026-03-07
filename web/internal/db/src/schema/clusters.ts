@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, mysqlTable, varchar } from "drizzle-orm/mysql-core";
-import { clusterRegions } from "./cluster_regions";
+import { regions } from "./regions";
 
 // clusters tracks our kubernetes clusters
 // each krane instance will heartbeat against the control plane, which then writes to this table
@@ -10,7 +10,7 @@ export const clusters = mysqlTable("clusters", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
   id: varchar("id", { length: 64 }).notNull().unique(),
-  regionId: varchar("region_id", { length: 64 }).notNull(),
+  regionId: varchar("region_id", { length: 64 }).notNull().unique(),
 
   lastHeartbeatAt: bigint("last_heartbeat_at", {
     mode: "number",
@@ -19,8 +19,8 @@ export const clusters = mysqlTable("clusters", {
 });
 
 export const regionsRelations = relations(clusters, ({ one }) => ({
-  workspace: one(clusterRegions, {
+  workspace: one(regions, {
     fields: [clusters.regionId],
-    references: [clusterRegions.id],
+    references: [regions.id],
   }),
 }));

@@ -2,8 +2,8 @@ import { db } from "@/lib/db";
 import { workspaceProcedure } from "../../../trpc";
 
 export const getAvailableRegions = workspaceProcedure.query(async () => {
-  const regions = await db.query.clusterRegions.findMany({
+  const r = await db.query.regions.findMany({
     columns: { id: true, name: true },
   });
-  return regions;
+  return r;
 });

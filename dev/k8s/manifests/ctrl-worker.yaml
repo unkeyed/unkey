@@ -14,7 +14,6 @@ data:
     cname_domain = "unkey.local"
     build_platform = "linux/arm64"
     sentinel_image = "unkey/sentinel:latest"
-    available_regions = ["local.dev"]
 
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"

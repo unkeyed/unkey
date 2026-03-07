@@ -1020,6 +1020,10 @@ type Querier interface {
 	//      AND namespace_id = ?
 	//      AND identifier = ?
 	FindRatelimitOverrideByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIdentifierParams) (RatelimitOverride, error)
+	//FindRegionByNameAndPlatform
+	//
+	//  SELECT id FROM regions WHERE name = ? AND platform = ?
+	FindRegionByNameAndPlatform(ctx context.Context, db DBTX, arg FindRegionByNameAndPlatformParams) (string, error)
 	// Finds a role record by its ID
 	// Returns: The role record if found
 	//
@@ -2267,6 +2271,10 @@ type Querier interface {
 	//  WHERE key_id IN (/*SLICE:key_ids*/?)
 	//  ORDER BY key_id, id
 	ListRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []sql.NullString) ([]ListRatelimitsByKeyIDsRow, error)
+	//ListRegions
+	//
+	//  SELECT id, name, platform FROM regions
+	ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error)
 	//ListRepoConnectionDeployContexts
 	//
 	//  SELECT
@@ -2824,6 +2832,21 @@ type Querier interface {
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsParams) error
+	// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
+	//
+	//  INSERT INTO clusters (
+	//  	id,
+	//  	region_id,
+	//  	last_heartbeat_at
+	//  )
+	//  VALUES (
+	//  	?,
+	//  	?,
+	//  	?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//  	last_heartbeat_at = ?
+	UpsertCluster(ctx context.Context, db DBTX, arg UpsertClusterParams) error
 	//UpsertCustomDomain
 	//
 	//  INSERT INTO custom_domains (
@@ -2939,6 +2962,20 @@ type Querier interface {
 	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
 	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
 	UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error
+	// Inserts a region or does nothing if it already exists.
+	//
+	//  INSERT INTO regions (
+	//  	id,
+	//  	name,
+	//  	platform
+	//  )
+	//  VALUES (
+	//  	?,
+	//  	?,
+	//  	?
+	//  )
+	//  ON DUPLICATE KEY UPDATE name = name
+	UpsertRegion(ctx context.Context, db DBTX, arg UpsertRegionParams) error
 	//UpsertWorkspace
 	//
 	//  INSERT INTO workspaces (

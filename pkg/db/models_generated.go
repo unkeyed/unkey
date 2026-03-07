@@ -1126,13 +1126,6 @@ type Cluster struct {
 	LastHeartbeatAt uint64 `db:"last_heartbeat_at"`
 }
 
-type ClusterRegion struct {
-	Pk       uint64 `db:"pk"`
-	ID       string `db:"id"`
-	Name     string `db:"name"`
-	Platform string `db:"platform"`
-}
-
 type CustomDomain struct {
 	Pk                 uint64                          `db:"pk"`
 	ID                 string                          `db:"id"`
@@ -1453,6 +1446,13 @@ type RatelimitOverride struct {
 	CreatedAtM  int64                          `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64                  `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64                  `db:"deleted_at_m"`
+}
+
+type Region struct {
+	Pk       uint64 `db:"pk"`
+	ID       string `db:"id"`
+	Name     string `db:"name"`
+	Platform string `db:"platform"`
 }
 
 type Role struct {

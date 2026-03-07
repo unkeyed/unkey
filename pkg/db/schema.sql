@@ -724,18 +724,19 @@ CREATE TABLE `clusters` (
 	`region_id` varchar(64) NOT NULL,
 	`last_heartbeat_at` bigint unsigned NOT NULL,
 	CONSTRAINT `clusters_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `clusters_id_unique` UNIQUE(`id`)
+	CONSTRAINT `clusters_id_unique` UNIQUE(`id`),
+	CONSTRAINT `clusters_region_id_unique` UNIQUE(`region_id`)
 );
 
-CREATE TABLE `cluster_regions` (
+CREATE TABLE `regions` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(64) NOT NULL,
 	`name` varchar(64) NOT NULL,
 	`platform` varchar(64) NOT NULL,
-	CONSTRAINT `cluster_regions_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `cluster_regions_id_unique` UNIQUE(`id`),
-	CONSTRAINT `cluster_regions_name_unique` UNIQUE(`name`),
-	CONSTRAINT `unique_reqion_per_platform` UNIQUE(`name`,`platform`)
+	CONSTRAINT `regions_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `regions_id_unique` UNIQUE(`id`),
+	CONSTRAINT `regions_name_unique` UNIQUE(`name`),
+	CONSTRAINT `unique_region_per_platform` UNIQUE(`name`,`platform`)
 );
 
 CREATE TABLE `horizontal_autoscaling_policies` (

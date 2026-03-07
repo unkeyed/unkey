@@ -36,5 +36,5 @@ export * from "./github_app";
 export * from "./cilium";
 
 export * from "./clusters";
-export * from "./cluster_regions";
+export * from "./regions";
 export * from "./horizontal_autoscaling_policies";

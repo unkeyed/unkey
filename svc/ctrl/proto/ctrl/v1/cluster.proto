@@ -66,7 +66,7 @@ service ClusterService {
   rpc GetDesiredCiliumNetworkPolicyState(GetDesiredCiliumNetworkPolicyStateRequest) returns (CiliumNetworkPolicyState);
 
   // Heartbeat is called periodically by krane agents to register their cluster
-  // and region with the control plane. This populates the cluster_regions and
+  // and region with the control plane. This populates the regions and
   // clusters tables, making regions dynamically discoverable.
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
@@ -330,7 +330,7 @@ message DeleteDeployment {
 }
 
 // HeartbeatRequest is sent periodically by krane agents to register their
-// presence. The control plane uses this to populate cluster_regions and
+// presence. The control plane uses this to populate regions and
 // clusters tables.
 message HeartbeatRequest {
   // region is the geographic region name (e.g. "us-east-1").

@@ -1500,7 +1500,7 @@ func (x *DeleteDeployment) GetK8SName() string {
 }
 
 // HeartbeatRequest is sent periodically by krane agents to register their
-// presence. The control plane uses this to populate cluster_regions and
+// presence. The control plane uses this to populate regions and
 // clusters tables.
 type HeartbeatRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`

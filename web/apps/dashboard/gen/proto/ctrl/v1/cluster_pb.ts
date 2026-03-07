@@ -814,7 +814,7 @@ export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*
 
 /**
  * HeartbeatRequest is sent periodically by krane agents to register their
- * presence. The control plane uses this to populate cluster_regions and
+ * presence. The control plane uses this to populate regions and
  * clusters tables.
  *
  * @generated from message ctrl.v1.HeartbeatRequest
@@ -994,7 +994,7 @@ export const ClusterService: GenService<{
   },
   /**
    * Heartbeat is called periodically by krane agents to register their cluster
-   * and region with the control plane. This populates the cluster_regions and
+   * and region with the control plane. This populates the regions and
    * clusters tables, making regions dynamically discoverable.
    *
    * @generated from rpc ctrl.v1.ClusterService.Heartbeat

@@ -161,11 +161,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploy.New(deploy.Config{
-		DB:                              database,
-		DefaultDomain:                   cfg.DefaultDomain,
-		Vault:                           vaultClient,
-		SentinelImage:                   cfg.SentinelImage,
-		AvailableRegions:                cfg.AvailableRegions,
+		DB:            database,
+		DefaultDomain: cfg.DefaultDomain,
+		Vault:         vaultClient,
+		SentinelImage: cfg.SentinelImage,
+
 		GitHub:                          ghClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
