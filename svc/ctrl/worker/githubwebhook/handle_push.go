@@ -299,8 +299,12 @@ func (s *Service) requiresApproval(
 	return !isCollaborator
 }
 
-// postApprovalComment finds an open PR for the branch and posts an authorization
-// comment. Fire-and-forget — errors are logged but don't block.
+// approvalCommentMarker is a hidden HTML comment used to find and update
+// the approval comment instead of posting duplicate comments on each push.
+const approvalCommentMarker = "<!-- unkey-approval-comment -->"
+
+// postApprovalComment finds an open PR for the branch and posts (or updates)
+// an authorization comment. Fire-and-forget — errors are logged but don't block.
 func (s *Service) postApprovalComment(
 	ctx restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
@@ -328,7 +332,8 @@ func (s *Service) postApprovalComment(
 	}
 
 	comment := fmt.Sprintf(
-		"**Deployment Authorization Required**\n\n"+
+		approvalCommentMarker+"\n"+
+			"**Deployment Authorization Required**\n\n"+
 			"This deployment was triggered by @%s who is not a collaborator on this repository.\n\n"+
 			"A project member must authorize this deployment before it will proceed.\n\n"+
 			"[Authorize Deployment](%s/deployments/%s/approve)",
@@ -337,12 +342,36 @@ func (s *Service) postApprovalComment(
 		deploymentID,
 	)
 
-	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-		return s.github.CreateIssueComment(
+	// Try to find an existing approval comment to update
+	existingID, findErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
+		return s.github.FindBotComment(
 			repo.InstallationID,
 			req.GetRepositoryFullName(),
 			prNumber,
-			comment,
+			approvalCommentMarker,
 		)
-	}, restate.WithName("post approval comment"), restate.WithMaxRetryDuration(30*time.Second))
+	}, restate.WithName("find existing approval comment"), restate.WithMaxRetryDuration(30*time.Second))
+	if findErr != nil {
+		logger.Info("could not search for existing approval comment", "error", findErr)
+	}
+
+	if existingID > 0 {
+		_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+			return s.github.UpdateIssueComment(
+				repo.InstallationID,
+				req.GetRepositoryFullName(),
+				existingID,
+				comment,
+			)
+		}, restate.WithName("update approval comment"), restate.WithMaxRetryDuration(30*time.Second))
+	} else {
+		_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+			return s.github.CreateIssueComment(
+				repo.InstallationID,
+				req.GetRepositoryFullName(),
+				prNumber,
+				comment,
+			)
+		}, restate.WithName("post approval comment"), restate.WithMaxRetryDuration(30*time.Second))
+	}
 }

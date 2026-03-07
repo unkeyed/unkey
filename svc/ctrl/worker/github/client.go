@@ -408,3 +408,53 @@ func (c *Client) CreateIssueComment(installationID int64, repo string, issueNumb
 
 	return httpclient.Do(c.httpClient, http.MethodPost, apiURL, headers, map[string]string{"body": body}, http.StatusCreated)
 }
+
+// UpdateIssueComment updates an existing comment on a GitHub issue or PR.
+func (c *Client) UpdateIssueComment(installationID int64, repo string, commentID int64, body string) error {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/comments/%d", repo, commentID)
+
+	return httpclient.Do(c.httpClient, http.MethodPatch, apiURL, headers, map[string]string{"body": body}, http.StatusOK)
+}
+
+// FindBotComment searches for a comment on a PR that contains the given marker
+// string. Returns the comment ID if found, or 0 if no matching comment exists.
+// Paginates through all comments to find it.
+func (c *Client) FindBotComment(installationID int64, repo string, issueNumber int, marker string) (int64, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return 0, err
+	}
+
+	type ghComment struct {
+		ID   int64  `json:"id"`
+		Body string `json:"body"`
+	}
+
+	page := 1
+	for {
+		apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/%d/comments?per_page=100&page=%d", repo, issueNumber, page)
+
+		comments, reqErr := httpclient.Request[[]ghComment](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+		if reqErr != nil {
+			return 0, reqErr
+		}
+
+		for _, comment := range comments {
+			if strings.Contains(comment.Body, marker) {
+				return comment.ID, nil
+			}
+		}
+
+		if len(comments) < 100 {
+			break
+		}
+		page++
+	}
+
+	return 0, nil
+}
