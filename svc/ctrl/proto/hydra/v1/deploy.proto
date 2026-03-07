@@ -44,6 +44,11 @@ service DeployService {
   // deployment to standby that has received zero requests in the last 6 hours.
   // Intended to be called by a cron job.
   rpc ScaleDownIdlePreviewDeployments(ScaleDownIdlePreviewDeploymentsRequest) returns (ScaleDownIdlePreviewDeploymentsResponse) {}
+
+  // UpdateGitHubDeploymentStatus updates a GitHub Deployment's status.
+  // Called from the API service after approve/reject so the worker (which has
+  // GitHub App credentials) performs the actual API call.
+  rpc UpdateGitHubDeploymentStatus(UpdateGitHubDeploymentStatusRequest) returns (UpdateGitHubDeploymentStatusResponse) {}
 }
 
 message ScaleDownIdlePreviewDeploymentsRequest {}
@@ -112,3 +117,12 @@ message PromoteRequest {
 }
 
 message PromoteResponse {}
+
+message UpdateGitHubDeploymentStatusRequest {
+  string deployment_id = 1;
+  // GitHub Deployment status: pending, in_progress, success, failure, error
+  string state = 2;
+  string description = 3;
+}
+
+message UpdateGitHubDeploymentStatusResponse {}

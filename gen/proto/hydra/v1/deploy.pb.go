@@ -549,6 +549,103 @@ func (*PromoteResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{9}
 }
 
+type UpdateGitHubDeploymentStatusRequest struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentId string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	// GitHub Deployment status: pending, in_progress, success, failure, error
+	State         string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	Description   string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateGitHubDeploymentStatusRequest) Reset() {
+	*x = UpdateGitHubDeploymentStatusRequest{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateGitHubDeploymentStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateGitHubDeploymentStatusRequest) ProtoMessage() {}
+
+func (x *UpdateGitHubDeploymentStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateGitHubDeploymentStatusRequest.ProtoReflect.Descriptor instead.
+func (*UpdateGitHubDeploymentStatusRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UpdateGitHubDeploymentStatusRequest) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *UpdateGitHubDeploymentStatusRequest) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *UpdateGitHubDeploymentStatusRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type UpdateGitHubDeploymentStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateGitHubDeploymentStatusResponse) Reset() {
+	*x = UpdateGitHubDeploymentStatusResponse{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateGitHubDeploymentStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateGitHubDeploymentStatusResponse) ProtoMessage() {}
+
+func (x *UpdateGitHubDeploymentStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateGitHubDeploymentStatusResponse.ProtoReflect.Descriptor instead.
+func (*UpdateGitHubDeploymentStatusResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{11}
+}
+
 var File_hydra_v1_deploy_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_deploy_proto_rawDesc = "" +
@@ -583,12 +680,18 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x10RollbackResponse\"B\n" +
 	"\x0ePromoteRequest\x120\n" +
 	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
-	"\x0fPromoteResponse2\xe6\x02\n" +
+	"\x0fPromoteResponse\"\x82\x01\n" +
+	"#UpdateGitHubDeploymentStatusRequest\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\"&\n" +
+	"$UpdateGitHubDeploymentStatusResponse2\xe7\x03\n" +
 	"\rDeployService\x12=\n" +
 	"\x06Deploy\x12\x17.hydra.v1.DeployRequest\x1a\x18.hydra.v1.DeployResponse\"\x00\x12C\n" +
 	"\bRollback\x12\x19.hydra.v1.RollbackRequest\x1a\x1a.hydra.v1.RollbackResponse\"\x00\x12@\n" +
 	"\aPromote\x12\x18.hydra.v1.PromoteRequest\x1a\x19.hydra.v1.PromoteResponse\"\x00\x12\x88\x01\n" +
-	"\x1fScaleDownIdlePreviewDeployments\x120.hydra.v1.ScaleDownIdlePreviewDeploymentsRequest\x1a1.hydra.v1.ScaleDownIdlePreviewDeploymentsResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x91\x01\n" +
+	"\x1fScaleDownIdlePreviewDeployments\x120.hydra.v1.ScaleDownIdlePreviewDeploymentsRequest\x1a1.hydra.v1.ScaleDownIdlePreviewDeploymentsResponse\"\x00\x12\x7f\n" +
+	"\x1cUpdateGitHubDeploymentStatus\x12-.hydra.v1.UpdateGitHubDeploymentStatusRequest\x1a..hydra.v1.UpdateGitHubDeploymentStatusResponse\"\x00\x1a\x04\x98\x80\x01\x02B\x91\x01\n" +
 	"\fcom.hydra.v1B\vDeployProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -603,7 +706,7 @@ func file_hydra_v1_deploy_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_deploy_proto_rawDescData
 }
 
-var file_hydra_v1_deploy_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_hydra_v1_deploy_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_hydra_v1_deploy_proto_goTypes = []any{
 	(*ScaleDownIdlePreviewDeploymentsRequest)(nil),  // 0: hydra.v1.ScaleDownIdlePreviewDeploymentsRequest
 	(*ScaleDownIdlePreviewDeploymentsResponse)(nil), // 1: hydra.v1.ScaleDownIdlePreviewDeploymentsResponse
@@ -615,23 +718,27 @@ var file_hydra_v1_deploy_proto_goTypes = []any{
 	(*RollbackResponse)(nil),                        // 7: hydra.v1.RollbackResponse
 	(*PromoteRequest)(nil),                          // 8: hydra.v1.PromoteRequest
 	(*PromoteResponse)(nil),                         // 9: hydra.v1.PromoteResponse
+	(*UpdateGitHubDeploymentStatusRequest)(nil),     // 10: hydra.v1.UpdateGitHubDeploymentStatusRequest
+	(*UpdateGitHubDeploymentStatusResponse)(nil),    // 11: hydra.v1.UpdateGitHubDeploymentStatusResponse
 }
 var file_hydra_v1_deploy_proto_depIdxs = []int32{
-	3, // 0: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
-	2, // 1: hydra.v1.DeployRequest.docker_image:type_name -> hydra.v1.DockerImage
-	4, // 2: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
-	6, // 3: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
-	8, // 4: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
-	0, // 5: hydra.v1.DeployService.ScaleDownIdlePreviewDeployments:input_type -> hydra.v1.ScaleDownIdlePreviewDeploymentsRequest
-	5, // 6: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
-	7, // 7: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
-	9, // 8: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
-	1, // 9: hydra.v1.DeployService.ScaleDownIdlePreviewDeployments:output_type -> hydra.v1.ScaleDownIdlePreviewDeploymentsResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3,  // 0: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
+	2,  // 1: hydra.v1.DeployRequest.docker_image:type_name -> hydra.v1.DockerImage
+	4,  // 2: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
+	6,  // 3: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
+	8,  // 4: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
+	0,  // 5: hydra.v1.DeployService.ScaleDownIdlePreviewDeployments:input_type -> hydra.v1.ScaleDownIdlePreviewDeploymentsRequest
+	10, // 6: hydra.v1.DeployService.UpdateGitHubDeploymentStatus:input_type -> hydra.v1.UpdateGitHubDeploymentStatusRequest
+	5,  // 7: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
+	7,  // 8: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
+	9,  // 9: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
+	1,  // 10: hydra.v1.DeployService.ScaleDownIdlePreviewDeployments:output_type -> hydra.v1.ScaleDownIdlePreviewDeploymentsResponse
+	11, // 11: hydra.v1.DeployService.UpdateGitHubDeploymentStatus:output_type -> hydra.v1.UpdateGitHubDeploymentStatusResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_deploy_proto_init() }
@@ -649,7 +756,7 @@ func file_hydra_v1_deploy_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_deploy_proto_rawDesc), len(file_hydra_v1_deploy_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

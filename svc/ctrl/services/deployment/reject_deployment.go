@@ -8,12 +8,13 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // RejectDeployment transitions a deployment from awaiting_approval to rejected
-// and updates the GitHub deployment status to failure.
+// and fires a Restate call to update the GitHub deployment status to failure.
 func (s *Service) RejectDeployment(ctx context.Context, req *connect.Request[ctrlv1.RejectDeploymentRequest]) (*connect.Response[ctrlv1.RejectDeploymentResponse], error) {
 	deploymentID := req.Msg.GetDeploymentId()
 
@@ -40,24 +41,21 @@ func (s *Service) RejectDeployment(ctx context.Context, req *connect.Request[ctr
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to reject deployment: %w", err))
 	}
 
-	// Update GitHub deployment status to failure if we have a GitHub deployment ID.
+	// Fire-and-forget: tell the worker to update GitHub deployment status.
+	// The worker has the GitHub App credentials.
 	if deployment.GithubDeploymentID.Valid {
-		repoConn, repoErr := db.Query.FindGithubRepoConnectionByAppId(ctx, s.db.RO(), deployment.AppID)
-		if repoErr == nil {
-			if ghErr := s.github.CreateDeploymentStatus(
-				repoConn.InstallationID,
-				repoConn.RepositoryFullName,
-				deployment.GithubDeploymentID.Int64,
-				"failure",
-				"",
-				"",
-				"Deployment rejected",
-			); ghErr != nil {
-				logger.Error("failed to update GitHub deployment status on rejection",
-					"deployment_id", deploymentID,
-					"error", ghErr,
-				)
-			}
+		_, ghErr := s.deploymentClient(deployment.ProjectID).
+			UpdateGitHubDeploymentStatus().
+			Send(ctx, &hydrav1.UpdateGitHubDeploymentStatusRequest{
+				DeploymentId: deploymentID,
+				State:        "failure",
+				Description:  "Deployment rejected",
+			})
+		if ghErr != nil {
+			logger.Error("failed to send GitHub status update to worker",
+				"deployment_id", deploymentID,
+				"error", ghErr,
+			)
 		}
 	}
 
