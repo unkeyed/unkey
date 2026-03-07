@@ -3,7 +3,6 @@ package githubwebhook
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -223,8 +222,6 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				}, restate.WithName("github deployment status: pending"), restate.WithMaxRetryDuration(30*time.Second))
 			}
 
-			// Post PR comment if we can find an open PR for this branch
-			s.postApprovalComment(ctx, req, repo, deploymentID)
 			continue
 		}
 
@@ -299,79 +296,3 @@ func (s *Service) requiresApproval(
 	return !isCollaborator
 }
 
-// approvalCommentMarker is a hidden HTML comment used to find and update
-// the approval comment instead of posting duplicate comments on each push.
-const approvalCommentMarker = "<!-- unkey-approval-comment -->"
-
-// postApprovalComment finds an open PR for the branch and posts (or updates)
-// an authorization comment. Fire-and-forget — errors are logged but don't block.
-func (s *Service) postApprovalComment(
-	ctx restate.ObjectContext,
-	req *hydrav1.HandlePushRequest,
-	repo db.GithubRepoConnection,
-	deploymentID string,
-) {
-	prNumber, err := restate.Run(ctx, func(_ restate.RunContext) (int, error) {
-		return s.github.FindPullRequestForBranch(
-			repo.InstallationID,
-			req.GetRepositoryFullName(),
-			req.GetBranch(),
-		)
-	}, restate.WithName("find PR for branch"), restate.WithMaxRetryDuration(30*time.Second))
-	if err != nil {
-		logger.Error("failed to find PR for approval comment", "error", err)
-		return
-	}
-
-	if prNumber == 0 {
-		logger.Info("no open PR found for branch, skipping approval comment",
-			"branch", req.GetBranch(),
-			"deployment_id", deploymentID,
-		)
-		return
-	}
-
-	comment := fmt.Sprintf(
-		approvalCommentMarker+"\n"+
-			"**Deployment Authorization Required**\n\n"+
-			"This deployment was triggered by @%s who is not a collaborator on this repository.\n\n"+
-			"A project member must authorize this deployment before it will proceed.\n\n"+
-			"[Authorize Deployment](%s/deployments/%s/approve)",
-		req.GetSenderLogin(),
-		s.dashboardURL,
-		deploymentID,
-	)
-
-	// Try to find an existing approval comment to update
-	existingID, findErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
-		return s.github.FindBotComment(
-			repo.InstallationID,
-			req.GetRepositoryFullName(),
-			prNumber,
-			approvalCommentMarker,
-		)
-	}, restate.WithName("find existing approval comment"), restate.WithMaxRetryDuration(30*time.Second))
-	if findErr != nil {
-		logger.Info("could not search for existing approval comment", "error", findErr)
-	}
-
-	if existingID > 0 {
-		_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-			return s.github.UpdateIssueComment(
-				repo.InstallationID,
-				req.GetRepositoryFullName(),
-				existingID,
-				comment,
-			)
-		}, restate.WithName("update approval comment"), restate.WithMaxRetryDuration(30*time.Second))
-	} else {
-		_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-			return s.github.CreateIssueComment(
-				repo.InstallationID,
-				req.GetRepositoryFullName(),
-				prNumber,
-				comment,
-			)
-		}, restate.WithName("post approval comment"), restate.WithMaxRetryDuration(30*time.Second))
-	}
-}
