@@ -93,14 +93,14 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	}
 
 	apiConfig := Config{
-		InstanceID:       "test",
-		Region:           "local",
-		HttpPort:         ctrlPort,
-		PrometheusPort:   0,
-		AuthToken:        "",
-		AvailableRegions: []string{"local.dev"},
-		DefaultDomain:    "",
-		RegionalDomain:   "",
+		InstanceID:     "test",
+		Region:         "local",
+		HttpPort:       ctrlPort,
+		PrometheusPort: 0,
+		AuthToken:      "",
+
+		DefaultDomain:  "",
+		RegionalDomain: "",
 		Database: config.DatabaseConfig{
 			Primary:         mysqlCfg.DSN,
 			ReadonlyReplica: "",

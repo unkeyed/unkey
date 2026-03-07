@@ -33,9 +33,7 @@ export const appRuntimeSettings = mysqlTable(
     environmentId: varchar("environment_id", { length: 128 }).notNull(),
 
     port: int("port").notNull().default(8080),
-    // @deprecated, use appScalingSettings instead
     cpuMillicores: int("cpu_millicores").notNull().default(256),
-    // @deprecated, use appScalingSettings instead
     memoryMib: int("memory_mib").notNull().default(256),
     command: json("command").$type<string[]>().notNull().default(sql`('[]')`),
 
@@ -44,7 +42,7 @@ export const appRuntimeSettings = mysqlTable(
 
     // Maps region ID to replica count, e.g. {"us-east-1": 3, "eu-central-1": 1}
     // Empty object = 1 replica in all available regions (default behavior)
-    // @deprecated, use appScalingSettings instead
+    // @deprecated, use appRegionalSettings instead
     regionConfig: json("region_config")
       .$type<Record<string, number>>()
       .notNull()

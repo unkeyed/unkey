@@ -375,7 +375,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 //
 // Region selection uses the environment's runtime settings: if a region config is
 // present, only those regions are used with their configured replica counts;
-// otherwise all of [Workflow.availableRegions] are used with 1 replica each.
+// otherwise the deployment fails with a terminal error.
 //
 // createTopologies also registers compensations for every inserted
 // topology. Compensation deletes by deployment, region, and version so retries
@@ -386,41 +386,32 @@ func (w *Workflow) createTopologies(
 	workspace db.Workspace,
 	deployment db.Deployment,
 ) ([]db.InsertDeploymentTopologyParams, error) {
-	// Read region config from runtime settings to determine per-region replica counts.
-	// If regionConfig is empty, deploy to all available regions with 1 replica each (default).
-	// If regionConfig has entries, only deploy to those regions with the specified counts.
-	regionConfig := map[string]int{}
-	runtimeSettings, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppRuntimeSettingsByAppAndEnvRow, error) {
-		return db.Query.FindAppRuntimeSettingsByAppAndEnv(runCtx, w.db.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+	// Read regional settings to determine per-region replica counts.
+	// If no regional settings exist, fail with a terminal error.
+	regionalSettings, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindAppRegionalSettingsByAppAndEnvRow, error) {
+		return db.Query.FindAppRegionalSettingsByAppAndEnv(runCtx, w.db.RO(), db.FindAppRegionalSettingsByAppAndEnvParams{
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
 		})
-	}, restate.WithName("find runtime settings for region config"))
+	}, restate.WithName("find regional settings"))
 	if err != nil {
 		return nil, fault.Wrap(
-			fmt.Errorf("failed to find runtime settings for environment %s: %w", deployment.EnvironmentID, err),
+			fmt.Errorf("failed to find regional settings for environment %s: %w", deployment.EnvironmentID, err),
 			fault.Public("Failed to read from database. Please try again."),
 		)
 	}
-	if len(runtimeSettings.AppRuntimeSetting.RegionConfig) > 0 {
-		for region, count := range runtimeSettings.AppRuntimeSetting.RegionConfig {
-			regionConfig[region] = count
-		}
+
+	if len(regionalSettings) == 0 {
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("no regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
+			fault.Public("No regions configured. Please configure at least one region before deploying."),
+		)
 	}
 
-	var regions []string
-	if len(regionConfig) == 0 {
-		regions = w.availableRegions
-	} else {
-		for r := range regionConfig {
-			regions = append(regions, r)
-		}
-	}
+	topologies := make([]db.InsertDeploymentTopologyParams, 0, len(regionalSettings))
 
-	topologies := make([]db.InsertDeploymentTopologyParams, 0, len(regions))
-
-	for _, region := range regions {
-		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+	for _, rs := range regionalSettings {
+		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, rs.RegionName).NextVersion().Request(&hydrav1.NextVersionRequest{})
 		if err != nil {
 			return nil, fault.Wrap(
 				fmt.Errorf("failed to get next version: %w", err),
@@ -428,15 +419,13 @@ func (w *Workflow) createTopologies(
 			)
 		}
 
-		replicas := int32(1)
-		if count, ok := regionConfig[region]; ok {
-			replicas = int32(count)
-		}
+		replicas := rs.Replicas
 
 		topologies = append(topologies, db.InsertDeploymentTopologyParams{
 			WorkspaceID:     workspace.ID,
 			DeploymentID:    deployment.ID,
-			Region:          region,
+			Region:          rs.RegionName,
+			RegionID:        rs.RegionID,
 			DesiredReplicas: replicas,
 			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarting,
 			Version:         versionResp.GetVersion(),

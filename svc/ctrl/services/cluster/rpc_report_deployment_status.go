@@ -33,15 +33,16 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 		return nil, err
 	}
 	region := req.Header().Get("X-Krane-Region")
+	platform := req.Header().Get("X-Krane-Platform")
 
-	err := assert.All(
+	if err := assert.All(
 		assert.NotEmpty(region, "region is required"),
-	)
-	if err != nil {
-		return nil, err
+		assert.NotEmpty(platform, "platform is required"),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+	err := db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 
 		switch msg := req.Msg.GetChange().(type) {
 		case *ctrlv1.ReportDeploymentStatusRequest_Update_:

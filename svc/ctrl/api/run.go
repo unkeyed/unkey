@@ -217,7 +217,6 @@ func Run(ctx context.Context, cfg Config) error {
 			database:       database,
 			defaultDomain:  cfg.DefaultDomain,
 			regionalDomain: cfg.RegionalDomain,
-			regions:        cfg.AvailableRegions,
 		}
 		r.Go(func(ctx context.Context) error {
 			certBootstrap.run(ctx)

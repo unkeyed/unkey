@@ -1,9 +1,6 @@
 package sentinel
 
 import (
-	"fmt"
-	"slices"
-
 	"github.com/unkeyed/unkey/pkg/config"
 )
 
@@ -46,9 +43,12 @@ type Config struct {
 	// handles all of them based on the deployment ID passed in each request.
 	EnvironmentID string `toml:"environment_id" config:"required,nonempty"`
 
-	// Region is the geographic region identifier (e.g. "us-east-1.aws").
+	// Platform identifies the underlying cloud platform this sentinel is running on.
+	Platform string `toml:"platform" config:"required,nonempty,oneof=aws,local"`
+
+	// Region is the geographic region identifier (e.g. "us-east-1").
 	// Included in structured logs and used for routing decisions.
-	Region string `toml:"region" config:"required,oneof=local.dev|us-east-1.aws|us-east-2.aws|us-west-1.aws|us-west-2.aws|eu-central-1.aws"`
+	Region string `toml:"region" config:"required,nonempty"`
 
 	// HttpPort is the TCP port the sentinel server binds to.
 	HttpPort int `toml:"http_port" config:"default=8080,min=1,max=65535"`
@@ -75,18 +75,6 @@ type Config struct {
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
 func (c *Config) Validate() error {
-	validRegions := []string{
-		"local.dev",
-		"us-east-1.aws",
-		"us-east-2.aws",
-		"us-west-1.aws",
-		"us-west-2.aws",
-		"eu-central-1.aws",
-	}
-
-	if !slices.Contains(validRegions, c.Region) {
-		return fmt.Errorf("invalid region: %s, must be one of %v", c.Region, validRegions)
-	}
 
 	return nil
 }
