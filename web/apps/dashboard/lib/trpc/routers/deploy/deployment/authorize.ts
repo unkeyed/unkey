@@ -84,10 +84,11 @@ export const authorizeDeployment = workspaceProcedure
         throw error;
       }
 
+      const message = error instanceof Error ? error.message : String(error);
       console.error("Authorize deployment request failed:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to communicate with control service",
+        message: `Failed to authorize deployment: ${message}`,
       });
     }
   });
