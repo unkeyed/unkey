@@ -46,12 +46,11 @@ import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
-import { approveDeployment } from "./deploy/deployment/approve";
+import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
 import { promote } from "./deploy/deployment/promote";
 import { redeploy } from "./deploy/deployment/redeploy";
-import { rejectDeployment } from "./deploy/deployment/reject";
 import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
@@ -461,8 +460,7 @@ export const router = t.router({
       promote,
       redeploy,
       create: createDeploy,
-      approve: approveDeployment,
-      reject: rejectDeployment,
+      authorize: authorizeDeployment,
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,

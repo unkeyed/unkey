@@ -10,11 +10,12 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export const approveDeployment = workspaceProcedure
+export const authorizeDeployment = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
-      deploymentId: z.string().min(1, "Deployment ID is required"),
+      projectId: z.string().min(1, "Project ID is required"),
+      branch: z.string().min(1, "Branch is required"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -23,6 +24,23 @@ export const approveDeployment = workspaceProcedure
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "ctrl service is not configured",
+      });
+    }
+
+    // Verify the project belongs to this workspace
+    const project = await db.query.projects.findFirst({
+      where: (table, { eq, and }) =>
+        and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+      columns: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (!project) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Project not found or access denied",
       });
     }
 
@@ -40,55 +58,21 @@ export const approveDeployment = workspaceProcedure
     );
 
     try {
-      const deployment = await db.query.deployments.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
-        columns: {
-          id: true,
-          status: true,
-        },
-        with: {
-          project: { columns: { id: true, name: true } },
-        },
+      await ctrl.authorizeDeployment({
+        projectId: input.projectId,
+        branch: input.branch,
       });
-
-      if (!deployment) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Deployment not found or access denied",
-        });
-      }
-
-      if (deployment.status !== "awaiting_approval") {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: `Deployment is not awaiting approval (status: ${deployment.status})`,
-        });
-      }
-
-      await ctrl
-        .approveDeployment({
-          deploymentId: input.deploymentId,
-          approvedBy: ctx.user.id,
-        })
-        .catch((err) => {
-          console.error(err);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: err,
-          });
-        });
 
       await insertAuditLogs(db, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
-        event: "deployment.approve",
-        description: `Approved deployment ${deployment.id} for ${deployment.project.name}`,
+        event: "deployment.create",
+        description: `Authorized deployment for ${project.name} on branch ${input.branch}`,
         resources: [
           {
-            type: "deployment",
-            id: input.deploymentId,
-            name: deployment.project.name,
+            type: "project",
+            id: input.projectId,
+            name: project.name,
           },
         ],
         context: ctx.audit,
@@ -100,7 +84,7 @@ export const approveDeployment = workspaceProcedure
         throw error;
       }
 
-      console.error("Approve deployment request failed:", error);
+      console.error("Authorize deployment request failed:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to communicate with control service",
