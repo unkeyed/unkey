@@ -96,6 +96,7 @@ func Run(ctx context.Context, cfg Config) error {
 		URL:         cfg.Control.URL,
 		BearerToken: cfg.Control.Token,
 		Region:      cfg.Region,
+		Platform:    cfg.Platform,
 	})
 
 	inClusterConfig, err := rest.InClusterConfig()
@@ -143,6 +144,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DynamicClient: dynamicClient,
 		Cluster:       cluster,
 		Region:        cfg.Region,
+		Platform:      cfg.Platform,
 	})
 	if err := sentinelCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)

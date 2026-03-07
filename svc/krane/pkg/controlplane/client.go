@@ -28,6 +28,10 @@ type ClientConfig struct {
 	// Region identifies the geographical region of this client instance.
 	// This value is added as the X-Krane-Region header for proper request routing.
 	Region string
+
+	// Platform identifies the infrastructure provider (e.g. "aws", "local").
+	// This value is added as the X-Krane-Platform header.
+	Platform string
 }
 
 // NewClient creates a new control plane client with the specified configuration.
@@ -70,6 +74,6 @@ func NewClient(cfg ClientConfig) ctrl.ClusterServiceClient {
 			Transport: transport,
 		},
 		cfg.URL,
-		connect.WithInterceptors(connectInterceptor(cfg.Region, cfg.BearerToken)),
+		connect.WithInterceptors(connectInterceptor(cfg.Region, cfg.Platform, cfg.BearerToken)),
 	))
 }

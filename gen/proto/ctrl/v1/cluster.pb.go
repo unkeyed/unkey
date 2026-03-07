@@ -1084,14 +1084,16 @@ type ApplySentinel struct {
 	WorkspaceId string `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	// project_id identifies the project within the workspace.
 	ProjectId string `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// app_id identifies the app within the project.
+	AppId string `protobuf:"bytes,4,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	// environment_id in which the sentinel should exist.
-	EnvironmentId string `protobuf:"bytes,4,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	EnvironmentId string `protobuf:"bytes,5,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
 	// sentinel_id is the unique identifier for this sentinel globally
-	SentinelId    string `protobuf:"bytes,5,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
-	Image         string `protobuf:"bytes,6,opt,name=image,proto3" json:"image,omitempty"`
-	Replicas      int32  `protobuf:"varint,7,opt,name=replicas,proto3" json:"replicas,omitempty"`
-	CpuMillicores int64  `protobuf:"varint,8,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
-	MemoryMib     int64  `protobuf:"varint,9,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
+	SentinelId    string `protobuf:"bytes,6,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
+	Image         string `protobuf:"bytes,7,opt,name=image,proto3" json:"image,omitempty"`
+	Replicas      int32  `protobuf:"varint,8,opt,name=replicas,proto3" json:"replicas,omitempty"`
+	CpuMillicores int64  `protobuf:"varint,9,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
+	MemoryMib     int64  `protobuf:"varint,10,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1143,6 +1145,13 @@ func (x *ApplySentinel) GetWorkspaceId() string {
 func (x *ApplySentinel) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *ApplySentinel) GetAppId() string {
+	if x != nil {
+		return x.AppId
 	}
 	return ""
 }
@@ -1834,20 +1843,22 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\aversion\x18\x03 \x01(\x04R\aversion\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05state\"\xac\x02\n" +
+	"\x05state\"\xc3\x02\n" +
 	"\rApplySentinel\x12\x19\n" +
 	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x03 \x01(\tR\tprojectId\x12%\n" +
-	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\x12\x1f\n" +
-	"\vsentinel_id\x18\x05 \x01(\tR\n" +
+	"project_id\x18\x03 \x01(\tR\tprojectId\x12\x15\n" +
+	"\x06app_id\x18\x04 \x01(\tR\x05appId\x12%\n" +
+	"\x0eenvironment_id\x18\x05 \x01(\tR\renvironmentId\x12\x1f\n" +
+	"\vsentinel_id\x18\x06 \x01(\tR\n" +
 	"sentinelId\x12\x14\n" +
-	"\x05image\x18\x06 \x01(\tR\x05image\x12\x1a\n" +
-	"\breplicas\x18\a \x01(\x05R\breplicas\x12%\n" +
-	"\x0ecpu_millicores\x18\b \x01(\x03R\rcpuMillicores\x12\x1d\n" +
+	"\x05image\x18\a \x01(\tR\x05image\x12\x1a\n" +
+	"\breplicas\x18\b \x01(\x05R\breplicas\x12%\n" +
+	"\x0ecpu_millicores\x18\t \x01(\x03R\rcpuMillicores\x12\x1d\n" +
 	"\n" +
-	"memory_mib\x18\t \x01(\x03R\tmemoryMib\"+\n" +
+	"memory_mib\x18\n" +
+	" \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
 	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xf1\x04\n" +
 	"\x0fApplyDeployment\x12#\n" +
