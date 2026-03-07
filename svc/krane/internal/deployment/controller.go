@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Controller manages deployment ReplicaSets in a Kubernetes cluster by maintaining
+// Controller manages Deployments in a Kubernetes cluster by maintaining
 // bidirectional state synchronization with the control plane.
 //
 // The controller receives desired state via the WatchDeployments stream and reports
@@ -40,7 +40,7 @@ type Controller struct {
 // operations, while Cluster provides the control plane RPC client for state
 // synchronization. Region determines which deployments this controller manages.
 type Config struct {
-	// ClientSet provides typed Kubernetes API access for ReplicaSet and Pod operations.
+	// ClientSet provides typed Kubernetes API access for Deployment and Pod operations.
 	ClientSet kubernetes.Interface
 
 	// DynamicClient provides unstructured Kubernetes API access for CiliumNetworkPolicy

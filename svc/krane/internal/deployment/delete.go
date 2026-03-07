@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DeleteDeployment removes a user workload's ReplicaSet from the cluster.
+// DeleteDeployment removes a user workload's Deployment from the cluster.
 // Owned resources (Secret, ServiceAccount, Role, RoleBinding) are garbage-collected
 // automatically by K8s via ownerReferences.
 //
@@ -22,7 +22,7 @@ func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 		"name", req.GetK8SName(),
 	)
 
-	err := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
+	err := c.clientSet.AppsV1().Deployments(req.GetK8SNamespace()).Delete(ctx, req.GetK8SName(), metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}

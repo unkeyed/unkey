@@ -11,11 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-// runActualStateReportLoop starts a Kubernetes watch for deployment ReplicaSets
+// runActualStateReportLoop starts a Kubernetes watch for Deployments
 // and reports actual state changes back to the control plane in real-time.
 //
 // The watch filters for resources with the "managed-by: krane" and "component: deployment"
-// labels, ignoring resources created by other controllers. When a ReplicaSet is added
+// labels, ignoring resources created by other controllers. When a Deployment is added
 // or modified, the method calls [Controller.buildDeploymentStatus] to query pod state
 // and reports via [Controller.reportDeploymentStatus]. Deletions are reported directly
 // so the control plane can remove the deployment from its routing tables.
@@ -24,7 +24,7 @@ import (
 // errors are logged but the goroutine continues processing events. The watch runs
 // until the context is cancelled.
 func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
-	w, err := c.clientSet.AppsV1().ReplicaSets("").Watch(ctx, metav1.ListOptions{
+	w, err := c.clientSet.AppsV1().Deployments("").Watch(ctx, metav1.ListOptions{
 		LabelSelector: labels.New().
 			ManagedByKrane().
 			ComponentDeployment().
@@ -41,12 +41,12 @@ func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
 				logger.Error("error watching deployment", "event", event.Object)
 			case watch.Bookmark:
 			case watch.Added, watch.Modified:
-				replicaset, ok := event.Object.(*appsv1.ReplicaSet)
+				dep, ok := event.Object.(*appsv1.Deployment)
 				if !ok {
-					logger.Error("unable to cast object to replicaset")
+					logger.Error("unable to cast object to deployment")
 					continue
 				}
-				status, err := c.buildDeploymentStatus(ctx, replicaset)
+				status, err := c.buildDeploymentStatus(ctx, dep)
 				if err != nil {
 					logger.Error("unable to build status", "error", err.Error())
 					continue
@@ -57,15 +57,15 @@ func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
 					continue
 				}
 			case watch.Deleted:
-				replicaset, ok := event.Object.(*appsv1.ReplicaSet)
+				dep, ok := event.Object.(*appsv1.Deployment)
 				if !ok {
-					logger.Error("unable to cast object to replicaset")
+					logger.Error("unable to cast object to deployment")
 					continue
 				}
 				err := c.reportDeploymentStatus(ctx, &ctrlv1.ReportDeploymentStatusRequest{
 					Change: &ctrlv1.ReportDeploymentStatusRequest_Delete_{
 						Delete: &ctrlv1.ReportDeploymentStatusRequest_Delete{
-							K8SName: replicaset.Name,
+							K8SName: dep.Name,
 						},
 					},
 				})

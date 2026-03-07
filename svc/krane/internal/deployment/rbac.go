@@ -15,7 +15,7 @@ import (
 
 // ensureDeploymentRBAC creates a ServiceAccount, Role, and RoleBinding for the
 // deployment. The Role only allows reading the specific deployment secret.
-// All resources are owned by the ReplicaSet via ownerRef for automatic GC.
+// All resources are owned by the Deployment via ownerRef for automatic GC.
 func (c *Controller) ensureDeploymentRBAC(ctx context.Context, namespace, deploymentID, secretName string, ownerRef metav1.OwnerReference) error {
 	sanitized := sanitizeForK8s(deploymentID)
 	saName := fmt.Sprintf("deploy-%s", sanitized)

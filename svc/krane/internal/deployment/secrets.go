@@ -57,7 +57,7 @@ func sanitizeForK8s(id string) string {
 
 // ensureDeploymentSecret creates or updates a K8s Secret containing the plaintext
 // environment variables for the deployment. Uses server-side apply for idempotency.
-// The ownerRef ties the secret's lifecycle to the ReplicaSet for automatic GC.
+// The ownerRef ties the secret's lifecycle to the Deployment for automatic GC.
 func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, deploymentID string, envVars map[string]string, ownerRef metav1.OwnerReference) error {
 	secretName := deploymentSecretName(deploymentID)
 

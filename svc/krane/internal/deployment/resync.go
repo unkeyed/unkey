@@ -12,27 +12,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// runResyncLoop periodically reconciles all deployment ReplicaSets with their
-// desired state from the control plane.
+// runResyncLoop periodically reconciles all Deployments with their desired state
+// from the control plane.
 //
 // The loop runs every minute as a consistency safety net. While
 // [Controller.runActualStateReportLoop] handles real-time Kubernetes events and
 // [Controller.runDesiredStateApplyLoop] handles streaming updates, both can miss
 // events during network partitions, controller restarts, or watch buffer overflows.
 // This resync loop guarantees eventual consistency by querying the control plane
-// for each existing ReplicaSet and applying any drift.
+// for each existing Deployment and applying any drift.
 //
-// The loop paginates through all krane-managed deployment ReplicaSets across all
-// namespaces, calling GetDesiredDeploymentState for each and applying or deleting
-// as directed. Errors are logged but don't stop the loop from processing remaining
-// ReplicaSets.
+// The loop paginates through all krane-managed Deployments across all namespaces,
+// calling GetDesiredDeploymentState for each and applying or deleting as directed.
+// Errors are logged but don't stop the loop from processing remaining Deployments.
+//
+// After reconciling Deployments, the loop cleans up orphan ReplicaSets that were
+// created by the previous ReplicaSet-based controller and are not owned by any
+// Deployment.
 func (c *Controller) runResyncLoop(ctx context.Context) {
 	repeat.Every(1*time.Minute, func() {
 		logger.Info("running periodic resync")
 
 		cursor := ""
 		for {
-			replicaSets, err := c.clientSet.AppsV1().ReplicaSets("").List(ctx, metav1.ListOptions{
+			deployments, err := c.clientSet.AppsV1().Deployments("").List(ctx, metav1.ListOptions{
 				LabelSelector: labels.New().
 					ManagedByKrane().
 					ComponentDeployment().
@@ -40,14 +43,14 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				Continue: cursor,
 			})
 			if err != nil {
-				logger.Error("unable to list replicaSets", "error", err.Error())
+				logger.Error("unable to list deployments", "error", err.Error())
 				return
 			}
 
-			for _, replicaSet := range replicaSets.Items {
-				deploymentID, ok := labels.GetDeploymentID(replicaSet.Labels)
+			for _, dep := range deployments.Items {
+				deploymentID, ok := labels.GetDeploymentID(dep.Labels)
 				if !ok {
-					logger.Error("unable to get deployment ID", "replicaSet", replicaSet.Name)
+					logger.Error("unable to get deployment ID", "deployment", dep.Name)
 					continue
 				}
 
@@ -57,8 +60,8 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				if err != nil {
 					if connect.CodeOf(err) == connect.CodeNotFound {
 						if err := c.DeleteDeployment(ctx, &ctrlv1.DeleteDeployment{
-							K8SNamespace: replicaSet.GetNamespace(),
-							K8SName:      replicaSet.GetName(),
+							K8SNamespace: dep.GetNamespace(),
+							K8SName:      dep.GetName(),
 						}); err != nil {
 							logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
 							continue
@@ -81,10 +84,50 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				}
 			}
 
-			cursor = replicaSets.Continue
+			cursor = deployments.Continue
 			if cursor == "" {
 				break
 			}
 		}
+
+		// Clean up orphan ReplicaSets from the previous controller that are not
+		// owned by a Deployment. These are standalone RS with krane labels.
+		c.cleanupOrphanReplicaSets(ctx)
 	})
+}
+
+// cleanupOrphanReplicaSets deletes standalone ReplicaSets with krane labels that
+// have no ownerReferences (i.e. not managed by a Deployment). These are leftovers
+// from before we switched customer workloads from ReplicaSets to Deployments.
+func (c *Controller) cleanupOrphanReplicaSets(ctx context.Context) {
+	cursor := ""
+	for {
+		rsList, err := c.clientSet.AppsV1().ReplicaSets("").List(ctx, metav1.ListOptions{
+			LabelSelector: labels.New().
+				ManagedByKrane().
+				ComponentDeployment().
+				ToString(),
+			Continue: cursor,
+		})
+		if err != nil {
+			logger.Error("unable to list orphan replicasets", "error", err.Error())
+			return
+		}
+
+		for _, rs := range rsList.Items {
+			// Skip RS owned by a Deployment (created by the new controller)
+			if len(rs.OwnerReferences) > 0 {
+				continue
+			}
+			logger.Info("deleting orphan replicaset", "namespace", rs.Namespace, "name", rs.Name)
+			if err := c.clientSet.AppsV1().ReplicaSets(rs.Namespace).Delete(ctx, rs.Name, metav1.DeleteOptions{}); err != nil {
+				logger.Error("unable to delete orphan replicaset", "error", err.Error(), "name", rs.Name)
+			}
+		}
+
+		cursor = rsList.Continue
+		if cursor == "" {
+			break
+		}
+	}
 }

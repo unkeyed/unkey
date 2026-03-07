@@ -20,12 +20,17 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet.
+// ApplyDeployment creates or updates a user workload as a Kubernetes Deployment.
 //
-// The method uses server-side apply to create or update the ReplicaSet, enabling
+// The method uses server-side apply to create or update the Deployment, enabling
 // concurrent modifications from different sources without conflicts. After applying,
 // it queries the resulting pods and reports their addresses and status to the control
 // plane so the routing layer knows where to send traffic.
+//
+// Using Deployments instead of ReplicaSets gives us rolling updates: when the pod
+// template changes (env overrides, resource defaults, security settings), pods are
+// automatically rolled without requiring a user redeploy. The rolling update strategy
+// uses MaxUnavailable=0, MaxSurge=1 to ensure zero-downtime updates.
 //
 // ApplyDeployment validates all required fields and returns an error if any are missing
 // or invalid: WorkspaceId, ProjectId, EnvironmentId, DeploymentId, K8sNamespace, K8sName,
@@ -73,8 +78,8 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to decrypt secrets: %w", err)
 	}
 
-	// Determine secret and SA names upfront so the RS pod spec can reference them.
-	// The actual resources are created after the RS so we can set ownerReferences.
+	// Determine secret and SA names upfront so the Deployment pod spec can reference them.
+	// The actual resources are created after the Deployment so we can set ownerReferences.
 	secretName := ""
 	saName := ""
 	if len(plaintext) > 0 {
@@ -184,22 +189,29 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		podSpec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: registryPullSecretName}}
 	}
 
-	desired := &appsv1.ReplicaSet{
+	desired := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
-			Kind:       "ReplicaSet",
+			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.GetK8SName(),
 			Namespace: req.GetK8SNamespace(),
 			Labels:    usedLabels,
 		},
-		Spec: appsv1.ReplicaSetSpec{
+		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr.P(req.GetReplicas()),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
 			},
 			MinReadySeconds: 30,
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0, StrVal: ""},
+					MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 1, StrVal: ""},
+				},
+			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: fmt.Sprintf("%s-", req.GetK8SName()),
@@ -210,27 +222,27 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		},
 	}
 
-	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
+	client := c.clientSet.AppsV1().Deployments(req.GetK8SNamespace())
 
 	patch, err := json.Marshal(desired)
 	if err != nil {
-		return fmt.Errorf("failed to marshal replicaset: %w", err)
+		return fmt.Errorf("failed to marshal deployment: %w", err)
 	}
 
-	// Apply the ReplicaSet first so we get its UID for ownerReferences.
+	// Apply the Deployment first so we get its UID for ownerReferences.
 	// Pods will retry until the secret/SA exist (created immediately after).
 	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
 		FieldManager: fieldManagerKrane,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to apply replicaset: %w", err)
+		return fmt.Errorf("failed to apply deployment: %w", err)
 	}
 
 	// Create owned resources (Secret, SA, Role, RoleBinding) with ownerReferences
-	// so K8s garbage-collects them when the ReplicaSet is deleted.
+	// so K8s garbage-collects them when the Deployment is deleted.
 	ownerRef := metav1.OwnerReference{
 		APIVersion:         "apps/v1",
-		Kind:               "ReplicaSet",
+		Kind:               "Deployment",
 		Name:               applied.Name,
 		UID:                applied.UID,
 		Controller:         ptr.P(true),
