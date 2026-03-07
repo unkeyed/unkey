@@ -1,5 +1,5 @@
 import { and, db, eq, inArray } from "@/lib/db";
-import { appScalingSettings } from "@unkey/db/src/schema";
+import { appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 import { resolveProjectEnvironmentIds } from "../utils";
@@ -15,12 +15,12 @@ export const updateCpu = workspaceProcedure
     const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
 
     await db
-      .update(appScalingSettings)
+      .update(appRuntimeSettings)
       .set({ cpuMillicores: input.cpuMillicores })
       .where(
         and(
-          eq(appScalingSettings.workspaceId, ctx.workspace.id),
-          inArray(appScalingSettings.environmentId, envIds),
+          eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
+          inArray(appRuntimeSettings.environmentId, envIds),
         ),
       );
   });
