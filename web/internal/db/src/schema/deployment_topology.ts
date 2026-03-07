@@ -20,6 +20,7 @@ export const deploymentTopology = mysqlTable(
     deploymentId: varchar("deployment_id", { length: 64 }).notNull(),
 
     region: varchar("region", { length: 64 }).notNull(),
+    regionId: varchar("region_id", { length: 64 }).notNull().default(""),
 
     desiredReplicas: int("desired_replicas").notNull(),
 

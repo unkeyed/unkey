@@ -535,6 +535,7 @@ CREATE TABLE `deployment_topology` (
 	`workspace_id` varchar(64) NOT NULL,
 	`deployment_id` varchar(64) NOT NULL,
 	`region` varchar(64) NOT NULL,
+	`region_id` varchar(64) NOT NULL DEFAULT '',
 	`desired_replicas` int NOT NULL,
 	`version` bigint unsigned NOT NULL,
 	`desired_status` enum('starting','started','stopping','stopped') NOT NULL,

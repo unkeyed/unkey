@@ -34,6 +34,7 @@ go_library(
         "app_find_with_settings.sql_generated.go",
         "app_insert.sql_generated.go",
         "app_list_by_project.sql_generated.go",
+        "app_regional_settings_find_by_app_and_env.sql_generated.go",
         "app_runtime_settings_find.sql_generated.go",
         "app_runtime_settings_upsert.sql_generated.go",
         "app_update_deployments.sql_generated.go",
