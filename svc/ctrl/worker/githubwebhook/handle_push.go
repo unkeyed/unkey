@@ -227,12 +227,12 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 						repo.InstallationID,
 						req.GetRepositoryFullName(),
 						ghDeploymentID,
-						"pending",
+						"failure",
 						"",
 						logURL,
 						"Awaiting authorization from a project member",
 					)
-				}, restate.WithName("github deployment status: pending"), restate.WithMaxRetryDuration(30*time.Second))
+				}, restate.WithName("github deployment status: failure (awaiting auth)"), restate.WithMaxRetryDuration(30*time.Second))
 			}
 
 			continue
