@@ -16,4 +16,7 @@ VALUES (
     sqlc.arg(deployment_id),
     sqlc.arg(step),
     sqlc.arg(started_at)
-);
+) ON DUPLICATE KEY UPDATE
+    started_at = VALUES(started_at)
+
+;

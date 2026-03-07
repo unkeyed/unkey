@@ -44,7 +44,7 @@ type Config struct {
 	EnvironmentID string `toml:"environment_id" config:"required,nonempty"`
 
 	// Platform identifies the underlying cloud platform this sentinel is running on.
-	Platform string `toml:"platform" config:"required,nonempty,oneof=aws,local"`
+	Platform string `toml:"platform" config:"required,nonempty"`
 
 	// Region is the geographic region identifier (e.g. "us-east-1").
 	// Included in structured logs and used for routing decisions.
