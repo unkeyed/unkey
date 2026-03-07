@@ -27,19 +27,6 @@ type GitHubClient interface {
 	// IsCollaborator checks whether a GitHub user is a collaborator on a repository.
 	IsCollaborator(installationID int64, repo string, username string) (bool, error)
 
-	// FindPullRequestForBranch finds an open pull request for the given branch.
-	// Returns the PR number, or 0 if no open PR exists.
-	FindPullRequestForBranch(installationID int64, repo string, branch string) (int, error)
-
-	// CreateIssueComment posts a comment on a GitHub issue or pull request.
-	CreateIssueComment(installationID int64, repo string, issueNumber int, body string) error
-
-	// UpdateIssueComment updates an existing comment on a GitHub issue or PR.
-	UpdateIssueComment(installationID int64, repo string, commentID int64, body string) error
-
-	// FindBotComment searches for a comment on a PR that contains the given marker string.
-	// Returns the comment ID if found, or 0 if no matching comment exists.
-	FindBotComment(installationID int64, repo string, issueNumber int, marker string) (int64, error)
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.

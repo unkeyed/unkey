@@ -3,6 +3,7 @@ package githubwebhook
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -184,10 +185,22 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 		if needsApproval {
 			// Create a GitHub Deployment with pending status so the PR shows a blocking check.
+			// Clicking the check links to the deployment's dashboard page where the user can approve.
 			envLabel := project.Slug + " - " + env.Slug
 			if app.Slug != "default" {
 				envLabel = project.Slug + "/" + app.Slug + " - " + env.Slug
 			}
+
+			// Look up workspace slug for the dashboard URL.
+			workspace, wsErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
+				return db.Query.FindWorkspaceByID(runCtx, s.db.RO(), project.WorkspaceID)
+			}, restate.WithName("find workspace for approval log url"), restate.WithMaxRetryDuration(30*time.Second))
+
+			logURL := ""
+			if wsErr == nil {
+				logURL = fmt.Sprintf("%s/%s/projects/%s/deployments/%s", s.dashboardURL, workspace.Slug, project.ID, deploymentID)
+			}
+
 			ghDeploymentID, ghErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
 				return s.github.CreateDeployment(
 					repo.InstallationID,
@@ -216,7 +229,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 						ghDeploymentID,
 						"pending",
 						"",
-						"",
+						logURL,
 						"Awaiting authorization from a project member",
 					)
 				}, restate.WithName("github deployment status: pending"), restate.WithMaxRetryDuration(30*time.Second))

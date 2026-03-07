@@ -173,6 +173,7 @@ func New(t *testing.T) *Harness {
 		DB:            database,
 		Clickhouse:    chClient,
 		DefaultDomain: "test.example.com",
+		DashboardURL:  "https://app.unkey.com",
 		Vault:         vaultClient,
 		SentinelImage: "test-sentinel:latest",
 

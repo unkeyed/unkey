@@ -189,7 +189,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	statusReporter.Report(ctx, "in_progress", "Deploying to regions...")
 
-
 	// --- Deploy ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.ObjectContext) error {
 
@@ -214,7 +213,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	if err != nil {
 		statusReporter.Report(ctx, "failure", "Deployment to regions failed")
-
 		return nil, err
 	}
 
@@ -227,7 +225,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 	if err != nil {
 		statusReporter.Report(ctx, "failure", "Routing configuration failed")
-
 		return nil, err
 	}
 
@@ -251,12 +248,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 	if err != nil {
 		statusReporter.Report(ctx, "failure", "Finalization failed")
-
 		return nil, err
 	}
 
 	statusReporter.Report(ctx, "success", "Deployment is live")
-
 
 	logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
