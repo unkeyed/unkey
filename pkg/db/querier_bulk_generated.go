@@ -22,7 +22,6 @@ type BulkQuerier interface {
 	UpsertCluster(ctx context.Context, db DBTX, args []UpsertClusterParams) error
 	InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error
 	UpsertCustomDomain(ctx context.Context, db DBTX, args []UpsertCustomDomainParams) error
-	InsertDeploymentApprovals(ctx context.Context, db DBTX, args []InsertDeploymentApprovalParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error

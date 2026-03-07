@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -103,6 +104,62 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			needsApproval = s.requiresApproval(ctx, req, repo)
 		}
 
+		if needsApproval {
+			// No deployment record — just create a GitHub Deployment check with failure
+			// status so the PR shows a red X linking to the authorize page.
+			envLabel := project.Slug + " - " + env.Slug
+			if app.Slug != "default" {
+				envLabel = project.Slug + "/" + app.Slug + " - " + env.Slug
+			}
+
+			workspace, wsErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
+				return db.Query.FindWorkspaceByID(runCtx, s.db.RO(), project.WorkspaceID)
+			}, restate.WithName("find workspace for approval log url"), restate.WithMaxRetryDuration(30*time.Second))
+
+			logURL := ""
+			if wsErr == nil {
+				logURL = fmt.Sprintf("%s/%s/projects/%s/authorize?branch=%s",
+					s.dashboardURL, workspace.Slug, project.ID,
+					url.QueryEscape(branch),
+				)
+			}
+
+			ghDeploymentID, ghErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
+				return s.github.CreateDeployment(
+					repo.InstallationID,
+					req.GetRepositoryFullName(),
+					req.GetAfter(),
+					envLabel,
+					"Awaiting authorization",
+					env.Slug == "production",
+				)
+			}, restate.WithName("create github deployment for approval"), restate.WithMaxRetryDuration(30*time.Second))
+			if ghErr != nil {
+				logger.Error("failed to create GitHub deployment for approval", "error", ghErr,
+					"project_id", project.ID, "app_id", app.ID)
+			} else {
+				_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+					return s.github.CreateDeploymentStatus(
+						repo.InstallationID,
+						req.GetRepositoryFullName(),
+						ghDeploymentID,
+						"failure",
+						"",
+						logURL,
+						"Awaiting authorization from a project member",
+					)
+				}, restate.WithName("github deployment status: failure (awaiting auth)"), restate.WithMaxRetryDuration(30*time.Second))
+			}
+
+			logger.Info("deployment blocked for authorization",
+				"project_id", project.ID,
+				"app_id", app.ID,
+				"branch", branch,
+				"sender", req.GetSenderLogin(),
+			)
+			continue
+		}
+
 		// Create deployment record
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		now := time.Now().UnixMilli()
@@ -111,11 +168,6 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		authorHandle := req.GetCommitAuthorHandle()
 		authorAvatarURL := req.GetCommitAuthorAvatarUrl()
 		commitTimestamp := req.GetCommitTimestamp()
-
-		deploymentStatus := db.DeploymentsStatusPending
-		if needsApproval {
-			deploymentStatus = db.DeploymentsStatusAwaitingApproval
-		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return db.Tx(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
@@ -129,7 +181,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					SentinelConfig:                runtimeSettings.SentinelConfig,
 					EncryptedEnvironmentVariables: secretsBlob,
 					Command:                       runtimeSettings.Command,
-					Status:                        deploymentStatus,
+					Status:                        db.DeploymentsStatusPending,
 					CreatedAt:                     now,
 					UpdatedAt:                     sql.NullInt64{Valid: false},
 					GitCommitSha:                  sql.NullString{String: req.GetAfter(), Valid: req.GetAfter() != ""},
@@ -180,63 +232,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"commit_sha", req.GetAfter(),
 			"branch", req.GetBranch(),
 			"environment", env.Slug,
-			"needs_approval", needsApproval,
 		)
-
-		if needsApproval {
-			// Create a GitHub Deployment with pending status so the PR shows a blocking check.
-			// Clicking the check links to the deployment's dashboard page where the user can approve.
-			envLabel := project.Slug + " - " + env.Slug
-			if app.Slug != "default" {
-				envLabel = project.Slug + "/" + app.Slug + " - " + env.Slug
-			}
-
-			// Look up workspace slug for the dashboard URL.
-			workspace, wsErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
-				return db.Query.FindWorkspaceByID(runCtx, s.db.RO(), project.WorkspaceID)
-			}, restate.WithName("find workspace for approval log url"), restate.WithMaxRetryDuration(30*time.Second))
-
-			logURL := ""
-			if wsErr == nil {
-				logURL = fmt.Sprintf("%s/%s/projects/%s/deployments/%s", s.dashboardURL, workspace.Slug, project.ID, deploymentID)
-			}
-
-			ghDeploymentID, ghErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
-				return s.github.CreateDeployment(
-					repo.InstallationID,
-					req.GetRepositoryFullName(),
-					req.GetAfter(),
-					envLabel,
-					"Awaiting authorization",
-					env.Slug == "production",
-				)
-			}, restate.WithName("create github deployment for approval"), restate.WithMaxRetryDuration(30*time.Second))
-			if ghErr != nil {
-				logger.Error("failed to create GitHub deployment for approval", "error", ghErr, "deployment_id", deploymentID)
-			} else {
-				_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-					return db.Query.UpdateDeploymentGithubDeploymentId(runCtx, s.db.RW(), db.UpdateDeploymentGithubDeploymentIdParams{
-						GithubDeploymentID: sql.NullInt64{Valid: true, Int64: ghDeploymentID},
-						UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-						ID:                 deploymentID,
-					})
-				}, restate.WithName("persist github deployment id"), restate.WithMaxRetryDuration(30*time.Second))
-
-				_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-					return s.github.CreateDeploymentStatus(
-						repo.InstallationID,
-						req.GetRepositoryFullName(),
-						ghDeploymentID,
-						"failure",
-						"",
-						logURL,
-						"Awaiting authorization from a project member",
-					)
-				}, restate.WithName("github deployment status: failure (awaiting auth)"), restate.WithMaxRetryDuration(30*time.Second))
-			}
-
-			continue
-		}
 
 		// Start deploy workflow keyed by workspace ID, to run 1 concurrent build per workspace for now during beta
 		deployClient := hydrav1.NewDeployServiceClient(ctx, app.WorkspaceID)
@@ -308,4 +304,3 @@ func (s *Service) requiresApproval(
 
 	return !isCollaborator
 }
-

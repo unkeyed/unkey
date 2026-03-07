@@ -1423,21 +1423,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error
-	//InsertDeploymentApproval
-	//
-	//  INSERT INTO `deployment_approvals` (
-	//      deployment_id,
-	//      approved_by,
-	//      approved_at,
-	//      sender_login
-	//  )
-	//  VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertDeploymentApproval(ctx context.Context, db DBTX, arg InsertDeploymentApprovalParams) error
 	//InsertDeploymentStep
 	//
 	//  INSERT INTO `deployment_steps` (

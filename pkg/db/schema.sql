@@ -509,23 +509,13 @@ CREATE TABLE `deployments` (
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`healthcheck` json,
 	`github_deployment_id` bigint,
-	`status` enum('awaiting_approval','pending','starting','building','deploying','network','finalizing','ready','failed','rejected') NOT NULL DEFAULT 'pending',
+	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `deployments_id_unique` UNIQUE(`id`),
 	CONSTRAINT `deployments_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `deployments_build_id_unique` UNIQUE(`build_id`)
-);
-
-CREATE TABLE `deployment_approvals` (
-	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`deployment_id` varchar(128) NOT NULL,
-	`approved_by` varchar(256) NOT NULL,
-	`approved_at` bigint NOT NULL,
-	`sender_login` varchar(256) NOT NULL,
-	CONSTRAINT `deployment_approvals_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `deployment_approvals_deployment_id_unique` UNIQUE(`deployment_id`)
 );
 
 CREATE TABLE `deployment_steps` (

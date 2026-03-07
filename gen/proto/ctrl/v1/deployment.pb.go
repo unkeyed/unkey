@@ -25,46 +25,40 @@ const (
 type DeploymentStatus int32
 
 const (
-	DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED       DeploymentStatus = 0
-	DeploymentStatus_DEPLOYMENT_STATUS_PENDING           DeploymentStatus = 1
-	DeploymentStatus_DEPLOYMENT_STATUS_STARTING          DeploymentStatus = 7
-	DeploymentStatus_DEPLOYMENT_STATUS_BUILDING          DeploymentStatus = 2
-	DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING         DeploymentStatus = 3
-	DeploymentStatus_DEPLOYMENT_STATUS_NETWORK           DeploymentStatus = 4
-	DeploymentStatus_DEPLOYMENT_STATUS_FINALIZING        DeploymentStatus = 8
-	DeploymentStatus_DEPLOYMENT_STATUS_READY             DeploymentStatus = 5
-	DeploymentStatus_DEPLOYMENT_STATUS_FAILED            DeploymentStatus = 6
-	DeploymentStatus_DEPLOYMENT_STATUS_AWAITING_APPROVAL DeploymentStatus = 9
-	DeploymentStatus_DEPLOYMENT_STATUS_REJECTED          DeploymentStatus = 10
+	DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED DeploymentStatus = 0
+	DeploymentStatus_DEPLOYMENT_STATUS_PENDING     DeploymentStatus = 1
+	DeploymentStatus_DEPLOYMENT_STATUS_STARTING    DeploymentStatus = 7
+	DeploymentStatus_DEPLOYMENT_STATUS_BUILDING    DeploymentStatus = 2
+	DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING   DeploymentStatus = 3
+	DeploymentStatus_DEPLOYMENT_STATUS_NETWORK     DeploymentStatus = 4
+	DeploymentStatus_DEPLOYMENT_STATUS_FINALIZING  DeploymentStatus = 8
+	DeploymentStatus_DEPLOYMENT_STATUS_READY       DeploymentStatus = 5
+	DeploymentStatus_DEPLOYMENT_STATUS_FAILED      DeploymentStatus = 6
 )
 
 // Enum value maps for DeploymentStatus.
 var (
 	DeploymentStatus_name = map[int32]string{
-		0:  "DEPLOYMENT_STATUS_UNSPECIFIED",
-		1:  "DEPLOYMENT_STATUS_PENDING",
-		7:  "DEPLOYMENT_STATUS_STARTING",
-		2:  "DEPLOYMENT_STATUS_BUILDING",
-		3:  "DEPLOYMENT_STATUS_DEPLOYING",
-		4:  "DEPLOYMENT_STATUS_NETWORK",
-		8:  "DEPLOYMENT_STATUS_FINALIZING",
-		5:  "DEPLOYMENT_STATUS_READY",
-		6:  "DEPLOYMENT_STATUS_FAILED",
-		9:  "DEPLOYMENT_STATUS_AWAITING_APPROVAL",
-		10: "DEPLOYMENT_STATUS_REJECTED",
+		0: "DEPLOYMENT_STATUS_UNSPECIFIED",
+		1: "DEPLOYMENT_STATUS_PENDING",
+		7: "DEPLOYMENT_STATUS_STARTING",
+		2: "DEPLOYMENT_STATUS_BUILDING",
+		3: "DEPLOYMENT_STATUS_DEPLOYING",
+		4: "DEPLOYMENT_STATUS_NETWORK",
+		8: "DEPLOYMENT_STATUS_FINALIZING",
+		5: "DEPLOYMENT_STATUS_READY",
+		6: "DEPLOYMENT_STATUS_FAILED",
 	}
 	DeploymentStatus_value = map[string]int32{
-		"DEPLOYMENT_STATUS_UNSPECIFIED":       0,
-		"DEPLOYMENT_STATUS_PENDING":           1,
-		"DEPLOYMENT_STATUS_STARTING":          7,
-		"DEPLOYMENT_STATUS_BUILDING":          2,
-		"DEPLOYMENT_STATUS_DEPLOYING":         3,
-		"DEPLOYMENT_STATUS_NETWORK":           4,
-		"DEPLOYMENT_STATUS_FINALIZING":        8,
-		"DEPLOYMENT_STATUS_READY":             5,
-		"DEPLOYMENT_STATUS_FAILED":            6,
-		"DEPLOYMENT_STATUS_AWAITING_APPROVAL": 9,
-		"DEPLOYMENT_STATUS_REJECTED":          10,
+		"DEPLOYMENT_STATUS_UNSPECIFIED": 0,
+		"DEPLOYMENT_STATUS_PENDING":     1,
+		"DEPLOYMENT_STATUS_STARTING":    7,
+		"DEPLOYMENT_STATUS_BUILDING":    2,
+		"DEPLOYMENT_STATUS_DEPLOYING":   3,
+		"DEPLOYMENT_STATUS_NETWORK":     4,
+		"DEPLOYMENT_STATUS_FINALIZING":  8,
+		"DEPLOYMENT_STATUS_READY":       5,
+		"DEPLOYMENT_STATUS_FAILED":      6,
 	}
 )
 
@@ -1063,28 +1057,28 @@ func (*PromoteResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{12}
 }
 
-type ApproveDeploymentRequest struct {
+type AuthorizeDeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	ApprovedBy    string                 `protobuf:"bytes,2,opt,name=approved_by,json=approvedBy,proto3" json:"approved_by,omitempty"` // user ID of the approver
+	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Branch        string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ApproveDeploymentRequest) Reset() {
-	*x = ApproveDeploymentRequest{}
+func (x *AuthorizeDeploymentRequest) Reset() {
+	*x = AuthorizeDeploymentRequest{}
 	mi := &file_ctrl_v1_deployment_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ApproveDeploymentRequest) String() string {
+func (x *AuthorizeDeploymentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ApproveDeploymentRequest) ProtoMessage() {}
+func (*AuthorizeDeploymentRequest) ProtoMessage() {}
 
-func (x *ApproveDeploymentRequest) ProtoReflect() protoreflect.Message {
+func (x *AuthorizeDeploymentRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_deployment_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1096,45 +1090,45 @@ func (x *ApproveDeploymentRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApproveDeploymentRequest.ProtoReflect.Descriptor instead.
-func (*ApproveDeploymentRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use AuthorizeDeploymentRequest.ProtoReflect.Descriptor instead.
+func (*AuthorizeDeploymentRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *ApproveDeploymentRequest) GetDeploymentId() string {
+func (x *AuthorizeDeploymentRequest) GetProjectId() string {
 	if x != nil {
-		return x.DeploymentId
+		return x.ProjectId
 	}
 	return ""
 }
 
-func (x *ApproveDeploymentRequest) GetApprovedBy() string {
+func (x *AuthorizeDeploymentRequest) GetBranch() string {
 	if x != nil {
-		return x.ApprovedBy
+		return x.Branch
 	}
 	return ""
 }
 
-type ApproveDeploymentResponse struct {
+type AuthorizeDeploymentResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ApproveDeploymentResponse) Reset() {
-	*x = ApproveDeploymentResponse{}
+func (x *AuthorizeDeploymentResponse) Reset() {
+	*x = AuthorizeDeploymentResponse{}
 	mi := &file_ctrl_v1_deployment_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ApproveDeploymentResponse) String() string {
+func (x *AuthorizeDeploymentResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ApproveDeploymentResponse) ProtoMessage() {}
+func (*AuthorizeDeploymentResponse) ProtoMessage() {}
 
-func (x *ApproveDeploymentResponse) ProtoReflect() protoreflect.Message {
+func (x *AuthorizeDeploymentResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_deployment_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1146,89 +1140,9 @@ func (x *ApproveDeploymentResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApproveDeploymentResponse.ProtoReflect.Descriptor instead.
-func (*ApproveDeploymentResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use AuthorizeDeploymentResponse.ProtoReflect.Descriptor instead.
+func (*AuthorizeDeploymentResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{14}
-}
-
-type RejectDeploymentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RejectDeploymentRequest) Reset() {
-	*x = RejectDeploymentRequest{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RejectDeploymentRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RejectDeploymentRequest) ProtoMessage() {}
-
-func (x *RejectDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RejectDeploymentRequest.ProtoReflect.Descriptor instead.
-func (*RejectDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *RejectDeploymentRequest) GetDeploymentId() string {
-	if x != nil {
-		return x.DeploymentId
-	}
-	return ""
-}
-
-type RejectDeploymentResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RejectDeploymentResponse) Reset() {
-	*x = RejectDeploymentResponse{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RejectDeploymentResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RejectDeploymentResponse) ProtoMessage() {}
-
-func (x *RejectDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RejectDeploymentResponse.ProtoReflect.Descriptor instead.
-func (*RejectDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{16}
 }
 
 var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
@@ -1321,15 +1235,12 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x10RollbackResponse\"B\n" +
 	"\x0ePromoteRequest\x120\n" +
 	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
-	"\x0fPromoteResponse\"`\n" +
-	"\x18ApproveDeploymentRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x1f\n" +
-	"\vapproved_by\x18\x02 \x01(\tR\n" +
-	"approvedBy\"\x1b\n" +
-	"\x19ApproveDeploymentResponse\">\n" +
-	"\x17RejectDeploymentRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x1a\n" +
-	"\x18RejectDeploymentResponse*\xfa\x02\n" +
+	"\x0fPromoteResponse\"S\n" +
+	"\x1aAuthorizeDeploymentRequest\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x16\n" +
+	"\x06branch\x18\x02 \x01(\tR\x06branch\"\x1d\n" +
+	"\x1bAuthorizeDeploymentResponse*\xbd\x02\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
@@ -1339,22 +1250,20 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x19DEPLOYMENT_STATUS_NETWORK\x10\x04\x12 \n" +
 	"\x1cDEPLOYMENT_STATUS_FINALIZING\x10\b\x12\x1b\n" +
 	"\x17DEPLOYMENT_STATUS_READY\x10\x05\x12\x1c\n" +
-	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06\x12'\n" +
-	"#DEPLOYMENT_STATUS_AWAITING_APPROVAL\x10\t\x12\x1e\n" +
-	"\x1aDEPLOYMENT_STATUS_REJECTED\x10\n" +
+	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06\"\x04\b\t\x10\t\"\x04\b\n" +
+	"\x10\n" +
 	"*Z\n" +
 	"\n" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSOURCE_TYPE_GIT\x10\x01\x12\x1a\n" +
-	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xf8\x03\n" +
+	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xa3\x03\n" +
 	"\rDeployService\x12Y\n" +
 	"\x10CreateDeployment\x12 .ctrl.v1.CreateDeploymentRequest\x1a!.ctrl.v1.CreateDeploymentResponse\"\x00\x12P\n" +
 	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00\x12A\n" +
 	"\bRollback\x12\x18.ctrl.v1.RollbackRequest\x1a\x19.ctrl.v1.RollbackResponse\"\x00\x12>\n" +
-	"\aPromote\x12\x17.ctrl.v1.PromoteRequest\x1a\x18.ctrl.v1.PromoteResponse\"\x00\x12\\\n" +
-	"\x11ApproveDeployment\x12!.ctrl.v1.ApproveDeploymentRequest\x1a\".ctrl.v1.ApproveDeploymentResponse\"\x00\x12Y\n" +
-	"\x10RejectDeployment\x12 .ctrl.v1.RejectDeploymentRequest\x1a!.ctrl.v1.RejectDeploymentResponse\"\x00B\x8e\x01\n" +
+	"\aPromote\x12\x17.ctrl.v1.PromoteRequest\x1a\x18.ctrl.v1.PromoteResponse\"\x00\x12b\n" +
+	"\x13AuthorizeDeployment\x12#.ctrl.v1.AuthorizeDeploymentRequest\x1a$.ctrl.v1.AuthorizeDeploymentResponse\"\x00B\x8e\x01\n" +
 	"\vcom.ctrl.v1B\x0fDeploymentProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
@@ -1370,35 +1279,33 @@ func file_ctrl_v1_deployment_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_ctrl_v1_deployment_proto_goTypes = []any{
-	(DeploymentStatus)(0),             // 0: ctrl.v1.DeploymentStatus
-	(SourceType)(0),                   // 1: ctrl.v1.SourceType
-	(*CreateDeploymentRequest)(nil),   // 2: ctrl.v1.CreateDeploymentRequest
-	(*GitCommitInfo)(nil),             // 3: ctrl.v1.GitCommitInfo
-	(*CreateDeploymentResponse)(nil),  // 4: ctrl.v1.CreateDeploymentResponse
-	(*GetDeploymentRequest)(nil),      // 5: ctrl.v1.GetDeploymentRequest
-	(*GetDeploymentResponse)(nil),     // 6: ctrl.v1.GetDeploymentResponse
-	(*Deployment)(nil),                // 7: ctrl.v1.Deployment
-	(*DeploymentStep)(nil),            // 8: ctrl.v1.DeploymentStep
-	(*Topology)(nil),                  // 9: ctrl.v1.Topology
-	(*RegionalConfig)(nil),            // 10: ctrl.v1.RegionalConfig
-	(*RollbackRequest)(nil),           // 11: ctrl.v1.RollbackRequest
-	(*RollbackResponse)(nil),          // 12: ctrl.v1.RollbackResponse
-	(*PromoteRequest)(nil),            // 13: ctrl.v1.PromoteRequest
-	(*PromoteResponse)(nil),           // 14: ctrl.v1.PromoteResponse
-	(*ApproveDeploymentRequest)(nil),  // 15: ctrl.v1.ApproveDeploymentRequest
-	(*ApproveDeploymentResponse)(nil), // 16: ctrl.v1.ApproveDeploymentResponse
-	(*RejectDeploymentRequest)(nil),   // 17: ctrl.v1.RejectDeploymentRequest
-	(*RejectDeploymentResponse)(nil),  // 18: ctrl.v1.RejectDeploymentResponse
-	nil,                               // 19: ctrl.v1.Deployment.EnvironmentVariablesEntry
+	(DeploymentStatus)(0),               // 0: ctrl.v1.DeploymentStatus
+	(SourceType)(0),                     // 1: ctrl.v1.SourceType
+	(*CreateDeploymentRequest)(nil),     // 2: ctrl.v1.CreateDeploymentRequest
+	(*GitCommitInfo)(nil),               // 3: ctrl.v1.GitCommitInfo
+	(*CreateDeploymentResponse)(nil),    // 4: ctrl.v1.CreateDeploymentResponse
+	(*GetDeploymentRequest)(nil),        // 5: ctrl.v1.GetDeploymentRequest
+	(*GetDeploymentResponse)(nil),       // 6: ctrl.v1.GetDeploymentResponse
+	(*Deployment)(nil),                  // 7: ctrl.v1.Deployment
+	(*DeploymentStep)(nil),              // 8: ctrl.v1.DeploymentStep
+	(*Topology)(nil),                    // 9: ctrl.v1.Topology
+	(*RegionalConfig)(nil),              // 10: ctrl.v1.RegionalConfig
+	(*RollbackRequest)(nil),             // 11: ctrl.v1.RollbackRequest
+	(*RollbackResponse)(nil),            // 12: ctrl.v1.RollbackResponse
+	(*PromoteRequest)(nil),              // 13: ctrl.v1.PromoteRequest
+	(*PromoteResponse)(nil),             // 14: ctrl.v1.PromoteResponse
+	(*AuthorizeDeploymentRequest)(nil),  // 15: ctrl.v1.AuthorizeDeploymentRequest
+	(*AuthorizeDeploymentResponse)(nil), // 16: ctrl.v1.AuthorizeDeploymentResponse
+	nil,                                 // 17: ctrl.v1.Deployment.EnvironmentVariablesEntry
 }
 var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	3,  // 0: ctrl.v1.CreateDeploymentRequest.git_commit:type_name -> ctrl.v1.GitCommitInfo
 	0,  // 1: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
 	7,  // 2: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
 	0,  // 3: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
-	19, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
+	17, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
 	9,  // 5: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
 	8,  // 6: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
 	10, // 7: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
@@ -1406,16 +1313,14 @@ var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	5,  // 9: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
 	11, // 10: ctrl.v1.DeployService.Rollback:input_type -> ctrl.v1.RollbackRequest
 	13, // 11: ctrl.v1.DeployService.Promote:input_type -> ctrl.v1.PromoteRequest
-	15, // 12: ctrl.v1.DeployService.ApproveDeployment:input_type -> ctrl.v1.ApproveDeploymentRequest
-	17, // 13: ctrl.v1.DeployService.RejectDeployment:input_type -> ctrl.v1.RejectDeploymentRequest
-	4,  // 14: ctrl.v1.DeployService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
-	6,  // 15: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
-	12, // 16: ctrl.v1.DeployService.Rollback:output_type -> ctrl.v1.RollbackResponse
-	14, // 17: ctrl.v1.DeployService.Promote:output_type -> ctrl.v1.PromoteResponse
-	16, // 18: ctrl.v1.DeployService.ApproveDeployment:output_type -> ctrl.v1.ApproveDeploymentResponse
-	18, // 19: ctrl.v1.DeployService.RejectDeployment:output_type -> ctrl.v1.RejectDeploymentResponse
-	14, // [14:20] is the sub-list for method output_type
-	8,  // [8:14] is the sub-list for method input_type
+	15, // 12: ctrl.v1.DeployService.AuthorizeDeployment:input_type -> ctrl.v1.AuthorizeDeploymentRequest
+	4,  // 13: ctrl.v1.DeployService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
+	6,  // 14: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
+	12, // 15: ctrl.v1.DeployService.Rollback:output_type -> ctrl.v1.RollbackResponse
+	14, // 16: ctrl.v1.DeployService.Promote:output_type -> ctrl.v1.PromoteResponse
+	16, // 17: ctrl.v1.DeployService.AuthorizeDeployment:output_type -> ctrl.v1.AuthorizeDeploymentResponse
+	13, // [13:18] is the sub-list for method output_type
+	8,  // [8:13] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -1433,7 +1338,7 @@ func file_ctrl_v1_deployment_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_deployment_proto_rawDesc), len(file_ctrl_v1_deployment_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   18,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

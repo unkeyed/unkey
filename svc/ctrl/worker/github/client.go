@@ -363,4 +363,3 @@ func (c *Client) IsCollaborator(installationID int64, repo string, username stri
 
 	return value, nil
 }
-

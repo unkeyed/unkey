@@ -43,12 +43,9 @@ const (
 	DeployServiceRollbackProcedure = "/ctrl.v1.DeployService/Rollback"
 	// DeployServicePromoteProcedure is the fully-qualified name of the DeployService's Promote RPC.
 	DeployServicePromoteProcedure = "/ctrl.v1.DeployService/Promote"
-	// DeployServiceApproveDeploymentProcedure is the fully-qualified name of the DeployService's
-	// ApproveDeployment RPC.
-	DeployServiceApproveDeploymentProcedure = "/ctrl.v1.DeployService/ApproveDeployment"
-	// DeployServiceRejectDeploymentProcedure is the fully-qualified name of the DeployService's
-	// RejectDeployment RPC.
-	DeployServiceRejectDeploymentProcedure = "/ctrl.v1.DeployService/RejectDeployment"
+	// DeployServiceAuthorizeDeploymentProcedure is the fully-qualified name of the DeployService's
+	// AuthorizeDeployment RPC.
+	DeployServiceAuthorizeDeploymentProcedure = "/ctrl.v1.DeployService/AuthorizeDeployment"
 )
 
 // DeployServiceClient is a client for the ctrl.v1.DeployService service.
@@ -62,10 +59,8 @@ type DeployServiceClient interface {
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 	// Promote the deployment to the live environment
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
-	// Approve a deployment that is awaiting approval from an external contributor
-	ApproveDeployment(context.Context, *connect.Request[v1.ApproveDeploymentRequest]) (*connect.Response[v1.ApproveDeploymentResponse], error)
-	// Reject a deployment that is awaiting approval
-	RejectDeployment(context.Context, *connect.Request[v1.RejectDeploymentRequest]) (*connect.Response[v1.RejectDeploymentResponse], error)
+	// Authorize deployment for an external contributor's push on a branch
+	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
 }
 
 // NewDeployServiceClient constructs a client for the ctrl.v1.DeployService service. By default, it
@@ -103,16 +98,10 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(deployServiceMethods.ByName("Promote")),
 			connect.WithClientOptions(opts...),
 		),
-		approveDeployment: connect.NewClient[v1.ApproveDeploymentRequest, v1.ApproveDeploymentResponse](
+		authorizeDeployment: connect.NewClient[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse](
 			httpClient,
-			baseURL+DeployServiceApproveDeploymentProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("ApproveDeployment")),
-			connect.WithClientOptions(opts...),
-		),
-		rejectDeployment: connect.NewClient[v1.RejectDeploymentRequest, v1.RejectDeploymentResponse](
-			httpClient,
-			baseURL+DeployServiceRejectDeploymentProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("RejectDeployment")),
+			baseURL+DeployServiceAuthorizeDeploymentProcedure,
+			connect.WithSchema(deployServiceMethods.ByName("AuthorizeDeployment")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -120,12 +109,11 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // deployServiceClient implements DeployServiceClient.
 type deployServiceClient struct {
-	createDeployment  *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
-	getDeployment     *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
-	rollback          *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
-	promote           *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
-	approveDeployment *connect.Client[v1.ApproveDeploymentRequest, v1.ApproveDeploymentResponse]
-	rejectDeployment  *connect.Client[v1.RejectDeploymentRequest, v1.RejectDeploymentResponse]
+	createDeployment    *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
+	getDeployment       *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
+	rollback            *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
+	promote             *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
+	authorizeDeployment *connect.Client[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse]
 }
 
 // CreateDeployment calls ctrl.v1.DeployService.CreateDeployment.
@@ -148,14 +136,9 @@ func (c *deployServiceClient) Promote(ctx context.Context, req *connect.Request[
 	return c.promote.CallUnary(ctx, req)
 }
 
-// ApproveDeployment calls ctrl.v1.DeployService.ApproveDeployment.
-func (c *deployServiceClient) ApproveDeployment(ctx context.Context, req *connect.Request[v1.ApproveDeploymentRequest]) (*connect.Response[v1.ApproveDeploymentResponse], error) {
-	return c.approveDeployment.CallUnary(ctx, req)
-}
-
-// RejectDeployment calls ctrl.v1.DeployService.RejectDeployment.
-func (c *deployServiceClient) RejectDeployment(ctx context.Context, req *connect.Request[v1.RejectDeploymentRequest]) (*connect.Response[v1.RejectDeploymentResponse], error) {
-	return c.rejectDeployment.CallUnary(ctx, req)
+// AuthorizeDeployment calls ctrl.v1.DeployService.AuthorizeDeployment.
+func (c *deployServiceClient) AuthorizeDeployment(ctx context.Context, req *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error) {
+	return c.authorizeDeployment.CallUnary(ctx, req)
 }
 
 // DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
@@ -169,10 +152,8 @@ type DeployServiceHandler interface {
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 	// Promote the deployment to the live environment
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
-	// Approve a deployment that is awaiting approval from an external contributor
-	ApproveDeployment(context.Context, *connect.Request[v1.ApproveDeploymentRequest]) (*connect.Response[v1.ApproveDeploymentResponse], error)
-	// Reject a deployment that is awaiting approval
-	RejectDeployment(context.Context, *connect.Request[v1.RejectDeploymentRequest]) (*connect.Response[v1.RejectDeploymentResponse], error)
+	// Authorize deployment for an external contributor's push on a branch
+	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
 }
 
 // NewDeployServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -206,16 +187,10 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deployServiceMethods.ByName("Promote")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deployServiceApproveDeploymentHandler := connect.NewUnaryHandler(
-		DeployServiceApproveDeploymentProcedure,
-		svc.ApproveDeployment,
-		connect.WithSchema(deployServiceMethods.ByName("ApproveDeployment")),
-		connect.WithHandlerOptions(opts...),
-	)
-	deployServiceRejectDeploymentHandler := connect.NewUnaryHandler(
-		DeployServiceRejectDeploymentProcedure,
-		svc.RejectDeployment,
-		connect.WithSchema(deployServiceMethods.ByName("RejectDeployment")),
+	deployServiceAuthorizeDeploymentHandler := connect.NewUnaryHandler(
+		DeployServiceAuthorizeDeploymentProcedure,
+		svc.AuthorizeDeployment,
+		connect.WithSchema(deployServiceMethods.ByName("AuthorizeDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/ctrl.v1.DeployService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -228,10 +203,8 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 			deployServiceRollbackHandler.ServeHTTP(w, r)
 		case DeployServicePromoteProcedure:
 			deployServicePromoteHandler.ServeHTTP(w, r)
-		case DeployServiceApproveDeploymentProcedure:
-			deployServiceApproveDeploymentHandler.ServeHTTP(w, r)
-		case DeployServiceRejectDeploymentProcedure:
-			deployServiceRejectDeploymentHandler.ServeHTTP(w, r)
+		case DeployServiceAuthorizeDeploymentProcedure:
+			deployServiceAuthorizeDeploymentHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -257,10 +230,6 @@ func (UnimplementedDeployServiceHandler) Promote(context.Context, *connect.Reque
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.Promote is not implemented"))
 }
 
-func (UnimplementedDeployServiceHandler) ApproveDeployment(context.Context, *connect.Request[v1.ApproveDeploymentRequest]) (*connect.Response[v1.ApproveDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.ApproveDeployment is not implemented"))
-}
-
-func (UnimplementedDeployServiceHandler) RejectDeployment(context.Context, *connect.Request[v1.RejectDeploymentRequest]) (*connect.Response[v1.RejectDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.RejectDeployment is not implemented"))
+func (UnimplementedDeployServiceHandler) AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.AuthorizeDeployment is not implemented"))
 }

@@ -491,16 +491,14 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 type DeploymentsStatus string
 
 const (
-	DeploymentsStatusAwaitingApproval DeploymentsStatus = "awaiting_approval"
-	DeploymentsStatusPending          DeploymentsStatus = "pending"
-	DeploymentsStatusStarting         DeploymentsStatus = "starting"
-	DeploymentsStatusBuilding         DeploymentsStatus = "building"
-	DeploymentsStatusDeploying        DeploymentsStatus = "deploying"
-	DeploymentsStatusNetwork          DeploymentsStatus = "network"
-	DeploymentsStatusFinalizing       DeploymentsStatus = "finalizing"
-	DeploymentsStatusReady            DeploymentsStatus = "ready"
-	DeploymentsStatusFailed           DeploymentsStatus = "failed"
-	DeploymentsStatusRejected         DeploymentsStatus = "rejected"
+	DeploymentsStatusPending    DeploymentsStatus = "pending"
+	DeploymentsStatusStarting   DeploymentsStatus = "starting"
+	DeploymentsStatusBuilding   DeploymentsStatus = "building"
+	DeploymentsStatusDeploying  DeploymentsStatus = "deploying"
+	DeploymentsStatusNetwork    DeploymentsStatus = "network"
+	DeploymentsStatusFinalizing DeploymentsStatus = "finalizing"
+	DeploymentsStatusReady      DeploymentsStatus = "ready"
+	DeploymentsStatusFailed     DeploymentsStatus = "failed"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -1177,14 +1175,6 @@ type Deployment struct {
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
-}
-
-type DeploymentApproval struct {
-	Pk           uint64 `db:"pk"`
-	DeploymentID string `db:"deployment_id"`
-	ApprovedBy   string `db:"approved_by"`
-	ApprovedAt   int64  `db:"approved_at"`
-	SenderLogin  string `db:"sender_login"`
 }
 
 type DeploymentStep struct {

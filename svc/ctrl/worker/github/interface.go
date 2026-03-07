@@ -26,7 +26,6 @@ type GitHubClient interface {
 
 	// IsCollaborator checks whether a GitHub user is a collaborator on a repository.
 	IsCollaborator(installationID int64, repo string, username string) (bool, error)
-
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.
