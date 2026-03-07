@@ -25,6 +25,9 @@ export const getEnvironmentSettings = workspaceProcedure
           eq(appRegionalSettings.workspaceId, ctx.workspace.id),
           eq(appRegionalSettings.environmentId, input.environmentId),
         ),
+        with: {
+          region: true,
+        },
       }),
     ]);
 
