@@ -10,6 +10,7 @@ go_library(
         "deployment_step.go",
         "doc.go",
         "domains.go",
+        "github_status.go",
         "promote_handler.go",
         "rollback_handler.go",
         "scale_down_idle_preview_deployments.go",

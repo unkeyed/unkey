@@ -508,6 +508,7 @@ CREATE TABLE `deployments` (
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`healthcheck` json,
 	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed') NOT NULL DEFAULT 'pending',
+	`github_deployment_id` bigint,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_pk` PRIMARY KEY(`pk`),

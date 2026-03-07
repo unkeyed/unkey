@@ -15,6 +15,7 @@ go_library(
         "//pkg/cache",
         "//pkg/clock",
         "//pkg/fault",
+        "//pkg/httpclient",
         "//pkg/jwt",
         "//pkg/logger",
     ],

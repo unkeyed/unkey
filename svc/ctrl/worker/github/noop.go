@@ -1,14 +1,13 @@
 package github
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/httpclient"
 )
 
 // Noop is a no-op implementation of GitHubClient that returns errors for all operations.
@@ -23,14 +22,26 @@ func NewNoop() *Noop {
 	return &Noop{}
 }
 
+var errNotConfigured = fault.New("GitHub client not configured: GitHub App credentials were not provided at startup")
+
 // GetInstallationToken returns an error indicating GitHub is not configured.
-func (n *Noop) GetInstallationToken(installationID int64) (InstallationToken, error) {
-	return InstallationToken{}, fault.New("GitHub client not configured: GitHub App credentials were not provided at startup")
+func (n *Noop) GetInstallationToken(_ int64) (InstallationToken, error) {
+	return InstallationToken{}, errNotConfigured
 }
 
 // GetBranchHeadCommit returns an error indicating GitHub is not configured.
-func (n *Noop) GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error) {
-	return CommitInfo{}, fault.New("GitHub client not configured: GitHub App credentials were not provided at startup")
+func (n *Noop) GetBranchHeadCommit(_ int64, _ string, _ string) (CommitInfo, error) {
+	return CommitInfo{}, errNotConfigured
+}
+
+// CreateDeployment returns an error indicating GitHub is not configured.
+func (n *Noop) CreateDeployment(_ int64, _ string, _ string, _ string, _ string, _ bool) (int64, error) {
+	return 0, errNotConfigured
+}
+
+// CreateDeploymentStatus returns an error indicating GitHub is not configured.
+func (n *Noop) CreateDeploymentStatus(_ int64, _ string, _ int64, _ string, _ string, _ string) error {
+	return errNotConfigured
 }
 
 // GetBranchHeadCommitPublic retrieves the HEAD commit using the public GitHub
@@ -38,34 +49,11 @@ func (n *Noop) GetBranchHeadCommit(installationID int64, repo string, branch str
 // App credentials are not configured.
 func (n *Noop) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error) {
 	httpClient := &http.Client{Timeout: 30 * time.Second}
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
 
-	requestURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
-
-	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	commit, err := httpclient.Request[ghCommitResponse](httpClient, http.MethodGet, apiURL, httpclient.GitHubHeaders(""), nil, http.StatusOK)
 	if err != nil {
-		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to create request"))
-	}
-
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to fetch branch head commit"))
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return CommitInfo{}, fault.New(
-			"failed to fetch branch head commit (public)",
-			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
-		)
-	}
-
-	var commit ghCommitResponse
-	if err := json.NewDecoder(resp.Body).Decode(&commit); err != nil {
-		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to decode commit response"))
+		return CommitInfo{}, err
 	}
 
 	return CommitInfoFromRaw(

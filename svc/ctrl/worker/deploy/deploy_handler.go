@@ -175,13 +175,52 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
+	// --- GitHub Deployment Status ---
+	// Look up repo connection to determine if we should report to GitHub.
+	// Uses the interface so the noop is free — no nil checks needed.
+	var statusReporter deploymentStatusReporter = noopStatusReporter{}
+	repoConn, repoConnErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
+		return db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
+	}, restate.WithName("find github repo connection"))
+	if repoConnErr == nil {
+		envLabel := project.Slug + " - " + environment.Slug
+		if app.Slug != "default" {
+			envLabel = project.Slug + "/" + app.Slug + " - " + environment.Slug
+		}
+
+		prefix := project.Slug
+		if app.Slug != "default" {
+			prefix = project.Slug + "-" + app.Slug
+		}
+		envURL := fmt.Sprintf("https://%s-%s-%s.%s", prefix, environment.Slug, workspace.Slug, w.defaultDomain)
+
+		ghReporter := newGithubStatusReporter(
+			w.github,
+			w.db,
+			repoConn.InstallationID,
+			repoConn.RepositoryFullName,
+			deployment.GitCommitSha.String,
+			envLabel,
+			envURL,
+			deployment.ID,
+			environment.Slug == "production",
+		)
+		ghReporter.Create(ctx)
+		statusReporter = ghReporter
+	}
+
+	statusReporter.Report(ctx, "in_progress", "Building container image...")
+
 	// --- Build ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(stepCtx restate.ObjectContext) error {
 		return w.buildImage(stepCtx, req, &deployment)
 	})
 	if err != nil {
+		statusReporter.Report(ctx, "failure", "Build failed")
 		return nil, err
 	}
+
+	statusReporter.Report(ctx, "in_progress", "Deploying to regions...")
 
 	// --- Deploy ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.ObjectContext) error {
@@ -206,8 +245,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 
 	if err != nil {
+		statusReporter.Report(ctx, "failure", "Deployment to regions failed")
 		return nil, err
 	}
+
+	statusReporter.Report(ctx, "in_progress", "Configuring routing...")
 
 	// --- Network ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
@@ -215,6 +257,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
 	if err != nil {
+		statusReporter.Report(ctx, "failure", "Routing configuration failed")
 		return nil, err
 	}
 
@@ -237,8 +280,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil
 	})
 	if err != nil {
+		statusReporter.Report(ctx, "failure", "Finalization failed")
 		return nil, err
 	}
+
+	statusReporter.Report(ctx, "success", "Deployment is live")
+
 	logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
