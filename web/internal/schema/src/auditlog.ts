@@ -60,6 +60,8 @@ export const unkeyAuditLogEvents = z.enum([
   "deployment.promote",
   "deployment.redeploy",
   "deployment.create",
+  "deployment.approve",
+  "deployment.reject",
 ]);
 
 export const auditLogSchemaV1 = z.object({

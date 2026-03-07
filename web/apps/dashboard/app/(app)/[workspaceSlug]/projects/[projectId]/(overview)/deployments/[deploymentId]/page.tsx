@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { DeploymentDomainsCard } from "../../../components/deployment-domains-card";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
 import { useProjectData } from "../../data-provider";
+import { DeploymentApprovalBanner } from "./(deployment-progress)/deployment-approval-banner";
 import { DeploymentInfo } from "./(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "./(deployment-progress)/deployment-progress";
 import { DeploymentNetworkSection } from "./(overview)/components/sections/deployment-network-section";
@@ -15,6 +16,7 @@ export default function DeploymentOverview() {
   const { refetchDomains } = useProjectData();
 
   const ready = deployment.status === "ready";
+  const awaitingApproval = deployment.status === "awaiting_approval";
 
   const stepsQuery = trpc.deploy.deployment.steps.useQuery(
     { deploymentId: deployment.id },
@@ -36,7 +38,11 @@ export default function DeploymentOverview() {
   return (
     <ProjectContentWrapper centered>
       <DeploymentInfo statusOverride={derivedStatus} />
-      {ready ? (
+      {awaitingApproval ? (
+        <div key="awaiting-approval" className="animate-fade-slide-in">
+          <DeploymentApprovalBanner />
+        </div>
+      ) : ready ? (
         <div key="ready" className="flex flex-col gap-5 animate-fade-slide-in">
           <DeploymentDomainsCard />
           <DeploymentNetworkSection />

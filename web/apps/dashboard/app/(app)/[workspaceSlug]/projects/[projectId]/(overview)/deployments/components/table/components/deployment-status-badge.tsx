@@ -1,18 +1,16 @@
 "use client";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import {
+  ArrowDotAntiClockwise,
   CircleCheck,
+  CircleHalfDottedClock,
   CircleWarning,
-  CloudUp,
-  Earth,
-  Hammer2,
-  LayerFront,
-  Pulse,
-  Sparkle3,
+  HalfDottedCirclePlay,
+  Nut,
 } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { FC } from "react";
+import type { DeploymentStatus } from "../../../filters.schema";
 
 type StatusConfig = {
   icon: FC<IconProps>;
@@ -25,21 +23,21 @@ type StatusConfig = {
 
 const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   awaiting_approval: {
-    icon: LayerFront,
+    icon: CircleHalfDottedClock,
     label: "Awaiting Approval",
     bgColor: "bg-warningA-3",
     textColor: "text-warningA-11",
     iconColor: "text-warning-11",
   },
   pending: {
-    icon: LayerFront,
+    icon: CircleHalfDottedClock,
     label: "Pending",
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   starting: {
-    icon: Pulse,
+    icon: HalfDottedCirclePlay,
     label: "Starting",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -47,7 +45,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     animated: true,
   },
   building: {
-    icon: Hammer2,
+    icon: Nut,
     label: "Building",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -55,7 +53,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     animated: true,
   },
   deploying: {
-    icon: CloudUp,
+    icon: HalfDottedCirclePlay,
     label: "Deploying",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -63,7 +61,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     animated: true,
   },
   network: {
-    icon: Earth,
+    icon: ArrowDotAntiClockwise,
     label: "Assigning Domains",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -71,7 +69,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     animated: true,
   },
   finalizing: {
-    icon: Sparkle3,
+    icon: Nut,
     label: "Finalizing",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -127,7 +125,10 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
       {animated && (
         <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
       )}
-      <Icon iconSize="md-regular" className={cn(iconColor, animated && "relative z-5")} />
+      <Icon
+        iconSize={config.icon === Nut ? "md-bold" : "md-regular"}
+        className={cn(iconColor, animated && "relative z-5")}
+      />
       <span className={cn(textColor, "text-xs", animated && "relative z-5")}>{label}</span>
     </div>
   );
