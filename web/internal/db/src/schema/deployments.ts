@@ -85,6 +85,7 @@ export const deployments = mysqlTable(
 
     // Deployment status
     status: mysqlEnum("status", [
+      "awaiting_approval",
       "pending",
       "starting",
       "building",
