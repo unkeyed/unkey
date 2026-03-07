@@ -15,6 +15,7 @@ enum DeploymentStatus {
   DEPLOYMENT_STATUS_READY = 5;
   DEPLOYMENT_STATUS_FAILED = 6;
   DEPLOYMENT_STATUS_SKIPPED = 9;
+  DEPLOYMENT_STATUS_AWAITING_APPROVAL = 10;
 }
 
 // Source type for deployment creation
@@ -149,6 +150,12 @@ message PromoteRequest {
 
 message PromoteResponse {}
 
+message AuthorizeDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message AuthorizeDeploymentResponse {}
+
 service DeployService {
   // Create a new deployment from a docker image or by auto-detecting
   // the appropriate source for the project.
@@ -162,4 +169,7 @@ service DeployService {
 
   // Promote the deployment to the live environment
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
+
+  // Authorize deployment for an external contributor's push on a branch
+  rpc AuthorizeDeployment(AuthorizeDeploymentRequest) returns (AuthorizeDeploymentResponse) {}
 }

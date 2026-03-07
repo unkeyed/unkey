@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -341,6 +342,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			AppID:          deployment.AppID,
 			DeploymentID:   deployment.ID,
 			WorkspaceID:    deployment.WorkspaceID,
+			PrNumber:       source.Git.GetPrNumber(),
 		})
 		if err != nil {
 			// fault.Public set inside buildDockerImageFromGit is lost because
@@ -628,6 +630,14 @@ func (w *Workflow) configureRouting(
 	environment db.Environment,
 	deployment db.Deployment,
 ) error {
+	// Extract the fork owner from "owner/repo" for domain naming.
+	forkOwner := ""
+	if deployment.ForkRepositoryFullName.Valid {
+		if parts := strings.SplitN(deployment.ForkRepositoryFullName.String, "/", 2); len(parts) == 2 && parts[0] != "" {
+			forkOwner = parts[0]
+		}
+	}
+
 	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
@@ -635,6 +645,7 @@ func (w *Workflow) configureRouting(
 		environment.Slug,
 		deployment.GitCommitSha.String,
 		deployment.GitBranch.String,
+		forkOwner,
 		w.defaultDomain,
 		// TODO: source type is hardcoded to CLI_UPLOAD regardless of actual source type
 		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,

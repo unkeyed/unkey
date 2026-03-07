@@ -258,6 +258,8 @@ func (s *Service) CreateDeployment(
 		Port:                          appRuntimeSettings.Port,
 		ShutdownSignal:                db.DeploymentsShutdownSignal(appRuntimeSettings.ShutdownSignal),
 		Healthcheck:                   appRuntimeSettings.Healthcheck,
+		PrNumber:                      sql.NullInt64{},
+		ForkRepositoryFullName:        sql.NullString{},
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())

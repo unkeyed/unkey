@@ -25,16 +25,17 @@ const (
 
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
 const (
-	BUILDING    V2DeployGetDeploymentResponseDataStatus = "BUILDING"
-	DEPLOYING   V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
-	FAILED      V2DeployGetDeploymentResponseDataStatus = "FAILED"
-	FINALIZING  V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
-	NETWORK     V2DeployGetDeploymentResponseDataStatus = "NETWORK"
-	PENDING     V2DeployGetDeploymentResponseDataStatus = "PENDING"
-	READY       V2DeployGetDeploymentResponseDataStatus = "READY"
-	SKIPPED     V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
-	STARTING    V2DeployGetDeploymentResponseDataStatus = "STARTING"
-	UNSPECIFIED V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
+	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
+	BUILDING         V2DeployGetDeploymentResponseDataStatus = "BUILDING"
+	DEPLOYING        V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
+	FAILED           V2DeployGetDeploymentResponseDataStatus = "FAILED"
+	FINALIZING       V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
+	NETWORK          V2DeployGetDeploymentResponseDataStatus = "NETWORK"
+	PENDING          V2DeployGetDeploymentResponseDataStatus = "PENDING"
+	READY            V2DeployGetDeploymentResponseDataStatus = "READY"
+	SKIPPED          V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
+	STARTING         V2DeployGetDeploymentResponseDataStatus = "STARTING"
+	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
 
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.

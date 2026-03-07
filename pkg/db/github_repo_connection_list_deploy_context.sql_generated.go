@@ -22,6 +22,7 @@ INNER JOIN apps a ON a.id = gc.app_id
 INNER JOIN projects p ON p.id = gc.project_id
 INNER JOIN environments e ON e.app_id = a.id
   AND e.slug = CASE
+    WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
     WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
     THEN 'production'
     ELSE 'preview'
@@ -33,6 +34,7 @@ WHERE gc.installation_id = ?
 `
 
 type ListRepoConnectionDeployContextsParams struct {
+	IsForkPr       int64  `db:"is_fork_pr"`
 	Branch         string `db:"branch"`
 	InstallationID int64  `db:"installation_id"`
 	RepositoryID   int64  `db:"repository_id"`
@@ -61,6 +63,7 @@ type ListRepoConnectionDeployContextsRow struct {
 //	INNER JOIN projects p ON p.id = gc.project_id
 //	INNER JOIN environments e ON e.app_id = a.id
 //	  AND e.slug = CASE
+//	    WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
 //	    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
 //	    THEN 'production'
 //	    ELSE 'preview'
@@ -70,7 +73,12 @@ type ListRepoConnectionDeployContextsRow struct {
 //	WHERE gc.installation_id = ?
 //	  AND gc.repository_id = ?
 func (q *Queries) ListRepoConnectionDeployContexts(ctx context.Context, db DBTX, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error) {
-	rows, err := db.QueryContext(ctx, listRepoConnectionDeployContexts, arg.Branch, arg.InstallationID, arg.RepositoryID)
+	rows, err := db.QueryContext(ctx, listRepoConnectionDeployContexts,
+		arg.IsForkPr,
+		arg.Branch,
+		arg.InstallationID,
+		arg.RepositoryID,
+	)
 	if err != nil {
 		return nil, err
 	}

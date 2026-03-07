@@ -49,6 +49,10 @@ type DeployServiceClient interface {
 	// deployment to standby that has received zero requests in the last 6 hours.
 	// Intended to be called by a cron job.
 	ScaleDownIdlePreviewDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse]
+	// UpdateGitHubDeploymentStatus updates a GitHub Deployment's status.
+	// Called from the API service after approve/reject so the worker (which has
+	// GitHub App credentials) performs the actual API call.
+	UpdateGitHubDeploymentStatus(opts ...sdk_go.ClientOption) sdk_go.Client[*UpdateGitHubDeploymentStatusRequest, *UpdateGitHubDeploymentStatusResponse]
 }
 
 type deployServiceClient struct {
@@ -97,6 +101,14 @@ func (c *deployServiceClient) ScaleDownIdlePreviewDeployments(opts ...sdk_go.Cli
 	return sdk_go.WithRequestType[*ScaleDownIdlePreviewDeploymentsRequest](sdk_go.Object[*ScaleDownIdlePreviewDeploymentsResponse](c.ctx, "hydra.v1.DeployService", c.key, "ScaleDownIdlePreviewDeployments", cOpts...))
 }
 
+func (c *deployServiceClient) UpdateGitHubDeploymentStatus(opts ...sdk_go.ClientOption) sdk_go.Client[*UpdateGitHubDeploymentStatusRequest, *UpdateGitHubDeploymentStatusResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*UpdateGitHubDeploymentStatusRequest](sdk_go.Object[*UpdateGitHubDeploymentStatusResponse](c.ctx, "hydra.v1.DeployService", c.key, "UpdateGitHubDeploymentStatus", cOpts...))
+}
+
 // DeployServiceIngressClient is the ingress client API for hydra.v1.DeployService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -120,6 +132,10 @@ type DeployServiceIngressClient interface {
 	// deployment to standby that has received zero requests in the last 6 hours.
 	// Intended to be called by a cron job.
 	ScaleDownIdlePreviewDeployments() ingress.Requester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse]
+	// UpdateGitHubDeploymentStatus updates a GitHub Deployment's status.
+	// Called from the API service after approve/reject so the worker (which has
+	// GitHub App credentials) performs the actual API call.
+	UpdateGitHubDeploymentStatus() ingress.Requester[*UpdateGitHubDeploymentStatusRequest, *UpdateGitHubDeploymentStatusResponse]
 }
 
 type deployServiceIngressClient struct {
@@ -154,6 +170,11 @@ func (c *deployServiceIngressClient) Promote() ingress.Requester[*PromoteRequest
 func (c *deployServiceIngressClient) ScaleDownIdlePreviewDeployments() ingress.Requester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse](c.client, c.serviceName, "ScaleDownIdlePreviewDeployments", &c.key, &codec)
+}
+
+func (c *deployServiceIngressClient) UpdateGitHubDeploymentStatus() ingress.Requester[*UpdateGitHubDeploymentStatusRequest, *UpdateGitHubDeploymentStatusResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*UpdateGitHubDeploymentStatusRequest, *UpdateGitHubDeploymentStatusResponse](c.client, c.serviceName, "UpdateGitHubDeploymentStatus", &c.key, &codec)
 }
 
 // DeployServiceServer is the server API for hydra.v1.DeployService service.
@@ -194,6 +215,10 @@ type DeployServiceServer interface {
 	// deployment to standby that has received zero requests in the last 6 hours.
 	// Intended to be called by a cron job.
 	ScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error)
+	// UpdateGitHubDeploymentStatus updates a GitHub Deployment's status.
+	// Called from the API service after approve/reject so the worker (which has
+	// GitHub App credentials) performs the actual API call.
+	UpdateGitHubDeploymentStatus(ctx sdk_go.ObjectContext, req *UpdateGitHubDeploymentStatusRequest) (*UpdateGitHubDeploymentStatusResponse, error)
 }
 
 // UnimplementedDeployServiceServer should be embedded to have
@@ -214,6 +239,9 @@ func (UnimplementedDeployServiceServer) Promote(ctx sdk_go.ObjectContext, req *P
 }
 func (UnimplementedDeployServiceServer) ScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method ScaleDownIdlePreviewDeployments not implemented"), 501)
+}
+func (UnimplementedDeployServiceServer) UpdateGitHubDeploymentStatus(ctx sdk_go.ObjectContext, req *UpdateGitHubDeploymentStatusRequest) (*UpdateGitHubDeploymentStatusResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method UpdateGitHubDeploymentStatus not implemented"), 501)
 }
 func (UnimplementedDeployServiceServer) testEmbeddedByValue() {}
 
@@ -238,5 +266,6 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	router = router.Handler("Rollback", sdk_go.NewObjectHandler(srv.Rollback))
 	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
 	router = router.Handler("ScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.ScaleDownIdlePreviewDeployments))
+	router = router.Handler("UpdateGitHubDeploymentStatus", sdk_go.NewObjectHandler(srv.UpdateGitHubDeploymentStatus))
 	return router
 }

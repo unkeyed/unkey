@@ -23,6 +23,17 @@ type GitHubClient interface {
 	// state must be one of: pending, in_progress, success, failure, error.
 	// logURL is shown as "View logs" on GitHub; environmentURL as "View deployment".
 	CreateDeploymentStatus(installationID int64, repo string, deploymentID int64, state string, environmentURL string, logURL string, description string) error
+
+	// IsCollaborator checks whether a GitHub user is a collaborator on a repository.
+	IsCollaborator(installationID int64, repo string, username string) (bool, error)
+
+	// CreateCommitStatus creates a commit status on a SHA. The "Details" link
+	// in the PR goes directly to targetURL. context is the label shown (e.g.
+	// "Unkey Deploy Authorization"). state: pending|success|error|failure.
+	CreateCommitStatus(installationID int64, repo string, sha string, state string, targetURL string, description string, context string) error
+
+	// ListCommitFiles returns the list of filenames changed in a specific commit.
+	ListCommitFiles(installationID int64, repo string, sha string) ([]string, error)
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.

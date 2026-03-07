@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
@@ -76,6 +77,8 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch event {
 	case "push":
 		s.handlePush(r.Context(), w, body, deliveryID)
+	case "pull_request":
+		s.handlePullRequest(r.Context(), w, body, deliveryID)
 	case "installation":
 		logger.Info("Installation event received")
 		w.WriteHeader(http.StatusOK)
@@ -94,12 +97,6 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 	if err := json.Unmarshal(body, &payload); err != nil {
 		logger.Error("failed to parse push payload", "error", err)
 		http.Error(w, "failed to parse push payload", http.StatusBadRequest)
-		return
-	}
-
-	if payload.Repository.Fork {
-		logger.Info("Ignoring push from forked repository", "repository", payload.Repository.FullName)
-		w.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -138,6 +135,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		CommitTimestamp:       gitCommit.Timestamp.UnixMilli(),
 		DeliveryId:            deliveryID,
 		ChangedFiles:          changedFiles,
+		SenderLogin:           payload.Sender.Login,
 	}, sendOpts...)
 	if err != nil {
 		logger.Error("failed to send HandlePush to Restate",
@@ -154,6 +152,81 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		"repository", payload.Repository.FullName,
 		"branch", branch,
 		"commit_sha", payload.After,
+	)
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// handlePullRequest handles pull_request events from forks. Same-repo PRs are
+// skipped because the push event already handles those. Fork PRs are dispatched
+// through the same HandlePush RPC with IsForkPr=true.
+func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWriter, body []byte, deliveryID string) {
+	var payload pullRequestPayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		logger.Error("failed to parse pull_request payload", "error", err)
+		http.Error(w, "failed to parse pull_request payload", http.StatusBadRequest)
+		return
+	}
+
+	// Only care about new commits (opened or new pushes to the PR)
+	if payload.Action != "opened" && payload.Action != "synchronize" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Same-repo PRs are already handled by the push event — skip to avoid double-deploy
+	if payload.PullRequest.Head.Repo.ID == payload.PullRequest.Base.Repo.ID {
+		logger.Info("Ignoring same-repo pull request, push event handles this",
+			"action", payload.Action,
+		)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	pr := payload.PullRequest
+	baseRepo := pr.Base.Repo
+
+	objectKey := fmt.Sprintf("%d:%d", payload.Installation.ID, baseRepo.ID)
+	client := hydrav1.NewGitHubWebhookServiceIngressClient(s.restate, objectKey)
+
+	var sendOpts []restate.IngressSendOption
+	if deliveryID != "" {
+		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
+	}
+
+	authorHandle := pr.User.Login
+	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
+		InstallationId:         payload.Installation.ID,
+		RepositoryId:           baseRepo.ID,
+		RepositoryFullName:     baseRepo.FullName,
+		Branch:                 pr.Head.Ref,
+		After:                  pr.Head.SHA,
+		CommitMessage:          pr.Title,
+		CommitAuthorHandle:     authorHandle,
+		CommitAuthorAvatarUrl:  fmt.Sprintf("https://github.com/%s.png", authorHandle),
+		CommitTimestamp:        time.Now().UnixMilli(),
+		DeliveryId:             deliveryID,
+		SenderLogin:            payload.Sender.Login,
+		IsForkPr:               true,
+		PrNumber:               payload.Number,
+		ForkRepositoryFullName: pr.Head.Repo.FullName,
+	}, sendOpts...)
+	if err != nil {
+		logger.Error("failed to send HandlePush for fork PR to Restate",
+			"error", err,
+			"delivery_id", deliveryID,
+			"repository", baseRepo.FullName,
+		)
+		http.Error(w, "failed to enqueue webhook processing", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("GitHub fork PR webhook enqueued to Restate",
+		"delivery_id", deliveryID,
+		"repository", baseRepo.FullName,
+		"branch", pr.Head.Ref,
+		"commit_sha", pr.Head.SHA,
+		"pr_action", payload.Action,
 	)
 
 	w.WriteHeader(http.StatusOK)

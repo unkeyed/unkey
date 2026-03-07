@@ -43,6 +43,21 @@ func (n *Noop) CreateDeploymentStatus(_ int64, _ string, _ int64, _ string, _ st
 	return errNotConfigured
 }
 
+// IsCollaborator returns an error indicating GitHub is not configured.
+func (n *Noop) IsCollaborator(_ int64, _ string, _ string) (bool, error) {
+	return false, errNotConfigured
+}
+
+// CreateCommitStatus returns an error indicating GitHub is not configured.
+func (n *Noop) CreateCommitStatus(_ int64, _ string, _ string, _ string, _ string, _ string, _ string) error {
+	return errNotConfigured
+}
+
+// ListCommitFiles returns an error indicating GitHub is not configured.
+func (n *Noop) ListCommitFiles(_ int64, _ string, _ string) ([]string, error) {
+	return nil, errNotConfigured
+}
+
 // GetBranchHeadCommitPublic retrieves the HEAD commit using the public GitHub
 // API without authentication. Works for public repositories even when GitHub
 // App credentials are not configured.
