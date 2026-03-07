@@ -1,5 +1,5 @@
 import { and, db, eq, inArray, notInArray } from "@/lib/db";
-import { appScalingSettings, clusterRegions, environments } from "@unkey/db/src/schema";
+import { appRegionalSettings, clusterRegions, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { workspaceProcedure } from "../../../../trpc";
@@ -44,27 +44,24 @@ export const updateRegions = workspaceProcedure
     }
 
     // Get existing scaling settings to preserve values for new regions
-    const existingSettings = await db.query.appScalingSettings.findMany({
+    const existingSettings = await db.query.appRegionalSettings.findMany({
       where: and(
-        eq(appScalingSettings.workspaceId, ctx.workspace.id),
-        eq(appScalingSettings.environmentId, input.environmentId),
+        eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+        eq(appRegionalSettings.environmentId, input.environmentId),
       ),
     });
 
     const defaults = existingSettings.at(0) ?? {
-      replicasMin: 1,
-      replicasMax: 1,
-      cpuMillicores: 256,
-      memoryMib: 256,
+      replicas: 1,
     };
 
     for (const envId of envIds) {
       // Delete rows for regions that are no longer selected
-      await db.delete(appScalingSettings).where(
+      await db.delete(appRegionalSettings).where(
         and(
-          eq(appScalingSettings.workspaceId, ctx.workspace.id),
-          eq(appScalingSettings.environmentId, envId),
-          notInArray(appScalingSettings.regionId, regionIds),
+          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+          eq(appRegionalSettings.environmentId, envId),
+          notInArray(appRegionalSettings.regionId, regionIds),
         ),
       );
 
@@ -72,15 +69,12 @@ export const updateRegions = workspaceProcedure
       for (const regionId of regionIds) {
         const existing = existingSettings.find((s) => s.regionId === regionId);
         if (!existing) {
-          await db.insert(appScalingSettings).values({
+          await db.insert(appRegionalSettings).values({
             workspaceId: ctx.workspace.id,
             appId: env.appId,
             environmentId: envId,
             regionId,
-            replicasMin: defaults.replicasMin,
-            replicasMax: defaults.replicasMax,
-            cpuMillicores: defaults.cpuMillicores,
-            memoryMib: defaults.memoryMib,
+            replicas: defaults.replicas,
           });
         }
       }
