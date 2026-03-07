@@ -7,6 +7,7 @@ import { useProjectData } from "../../data-provider";
 import { DeploymentApprovalBanner } from "./(deployment-progress)/deployment-approval-banner";
 import { DeploymentInfo } from "./(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "./(deployment-progress)/deployment-progress";
+import { DeploymentRejectedBanner } from "./(deployment-progress)/deployment-rejected-banner";
 import { DeploymentNetworkSection } from "./(overview)/components/sections/deployment-network-section";
 import { deriveStatusFromSteps } from "./deployment-utils";
 import { useDeployment } from "./layout-provider";
@@ -17,6 +18,7 @@ export default function DeploymentOverview() {
 
   const ready = deployment.status === "ready";
   const awaitingApproval = deployment.status === "awaiting_approval";
+  const rejected = deployment.status === "rejected";
 
   const stepsQuery = trpc.deploy.deployment.steps.useQuery(
     { deploymentId: deployment.id },
@@ -41,6 +43,10 @@ export default function DeploymentOverview() {
       {awaitingApproval ? (
         <div key="awaiting-approval" className="animate-fade-slide-in">
           <DeploymentApprovalBanner />
+        </div>
+      ) : rejected ? (
+        <div key="rejected" className="animate-fade-slide-in">
+          <DeploymentRejectedBanner />
         </div>
       ) : ready ? (
         <div key="ready" className="flex flex-col gap-5 animate-fade-slide-in">
