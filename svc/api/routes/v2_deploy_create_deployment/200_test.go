@@ -39,7 +39,8 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",
@@ -69,7 +70,8 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",
@@ -120,7 +122,8 @@ func TestCreateDeploymentWithWildcardPermission(t *testing.T) {
 	}
 
 	req := handler.Request{
-		ProjectId:       setup.Project.ID,
+		Project:         setup.Project.Slug,
+		App:             "default",
 		Branch:          "main",
 		EnvironmentSlug: "production",
 		DockerImage:     "nginx:latest",
@@ -158,7 +161,8 @@ func TestCreateDeploymentWithSpecificProjectPermission(t *testing.T) {
 	}
 
 	req := handler.Request{
-		ProjectId:       setup.Project.ID,
+		Project:         setup.Project.Slug,
+		App:             "default",
 		Branch:          "main",
 		EnvironmentSlug: "production",
 		DockerImage:     "nginx:latest",
