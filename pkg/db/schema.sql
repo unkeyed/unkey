@@ -448,22 +448,17 @@ CREATE TABLE `app_runtime_settings` (
 	CONSTRAINT `app_runtime_settings_app_env_idx` UNIQUE(`app_id`,`environment_id`)
 );
 
-CREATE TABLE `app_scaling_settings` (
+CREATE TABLE `app_regional_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`app_id` varchar(64) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`region_id` varchar(64) NOT NULL,
-	`memory_threshold` tinyint,
-	`cpu_threshold` tinyint,
-	`rps_threshold` tinyint,
-	`replicas_min` int NOT NULL,
-	`replicas_max` int NOT NULL,
-	`max_cpu_millicores` int NOT NULL,
-	`max_memory_mib` int NOT NULL,
+	`replicas` int NOT NULL DEFAULT 1,
+	`horizontal_autoscaling_policy_id` varchar(64),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `app_scaling_settings_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `app_regional_settings_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `unique_app_env_region` UNIQUE(`app_id`,`environment_id`,`region_id`)
 );
 
@@ -743,6 +738,21 @@ CREATE TABLE `cluster_regions` (
 	CONSTRAINT `unique_reqion_per_platform` UNIQUE(`name`,`platform`)
 );
 
+CREATE TABLE `horizontal_autoscaling_policies` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`replicas_min` int NOT NULL,
+	`replicas_max` int NOT NULL,
+	`memory_threshold` tinyint,
+	`cpu_threshold` tinyint,
+	`rps_threshold` tinyint,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `horizontal_autoscaling_policies_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `horizontal_autoscaling_policies_id_unique` UNIQUE(`id`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -762,7 +772,7 @@ CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
 CREATE INDEX `environments_project_idx` ON `environments` (`project_id`);
 CREATE INDEX `apps_workspace_idx` ON `apps` (`workspace_id`);
-CREATE INDEX `workspace_idx` ON `app_scaling_settings` (`workspace_id`);
+CREATE INDEX `workspace_idx` ON `app_regional_settings` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 CREATE INDEX `status_idx` ON `deployments` (`status`);
@@ -781,4 +791,5 @@ CREATE INDEX `idx_region` ON `instances` (`region`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
 CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_id`);
+CREATE INDEX `workspace_idx` ON `horizontal_autoscaling_policies` (`workspace_id`);
 

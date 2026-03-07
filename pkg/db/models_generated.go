@@ -1002,6 +1002,18 @@ type AppEnvironmentVariable struct {
 	UpdatedAt        sql.NullInt64               `db:"updated_at"`
 }
 
+type AppRegionalSetting struct {
+	Pk                            uint64         `db:"pk"`
+	WorkspaceID                   string         `db:"workspace_id"`
+	AppID                         string         `db:"app_id"`
+	EnvironmentID                 string         `db:"environment_id"`
+	RegionID                      string         `db:"region_id"`
+	Replicas                      int32          `db:"replicas"`
+	HorizontalAutoscalingPolicyID sql.NullString `db:"horizontal_autoscaling_policy_id"`
+	CreatedAt                     int64          `db:"created_at"`
+	UpdatedAt                     sql.NullInt64  `db:"updated_at"`
+}
+
 type AppRuntimeSetting struct {
 	Pk             uint64                           `db:"pk"`
 	WorkspaceID    string                           `db:"workspace_id"`
@@ -1017,23 +1029,6 @@ type AppRuntimeSetting struct {
 	SentinelConfig []byte                           `db:"sentinel_config"`
 	CreatedAt      int64                            `db:"created_at"`
 	UpdatedAt      sql.NullInt64                    `db:"updated_at"`
-}
-
-type AppScalingSetting struct {
-	Pk               uint64        `db:"pk"`
-	WorkspaceID      string        `db:"workspace_id"`
-	AppID            string        `db:"app_id"`
-	EnvironmentID    string        `db:"environment_id"`
-	RegionID         string        `db:"region_id"`
-	MemoryThreshold  sql.NullInt16 `db:"memory_threshold"`
-	CpuThreshold     sql.NullInt16 `db:"cpu_threshold"`
-	RpsThreshold     sql.NullInt16 `db:"rps_threshold"`
-	ReplicasMin      int32         `db:"replicas_min"`
-	ReplicasMax      int32         `db:"replicas_max"`
-	MaxCpuMillicores int32         `db:"max_cpu_millicores"`
-	MaxMemoryMib     int32         `db:"max_memory_mib"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
 type AuditLog struct {
@@ -1269,6 +1264,19 @@ type GithubRepoConnection struct {
 	RepositoryFullName string        `db:"repository_full_name"`
 	CreatedAt          int64         `db:"created_at"`
 	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+}
+
+type HorizontalAutoscalingPolicy struct {
+	Pk              uint64        `db:"pk"`
+	ID              string        `db:"id"`
+	WorkspaceID     string        `db:"workspace_id"`
+	ReplicasMin     int32         `db:"replicas_min"`
+	ReplicasMax     int32         `db:"replicas_max"`
+	MemoryThreshold sql.NullInt16 `db:"memory_threshold"`
+	CpuThreshold    sql.NullInt16 `db:"cpu_threshold"`
+	RpsThreshold    sql.NullInt16 `db:"rps_threshold"`
+	CreatedAt       int64         `db:"created_at"`
+	UpdatedAt       sql.NullInt64 `db:"updated_at"`
 }
 
 type Identity struct {

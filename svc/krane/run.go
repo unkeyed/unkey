@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -90,10 +92,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	defer r.Recover()
-
-	r.DeferCtx(shutdownGrafana)
-
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.Control.URL,
 		BearerToken: cfg.Control.Token,
@@ -150,6 +148,17 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)
 	}
 	r.Defer(sentinelCtrl.Stop)
+
+	// Start heartbeat loop to register this cluster with the control plane
+	stopHeartbeat := repeat.Every(30*time.Second, func() {
+		if _, err := cluster.Heartbeat(ctx, &ctrlv1.HeartbeatRequest{
+			Region:   cfg.Region,
+			Platform: cfg.Platform,
+		}); err != nil {
+			logger.Warn("heartbeat failed", "error", err)
+		}
+	})
+	r.Defer(func() error { stopHeartbeat(); return nil })
 
 	// Create vault client for secrets decryption
 	var vaultClient vault.VaultServiceClient

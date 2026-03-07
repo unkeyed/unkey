@@ -10,6 +10,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/krane",
     visibility = ["//visibility:public"],
     deps = [
+        "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/krane/v1/kranev1connect",
         "//gen/proto/vault/v1/vaultv1connect",
         "//gen/rpc/vault",
@@ -17,6 +18,7 @@ go_library(
         "//pkg/config",
         "//pkg/logger",
         "//pkg/otel",
+        "//pkg/repeat",
         "//pkg/prometheus",
         "//pkg/rpc/interceptor",
         "//pkg/runner",
