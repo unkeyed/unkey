@@ -36,6 +36,7 @@ type githubStatusReporter struct {
 	commitSHA          string
 	environmentLabel   string
 	environmentURL     string
+	logURL             string
 	deploymentID       string // our internal deployment ID
 	githubDeploymentID int64  // set after Create
 	isProduction       bool
@@ -49,6 +50,7 @@ func newGithubStatusReporter(
 	commitSHA string,
 	environmentLabel string,
 	environmentURL string,
+	logURL string,
 	deploymentID string,
 	isProduction bool,
 ) *githubStatusReporter {
@@ -60,6 +62,7 @@ func newGithubStatusReporter(
 		commitSHA:        commitSHA,
 		environmentLabel: environmentLabel,
 		environmentURL:   environmentURL,
+		logURL:           logURL,
 		deploymentID:     deploymentID,
 		isProduction:     isProduction,
 	}
@@ -113,6 +116,7 @@ func (r *githubStatusReporter) Report(ctx restate.WorkflowSharedContext, state s
 			r.githubDeploymentID,
 			state,
 			r.environmentURL,
+			r.logURL,
 			description,
 		)
 	}, restate.WithName("github deployment status: "+state), restate.WithMaxRetryDuration(30*time.Second))

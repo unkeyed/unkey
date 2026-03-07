@@ -11,6 +11,7 @@ data:
     instance_id = "worker-dev"
     region = "local"
     default_domain = "unkey.local"
+    dashboard_url = "http://localhost:3000"
     cname_domain = "unkey.local"
     build_platform = "linux/arm64"
     sentinel_image = "unkey/sentinel:latest"

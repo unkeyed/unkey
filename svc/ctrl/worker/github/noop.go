@@ -40,7 +40,7 @@ func (n *Noop) CreateDeployment(_ int64, _ string, _ string, _ string, _ string,
 }
 
 // CreateDeploymentStatus returns an error indicating GitHub is not configured.
-func (n *Noop) CreateDeploymentStatus(_ int64, _ string, _ int64, _ string, _ string, _ string) error {
+func (n *Noop) CreateDeploymentStatus(_ int64, _ string, _ int64, _ string, _ string, _ string, _ string) error {
 	return errNotConfigured
 }
 

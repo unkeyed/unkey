@@ -288,7 +288,7 @@ func (c *Client) CreateDeployment(installationID int64, repo string, ref string,
 }
 
 // CreateDeploymentStatus updates the status of a GitHub Deployment.
-func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deploymentID int64, state string, environmentURL string, description string) error {
+func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deploymentID int64, state string, environmentURL string, logURL string, description string) error {
 	headers, err := c.ghHeaders(installationID)
 	if err != nil {
 		return err
@@ -303,6 +303,9 @@ func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deplo
 	}
 	if environmentURL != "" {
 		payload["environment_url"] = environmentURL
+	}
+	if logURL != "" {
+		payload["log_url"] = logURL
 	}
 
 	return httpclient.Do(c.httpClient, http.MethodPost, apiURL, headers, payload, http.StatusCreated)

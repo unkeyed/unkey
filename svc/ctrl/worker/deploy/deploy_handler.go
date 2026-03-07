@@ -182,6 +182,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	repoConn, repoConnErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
 		return db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
 	}, restate.WithName("find github repo connection"))
+	if repoConnErr != nil {
+		logger.Info("no github repo connection found, skipping deployment status reporting",
+			"app_id", deployment.AppID,
+			"error", repoConnErr,
+		)
+	}
 	if repoConnErr == nil {
 		envLabel := project.Slug + " - " + environment.Slug
 		if app.Slug != "default" {
@@ -193,6 +199,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			prefix = project.Slug + "-" + app.Slug
 		}
 		envURL := fmt.Sprintf("https://%s-%s-%s.%s", prefix, environment.Slug, workspace.Slug, w.defaultDomain)
+		logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s", w.dashboardURL, workspace.Slug, project.ID, deployment.ID)
 
 		ghReporter := newGithubStatusReporter(
 			w.github,
@@ -202,6 +209,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			deployment.GitCommitSha.String,
 			envLabel,
 			envURL,
+			logURL,
 			deployment.ID,
 			environment.Slug == "production",
 		)
