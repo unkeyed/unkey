@@ -19,7 +19,6 @@ export const sentinels = mysqlTable(
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
     k8sName: varchar("k8s_name", { length: 64 }).notNull().unique(),
     k8sAddress: varchar("k8s_address", { length: 255 }).notNull().unique(),
-    region: varchar("region", { length: 255 }).default("DELETE ME"),
 
     regionId: varchar("region_id", { length: 255 }).notNull().default("TODO"),
     image: varchar("image", { length: 255 }).notNull(),

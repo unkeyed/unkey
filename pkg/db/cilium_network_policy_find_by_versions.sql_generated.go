@@ -10,7 +10,7 @@ import (
 )
 
 const listCiliumNetworkPoliciesByRegion = `-- name: ListCiliumNetworkPoliciesByRegion :many
-SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 FROM ` + "`" + `cilium_network_policies` + "`" + `
 WHERE region_id = ? AND version > ?
 ORDER BY version ASC
@@ -26,7 +26,7 @@ type ListCiliumNetworkPoliciesByRegionParams struct {
 // ListCiliumNetworkPoliciesByRegion returns cilium network policies for a region with version > after_version.
 // Used by WatchCiliumNetworkPolicies to stream policy state changes to krane agents.
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 //	FROM `cilium_network_policies`
 //	WHERE region_id = ? AND version > ?
 //	ORDER BY version ASC
@@ -50,7 +50,6 @@ func (q *Queries) ListCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX
 			&i.DeploymentID,
 			&i.K8sName,
 			&i.K8sNamespace,
-			&i.Region,
 			&i.RegionID,
 			&i.Policy,
 			&i.Version,
