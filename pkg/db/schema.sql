@@ -736,7 +736,6 @@ CREATE TABLE `regions` (
 	`platform` varchar(64) NOT NULL,
 	CONSTRAINT `regions_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `regions_id_unique` UNIQUE(`id`),
-	CONSTRAINT `regions_name_unique` UNIQUE(`name`),
 	CONSTRAINT `unique_region_per_platform` UNIQUE(`name`,`platform`)
 );
 

@@ -1420,7 +1420,9 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  ) ON DUPLICATE KEY UPDATE
-	//      started_at = VALUES(started_at)
+	//      started_at = VALUES(started_at),
+	//      ended_at = NULL,
+	//      error = NULL
 	InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error
 	//InsertDeploymentTopology
 	//

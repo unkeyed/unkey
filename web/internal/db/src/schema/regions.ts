@@ -8,7 +8,7 @@ export const regions = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 64 }).notNull().unique(),
     // e.g. us-east-1, us-west-2, etc.
-    name: varchar("name", { length: 64 }).unique().notNull(),
+    name: varchar("name", { length: 64 }).notNull(),
     // e.g. aws, gcp, azure, local, etc.
     platform: varchar("platform", { length: 64 }).notNull(),
   },
