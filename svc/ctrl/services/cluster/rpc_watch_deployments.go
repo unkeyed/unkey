@@ -23,8 +23,8 @@ import (
 // history. When no new versions are available, the server polls the database every second.
 //
 // Each poll fetches up to 100 deployment topology rows ordered by version. The desired_status
-// field determines whether to send an ApplyDeployment (for started/starting states) or
-// DeleteDeployment (for stopped/stopping states). Rows with unhandled statuses are logged
+// field determines whether to send an ApplyDeployment (for running) or
+// DeleteDeployment (for stopped). Rows with unhandled statuses are logged
 // and skipped.
 //
 // Returns when the context is cancelled, or on database or stream errors.
@@ -103,11 +103,11 @@ func (s *Service) fetchDeploymentStates(ctx context.Context, region string, afte
 }
 
 // deploymentRowToState converts a database row to a proto DeploymentState message. Returns
-// a DeleteDeployment for stopped/stopping statuses and an ApplyDeployment for started/starting
+// a DeleteDeployment for stopped and an ApplyDeployment for running
 // statuses. Returns (nil, nil) for unhandled statuses, which the caller should skip.
 func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow) (*ctrlv1.DeploymentState, error) {
 	switch row.DeploymentTopology.DesiredStatus {
-	case db.DeploymentTopologyDesiredStatusStopped, db.DeploymentTopologyDesiredStatusStopping:
+	case db.DeploymentTopologyDesiredStatusStopped:
 		return &ctrlv1.DeploymentState{
 			Version: row.DeploymentTopology.Version,
 			State: &ctrlv1.DeploymentState_Delete{
@@ -117,7 +117,7 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 				},
 			},
 		}, nil
-	case db.DeploymentTopologyDesiredStatusRunning, db.DeploymentTopologyDesiredStatusStarted, db.DeploymentTopologyDesiredStatusStarting:
+	case db.DeploymentTopologyDesiredStatusRunning:
 		var buildID *string
 		if row.Deployment.BuildID.Valid {
 			buildID = &row.Deployment.BuildID.String

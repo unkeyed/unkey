@@ -362,11 +362,8 @@ func (ns NullDeploymentStepsStep) Value() (driver.Value, error) {
 type DeploymentTopologyDesiredStatus string
 
 const (
-	DeploymentTopologyDesiredStatusStarting DeploymentTopologyDesiredStatus = "starting"
-	DeploymentTopologyDesiredStatusStarted  DeploymentTopologyDesiredStatus = "started"
-	DeploymentTopologyDesiredStatusStopping DeploymentTopologyDesiredStatus = "stopping"
-	DeploymentTopologyDesiredStatusStopped  DeploymentTopologyDesiredStatus = "stopped"
-	DeploymentTopologyDesiredStatusRunning  DeploymentTopologyDesiredStatus = "running"
+	DeploymentTopologyDesiredStatusStopped DeploymentTopologyDesiredStatus = "stopped"
+	DeploymentTopologyDesiredStatusRunning DeploymentTopologyDesiredStatus = "running"
 )
 
 func (e *DeploymentTopologyDesiredStatus) Scan(src interface{}) error {
@@ -1025,7 +1022,6 @@ type AppRuntimeSetting struct {
 	MemoryMib      int32                            `db:"memory_mib"`
 	Command        dbtype.StringSlice               `db:"command"`
 	Healthcheck    dbtype.NullHealthcheck           `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig              `db:"region_config"`
 	ShutdownSignal AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	SentinelConfig []byte                           `db:"sentinel_config"`
 	CreatedAt      int64                            `db:"created_at"`

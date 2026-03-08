@@ -31,13 +31,7 @@ export const deploymentTopology = mysqlTable(
     version: bigint("version", { mode: "number", unsigned: true }).notNull(),
 
     // Deployment status
-    desiredStatus: mysqlEnum("desired_status", [
-      "starting",
-      "started",
-      "stopping",
-      "stopped",
-      "running",
-    ]).notNull(),
+    desiredStatus: mysqlEnum("desired_status", ["stopped", "running"]).notNull(),
     ...lifecycleDates,
   },
   (table) => [

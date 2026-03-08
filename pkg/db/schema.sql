@@ -439,7 +439,6 @@ CREATE TABLE `app_runtime_settings` (
 	`memory_mib` int NOT NULL DEFAULT 256,
 	`command` json NOT NULL DEFAULT ('[]'),
 	`healthcheck` json,
-	`region_config` json NOT NULL DEFAULT ('{}'),
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`sentinel_config` longblob NOT NULL,
 	`created_at` bigint NOT NULL,
@@ -538,12 +537,12 @@ CREATE TABLE `deployment_topology` (
 	`region_id` varchar(64) NOT NULL DEFAULT '',
 	`desired_replicas` int NOT NULL,
 	`version` bigint unsigned NOT NULL,
-	`desired_status` enum('starting','started','stopping','stopped','running') NOT NULL,
+	`desired_status` enum('stopped','running') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
+	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region_id`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
 );
 
 CREATE TABLE `acme_users` (
