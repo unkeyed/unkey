@@ -117,7 +117,7 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 				},
 			},
 		}, nil
-	case db.DeploymentTopologyDesiredStatusStarted, db.DeploymentTopologyDesiredStatusStarting:
+	case db.DeploymentTopologyDesiredStatusRunning, db.DeploymentTopologyDesiredStatusStarted, db.DeploymentTopologyDesiredStatusStarting:
 		var buildID *string
 		if row.Deployment.BuildID.Valid {
 			buildID = &row.Deployment.BuildID.String

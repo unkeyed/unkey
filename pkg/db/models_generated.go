@@ -366,6 +366,7 @@ const (
 	DeploymentTopologyDesiredStatusStarted  DeploymentTopologyDesiredStatus = "started"
 	DeploymentTopologyDesiredStatusStopping DeploymentTopologyDesiredStatus = "stopping"
 	DeploymentTopologyDesiredStatusStopped  DeploymentTopologyDesiredStatus = "stopped"
+	DeploymentTopologyDesiredStatusRunning  DeploymentTopologyDesiredStatus = "running"
 )
 
 func (e *DeploymentTopologyDesiredStatus) Scan(src interface{}) error {

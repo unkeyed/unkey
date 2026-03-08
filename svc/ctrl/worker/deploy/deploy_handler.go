@@ -427,7 +427,7 @@ func (w *Workflow) createTopologies(
 			Region:          rs.RegionName,
 			RegionID:        rs.RegionID,
 			DesiredReplicas: replicas,
-			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarting,
+			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
 			Version:         versionResp.GetVersion(),
 			CreatedAt:       time.Now().UnixMilli(),
 		})

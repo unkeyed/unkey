@@ -179,7 +179,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Region:          req.Region,
 		RegionID:        regionID,
 		DesiredReplicas: 1,
-		DesiredStatus:   db.DeploymentTopologyDesiredStatusStarted,
+		DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
 		Version:         h.versionCounter,
 		CreatedAt:       h.Now(),
 	})
@@ -197,7 +197,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 			Region:          req.Region,
 			RegionID:        regionID,
 			DesiredReplicas: 1,
-			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarted,
+			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
 			Version:         h.versionCounter,
 			CreatedAt:       h.Now(),
 			UpdatedAt:       sql.NullInt64{Valid: false},

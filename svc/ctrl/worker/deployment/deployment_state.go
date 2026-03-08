@@ -81,7 +81,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	switch req.GetState() {
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING:
 		desiredState = db.DeploymentsDesiredStateRunning
-		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStarted
+		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusRunning
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY:
 		desiredState = db.DeploymentsDesiredStateStandby
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped

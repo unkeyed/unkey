@@ -36,6 +36,7 @@ export const deploymentTopology = mysqlTable(
       "started",
       "stopping",
       "stopped",
+      "running",
     ]).notNull(),
     ...lifecycleDates,
   },

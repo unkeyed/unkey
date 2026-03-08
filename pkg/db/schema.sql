@@ -538,7 +538,7 @@ CREATE TABLE `deployment_topology` (
 	`region_id` varchar(64) NOT NULL DEFAULT '',
 	`desired_replicas` int NOT NULL,
 	`version` bigint unsigned NOT NULL,
-	`desired_status` enum('starting','started','stopping','stopped') NOT NULL,
+	`desired_status` enum('starting','started','stopping','stopped','running') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
