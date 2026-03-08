@@ -322,11 +322,11 @@ type Querier interface {
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
 	//
-	//  SELECT r.name
+	//  SELECT r.pk, r.id, r.name, r.platform
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
 	//  WHERE dt.deployment_id = ?
-	FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]string, error)
+	FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]Region, error)
 	//FindDeploymentTopologyByIDAndRegion
 	//
 	//  SELECT
@@ -2645,12 +2645,7 @@ type Querier interface {
 	//
 	//  UPDATE `deployment_topology`
 	//  SET desired_status = ?, version = ?, updated_at = ?
-	//  WHERE deployment_id = ? AND region_id = (
-	//      SELECT id
-	//      FROM `regions`
-	//      WHERE name = ?
-	//      LIMIT 1
-	//  )
+	//  WHERE deployment_id = ? AND region_id = ?
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateFrontlineRouteDeploymentId
 	//

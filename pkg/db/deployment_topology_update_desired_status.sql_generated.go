@@ -13,12 +13,7 @@ import (
 const updateDeploymentTopologyDesiredStatus = `-- name: UpdateDeploymentTopologyDesiredStatus :exec
 UPDATE ` + "`" + `deployment_topology` + "`" + `
 SET desired_status = ?, version = ?, updated_at = ?
-WHERE deployment_id = ? AND region_id = (
-    SELECT id
-    FROM ` + "`" + `regions` + "`" + `
-    WHERE name = ?
-    LIMIT 1
-)
+WHERE deployment_id = ? AND region_id = ?
 `
 
 type UpdateDeploymentTopologyDesiredStatusParams struct {
@@ -26,7 +21,7 @@ type UpdateDeploymentTopologyDesiredStatusParams struct {
 	Version       uint64                          `db:"version"`
 	UpdatedAt     sql.NullInt64                   `db:"updated_at"`
 	DeploymentID  string                          `db:"deployment_id"`
-	Region        string                          `db:"region"`
+	RegionID      string                          `db:"region_id"`
 }
 
 // UpdateDeploymentTopologyDesiredStatus updates the desired_status and version of a topology entry.
@@ -34,19 +29,14 @@ type UpdateDeploymentTopologyDesiredStatusParams struct {
 //
 //	UPDATE `deployment_topology`
 //	SET desired_status = ?, version = ?, updated_at = ?
-//	WHERE deployment_id = ? AND region_id = (
-//	    SELECT id
-//	    FROM `regions`
-//	    WHERE name = ?
-//	    LIMIT 1
-//	)
+//	WHERE deployment_id = ? AND region_id = ?
 func (q *Queries) UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error {
 	_, err := db.ExecContext(ctx, updateDeploymentTopologyDesiredStatus,
 		arg.DesiredStatus,
 		arg.Version,
 		arg.UpdatedAt,
 		arg.DeploymentID,
-		arg.Region,
+		arg.RegionID,
 	)
 	return err
 }
