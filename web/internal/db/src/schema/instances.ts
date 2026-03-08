@@ -17,9 +17,7 @@ import { regions } from "./regions";
 export const instances = mysqlTable(
   "instances",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true })
-      .autoincrement()
-      .primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 64 }).notNull().unique(),
     deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
@@ -35,12 +33,7 @@ export const instances = mysqlTable(
     address: varchar("address", { length: 255 }).notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
-    status: mysqlEnum("status", [
-      "inactive",
-      "pending",
-      "running",
-      "failed",
-    ]).notNull(),
+    status: mysqlEnum("status", ["inactive", "pending", "running", "failed"]).notNull(),
   },
   (table) => [
     uniqueIndex("unique_address_per_region").on(table.address, table.regionId),
