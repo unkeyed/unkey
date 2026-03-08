@@ -17,7 +17,7 @@ export const ciliumNetworkPolicies = mysqlTable(
     deploymentId: varchar("deployment_id", { length: 128 }).notNull(),
     k8sName: varchar("k8s_name", { length: 64 }).notNull(),
     k8sNamespace: varchar("k8s_namespace", { length: 255 }).notNull(),
-    //region: varchar("region", { length: 255 }).notNull(),
+    region: varchar("region", { length: 255 }),
     regionId: varchar("region_id", { length: 64 }).notNull().default("TODO"),
 
     // json representation of the policy

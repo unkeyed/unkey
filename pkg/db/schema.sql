@@ -706,6 +706,7 @@ CREATE TABLE `cilium_network_policies` (
 	`deployment_id` varchar(128) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_namespace` varchar(255) NOT NULL,
+	`region` varchar(255),
 	`region_id` varchar(64) NOT NULL DEFAULT 'TODO',
 	`policy` json NOT NULL,
 	`version` bigint unsigned NOT NULL,

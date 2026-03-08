@@ -10,7 +10,7 @@ import (
 )
 
 const findCiliumNetworkPolicyByIDAndRegion = `-- name: FindCiliumNetworkPolicyByIDAndRegion :one
-SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
 FROM ` + "`" + `cilium_network_policies` + "`" + `
 WHERE region_id = ? AND id = ?
 LIMIT 1
@@ -23,7 +23,7 @@ type FindCiliumNetworkPolicyByIDAndRegionParams struct {
 
 // FindCiliumNetworkPolicyByIDAndRegion
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
 //	FROM `cilium_network_policies`
 //	WHERE region_id = ? AND id = ?
 //	LIMIT 1
@@ -40,6 +40,7 @@ func (q *Queries) FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db D
 		&i.DeploymentID,
 		&i.K8sName,
 		&i.K8sNamespace,
+		&i.Region,
 		&i.RegionID,
 		&i.Policy,
 		&i.Version,
