@@ -10,7 +10,6 @@ export const deploymentTopology = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     workspaceId: varchar("workspace_id", { length: 64 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 64 }).notNull(),
-    region: varchar("region", { length: 255 }).default("DELETE ME"),
     regionId: varchar("region_id", { length: 64 }).notNull(),
 
     desiredReplicas: int("desired_replicas").notNull(),

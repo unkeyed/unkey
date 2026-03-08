@@ -193,7 +193,6 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 			Pk:              0,
 			WorkspaceID:     workspaceID,
 			DeploymentID:    deploymentID,
-			Region:          sql.NullString{Valid: false, String: ""},
 			RegionID:        regionID,
 			DesiredReplicas: 1,
 			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
