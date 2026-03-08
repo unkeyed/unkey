@@ -37,7 +37,7 @@ type Querier interface {
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
-	//  WHERE deployment_id = ? AND region = ?
+	//  WHERE deployment_id = ? AND region_id = ?
 	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
 	//DeleteDeploymentTopologyByDeploymentId
 	//
@@ -48,12 +48,7 @@ type Querier interface {
 	//
 	//  DELETE FROM `deployment_topology`
 	//  WHERE deployment_id = ?
-	//    AND region_id = (
-	//        SELECT id
-	//        FROM `regions`
-	//        WHERE name = ?
-	//        LIMIT 1
-	//    )
+	//    AND region_id = ?
 	//    AND version = ?
 	DeleteDeploymentTopologyByDeploymentRegionVersion(ctx context.Context, db DBTX, arg DeleteDeploymentTopologyByDeploymentRegionVersionParams) error
 	//DeleteFrontlineRouteByFQDN
@@ -68,7 +63,7 @@ type Querier interface {
 	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
 	//DeleteInstance
 	//
-	//  DELETE FROM instances WHERE k8s_name = ? AND region = ?
+	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
 	DeleteInstance(ctx context.Context, db DBTX, arg DeleteInstanceParams) error
 	//DeleteKeyByID
 	//
@@ -511,24 +506,24 @@ type Querier interface {
 	//FindInstanceByPodName
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region, k8s_name, address, cpu_millicores, memory_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
-	//    WHERE k8s_name = ? AND region = ?
+	//    WHERE k8s_name = ? AND region_id = ?
 	FindInstanceByPodName(ctx context.Context, db DBTX, arg FindInstanceByPodNameParams) (Instance, error)
 	//FindInstancesByDeploymentId
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region, k8s_name, address, cpu_millicores, memory_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//  WHERE deployment_id = ?
 	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentid string) ([]Instance, error)
-	//FindInstancesByDeploymentIdAndRegion
+	//FindInstancesByDeploymentIdAndRegionID
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region, k8s_name, address, cpu_millicores, memory_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
-	//  WHERE deployment_id = ? AND region = ?
-	FindInstancesByDeploymentIdAndRegion(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionParams) ([]Instance, error)
+	//  WHERE deployment_id = ? AND region_id = ?
+	FindInstancesByDeploymentIdAndRegionID(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionIDParams) ([]Instance, error)
 	//FindKeyAuthsByIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
@@ -1038,10 +1033,24 @@ type Querier interface {
 	//      AND namespace_id = ?
 	//      AND identifier = ?
 	FindRatelimitOverrideByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIdentifierParams) (RatelimitOverride, error)
+	//FindRegionById
+	//
+	//  SELECT
+	//   pk, id, name, platform
+	//  FROM regions
+	//  WHERE id = ? LIMIT 1
+	FindRegionById(ctx context.Context, db DBTX, regionID string) (Region, error)
 	//FindRegionByNameAndPlatform
 	//
 	//  SELECT id FROM regions WHERE name = ? AND platform = ?
 	FindRegionByNameAndPlatform(ctx context.Context, db DBTX, arg FindRegionByNameAndPlatformParams) (string, error)
+	//FindRegionByPlatformAndName
+	//
+	//  SELECT
+	//   pk, id, name, platform
+	//  FROM regions
+	//  WHERE platform = ? AND name = ? LIMIT 1
+	FindRegionByPlatformAndName(ctx context.Context, db DBTX, arg FindRegionByPlatformAndNameParams) (Region, error)
 	// Finds a role record by its ID
 	// Returns: The role record if found
 	//
@@ -2924,7 +2933,7 @@ type Querier interface {
 	//  	workspace_id,
 	//  	project_id,
 	//  	app_id,
-	//  	region,
+	//  	region_id,
 	//  	k8s_name,
 	//  	address,
 	//  	cpu_millicores,

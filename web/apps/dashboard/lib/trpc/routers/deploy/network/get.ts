@@ -35,10 +35,16 @@ export const getDeploymentTree = workspaceProcedure
             ),
           columns: {
             id: true,
-            region: true,
             cpuMillicores: true,
             memoryMib: true,
             status: true,
+          },
+          with: {
+            region: {
+              columns: {
+                name: true,
+              },
+            },
           },
         }),
         db.query.sentinels.findMany({
@@ -59,7 +65,7 @@ export const getDeploymentTree = workspaceProcedure
       ]);
 
       // Group instances by region
-      const instancesByRegion = Object.groupBy(instances, ({ region }) => region);
+      const instancesByRegion = Object.groupBy(instances, ({ region }) => region?.name ?? "");
 
       // Build tree structure: each sentinel node has instances as children
       const children = sentinels.map(

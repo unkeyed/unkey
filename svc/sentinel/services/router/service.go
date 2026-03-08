@@ -25,6 +25,7 @@ type service struct {
 	db            db.Database
 	clock         clock.Clock
 	environmentID string
+	platform      string
 	region        string
 
 	// deploymentID -> deployment
@@ -144,6 +145,7 @@ func New(cfg Config) (*service, error) {
 		db:              cfg.DB,
 		clock:           cfg.Clock,
 		environmentID:   cfg.EnvironmentID,
+		platform:        cfg.Platform,
 		region:          cfg.Region,
 		deploymentCache: deploymentCache,
 		instancesCache:  instancesCache,
@@ -168,10 +170,19 @@ func (s *service) prewarm(ctx context.Context) {
 		return
 	}
 
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
+		Platform: s.platform,
+		Name:     s.region,
+	})
+	if err != nil {
+		logger.Error("unable to find region for prewarming instance cache", "platform", s.platform, "region", s.region, "error", err.Error())
+		return
+	}
+
 	for _, d := range deployments {
-		instances, err := db.Query.FindInstancesByDeploymentIdAndRegion(ctx, s.db.RO(), db.FindInstancesByDeploymentIdAndRegionParams{
-			Deploymentid: d.ID,
-			Region:       s.region,
+		instances, err := db.Query.FindInstancesByDeploymentIdAndRegionID(ctx, s.db.RO(), db.FindInstancesByDeploymentIdAndRegionIDParams{
+			DeploymentID: d.ID,
+			RegionID:     region.ID,
 		})
 		if err != nil {
 			logger.Error("unable to find instances for deployment", "deployment_id", d.ID, "error", err.Error())
@@ -226,12 +237,21 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 
 func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
 	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
-		return db.Query.FindInstancesByDeploymentIdAndRegion(
+
+		region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
+			Platform: s.platform,
+			Name:     s.region,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return db.Query.FindInstancesByDeploymentIdAndRegionID(
 			ctx,
 			s.db.RO(),
-			db.FindInstancesByDeploymentIdAndRegionParams{
-				Deploymentid: deploymentID,
-				Region:       s.region,
+			db.FindInstancesByDeploymentIdAndRegionIDParams{
+				DeploymentID: deploymentID,
+				RegionID:     region.ID,
 			},
 		)
 	}, caches.DefaultFindFirstOp)
