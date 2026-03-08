@@ -23,7 +23,7 @@ SELECT
     d.app_id,
     d.build_id,
     d.image,
-    dt.region,
+    r.name AS region,
     d.cpu_millicores,
     d.memory_mib,
     dt.desired_replicas,
@@ -36,7 +36,8 @@ SELECT
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
-WHERE  dt.region = ?
+INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
+WHERE  r.name = ?
     AND dt.deployment_id = ?
 LIMIT 1
 `
@@ -80,7 +81,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    d.app_id,
 //	    d.build_id,
 //	    d.image,
-//	    dt.region,
+//	    r.name AS region,
 //	    d.cpu_millicores,
 //	    d.memory_mib,
 //	    dt.desired_replicas,
@@ -93,7 +94,8 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
-//	WHERE  dt.region = ?
+//	INNER JOIN `regions` r ON dt.region_id = r.id
+//	WHERE  r.name = ?
 //	    AND dt.deployment_id = ?
 //	LIMIT 1
 func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error) {

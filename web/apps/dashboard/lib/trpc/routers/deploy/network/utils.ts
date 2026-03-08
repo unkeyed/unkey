@@ -18,7 +18,7 @@ export function mapInstanceStatusToHealth(status: Instance["status"]): HealthSta
 }
 
 export function calculateSentinelHealth(
-  instances: Partial<Instance>[],
+  instances: Pick<Partial<Instance>, "status">[],
   sentinel: Sentinel["health"],
 ): HealthStatus {
   // Trust the sentinel's own health check as source of truth

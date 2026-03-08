@@ -18,7 +18,8 @@ SELECT
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
-WHERE (? = '' OR dt.region = ?)
+INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
+WHERE (? = '' OR r.name = ?)
     AND d.desired_state = ?
     AND dt.deployment_id > ?
 ORDER BY dt.deployment_id ASC
@@ -48,7 +49,8 @@ type ListDesiredDeploymentTopologyRow struct {
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
-//	WHERE (? = '' OR dt.region = ?)
+//	INNER JOIN `regions` r ON dt.region_id = r.id
+//	WHERE (? = '' OR r.name = ?)
 //	    AND d.desired_state = ?
 //	    AND dt.deployment_id > ?
 //	ORDER BY dt.deployment_id ASC

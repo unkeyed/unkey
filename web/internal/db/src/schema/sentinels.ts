@@ -1,14 +1,7 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  int,
-  mysqlEnum,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, int, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
+import { regions } from "./regions";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -26,10 +19,9 @@ export const sentinels = mysqlTable(
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
     k8sName: varchar("k8s_name", { length: 64 }).notNull().unique(),
     k8sAddress: varchar("k8s_address", { length: 255 }).notNull().unique(),
-    /*
-     * `us-east-1`, `us-west-2` etc
-     */
-    region: varchar("region", { length: 255 }).notNull(),
+    region: varchar("region", { length: 255 }).default("DELETE ME"),
+
+    regionId: varchar("region_id", { length: 255 }).notNull().default("TODO"),
     image: varchar("image", { length: 255 }).notNull(),
     desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])
       .notNull()
@@ -53,8 +45,8 @@ export const sentinels = mysqlTable(
   },
   (table) => [
     index("idx_environment_id").on(table.environmentId),
-    uniqueIndex("one_env_per_region").on(table.environmentId, table.region),
-    uniqueIndex("unique_version_per_region").on(table.region, table.version),
+    //uniqueIndex("one_env_per_region").on(table.environmentId, table.regionId),
+    //uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
   ],
 );
 
@@ -66,5 +58,9 @@ export const sentinelsRelations = relations(sentinels, ({ one }) => ({
   environment: one(environments, {
     fields: [sentinels.environmentId],
     references: [environments.id],
+  }),
+  region: one(regions, {
+    fields: [sentinels.regionId],
+    references: [regions.id],
   }),
 }));

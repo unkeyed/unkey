@@ -13,14 +13,12 @@ const insertDeploymentTopology = `-- name: InsertDeploymentTopology :exec
 INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     workspace_id,
     deployment_id,
-    region,
     region_id,
     desired_replicas,
     desired_status,
     version,
     created_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -34,7 +32,6 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
 type InsertDeploymentTopologyParams struct {
 	WorkspaceID     string                          `db:"workspace_id"`
 	DeploymentID    string                          `db:"deployment_id"`
-	Region          string                          `db:"region"`
 	RegionID        string                          `db:"region_id"`
 	DesiredReplicas int32                           `db:"desired_replicas"`
 	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
@@ -47,7 +44,6 @@ type InsertDeploymentTopologyParams struct {
 //	INSERT INTO `deployment_topology` (
 //	    workspace_id,
 //	    deployment_id,
-//	    region,
 //	    region_id,
 //	    desired_replicas,
 //	    desired_status,
@@ -60,14 +56,12 @@ type InsertDeploymentTopologyParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertDeploymentTopology(ctx context.Context, db DBTX, arg InsertDeploymentTopologyParams) error {
 	_, err := db.ExecContext(ctx, insertDeploymentTopology,
 		arg.WorkspaceID,
 		arg.DeploymentID,
-		arg.Region,
 		arg.RegionID,
 		arg.DesiredReplicas,
 		arg.DesiredStatus,

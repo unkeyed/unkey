@@ -362,11 +362,8 @@ func (ns NullDeploymentStepsStep) Value() (driver.Value, error) {
 type DeploymentTopologyDesiredStatus string
 
 const (
-	DeploymentTopologyDesiredStatusStarting DeploymentTopologyDesiredStatus = "starting"
-	DeploymentTopologyDesiredStatusStarted  DeploymentTopologyDesiredStatus = "started"
-	DeploymentTopologyDesiredStatusStopping DeploymentTopologyDesiredStatus = "stopping"
-	DeploymentTopologyDesiredStatusStopped  DeploymentTopologyDesiredStatus = "stopped"
-	DeploymentTopologyDesiredStatusRunning  DeploymentTopologyDesiredStatus = "running"
+	DeploymentTopologyDesiredStatusStopped DeploymentTopologyDesiredStatus = "stopped"
+	DeploymentTopologyDesiredStatusRunning DeploymentTopologyDesiredStatus = "running"
 )
 
 func (e *DeploymentTopologyDesiredStatus) Scan(src interface{}) error {
@@ -1025,7 +1022,6 @@ type AppRuntimeSetting struct {
 	MemoryMib      int32                            `db:"memory_mib"`
 	Command        dbtype.StringSlice               `db:"command"`
 	Healthcheck    dbtype.NullHealthcheck           `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig              `db:"region_config"`
 	ShutdownSignal AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	SentinelConfig []byte                           `db:"sentinel_config"`
 	CreatedAt      int64                            `db:"created_at"`
@@ -1098,7 +1094,8 @@ type CiliumNetworkPolicy struct {
 	DeploymentID  string          `db:"deployment_id"`
 	K8sName       string          `db:"k8s_name"`
 	K8sNamespace  string          `db:"k8s_namespace"`
-	Region        string          `db:"region"`
+	Region        sql.NullString  `db:"region"`
+	RegionID      string          `db:"region_id"`
 	Policy        json.RawMessage `db:"policy"`
 	Version       uint64          `db:"version"`
 	CreatedAt     int64           `db:"created_at"`
@@ -1197,7 +1194,7 @@ type DeploymentTopology struct {
 	Pk              uint64                          `db:"pk"`
 	WorkspaceID     string                          `db:"workspace_id"`
 	DeploymentID    string                          `db:"deployment_id"`
-	Region          string                          `db:"region"`
+	Region          sql.NullString                  `db:"region"`
 	RegionID        string                          `db:"region_id"`
 	DesiredReplicas int32                           `db:"desired_replicas"`
 	Version         uint64                          `db:"version"`
@@ -1293,7 +1290,8 @@ type Instance struct {
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
 	AppID         string          `db:"app_id"`
-	Region        string          `db:"region"`
+	Region        sql.NullString  `db:"region"`
+	RegionID      string          `db:"region_id"`
 	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
@@ -1484,7 +1482,8 @@ type Sentinel struct {
 	EnvironmentID     string                `db:"environment_id"`
 	K8sName           string                `db:"k8s_name"`
 	K8sAddress        string                `db:"k8s_address"`
-	Region            string                `db:"region"`
+	Region            sql.NullString        `db:"region"`
+	RegionID          string                `db:"region_id"`
 	Image             string                `db:"image"`
 	DesiredState      SentinelsDesiredState `db:"desired_state"`
 	Health            SentinelsHealth       `db:"health"`
