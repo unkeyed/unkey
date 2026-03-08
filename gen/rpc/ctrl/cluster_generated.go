@@ -22,6 +22,7 @@ type ClusterServiceClient interface {
 	ReportDeploymentStatus(ctx context.Context, req *v1.ReportDeploymentStatusRequest) (*v1.ReportDeploymentStatusResponse, error)
 	WatchCiliumNetworkPolicies(ctx context.Context, req *v1.WatchCiliumNetworkPoliciesRequest) (*connect.ServerStreamForClient[v1.CiliumNetworkPolicyState], error)
 	GetDesiredCiliumNetworkPolicyState(ctx context.Context, req *v1.GetDesiredCiliumNetworkPolicyStateRequest) (*v1.CiliumNetworkPolicyState, error)
+	Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error)
 }
 
 var _ ClusterServiceClient = (*ConnectClusterServiceClient)(nil)
@@ -104,6 +105,19 @@ func (c *ConnectClusterServiceClient) GetDesiredCiliumNetworkPolicyState(ctx con
 	ctx, span := tracing.Start(ctx, "ClusterService.GetDesiredCiliumNetworkPolicyState")
 	defer span.End()
 	resp, err := c.inner.GetDesiredCiliumNetworkPolicyState(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectClusterServiceClient) Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error) {
+	ctx, span := tracing.Start(ctx, "ClusterService.Heartbeat")
+	defer span.End()
+	resp, err := c.inner.Heartbeat(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

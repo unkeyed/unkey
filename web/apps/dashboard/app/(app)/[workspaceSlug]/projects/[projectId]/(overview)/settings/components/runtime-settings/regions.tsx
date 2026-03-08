@@ -20,10 +20,12 @@ const regionsSchema = z.object({
 
 type RegionsFormValues = z.infer<typeof regionsSchema>;
 
+type AvailableRegion = { id: string; name: string };
+
 export const Regions = () => {
   const { settings, autoSave } = useEnvironmentSettings();
-  const { environmentId, regionConfig } = settings;
-  const defaultRegions = Object.keys(regionConfig);
+  const { environmentId, regions } = settings;
+  const defaultRegionNames = regions.map((r) => r.name);
 
   const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
     undefined,
@@ -33,7 +35,7 @@ export const Regions = () => {
   return (
     <RegionsForm
       environmentId={environmentId}
-      defaultRegions={defaultRegions}
+      defaultRegionNames={defaultRegionNames}
       availableRegions={availableRegions ?? []}
       autoSave={autoSave}
     />
@@ -42,14 +44,14 @@ export const Regions = () => {
 
 type RegionsFormProps = {
   environmentId: string;
-  defaultRegions: string[];
-  availableRegions: string[];
+  defaultRegionNames: string[];
+  availableRegions: AvailableRegion[];
   autoSave?: boolean;
 };
 
 const RegionsForm: React.FC<RegionsFormProps> = ({
   environmentId,
-  defaultRegions,
+  defaultRegionNames,
   availableRegions,
   autoSave,
 }) => {
@@ -62,45 +64,48 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
   } = useForm<RegionsFormValues>({
     resolver: zodResolver(regionsSchema),
     mode: "onChange",
-    defaultValues: { regions: defaultRegions },
+    defaultValues: { regions: defaultRegionNames },
   });
 
   useEffect(() => {
-    reset({ regions: defaultRegions });
-  }, [defaultRegions, reset]);
+    reset({ regions: defaultRegionNames });
+  }, [defaultRegionNames, reset]);
 
   const currentRegions = useWatch({ control, name: "regions" });
 
-  const unselectedRegions = availableRegions.filter((r) => !currentRegions.includes(r));
+  const unselectedRegions = availableRegions.filter((r) => !currentRegions.includes(r.name));
 
   const onSubmit = async (values: RegionsFormValues) => {
     collection.environmentSettings.update(environmentId, (draft) => {
-      const newConfig: Record<string, number> = {};
-      const defaultCount = Object.values(draft.regionConfig)[0] ?? 1;
-      for (const region of values.regions) {
-        newConfig[region] = draft.regionConfig[region] ?? defaultCount;
-      }
-      draft.regionConfig = newConfig;
+      const defaultReplicas = draft.regions.at(0)?.replicas ?? 1;
+      draft.regions = values.regions.map((name) => {
+        const existing = draft.regions.find((r) => r.name === name);
+        if (existing) {
+          return existing;
+        }
+        const available = availableRegions.find((r) => r.name === name);
+        return { id: available?.id ?? name, name, replicas: defaultReplicas };
+      });
     });
   };
 
-  const addRegion = (region: string) => {
-    if (region && !currentRegions.includes(region)) {
-      setValue("regions", [...currentRegions, region], { shouldValidate: true });
+  const addRegion = (regionName: string) => {
+    if (regionName && !currentRegions.includes(regionName)) {
+      setValue("regions", [...currentRegions, regionName], { shouldValidate: true });
     }
   };
 
-  const removeRegion = (region: string) => {
+  const removeRegion = (regionName: string) => {
     setValue(
       "regions",
-      currentRegions.filter((r) => r !== region),
+      currentRegions.filter((r) => r !== regionName),
       { shouldValidate: true },
     );
   };
 
   const hasChanges =
-    currentRegions.length !== defaultRegions.length ||
-    currentRegions.some((r) => !defaultRegions.includes(r));
+    currentRegions.length !== defaultRegionNames.length ||
+    currentRegions.some((r) => !defaultRegionNames.includes(r));
 
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],
@@ -109,9 +114,9 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
   ]);
 
   const displayValue =
-    defaultRegions.length === 0 ? null : defaultRegions.length <= 2 ? (
+    defaultRegionNames.length === 0 ? null : defaultRegionNames.length <= 2 ? (
       <span className="flex items-center gap-1.5">
-        {defaultRegions.map((r, i) => (
+        {defaultRegionNames.map((r, i) => (
           <span key={r} className="flex items-center gap-1.5">
             {i > 0 && <span className="text-grayA-4">|</span>}
             <span className="flex items-center gap-1">
@@ -128,19 +133,19 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
       </span>
     ) : (
       <span className="flex items-center gap-1">
-        {defaultRegions.map((r) => (
+        {defaultRegionNames.map((r) => (
           <RegionFlag key={r} flagCode={mapRegionToFlag(r)} size="xs" shape="circle" />
         ))}
       </span>
     );
 
   const comboboxOptions: ComboboxOption[] = unselectedRegions.map((region) => ({
-    value: region,
-    searchValue: region,
+    value: region.name,
+    searchValue: region.name,
     label: (
       <div className="flex items-center gap-2">
-        <RegionFlag flagCode={mapRegionToFlag(region)} size="xs" className="[&_img]:size-3" />
-        <span className="text-gray-11 text-xs font-mono">{region}</span>
+        <RegionFlag flagCode={mapRegionToFlag(region.name)} size="xs" className="[&_img]:size-3" />
+        <span className="text-gray-11 text-xs font-mono">{region.name}</span>
       </div>
     ),
   }));

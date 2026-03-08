@@ -68,6 +68,7 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("sentinelID", cfg.SentinelID),
 		slog.String("workspaceID", cfg.WorkspaceID),
 		slog.String("environmentID", cfg.EnvironmentID),
+		slog.String("platform", cfg.Platform),
 		slog.String("region", cfg.Region),
 		slog.String("version", version.Version),
 	))

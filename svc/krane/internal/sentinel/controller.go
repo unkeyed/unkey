@@ -26,6 +26,7 @@ type Controller struct {
 	done            chan struct{}
 	stopOnce        sync.Once
 	region          string
+	platform        string
 	versionLastSeen uint64
 }
 
@@ -33,6 +34,7 @@ type Controller struct {
 type Config struct {
 	Cluster       ctrl.ClusterServiceClient
 	Region        string
+	Platform      string
 	ClientSet     kubernetes.Interface
 	DynamicClient dynamic.Interface
 }
@@ -46,6 +48,7 @@ func New(cfg Config) *Controller {
 		cb:              circuitbreaker.New[any]("sentinel_state_update"),
 		done:            make(chan struct{}),
 		region:          cfg.Region,
+		platform:        cfg.Platform,
 		versionLastSeen: 0,
 		stopOnce:        sync.Once{},
 	}

@@ -40,9 +40,7 @@ Rotation is manual today. There is no built-in rotation mechanism.
 
 TODO: Replace with JWT-based auth once `auth.unkey.cloud` is in place.
 
-<ResponseField name="available_regions" type="string[]">
-  Regions available for deployments.
-</ResponseField>
+
 
 <ResponseField name="default_domain" type="string">
   Base domain for wildcard certificates.
@@ -117,7 +115,6 @@ prometheus_port = 9090
 region = "${UNKEY_REGION}"
 instance_id = "${POD_NAME}"
 auth_token = "${UNKEY_AUTH_TOKEN}"
-available_regions = ["eu-central-1.aws", "us-east-1.aws", "us-west-2.aws"]
 default_domain = "${UNKEY_DEFAULT_DOMAIN}"
 regional_domain = "${UNKEY_REGIONAL_DOMAIN}"
 cname_domain = "${UNKEY_CNAME_DOMAIN}"

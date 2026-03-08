@@ -37,8 +37,12 @@ func (s *Service) WatchDeployments(
 		return err
 	}
 
-	region := req.Msg.GetRegion()
-	if err := assert.NotEmpty(region, "region is required"); err != nil {
+	region := req.Header().Get("X-Krane-Region")
+	platform := req.Header().Get("X-Krane-Platform")
+	if err := assert.All(
+		assert.NotEmpty(region, "region is required"),
+		assert.NotEmpty(platform, "platform is required"),
+	); err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -113,7 +117,7 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 				},
 			},
 		}, nil
-	case db.DeploymentTopologyDesiredStatusStarted, db.DeploymentTopologyDesiredStatusStarting:
+	case db.DeploymentTopologyDesiredStatusRunning, db.DeploymentTopologyDesiredStatusStarted, db.DeploymentTopologyDesiredStatusStarting:
 		var buildID *string
 		if row.Deployment.BuildID.Valid {
 			buildID = &row.Deployment.BuildID.String

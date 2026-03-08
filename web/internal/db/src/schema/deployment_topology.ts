@@ -20,13 +20,14 @@ export const deploymentTopology = mysqlTable(
     deploymentId: varchar("deployment_id", { length: 64 }).notNull(),
 
     region: varchar("region", { length: 64 }).notNull(),
+    regionId: varchar("region_id", { length: 64 }).notNull().default(""),
 
     desiredReplicas: int("desired_replicas").notNull(),
 
     // Version for state synchronization with edge agents.
     // Updated via Restate VersioningService on each mutation.
     // Edge agents track their last-seen version and request changes after it.
-    // Unique per region (composite index with region).
+    // Unique per regionId (composite index with regionId).
     version: bigint("version", { mode: "number", unsigned: true }).notNull(),
 
     // Deployment status
@@ -35,12 +36,13 @@ export const deploymentTopology = mysqlTable(
       "started",
       "stopping",
       "stopped",
+      "running",
     ]).notNull(),
     ...lifecycleDates,
   },
   (table) => [
-    uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.region),
-    uniqueIndex("unique_version_per_region").on(table.region, table.version),
+    uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.regionId),
+    uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
     index("workspace_idx").on(table.workspaceId),
     index("status_idx").on(table.desiredStatus),
   ],

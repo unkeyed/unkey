@@ -8,7 +8,8 @@ metadata:
     component: krane
 data:
   unkey.toml: |
-    region = "local.dev"
+    region = "local"
+    platform = "dev"
 
     [control]
     url = "http://ctrl-api:7091"

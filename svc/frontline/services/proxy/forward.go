@@ -29,6 +29,7 @@ type forwardConfig struct {
 
 func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 	sess.ResponseWriter().Header().Set(HeaderFrontlineID, s.instanceID)
+	sess.ResponseWriter().Header().Set(HeaderPlatform, s.platform)
 	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
 
