@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, int, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -10,7 +18,6 @@ export const deploymentTopology = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     workspaceId: varchar("workspace_id", { length: 64 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 64 }).notNull(),
-    region: varchar("region", { length: 255 }).default("DELETE ME"),
     regionId: varchar("region_id", { length: 64 }).notNull(),
 
     desiredReplicas: int("desired_replicas").notNull(),
@@ -26,9 +33,9 @@ export const deploymentTopology = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    //uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.regionId),
-    //uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
-    //uniqueIndex("deployment_region_idx").on(table.deploymentId, table.regionId),
+    uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.regionId),
+    uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
+    uniqueIndex("deployment_region_idx").on(table.deploymentId, table.regionId),
     index("workspace_idx").on(table.workspaceId),
     index("status_idx").on(table.desiredStatus),
   ],

@@ -24,8 +24,7 @@ export const instances = mysqlTable(
     projectId: varchar("project_id", { length: 255 }).notNull(),
     appId: varchar("app_id", { length: 64 }).notNull(),
 
-    region: varchar("region", { length: 255 }).default("DELETE ME"),
-    regionId: varchar("region_id", { length: 64 }).notNull().default("TODO"),
+    regionId: varchar("region_id", { length: 64 }).notNull(),
 
     // used to apply updates from the kubernetes watch events
     k8sName: varchar("k8s_name", { length: 255 }).notNull(),

@@ -255,15 +255,15 @@ type Querier interface {
 	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
 	//FindCiliumNetworkPoliciesByDeploymentID
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at FROM cilium_network_policies WHERE deployment_id = ?
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at FROM cilium_network_policies WHERE deployment_id = ?
 	FindCiliumNetworkPoliciesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]CiliumNetworkPolicy, error)
 	//FindCiliumNetworkPoliciesByEnvironmentID
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
 	FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]CiliumNetworkPolicy, error)
 	//FindCiliumNetworkPolicyByIDAndRegion
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 	//  FROM `cilium_network_policies`
 	//  WHERE region_id = ? AND id = ?
 	//  LIMIT 1
@@ -506,21 +506,21 @@ type Querier interface {
 	//FindInstanceByPodName
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region, region_id, k8s_name, address, cpu_millicores, memory_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//    WHERE k8s_name = ? AND region_id = ?
 	FindInstanceByPodName(ctx context.Context, db DBTX, arg FindInstanceByPodNameParams) (Instance, error)
 	//FindInstancesByDeploymentId
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region, region_id, k8s_name, address, cpu_millicores, memory_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//  WHERE deployment_id = ?
 	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentid string) ([]Instance, error)
 	//FindInstancesByDeploymentIdAndRegionID
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region, region_id, k8s_name, address, cpu_millicores, memory_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, status
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region_id = ?
 	FindInstancesByDeploymentIdAndRegionID(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionIDParams) ([]Instance, error)
@@ -1104,12 +1104,12 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels s
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels s
 	//  WHERE id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.version, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.version, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindWorkspaceByID
 	//
@@ -1908,7 +1908,7 @@ type Querier interface {
 	// ListCiliumNetworkPoliciesByRegion returns cilium network policies for a region with version > after_version.
 	// Used by WatchCiliumNetworkPolicies to stream policy state changes to krane agents.
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 	//  FROM `cilium_network_policies`
 	//  WHERE region_id = ? AND version > ?
 	//  ORDER BY version ASC
@@ -1925,7 +1925,7 @@ type Querier interface {
 	// Used by WatchDeployments to stream deployment state changes to krane agents.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
@@ -1948,7 +1948,7 @@ type Querier interface {
 	// Used during bootstrap to stream all running deployments to krane.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
@@ -1963,7 +1963,7 @@ type Querier interface {
 	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
 	//ListDesiredNetworkPolicies
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 	//  FROM `cilium_network_policies`
 	//  WHERE (? = '' OR region_id = ?) AND id > ?
 	//  ORDER BY id ASC
@@ -1972,7 +1972,7 @@ type Querier interface {
 	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
 	// Used during bootstrap to stream all running sentinels to krane.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at
 	//  FROM `sentinels`
 	//  WHERE (? = '' OR region_id = ?)
 	//      AND desired_state = ?
@@ -2214,7 +2214,7 @@ type Querier interface {
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListNetworkPolicyByRegion
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 	//  FROM `cilium_network_policies`
 	//  WHERE region_id = ? AND version > ?
 	//  ORDER BY version ASC
@@ -2378,7 +2378,7 @@ type Querier interface {
 	// ListSentinelsByRegion returns sentinels for a region with version > after_version.
 	// Used by WatchSentinels to stream sentinel state changes to krane agents.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM `sentinels`
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM `sentinels`
 	//  WHERE region_id = ? AND version > ?
 	//  ORDER BY version ASC
 	//  LIMIT ?

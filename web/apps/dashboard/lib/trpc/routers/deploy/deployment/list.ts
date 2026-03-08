@@ -59,7 +59,8 @@ export const listDeployments = workspaceProcedure
         hasOpenApiSpec: Boolean(openapiSpec),
         gitCommitTimestamp: deployment.gitCommitTimestamp,
       }));
-    } catch (_error) {
+    } catch (error) {
+      console.error(error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to fetch deployments",
