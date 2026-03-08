@@ -18,8 +18,8 @@ export const clusters = mysqlTable("clusters", {
   }).notNull(),
 });
 
-export const regionsRelations = relations(clusters, ({ one }) => ({
-  workspace: one(regions, {
+export const clustersRelations = relations(clusters, ({ one }) => ({
+  region: one(regions, {
     fields: [clusters.regionId],
     references: [regions.id],
   }),
