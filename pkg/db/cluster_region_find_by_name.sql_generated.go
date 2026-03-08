@@ -10,7 +10,7 @@ import (
 )
 
 const findRegionByNameAndPlatform = `-- name: FindRegionByNameAndPlatform :one
-SELECT id FROM regions WHERE name = ? AND platform = ?
+SELECT pk, id, name, platform FROM regions WHERE name = ? AND platform = ?
 `
 
 type FindRegionByNameAndPlatformParams struct {
@@ -20,10 +20,15 @@ type FindRegionByNameAndPlatformParams struct {
 
 // FindRegionByNameAndPlatform
 //
-//	SELECT id FROM regions WHERE name = ? AND platform = ?
-func (q *Queries) FindRegionByNameAndPlatform(ctx context.Context, db DBTX, arg FindRegionByNameAndPlatformParams) (string, error) {
+//	SELECT pk, id, name, platform FROM regions WHERE name = ? AND platform = ?
+func (q *Queries) FindRegionByNameAndPlatform(ctx context.Context, db DBTX, arg FindRegionByNameAndPlatformParams) (Region, error) {
 	row := db.QueryRowContext(ctx, findRegionByNameAndPlatform, arg.Name, arg.Platform)
-	var id string
-	err := row.Scan(&id)
-	return id, err
+	var i Region
+	err := row.Scan(
+		&i.Pk,
+		&i.ID,
+		&i.Name,
+		&i.Platform,
+	)
+	return i, err
 }

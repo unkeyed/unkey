@@ -24,13 +24,24 @@ func (s *Service) GetDesiredCiliumNetworkPolicyState(
 		return nil, err
 	}
 
-	region := req.Header().Get("X-Krane-Region")
+	regionName := req.Header().Get("X-Krane-Region")
 	platform := req.Header().Get("X-Krane-Platform")
 	if err := assert.All(
-		assert.NotEmpty(region, "region is required"),
+		assert.NotEmpty(regionName, "region is required"),
 		assert.NotEmpty(platform, "platform is required"),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
+		Platform: platform,
+		Name:     regionName,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	policyID := req.Msg.GetCiliumNetworkPolicyId()
@@ -39,7 +50,7 @@ func (s *Service) GetDesiredCiliumNetworkPolicyState(
 	}
 
 	policy, err := db.Query.FindCiliumNetworkPolicyByIDAndRegion(ctx, s.db.RO(), db.FindCiliumNetworkPolicyByIDAndRegionParams{
-		Region:                region,
+		RegionID:              region.ID,
 		CiliumNetworkPolicyID: policyID,
 	})
 	if err != nil {

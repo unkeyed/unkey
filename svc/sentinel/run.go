@@ -160,6 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		Clock:         clk,
 		EnvironmentID: cfg.EnvironmentID,
+		Platform:      cfg.Platform,
 		Region:        cfg.Region,
 		Broadcaster:   broadcaster,
 		NodeID:        cfg.SentinelID,

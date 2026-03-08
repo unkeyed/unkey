@@ -411,7 +411,7 @@ func (w *Workflow) createTopologies(
 	topologies := make([]db.InsertDeploymentTopologyParams, 0, len(regionalSettings))
 
 	for _, rs := range regionalSettings {
-		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, rs.RegionName).NextVersion().Request(&hydrav1.NextVersionRequest{})
+		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, rs.RegionID).NextVersion().Request(&hydrav1.NextVersionRequest{})
 		if err != nil {
 			return nil, fault.Wrap(
 				fmt.Errorf("failed to get next version: %w", err),
@@ -424,7 +424,6 @@ func (w *Workflow) createTopologies(
 		topologies = append(topologies, db.InsertDeploymentTopologyParams{
 			WorkspaceID:     workspace.ID,
 			DeploymentID:    deployment.ID,
-			Region:          rs.RegionName,
 			RegionID:        rs.RegionID,
 			DesiredReplicas: replicas,
 			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
@@ -450,11 +449,11 @@ func (w *Workflow) createTopologies(
 	// version and will not be removed by this compensation.
 	for _, topo := range topologies {
 		compensation.Add(
-			fmt.Sprintf("delete deployment topology %s/%s/%d", topo.DeploymentID, topo.Region, topo.Version),
+			fmt.Sprintf("delete deployment topology %s/%s/%d", topo.DeploymentID, topo.RegionID, topo.Version),
 			func(runCtx restate.RunContext) error {
 				return db.Query.DeleteDeploymentTopologyByDeploymentRegionVersion(runCtx, w.db.RW(), db.DeleteDeploymentTopologyByDeploymentRegionVersionParams{
 					DeploymentID: topo.DeploymentID,
-					Region:       topo.Region,
+					RegionID:     topo.RegionID,
 					Version:      topo.Version,
 				})
 			},
@@ -480,7 +479,7 @@ func (w *Workflow) ensureSentinels(
 	environment db.Environment,
 	topologies []db.InsertDeploymentTopologyParams,
 ) error {
-	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
+	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindSentinelsByEnvironmentIDRow, error) {
 		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
 	}, restate.WithName("find existing sentinels"))
 	if err != nil {
@@ -491,12 +490,12 @@ func (w *Workflow) ensureSentinels(
 	}
 
 	existingSentinelsByRegion := make(map[string]db.Sentinel)
-	for _, sentinel := range existingSentinels {
-		existingSentinelsByRegion[sentinel.Region] = sentinel
+	for _, row := range existingSentinels {
+		existingSentinelsByRegion[row.Region.ID] = row.Sentinel
 	}
 
 	for _, topology := range topologies {
-		_, ok := existingSentinelsByRegion[topology.Region]
+		_, ok := existingSentinelsByRegion[topology.RegionID]
 		if !ok {
 
 			desiredReplicas := int32(1)
@@ -504,7 +503,7 @@ func (w *Workflow) ensureSentinels(
 				desiredReplicas = 3
 			}
 
-			sentinelVersion, err := hydrav1.NewVersioningServiceClient(ctx, topology.Region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+			sentinelVersion, err := hydrav1.NewVersioningServiceClient(ctx, topology.RegionID).NextVersion().Request(&hydrav1.NextVersionRequest{})
 			if err != nil {
 				return fault.Wrap(
 					fmt.Errorf("failed to get next version for sentinel: %w", err),
@@ -513,36 +512,40 @@ func (w *Workflow) ensureSentinels(
 			}
 
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+
+				region, err := db.Query.FindRegionById(runCtx, w.db.RO(), topology.RegionID)
+				if err != nil {
+					return fmt.Errorf("failed to find region by id %s: %w", topology.RegionID, err)
+				}
+
 				sentinelID := uid.New(uid.SentinelPrefix)
 				sentinelK8sName := uid.DNS1035()
 
-				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-					// we rely on the unique index of environmentID + region here to create or noop
-					err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
-						ID:                sentinelID,
-						WorkspaceID:       workspace.ID,
-						EnvironmentID:     environment.ID,
-						ProjectID:         project.ID,
-						K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
-						K8sName:           sentinelK8sName,
-						Region:            topology.Region,
-						Image:             w.sentinelImage,
-						Health:            db.SentinelsHealthUnknown,
-						DesiredReplicas:   desiredReplicas,
-						AvailableReplicas: 0,
-						CpuMillicores:     256,
-						MemoryMib:         256,
-						Version:           sentinelVersion.GetVersion(),
-						CreatedAt:         time.Now().UnixMilli(),
-					})
-					if err != nil {
-						if db.IsDuplicateKeyError(err) {
-							return nil
-						}
-						return err
-					}
-					return nil
+				err = db.Query.InsertSentinel(runCtx, w.db.RW(), db.InsertSentinelParams{
+					ID:                sentinelID,
+					WorkspaceID:       workspace.ID,
+					EnvironmentID:     environment.ID,
+					ProjectID:         project.ID,
+					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
+					K8sName:           sentinelK8sName,
+					RegionID:          region.ID,
+					Image:             w.sentinelImage,
+					Health:            db.SentinelsHealthUnknown,
+					DesiredReplicas:   desiredReplicas,
+					AvailableReplicas: 0,
+					CpuMillicores:     256,
+					MemoryMib:         256,
+					Version:           sentinelVersion.GetVersion(),
+					CreatedAt:         time.Now().UnixMilli(),
 				})
+				if err != nil {
+					if db.IsDuplicateKeyError(err) {
+						return nil
+					}
+					return err
+				}
+				return nil
+
 			}, restate.WithName("ensure sentinel exists in db"))
 			if err != nil {
 				return fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
@@ -770,27 +773,35 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 	}
 
 	readygates := make([]restate.Future, len(topologies))
-	for i, region := range topologies {
+	for i, topo := range topologies {
+
+		region, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Region, error) {
+			return db.Query.FindRegionById(runCtx, w.db.RO(), topo.RegionID)
+		}, restate.WithName(fmt.Sprintf("find region %s", topo.RegionID)))
+		if err != nil {
+			return fault.Wrap(err, fault.Public("Deployment readiness checks could not start."))
+		}
+
 		promise := restate.RunAsync(ctx, func(runCtx restate.RunContext) (bool, error) {
 			for time.Now().Before(deadline) {
 				time.Sleep(time.Second)
 
-				instances, err := db.Query.FindInstancesByDeploymentIdAndRegion(runCtx, w.db.RO(), db.FindInstancesByDeploymentIdAndRegionParams{
-					Deploymentid: deploymentID,
-					Region:       region.Region,
+				instances, err := db.Query.FindInstancesByDeploymentIdAndRegionID(runCtx, w.db.RO(), db.FindInstancesByDeploymentIdAndRegionIDParams{
+					DeploymentID: deploymentID,
+					RegionID:     region.ID,
 				})
 				if err != nil {
 					return false, err
 				}
-				logger.Info("checking instances for region", "deployment_id", deploymentID, "region", region.Region, "instances_found", len(instances))
-				if len(instances) < int(region.DesiredReplicas) {
-					logger.Info("not all instances are up yet", "deployment_id", deploymentID, "region", region.Region, "instances_found", len(instances), "desired_replicas", region.DesiredReplicas)
+				logger.Info("checking instances for region", "deployment_id", deploymentID, "region_id", topo.RegionID, "instances_found", len(instances))
+				if len(instances) < int(topo.DesiredReplicas) {
+					logger.Info("not all instances are up yet", "deployment_id", deploymentID, "region_id", topo.RegionID, "instances_found", len(instances), "desired_replicas", topo.DesiredReplicas)
 					continue
 				}
 				allRunning := true
 				for _, instance := range instances {
 					if instance.Status != db.InstancesStatusRunning {
-						logger.Info("instance not running yet", "deployment_id", deploymentID, "region", instance.Region, "instance_id", instance.ID, "status", instance.Status)
+						logger.Info("instance not running yet", "deployment_id", deploymentID, "region_id", instance.RegionID, "instance_id", instance.ID, "status", instance.Status)
 						allRunning = false
 						break
 					}
@@ -800,7 +811,7 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 				}
 			}
 			return false, nil
-		}, restate.WithName(fmt.Sprintf("wait for %d instances in %s", region.DesiredReplicas, region.Region)))
+		}, restate.WithName(fmt.Sprintf("wait for %d instances in %s", topo.DesiredReplicas, topo.RegionID)))
 		readygates[i] = promise
 
 	}
@@ -832,7 +843,7 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 	}
 	if healthyRegions < requiredHealthyRegions {
 		return fault.Wrap(
-			fmt.Errorf("only %d healthy regions, required at least %d", healthyRegions, requiredHealthyRegions),
+			restate.TerminalErrorf("only %d healthy regions, required at least %d", healthyRegions, requiredHealthyRegions),
 			fault.Public("Not enough regions became healthy."),
 		)
 	}

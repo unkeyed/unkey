@@ -258,7 +258,6 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		MemoryMib:      128,
 		Command:        nil,
 		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		RegionConfig:   nil,
 		ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
 		SentinelConfig: []byte("{}"),
 		CreatedAt:      now,

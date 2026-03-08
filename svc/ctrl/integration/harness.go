@@ -166,7 +166,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	})
 	require.NoError(h.t, err)
 
-	regionID, err = db.Query.FindRegionByNameAndPlatform(ctx, h.DB.RO(), db.FindRegionByNameAndPlatformParams{
+	region, err := db.Query.FindRegionByNameAndPlatform(ctx, h.DB.RO(), db.FindRegionByNameAndPlatformParams{
 		Name:     req.Region,
 		Platform: "test",
 	})
@@ -176,8 +176,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	err = db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
 		WorkspaceID:     workspaceID,
 		DeploymentID:    deploymentID,
-		Region:          req.Region,
-		RegionID:        regionID,
+		RegionID:        region.ID,
 		DesiredReplicas: 1,
 		DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
 		Version:         h.versionCounter,
@@ -194,7 +193,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 			Pk:              0,
 			WorkspaceID:     workspaceID,
 			DeploymentID:    deploymentID,
-			Region:          req.Region,
+			Region:          sql.NullString{Valid: false, String: ""},
 			RegionID:        regionID,
 			DesiredReplicas: 1,
 			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
@@ -207,7 +206,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 
 // CreateSentinelRequest contains parameters for creating a test sentinel.
 type CreateSentinelRequest struct {
-	Region       string
+	RegionID     string
 	DesiredState db.SentinelsDesiredState
 }
 
@@ -260,7 +259,7 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		ProjectID:         project.ID,
 		K8sAddress:        "http://localhost:8080",
 		K8sName:           k8sName,
-		Region:            req.Region,
+		RegionID:          req.RegionID,
 		Image:             "sentinel:1.0",
 		Health:            db.SentinelsHealthHealthy,
 		DesiredReplicas:   1,

@@ -32,7 +32,11 @@ const schema = z.object({
   instances: z.array(
     z.object({
       id: z.string(),
-      region: z.string(),
+      region: z.object({
+        id: z.string(),
+        name: z.string(),
+        platform: z.string(),
+      }),
       flagCode: z.enum(flagCodes),
     }),
   ),

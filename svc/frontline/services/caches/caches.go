@@ -20,7 +20,7 @@ type Caches struct {
 	FrontlineRoutes cache.Cache[string, db.FrontlineRoute]
 
 	// EnvironmentID -> List of Sentinels
-	SentinelsByEnvironment cache.Cache[string, []db.Sentinel]
+	SentinelsByEnvironment cache.Cache[string, []db.FindSentinelsByEnvironmentIDRow]
 
 	// HostName -> Certificate
 	TLSCertificates cache.Cache[string, tls.Certificate]
@@ -142,7 +142,7 @@ func New(config Config) (*Caches, error) {
 	}
 
 	sentinelsByEnvironment, err := createCache(
-		cache.Config[string, []db.Sentinel]{
+		cache.Config[string, []db.FindSentinelsByEnvironmentIDRow]{
 			Fresh:    5 * time.Second,
 			Stale:    2 * time.Minute,
 			MaxSize:  10_000,

@@ -3,7 +3,7 @@
 -- Used during bootstrap to stream all running sentinels to krane.
 SELECT *
 FROM `sentinels`
-WHERE (sqlc.arg(region) = '' OR region = sqlc.arg(region))
+WHERE (sqlc.arg(region_id) = '' OR region_id = sqlc.arg(region_id))
     AND desired_state = sqlc.arg(desired_state)
     AND id > sqlc.arg(pagination_cursor)
 ORDER BY id ASC

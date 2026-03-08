@@ -10,15 +10,15 @@ import (
 )
 
 const listCiliumNetworkPoliciesByRegion = `-- name: ListCiliumNetworkPoliciesByRegion :many
-SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
 FROM ` + "`" + `cilium_network_policies` + "`" + `
-WHERE region = ? AND version > ?
+WHERE region_id = ? AND version > ?
 ORDER BY version ASC
 LIMIT ?
 `
 
 type ListCiliumNetworkPoliciesByRegionParams struct {
-	Region       string `db:"region"`
+	RegionID     string `db:"region_id"`
 	Afterversion uint64 `db:"afterversion"`
 	Limit        int32  `db:"limit"`
 }
@@ -26,13 +26,13 @@ type ListCiliumNetworkPoliciesByRegionParams struct {
 // ListCiliumNetworkPoliciesByRegion returns cilium network policies for a region with version > after_version.
 // Used by WatchCiliumNetworkPolicies to stream policy state changes to krane agents.
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, region_id, policy, version, created_at, updated_at
 //	FROM `cilium_network_policies`
-//	WHERE region = ? AND version > ?
+//	WHERE region_id = ? AND version > ?
 //	ORDER BY version ASC
 //	LIMIT ?
 func (q *Queries) ListCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX, arg ListCiliumNetworkPoliciesByRegionParams) ([]CiliumNetworkPolicy, error) {
-	rows, err := db.QueryContext(ctx, listCiliumNetworkPoliciesByRegion, arg.Region, arg.Afterversion, arg.Limit)
+	rows, err := db.QueryContext(ctx, listCiliumNetworkPoliciesByRegion, arg.RegionID, arg.Afterversion, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +51,7 @@ func (q *Queries) ListCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX
 			&i.K8sName,
 			&i.K8sNamespace,
 			&i.Region,
+			&i.RegionID,
 			&i.Policy,
 			&i.Version,
 			&i.CreatedAt,

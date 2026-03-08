@@ -5,7 +5,6 @@ const (
 	// Headers set on BOTH response (to client) AND request (to downstream service)
 	// These identify which frontline processed the request
 	HeaderFrontlineID = "X-Unkey-Frontline-Id" // ID of the frontline instance
-	HeaderPlatform    = "X-Unkey-Platform"     // Platform of the frontline instance
 	HeaderRegion      = "X-Unkey-Region"       // Region of the frontline instance
 	HeaderRequestID   = "X-Unkey-Request-Id"   // Request ID for tracing
 

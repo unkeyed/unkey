@@ -4,5 +4,5 @@ SET policy = sqlc.arg(policy),
     version = sqlc.arg(version),
     updated_at = sqlc.arg(updated_at)
 WHERE environment_id = sqlc.arg(environment_id)
-  AND region = sqlc.arg(region)
+  AND region_id = sqlc.arg(region_id)
   AND k8s_name = sqlc.arg(k8s_name);

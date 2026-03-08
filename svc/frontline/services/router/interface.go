@@ -20,8 +20,8 @@ type RouteDecision struct {
 }
 
 type Service interface {
-	LookupByHostname(ctx context.Context, hostname string) (*db.FrontlineRoute, []db.Sentinel, error)
-	SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error)
+	LookupByHostname(ctx context.Context, hostname string) (*db.FrontlineRoute, []db.FindSentinelsByEnvironmentIDRow, error)
+	SelectSentinel(route *db.FrontlineRoute, sentinels []db.FindSentinelsByEnvironmentIDRow) (*RouteDecision, error)
 }
 
 type Config struct {
@@ -29,5 +29,5 @@ type Config struct {
 	Region                 string
 	DB                     db.Database
 	FrontlineRouteCache    cache.Cache[string, db.FrontlineRoute]
-	SentinelsByEnvironment cache.Cache[string, []db.Sentinel]
+	SentinelsByEnvironment cache.Cache[string, []db.FindSentinelsByEnvironmentIDRow]
 }
