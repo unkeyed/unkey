@@ -9,6 +9,6 @@ FROM `deployment_topology` dt
 INNER JOIN `deployments` d ON dt.deployment_id = d.id
 INNER JOIN `workspaces` w ON d.workspace_id = w.id
 INNER JOIN `regions` r ON dt.region_id = r.id
-WHERE r.name = sqlc.arg(region) AND dt.version > sqlc.arg(afterVersion)
+WHERE r.id = sqlc.arg(region_id) AND dt.version > sqlc.arg(afterVersion)
 ORDER BY dt.version ASC
 LIMIT ?;

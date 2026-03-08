@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
@@ -37,9 +36,7 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 	now := time.Now().UnixMilli()
 
 	err := db.Query.UpsertRegion(ctx, s.db.RW(), db.UpsertRegionParams{
-		// using a readable id here to make debugging significantly easier
-		// do not rely on this schema though. treat ids as opaque strings.
-		ID:       fmt.Sprintf("%s::%s", platform, regionName),
+		ID:       uid.New(uid.RegionPrefix),
 		Name:     regionName,
 		Platform: platform,
 	})

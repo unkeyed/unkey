@@ -843,7 +843,7 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 	}
 	if healthyRegions < requiredHealthyRegions {
 		return fault.Wrap(
-			fmt.Errorf("only %d healthy regions, required at least %d", healthyRegions, requiredHealthyRegions),
+			restate.TerminalErrorf("only %d healthy regions, required at least %d", healthyRegions, requiredHealthyRegions),
 			fault.Public("Not enough regions became healthy."),
 		)
 	}

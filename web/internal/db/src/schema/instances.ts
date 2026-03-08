@@ -17,16 +17,14 @@ import { regions } from "./regions";
 export const instances = mysqlTable(
   "instances",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true })
-      .autoincrement()
-      .primaryKey(),
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 64 }).notNull().unique(),
     deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     appId: varchar("app_id", { length: 64 }).notNull(),
 
-    region: varchar("region", { length: 64 }).notNull(),
+    region: varchar("region", { length: 255 }).default("DELETE ME"),
     regionId: varchar("region_id", { length: 64 }).notNull().default("TODO"),
 
     // used to apply updates from the kubernetes watch events
@@ -35,12 +33,7 @@ export const instances = mysqlTable(
     address: varchar("address", { length: 255 }).notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
-    status: mysqlEnum("status", [
-      "inactive",
-      "pending",
-      "running",
-      "failed",
-    ]).notNull(),
+    status: mysqlEnum("status", ["inactive", "pending", "running", "failed"]).notNull(),
   },
   (table) => [
     uniqueIndex("unique_address_per_region").on(table.address, table.regionId),

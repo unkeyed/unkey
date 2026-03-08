@@ -19,13 +19,13 @@ FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
-WHERE r.name = ? AND dt.version > ?
+WHERE r.id = ? AND dt.version > ?
 ORDER BY dt.version ASC
 LIMIT ?
 `
 
 type ListDeploymentTopologyByRegionParams struct {
-	Region       string `db:"region"`
+	RegionID     string `db:"region_id"`
 	Afterversion uint64 `db:"afterversion"`
 	Limit        int32  `db:"limit"`
 }
@@ -47,11 +47,11 @@ type ListDeploymentTopologyByRegionRow struct {
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
 //	INNER JOIN `regions` r ON dt.region_id = r.id
-//	WHERE r.name = ? AND dt.version > ?
+//	WHERE r.id = ? AND dt.version > ?
 //	ORDER BY dt.version ASC
 //	LIMIT ?
 func (q *Queries) ListDeploymentTopologyByRegion(ctx context.Context, db DBTX, arg ListDeploymentTopologyByRegionParams) ([]ListDeploymentTopologyByRegionRow, error) {
-	rows, err := db.QueryContext(ctx, listDeploymentTopologyByRegion, arg.Region, arg.Afterversion, arg.Limit)
+	rows, err := db.QueryContext(ctx, listDeploymentTopologyByRegion, arg.RegionID, arg.Afterversion, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

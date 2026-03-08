@@ -533,15 +533,14 @@ CREATE TABLE `deployment_topology` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(64) NOT NULL,
 	`deployment_id` varchar(64) NOT NULL,
-	`region` varchar(64),
+	`region` varchar(255) DEFAULT 'DELETE ME',
 	`region_id` varchar(64) NOT NULL,
 	`desired_replicas` int NOT NULL,
 	`version` bigint unsigned NOT NULL,
 	`desired_status` enum('stopped','running') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
+	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`)
 );
 
 CREATE TABLE `acme_users` (
@@ -605,7 +604,7 @@ CREATE TABLE `sentinels` (
 	`environment_id` varchar(255) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_address` varchar(255) NOT NULL,
-	`region` varchar(64),
+	`region` varchar(255) DEFAULT 'DELETE ME',
 	`region_id` varchar(255) NOT NULL DEFAULT 'TODO',
 	`image` varchar(255) NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
@@ -620,8 +619,7 @@ CREATE TABLE `sentinels` (
 	CONSTRAINT `sentinels_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `sentinels_id_unique` UNIQUE(`id`),
 	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
-	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
+	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`)
 );
 
 CREATE TABLE `instances` (
@@ -631,6 +629,7 @@ CREATE TABLE `instances` (
 	`workspace_id` varchar(255) NOT NULL,
 	`project_id` varchar(255) NOT NULL,
 	`app_id` varchar(64) NOT NULL,
+	`region` varchar(255) DEFAULT 'DELETE ME',
 	`region_id` varchar(64) NOT NULL DEFAULT 'TODO',
 	`k8s_name` varchar(255) NOT NULL,
 	`address` varchar(255) NOT NULL,
@@ -706,16 +705,14 @@ CREATE TABLE `cilium_network_policies` (
 	`deployment_id` varchar(128) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_namespace` varchar(255) NOT NULL,
-	`region` varchar(255),
+	`region` varchar(255) DEFAULT 'DELETE ME',
 	`region_id` varchar(64) NOT NULL DEFAULT 'TODO',
 	`policy` json NOT NULL,
 	`version` bigint unsigned NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
-	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region_id`,`k8s_name`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
+	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`)
 );
 
 CREATE TABLE `clusters` (

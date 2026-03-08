@@ -37,14 +37,27 @@ func (s *Service) WatchDeployments(
 		return err
 	}
 
-	region := req.Header().Get("X-Krane-Region")
+	regionName := req.Header().Get("X-Krane-Region")
 	platform := req.Header().Get("X-Krane-Platform")
 	if err := assert.All(
-		assert.NotEmpty(region, "region is required"),
+		assert.NotEmpty(regionName, "region is required"),
 		assert.NotEmpty(platform, "platform is required"),
 	); err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
+
+	logger.Info("starting WatchDeployments stream", "region_name", regionName, "platform", platform)
+
+	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.db.RO(), db.FindRegionByNameAndPlatformParams{
+		Name:     regionName,
+		Platform: platform,
+	})
+	if err != nil {
+		logger.Error("failed to find region for WatchDeployments", "error", err, "region_name", regionName, "platform", platform)
+		return connect.NewError(connect.CodeInternal, err)
+	}
+
+	logger.Info("found region for WatchDeployments", "region_id", region.ID)
 
 	versionCursor := req.Msg.GetVersionLastSeen()
 
@@ -55,7 +68,7 @@ func (s *Service) WatchDeployments(
 		default:
 		}
 
-		states, err := s.fetchDeploymentStates(ctx, region, versionCursor)
+		states, err := s.fetchDeploymentStates(ctx, region.ID, versionCursor)
 		if err != nil {
 			logger.Error("failed to fetch deployment states", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
@@ -79,9 +92,9 @@ func (s *Service) WatchDeployments(
 // fetchDeploymentStates queries the database for deployment topologies in the given region
 // with versions greater than afterVersion, returning up to 100 results. Rows that fail
 // conversion are logged and skipped rather than failing the entire batch.
-func (s *Service) fetchDeploymentStates(ctx context.Context, region string, afterVersion uint64) ([]*ctrlv1.DeploymentState, error) {
+func (s *Service) fetchDeploymentStates(ctx context.Context, regionID string, afterVersion uint64) ([]*ctrlv1.DeploymentState, error) {
 	rows, err := db.Query.ListDeploymentTopologyByRegion(ctx, s.db.RO(), db.ListDeploymentTopologyByRegionParams{
-		Region:       region,
+		RegionID:     regionID,
 		Afterversion: afterVersion,
 		Limit:        100,
 	})
@@ -98,6 +111,8 @@ func (s *Service) fetchDeploymentStates(ctx context.Context, region string, afte
 		}
 		states = append(states, state)
 	}
+
+	logger.Info("fetched deployment states", "count", len(states), "region_id", regionID, "after_version", afterVersion)
 
 	return states, nil
 }
