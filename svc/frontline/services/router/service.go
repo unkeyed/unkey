@@ -46,7 +46,7 @@ type service struct {
 	region                      string
 	db                          db.Database
 	frontlineRouteCache         cache.Cache[string, db.FrontlineRoute]
-	sentinelsByEnvironmentCache cache.Cache[string, []db.Sentinel]
+	sentinelsByEnvironmentCache cache.Cache[string, []db.FindSentinelsByEnvironmentIDRow]
 }
 
 var _ Service = (*service)(nil)
@@ -61,7 +61,7 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.FrontlineRoute, []db.Sentinel, error) {
+func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.FrontlineRoute, []db.FindSentinelsByEnvironmentIDRow, error) {
 	route, routeHit, err := s.frontlineRouteCache.SWR(ctx, hostname, func(ctx context.Context) (db.FrontlineRoute, error) {
 		return db.Query.FindFrontlineRouteByFQDN(ctx, s.db.RO(), hostname)
 	}, internalCaches.DefaultFindFirstOp)
@@ -81,7 +81,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 		)
 	}
 
-	sentinels, _, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.Sentinel, error) {
+	sentinels, _, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.FindSentinelsByEnvironmentIDRow, error) {
 		return db.Query.FindSentinelsByEnvironmentID(ctx, s.db.RO(), route.EnvironmentID)
 	}, internalCaches.DefaultFindFirstOp)
 
@@ -96,7 +96,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 	return &route, sentinels, nil
 }
 
-func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error) {
+func (s *service) SelectSentinel(route *db.FrontlineRoute, rows []db.FindSentinelsByEnvironmentIDRow) (*RouteDecision, error) {
 	decision := &RouteDecision{
 		DeploymentID:             route.DeploymentID,
 		LocalSentinel:            nil,
@@ -104,13 +104,12 @@ func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentin
 	}
 
 	healthyByRegion := make(map[string]*db.Sentinel)
-	for i := range sentinels {
-		gw := &sentinels[i]
-		if gw.Health != db.SentinelsHealthHealthy {
+	for _, row := range rows {
+		if row.Sentinel.Health != db.SentinelsHealthHealthy {
 			continue
 		}
 
-		healthyByRegion[gw.Region] = gw
+		healthyByRegion[row.Region.Name] = &row.Sentinel
 	}
 
 	if len(healthyByRegion) == 0 {

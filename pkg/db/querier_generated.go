@@ -1104,13 +1104,13 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels s
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels s
 	//  WHERE id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels WHERE environment_id = ?
-	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error)
+	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.version, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -1842,7 +1842,7 @@ type Querier interface {
 	//      project_id,
 	//      k8s_address,
 	//      k8s_name,
-	//      region,
+	//      region_id,
 	//      image,
 	//      health,
 	//      desired_replicas,
@@ -1972,9 +1972,9 @@ type Querier interface {
 	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
 	// Used during bootstrap to stream all running sentinels to krane.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at
 	//  FROM `sentinels`
-	//  WHERE (? = '' OR region = ?)
+	//  WHERE (? = '' OR region_id = ?)
 	//      AND desired_state = ?
 	//      AND id > ?
 	//  ORDER BY id ASC
@@ -2378,8 +2378,8 @@ type Querier interface {
 	// ListSentinelsByRegion returns sentinels for a region with version > after_version.
 	// Used by WatchSentinels to stream sentinel state changes to krane agents.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM `sentinels`
-	//  WHERE region = ? AND version > ?
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM `sentinels`
+	//  WHERE region_id = ? AND version > ?
 	//  ORDER BY version ASC
 	//  LIMIT ?
 	ListSentinelsByRegion(ctx context.Context, db DBTX, arg ListSentinelsByRegionParams) ([]Sentinel, error)

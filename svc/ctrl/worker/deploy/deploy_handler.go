@@ -479,7 +479,7 @@ func (w *Workflow) ensureSentinels(
 	environment db.Environment,
 	topologies []db.InsertDeploymentTopologyParams,
 ) error {
-	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Sentinel, error) {
+	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindSentinelsByEnvironmentIDRow, error) {
 		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
 	}, restate.WithName("find existing sentinels"))
 	if err != nil {
@@ -490,8 +490,8 @@ func (w *Workflow) ensureSentinels(
 	}
 
 	existingSentinelsByRegion := make(map[string]db.Sentinel)
-	for _, sentinel := range existingSentinels {
-		existingSentinelsByRegion[sentinel.Region] = sentinel
+	for _, row := range existingSentinels {
+		existingSentinelsByRegion[row.Region.ID] = row.Sentinel
 	}
 
 	for _, topology := range topologies {
@@ -528,7 +528,7 @@ func (w *Workflow) ensureSentinels(
 					ProjectID:         project.ID,
 					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
 					K8sName:           sentinelK8sName,
-					Region:            region.Name,
+					RegionID:          region.ID,
 					Image:             w.sentinelImage,
 					Health:            db.SentinelsHealthUnknown,
 					DesiredReplicas:   desiredReplicas,

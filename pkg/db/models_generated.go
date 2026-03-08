@@ -1479,7 +1479,7 @@ type Sentinel struct {
 	EnvironmentID     string                `db:"environment_id"`
 	K8sName           string                `db:"k8s_name"`
 	K8sAddress        string                `db:"k8s_address"`
-	Region            string                `db:"region"`
+	RegionID          string                `db:"region_id"`
 	Image             string                `db:"image"`
 	DesiredState      SentinelsDesiredState `db:"desired_state"`
 	Health            SentinelsHealth       `db:"health"`

@@ -205,7 +205,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 
 // CreateSentinelRequest contains parameters for creating a test sentinel.
 type CreateSentinelRequest struct {
-	Region       string
+	RegionID     string
 	DesiredState db.SentinelsDesiredState
 }
 
@@ -258,7 +258,7 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		ProjectID:         project.ID,
 		K8sAddress:        "http://localhost:8080",
 		K8sName:           k8sName,
-		Region:            req.Region,
+		RegionID:          req.RegionID,
 		Image:             "sentinel:1.0",
 		Health:            db.SentinelsHealthHealthy,
 		DesiredReplicas:   1,

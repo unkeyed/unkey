@@ -606,7 +606,7 @@ CREATE TABLE `sentinels` (
 	`environment_id` varchar(255) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_address` varchar(255) NOT NULL,
-	`region` varchar(255) NOT NULL,
+	`region_id` varchar(255) NOT NULL DEFAULT 'TODO',
 	`image` varchar(255) NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
 	`health` enum('unknown','paused','healthy','unhealthy') NOT NULL DEFAULT 'unknown',
@@ -621,8 +621,7 @@ CREATE TABLE `sentinels` (
 	CONSTRAINT `sentinels_id_unique` UNIQUE(`id`),
 	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`),
-	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
 );
 
 CREATE TABLE `instances` (
