@@ -56,7 +56,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 	// Key by region:k8s_name so we can distinguish ingress vs egress per region.
 	existingByKey := make(map[string]db.CiliumNetworkPolicy)
 	for _, policy := range existingPolicies {
-		key := policy.Region + ":" + policy.K8sName
+		key := policy.RegionID + ":" + policy.K8sName
 		existingByKey[key] = policy
 	}
 
@@ -107,7 +107,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 						Version:       policyVersion.GetVersion(),
 						UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 						EnvironmentID: environment.ID,
-						Region:        region.Name,
+						RegionID:      region.ID,
 						K8sName:       spec.k8sName,
 					})
 				}
@@ -121,7 +121,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					DeploymentID:  deployment.ID,
 					K8sName:       spec.k8sName,
 					K8sNamespace:  spec.k8sNamespace,
-					Region:        region.Name,
+					RegionID:      region.ID,
 					Policy:        policyPayload,
 					Version:       policyVersion.GetVersion(),
 					CreatedAt:     time.Now().UnixMilli(),

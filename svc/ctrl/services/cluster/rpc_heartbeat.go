@@ -24,11 +24,11 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 		return nil, err
 	}
 
-	region := req.Msg.GetRegion()
+	regionName := req.Msg.GetRegion()
 	platform := req.Msg.GetPlatform()
 
 	if err := assert.All(
-		assert.NotEmpty(region, "region is required"),
+		assert.NotEmpty(regionName, "region is required"),
 		assert.NotEmpty(platform, "platform is required"),
 	); err != nil {
 		return nil, err
@@ -39,27 +39,27 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 	err := db.Query.UpsertRegion(ctx, s.db.RW(), db.UpsertRegionParams{
 		// using a readable id here to make debugging significantly easier
 		// do not rely on this schema though. treat ids as opaque strings.
-		ID:       fmt.Sprintf("%s::%s", platform, region),
-		Name:     region,
+		ID:       fmt.Sprintf("%s::%s", platform, regionName),
+		Name:     regionName,
 		Platform: platform,
 	})
 	if err != nil {
-		logger.Error("failed to upsert region", "error", err, "region", region)
+		logger.Error("failed to upsert region", "error", err, "platform", platform, "region_name", regionName)
 		return nil, err
 	}
 
-	regionID, err := db.Query.FindRegionByNameAndPlatform(ctx, s.db.RW(), db.FindRegionByNameAndPlatformParams{
-		Name:     region,
+	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.db.RW(), db.FindRegionByNameAndPlatformParams{
+		Name:     regionName,
 		Platform: platform,
 	})
 	if err != nil {
-		logger.Error("failed to find region", "error", err, "region", region)
+		logger.Error("failed to find region", "error", err, "region_id", region.ID)
 		return nil, err
 	}
 
 	err = db.Query.UpsertCluster(ctx, s.db.RW(), db.UpsertClusterParams{
 		ID:              uid.New(uid.ClusterPrefix),
-		RegionID:        regionID,
+		RegionID:        region.ID,
 		LastHeartbeatAt: uint64(now),
 	})
 	if err != nil {

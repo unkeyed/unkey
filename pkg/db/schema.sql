@@ -533,6 +533,7 @@ CREATE TABLE `deployment_topology` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(64) NOT NULL,
 	`deployment_id` varchar(64) NOT NULL,
+	`region` varchar(64),
 	`region_id` varchar(64) NOT NULL,
 	`desired_replicas` int NOT NULL,
 	`version` bigint unsigned NOT NULL,
@@ -540,9 +541,7 @@ CREATE TABLE `deployment_topology` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region_id`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`),
-	CONSTRAINT `deployment_region_idx` UNIQUE(`deployment_id`,`region_id`)
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
 );
 
 CREATE TABLE `acme_users` (
@@ -606,6 +605,7 @@ CREATE TABLE `sentinels` (
 	`environment_id` varchar(255) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_address` varchar(255) NOT NULL,
+	`region` varchar(64),
 	`region_id` varchar(255) NOT NULL DEFAULT 'TODO',
 	`image` varchar(255) NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
@@ -706,15 +706,15 @@ CREATE TABLE `cilium_network_policies` (
 	`deployment_id` varchar(128) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_namespace` varchar(255) NOT NULL,
-	`region` varchar(255) NOT NULL,
+	`region_id` varchar(64) NOT NULL DEFAULT 'TODO',
 	`policy` json NOT NULL,
 	`version` bigint unsigned NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
-	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region`,`k8s_name`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region`,`version`)
+	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region_id`,`k8s_name`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
 );
 
 CREATE TABLE `clusters` (
