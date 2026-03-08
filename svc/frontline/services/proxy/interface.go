@@ -21,7 +21,7 @@ type Service interface {
 	// ForwardToRegion forwards a request to a remote region (HTTPS)
 	// Keeps the original hostname so the remote frontline can do TLS termination and routing
 	// Request start time is retrieved from context
-	ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegion string) error
+	ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string) error
 }
 
 // Config holds configuration for the proxy service.
@@ -29,6 +29,7 @@ type Config struct {
 	// InstanceID is the current frontline instance ID
 	InstanceID string
 
+	Platform string
 	// Region is the current frontline region
 	Region string
 

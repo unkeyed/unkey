@@ -38,6 +38,7 @@ func (s *service) makeSentinelDirector(sess *zen.Session, deploymentID string, s
 func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
 		req.Header.Set(HeaderFrontlineID, s.instanceID)
+		req.Header.Set(HeaderPlatform, s.platform)
 		req.Header.Set(HeaderRegion, s.region)
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
