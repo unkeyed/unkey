@@ -64,10 +64,6 @@ type Config struct {
 	// Used by clients and services to authenticate with this control plane.
 	AuthToken string `toml:"auth_token" config:"required,nonempty"`
 
-	// AvailableRegions is a list of available regions for deployments.
-	// Typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
-	AvailableRegions []string `toml:"available_regions"`
-
 	// DefaultDomain is the fallback domain for system operations.
 	// Used for wildcard certificate bootstrapping. When set, the API will
 	// ensure a wildcard certificate exists for *.{DefaultDomain}.

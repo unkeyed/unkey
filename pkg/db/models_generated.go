@@ -366,6 +366,7 @@ const (
 	DeploymentTopologyDesiredStatusStarted  DeploymentTopologyDesiredStatus = "started"
 	DeploymentTopologyDesiredStatusStopping DeploymentTopologyDesiredStatus = "stopping"
 	DeploymentTopologyDesiredStatusStopped  DeploymentTopologyDesiredStatus = "stopped"
+	DeploymentTopologyDesiredStatusRunning  DeploymentTopologyDesiredStatus = "running"
 )
 
 func (e *DeploymentTopologyDesiredStatus) Scan(src interface{}) error {
@@ -1002,6 +1003,18 @@ type AppEnvironmentVariable struct {
 	UpdatedAt        sql.NullInt64               `db:"updated_at"`
 }
 
+type AppRegionalSetting struct {
+	Pk                            uint64         `db:"pk"`
+	WorkspaceID                   string         `db:"workspace_id"`
+	AppID                         string         `db:"app_id"`
+	EnvironmentID                 string         `db:"environment_id"`
+	RegionID                      string         `db:"region_id"`
+	Replicas                      int32          `db:"replicas"`
+	HorizontalAutoscalingPolicyID sql.NullString `db:"horizontal_autoscaling_policy_id"`
+	CreatedAt                     int64          `db:"created_at"`
+	UpdatedAt                     sql.NullInt64  `db:"updated_at"`
+}
+
 type AppRuntimeSetting struct {
 	Pk             uint64                           `db:"pk"`
 	WorkspaceID    string                           `db:"workspace_id"`
@@ -1107,6 +1120,13 @@ type ClickhouseWorkspaceSetting struct {
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
 }
 
+type Cluster struct {
+	Pk              uint64 `db:"pk"`
+	ID              string `db:"id"`
+	RegionID        string `db:"region_id"`
+	LastHeartbeatAt uint64 `db:"last_heartbeat_at"`
+}
+
 type CustomDomain struct {
 	Pk                 uint64                          `db:"pk"`
 	ID                 string                          `db:"id"`
@@ -1178,6 +1198,7 @@ type DeploymentTopology struct {
 	WorkspaceID     string                          `db:"workspace_id"`
 	DeploymentID    string                          `db:"deployment_id"`
 	Region          string                          `db:"region"`
+	RegionID        string                          `db:"region_id"`
 	DesiredReplicas int32                           `db:"desired_replicas"`
 	Version         uint64                          `db:"version"`
 	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
@@ -1238,6 +1259,19 @@ type GithubRepoConnection struct {
 	RepositoryFullName string        `db:"repository_full_name"`
 	CreatedAt          int64         `db:"created_at"`
 	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+}
+
+type HorizontalAutoscalingPolicy struct {
+	Pk              uint64        `db:"pk"`
+	ID              string        `db:"id"`
+	WorkspaceID     string        `db:"workspace_id"`
+	ReplicasMin     int32         `db:"replicas_min"`
+	ReplicasMax     int32         `db:"replicas_max"`
+	MemoryThreshold sql.NullInt16 `db:"memory_threshold"`
+	CpuThreshold    sql.NullInt16 `db:"cpu_threshold"`
+	RpsThreshold    sql.NullInt16 `db:"rps_threshold"`
+	CreatedAt       int64         `db:"created_at"`
+	UpdatedAt       sql.NullInt64 `db:"updated_at"`
 }
 
 type Identity struct {
@@ -1414,6 +1448,13 @@ type RatelimitOverride struct {
 	CreatedAtM  int64                          `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64                  `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64                  `db:"deleted_at_m"`
+}
+
+type Region struct {
+	Pk       uint64 `db:"pk"`
+	ID       string `db:"id"`
+	Name     string `db:"name"`
+	Platform string `db:"platform"`
 }
 
 type Role struct {

@@ -130,6 +130,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		SentinelID:    sentinel.GetSentinelId(),
 		WorkspaceID:   sentinel.GetWorkspaceId(),
 		EnvironmentID: sentinel.GetEnvironmentId(),
+		Platform:      c.platform,
 		Region:        c.region,
 		HttpPort:      SentinelPort,
 		Database: config.DatabaseConfig{
@@ -169,6 +170,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
+				AppID(sentinel.GetAppId()).
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
 				ComponentSentinel().
@@ -319,6 +321,7 @@ func (c *Controller) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
+				AppID(sentinel.GetAppId()).
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
 				ManagedByKrane().
@@ -388,6 +391,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
+				AppID(sentinel.GetAppId()).
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
 				ManagedByKrane().
@@ -440,6 +444,7 @@ func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ct
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
+				AppID(sentinel.GetAppId()).
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
 				ComponentGossipLAN(),
@@ -495,6 +500,7 @@ func (c *Controller) ensureGossipCiliumPolicyExists(ctx context.Context, sentine
 				"labels": labels.New().
 					WorkspaceID(sentinel.GetWorkspaceId()).
 					ProjectID(sentinel.GetProjectId()).
+					AppID(sentinel.GetAppId()).
 					EnvironmentID(sentinel.GetEnvironmentId()).
 					SentinelID(sentinel.GetSentinelId()).
 					ComponentGossipLAN(),

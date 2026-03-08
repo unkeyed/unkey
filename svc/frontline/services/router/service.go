@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 
 	internalCaches "github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -41,6 +42,7 @@ var regionProximity = map[string][]string{
 }
 
 type service struct {
+	platform                    string
 	region                      string
 	db                          db.Database
 	frontlineRouteCache         cache.Cache[string, db.FrontlineRoute]
@@ -51,6 +53,7 @@ var _ Service = (*service)(nil)
 
 func New(cfg Config) (*service, error) {
 	return &service{
+		platform:                    cfg.Platform,
 		region:                      cfg.Region,
 		db:                          cfg.DB,
 		frontlineRouteCache:         cfg.FrontlineRouteCache,
@@ -95,9 +98,9 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 
 func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error) {
 	decision := &RouteDecision{
-		DeploymentID:     route.DeploymentID,
-		LocalSentinel:    nil,
-		NearestNLBRegion: "",
+		DeploymentID:             route.DeploymentID,
+		LocalSentinel:            nil,
+		NearestNLBRegionPlatform: "",
 	}
 
 	healthyByRegion := make(map[string]*db.Sentinel)
@@ -123,16 +126,19 @@ func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentin
 		return decision, nil
 	}
 
-	nearestRegion := s.findNearestRegion(healthyByRegion)
+	nearestRegion := s.findNearestRegionPlatform(healthyByRegion)
 	if nearestRegion != "" {
-		decision.NearestNLBRegion = nearestRegion
+		decision.NearestNLBRegionPlatform = nearestRegion
 	}
 
 	return decision, nil
 }
 
-func (s *service) findNearestRegion(healthyByRegion map[string]*db.Sentinel) string {
-	proximityList, exists := regionProximity[s.region]
+func (s *service) findNearestRegionPlatform(healthyByRegion map[string]*db.Sentinel) string {
+
+	self := fmt.Sprintf("%s.%s", s.region, s.platform)
+
+	proximityList, exists := regionProximity[self]
 	if exists {
 		for _, region := range proximityList {
 			if _, ok := healthyByRegion[region]; ok {

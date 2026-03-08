@@ -1,7 +1,7 @@
 import type { HealthStatus } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
 import type { Instance, Sentinel } from "@/lib/db";
 
-export const flagCodes = ["us", "de", "au", "jp", "in", "br"] as const;
+export const flagCodes = ["us", "de", "au", "jp", "in", "br", "local"] as const;
 export type FlagCode = (typeof flagCodes)[number];
 
 export function mapInstanceStatusToHealth(status: Instance["status"]): HealthStatus {
@@ -50,6 +50,7 @@ export function mapRegionToFlag(region: string): FlagCode {
     ["us-", "us"],
     ["eu-", "de"],
     ["sa-", "br"],
+    ["local", "local"],
   ] as const;
 
   return (prefixMap.find(([prefix]) => region.startsWith(prefix))?.[1] as FlagCode) ?? "us";

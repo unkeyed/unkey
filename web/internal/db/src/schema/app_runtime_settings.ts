@@ -42,6 +42,7 @@ export const appRuntimeSettings = mysqlTable(
 
     // Maps region ID to replica count, e.g. {"us-east-1": 3, "eu-central-1": 1}
     // Empty object = 1 replica in all available regions (default behavior)
+    // @deprecated, use appRegionalSettings instead
     regionConfig: json("region_config")
       .$type<Record<string, number>>()
       .notNull()

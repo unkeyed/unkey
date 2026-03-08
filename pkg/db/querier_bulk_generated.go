@@ -17,6 +17,8 @@ type BulkQuerier interface {
 	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error
 	InsertCiliumNetworkPolicies(ctx context.Context, db DBTX, args []InsertCiliumNetworkPolicyParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
+	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
+	UpsertCluster(ctx context.Context, db DBTX, args []UpsertClusterParams) error
 	InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error
 	UpsertCustomDomain(ctx context.Context, db DBTX, args []UpsertCustomDomainParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error

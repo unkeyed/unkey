@@ -27,7 +27,10 @@ VALUES (
     ?,
     ?,
     ?
-)
+) ON DUPLICATE KEY UPDATE
+    started_at = VALUES(started_at),
+    ended_at = NULL,
+    error = NULL
 `
 
 type InsertDeploymentStepParams struct {
@@ -59,7 +62,10 @@ type InsertDeploymentStepParams struct {
 //	    ?,
 //	    ?,
 //	    ?
-//	)
+//	) ON DUPLICATE KEY UPDATE
+//	    started_at = VALUES(started_at),
+//	    ended_at = NULL,
+//	    error = NULL
 func (q *Queries) InsertDeploymentStep(ctx context.Context, db DBTX, arg InsertDeploymentStepParams) error {
 	_, err := db.ExecContext(ctx, insertDeploymentStep,
 		arg.WorkspaceID,

@@ -66,7 +66,7 @@ export const OnboardingEnvironmentSettingsProvider = ({
 // Later they can change it in the settings.
 function useInitializeSettings(
   settings: EnvironmentSettings | undefined,
-  availableRegions: string[] | undefined,
+  availableRegions: { id: string; name: string }[] | undefined,
   isActive: boolean,
 ) {
   const hasInitializedRef = useRef(false);
@@ -102,10 +102,8 @@ function useInitializeSettings(
         if (!draft.shutdownSignal) {
           draft.shutdownSignal = "SIGTERM";
         }
-        if (Object.keys(draft.regionConfig).length === 0) {
-          for (const region of availableRegions) {
-            draft.regionConfig[region] = 1;
-          }
+        if (draft.regions.length === 0) {
+          draft.regions = availableRegions.map((r) => ({ id: r.id, name: r.name, replicas: 1 }));
         }
       },
     );
