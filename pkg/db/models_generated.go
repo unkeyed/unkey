@@ -1193,7 +1193,6 @@ type DeploymentTopology struct {
 	Pk              uint64                          `db:"pk"`
 	WorkspaceID     string                          `db:"workspace_id"`
 	DeploymentID    string                          `db:"deployment_id"`
-	Region          string                          `db:"region"`
 	RegionID        string                          `db:"region_id"`
 	DesiredReplicas int32                           `db:"desired_replicas"`
 	Version         uint64                          `db:"version"`

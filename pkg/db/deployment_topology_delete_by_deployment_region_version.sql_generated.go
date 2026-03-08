@@ -12,7 +12,12 @@ import (
 const deleteDeploymentTopologyByDeploymentRegionVersion = `-- name: DeleteDeploymentTopologyByDeploymentRegionVersion :exec
 DELETE FROM ` + "`" + `deployment_topology` + "`" + `
 WHERE deployment_id = ?
-  AND region = ?
+  AND region_id = (
+      SELECT id
+      FROM ` + "`" + `regions` + "`" + `
+      WHERE name = ?
+      LIMIT 1
+  )
   AND version = ?
 `
 
@@ -26,7 +31,12 @@ type DeleteDeploymentTopologyByDeploymentRegionVersionParams struct {
 //
 //	DELETE FROM `deployment_topology`
 //	WHERE deployment_id = ?
-//	  AND region = ?
+//	  AND region_id = (
+//	      SELECT id
+//	      FROM `regions`
+//	      WHERE name = ?
+//	      LIMIT 1
+//	  )
 //	  AND version = ?
 func (q *Queries) DeleteDeploymentTopologyByDeploymentRegionVersion(ctx context.Context, db DBTX, arg DeleteDeploymentTopologyByDeploymentRegionVersionParams) error {
 	_, err := db.ExecContext(ctx, deleteDeploymentTopologyByDeploymentRegionVersion, arg.DeploymentID, arg.Region, arg.Version)

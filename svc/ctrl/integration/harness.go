@@ -176,7 +176,6 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	err = db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
 		WorkspaceID:     workspaceID,
 		DeploymentID:    deploymentID,
-		Region:          req.Region,
 		RegionID:        regionID,
 		DesiredReplicas: 1,
 		DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
@@ -194,7 +193,6 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 			Pk:              0,
 			WorkspaceID:     workspaceID,
 			DeploymentID:    deploymentID,
-			Region:          req.Region,
 			RegionID:        regionID,
 			DesiredReplicas: 1,
 			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,

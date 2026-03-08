@@ -13,7 +13,12 @@ import (
 const updateDeploymentTopologyDesiredStatus = `-- name: UpdateDeploymentTopologyDesiredStatus :exec
 UPDATE ` + "`" + `deployment_topology` + "`" + `
 SET desired_status = ?, version = ?, updated_at = ?
-WHERE deployment_id = ? AND region = ?
+WHERE deployment_id = ? AND region_id = (
+    SELECT id
+    FROM ` + "`" + `regions` + "`" + `
+    WHERE name = ?
+    LIMIT 1
+)
 `
 
 type UpdateDeploymentTopologyDesiredStatusParams struct {
@@ -29,7 +34,12 @@ type UpdateDeploymentTopologyDesiredStatusParams struct {
 //
 //	UPDATE `deployment_topology`
 //	SET desired_status = ?, version = ?, updated_at = ?
-//	WHERE deployment_id = ? AND region = ?
+//	WHERE deployment_id = ? AND region_id = (
+//	    SELECT id
+//	    FROM `regions`
+//	    WHERE name = ?
+//	    LIMIT 1
+//	)
 func (q *Queries) UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error {
 	_, err := db.ExecContext(ctx, updateDeploymentTopologyDesiredStatus,
 		arg.DesiredStatus,

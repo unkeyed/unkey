@@ -533,8 +533,7 @@ CREATE TABLE `deployment_topology` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(64) NOT NULL,
 	`deployment_id` varchar(64) NOT NULL,
-	`region` varchar(64) NOT NULL,
-	`region_id` varchar(64) NOT NULL DEFAULT '',
+	`region_id` varchar(64) NOT NULL,
 	`desired_replicas` int NOT NULL,
 	`version` bigint unsigned NOT NULL,
 	`desired_status` enum('stopped','running') NOT NULL,
@@ -542,7 +541,8 @@ CREATE TABLE `deployment_topology` (
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region_id`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`),
+	CONSTRAINT `deployment_region_idx` UNIQUE(`deployment_id`,`region_id`)
 );
 
 CREATE TABLE `acme_users` (

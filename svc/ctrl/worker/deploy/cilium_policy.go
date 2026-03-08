@@ -41,7 +41,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 	workspace db.Workspace,
 	project db.Project,
 	environment db.Environment,
-	topologies []db.InsertDeploymentTopologyParams,
+	topologies []deploymentTopologyTarget,
 	deployment db.Deployment,
 ) error {
 
@@ -64,7 +64,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 		specs := buildPolicySpecs(workspace, environment, deployment)
 
 		for _, spec := range specs {
-			lookupKey := topo.Region + ":" + spec.k8sName
+			lookupKey := topo.RegionName + ":" + spec.k8sName
 			existing, hasExisting := existingByKey[lookupKey]
 
 			// Build the policy payload with the correct ID label before comparing.
@@ -89,7 +89,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 				continue
 			}
 
-			policyVersion, err := hydrav1.NewVersioningServiceClient(ctx, topo.Region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+			policyVersion, err := hydrav1.NewVersioningServiceClient(ctx, topo.RegionName).NextVersion().Request(&hydrav1.NextVersionRequest{})
 			if err != nil {
 				return fmt.Errorf("failed to get next version for cilium policy %s: %w", spec.k8sName, err)
 			}
@@ -102,7 +102,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 						Version:       policyVersion.GetVersion(),
 						UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 						EnvironmentID: environment.ID,
-						Region:        topo.Region,
+						Region:        topo.RegionName,
 						K8sName:       spec.k8sName,
 					})
 				}
@@ -116,7 +116,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					DeploymentID:  deployment.ID,
 					K8sName:       spec.k8sName,
 					K8sNamespace:  spec.k8sNamespace,
-					Region:        topo.Region,
+					Region:        topo.RegionName,
 					Policy:        policyPayload,
 					Version:       policyVersion.GetVersion(),
 					CreatedAt:     time.Now().UnixMilli(),

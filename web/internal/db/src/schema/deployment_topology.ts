@@ -19,8 +19,7 @@ export const deploymentTopology = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 64 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 64 }).notNull(),
 
-    region: varchar("region", { length: 64 }).notNull(),
-    regionId: varchar("region_id", { length: 64 }).notNull().default(""),
+    regionId: varchar("region_id", { length: 64 }).notNull(),
 
     desiredReplicas: int("desired_replicas").notNull(),
 
@@ -37,6 +36,7 @@ export const deploymentTopology = mysqlTable(
   (table) => [
     uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.regionId),
     uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
+    uniqueIndex("deployment_region_idx").on(table.deploymentId, table.regionId),
     index("workspace_idx").on(table.workspaceId),
     index("status_idx").on(table.desiredStatus),
   ],

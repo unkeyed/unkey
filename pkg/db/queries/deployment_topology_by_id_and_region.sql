@@ -9,7 +9,7 @@ SELECT
     d.app_id,
     d.build_id,
     d.image,
-    dt.region,
+    r.name AS region,
     d.cpu_millicores,
     d.memory_mib,
     dt.desired_replicas,
@@ -22,6 +22,7 @@ SELECT
 FROM `deployment_topology` dt
 INNER JOIN `deployments` d ON dt.deployment_id = d.id
 INNER JOIN `workspaces` w ON d.workspace_id = w.id
-WHERE  dt.region = sqlc.arg(region)
+INNER JOIN `regions` r ON dt.region_id = r.id
+WHERE  r.name = sqlc.arg(region)
     AND dt.deployment_id = sqlc.arg(deployment_id)
 LIMIT 1;

@@ -48,7 +48,12 @@ type Querier interface {
 	//
 	//  DELETE FROM `deployment_topology`
 	//  WHERE deployment_id = ?
-	//    AND region = ?
+	//    AND region_id = (
+	//        SELECT id
+	//        FROM `regions`
+	//        WHERE name = ?
+	//        LIMIT 1
+	//    )
 	//    AND version = ?
 	DeleteDeploymentTopologyByDeploymentRegionVersion(ctx context.Context, db DBTX, arg DeleteDeploymentTopologyByDeploymentRegionVersionParams) error
 	//DeleteFrontlineRouteByFQDN
@@ -317,9 +322,10 @@ type Querier interface {
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
 	//
-	//  SELECT region
-	//  FROM `deployment_topology`
-	//  WHERE deployment_id = ?
+	//  SELECT r.name
+	//  FROM `deployment_topology` dt
+	//  INNER JOIN `regions` r ON dt.region_id = r.id
+	//  WHERE dt.deployment_id = ?
 	FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]string, error)
 	//FindDeploymentTopologyByIDAndRegion
 	//
@@ -333,7 +339,7 @@ type Querier interface {
 	//      d.app_id,
 	//      d.build_id,
 	//      d.image,
-	//      dt.region,
+	//      r.name AS region,
 	//      d.cpu_millicores,
 	//      d.memory_mib,
 	//      dt.desired_replicas,
@@ -346,7 +352,8 @@ type Querier interface {
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  WHERE  dt.region = ?
+	//  INNER JOIN `regions` r ON dt.region_id = r.id
+	//  WHERE  r.name = ?
 	//      AND dt.deployment_id = ?
 	//  LIMIT 1
 	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
@@ -1429,14 +1436,12 @@ type Querier interface {
 	//  INSERT INTO `deployment_topology` (
 	//      workspace_id,
 	//      deployment_id,
-	//      region,
 	//      region_id,
 	//      desired_replicas,
 	//      desired_status,
 	//      version,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1911,13 +1916,14 @@ type Querier interface {
 	// Used by WatchDeployments to stream deployment state changes to krane agents.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  WHERE dt.region = ? AND dt.version > ?
+	//  INNER JOIN `regions` r ON dt.region_id = r.id
+	//  WHERE r.name = ? AND dt.version > ?
 	//  ORDER BY dt.version ASC
 	//  LIMIT ?
 	ListDeploymentTopologyByRegion(ctx context.Context, db DBTX, arg ListDeploymentTopologyByRegionParams) ([]ListDeploymentTopologyByRegionRow, error)
@@ -1933,13 +1939,14 @@ type Querier interface {
 	// Used during bootstrap to stream all running deployments to krane.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  WHERE (? = '' OR dt.region = ?)
+	//  INNER JOIN `regions` r ON dt.region_id = r.id
+	//  WHERE (? = '' OR r.name = ?)
 	//      AND d.desired_state = ?
 	//      AND dt.deployment_id > ?
 	//  ORDER BY dt.deployment_id ASC
@@ -2638,7 +2645,12 @@ type Querier interface {
 	//
 	//  UPDATE `deployment_topology`
 	//  SET desired_status = ?, version = ?, updated_at = ?
-	//  WHERE deployment_id = ? AND region = ?
+	//  WHERE deployment_id = ? AND region_id = (
+	//      SELECT id
+	//      FROM `regions`
+	//      WHERE name = ?
+	//      LIMIT 1
+	//  )
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateFrontlineRouteDeploymentId
 	//
