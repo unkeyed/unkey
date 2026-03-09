@@ -186,7 +186,7 @@ const EnvVarsForm = ({
 
           {fields.map((field, index) => (
             <EnvVarRow
-              key={`${field.id}-${index}`}
+              key={field.id}
               index={index}
               isLast={index === fields.length - 1}
               isOnly={fields.length === 1}
