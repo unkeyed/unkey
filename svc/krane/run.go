@@ -165,7 +165,6 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	r.Defer(func() error { stopHeartbeat(); return nil })
 
-
 	// Create the connect handler
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux)

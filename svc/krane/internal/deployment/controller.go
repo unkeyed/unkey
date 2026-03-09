@@ -24,16 +24,16 @@ import (
 // Create a Controller with [New] and start it with [Controller.Start]. The controller
 // runs until the context is cancelled or [Controller.Stop] is called.
 type Controller struct {
-	clientSet       kubernetes.Interface
-	dynamicClient   dynamic.Interface
-	cluster         ctrl.ClusterServiceClient
+	clientSet        kubernetes.Interface
+	dynamicClient    dynamic.Interface
+	cluster          ctrl.ClusterServiceClient
 	vault            vault.VaultServiceClient
 	registry         *RegistryConfig
 	imagePullSecrets []corev1.LocalObjectReference
 	cb               circuitbreaker.CircuitBreaker[any]
-	done            chan struct{}
-	region          string
-	versionLastSeen uint64
+	done             chan struct{}
+	region           string
+	versionLastSeen  uint64
 }
 
 // Config holds the configuration required to create a new [Controller].
