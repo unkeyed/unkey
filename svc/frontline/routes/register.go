@@ -33,7 +33,6 @@ func Register(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{
-			Region:        svc.Region,
 			RouterService: svc.RouterService,
 			ProxyService:  svc.ProxyService,
 			Clock:         svc.Clock,
