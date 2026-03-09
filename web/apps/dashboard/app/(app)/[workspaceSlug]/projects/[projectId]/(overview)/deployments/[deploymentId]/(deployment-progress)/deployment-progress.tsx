@@ -36,7 +36,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
 
   const { getDomainsForDeployment, projectId } = useProjectData();
 
-  const [now, setNow] = useState(0);
+  const [now, setNow] = useState(Date.now);
   useEffect(() => {
     if (isFailed) {
       return;

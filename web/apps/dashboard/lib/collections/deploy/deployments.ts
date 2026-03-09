@@ -4,6 +4,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { DEPLOYMENT_STATUSES } from "./deployment-status";
 import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
@@ -19,16 +20,7 @@ const schema = z.object({
   // OpenAPI
   hasOpenApiSpec: z.boolean(),
   // Deployment status
-  status: z.enum([
-    "pending",
-    "starting",
-    "building",
-    "deploying",
-    "network",
-    "finalizing",
-    "ready",
-    "failed",
-  ]),
+  status: z.enum(DEPLOYMENT_STATUSES),
   instances: z.array(
     z.object({
       id: z.string(),
