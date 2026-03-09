@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ChevronDown, Eye, EyeSlash, Plus, Trash } from "@unkey/icons";
+import { ChevronDown, Eye, EyeSlash, Plus } from "@unkey/icons";
 import {
   Button,
   FormCheckbox,
@@ -18,6 +18,7 @@ import {
   type UseFormTrigger,
   useWatch,
 } from "react-hook-form";
+import { RemoveButton } from "../../shared/remove-button";
 import type { EnvVarsFormValues } from "./schema";
 import type { EnvVarItem } from "./utils";
 
@@ -138,25 +139,20 @@ export const EnvVarRow = ({
           )}
         />
       </div>
-      <div className="relative w-16 h-7 mt-1 shrink-0">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
+      <div className="relative w-16 h-9 shrink-0">
+        <RemoveButton
+          onClick={onRemove}
           className={cn(
-            "absolute left-0 w-7 px-0 justify-center text-error-11 hover:text-error-11 transition-opacity duration-150",
+            "absolute left-0 transition-opacity duration-150",
             isOnly ? "opacity-0 pointer-events-none" : "opacity-100",
           )}
-          onClick={onRemove}
-        >
-          <Trash iconSize="sm-regular" />
-        </Button>
+        />
         <Button
           type="button"
           variant="ghost"
           size="sm"
           className={cn(
-            "absolute left-0 w-7 px-0 justify-center transition-all duration-150",
+            "absolute left-0 size-9 hover:bg-grayA-3 px-0 justify-center transition-all duration-150 rounded-lg",
             isOnly ? "translate-x-0" : "translate-x-9",
             isLast ? "opacity-100" : "opacity-0 pointer-events-none",
           )}
