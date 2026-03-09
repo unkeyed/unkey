@@ -1,4 +1,5 @@
 "use client";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import {
   CircleCheck,
   CircleWarning,
@@ -12,7 +13,6 @@ import {
 import type { IconProps } from "@unkey/icons/src/props";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { FC } from "react";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 
 type StatusConfig = {
   icon: FC<IconProps>;
@@ -113,10 +113,7 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
       {animated && (
         <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
       )}
-      <Icon
-        iconSize="md-regular"
-        className={cn(iconColor, animated && "relative z-5")}
-      />
+      <Icon iconSize="md-regular" className={cn(iconColor, animated && "relative z-5")} />
       <span className={cn(textColor, "text-xs", animated && "relative z-5")}>{label}</span>
     </div>
   );

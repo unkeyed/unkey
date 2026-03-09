@@ -11,11 +11,11 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
 import { Avatar } from "../../../../components/git-avatar";
 import { StatusIndicator } from "../../../../components/status-indicator";
 import { useProjectData } from "../../../data-provider";
 import { useDeployments } from "../../hooks/use-deployments";
-import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
 import { DomainList } from "./components/domain_list";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {

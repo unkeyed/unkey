@@ -5,7 +5,6 @@ import type {
 } from "@/components/logs/validation/filter.types";
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { z } from "zod";
 
