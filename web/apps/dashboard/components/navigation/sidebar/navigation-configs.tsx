@@ -6,7 +6,6 @@ import {
   Fingerprint,
   Gauge,
   Gear,
-  Grid,
   Key,
   Layers3,
   Nodes,
@@ -174,12 +173,13 @@ export function createProjectNavigation(
   const basePath = `/${workspace.slug}/projects/${projectId}`;
 
   const childItems: NavItem[] = [
-    {
-      icon: Grid,
-      href: basePath,
-      label: "Overview",
-      active: segments.at(2) === projectId && !segments.at(3),
-    },
+    // Removed until we hsve something to place in Overview
+    // {
+    //   icon: Grid,
+    //   href: basePath,
+    //   label: "Overview",
+    //   active: segments.at(2) === projectId && !segments.at(3),
+    // },
     {
       icon: Cube,
       href: `${basePath}/deployments`,
