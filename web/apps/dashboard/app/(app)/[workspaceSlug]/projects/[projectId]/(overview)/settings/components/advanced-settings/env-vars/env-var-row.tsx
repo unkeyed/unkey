@@ -11,7 +11,13 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { useState } from "react";
-import { type Control, Controller, type UseFormRegister, useWatch } from "react-hook-form";
+import {
+  type Control,
+  Controller,
+  type UseFormRegister,
+  type UseFormTrigger,
+  useWatch,
+} from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
 import type { EnvVarItem } from "./utils";
 
@@ -25,6 +31,7 @@ type EnvVarRowProps = {
   environments: { id: string; slug: string }[];
   control: Control<EnvVarsFormValues>;
   register: UseFormRegister<EnvVarsFormValues>;
+  trigger: UseFormTrigger<EnvVarsFormValues>;
   onAdd: () => void;
   onRemove: () => void;
 };
@@ -39,6 +46,7 @@ export const EnvVarRow = ({
   environments,
   control,
   register,
+  trigger,
   onAdd,
   onRemove,
 }: EnvVarRowProps) => {
@@ -72,7 +80,14 @@ export const EnvVarRow = ({
           control={control}
           name={`envVars.${index}.environmentId`}
           render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange} disabled={isPreviouslyAdded}>
+            <Select
+              value={field.value}
+              onValueChange={(value) => {
+                field.onChange(value);
+                trigger("envVars");
+              }}
+              disabled={isPreviouslyAdded}
+            >
               <SelectTrigger
                 className={cn("h-9", environmentError && !isPreviouslyAdded && "border-error-9")}
                 wrapperClassName="w-[120px]"

@@ -92,6 +92,7 @@ const EnvVarsForm = ({
     formState: { isValid, isSubmitting, errors, isDirty },
     control,
     reset,
+    trigger,
   } = useForm<EnvVarsFormValues>({
     resolver: zodResolver(envVarsSchema),
     mode: "onChange",
@@ -196,6 +197,7 @@ const EnvVarsForm = ({
               environments={environments}
               control={control}
               register={register}
+              trigger={trigger}
               onAdd={() => append(createEmptyRow(defaultEnvironmentId))}
               onRemove={() => remove(index)}
             />
