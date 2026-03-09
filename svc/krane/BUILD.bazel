@@ -11,7 +11,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
-        "//gen/proto/krane/v1/kranev1connect",
         "//gen/proto/vault/v1/vaultv1connect",
         "//gen/rpc/vault",
         "//pkg/clock",
@@ -27,8 +26,6 @@ go_library(
         "//svc/krane/internal/deployment",
         "//svc/krane/internal/sentinel",
         "//svc/krane/pkg/controlplane",
-        "//svc/krane/secrets",
-        "//svc/krane/secrets/token",
         "@com_connectrpc_connect//:connect",
         "@io_k8s_client_go//dynamic",
         "@io_k8s_client_go//kubernetes",

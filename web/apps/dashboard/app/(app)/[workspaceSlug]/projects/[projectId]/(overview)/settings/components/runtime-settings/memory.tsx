@@ -1,17 +1,11 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ScanCode } from "@unkey/icons";
-import { Slider } from "@unkey/ui";
-import { useEffect } from "react";
-import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
-import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
-import { SettingDescription } from "../shared/setting-description";
-import { indexToValue, valueToIndex } from "../shared/slider-utils";
+import {
+  type ResourceSliderConfig,
+  ResourceSliderSetting,
+} from "../shared/resource-slider-setting";
 
 const MEMORY_OPTIONS = [
   { label: "256 MiB", value: 256 },
@@ -24,103 +18,19 @@ const MEMORY_OPTIONS = [
   { label: "32 GiB", value: 32768 },
 ] as const;
 
-const memorySchema = z.object({
-  memory: z.number(),
-});
-
-type MemoryFormValues = z.infer<typeof memorySchema>;
-
-export const Memory = () => {
-  const { settings, autoSave } = useEnvironmentSettings();
-  const { memoryMib: defaultMemory, environmentId } = settings;
-
-  const {
-    handleSubmit,
-    setValue,
-    formState: { isValid, isSubmitting },
-    control,
-    reset,
-  } = useForm<MemoryFormValues>({
-    resolver: zodResolver(memorySchema),
-    mode: "onChange",
-    defaultValues: { memory: defaultMemory },
-  });
-
-  useEffect(() => {
-    reset({ memory: defaultMemory });
-  }, [defaultMemory, reset]);
-
-  const currentMemory = useWatch({ control, name: "memory" });
-
-  const onSubmit = async (values: MemoryFormValues) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
-      draft.memoryMib = values.memory;
-    });
-  };
-
-  const hasChanges = currentMemory !== defaultMemory;
-  const currentIndex = valueToIndex(MEMORY_OPTIONS, currentMemory);
-
-  const saveState = resolveSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
-  ]);
-
-  return (
-    <FormSettingCard
-      icon={<ScanCode className="text-gray-12" iconSize="xl-medium" />}
-      title="Memory"
-      description="Memory allocation for each instance"
-      displayValue={(() => {
-        const parts = formatMemoryParts(defaultMemory);
-        return (
-          <div className="space-x-1">
-            <span className="font-medium text-gray-12">{parts.value}</span>
-            <span className="text-gray-11 font-normal">{parts.unit}</span>
-          </div>
-        );
-      })()}
-      onSubmit={handleSubmit(onSubmit)}
-      saveState={saveState}
-      autoSave={autoSave}
-    >
-      <div className="flex flex-col">
-        <span className="text-gray-11 text-[13px]">Memory per instance</span>
-        <div className="flex items-center gap-3">
-          <Slider
-            min={0}
-            max={MEMORY_OPTIONS.length - 1}
-            step={1}
-            value={[currentIndex]}
-            onValueChange={([value]) => {
-              if (value !== undefined) {
-                setValue("memory", indexToValue(MEMORY_OPTIONS, value, 256), {
-                  shouldValidate: true,
-                });
-              }
-            }}
-            onValueCommit={autoSave ? () => handleSubmit(onSubmit)() : undefined}
-            className="flex-1 max-w-[480px]"
-            rangeStyle={{
-              background:
-                "linear-gradient(to right, hsla(var(--warningA-4)), hsla(var(--warningA-12)))",
-              backgroundSize: `${currentIndex > 0 ? 100 / (currentIndex / (MEMORY_OPTIONS.length - 1)) : 100}% 100%`,
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-          <span className="text-[13px]">
-            <span className="font-medium text-gray-12">
-              {formatMemoryParts(currentMemory).value}
-            </span>{" "}
-            <span className="text-gray-11">{formatMemoryParts(currentMemory).unit}</span>
-          </span>
-        </div>
-        <SettingDescription>
-          Increase memory for applications with large datasets or caching needs. Changes apply on
-          next deploy.
-        </SettingDescription>
-      </div>
-    </FormSettingCard>
-  );
+const memoryConfig: ResourceSliderConfig = {
+  icon: <ScanCode className="text-gray-12" iconSize="xl-medium" />,
+  title: "Memory",
+  description: "Memory allocation for each instance",
+  settingDescription:
+    "Increase memory for applications with large datasets or caching needs. Changes apply on next deploy.",
+  colorVar: "warningA",
+  slider: { kind: "index-mapped", options: MEMORY_OPTIONS, fallback: 256 },
+  formatValue: formatMemoryParts,
+  readValue: (s) => s.memoryMib,
+  writeValue: (draft, value) => {
+    draft.memoryMib = value;
+  },
 };
+
+export const Memory = () => <ResourceSliderSetting config={memoryConfig} />;

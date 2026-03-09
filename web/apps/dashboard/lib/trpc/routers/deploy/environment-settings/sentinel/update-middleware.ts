@@ -1,9 +1,8 @@
-import { and, db, eq, inArray } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { appRuntimeSettings } from "@unkey/db/src/schema";
+import { appRuntimeSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
-import { resolveProjectEnvironmentIds } from "../utils";
 
 export type SentinelConfig = {
   policies: {
@@ -58,15 +57,28 @@ export const updateMiddleware = workspaceProcedure
       });
     }
 
-    const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
+    const env = await db.query.environments.findFirst({
+      where: and(
+        eq(environments.id, input.environmentId),
+        eq(environments.workspaceId, ctx.workspace.id),
+      ),
+      columns: { appId: true },
+    });
+    if (!env) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
+    }
+
+    const serialized = JSON.stringify(sentinelConfig);
 
     await db
-      .update(appRuntimeSettings)
-      .set({ sentinelConfig: JSON.stringify(sentinelConfig) })
-      .where(
-        and(
-          eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
-          inArray(appRuntimeSettings.environmentId, envIds),
-        ),
-      );
+      .insert(appRuntimeSettings)
+      .values({
+        workspaceId: ctx.workspace.id,
+        appId: env.appId,
+        environmentId: input.environmentId,
+        sentinelConfig: serialized,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+      .onDuplicateKeyUpdate({ set: { sentinelConfig: serialized, updatedAt: Date.now() } });
   });
