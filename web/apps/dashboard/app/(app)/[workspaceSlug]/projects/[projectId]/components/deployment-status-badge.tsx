@@ -1,11 +1,13 @@
 "use client";
 import {
-  ArrowDotAntiClockwise,
   CircleCheck,
-  CircleHalfDottedClock,
   CircleWarning,
-  HalfDottedCirclePlay,
-  Nut,
+  CloudUp,
+  Earth,
+  Hammer2,
+  LayerFront,
+  Pulse,
+  Sparkle3,
 } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -23,14 +25,14 @@ type StatusConfig = {
 
 const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   pending: {
-    icon: CircleHalfDottedClock,
+    icon: LayerFront,
     label: "Pending",
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   starting: {
-    icon: HalfDottedCirclePlay,
+    icon: Pulse,
     label: "Starting",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -38,7 +40,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     animated: true,
   },
   building: {
-    icon: Nut,
+    icon: Hammer2,
     label: "Building",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -46,7 +48,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     animated: true,
   },
   deploying: {
-    icon: HalfDottedCirclePlay,
+    icon: CloudUp,
     label: "Deploying",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -54,7 +56,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     animated: true,
   },
   network: {
-    icon: ArrowDotAntiClockwise,
+    icon: Earth,
     label: "Assigning Domains",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -62,7 +64,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     animated: true,
   },
   finalizing: {
-    icon: Nut,
+    icon: Sparkle3,
     label: "Finalizing",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
@@ -112,7 +114,7 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
         <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
       )}
       <Icon
-        iconSize={config.icon === Nut ? "md-bold" : "md-regular"}
+        iconSize="md-regular"
         className={cn(iconColor, animated && "relative z-5")}
       />
       <span className={cn(textColor, "text-xs", animated && "relative z-5")}>{label}</span>

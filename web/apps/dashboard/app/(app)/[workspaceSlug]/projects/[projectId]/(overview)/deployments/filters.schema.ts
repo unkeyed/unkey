@@ -19,7 +19,6 @@ const GROUPED_DEPLOYMENT_STATUSES = [
 
 const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;
 
-export type { DeploymentStatus };
 export type GroupedDeploymentStatus = (typeof GROUPED_DEPLOYMENT_STATUSES)[number];
 export type DeploymentEnvironment = (typeof DEPLOYMENT_ENVIRONMENTS)[number];
 
