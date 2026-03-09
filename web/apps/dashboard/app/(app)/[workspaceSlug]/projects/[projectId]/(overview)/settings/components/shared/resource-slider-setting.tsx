@@ -6,7 +6,7 @@ import type { FormattedParts } from "@/lib/utils/deployment-formatters";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Slider } from "@unkey/ui";
 import type React from "react";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
@@ -68,7 +68,11 @@ function getSliderProps(strategy: SliderStrategy, currentValue: number) {
 export const ResourceSliderSetting = ({ config }: { config: ResourceSliderConfig }) => {
   const envContext = useContext(EnvironmentContext);
 
-  if (envContext?.variant === "onboarding") {
+  if (!envContext) {
+    throw new Error("ResourceSliderSetting must be used within EnvironmentProvider");
+  }
+
+  if (envContext.variant === "onboarding") {
     return <SingleMode config={config} />;
   }
 
@@ -250,8 +254,14 @@ const DualInner = ({ config, production, preview }: DualInnerProps) => {
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],
   ]);
 
-  const prodSp = getSliderProps(config.slider, currentProd);
-  const previewSp = getSliderProps(config.slider, currentPreview);
+  const prodSp = useMemo(
+    () => getSliderProps(config.slider, currentProd),
+    [config.slider, currentProd],
+  );
+  const previewSp = useMemo(
+    () => getSliderProps(config.slider, currentPreview),
+    [config.slider, currentPreview],
+  );
 
   return (
     <FormSettingCard
