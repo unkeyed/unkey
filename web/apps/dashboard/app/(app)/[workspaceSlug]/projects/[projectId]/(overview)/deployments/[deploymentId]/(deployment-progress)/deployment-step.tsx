@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
-import { Check, TriangleWarning2 } from "@unkey/icons";
+import { Check, CircleHalfDottedClock, TriangleWarning2 } from "@unkey/icons";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
 
 type DeploymentStepProps = {
@@ -13,7 +13,6 @@ type DeploymentStepProps = {
   status: "pending" | "started" | "completed" | "error" | "skipped";
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
-  badgeText?: string;
 };
 
 export function DeploymentStep({
@@ -97,6 +96,8 @@ export function DeploymentStep({
             <Loading className="size-4" />
           ) : status === "error" ? (
             <TriangleWarning2 className="text-error-11" iconSize="md-regular" />
+          ) : status === "pending" ? (
+            <CircleHalfDottedClock className="text-gray-9" iconSize="md-regular" />
           ) : null}
         </div>
       </SettingCard>
