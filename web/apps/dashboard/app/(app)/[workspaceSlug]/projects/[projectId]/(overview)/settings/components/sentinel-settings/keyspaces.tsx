@@ -13,7 +13,7 @@ import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const keyspacesSchema = z.object({
-  keyspaces: z.array(z.string()).min(0, "Select at least one region"),
+  keyspaces: z.array(z.string()),
 });
 
 type KeyspacesFormValues = z.infer<typeof keyspacesSchema>;
