@@ -139,7 +139,7 @@ const EnvVarsForm = ({
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],
     [isDecrypting, { status: "disabled", reason: "Decrypting values…" }],
-    [!isValid, { status: "disabled" }],
+    [!isValid, { status: "disabled", reason: "Fix validation errors above" }],
     [!isDirty, { status: "disabled", reason: "No changes to save" }],
   ]);
 
