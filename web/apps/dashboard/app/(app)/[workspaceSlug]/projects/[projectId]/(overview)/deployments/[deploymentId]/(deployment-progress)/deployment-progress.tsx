@@ -49,6 +49,9 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
 
   const { building, deploying, network, queued, starting, finalizing } = stepsData ?? {};
 
+  const queuedImplicitlyComplete =
+    !queued && Boolean(starting ?? building ?? deploying ?? network ?? finalizing);
+
   const [redeployOpen, setRedeployOpen] = useState(false);
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
 
@@ -74,15 +77,17 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           description={
             queued
               ? queued.endedAt
-                ? (queued.error ?? "Deployment has started")
+                ? (queued.error ?? "Deployment has queued")
                 : "Deployment is queued"
-              : "Pending"
+              : queuedImplicitlyComplete
+                ? "Deployment has queued"
+                : "Waiting to queue"
           }
           duration={queued ? (queued.endedAt ?? now) - queued.startedAt : undefined}
           status={
             queued?.error
               ? "error"
-              : queued?.completed
+              : queued?.completed || queuedImplicitlyComplete
                 ? "completed"
                 : queued
                   ? "started"
@@ -120,7 +125,9 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
                 ? (building.error ??
                   (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"))
                 : (buildSteps.data?.steps.at(-1)?.name ?? "Building...")
-              : "Image was prebuilt"
+              : deploying
+                ? "Image was prebuilt"
+                : "Waiting for deployment to start"
           }
           duration={building ? (building.endedAt ?? now) - building.startedAt : undefined}
           status={
@@ -151,7 +158,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
                 : "Deploying to all machines"
               : isFailed
                 ? "Skipped"
-                : "Pending"
+                : "Waiting for image build"
           }
           duration={deploying ? (deploying.endedAt ?? now) - deploying.startedAt : undefined}
           status={
@@ -176,7 +183,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
                 : "Assigning domains"
               : isFailed
                 ? "Skipped"
-                : "Pending"
+                : "Waiting for containers to deploy"
           }
           duration={network ? (network.endedAt ?? now) - network.startedAt : undefined}
           status={
@@ -199,7 +206,9 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
               ? finalizing.endedAt
                 ? (finalizing.error ?? "Deployment has finished")
                 : "Finalizing deployment"
-              : "Pending"
+              : isFailed
+                ? "Skipped"
+                : "Waiting for domains"
           }
           duration={finalizing ? (finalizing.endedAt ?? now) - finalizing.startedAt : undefined}
           status={
@@ -209,7 +218,9 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
                 ? "completed"
                 : finalizing
                   ? "started"
-                  : "pending"
+                  : isFailed
+                    ? "skipped"
+                    : "pending"
           }
         />
       </SettingCardGroup>
@@ -227,7 +238,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
               </div>
             </div>
             <Button
-              variant="outline"
+              variant="primary"
               size="sm"
               onClick={() => setRedeployOpen(true)}
               className="px-3"
