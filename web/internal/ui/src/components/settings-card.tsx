@@ -98,10 +98,10 @@ function SettingCard({
   const borderClass = inGroup
     ? {}
     : {
-      "border border-grayA-4": border !== "none",
-      "border-t-0": border === "bottom",
-      "border-b-0": border === "top",
-    };
+        "border border-grayA-4": border !== "none",
+        "border-t-0": border === "bottom",
+        "border-b-0": border === "top",
+      };
 
   const expandedBottomRadius =
     !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")

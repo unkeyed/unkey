@@ -53,6 +53,9 @@ export function DeploymentProgress() {
 
   const { building, deploying, network, queued, starting, finalizing } = steps.data ?? {};
 
+  const queuedImplicitlyComplete =
+    !queued && Boolean(starting ?? building ?? deploying ?? network ?? finalizing);
+
   const [redeployOpen, setRedeployOpen] = useState(false);
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
 
@@ -80,13 +83,15 @@ export function DeploymentProgress() {
               ? queued.endedAt
                 ? (queued.error ?? "Deployment has queued")
                 : "Deployment is queued"
-              : "Pending"
+              : queuedImplicitlyComplete
+                ? "Deployment has queued"
+                : "Waiting to queue"
           }
           duration={queued ? (queued.endedAt ?? now) - queued.startedAt : undefined}
           status={
             queued?.error
               ? "error"
-              : queued?.completed
+              : queued?.completed || queuedImplicitlyComplete
                 ? "completed"
                 : queued
                   ? "started"
@@ -126,7 +131,7 @@ export function DeploymentProgress() {
                 : (buildSteps.data?.steps.at(-1)?.name ?? "Building...")
               : deploying
                 ? "Image was prebuilt"
-                : "Pending"
+                : "Waiting for deployment to start"
           }
           duration={building ? (building.endedAt ?? now) - building.startedAt : undefined}
           status={
@@ -157,7 +162,7 @@ export function DeploymentProgress() {
                 : "Deploying to all machines"
               : isFailed
                 ? "Skipped"
-                : "Pending"
+                : "Waiting for image build"
           }
           duration={deploying ? (deploying.endedAt ?? now) - deploying.startedAt : undefined}
           status={
@@ -182,7 +187,7 @@ export function DeploymentProgress() {
                 : "Assigning domains"
               : isFailed
                 ? "Skipped"
-                : "Pending"
+                : "Waiting for containers to deploy"
           }
           duration={network ? (network.endedAt ?? now) - network.startedAt : undefined}
           status={
@@ -207,7 +212,7 @@ export function DeploymentProgress() {
                 : "Finalizing deployment"
               : isFailed
                 ? "Skipped"
-                : "Pending"
+                : "Waiting for domains"
           }
           duration={finalizing ? (finalizing.endedAt ?? now) - finalizing.startedAt : undefined}
           status={
@@ -237,7 +242,7 @@ export function DeploymentProgress() {
               </div>
             </div>
             <Button
-              variant="outline"
+              variant="primary"
               size="sm"
               onClick={() => setRedeployOpen(true)}
               className="px-3"

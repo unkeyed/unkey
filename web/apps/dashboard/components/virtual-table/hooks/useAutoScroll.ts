@@ -28,7 +28,8 @@ export function useAutoScroll({
       return;
     }
     const onScroll = () => {
-      userScrolledUp.current = el.scrollHeight - el.scrollTop - el.clientHeight > SCROLL_THRESHOLD_PX;
+      userScrolledUp.current =
+        el.scrollHeight - el.scrollTop - el.clientHeight > SCROLL_THRESHOLD_PX;
     };
     el.addEventListener("scroll", onScroll);
     return () => el.removeEventListener("scroll", onScroll);

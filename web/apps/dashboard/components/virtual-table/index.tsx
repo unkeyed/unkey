@@ -483,10 +483,11 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               })}
               <tr
                 style={{
-                  height: `${virtualizer.getTotalSize() -
+                  height: `${
+                    virtualizer.getTotalSize() -
                     (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end ||
                       0)
-                    }px`,
+                  }px`,
                 }}
               />
             </tbody>
