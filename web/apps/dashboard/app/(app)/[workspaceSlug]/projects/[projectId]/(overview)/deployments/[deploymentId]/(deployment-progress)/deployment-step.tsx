@@ -88,7 +88,7 @@ export function DeploymentStep({
       >
         <div className="flex items-center gap-4 justify-end w-full absolute right-14">
           <span className="text-gray-10 text-xs">
-            {duration ? formatCompoundDuration(duration) : null}
+            {duration !== null && duration !== undefined ? formatCompoundDuration(duration) : null}
           </span>
           {status === "completed" ? (
             <Check iconSize="md-regular" className="text-success-11" />
