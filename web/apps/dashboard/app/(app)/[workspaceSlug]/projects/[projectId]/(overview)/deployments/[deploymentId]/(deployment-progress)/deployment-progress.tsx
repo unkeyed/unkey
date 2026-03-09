@@ -78,7 +78,7 @@ export function DeploymentProgress() {
           description={
             queued
               ? queued.endedAt
-                ? (queued.error ?? "Deployment has started")
+                ? (queued.error ?? "Deployment has queued")
                 : "Deployment is queued"
               : "Pending"
           }
