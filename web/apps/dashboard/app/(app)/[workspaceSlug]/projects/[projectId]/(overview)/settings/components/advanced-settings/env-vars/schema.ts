@@ -5,8 +5,7 @@ export const envVarEntrySchema = z.object({
   environmentId: z.string().min(1, "Environment is required"),
   key: z
     .string()
-    .min(1, "Key is required")
-    .regex(/^[A-Za-z_][A-Za-z0-9_]*$/, "Must start with a letter or underscore"),
+    .min(1, "Key is required"),
   value: z.string(),
   secret: z.boolean(),
 });
