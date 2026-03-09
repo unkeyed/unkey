@@ -1,8 +1,7 @@
-import { and, db, eq, inArray } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import { appRegionalSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
-import { resolveProjectEnvironmentIds } from "../utils";
 
 export const updateInstances = workspaceProcedure
   .input(
@@ -12,8 +11,6 @@ export const updateInstances = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
-
     await db
       .update(appRegionalSettings)
       .set({
@@ -22,7 +19,7 @@ export const updateInstances = workspaceProcedure
       .where(
         and(
           eq(appRegionalSettings.workspaceId, ctx.workspace.id),
-          inArray(appRegionalSettings.environmentId, envIds),
+          eq(appRegionalSettings.environmentId, input.environmentId),
         ),
       );
   });
