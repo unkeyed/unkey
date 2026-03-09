@@ -71,7 +71,7 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.11.1
-	github.com/unkeyed/sdks/api/go/v2 v2.6.0
+	github.com/unkeyed/sdks/api/go/v2 v2.6.1
 	go.opentelemetry.io/contrib/bridges/otelslog v0.14.0
 	go.opentelemetry.io/contrib/bridges/prometheus v0.64.0
 	go.opentelemetry.io/contrib/processors/minsev v0.12.0
