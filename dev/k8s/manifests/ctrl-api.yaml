@@ -12,7 +12,6 @@ data:
     region = "local"
     http_port = 7091
     auth_token = "your-local-dev-key"
-    available_regions = ["local.dev"]
     default_domain = "unkey.local"
     cname_domain = "unkey.local"
 

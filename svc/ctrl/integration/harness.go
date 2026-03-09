@@ -157,13 +157,28 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	_, err = h.DB.RW().ExecContext(ctx, "UPDATE deployments SET image = ? WHERE id = ?", "nginx:1.19", deploymentID)
 	require.NoError(h.t, err)
 
+	// Ensure the region exists
+	regionID := uid.New(uid.RegionPrefix)
+	err = db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
+		ID:       regionID,
+		Name:     req.Region,
+		Platform: "test",
+	})
+	require.NoError(h.t, err)
+
+	region, err := db.Query.FindRegionByNameAndPlatform(ctx, h.DB.RO(), db.FindRegionByNameAndPlatformParams{
+		Name:     req.Region,
+		Platform: "test",
+	})
+	require.NoError(h.t, err)
+
 	h.versionCounter++
 	err = db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
 		WorkspaceID:     workspaceID,
 		DeploymentID:    deploymentID,
-		Region:          req.Region,
+		RegionID:        region.ID,
 		DesiredReplicas: 1,
-		DesiredStatus:   db.DeploymentTopologyDesiredStatusStarted,
+		DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
 		Version:         h.versionCounter,
 		CreatedAt:       h.Now(),
 	})
@@ -178,9 +193,9 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 			Pk:              0,
 			WorkspaceID:     workspaceID,
 			DeploymentID:    deploymentID,
-			Region:          req.Region,
+			RegionID:        regionID,
 			DesiredReplicas: 1,
-			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarted,
+			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
 			Version:         h.versionCounter,
 			CreatedAt:       h.Now(),
 			UpdatedAt:       sql.NullInt64{Valid: false},
@@ -190,7 +205,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 
 // CreateSentinelRequest contains parameters for creating a test sentinel.
 type CreateSentinelRequest struct {
-	Region       string
+	RegionID     string
 	DesiredState db.SentinelsDesiredState
 }
 
@@ -243,7 +258,7 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		ProjectID:         project.ID,
 		K8sAddress:        "http://localhost:8080",
 		K8sName:           k8sName,
-		Region:            req.Region,
+		RegionID:          req.RegionID,
 		Image:             "sentinel:1.0",
 		Health:            db.SentinelsHealthHealthy,
 		DesiredReplicas:   1,

@@ -10,25 +10,25 @@ import (
 )
 
 const findCiliumNetworkPolicyByIDAndRegion = `-- name: FindCiliumNetworkPolicyByIDAndRegion :one
-SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 FROM ` + "`" + `cilium_network_policies` + "`" + `
-WHERE region = ? AND id = ?
+WHERE region_id = ? AND id = ?
 LIMIT 1
 `
 
 type FindCiliumNetworkPolicyByIDAndRegionParams struct {
-	Region                string `db:"region"`
+	RegionID              string `db:"region_id"`
 	CiliumNetworkPolicyID string `db:"cilium_network_policy_id"`
 }
 
 // FindCiliumNetworkPolicyByIDAndRegion
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 //	FROM `cilium_network_policies`
-//	WHERE region = ? AND id = ?
+//	WHERE region_id = ? AND id = ?
 //	LIMIT 1
 func (q *Queries) FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (CiliumNetworkPolicy, error) {
-	row := db.QueryRowContext(ctx, findCiliumNetworkPolicyByIDAndRegion, arg.Region, arg.CiliumNetworkPolicyID)
+	row := db.QueryRowContext(ctx, findCiliumNetworkPolicyByIDAndRegion, arg.RegionID, arg.CiliumNetworkPolicyID)
 	var i CiliumNetworkPolicy
 	err := row.Scan(
 		&i.Pk,
@@ -40,7 +40,7 @@ func (q *Queries) FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db D
 		&i.DeploymentID,
 		&i.K8sName,
 		&i.K8sNamespace,
-		&i.Region,
+		&i.RegionID,
 		&i.Policy,
 		&i.Version,
 		&i.CreatedAt,

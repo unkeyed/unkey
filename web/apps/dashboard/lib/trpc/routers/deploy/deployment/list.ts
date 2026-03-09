@@ -31,7 +31,15 @@ export const listDeployments = workspaceProcedure
           instances: {
             columns: {
               id: true,
-              region: true,
+            },
+            with: {
+              region: {
+                columns: {
+                  id: true,
+                  name: true,
+                  platform: true,
+                },
+              },
             },
           },
         },
@@ -41,7 +49,10 @@ export const listDeployments = workspaceProcedure
 
       return deployments.map(({ openapiSpec, ...deployment }) => ({
         ...deployment,
-        instances: deployment.instances.map((i) => ({ ...i, flagCode: mapRegionToFlag(i.region) })),
+        instances: deployment.instances.map((i) => ({
+          ...i,
+          flagCode: mapRegionToFlag(i.region.name),
+        })),
         gitBranch: deployment.gitBranch ?? "main",
         gitCommitAuthorAvatarUrl:
           deployment.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",

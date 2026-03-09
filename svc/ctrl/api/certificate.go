@@ -18,7 +18,6 @@ type certificateBootstrap struct {
 	database       db.Database
 	defaultDomain  string
 	regionalDomain string
-	regions        []string
 }
 
 // run bootstraps wildcard certificates for all configured domains and starts
@@ -35,9 +34,14 @@ func (c *certificateBootstrap) run(ctx context.Context) {
 
 	// Bootstrap per-region wildcards (e.g., *.us-west-2.aws.unkey.cloud)
 	if c.regionalDomain != "" {
-		for _, region := range c.regions {
-			domain := fmt.Sprintf("*.%s.%s", region, c.regionalDomain)
-			c.bootstrapDomain(ctx, domain)
+		regions, err := db.Query.ListRegions(ctx, c.database.RO())
+		if err != nil {
+			logger.Error("Failed to list regions for certificate bootstrap", "error", err)
+		} else {
+			for _, region := range regions {
+				domain := fmt.Sprintf("*.%s.%s", region.Name, c.regionalDomain)
+				c.bootstrapDomain(ctx, domain)
+			}
 		}
 	}
 }

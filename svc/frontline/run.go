@@ -212,6 +212,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize router service
 	routerSvc, err := router.New(router.Config{
+		Platform:               cfg.Platform,
 		Region:                 cfg.Region,
 		DB:                     db,
 		FrontlineRouteCache:    cache.FrontlineRoutes,
@@ -225,6 +226,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
 		InstanceID: cfg.InstanceID,
+		Platform:   cfg.Platform,
 		Region:     cfg.Region,
 		ApexDomain: cfg.ApexDomain,
 		Clock:      clk,

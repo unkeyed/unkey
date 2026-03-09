@@ -148,10 +148,6 @@ func (s *Service) CreateDeployment(
 		// Explicit docker image (CLI, REST API)
 		gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), appWithSettings.App.DefaultBranch)
 
-		if tsErr := validateGitCommitTimestamp(req.Msg.GetGitCommit()); tsErr != nil {
-			return nil, tsErr
-		}
-
 		if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
 			gitCommitSha = gitCommit.GetCommitSha()
 			gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
@@ -317,26 +313,6 @@ func branchFromGitCommit(gitCommit *ctrlv1.GitCommitInfo, defaultBranch string) 
 		return defaultBranch
 	}
 	return "main"
-}
-
-// validateGitCommitTimestamp validates the timestamp in GitCommitInfo if present.
-func validateGitCommitTimestamp(gitCommit *ctrlv1.GitCommitInfo) error {
-	if gitCommit == nil || gitCommit.GetTimestamp() == 0 {
-		return nil
-	}
-	timestamp := gitCommit.GetTimestamp()
-
-	if timestamp < 1_000_000_000_000 {
-		return connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("git_commit_timestamp must be Unix epoch milliseconds, got %d (appears to be seconds format)", timestamp))
-	}
-
-	maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
-	if timestamp > maxValidTimestamp {
-		return connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp))
-	}
-	return nil
 }
 
 // buildDockerSource looks up the app's current deployment's Docker image and carries

@@ -30,7 +30,7 @@ import (
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
-func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.PromoteRequest) (*hydrav1.PromoteResponse, error) {
+func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteRequest) (*hydrav1.PromoteResponse, error) {
 	logger.Info("initiating promotion", "target", req.GetTargetDeploymentId())
 
 	// Get target deployment

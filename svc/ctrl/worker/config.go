@@ -212,10 +212,6 @@ type Config struct {
 	// Overrides default sentinel image with custom build or registry.
 	SentinelImage string `toml:"sentinel_image" config:"default=ghcr.io/unkeyed/unkey:local"`
 
-	// AvailableRegions is a list of available regions for deployments.
-	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
-	AvailableRegions []string `toml:"available_regions"`
-
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	CnameDomain string `toml:"cname_domain" config:"required,nonempty"`

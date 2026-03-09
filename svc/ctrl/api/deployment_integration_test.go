@@ -20,7 +20,7 @@ type mockDeployService struct {
 	requests chan *hydrav1.DeployRequest
 }
 
-func (m *mockDeployService) Deploy(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
+func (m *mockDeployService) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	m.requests <- req
 	return &hydrav1.DeployResponse{}, nil
 }
