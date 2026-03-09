@@ -1,8 +1,8 @@
-import { and, db, eq, inArray } from "@/lib/db";
-import { appBuildSettings } from "@unkey/db/src/schema";
+import { and, db, eq } from "@/lib/db";
+import { TRPCError } from "@trpc/server";
+import { appBuildSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
-import { resolveProjectEnvironmentIds } from "../utils";
 
 export const updateDockerContext = workspaceProcedure
   .input(
@@ -12,15 +12,26 @@ export const updateDockerContext = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
+    const env = await db.query.environments.findFirst({
+      where: and(
+        eq(environments.id, input.environmentId),
+        eq(environments.workspaceId, ctx.workspace.id),
+      ),
+      columns: { appId: true },
+    });
+    if (!env) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
+    }
 
     await db
-      .update(appBuildSettings)
-      .set({ dockerContext: input.dockerContext })
-      .where(
-        and(
-          eq(appBuildSettings.workspaceId, ctx.workspace.id),
-          inArray(appBuildSettings.environmentId, envIds),
-        ),
-      );
+      .insert(appBuildSettings)
+      .values({
+        workspaceId: ctx.workspace.id,
+        appId: env.appId,
+        environmentId: input.environmentId,
+        dockerContext: input.dockerContext,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+      .onDuplicateKeyUpdate({ set: { dockerContext: input.dockerContext, updatedAt: Date.now() } });
   });

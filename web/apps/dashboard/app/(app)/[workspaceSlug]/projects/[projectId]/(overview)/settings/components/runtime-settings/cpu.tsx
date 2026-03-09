@@ -1,17 +1,11 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { formatCpuParts } from "@/lib/utils/deployment-formatters";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Bolt } from "@unkey/icons";
-import { Slider } from "@unkey/ui";
-import { useEffect } from "react";
-import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
-import { useEnvironmentSettings } from "../../environment-provider";
-import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
-import { SettingDescription } from "../shared/setting-description";
-import { indexToValue, valueToIndex } from "../shared/slider-utils";
+import {
+  type ResourceSliderConfig,
+  ResourceSliderSetting,
+} from "../shared/resource-slider-setting";
 
 const CPU_OPTIONS = [
   { label: "1/4 vCPU", value: 256 },
@@ -24,97 +18,18 @@ const CPU_OPTIONS = [
   { label: "32 vCPU", value: 32768 },
 ] as const;
 
-const cpuSchema = z.object({
-  cpu: z.number(),
-});
-
-type CpuFormValues = z.infer<typeof cpuSchema>;
-
-export const Cpu = () => {
-  const { settings, autoSave } = useEnvironmentSettings();
-  const { environmentId, cpuMillicores: defaultCpu } = settings;
-
-  const {
-    handleSubmit,
-    setValue,
-    formState: { isValid, isSubmitting },
-    control,
-    reset,
-  } = useForm<CpuFormValues>({
-    resolver: zodResolver(cpuSchema),
-    mode: "onChange",
-    defaultValues: { cpu: defaultCpu },
-  });
-
-  useEffect(() => {
-    reset({ cpu: defaultCpu });
-  }, [defaultCpu, reset]);
-
-  const currentCpu = useWatch({ control, name: "cpu" });
-
-  const onSubmit = async (values: CpuFormValues) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
-      draft.cpuMillicores = values.cpu;
-    });
-  };
-
-  const hasChanges = currentCpu !== defaultCpu;
-  const currentIndex = valueToIndex(CPU_OPTIONS, currentCpu);
-
-  const saveState = resolveSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
-  ]);
-
-  return (
-    <FormSettingCard
-      icon={<Bolt className="text-gray-12" iconSize="xl-medium" />}
-      title="CPU"
-      description="CPU allocation for each instance"
-      displayValue={(() => {
-        const parts = formatCpuParts(defaultCpu);
-        return (
-          <div className="space-x-1">
-            <span className="font-medium text-gray-12">{parts.value}</span>
-            <span className="text-gray-11 font-normal">{parts.unit}</span>
-          </div>
-        );
-      })()}
-      onSubmit={handleSubmit(onSubmit)}
-      saveState={saveState}
-      autoSave={autoSave}
-    >
-      <div className="flex flex-col">
-        <span className="text-gray-11 text-[13px]">CPU per instance</span>
-        <div className="flex items-center gap-3">
-          <Slider
-            min={0}
-            max={CPU_OPTIONS.length - 1}
-            step={1}
-            value={[currentIndex]}
-            onValueChange={([value]) => {
-              if (value !== undefined) {
-                setValue("cpu", indexToValue(CPU_OPTIONS, value, 256), { shouldValidate: true });
-              }
-            }}
-            onValueCommit={autoSave ? () => handleSubmit(onSubmit)() : undefined}
-            className="flex-1 max-w-[480px]"
-            rangeStyle={{
-              background: "linear-gradient(to right, hsla(var(--infoA-4)), hsla(var(--infoA-12)))",
-              backgroundSize: `${currentIndex > 0 ? 100 / (currentIndex / (CPU_OPTIONS.length - 1)) : 100}% 100%`,
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-          <span className="text-[13px]">
-            <span className="font-medium text-gray-12">{formatCpuParts(currentCpu).value}</span>{" "}
-            <span className="text-gray-11">{formatCpuParts(currentCpu).unit}</span>
-          </span>
-        </div>
-        <SettingDescription>
-          Higher CPU improves compute-heavy workloads. Changes apply on next deploy.
-        </SettingDescription>
-      </div>
-    </FormSettingCard>
-  );
+const cpuConfig: ResourceSliderConfig = {
+  icon: <Bolt className="text-gray-12" iconSize="xl-medium" />,
+  title: "CPU",
+  description: "CPU allocation for each instance",
+  settingDescription: "Higher CPU improves compute-heavy workloads. Changes apply on next deploy.",
+  colorVar: "infoA",
+  slider: { kind: "index-mapped", options: CPU_OPTIONS, fallback: 256 },
+  formatValue: formatCpuParts,
+  readValue: (s) => s.cpuMillicores,
+  writeValue: (draft, value) => {
+    draft.cpuMillicores = value;
+  },
 };
+
+export const Cpu = () => <ResourceSliderSetting config={cpuConfig} />;
