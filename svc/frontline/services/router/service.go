@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"time"
 
 	internalCaches "github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -67,17 +68,35 @@ func New(cfg Config) (*service, error) {
 }
 
 func (s *service) Route(ctx context.Context, hostname string) (*RouteDecision, error) {
+	start := time.Now()
+
 	route, sentinels, err := s.lookupByHostname(ctx, hostname)
 	if err != nil {
+		routingErrorsTotal.WithLabelValues("config_not_found").Inc()
 		return nil, err
 	}
 
 	instances, err := s.getInstances(ctx, route.DeploymentID)
 	if err != nil {
+		routingErrorsTotal.WithLabelValues("instance_load_failed").Inc()
 		return nil, err
 	}
 
-	return s.selectSentinel(route, sentinels, instances)
+	decision, err := s.selectSentinel(route, sentinels, instances)
+
+	routingDuration.Observe(time.Since(start).Seconds())
+
+	if err != nil {
+		return nil, err
+	}
+
+	if decision.IsLocal() {
+		routingDecisionsTotal.WithLabelValues("local_sentinel", s.regionPlatform).Inc()
+	} else {
+		routingDecisionsTotal.WithLabelValues("remote_region", decision.RemoteRegionPlatform).Inc()
+	}
+
+	return decision, nil
 }
 
 func (s *service) ValidateHostname(ctx context.Context, hostname string) error {
@@ -178,6 +197,7 @@ func (s *service) selectSentinel(route *db.FindFrontlineRouteByFQDNRow, rows []d
 	}
 
 	if len(instances) > 0 && len(regionsWithRunning) == 0 {
+		routingErrorsTotal.WithLabelValues("no_running_instances").Inc()
 		return nil, fault.New("no running instances",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("no running instances for deployment"),
@@ -196,6 +216,7 @@ func (s *service) selectSentinel(route *db.FindFrontlineRouteByFQDNRow, rows []d
 	}
 
 	if len(healthyByRegion) == 0 {
+		routingErrorsTotal.WithLabelValues("no_sentinels_for_instances").Inc()
 		return nil, fault.New("no healthy sentinels",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("no healthy sentinels for environment"),
