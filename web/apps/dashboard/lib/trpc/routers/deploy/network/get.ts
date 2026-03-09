@@ -16,6 +16,7 @@ export const getDeploymentTree = workspaceProcedure
           and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
         columns: {
           environmentId: true,
+          projectId: true,
         },
       });
 
@@ -31,6 +32,7 @@ export const getDeploymentTree = workspaceProcedure
           where: (table, { eq, and }) =>
             and(
               eq(table.deploymentId, input.deploymentId),
+              eq(table.projectId, deployment.projectId),
               eq(table.workspaceId, ctx.workspace.id),
             ),
           columns: {
