@@ -17,10 +17,14 @@ import (
 )
 
 // decryptSecrets decrypts the encrypted environment variables blob via Vault.
-// Returns nil map if there are no secrets or vault is not configured.
+// Returns nil map if there are no secrets. Returns an error if secrets are
+// present but vault is not configured.
 func (c *Controller) decryptSecrets(ctx context.Context, encrypted []byte, environmentID string) (map[string]string, error) {
-	if len(encrypted) == 0 || c.vault == nil {
+	if len(encrypted) == 0 {
 		return nil, nil
+	}
+	if c.vault == nil {
+		return nil, fmt.Errorf("deployment has encrypted secrets but vault is not configured (environment %s)", environmentID)
 	}
 
 	var secretsConfig ctrlv1.SecretsConfig
@@ -57,6 +61,14 @@ func deploymentResourcePrefix(deploymentID string) string {
 func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, deploymentID string, envVars map[string]string, ownerRef metav1.OwnerReference) error {
 	secretName := deploymentResourcePrefix(deploymentID)
 
+	// Use Data (not StringData) so SSA tracks ownership of data.* keys directly.
+	// StringData is converted to data.* server-side, but SSA tracks stringData.*
+	// ownership — removed keys won't be cleaned up from data on re-apply.
+	data := make(map[string][]byte, len(envVars))
+	for k, v := range envVars {
+		data[k] = []byte(v)
+	}
+
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
@@ -68,8 +80,8 @@ func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, depl
 			Labels:          labels.New().DeploymentID(deploymentID).ManagedByKrane(),
 			OwnerReferences: []metav1.OwnerReference{ownerRef},
 		},
-		StringData: envVars,
-		Type:       corev1.SecretTypeOpaque,
+		Data: data,
+		Type: corev1.SecretTypeOpaque,
 	}
 
 	patch, err := json.Marshal(secret)

@@ -217,7 +217,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to apply replicaset: %w", err)
 	}
 
-	// Create owned resources (Secret, SA, Role, RoleBinding) with ownerReferences
+	// Create owned resources (Secret, SA) with ownerReferences
 	// so K8s garbage-collects them when the ReplicaSet is deleted.
 	ownerRef := metav1.OwnerReference{
 		APIVersion:         "apps/v1",
@@ -229,12 +229,11 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	if hasSecrets {
-		secretName := deploymentResourcePrefix(req.GetDeploymentId())
 		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext, ownerRef); err != nil {
 			return fmt.Errorf("failed to ensure deployment secret: %w", err)
 		}
-		if err := c.ensureDeploymentRBAC(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), secretName, ownerRef); err != nil {
-			return fmt.Errorf("failed to ensure deployment RBAC: %w", err)
+		if err := c.ensureDeploymentServiceAccount(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), ownerRef); err != nil {
+			return fmt.Errorf("failed to ensure deployment service account: %w", err)
 		}
 	}
 

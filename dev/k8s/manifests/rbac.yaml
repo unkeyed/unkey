@@ -62,12 +62,9 @@ rules:
     resources: ["events"]
     verbs: ["get", "list", "watch"]
 
-  # ServiceAccount/Role/RoleBinding management for per-deployment RBAC
+  # ServiceAccount management for per-deployment pods
   - apiGroups: [""]
     resources: ["serviceaccounts"]
-    verbs: ["get", "create", "update", "patch", "delete"]
-  - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["roles", "rolebindings"]
     verbs: ["get", "create", "update", "patch", "delete"]
 
   # Secrets management for deployment env vars and pull secrets
