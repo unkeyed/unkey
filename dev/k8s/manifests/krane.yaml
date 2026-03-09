@@ -72,7 +72,7 @@ spec:
                 secretKeyRef:
                   name: depot-credentials
                   key: UNKEY_DEPOT_TOKEN
-                  optional: true
+                  optional: false
           ports:
             - containerPort: 8070
           readinessProbe:
