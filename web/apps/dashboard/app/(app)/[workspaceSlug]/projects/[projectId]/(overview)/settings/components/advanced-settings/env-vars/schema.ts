@@ -3,9 +3,7 @@ import { z } from "zod";
 export const envVarEntrySchema = z.object({
   id: z.string().optional(),
   environmentId: z.string().min(1, "Environment is required"),
-  key: z
-    .string()
-    .min(1, "Key is required"),
+  key: z.string().min(1, "Key is required"),
   value: z.string(),
   secret: z.boolean(),
 });
