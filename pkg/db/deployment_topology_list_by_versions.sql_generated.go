@@ -12,19 +12,20 @@ import (
 
 const listDeploymentTopologyByRegion = `-- name: ListDeploymentTopologyByRegion :many
 SELECT
-    dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
     d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.status, d.created_at, d.updated_at,
     w.k8s_namespace
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
-WHERE dt.region = ? AND dt.version > ?
+INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
+WHERE r.id = ? AND dt.version > ?
 ORDER BY dt.version ASC
 LIMIT ?
 `
 
 type ListDeploymentTopologyByRegionParams struct {
-	Region       string `db:"region"`
+	RegionID     string `db:"region_id"`
 	Afterversion uint64 `db:"afterversion"`
 	Limit        int32  `db:"limit"`
 }
@@ -39,17 +40,18 @@ type ListDeploymentTopologyByRegionRow struct {
 // Used by WatchDeployments to stream deployment state changes to krane agents.
 //
 //	SELECT
-//	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+//	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 //	    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.status, d.created_at, d.updated_at,
 //	    w.k8s_namespace
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
-//	WHERE dt.region = ? AND dt.version > ?
+//	INNER JOIN `regions` r ON dt.region_id = r.id
+//	WHERE r.id = ? AND dt.version > ?
 //	ORDER BY dt.version ASC
 //	LIMIT ?
 func (q *Queries) ListDeploymentTopologyByRegion(ctx context.Context, db DBTX, arg ListDeploymentTopologyByRegionParams) ([]ListDeploymentTopologyByRegionRow, error) {
-	rows, err := db.QueryContext(ctx, listDeploymentTopologyByRegion, arg.Region, arg.Afterversion, arg.Limit)
+	rows, err := db.QueryContext(ctx, listDeploymentTopologyByRegion, arg.RegionID, arg.Afterversion, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +63,7 @@ func (q *Queries) ListDeploymentTopologyByRegion(ctx context.Context, db DBTX, a
 			&i.DeploymentTopology.Pk,
 			&i.DeploymentTopology.WorkspaceID,
 			&i.DeploymentTopology.DeploymentID,
-			&i.DeploymentTopology.Region,
+			&i.DeploymentTopology.RegionID,
 			&i.DeploymentTopology.DesiredReplicas,
 			&i.DeploymentTopology.Version,
 			&i.DeploymentTopology.DesiredStatus,

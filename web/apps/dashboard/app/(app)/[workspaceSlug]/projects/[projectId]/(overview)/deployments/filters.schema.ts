@@ -9,9 +9,11 @@ import { z } from "zod";
 
 export const DEPLOYMENT_STATUSES = [
   "pending",
+  "starting",
   "building",
   "deploying",
   "network",
+  "finalizing",
   "ready",
   "failed",
 ] as const;
@@ -91,7 +93,7 @@ export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): Dep
     case "pending":
       return ["pending"];
     case "deploying":
-      return ["building", "deploying", "network"];
+      return ["starting", "building", "deploying", "network", "finalizing"];
     case "ready":
       return ["ready"];
     case "failed":

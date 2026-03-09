@@ -29,7 +29,7 @@ type forwardConfig struct {
 
 func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 	sess.ResponseWriter().Header().Set(HeaderFrontlineID, s.instanceID)
-	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
+	sess.ResponseWriter().Header().Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
 
 	var proxyStartTime time.Time

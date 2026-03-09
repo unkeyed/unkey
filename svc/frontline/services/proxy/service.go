@@ -22,6 +22,7 @@ import (
 
 type service struct {
 	instanceID        string
+	platform          string
 	region            string
 	apexDomain        string
 	clock             clock.Clock
@@ -99,6 +100,7 @@ func New(cfg Config) (*service, error) {
 
 	return &service{
 		instanceID:        cfg.InstanceID,
+		platform:          cfg.Platform,
 		region:            cfg.Region,
 		apexDomain:        cfg.ApexDomain,
 		clock:             cfg.Clock,
@@ -129,7 +131,7 @@ func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sent
 	})
 }
 
-func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegion string) error {
+func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
 	if hopCountStr := sess.Request().Header.Get(HeaderFrontlineHops); hopCountStr != "" {
@@ -148,7 +150,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		}
 	}
 
-	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegion, s.apexDomain))
+	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegionPlatform, s.apexDomain))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),

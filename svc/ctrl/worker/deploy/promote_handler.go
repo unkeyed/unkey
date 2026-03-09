@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -29,7 +30,7 @@ import (
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
-func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.PromoteRequest) (*hydrav1.PromoteResponse, error) {
+func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteRequest) (*hydrav1.PromoteResponse, error) {
 	logger.Info("initiating promotion", "target", req.GetTargetDeploymentId())
 
 	// Get target deployment
@@ -38,35 +39,46 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 	}, restate.WithName("finding target deployment"))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("deployment not found: %s", req.GetTargetDeploymentId()), 404)
+			return nil, fault.Wrap(
+				restate.TerminalError(fmt.Errorf("deployment not found: %s", req.GetTargetDeploymentId()), 404),
+				fault.Public("The deployment could not be found"),
+			)
 		}
-		return nil, fmt.Errorf("failed to get target deployment: %w", err)
+		return nil, fault.Wrap(err, fault.Public("Failed to find the target deployment"))
 	}
 
 	// Get app from deployment's app_id
 	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
-		row, err := db.Query.FindAppById(stepCtx, w.db.RO(), targetDeployment.AppID)
-		if err != nil {
-			return db.App{}, err
-		}
-		return row.App, nil
+		return db.Query.FindAppById(stepCtx, w.db.RO(), targetDeployment.AppID)
 	}, restate.WithName("finding app"))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("app not found: %s", targetDeployment.AppID), 404)
+			return nil, fault.Wrap(
+				restate.TerminalError(fmt.Errorf("app not found: %s", targetDeployment.AppID), 404),
+				fault.Public("The project could not be found"),
+			)
 		}
-		return nil, fmt.Errorf("failed to get app: %w", err)
+		return nil, fault.Wrap(err, fault.Public("Failed to find the app"))
 	}
 
 	// Validate preconditions
 	if targetDeployment.Status != db.DeploymentsStatusReady {
-		return nil, restate.TerminalError(fmt.Errorf("deployment status must be ready, got: %s", targetDeployment.Status), 400)
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("deployment status must be ready, got: %s", targetDeployment.Status), 400),
+			fault.Public("The deployment is not ready for promotion"),
+		)
 	}
 	if !app.CurrentDeploymentID.Valid {
-		return nil, restate.TerminalError(fmt.Errorf("app has no current deployment"), 400)
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("app has no live deployment"), 400),
+			fault.Public("The app has no live deployment to promote from"),
+		)
 	}
 	if targetDeployment.ID == app.CurrentDeploymentID.String {
-		return nil, restate.TerminalError(fmt.Errorf("target deployment is already the current deployment"), 400)
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400),
+			fault.Public("This deployment is already live"),
+		)
 	}
 
 	// Get all frontlineRoutes for promotion
@@ -80,11 +92,14 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		})
 	}, restate.WithName("finding frontlineRoutes for promotion"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get frontlineRoutes: %w", err)
+		return nil, fault.Wrap(err, fault.Public("Failed to find routes for promotion"))
 	}
 
 	if len(frontlineRoutes) == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no frontlineRoutes found for promotion"), 400)
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("no frontline routes found for promotion"), 400),
+			fault.Public("No routes found to promote"),
+		)
 	}
 
 	logger.Info("found frontlineRoutes for promotion", "count", len(frontlineRoutes), "deployment_id", targetDeployment.ID)
@@ -102,31 +117,31 @@ func (w *Workflow) Promote(ctx restate.WorkflowSharedContext, req *hydrav1.Promo
 		FrontlineRouteIds: routeIDs,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to switch domains: %w", err)
+		return nil, fault.Wrap(err, fault.Public("Failed to switch routes to the promoted deployment"))
 	}
 
 	// Update app's current deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
-			ID:                  app.ID,
+			AppID:               app.ID,
 			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 			IsRolledBack:        false,
 			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return restate.Void{}, fmt.Errorf("failed to update app's current deployment id: %w", err)
+			return restate.Void{}, fault.Wrap(err, fault.Internal("failed to update app's current deployment id"))
 		}
 		logger.Info("updated app current deployment", "app_id", app.ID, "current_deployment_id", targetDeployment.ID)
 		return restate.Void{}, nil
 	}, restate.WithName("updating app current deployment"))
 	if err != nil {
-		return nil, err
+		return nil, fault.Wrap(err, fault.Public("Failed to update the project after promotion"))
 	}
 
 	// ensure the new promoted deployment does not get spun down from existing scheduled actions
 	_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
 	if err != nil {
-		return nil, err
+		return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the promoted deployment"))
 	}
 
 	// schedule old deployment to be spun down

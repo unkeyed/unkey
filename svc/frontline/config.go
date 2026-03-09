@@ -30,6 +30,10 @@ type Config struct {
 	// Serves general traffic over HTTPS by default.
 	HttpPort int `toml:"http_port" config:"default=7443,min=1,max=65535"`
 
+	// Platform identifies the cloud provider
+	// ie: aws, gcp, local
+	Platform string `toml:"platform" config:"required"`
+
 	// Region identifies the geographic region where this node is deployed.
 	// Used for observability, latency optimization, and cross-region routing.
 	Region string `toml:"region" config:"required"`

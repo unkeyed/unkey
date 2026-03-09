@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { CloudUp, Earth, Hammer2, LayerFront } from "@unkey/icons";
+import { CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -51,7 +51,7 @@ export function DeploymentProgress() {
     };
   }, [isFailed]);
 
-  const { building, deploying, network, queued } = steps.data ?? {};
+  const { building, deploying, network, queued, starting, finalizing } = steps.data ?? {};
 
   const [redeployOpen, setRedeployOpen] = useState(false);
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
@@ -80,7 +80,7 @@ export function DeploymentProgress() {
               ? queued.endedAt
                 ? (queued.error ?? "Deployment has started")
                 : "Deployment is queued"
-              : "Waiting deployment to start"
+              : "Pending"
           }
           duration={queued ? (queued.endedAt ?? now) - queued.startedAt : undefined}
           status={
@@ -89,6 +89,27 @@ export function DeploymentProgress() {
               : queued?.completed
                 ? "completed"
                 : queued
+                  ? "started"
+                  : "pending"
+          }
+        />
+        <DeploymentStep
+          icon={<Pulse iconSize="sm-medium" className="size-[18px]" />}
+          title="Deployment Starting"
+          description={
+            starting
+              ? starting.endedAt
+                ? (starting.error ?? "Deployment has started")
+                : "Deployment has started"
+              : "Preparing deployment for building"
+          }
+          duration={starting ? (starting.endedAt ?? now) - starting.startedAt : undefined}
+          status={
+            starting?.error
+              ? "error"
+              : starting?.completed
+                ? "completed"
+                : starting
                   ? "started"
                   : "pending"
           }
@@ -134,7 +155,7 @@ export function DeploymentProgress() {
                 : "Deploying to all machines"
               : isFailed
                 ? "Skipped"
-                : "Waiting for build"
+                : "Pending"
           }
           duration={deploying ? (deploying.endedAt ?? now) - deploying.startedAt : undefined}
           status={
@@ -159,7 +180,7 @@ export function DeploymentProgress() {
                 : "Assigning domains"
               : isFailed
                 ? "Skipped"
-                : "Waiting for deployments"
+                : "Pending"
           }
           duration={network ? (network.endedAt ?? now) - network.startedAt : undefined}
           status={
@@ -174,6 +195,27 @@ export function DeploymentProgress() {
                     : "pending"
           }
         />
+        <DeploymentStep
+          icon={<Sparkle3 iconSize="sm-medium" className="size-[18px]" />}
+          title="Deployment finalizing"
+          description={
+            finalizing
+              ? finalizing.endedAt
+                ? (finalizing.error ?? "Deployment has finished")
+                : "Finalizing deployment"
+              : "Pending"
+          }
+          duration={finalizing ? (finalizing.endedAt ?? now) - finalizing.startedAt : undefined}
+          status={
+            finalizing?.error
+              ? "error"
+              : finalizing?.completed
+                ? "completed"
+                : finalizing
+                  ? "started"
+                  : "pending"
+          }
+        />
       </SettingCardGroup>
       {isFailed && (
         <div className="flex flex-col gap-3 animate-fade-slide-in">
@@ -182,8 +224,9 @@ export function DeploymentProgress() {
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-medium text-error-11">Deployment failed</span>
                 <span className="text-xs text-gray-11">
-                  {[queued, building, deploying, network].find((s) => s?.error)?.error ??
-                    "Deployment failed"}
+                  {[queued, starting, building, deploying, network, finalizing].find(
+                    (s) => s?.error,
+                  )?.error ?? "Deployment failed"}
                 </span>
               </div>
             </div>

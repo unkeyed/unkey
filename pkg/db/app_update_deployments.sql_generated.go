@@ -23,7 +23,7 @@ type UpdateAppDeploymentsParams struct {
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
 	UpdatedAt           sql.NullInt64  `db:"updated_at"`
-	ID                  string         `db:"id"`
+	AppID               string         `db:"app_id"`
 }
 
 // UpdateAppDeployments
@@ -39,7 +39,7 @@ func (q *Queries) UpdateAppDeployments(ctx context.Context, db DBTX, arg UpdateA
 		arg.CurrentDeploymentID,
 		arg.IsRolledBack,
 		arg.UpdatedAt,
-		arg.ID,
+		arg.AppID,
 	)
 	return err
 }

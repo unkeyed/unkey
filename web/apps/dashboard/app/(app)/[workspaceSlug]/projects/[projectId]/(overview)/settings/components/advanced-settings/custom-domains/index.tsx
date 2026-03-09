@@ -117,12 +117,12 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >
-      <div className="flex flex-col gap-3 w-full">
+      <div className="flex flex-col gap-2 w-120">
         <div className="flex items-center gap-3">
-          <span className="text-[13px] text-gray-11 w-[140px]">Environment</span>
+          <span className="text-[13px] text-gray-11 w-35">Environment</span>
           <span className="flex-1 text-[13px] text-gray-11">Domain</span>
         </div>
-        <div className="flex items-start gap-3 w-[480px]">
+        <div className="flex items-start gap-3 w-120">
           <Controller
             control={control}
             name="environmentId"

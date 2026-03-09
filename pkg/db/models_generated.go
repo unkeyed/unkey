@@ -316,10 +316,12 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 type DeploymentStepsStep string
 
 const (
-	DeploymentStepsStepQueued    DeploymentStepsStep = "queued"
-	DeploymentStepsStepBuilding  DeploymentStepsStep = "building"
-	DeploymentStepsStepDeploying DeploymentStepsStep = "deploying"
-	DeploymentStepsStepNetwork   DeploymentStepsStep = "network"
+	DeploymentStepsStepQueued     DeploymentStepsStep = "queued"
+	DeploymentStepsStepStarting   DeploymentStepsStep = "starting"
+	DeploymentStepsStepBuilding   DeploymentStepsStep = "building"
+	DeploymentStepsStepDeploying  DeploymentStepsStep = "deploying"
+	DeploymentStepsStepNetwork    DeploymentStepsStep = "network"
+	DeploymentStepsStepFinalizing DeploymentStepsStep = "finalizing"
 )
 
 func (e *DeploymentStepsStep) Scan(src interface{}) error {
@@ -360,10 +362,8 @@ func (ns NullDeploymentStepsStep) Value() (driver.Value, error) {
 type DeploymentTopologyDesiredStatus string
 
 const (
-	DeploymentTopologyDesiredStatusStarting DeploymentTopologyDesiredStatus = "starting"
-	DeploymentTopologyDesiredStatusStarted  DeploymentTopologyDesiredStatus = "started"
-	DeploymentTopologyDesiredStatusStopping DeploymentTopologyDesiredStatus = "stopping"
-	DeploymentTopologyDesiredStatusStopped  DeploymentTopologyDesiredStatus = "stopped"
+	DeploymentTopologyDesiredStatusStopped DeploymentTopologyDesiredStatus = "stopped"
+	DeploymentTopologyDesiredStatusRunning DeploymentTopologyDesiredStatus = "running"
 )
 
 func (e *DeploymentTopologyDesiredStatus) Scan(src interface{}) error {
@@ -491,12 +491,14 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 type DeploymentsStatus string
 
 const (
-	DeploymentsStatusPending   DeploymentsStatus = "pending"
-	DeploymentsStatusBuilding  DeploymentsStatus = "building"
-	DeploymentsStatusDeploying DeploymentsStatus = "deploying"
-	DeploymentsStatusNetwork   DeploymentsStatus = "network"
-	DeploymentsStatusReady     DeploymentsStatus = "ready"
-	DeploymentsStatusFailed    DeploymentsStatus = "failed"
+	DeploymentsStatusPending    DeploymentsStatus = "pending"
+	DeploymentsStatusStarting   DeploymentsStatus = "starting"
+	DeploymentsStatusBuilding   DeploymentsStatus = "building"
+	DeploymentsStatusDeploying  DeploymentsStatus = "deploying"
+	DeploymentsStatusNetwork    DeploymentsStatus = "network"
+	DeploymentsStatusFinalizing DeploymentsStatus = "finalizing"
+	DeploymentsStatusReady      DeploymentsStatus = "ready"
+	DeploymentsStatusFailed     DeploymentsStatus = "failed"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -998,6 +1000,18 @@ type AppEnvironmentVariable struct {
 	UpdatedAt        sql.NullInt64               `db:"updated_at"`
 }
 
+type AppRegionalSetting struct {
+	Pk                            uint64         `db:"pk"`
+	WorkspaceID                   string         `db:"workspace_id"`
+	AppID                         string         `db:"app_id"`
+	EnvironmentID                 string         `db:"environment_id"`
+	RegionID                      string         `db:"region_id"`
+	Replicas                      int32          `db:"replicas"`
+	HorizontalAutoscalingPolicyID sql.NullString `db:"horizontal_autoscaling_policy_id"`
+	CreatedAt                     int64          `db:"created_at"`
+	UpdatedAt                     sql.NullInt64  `db:"updated_at"`
+}
+
 type AppRuntimeSetting struct {
 	Pk             uint64                           `db:"pk"`
 	WorkspaceID    string                           `db:"workspace_id"`
@@ -1008,7 +1022,6 @@ type AppRuntimeSetting struct {
 	MemoryMib      int32                            `db:"memory_mib"`
 	Command        dbtype.StringSlice               `db:"command"`
 	Healthcheck    dbtype.NullHealthcheck           `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig              `db:"region_config"`
 	ShutdownSignal AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	SentinelConfig []byte                           `db:"sentinel_config"`
 	CreatedAt      int64                            `db:"created_at"`
@@ -1081,7 +1094,7 @@ type CiliumNetworkPolicy struct {
 	DeploymentID  string          `db:"deployment_id"`
 	K8sName       string          `db:"k8s_name"`
 	K8sNamespace  string          `db:"k8s_namespace"`
-	Region        string          `db:"region"`
+	RegionID      string          `db:"region_id"`
 	Policy        json.RawMessage `db:"policy"`
 	Version       uint64          `db:"version"`
 	CreatedAt     int64           `db:"created_at"`
@@ -1101,6 +1114,13 @@ type ClickhouseWorkspaceSetting struct {
 	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
 	CreatedAt                 int64         `db:"created_at"`
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
+}
+
+type Cluster struct {
+	Pk              uint64 `db:"pk"`
+	ID              string `db:"id"`
+	RegionID        string `db:"region_id"`
+	LastHeartbeatAt uint64 `db:"last_heartbeat_at"`
 }
 
 type CustomDomain struct {
@@ -1173,7 +1193,7 @@ type DeploymentTopology struct {
 	Pk              uint64                          `db:"pk"`
 	WorkspaceID     string                          `db:"workspace_id"`
 	DeploymentID    string                          `db:"deployment_id"`
-	Region          string                          `db:"region"`
+	RegionID        string                          `db:"region_id"`
 	DesiredReplicas int32                           `db:"desired_replicas"`
 	Version         uint64                          `db:"version"`
 	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
@@ -1236,6 +1256,19 @@ type GithubRepoConnection struct {
 	UpdatedAt          sql.NullInt64 `db:"updated_at"`
 }
 
+type HorizontalAutoscalingPolicy struct {
+	Pk              uint64        `db:"pk"`
+	ID              string        `db:"id"`
+	WorkspaceID     string        `db:"workspace_id"`
+	ReplicasMin     int32         `db:"replicas_min"`
+	ReplicasMax     int32         `db:"replicas_max"`
+	MemoryThreshold sql.NullInt16 `db:"memory_threshold"`
+	CpuThreshold    sql.NullInt16 `db:"cpu_threshold"`
+	RpsThreshold    sql.NullInt16 `db:"rps_threshold"`
+	CreatedAt       int64         `db:"created_at"`
+	UpdatedAt       sql.NullInt64 `db:"updated_at"`
+}
+
 type Identity struct {
 	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
@@ -1255,7 +1288,7 @@ type Instance struct {
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
 	AppID         string          `db:"app_id"`
-	Region        string          `db:"region"`
+	RegionID      string          `db:"region_id"`
 	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
@@ -1412,6 +1445,13 @@ type RatelimitOverride struct {
 	DeletedAtM  sql.NullInt64                  `db:"deleted_at_m"`
 }
 
+type Region struct {
+	Pk       uint64 `db:"pk"`
+	ID       string `db:"id"`
+	Name     string `db:"name"`
+	Platform string `db:"platform"`
+}
+
 type Role struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
@@ -1439,7 +1479,7 @@ type Sentinel struct {
 	EnvironmentID     string                `db:"environment_id"`
 	K8sName           string                `db:"k8s_name"`
 	K8sAddress        string                `db:"k8s_address"`
-	Region            string                `db:"region"`
+	RegionID          string                `db:"region_id"`
 	Image             string                `db:"image"`
 	DesiredState      SentinelsDesiredState `db:"desired_state"`
 	Health            SentinelsHealth       `db:"health"`

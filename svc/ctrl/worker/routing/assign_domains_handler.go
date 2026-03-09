@@ -23,7 +23,7 @@ import (
 func (s *Service) AssignFrontlineRoutes(ctx restate.ObjectContext, req *hydrav1.AssignFrontlineRoutesRequest) (*hydrav1.AssignFrontlineRoutesResponse, error) {
 	logger.Info("assigning domains",
 		"deployment_id", req.GetDeploymentId(),
-		"frontline_route_count", len(req.GetFrontlineRouteIds()),
+		"frontline_routes", req.GetFrontlineRouteIds(),
 	)
 
 	// Upsert each domain in the database

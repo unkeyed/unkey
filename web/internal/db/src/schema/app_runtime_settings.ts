@@ -40,13 +40,6 @@ export const appRuntimeSettings = mysqlTable(
     // null = no healthcheck configured
     healthcheck: json("healthcheck").$type<Healthcheck>(),
 
-    // Maps region ID to replica count, e.g. {"us-east-1": 3, "eu-central-1": 1}
-    // Empty object = 1 replica in all available regions (default behavior)
-    regionConfig: json("region_config")
-      .$type<Record<string, number>>()
-      .notNull()
-      .default(sql`('{}')`),
-
     shutdownSignal: mysqlEnum("shutdown_signal", ["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"])
       .notNull()
       .default("SIGTERM"),
