@@ -199,7 +199,10 @@ const EnvVarsForm = ({
               register={register}
               trigger={trigger}
               onAdd={() => append(createEmptyRow(defaultEnvironmentId))}
-              onRemove={() => { remove(index); trigger("envVars"); }}
+              onRemove={() => {
+                remove(index);
+                trigger("envVars");
+              }}
             />
           ))}
         </div>
