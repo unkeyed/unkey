@@ -98,10 +98,10 @@ function SettingCard({
   const borderClass = inGroup
     ? {}
     : {
-        "border border-grayA-4": border !== "none",
-        "border-t-0": border === "bottom",
-        "border-b-0": border === "top",
-      };
+      "border border-grayA-4": border !== "none",
+      "border-t-0": border === "bottom",
+      "border-b-0": border === "top",
+    };
 
   const expandedBottomRadius =
     !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
@@ -167,7 +167,7 @@ function SettingCard({
             <div className="font-medium text-gray-12 text-[13px] leading-4 tracking-normal">
               {title}
             </div>
-            <div className="font-normal text-gray-9 text-xs leading-4 tracking-normal">
+            <div className="font-normal text-gray-9 text-xs leading-4 tracking-normal max-w-[600px] truncate">
               {description}
             </div>
           </div>

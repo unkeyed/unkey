@@ -124,7 +124,9 @@ export function DeploymentProgress() {
                 ? (building.error ??
                   (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"))
                 : (buildSteps.data?.steps.at(-1)?.name ?? "Building...")
-              : "Image was prebuilt"
+              : deploying
+                ? "Image was prebuilt"
+                : "Pending"
           }
           duration={building ? (building.endedAt ?? now) - building.startedAt : undefined}
           status={
@@ -203,7 +205,9 @@ export function DeploymentProgress() {
               ? finalizing.endedAt
                 ? (finalizing.error ?? "Deployment has finished")
                 : "Finalizing deployment"
-              : "Pending"
+              : isFailed
+                ? "Skipped"
+                : "Pending"
           }
           duration={finalizing ? (finalizing.endedAt ?? now) - finalizing.startedAt : undefined}
           status={
@@ -213,7 +217,9 @@ export function DeploymentProgress() {
                 ? "completed"
                 : finalizing
                   ? "started"
-                  : "pending"
+                  : isFailed
+                    ? "skipped"
+                    : "pending"
           }
         />
       </SettingCardGroup>
