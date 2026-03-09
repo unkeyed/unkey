@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import { Check, TriangleWarning2 } from "@unkey/icons";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
-import ms from "ms";
 
 type DeploymentStepProps = {
   icon: React.ReactNode;
@@ -88,7 +88,9 @@ export function DeploymentStep({
         contentWidth="w-fit"
       >
         <div className="flex items-center gap-4 justify-end w-full absolute right-14">
-          <span className="text-gray-10 text-xs">{duration ? ms(duration) : null}</span>
+          <span className="text-gray-10 text-xs">
+            {duration ? formatCompoundDuration(duration) : null}
+          </span>
           {status === "completed" ? (
             <Check iconSize="md-regular" className="text-success-11" />
           ) : status === "started" ? (
