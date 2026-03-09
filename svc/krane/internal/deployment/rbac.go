@@ -11,15 +11,16 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 )
 
 // ensureDeploymentRBAC creates a ServiceAccount, Role, and RoleBinding for the
 // deployment. The Role only allows reading the specific deployment secret.
 // All resources are owned by the ReplicaSet via ownerRef for automatic GC.
 func (c *Controller) ensureDeploymentRBAC(ctx context.Context, namespace, deploymentID, secretName string, ownerRef metav1.OwnerReference) error {
-	sanitized := sanitizeForK8s(deploymentID)
-	saName := fmt.Sprintf("deploy-%s", sanitized)
-	roleName := fmt.Sprintf("deploy-%s-secret-reader", sanitized)
+	prefix := deploymentResourcePrefix(deploymentID)
+	saName := prefix
+	roleName := prefix + "-secret-reader"
 	commonLabels := labels.New().DeploymentID(deploymentID).ManagedByKrane()
 
 	// ServiceAccount
@@ -33,7 +34,7 @@ func (c *Controller) ensureDeploymentRBAC(ctx context.Context, namespace, deploy
 		},
 		AutomountServiceAccountToken: ptr.P(false),
 	}
-	if err := serverSideApply(ctx, c, "serviceaccounts", namespace, saName, sa); err != nil {
+	if err := serverSideApplyResource(ctx, c.clientSet.CoreV1().RESTClient(), "serviceaccounts", namespace, saName, sa); err != nil {
 		return fmt.Errorf("failed to apply service account: %w", err)
 	}
 
@@ -54,7 +55,7 @@ func (c *Controller) ensureDeploymentRBAC(ctx context.Context, namespace, deploy
 			NonResourceURLs: nil,
 		}},
 	}
-	if err := serverSideApplyRBAC(ctx, c, "roles", namespace, roleName, role); err != nil {
+	if err := serverSideApplyResource(ctx, c.clientSet.RbacV1().RESTClient(), "roles", namespace, roleName, role); err != nil {
 		return fmt.Errorf("failed to apply role: %w", err)
 	}
 
@@ -79,35 +80,19 @@ func (c *Controller) ensureDeploymentRBAC(ctx context.Context, namespace, deploy
 			Name:     roleName,
 		},
 	}
-	if err := serverSideApplyRBAC(ctx, c, "rolebindings", namespace, roleName, rb); err != nil {
+	if err := serverSideApplyResource(ctx, c.clientSet.RbacV1().RESTClient(), "rolebindings", namespace, roleName, rb); err != nil {
 		return fmt.Errorf("failed to apply role binding: %w", err)
 	}
 
 	return nil
 }
 
-func serverSideApply(ctx context.Context, c *Controller, resource, namespace, name string, obj any) error {
+func serverSideApplyResource(ctx context.Context, restClient rest.Interface, resource, namespace, name string, obj any) error {
 	patch, err := json.Marshal(obj)
 	if err != nil {
 		return err
 	}
-	_, err = c.clientSet.CoreV1().RESTClient().Patch(types.ApplyPatchType).
-		Namespace(namespace).
-		Resource(resource).
-		Name(name).
-		Param("fieldManager", fieldManagerKrane).
-		Body(patch).
-		Do(ctx).
-		Get()
-	return err
-}
-
-func serverSideApplyRBAC(ctx context.Context, c *Controller, resource, namespace, name string, obj any) error {
-	patch, err := json.Marshal(obj)
-	if err != nil {
-		return err
-	}
-	_, err = c.clientSet.RbacV1().RESTClient().Patch(types.ApplyPatchType).
+	_, err = restClient.Patch(types.ApplyPatchType).
 		Namespace(namespace).
 		Resource(resource).
 		Name(name).

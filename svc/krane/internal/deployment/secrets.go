@@ -44,22 +44,18 @@ func (c *Controller) decryptSecrets(ctx context.Context, encrypted []byte, envir
 	return bulkRes.GetItems(), nil
 }
 
-// deploymentSecretName returns the deterministic K8s Secret name for a deployment.
-func deploymentSecretName(deploymentID string) string {
-	return fmt.Sprintf("deploy-%s", sanitizeForK8s(deploymentID))
-}
-
-// sanitizeForK8s converts an ID to a valid RFC 1123 subdomain name by
-// lowercasing and replacing underscores with dashes.
-func sanitizeForK8s(id string) string {
-	return strings.ToLower(strings.ReplaceAll(id, "_", "-"))
+// deploymentResourcePrefix returns the base name used for all K8s resources
+// (Secret, ServiceAccount, Role, RoleBinding) owned by a deployment.
+// Converts the deployment ID to a valid RFC 1123 subdomain name.
+func deploymentResourcePrefix(deploymentID string) string {
+	return "deploy-" + strings.ToLower(strings.ReplaceAll(deploymentID, "_", "-"))
 }
 
 // ensureDeploymentSecret creates or updates a K8s Secret containing the plaintext
 // environment variables for the deployment. Uses server-side apply for idempotency.
 // The ownerRef ties the secret's lifecycle to the ReplicaSet for automatic GC.
 func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, deploymentID string, envVars map[string]string, ownerRef metav1.OwnerReference) error {
-	secretName := deploymentSecretName(deploymentID)
+	secretName := deploymentResourcePrefix(deploymentID)
 
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{

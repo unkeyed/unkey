@@ -124,11 +124,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Build registry config for pull secret creation
 	var registryCfg *deployment.RegistryConfig
 	if cfg.Registry != nil {
-		registryCfg = &deployment.RegistryConfig{
-			URL:      cfg.Registry.URL,
-			Username: cfg.Registry.Username,
-			Password: cfg.Registry.Password,
-		}
+		registryCfg = deployment.NewRegistryConfig(cfg.Registry.URL, cfg.Registry.Username, cfg.Registry.Password)
 	}
 
 	// Start the deployment controller (independent control loop)

@@ -44,5 +44,5 @@ func (c *Controller) lockdownDefaultServiceAccount(ctx context.Context, namespac
 		},
 		AutomountServiceAccountToken: ptr.P(false),
 	}
-	return serverSideApply(ctx, c, "serviceaccounts", namespace, "default", sa)
+	return serverSideApplyResource(ctx, c.clientSet.CoreV1().RESTClient(), "serviceaccounts", namespace, "default", sa)
 }

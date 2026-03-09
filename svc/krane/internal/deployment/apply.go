@@ -73,14 +73,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to decrypt secrets: %w", err)
 	}
 
-	// Determine secret and SA names upfront so the RS pod spec can reference them.
-	// The actual resources are created after the RS so we can set ownerReferences.
-	secretName := ""
-	saName := ""
-	if len(plaintext) > 0 {
-		secretName = deploymentSecretName(req.GetDeploymentId())
-		saName = fmt.Sprintf("deploy-%s", sanitizeForK8s(req.GetDeploymentId()))
-	}
+	hasSecrets := len(plaintext) > 0
 
 	usedLabels := labels.New().
 		WorkspaceID(req.GetWorkspaceId()).
@@ -157,10 +150,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	// Mount the deployment secret as env vars if present
-	if secretName != "" {
+	if hasSecrets {
 		container.EnvFrom = []corev1.EnvFromSource{{
 			SecretRef: &corev1.SecretEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+				LocalObjectReference: corev1.LocalObjectReference{Name: deploymentResourcePrefix(req.GetDeploymentId())},
 			},
 		}}
 	}
@@ -176,13 +169,11 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		Containers:                   []corev1.Container{container},
 	}
 
-	if saName != "" {
-		podSpec.ServiceAccountName = saName
+	if hasSecrets {
+		podSpec.ServiceAccountName = deploymentResourcePrefix(req.GetDeploymentId())
 	}
 
-	if c.registry != nil {
-		podSpec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: registryPullSecretName}}
-	}
+	podSpec.ImagePullSecrets = c.imagePullSecrets
 
 	desired := &appsv1.ReplicaSet{
 		TypeMeta: metav1.TypeMeta{
@@ -237,7 +228,8 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		BlockOwnerDeletion: ptr.P(true),
 	}
 
-	if secretName != "" {
+	if hasSecrets {
+		secretName := deploymentResourcePrefix(req.GetDeploymentId())
 		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext, ownerRef); err != nil {
 			return fmt.Errorf("failed to ensure deployment secret: %w", err)
 		}

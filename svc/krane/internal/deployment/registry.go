@@ -18,6 +18,19 @@ type RegistryConfig struct {
 	URL      string
 	Username string
 	Password string
+
+	// dockerConfigJSON is the pre-built dockerconfigjson blob, computed once at construction.
+	dockerConfigJSON []byte
+}
+
+// NewRegistryConfig creates a RegistryConfig and pre-builds the dockerconfigjson blob.
+func NewRegistryConfig(url, username, password string) *RegistryConfig {
+	return &RegistryConfig{
+		URL:              url,
+		Username:         username,
+		Password:         password,
+		dockerConfigJSON: buildDockerConfigJSON(url, username, password),
+	}
 }
 
 // ensureRegistryPullSecret creates or updates the dockerconfigjson pull secret
@@ -27,7 +40,7 @@ func (c *Controller) ensureRegistryPullSecret(ctx context.Context, namespace str
 		return nil
 	}
 
-	dockerConfigJSON := buildDockerConfigJSON(c.registry.URL, c.registry.Username, c.registry.Password)
+	dockerConfigJSON := c.registry.dockerConfigJSON
 
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{

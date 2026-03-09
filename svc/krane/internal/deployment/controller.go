@@ -8,6 +8,7 @@ import (
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -26,9 +27,10 @@ type Controller struct {
 	clientSet       kubernetes.Interface
 	dynamicClient   dynamic.Interface
 	cluster         ctrl.ClusterServiceClient
-	vault           vault.VaultServiceClient
-	registry        *RegistryConfig
-	cb              circuitbreaker.CircuitBreaker[any]
+	vault            vault.VaultServiceClient
+	registry         *RegistryConfig
+	imagePullSecrets []corev1.LocalObjectReference
+	cb               circuitbreaker.CircuitBreaker[any]
 	done            chan struct{}
 	region          string
 	versionLastSeen uint64
@@ -68,16 +70,22 @@ type Config struct {
 // pending deployments on first connection. The circuit breaker starts in a closed
 // (healthy) state.
 func New(cfg Config) *Controller {
+	var pullSecrets []corev1.LocalObjectReference
+	if cfg.Registry != nil {
+		pullSecrets = []corev1.LocalObjectReference{{Name: registryPullSecretName}}
+	}
+
 	return &Controller{
-		clientSet:       cfg.ClientSet,
-		dynamicClient:   cfg.DynamicClient,
-		cluster:         cfg.Cluster,
-		vault:           cfg.Vault,
-		registry:        cfg.Registry,
-		cb:              circuitbreaker.New[any]("deployment_state_update"),
-		done:            make(chan struct{}),
-		region:          cfg.Region,
-		versionLastSeen: 0,
+		clientSet:        cfg.ClientSet,
+		dynamicClient:    cfg.DynamicClient,
+		cluster:          cfg.Cluster,
+		vault:            cfg.Vault,
+		registry:         cfg.Registry,
+		imagePullSecrets: pullSecrets,
+		cb:               circuitbreaker.New[any]("deployment_state_update"),
+		done:             make(chan struct{}),
+		region:           cfg.Region,
+		versionLastSeen:  0,
 	}
 }
 
