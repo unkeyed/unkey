@@ -12,9 +12,9 @@ type RolesSectionProps = {
 export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
   if (!roles || roles.length === 0) {
     return (
-      <div className="flex flex-col gap-1 mt-[16px] px-4">
+      <div className="flex flex-col gap-1 mt-4 px-4">
         <div className="border bg-gray-2 border-gray-4 rounded-[10px]">
-          <div className="text-gray-11 text-[12px] leading-6 px-[14px] py-1.5 font-sans">Roles</div>
+          <div className="text-gray-11 text-[12px] leading-6 px-3.5 py-1.5 font-sans">Roles</div>
           <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2">
             <span className="text-xs text-gray-11">No roles assigned</span>
           </div>

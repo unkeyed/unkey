@@ -79,7 +79,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
             ))}
           </div>
 
-          <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-1">
+          <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
             <div className="text-center text-sm text-accent-11">
               Showing {apiList.length} of {apisData?.pages[0]?.total || 0} APIs
             </div>
