@@ -1,7 +1,7 @@
 "use client";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
-import { toast } from "@unkey/ui";
+
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
@@ -12,6 +12,7 @@ const schema = z.object({
   value: z.string(),
   type: z.enum(["recoverable", "writeonly"]),
   description: z.string().nullable(),
+  createdAt: z.number(),
   environmentId: z.string(),
   projectId: z.string(),
 });
@@ -56,6 +57,7 @@ export const envVars = createCollection<EnvVar, string>(
             value: v.value,
             type: v.type,
             description: v.description,
+            createdAt: v.createdAt,
             environmentId,
             projectId,
           });
@@ -78,7 +80,7 @@ export const envVars = createCollection<EnvVar, string>(
         })
         .parse(changes);
 
-      const mutation = trpcClient.deploy.envVar.create.mutate({
+      await trpcClient.deploy.envVar.create.mutate({
         environmentId: insertInput.environmentId,
         variables: [
           {
@@ -88,56 +90,23 @@ export const envVars = createCollection<EnvVar, string>(
           },
         ],
       });
-
-      toast.promise(mutation, {
-        loading: "Creating environment variable...",
-        success: "Environment variable created",
-        error: (err) => ({
-          message: "Failed to create environment variable",
-          description: err instanceof Error ? err.message : "An unexpected error occurred",
-        }),
-      });
-
-      await mutation;
     },
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
 
-      const mutation = trpcClient.deploy.envVar.update.mutate({
+      await trpcClient.deploy.envVar.update.mutate({
         envVarId: original.id,
         key: modified.key,
         value: modified.value,
         type: modified.type,
       });
-
-      toast.promise(mutation, {
-        loading: "Updating environment variable...",
-        success: "Environment variable updated",
-        error: (err) => ({
-          message: "Failed to update environment variable",
-          description: err instanceof Error ? err.message : "An unexpected error occurred",
-        }),
-      });
-
-      await mutation;
     },
     onDelete: async ({ transaction }) => {
       const { original } = transaction.mutations[0];
 
-      const mutation = trpcClient.deploy.envVar.delete.mutate({
+      await trpcClient.deploy.envVar.delete.mutate({
         envVarId: original.id,
       });
-
-      toast.promise(mutation, {
-        loading: "Deleting environment variable...",
-        success: "Environment variable deleted",
-        error: (err) => ({
-          message: "Failed to delete environment variable",
-          description: err instanceof Error ? err.message : "An unexpected error occurred",
-        }),
-      });
-
-      await mutation;
     },
   }),
 );
