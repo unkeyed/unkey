@@ -60,10 +60,10 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 			MemoryMib:     0,
 			Status:        ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED,
 		}
-		if pod.Spec.Resources != nil {
-			if pod.Spec.Resources.Limits != nil {
-				instance.CpuMillicores = pod.Spec.Resources.Limits.Cpu().MilliValue()
-				instance.MemoryMib = pod.Spec.Resources.Limits.Memory().Value() / (1024 * 1024)
+		if containers := pod.Spec.Containers; len(containers) > 0 {
+			if limits := containers[0].Resources.Limits; limits != nil {
+				instance.CpuMillicores = limits.Cpu().MilliValue()
+				instance.MemoryMib = limits.Memory().Value() / (1024 * 1024)
 			}
 		}
 

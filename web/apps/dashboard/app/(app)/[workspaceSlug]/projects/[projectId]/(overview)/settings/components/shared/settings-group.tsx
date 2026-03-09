@@ -27,10 +27,14 @@ export const SettingsGroup = ({
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between mb-4 px-2">
-        <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          className="flex items-center gap-2.5 cursor-pointer"
+          onClick={() => setExpanded((prev) => !prev)}
+        >
           <div className="text-gray-9">{icon}</div>
           <span className="font-medium text-gray-12 text-sm leading-4">{title}</span>
-        </div>
+        </button>
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}

@@ -12,7 +12,7 @@ const rootDirectorySchema = z.object({
 });
 
 export const RootDirectory = () => {
-  const { settings, autoSave } = useEnvironmentSettings();
+  const { settings, variant } = useEnvironmentSettings();
   const { environmentId, dockerContext: defaultValue } = settings;
 
   const {
@@ -48,7 +48,7 @@ export const RootDirectory = () => {
       displayValue={defaultValue || "."}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={autoSave}
+      autoSave={variant === "onboarding"}
     >
       <FormInput
         label="Root directory"
