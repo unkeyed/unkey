@@ -48,6 +48,21 @@ func (n *Noop) IsCollaborator(_ int64, _ string, _ string) (bool, error) {
 	return false, errNotConfigured
 }
 
+// CreateCheckRun returns an error indicating GitHub is not configured.
+func (n *Noop) CreateCheckRun(_ int64, _ string, _ string, _ string, _ string, _ string, _ string, _ string, _ string) (int64, error) {
+	return 0, errNotConfigured
+}
+
+// UpdateCheckRun returns an error indicating GitHub is not configured.
+func (n *Noop) UpdateCheckRun(_ int64, _ string, _ int64, _ string, _ string, _ string, _ string) error {
+	return errNotConfigured
+}
+
+// ListCheckRunsForRef returns an error indicating GitHub is not configured.
+func (n *Noop) ListCheckRunsForRef(_ int64, _ string, _ string, _ string) ([]CheckRun, error) {
+	return nil, errNotConfigured
+}
+
 // GetBranchHeadCommitPublic retrieves the HEAD commit using the public GitHub
 // API without authentication. Works for public repositories even when GitHub
 // App credentials are not configured.

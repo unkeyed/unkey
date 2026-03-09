@@ -151,6 +151,22 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				}, restate.WithName("github deployment status: failure (awaiting auth)"), restate.WithMaxRetryDuration(30*time.Second))
 			}
 
+			// Create a GitHub Check Run for PR visibility (best-effort)
+			_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+				_, crErr := s.github.CreateCheckRun(
+					repo.InstallationID,
+					req.GetRepositoryFullName(),
+					req.GetAfter(),
+					"Unkey Deployment Authorization",
+					"completed",
+					"action_required",
+					"Awaiting authorization from a project member",
+					fmt.Sprintf("An external contributor pushed to `%s`. A project member must authorize this deployment.", branch),
+					logURL,
+				)
+				return crErr
+			}, restate.WithName("create check run for authorization"), restate.WithMaxRetryDuration(30*time.Second))
+
 			logger.Info("deployment blocked for authorization",
 				"project_id", project.ID,
 				"app_id", app.ID,

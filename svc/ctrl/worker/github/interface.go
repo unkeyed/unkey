@@ -26,6 +26,22 @@ type GitHubClient interface {
 
 	// IsCollaborator checks whether a GitHub user is a collaborator on a repository.
 	IsCollaborator(installationID int64, repo string, username string) (bool, error)
+
+	// CreateCheckRun creates a GitHub Check Run on a commit SHA. Returns the
+	// check run ID. Check runs appear in the PR checks list with prominent visibility.
+	CreateCheckRun(installationID int64, repo string, headSHA string, name string, status string, conclusion string, title string, summary string, detailsURL string) (int64, error)
+
+	// UpdateCheckRun updates an existing GitHub Check Run.
+	UpdateCheckRun(installationID int64, repo string, checkRunID int64, status string, conclusion string, title string, summary string) error
+
+	// ListCheckRunsForRef lists check runs for a given ref, filtered by check name.
+	ListCheckRunsForRef(installationID int64, repo string, ref string, checkName string) ([]CheckRun, error)
+}
+
+// CheckRun holds the minimal fields of a GitHub Check Run needed for updates.
+type CheckRun struct {
+	ID   int64
+	Name string
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.

@@ -41,7 +41,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch branch HEAD from GitHub: %w", err))
 	}
 
-	// Re-derive all matching deploy contexts (same query handle_push uses)
+	// Find all deploy contexts for this branch
 	contexts, err := db.Query.ListRepoConnectionDeployContexts(ctx, s.db.RO(), db.ListRepoConnectionDeployContextsParams{
 		InstallationID: repoConn.InstallationID,
 		RepositoryID:   repoConn.RepositoryID,
@@ -176,6 +176,24 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 			"branch", branch,
 			"commit_sha", headCommit.SHA,
 		)
+	}
+
+	// Mark the PR check run as green now that the deployment is authorized
+	checkRuns, listErr := s.github.ListCheckRunsForRef(repoConn.InstallationID, repoConn.RepositoryFullName, headCommit.SHA, "Unkey Deployment Authorization")
+	if listErr == nil {
+		for _, cr := range checkRuns {
+			if updateErr := s.github.UpdateCheckRun(
+				repoConn.InstallationID,
+				repoConn.RepositoryFullName,
+				cr.ID,
+				"completed",
+				"success",
+				"Deployment authorized",
+				"Deployment authorized and started by a project member.",
+			); updateErr != nil {
+				logger.Error("failed to update check run to success", "check_run_id", cr.ID, "error", updateErr)
+			}
+		}
 	}
 
 	return connect.NewResponse(&ctrlv1.AuthorizeDeploymentResponse{}), nil
