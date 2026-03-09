@@ -1,75 +1,121 @@
-import { CircleWarning } from "@unkey/icons";
-import { Badge } from "@unkey/ui";
+"use client";
+import {
+  ArrowDotAntiClockwise,
+  CircleCheck,
+  CircleHalfDottedClock,
+  CircleWarning,
+  HalfDottedCirclePlay,
+  Nut,
+} from "@unkey/icons";
+import type { IconProps } from "@unkey/icons/src/props";
 import { cn } from "@unkey/ui/src/lib/utils";
-
-type DeploymentStatus =
-  | "pending"
-  | "starting"
-  | "building"
-  | "deploying"
-  | "network"
-  | "finalizing"
-  | "ready"
-  | "failed";
+import type { FC } from "react";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 
 type StatusConfig = {
-  variant: "warning" | "success" | "error" | "secondary";
-  text: string;
+  icon: FC<IconProps>;
+  label: string;
+  bgColor: string;
+  textColor: string;
+  iconColor: string;
+  animated?: boolean;
 };
 
-const STATUS_CONFIG: Record<DeploymentStatus, StatusConfig> = {
+const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   pending: {
-    variant: "secondary",
-    text: "Queued",
+    icon: CircleHalfDottedClock,
+    label: "Pending",
+    bgColor: "bg-grayA-3",
+    textColor: "text-grayA-11",
+    iconColor: "text-gray-11",
   },
   starting: {
-    variant: "secondary",
-    text: "Starting",
+    icon: HalfDottedCirclePlay,
+    label: "Starting",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   building: {
-    variant: "secondary",
-    text: "Building",
+    icon: Nut,
+    label: "Building",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   deploying: {
-    variant: "secondary",
-    text: "Deploying",
+    icon: HalfDottedCirclePlay,
+    label: "Deploying",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   network: {
-    variant: "secondary",
-    text: "Assigning Domains",
+    icon: ArrowDotAntiClockwise,
+    label: "Assigning Domains",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   finalizing: {
-    variant: "secondary",
-    text: "Finalizing",
+    icon: Nut,
+    label: "Finalizing",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   ready: {
-    variant: "success",
-    text: "Ready",
+    icon: CircleCheck,
+    label: "Ready",
+    bgColor: "bg-successA-3",
+    textColor: "text-successA-11",
+    iconColor: "text-success-11",
   },
   failed: {
-    variant: "error",
-    text: "Error",
+    icon: CircleWarning,
+    label: "Failed",
+    bgColor: "bg-errorA-3",
+    textColor: "text-errorA-11",
+    iconColor: "text-error-11",
   },
 };
 
-type Props = {
-  status?: DeploymentStatus;
+type DeploymentStatusBadgeProps = {
+  status: DeploymentStatus;
   className?: string;
 };
 
-export const DeploymentStatusBadge = ({ status, className }: Props) => {
-  if (!status) {
+export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBadgeProps) => {
+  const config = statusConfigs[status];
+
+  if (!config) {
     throw new Error(`Invalid deployment status: ${status}`);
   }
 
-  const config = STATUS_CONFIG[status];
+  const { icon: Icon, label, bgColor, textColor, iconColor, animated } = config;
 
   return (
-    <Badge variant={config.variant} className={cn("font-medium", className)}>
-      <div className="flex items-center gap-2">
-        <CircleWarning iconSize="md-regular" />
-        {config.text}
-      </div>
-    </Badge>
+    <div
+      className={cn(
+        "items-center flex gap-2 p-1.5 rounded-md w-fit relative h-5.5",
+        animated && "overflow-hidden",
+        bgColor,
+        className,
+      )}
+    >
+      {animated && (
+        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
+      )}
+      <Icon
+        iconSize={config.icon === Nut ? "md-bold" : "md-regular"}
+        className={cn(iconColor, animated && "relative z-5")}
+      />
+      <span className={cn(textColor, "text-xs", animated && "relative z-5")}>{label}</span>
+    </div>
   );
 };

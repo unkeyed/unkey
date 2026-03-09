@@ -15,7 +15,7 @@ import { Avatar } from "../../../../components/git-avatar";
 import { StatusIndicator } from "../../../../components/status-indicator";
 import { useProjectData } from "../../../data-provider";
 import { useDeployments } from "../../hooks/use-deployments";
-import { DeploymentStatusBadge } from "./components/deployment-status-badge";
+import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
 import { DomainList } from "./components/domain_list";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {

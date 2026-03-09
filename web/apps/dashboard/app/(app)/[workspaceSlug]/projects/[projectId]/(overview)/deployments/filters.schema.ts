@@ -5,18 +5,9 @@ import type {
 } from "@/components/logs/validation/filter.types";
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
+import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { z } from "zod";
-
-export const DEPLOYMENT_STATUSES = [
-  "pending",
-  "starting",
-  "building",
-  "deploying",
-  "network",
-  "finalizing",
-  "ready",
-  "failed",
-] as const;
 
 // Define grouped statuses for client filtering
 const GROUPED_DEPLOYMENT_STATUSES = [
@@ -28,7 +19,7 @@ const GROUPED_DEPLOYMENT_STATUSES = [
 
 const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;
 
-export type DeploymentStatus = (typeof DEPLOYMENT_STATUSES)[number];
+export type { DeploymentStatus };
 export type GroupedDeploymentStatus = (typeof GROUPED_DEPLOYMENT_STATUSES)[number];
 export type DeploymentEnvironment = (typeof DEPLOYMENT_ENVIRONMENTS)[number];
 
