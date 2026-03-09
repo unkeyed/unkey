@@ -102,7 +102,7 @@ clean-docker-test: ## Clean up dangling test containers
 
 .PHONY: tunnel
 tunnel: ## Forward ports 80/443 to frontline for *.unkey.local (run in separate terminal)
-	@sudo kubectl port-forward -n unkey svc/frontline 443:443 80:80
+	@sudo -v && while true; do sudo kubectl port-forward -n unkey svc/frontline 443:443 80:80 2>/dev/null; echo "port-forward exited, reconnecting..."; sudo -v; sleep 1; done
 
 .PHONY: dev
 dev: ## Start dev environment
