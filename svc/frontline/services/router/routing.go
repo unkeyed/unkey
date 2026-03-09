@@ -46,6 +46,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 	}
 
 	if len(instances) > 0 && !hasRunningInstance {
+		routingErrorsTotal.WithLabelValues("no_running_instances").Inc()
 		return RouteDecision{}, fault.New("no running instances",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("no running instances for deployment"),
@@ -64,6 +65,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 	}
 
 	if len(healthyByRegion) == 0 {
+		routingErrorsTotal.WithLabelValues("no_sentinels_for_instances").Inc()
 		return RouteDecision{}, fault.New("no healthy sentinels",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("no healthy sentinels for environment"),
