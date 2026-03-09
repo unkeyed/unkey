@@ -1,8 +1,8 @@
-import { and, db, eq, inArray } from "@/lib/db";
-import { appRuntimeSettings } from "@unkey/db/src/schema";
+import { and, db, eq } from "@/lib/db";
+import { TRPCError } from "@trpc/server";
+import { appRuntimeSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
-import { resolveProjectEnvironmentIds } from "../utils";
 
 export const updateCpu = workspaceProcedure
   .input(
@@ -12,15 +12,27 @@ export const updateCpu = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
+    const env = await db.query.environments.findFirst({
+      where: and(
+        eq(environments.id, input.environmentId),
+        eq(environments.workspaceId, ctx.workspace.id),
+      ),
+      columns: { appId: true },
+    });
+    if (!env) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
+    }
 
     await db
-      .update(appRuntimeSettings)
-      .set({ cpuMillicores: input.cpuMillicores })
-      .where(
-        and(
-          eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
-          inArray(appRuntimeSettings.environmentId, envIds),
-        ),
-      );
+      .insert(appRuntimeSettings)
+      .values({
+        workspaceId: ctx.workspace.id,
+        appId: env.appId,
+        environmentId: input.environmentId,
+        cpuMillicores: input.cpuMillicores,
+        sentinelConfig: "{}",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+      .onDuplicateKeyUpdate({ set: { cpuMillicores: input.cpuMillicores, updatedAt: Date.now() } });
   });
