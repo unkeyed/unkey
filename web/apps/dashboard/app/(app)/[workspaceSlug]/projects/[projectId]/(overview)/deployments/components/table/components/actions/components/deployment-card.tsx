@@ -6,12 +6,12 @@ import { Badge } from "@unkey/ui";
 
 type DeploymentCardProps = {
   deployment: Deployment;
-  isLive: boolean;
+  isCurrent: boolean;
   showSignal?: boolean;
 };
 
-export const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCardProps) => (
-  <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
+export const DeploymentCard = ({ deployment, isCurrent, showSignal }: DeploymentCardProps) => (
+  <div className="bg-white dark:bg-black border border-grayA-4 rounded-[14px] p-4 relative">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <StatusIndicator withSignal={showSignal} />
@@ -21,14 +21,14 @@ export const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCar
               {`${deployment.id.slice(0, 3)}...${deployment.id.slice(-4)}`}
             </span>
             <Badge
-              variant={isLive ? "success" : "primary"}
-              className={`px-1.5 capitalize ${isLive ? "text-successA-11" : "text-grayA-11"}`}
+              variant={isCurrent ? "success" : "primary"}
+              className={`px-1.5 capitalize ${isCurrent ? "text-successA-11" : "text-grayA-11"}`}
             >
-              {isLive ? "Live" : deployment.status}
+              {isCurrent ? "Current" : deployment.status}
             </Badge>
           </div>
           <div className="text-xs text-grayA-9">
-            {deployment.gitCommitMessage || `${isLive ? "Current active" : "Target"} deployment`}
+            {deployment.gitCommitMessage || `${isCurrent ? "Current active" : "Target"} deployment`}
           </div>
         </div>
       </div>

@@ -5,7 +5,6 @@ go_library(
     srcs = [
         "healthcheck.go",
         "null_string.go",
-        "region_config.go",
         "string_slice.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/db/types",

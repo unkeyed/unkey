@@ -1,8 +1,9 @@
-import { and, db, eq } from "@/lib/db";
+import { and, db, eq, inArray } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { environmentRuntimeSettings } from "@unkey/db/src/schema";
+import { appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
+import { resolveProjectEnvironmentIds } from "../utils";
 
 export type SentinelConfig = {
   policies: {
@@ -56,13 +57,16 @@ export const updateMiddleware = workspaceProcedure
         keyauth: { keySpaceIds: keyspaces.map((ks) => ks.id) },
       });
     }
+
+    const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
+
     await db
-      .update(environmentRuntimeSettings)
+      .update(appRuntimeSettings)
       .set({ sentinelConfig: JSON.stringify(sentinelConfig) })
       .where(
         and(
-          eq(environmentRuntimeSettings.workspaceId, ctx.workspace.id),
-          eq(environmentRuntimeSettings.environmentId, input.environmentId),
+          eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
+          inArray(appRuntimeSettings.environmentId, envIds),
         ),
       );
   });

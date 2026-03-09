@@ -40,18 +40,30 @@ export const ROLLED_BACK_STYLES = {
   focusRing: "focus:ring-warning-7",
 };
 
+export const CURRENT_STATUS_STYLES = {
+  base: "text-grayA-9 bg-feature-2",
+  hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-feature-3",
+  badge: {
+    default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
+  },
+  focusRing: "focus:ring-accent-7",
+};
+
 export const getRowClassName = (
   { deployment }: { deployment: Deployment; environment: Environment },
-  liveDeploymentId: string | null,
+  currentDeploymentId: string | null,
   isRolledBack: boolean,
 ) => {
   const isFailed = deployment.status === "failed";
+  const isCurrent = currentDeploymentId === deployment.id;
 
   const style = isFailed
     ? FAILED_STATUS_STYLES
-    : isRolledBack && liveDeploymentId === deployment.id
+    : isCurrent && isRolledBack
       ? ROLLED_BACK_STYLES
-      : STATUS_STYLES;
+      : isCurrent
+        ? CURRENT_STATUS_STYLES
+        : STATUS_STYLES;
 
   return cn(
     style.base,

@@ -1,5 +1,5 @@
 import { and, db, eq } from "@/lib/db";
-import { environmentBuildSettings, environmentRuntimeSettings } from "@unkey/db/src/schema";
+import { appBuildSettings, appRegionalSettings, appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 import type { SentinelConfig } from "./sentinel/update-middleware";
@@ -7,18 +7,27 @@ import type { SentinelConfig } from "./sentinel/update-middleware";
 export const getEnvironmentSettings = workspaceProcedure
   .input(z.object({ environmentId: z.string() }))
   .query(async ({ ctx, input }) => {
-    const [buildSettings, runtimeSettings] = await Promise.all([
-      db.query.environmentBuildSettings.findFirst({
+    const [buildSettings, runtimeSettings, regionalSettings] = await Promise.all([
+      db.query.appBuildSettings.findFirst({
         where: and(
-          eq(environmentBuildSettings.workspaceId, ctx.workspace.id),
-          eq(environmentBuildSettings.environmentId, input.environmentId),
+          eq(appBuildSettings.workspaceId, ctx.workspace.id),
+          eq(appBuildSettings.environmentId, input.environmentId),
         ),
       }),
-      db.query.environmentRuntimeSettings.findFirst({
+      db.query.appRuntimeSettings.findFirst({
         where: and(
-          eq(environmentRuntimeSettings.workspaceId, ctx.workspace.id),
-          eq(environmentRuntimeSettings.environmentId, input.environmentId),
+          eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
+          eq(appRuntimeSettings.environmentId, input.environmentId),
         ),
+      }),
+      db.query.appRegionalSettings.findMany({
+        where: and(
+          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+          eq(appRegionalSettings.environmentId, input.environmentId),
+        ),
+        with: {
+          region: true,
+        },
       }),
     ]);
 
@@ -35,5 +44,6 @@ export const getEnvironmentSettings = workspaceProcedure
               : undefined,
           }
         : null,
+      regionalSettings,
     };
   });

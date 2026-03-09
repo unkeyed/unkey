@@ -9,19 +9,22 @@ type BulkQuerier interface {
 	InsertAcmeChallenges(ctx context.Context, db DBTX, args []InsertAcmeChallengeParams) error
 	InsertAcmeUsers(ctx context.Context, db DBTX, args []InsertAcmeUserParams) error
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
+	UpsertAppBuildSettings(ctx context.Context, db DBTX, args []UpsertAppBuildSettingsParams) error
+	InsertApps(ctx context.Context, db DBTX, args []InsertAppParams) error
+	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
 	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
 	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error
 	InsertCiliumNetworkPolicies(ctx context.Context, db DBTX, args []InsertCiliumNetworkPolicyParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
+	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
+	UpsertCluster(ctx context.Context, db DBTX, args []UpsertClusterParams) error
 	InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error
 	UpsertCustomDomain(ctx context.Context, db DBTX, args []UpsertCustomDomainParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
-	UpsertEnvironmentBuildSettings(ctx context.Context, db DBTX, args []UpsertEnvironmentBuildSettingsParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
-	UpsertEnvironmentRuntimeSettings(ctx context.Context, db DBTX, args []UpsertEnvironmentRuntimeSettingsParams) error
 	UpsertEnvironment(ctx context.Context, db DBTX, args []UpsertEnvironmentParams) error
 	InsertGithubRepoConnections(ctx context.Context, db DBTX, args []InsertGithubRepoConnectionParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error

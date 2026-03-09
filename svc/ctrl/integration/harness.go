@@ -93,14 +93,23 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Name:        "test-project",
 		Slug:        uid.New("slug"),
 
-		DefaultBranch:    "",
 		DeleteProtection: false,
+	})
+
+	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		Name:          "default",
+		Slug:          "default",
+		DefaultBranch: "main",
 	})
 
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:               uid.New("env"),
 		WorkspaceID:      workspaceID,
 		ProjectID:        project.ID,
+		AppID:            app.ID,
 		Slug:             "production",
 		Description:      "",
 		SentinelConfig:   []byte("{}"),
@@ -115,6 +124,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		K8sName:                       k8sName,
 		WorkspaceID:                   workspaceID,
 		ProjectID:                     project.ID,
+		AppID:                         app.ID,
 		EnvironmentID:                 env.ID,
 		GitCommitSha:                  sql.NullString{Valid: false},
 		GitBranch:                     sql.NullString{Valid: false},
@@ -147,13 +157,28 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	_, err = h.DB.RW().ExecContext(ctx, "UPDATE deployments SET image = ? WHERE id = ?", "nginx:1.19", deploymentID)
 	require.NoError(h.t, err)
 
+	// Ensure the region exists
+	regionID := uid.New(uid.RegionPrefix)
+	err = db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
+		ID:       regionID,
+		Name:     req.Region,
+		Platform: "test",
+	})
+	require.NoError(h.t, err)
+
+	region, err := db.Query.FindRegionByNameAndPlatform(ctx, h.DB.RO(), db.FindRegionByNameAndPlatformParams{
+		Name:     req.Region,
+		Platform: "test",
+	})
+	require.NoError(h.t, err)
+
 	h.versionCounter++
 	err = db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
 		WorkspaceID:     workspaceID,
 		DeploymentID:    deploymentID,
-		Region:          req.Region,
+		RegionID:        region.ID,
 		DesiredReplicas: 1,
-		DesiredStatus:   db.DeploymentTopologyDesiredStatusStarted,
+		DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
 		Version:         h.versionCounter,
 		CreatedAt:       h.Now(),
 	})
@@ -168,9 +193,9 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 			Pk:              0,
 			WorkspaceID:     workspaceID,
 			DeploymentID:    deploymentID,
-			Region:          req.Region,
+			RegionID:        regionID,
 			DesiredReplicas: 1,
-			DesiredStatus:   db.DeploymentTopologyDesiredStatusStarted,
+			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
 			Version:         h.versionCounter,
 			CreatedAt:       h.Now(),
 			UpdatedAt:       sql.NullInt64{Valid: false},
@@ -180,7 +205,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 
 // CreateSentinelRequest contains parameters for creating a test sentinel.
 type CreateSentinelRequest struct {
-	Region       string
+	RegionID     string
 	DesiredState db.SentinelsDesiredState
 }
 
@@ -194,14 +219,23 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		Name:        "test-project-sentinel",
 		Slug:        uid.New("slug"),
 
-		DefaultBranch:    "",
 		DeleteProtection: false,
+	})
+
+	sentinelApp := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
+		ID:            uid.New("app"),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		Name:          "default",
+		Slug:          "default",
+		DefaultBranch: "main",
 	})
 
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:               uid.New("env"),
 		WorkspaceID:      workspaceID,
 		ProjectID:        project.ID,
+		AppID:            sentinelApp.ID,
 		Slug:             "production",
 		Description:      "",
 		SentinelConfig:   []byte("{}"),
@@ -224,7 +258,7 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		ProjectID:         project.ID,
 		K8sAddress:        "http://localhost:8080",
 		K8sName:           k8sName,
-		Region:            req.Region,
+		RegionID:          req.RegionID,
 		Image:             "sentinel:1.0",
 		Health:            db.SentinelsHealthHealthy,
 		DesiredReplicas:   1,

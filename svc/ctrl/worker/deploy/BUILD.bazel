@@ -5,10 +5,11 @@ go_library(
     srcs = [
         "build.go",
         "cilium_policy.go",
+        "compensation.go",
         "deploy_handler.go",
+        "deployment_step.go",
         "doc.go",
         "domains.go",
-        "helpers.go",
         "promote_handler.go",
         "rollback_handler.go",
         "scale_down_idle_preview_deployments.go",

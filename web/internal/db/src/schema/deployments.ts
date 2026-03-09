@@ -31,6 +31,9 @@ export const deployments = mysqlTable(
     // Environment configuration (production, preview, etc.)
     environmentId: varchar("environment_id", { length: 128 }).notNull(),
 
+    // App this deployment belongs to
+    appId: varchar("app_id", { length: 64 }).notNull(),
+
     // the docker image
     // null until the build is done
     image: varchar("image", { length: 256 }),
@@ -75,10 +78,19 @@ export const deployments = mysqlTable(
       .default("SIGTERM"),
 
     // HTTP healthcheck configuration (null = no healthcheck)
-    healthcheck: json("healthcheck").$type<import("./environment_runtime_settings").Healthcheck>(),
+    healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),
 
     // Deployment status
-    status: mysqlEnum("status", ["pending", "building", "deploying", "network", "ready", "failed"])
+    status: mysqlEnum("status", [
+      "pending",
+      "starting",
+      "building",
+      "deploying",
+      "network",
+      "finalizing",
+      "ready",
+      "failed",
+    ])
       .notNull()
       .default("pending"),
     ...lifecycleDates,

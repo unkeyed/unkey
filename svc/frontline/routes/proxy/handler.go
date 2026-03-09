@@ -48,5 +48,5 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return h.ProxyService.ForwardToSentinel(ctx, sess, decision.LocalSentinel, decision.DeploymentID)
 	}
 
-	return h.ProxyService.ForwardToRegion(ctx, sess, decision.NearestNLBRegion)
+	return h.ProxyService.ForwardToRegion(ctx, sess, decision.NearestNLBRegionPlatform)
 }

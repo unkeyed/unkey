@@ -14,7 +14,6 @@ data:
     cname_domain = "unkey.local"
     build_platform = "linux/arm64"
     sentinel_image = "unkey/sentinel:latest"
-    available_regions = ["local.dev"]
 
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
@@ -44,10 +43,16 @@ data:
     url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
     admin_url = "clickhouse://unkey_user_admin:C57RqT5EPZBqCJkMxN9mEZZEzMPcw9yBlwhIizk99t7kx6uLi9rYmtWObsXzdl@clickhouse:9000?secure=false&skip_verify=true"
 
+    # GitHub App credentials for authenticating with the GitHub API.
+    # app_id is resolved at runtime via os.ExpandEnv from the github-credentials secret.
+    # Without a valid app_id the generated JWT has issuer "0" and GitHub returns 401.
     [github]
-    app_id = 0
+    app_id = ${UNKEY_GITHUB_APP_ID}
     private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
-    allow_unauthenticated_deployments = true
+    # Set to true only for local dev without GitHub credentials configured.
+    # When true, deployments skip GitHub auth entirely works only with public repos.
+    # Controlled via UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS in .env.github.
+    allow_unauthenticated_deployments = ${UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS}
 
 ---
 apiVersion: apps/v1
@@ -109,6 +114,18 @@ spec:
                 secretKeyRef:
                   name: github-credentials
                   key: UNKEY_GITHUB_PRIVATE_KEY_PEM
+                  optional: true
+            - name: UNKEY_GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: UNKEY_GITHUB_APP_ID
+                  optional: true
+            - name: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
                   optional: true
           volumeMounts:
             - name: docker-socket

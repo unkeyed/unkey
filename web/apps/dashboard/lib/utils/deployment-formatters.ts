@@ -1,35 +1,33 @@
-export function formatCpu(millicores: number): string {
+export type FormattedParts = { value: string; unit: string };
+
+export function formatCpuParts(millicores: number): FormattedParts {
   if (millicores === 0) {
-    return "—";
+    return { value: "—", unit: "" };
   }
   if (millicores === 256) {
-    return "1/4 vCPU";
+    return { value: "1/4", unit: "vCPU" };
   }
   if (millicores === 512) {
-    return "1/2 vCPU";
+    return { value: "1/2", unit: "vCPU" };
   }
   if (millicores === 768) {
-    return "3/4 vCPU";
+    return { value: "3/4", unit: "vCPU" };
   }
   if (millicores === 1024) {
-    return "1 vCPU";
+    return { value: "1", unit: "vCPU" };
   }
-
   if (millicores >= 1024 && millicores % 1024 === 0) {
-    return `${millicores / 1024} vCPU`;
+    return { value: `${millicores / 1024}`, unit: "vCPU" };
   }
-
-  return `${millicores}m vCPU`;
+  return { value: `${millicores}m`, unit: "vCPU" };
 }
 
-export function formatMemory(mib: number): string {
+export function formatMemoryParts(mib: number): FormattedParts {
   if (mib === 0) {
-    return "—";
+    return { value: "—", unit: "" };
   }
-  // Convert to GiB when >= 1024 MiB
   if (mib >= 1024) {
-    // Show decimals only if not a whole number
-    return `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)} GiB`;
+    return { value: `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)}`, unit: "GiB" };
   }
-  return `${mib} MiB`;
+  return { value: `${mib}`, unit: "MiB" };
 }

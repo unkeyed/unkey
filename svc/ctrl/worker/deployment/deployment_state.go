@@ -81,7 +81,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	switch req.GetState() {
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING:
 		desiredState = db.DeploymentsDesiredStateRunning
-		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStarted
+		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusRunning
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY:
 		desiredState = db.DeploymentsDesiredStateStandby
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
@@ -101,13 +101,13 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 			if err != nil {
 				return err
 			}
-			project, err := db.Query.FindProjectById(txCtx, tx, deployment.ProjectID)
+			app, err := db.Query.FindAppById(txCtx, tx, deployment.AppID)
 			if err != nil {
 				return err
 			}
 
-			if project.LiveDeploymentID.Valid && project.LiveDeploymentID.String == deploymentID {
-				return restate.TerminalErrorf("not allowed to modify the current live deployment")
+			if app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String == deploymentID {
+				return restate.TerminalErrorf("not allowed to modify the current deployment")
 			}
 
 			err = db.Query.UpdateDeploymentDesiredState(txCtx, tx, db.UpdateDeploymentDesiredStateParams{
@@ -130,7 +130,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 
 	// Update all topology entries so WatchDeployments picks up the change.
 	// Each region needs a new version from VersioningService.
-	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
+	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Region, error) {
 		return db.Query.FindDeploymentRegions(runCtx, v.db.RO(), deploymentID)
 	}, restate.WithName("find deployment regions"))
 	if err != nil {
@@ -138,9 +138,9 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 
 	for _, region := range regions {
-		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, region.ID).NextVersion().Request(&hydrav1.NextVersionRequest{})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get next version for region %s: %w", region, err)
+			return nil, fmt.Errorf("failed to get next version for region %s: %w", region.ID, err)
 		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -149,9 +149,9 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 				Version:       versionResp.GetVersion(),
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				DeploymentID:  deploymentID,
-				Region:        region,
+				RegionID:      region.ID,
 			})
-		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region)))
+		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region.ID)))
 		if err != nil {
 			return nil, fmt.Errorf("failed to update topology desired status in %s: %w", region, err)
 		}

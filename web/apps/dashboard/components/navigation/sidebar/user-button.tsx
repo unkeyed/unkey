@@ -34,19 +34,15 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0",
+          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0 cursor-pointer",
           isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 grow h-8",
           className,
         )}
       >
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
           <Avatar className="size-6 rounded-full border border-grayA-6">
-            {user?.avatarUrl ? (
-              <AvatarImage src={user.avatarUrl} alt="Profile picture" className="rounded-full" />
-            ) : null}
-            <AvatarFallback className="bg-gray-2 rounded-full size-6">
-              {user ? (user?.fullName ?? "U").slice(0, 1).toUpperCase() : null}
-            </AvatarFallback>
+            {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}
+            <AvatarFallback name={user?.email ?? "Username"} />
           </Avatar>
         </div>
       </DropdownMenuTrigger>
@@ -65,13 +61,13 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
           <Tabs value={theme} onValueChange={setTheme}>
             <TabsList className="w-full">
-              <TabsTrigger className="w-full" value="light">
+              <TabsTrigger className="w-full cursor-pointer" value="light">
                 <Sun className="size-4" />
               </TabsTrigger>
-              <TabsTrigger className="w-full" value="dark">
+              <TabsTrigger className="w-full cursor-pointer" value="dark">
                 <MoonStars className="size-4" />
               </TabsTrigger>
-              <TabsTrigger className="w-full" value="system">
+              <TabsTrigger className="w-full cursor-pointer" value="system">
                 <Laptop2 className="size-4" />
               </TabsTrigger>
             </TabsList>

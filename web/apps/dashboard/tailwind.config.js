@@ -7,6 +7,7 @@ import tailwindContainerQueries from "@tailwindcss/container-queries";
 import tailwindType from "@tailwindcss/typography";
 import tailwindcssAnimate from "tailwindcss-animate";
 
+
 module.exports = {
   darkMode: ["class"],
   content: [

@@ -36,6 +36,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
@@ -160,11 +161,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploy.New(deploy.Config{
-		DB:                              database,
-		DefaultDomain:                   cfg.DefaultDomain,
-		Vault:                           vaultClient,
-		SentinelImage:                   cfg.SentinelImage,
-		AvailableRegions:                cfg.AvailableRegions,
+		DB:            database,
+		DefaultDomain: cfg.DefaultDomain,
+		Vault:         vaultClient,
+		SentinelImage: cfg.SentinelImage,
+
 		GitHub:                          ghClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
@@ -191,6 +192,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
+
+	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
+		DB: database,
+	})))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
 		DB:          database,

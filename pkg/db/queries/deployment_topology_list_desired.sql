@@ -8,7 +8,8 @@ SELECT
 FROM `deployment_topology` dt
 INNER JOIN `deployments` d ON dt.deployment_id = d.id
 INNER JOIN `workspaces` w ON d.workspace_id = w.id
-WHERE (sqlc.arg(region) = '' OR dt.region = sqlc.arg(region))
+INNER JOIN `regions` r ON dt.region_id = r.id
+WHERE (sqlc.arg(region) = '' OR r.name = sqlc.arg(region))
     AND d.desired_state = sqlc.arg(desired_state)
     AND dt.deployment_id > sqlc.arg(pagination_cursor)
 ORDER BY dt.deployment_id ASC

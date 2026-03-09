@@ -2,7 +2,7 @@ import { and, db, eq } from "@/lib/db";
 import { env } from "@/lib/env";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
-import { environmentVariables } from "@unkey/db/src/schema";
+import { appEnvironmentVariables } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
@@ -24,10 +24,10 @@ export const decryptEnvVar = workspaceProcedure
   )
   .mutation(async ({ ctx, input }) => {
     try {
-      const envVar = await db.query.environmentVariables.findFirst({
+      const envVar = await db.query.appEnvironmentVariables.findFirst({
         where: and(
-          eq(environmentVariables.id, input.envVarId),
-          eq(environmentVariables.workspaceId, ctx.workspace.id),
+          eq(appEnvironmentVariables.id, input.envVarId),
+          eq(appEnvironmentVariables.workspaceId, ctx.workspace.id),
         ),
         columns: {
           id: true,

@@ -11,17 +11,22 @@ import { useProjectData } from "../../data-provider";
 type DeploymentSectionProps = {
   title: string;
   deployment: Deployment;
-  isLive: boolean;
+  isCurrent: boolean;
   showSignal?: boolean;
 };
 
-const DeploymentSection = ({ title, deployment, isLive, showSignal }: DeploymentSectionProps) => (
+const DeploymentSection = ({
+  title,
+  deployment,
+  isCurrent,
+  showSignal,
+}: DeploymentSectionProps) => (
   <div className="space-y-2">
     <div className="flex items-center gap-2">
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
       <CircleInfo iconSize="sm-regular" className="text-gray-9" />
     </div>
-    <DeploymentCard deployment={deployment} isLive={isLive} showSignal={showSignal} />
+    <DeploymentCard deployment={deployment} isCurrent={isCurrent} showSignal={showSignal} />
   </div>
 );
 
@@ -29,14 +34,14 @@ type RollbackDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   targetDeployment: Deployment;
-  liveDeployment: Deployment;
+  currentDeployment: Deployment;
 };
 
 export const RollbackDialog = ({
   isOpen,
   onClose,
   targetDeployment,
-  liveDeployment,
+  currentDeployment,
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
   const { getEnvironmentOrLiveDomains, refetchAll } = useProjectData();
@@ -97,9 +102,9 @@ export const RollbackDialog = ({
     >
       <div className="space-y-9">
         <DeploymentSection
-          title="Live Deployment"
-          deployment={liveDeployment}
-          isLive={true}
+          title="Current Deployment"
+          deployment={currentDeployment}
+          isCurrent={true}
           showSignal={true}
         />
         <div>
@@ -121,7 +126,11 @@ export const RollbackDialog = ({
             </div>
           ))}
         </div>
-        <DeploymentSection title="Target Deployment" deployment={targetDeployment} isLive={false} />
+        <DeploymentSection
+          title="Target Deployment"
+          deployment={targetDeployment}
+          isCurrent={false}
+        />
       </div>
     </DialogContainer>
   );
@@ -129,11 +138,11 @@ export const RollbackDialog = ({
 
 type DeploymentCardProps = {
   deployment: Deployment;
-  isLive: boolean;
+  isCurrent: boolean;
   showSignal?: boolean;
 };
 
-const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCardProps) => (
+const DeploymentCard = ({ deployment, isCurrent, showSignal }: DeploymentCardProps) => (
   <div className="bg-white dark:bg-black border border-grayA-5 rounded-lg p-4 relative">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -144,14 +153,14 @@ const DeploymentCard = ({ deployment, isLive, showSignal }: DeploymentCardProps)
               {`${deployment.id.slice(0, 3)}...${deployment.id.slice(-4)}`}
             </span>
             <Badge
-              variant={isLive ? "success" : "primary"}
-              className={`px-1.5 capitalize ${isLive ? "text-successA-11" : "text-grayA-11"}`}
+              variant={isCurrent ? "success" : "primary"}
+              className={`px-1.5 capitalize ${isCurrent ? "text-successA-11" : "text-grayA-11"}`}
             >
-              {isLive ? "Live" : deployment.status}
+              {isCurrent ? "Current" : deployment.status}
             </Badge>
           </div>
           <div className="text-xs text-grayA-9">
-            {deployment.gitCommitMessage || `${isLive ? "Current active" : "Target"} deployment`}
+            {deployment.gitCommitMessage || `${isCurrent ? "Current active" : "Target"} deployment`}
           </div>
         </div>
       </div>

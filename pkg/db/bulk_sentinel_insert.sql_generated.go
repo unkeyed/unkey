@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertSentinel is the base query for bulk insert
-const bulkInsertSentinel = `INSERT INTO sentinels ( id, workspace_id, environment_id, project_id, k8s_address, k8s_name, region, image, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at ) VALUES %s`
+const bulkInsertSentinel = `INSERT INTO sentinels ( id, workspace_id, environment_id, project_id, k8s_address, k8s_name, region_id, image, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at ) VALUES %s`
 
 // InsertSentinels performs bulk insert in a single query
 func (q *BulkQueries) InsertSentinels(ctx context.Context, db DBTX, args []InsertSentinelParams) error {
@@ -35,7 +35,7 @@ func (q *BulkQueries) InsertSentinels(ctx context.Context, db DBTX, args []Inser
 		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.K8sAddress)
 		allArgs = append(allArgs, arg.K8sName)
-		allArgs = append(allArgs, arg.Region)
+		allArgs = append(allArgs, arg.RegionID)
 		allArgs = append(allArgs, arg.Image)
 		allArgs = append(allArgs, arg.Health)
 		allArgs = append(allArgs, arg.DesiredReplicas)

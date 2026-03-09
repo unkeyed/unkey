@@ -588,7 +588,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x06Deploy\x12\x17.hydra.v1.DeployRequest\x1a\x18.hydra.v1.DeployResponse\"\x00\x12C\n" +
 	"\bRollback\x12\x19.hydra.v1.RollbackRequest\x1a\x1a.hydra.v1.RollbackResponse\"\x00\x12@\n" +
 	"\aPromote\x12\x18.hydra.v1.PromoteRequest\x1a\x19.hydra.v1.PromoteResponse\"\x00\x12\x88\x01\n" +
-	"\x1fScaleDownIdlePreviewDeployments\x120.hydra.v1.ScaleDownIdlePreviewDeploymentsRequest\x1a1.hydra.v1.ScaleDownIdlePreviewDeploymentsResponse\"\x00\x1a\x04\x98\x80\x01\x02B\x91\x01\n" +
+	"\x1fScaleDownIdlePreviewDeployments\x120.hydra.v1.ScaleDownIdlePreviewDeploymentsRequest\x1a1.hydra.v1.ScaleDownIdlePreviewDeploymentsResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x91\x01\n" +
 	"\fcom.hydra.v1B\vDeployProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (

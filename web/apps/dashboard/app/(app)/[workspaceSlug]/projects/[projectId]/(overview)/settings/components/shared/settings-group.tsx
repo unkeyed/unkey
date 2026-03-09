@@ -1,13 +1,14 @@
 "use client";
 
 import { ChevronRight } from "@unkey/icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 type SettingsGroupProps = {
   icon: React.ReactNode;
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
   defaultExpanded?: boolean;
+  hideChevron?: boolean;
 };
 
 export const SettingsGroup = ({
@@ -15,8 +16,13 @@ export const SettingsGroup = ({
   title,
   children,
   defaultExpanded = true,
+  hideChevron = false,
 }: SettingsGroupProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
+
+  useEffect(() => {
+    setExpanded(defaultExpanded);
+  }, [defaultExpanded]);
 
   return (
     <div className="flex flex-col">
@@ -28,17 +34,21 @@ export const SettingsGroup = ({
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
-          className="flex items-center gap-1 text-xs text-gray-10 hover:text-gray-11 transition-colors group duration-300"
+          className="flex items-center gap-1 text-xs text-gray-10 hover:text-gray-11 transition-colors group duration-300 cursor-pointer"
         >
-          {expanded ? "Hide" : "Show"}
-          <ChevronRight
-            className="text-gray-10 group-hover:text-gray-11 transition-all duration-300 flex-shrink-0"
-            iconSize="sm-medium"
-            style={{
-              transitionTimingFunction: "cubic-bezier(.62,.16,.13,1.01)",
-              transform: expanded ? "rotate(270deg)" : "rotate(90deg)",
-            }}
-          />
+          {!hideChevron && (
+            <>
+              {expanded ? "Hide" : "Show"}
+              <ChevronRight
+                className="text-gray-10 group-hover:text-gray-11 transition-all duration-300 shrink-0"
+                iconSize="sm-medium"
+                style={{
+                  transitionTimingFunction: "cubic-bezier(.62,.16,.13,1.01)",
+                  transform: expanded ? "rotate(270deg)" : "rotate(90deg)",
+                }}
+              />
+            </>
+          )}
         </button>
       </div>
       <div

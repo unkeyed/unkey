@@ -35,10 +35,16 @@ export const getDeploymentTree = workspaceProcedure
             ),
           columns: {
             id: true,
-            region: true,
             cpuMillicores: true,
             memoryMib: true,
             status: true,
+          },
+          with: {
+            region: {
+              columns: {
+                name: true,
+              },
+            },
           },
         }),
         db.query.sentinels.findMany({
@@ -49,30 +55,31 @@ export const getDeploymentTree = workspaceProcedure
             ),
           columns: {
             id: true,
-            region: true,
+            regionId: true,
             health: true,
             availableReplicas: true,
             cpuMillicores: true,
             memoryMib: true,
           },
+          with: { region: true },
         }),
       ]);
 
       // Group instances by region
-      const instancesByRegion = Object.groupBy(instances, ({ region }) => region);
+      const instancesByRegion = Object.groupBy(instances, ({ region }) => region?.name ?? "");
 
       // Build tree structure: each sentinel node has instances as children
       const children = sentinels.map(
         ({ id, region, availableReplicas, cpuMillicores, memoryMib, health }) => {
-          const sentinelInstances = instancesByRegion[region] ?? [];
+          const sentinelInstances = instancesByRegion[region.name] ?? [];
 
           return {
             id,
-            label: region,
+            label: region.name,
             direction: "vertical" as const,
             metadata: {
               type: "sentinel" as const,
-              flagCode: mapRegionToFlag(region),
+              flagCode: mapRegionToFlag(region.name),
               instances: sentinelInstances.length,
               replicas: availableReplicas,
               cpu: cpuMillicores,
@@ -82,7 +89,7 @@ export const getDeploymentTree = workspaceProcedure
             },
             children: sentinelInstances.map(({ id, status, cpuMillicores, memoryMib }) => ({
               id,
-              label: `s-${id.slice(-4)}`,
+              label: id,
               metadata: {
                 type: "instance" as const,
                 description: "Instance replica",

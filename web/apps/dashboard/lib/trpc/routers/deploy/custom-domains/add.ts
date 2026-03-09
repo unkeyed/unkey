@@ -41,12 +41,13 @@ export const addCustomDomain = workspaceProcedure
       });
     }
 
-    // Verify environment belongs to project
+    // Verify environment belongs to project and resolve the app
     const environment = await db.query.environments.findFirst({
       where: (table, { eq, and }) =>
         and(eq(table.id, input.environmentId), eq(table.projectId, input.projectId)),
       columns: {
         id: true,
+        appId: true,
       },
     });
 
@@ -56,6 +57,8 @@ export const addCustomDomain = workspaceProcedure
         message: "Environment not found",
       });
     }
+
+    const appId = environment.appId;
 
     const ctrl = createClient(
       CustomDomainService,
@@ -74,6 +77,7 @@ export const addCustomDomain = workspaceProcedure
       const response = await ctrl.addCustomDomain({
         workspaceId: ctx.workspace.id,
         projectId: input.projectId,
+        appId,
         environmentId: input.environmentId,
         domain: input.domain,
       });

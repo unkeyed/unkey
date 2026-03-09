@@ -69,6 +69,7 @@
     "@unkey/vercel": "workspace:^",
     "@vercel/og": "0.6.2",
     "@workos-inc/node": "7.47.0",
+    "boring-avatars": "^2.0.4",
     "class-variance-authority": "0.7.0",
     "clsx": "2.1.1",
     "cmdk": "1.0.0",

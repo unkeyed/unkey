@@ -27,9 +27,11 @@ type DeploymentStatus int32
 const (
 	DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED DeploymentStatus = 0
 	DeploymentStatus_DEPLOYMENT_STATUS_PENDING     DeploymentStatus = 1
+	DeploymentStatus_DEPLOYMENT_STATUS_STARTING    DeploymentStatus = 7
 	DeploymentStatus_DEPLOYMENT_STATUS_BUILDING    DeploymentStatus = 2
 	DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING   DeploymentStatus = 3
 	DeploymentStatus_DEPLOYMENT_STATUS_NETWORK     DeploymentStatus = 4
+	DeploymentStatus_DEPLOYMENT_STATUS_FINALIZING  DeploymentStatus = 8
 	DeploymentStatus_DEPLOYMENT_STATUS_READY       DeploymentStatus = 5
 	DeploymentStatus_DEPLOYMENT_STATUS_FAILED      DeploymentStatus = 6
 )
@@ -39,18 +41,22 @@ var (
 	DeploymentStatus_name = map[int32]string{
 		0: "DEPLOYMENT_STATUS_UNSPECIFIED",
 		1: "DEPLOYMENT_STATUS_PENDING",
+		7: "DEPLOYMENT_STATUS_STARTING",
 		2: "DEPLOYMENT_STATUS_BUILDING",
 		3: "DEPLOYMENT_STATUS_DEPLOYING",
 		4: "DEPLOYMENT_STATUS_NETWORK",
+		8: "DEPLOYMENT_STATUS_FINALIZING",
 		5: "DEPLOYMENT_STATUS_READY",
 		6: "DEPLOYMENT_STATUS_FAILED",
 	}
 	DeploymentStatus_value = map[string]int32{
 		"DEPLOYMENT_STATUS_UNSPECIFIED": 0,
 		"DEPLOYMENT_STATUS_PENDING":     1,
+		"DEPLOYMENT_STATUS_STARTING":    7,
 		"DEPLOYMENT_STATUS_BUILDING":    2,
 		"DEPLOYMENT_STATUS_DEPLOYING":   3,
 		"DEPLOYMENT_STATUS_NETWORK":     4,
+		"DEPLOYMENT_STATUS_FINALIZING":  8,
 		"DEPLOYMENT_STATUS_READY":       5,
 		"DEPLOYMENT_STATUS_FAILED":      6,
 	}
@@ -146,7 +152,9 @@ type CreateDeploymentRequest struct {
 	KeyspaceId *string `protobuf:"bytes,5,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
 	// Container command override (e.g., ["./app", "serve"])
 	// If not specified, the container's default entrypoint/cmd is used
-	Command       []string `protobuf:"bytes,6,rep,name=command,proto3" json:"command,omitempty"`
+	Command []string `protobuf:"bytes,6,rep,name=command,proto3" json:"command,omitempty"`
+	// App ID to deploy. Required.
+	AppId         string `protobuf:"bytes,7,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -221,6 +229,13 @@ func (x *CreateDeploymentRequest) GetCommand() []string {
 		return x.Command
 	}
 	return nil
+}
+
+func (x *CreateDeploymentRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
 }
 
 type GitCommitInfo struct {
@@ -453,6 +468,7 @@ type Deployment struct {
 	WorkspaceId   string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	ProjectId     string                 `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	EnvironmentId string                 `protobuf:"bytes,4,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	AppId         string                 `protobuf:"bytes,21,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	// Source information
 	GitCommitSha string `protobuf:"bytes,5,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"`
 	GitBranch    string `protobuf:"bytes,6,opt,name=git_branch,json=gitBranch,proto3" json:"git_branch,omitempty"`
@@ -536,6 +552,13 @@ func (x *Deployment) GetProjectId() string {
 func (x *Deployment) GetEnvironmentId() string {
 	if x != nil {
 		return x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *Deployment) GetAppId() string {
+	if x != nil {
+		return x.AppId
 	}
 	return ""
 }
@@ -1038,7 +1061,7 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xa1\x02\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xb8\x02\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
@@ -1048,7 +1071,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"git_commit\x18\x04 \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12$\n" +
 	"\vkeyspace_id\x18\x05 \x01(\tH\x01R\n" +
 	"keyspaceId\x88\x01\x01\x12\x18\n" +
-	"\acommand\x18\x06 \x03(\tR\acommandB\r\n" +
+	"\acommand\x18\x06 \x03(\tR\acommand\x12\x15\n" +
+	"\x06app_id\x18\a \x01(\tR\x05appIdB\r\n" +
 	"\v_git_commitB\x0e\n" +
 	"\f_keyspace_id\"\xdc\x01\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
@@ -1067,14 +1091,15 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x15GetDeploymentResponse\x123\n" +
 	"\n" +
 	"deployment\x18\x01 \x01(\v2\x13.ctrl.v1.DeploymentR\n" +
-	"deployment\"\xa5\a\n" +
+	"deployment\"\xbc\a\n" +
 	"\n" +
 	"Deployment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x03 \x01(\tR\tprojectId\x12%\n" +
-	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\x12$\n" +
+	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\x12\x15\n" +
+	"\x06app_id\x18\x15 \x01(\tR\x05appId\x12$\n" +
 	"\x0egit_commit_sha\x18\x05 \x01(\tR\fgitCommitSha\x12\x1d\n" +
 	"\n" +
 	"git_branch\x18\x06 \x01(\tR\tgitBranch\x121\n" +
@@ -1122,13 +1147,15 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x10RollbackResponse\"B\n" +
 	"\x0ePromoteRequest\x120\n" +
 	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
-	"\x0fPromoteResponse*\xef\x01\n" +
+	"\x0fPromoteResponse*\xb1\x02\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
+	"\x1aDEPLOYMENT_STATUS_STARTING\x10\a\x12\x1e\n" +
 	"\x1aDEPLOYMENT_STATUS_BUILDING\x10\x02\x12\x1f\n" +
 	"\x1bDEPLOYMENT_STATUS_DEPLOYING\x10\x03\x12\x1d\n" +
-	"\x19DEPLOYMENT_STATUS_NETWORK\x10\x04\x12\x1b\n" +
+	"\x19DEPLOYMENT_STATUS_NETWORK\x10\x04\x12 \n" +
+	"\x1cDEPLOYMENT_STATUS_FINALIZING\x10\b\x12\x1b\n" +
 	"\x17DEPLOYMENT_STATUS_READY\x10\x05\x12\x1c\n" +
 	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06*Z\n" +
 	"\n" +

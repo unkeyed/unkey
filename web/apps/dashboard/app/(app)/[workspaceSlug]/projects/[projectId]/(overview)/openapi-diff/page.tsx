@@ -16,7 +16,7 @@ import { DeploymentSelect } from "./components/deployment-select";
 
 export default function DiffPage() {
   const { projectId, project } = useProjectData();
-  const liveDeploymentId = project?.liveDeploymentId;
+  const currentDeploymentId = project?.currentDeploymentId;
   const searchParams = useSearchParams();
 
   const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");
@@ -61,13 +61,13 @@ export default function DiffPage() {
     }
 
     // Otherwise, fall back to live deployment if no params
-    if (liveDeploymentId) {
-      const exists = sortedDeployments.some((d) => d.deployment.id === liveDeploymentId);
+    if (currentDeploymentId) {
+      const exists = sortedDeployments.some((d) => d.deployment.id === currentDeploymentId);
       if (exists) {
-        setSelectedFromDeployment(liveDeploymentId);
+        setSelectedFromDeployment(currentDeploymentId);
       }
     }
-  }, [liveDeploymentId, sortedDeployments, deployments.isLoading, searchParams]);
+  }, [currentDeploymentId, sortedDeployments, deployments.isLoading, searchParams]);
 
   const {
     data: diffData,
@@ -100,7 +100,7 @@ export default function DiffPage() {
 
   return (
     <ProjectContentWrapper centered>
-      <Card className="rounded-[14px] pt-[14px] flex flex-col overflow-hidden border-gray-4">
+      <Card className="pt-[14px] flex flex-col overflow-hidden">
         {/* Header Section */}
         <div className="flex w-full justify-between items-center px-[22px]">
           <div className="flex gap-5 items-center">

@@ -37,6 +37,9 @@ type Config struct {
 	// Region identifies the geographic region where this node is deployed.
 	Region string `toml:"region" config:"required,nonempty"`
 
+	// Platform identifies the infrastructure provider (e.g. "aws", "gcp", "local").
+	Platform string `toml:"platform" config:"required,nonempty"`
+
 	// RPCPort is the TCP port for the gRPC server.
 	RPCPort int `toml:"rpc_port" config:"default=8070,min=1,max=65535"`
 

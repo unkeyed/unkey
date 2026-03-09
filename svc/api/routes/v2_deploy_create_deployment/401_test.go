@@ -36,7 +36,8 @@ func TestUnauthorizedAccess(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",

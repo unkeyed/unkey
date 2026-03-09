@@ -4,7 +4,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { StatusIndicator } from "../../../components/status-indicator";
 
 export const ActiveDeploymentCardSkeleton = () => (
-  <Card className="rounded-[14px] pt-[14px] flex justify-between flex-col overflow-hidden border-gray-4">
+  <Card className="pt-[14px] flex justify-between flex-col overflow-hidden">
     <div className="flex w-full justify-between items-center px-[22px] h-9">
       <div className="flex gap-5 items-center">
         <StatusIndicator />

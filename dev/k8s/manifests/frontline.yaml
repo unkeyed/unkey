@@ -6,7 +6,8 @@ metadata:
   namespace: unkey
 data:
   unkey.toml: |
-    region = "local.dev"
+    platform = "dev"
+    region = "local"
     challenge_port = 7070
     http_port = 7443
     apex_domain = "unkey.local"

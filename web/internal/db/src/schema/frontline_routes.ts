@@ -10,6 +10,7 @@ export const frontlineRoutes = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 128 }).notNull().unique(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
+    appId: varchar("app_id", { length: 64 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
     fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {
@@ -19,10 +20,10 @@ export const frontlineRoutes = mysqlTable(
       .unique(),
     // sticky determines whether a fullyQualifiedDomainName should get reassigned to the latest deployment
     // - branch: the fullyQualifiedDomainName always points to the latest deployment on the branch
-    //     <projectslug>-git-<branchname>-<workspaceslug>.unkey.app
+    //     <projectslug>-<appslug>-git-<branchname>-<workspaceslug>.unkey.app
     //
     // - environment: the fullyQualifiedDomainName is sticky to the environment it was created on
-    //     <projectslug>-<environmentslug>-<workspaceslug>.unkey.app
+    //     <projectslug>-<appslug>-<environmentslug>-<workspaceslug>.unkey.app
     //
     // - live: the fullyQualifiedDomainName is sticky to the live deployment it was created on
     //     api.unkey.com

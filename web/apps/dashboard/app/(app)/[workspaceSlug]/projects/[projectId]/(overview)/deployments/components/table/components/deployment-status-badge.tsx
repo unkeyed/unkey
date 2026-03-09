@@ -29,6 +29,14 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
+  starting: {
+    icon: HalfDottedCirclePlay,
+    label: "Starting",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
+  },
   building: {
     icon: Nut,
     label: "Building",
@@ -48,6 +56,14 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   network: {
     icon: ArrowDotAntiClockwise,
     label: "Assigning Domains",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
+  },
+  finalizing: {
+    icon: Nut,
+    label: "Finalizing",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
@@ -86,7 +102,7 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
   return (
     <div
       className={cn(
-        "items-center flex gap-2 p-1.5 rounded-md w-fit relative",
+        "items-center flex gap-2 p-1.5 rounded-md w-fit relative h-5.5",
         animated && "overflow-hidden",
         bgColor,
         className,

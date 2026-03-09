@@ -20,11 +20,11 @@ const instancesSchema = z.object({
 type InstancesFormValues = z.infer<typeof instancesSchema>;
 
 export const Instances = () => {
-  const { settings } = useEnvironmentSettings();
-  const { environmentId, regionConfig } = settings;
+  const { settings, autoSave } = useEnvironmentSettings();
+  const { environmentId, regions } = settings;
 
-  const selectedRegions = Object.keys(regionConfig);
-  const defaultInstances = Object.values(regionConfig)[0] ?? 1;
+  const selectedRegions = regions.map((r) => r.name);
+  const defaultInstances = regions.at(0)?.replicas ?? 1;
 
   const {
     handleSubmit,
@@ -46,16 +46,14 @@ export const Instances = () => {
 
   const onSubmit = async (values: InstancesFormValues) => {
     collection.environmentSettings.update(environmentId, (draft) => {
-      const updated: Record<string, number> = {};
-      for (const region of Object.keys(draft.regionConfig)) {
-        updated[region] = values.instances;
+      for (const region of draft.regions) {
+        region.replicas = values.instances;
       }
-      draft.regionConfig = updated;
     });
   };
 
   const hasChanges = currentInstances !== defaultInstances;
-  const hasRegions = Object.keys(regionConfig).length > 0;
+  const hasRegions = regions.length > 0;
 
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],
@@ -82,6 +80,7 @@ export const Instances = () => {
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      autoSave={autoSave}
     >
       <div className="flex flex-col">
         <span className="text-gray-11 text-[13px]">Instances per region</span>
@@ -96,6 +95,15 @@ export const Instances = () => {
                 setValue("instances", value, { shouldValidate: true });
               }
             }}
+            onValueCommit={
+              autoSave
+                ? ([value]) => {
+                    if (value !== undefined) {
+                      handleSubmit(onSubmit)();
+                    }
+                  }
+                : undefined
+            }
             className="flex-1 max-w-[480px]"
             rangeStyle={{
               background:

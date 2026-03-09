@@ -80,7 +80,9 @@ const SelectTrigger = React.forwardRef<
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        {rightIcon || <ChevronDown className="absolute right-3 w-4 h-4 opacity-70" />}
+        {rightIcon || (
+          <ChevronDown className="absolute text-gray-11 right-3 w-4 h-4" iconSize="sm-medium" />
+        )}
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   </div>
@@ -95,7 +97,10 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 min-w-32 overflow-hidden rounded-lg border border-gray-5 bg-gray-2 text-gray-12 shadow-md",
+        "relative z-50 overflow-hidden rounded-lg border border-gray-5 bg-gray-2 text-gray-12 shadow-md",
+        position === "popper"
+          ? "min-w-(--radix-select-trigger-width) max-w-(--radix-select-trigger-width)"
+          : "min-w-32",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
@@ -146,7 +151,7 @@ const SelectItem = React.forwardRef<
   >
     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check iconSize="lg-medium" />
+        <Check iconSize="sm-medium" className="text-gray-12" />
       </SelectPrimitive.ItemIndicator>
     </span>
 

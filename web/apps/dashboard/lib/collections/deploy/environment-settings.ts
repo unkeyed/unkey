@@ -42,7 +42,7 @@ const schema = z.object({
   memoryMib: z.number().int(),
   command: z.array(z.string()),
   healthcheck: healthcheckSchema,
-  regionConfig: z.record(z.string(), z.number()),
+  regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
   shutdownSignal: z.string(),
   sentinelConfig: sentinelConfigSchema,
 });
@@ -80,13 +80,21 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
         environmentId,
       });
 
-      return [flattenSettingsResponse(environmentId, result.buildSettings, result.runtimeSettings)];
+      return [
+        flattenSettingsResponse(
+          environmentId,
+          result.buildSettings,
+          result.runtimeSettings,
+          result.regionalSettings,
+        ),
+      ];
     },
     getKey: (item) => item.environmentId,
     id: "environmentSettings",
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
-      await dispatchSettingsMutations(original, modified);
+      const silent = transaction.metadata?.silent === true;
+      await dispatchSettingsMutations(original, modified, silent);
     },
   }),
 );
@@ -107,6 +115,7 @@ function flattenSettingsResponse(
   environmentId: string,
   build: SettingsResponse["buildSettings"],
   runtime: SettingsResponse["runtimeSettings"],
+  regional: SettingsResponse["regionalSettings"],
 ): EnvironmentSettings {
   return {
     environmentId,
@@ -117,7 +126,11 @@ function flattenSettingsResponse(
     memoryMib: runtime?.memoryMib ?? 256,
     command: runtime?.command ?? [],
     healthcheck: runtime?.healthcheck ?? null,
-    regionConfig: runtime?.regionConfig ?? {},
+    regions: regional.map((r) => ({
+      id: r.region.id,
+      name: r.region.name,
+      replicas: r.replicas,
+    })),
     shutdownSignal: "SIGTERM",
     sentinelConfig: runtime?.sentinelConfig,
   };
@@ -199,32 +212,29 @@ export function buildSettingsMutations(
     );
   }
 
-  const origRegions = Object.keys(original.regionConfig).sort();
-  const modRegions = Object.keys(modified.regionConfig).sort();
-  const regionsChanged = changed(origRegions, modRegions);
+  const origRegionIds = original.regions.map((r) => r.id).sort();
+  const modRegionIds = modified.regions.map((r) => r.id).sort();
+  const regionsChanged = changed(origRegionIds, modRegionIds);
 
   if (regionsChanged) {
     mutations.push(
       trpcClient.deploy.environmentSettings.runtime.updateRegions.mutate({
         environmentId,
-        regions: modRegions,
+        regionIds: modRegionIds,
       }),
     );
   }
 
-  const origValues = Object.values(original.regionConfig);
-  const modValues = Object.values(modified.regionConfig);
+  const origReplicas = original.regions.at(0)?.replicas ?? 1;
+  const modReplicas = modified.regions.at(0)?.replicas ?? 1;
   const instancesChanged =
-    !regionsChanged &&
-    origValues.length === modValues.length &&
-    modValues.length > 0 &&
-    modValues[0] !== origValues[0];
+    !regionsChanged && modified.regions.length > 0 && modReplicas !== origReplicas;
 
   if (instancesChanged) {
     mutations.push(
       trpcClient.deploy.environmentSettings.runtime.updateInstances.mutate({
         environmentId,
-        replicasPerRegion: modValues[0],
+        replicasPerRegion: modReplicas,
       }),
     );
   }
@@ -244,6 +254,7 @@ export function buildSettingsMutations(
 async function dispatchSettingsMutations(
   original: EnvironmentSettings,
   modified: EnvironmentSettings,
+  silent = false,
 ): Promise<void> {
   const mutations = buildSettingsMutations(original.environmentId, original, modified);
 
@@ -252,13 +263,15 @@ async function dispatchSettingsMutations(
   }
 
   const allMutations = Promise.all(mutations);
-  toast.promise(allMutations, {
-    loading: "Saving settings...",
-    success: "Settings updated",
-    error: (err) => ({
-      message: "Failed to update settings",
-      description: err instanceof Error ? err.message : "An unexpected error occurred",
-    }),
-  });
+  if (!silent) {
+    toast.promise(allMutations, {
+      loading: "Saving settings...",
+      success: "Settings updated",
+      error: (err) => ({
+        message: "Failed to update settings",
+        description: err instanceof Error ? err.message : "An unexpected error occurred",
+      }),
+    });
+  }
   await allMutations;
 }
