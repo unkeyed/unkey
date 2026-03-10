@@ -123,8 +123,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	deploymentID, err := controlPlane.CreateDeployment(ctx, opts.DockerImage)
 	if err != nil {
 		terminal.StopSpinner(errors.FormatError(err), false)
-		// Don't return error it will just double print the error without formatting
-		return nil
+		return cli.Exit("", 1)
 	}
 	terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
 
