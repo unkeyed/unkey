@@ -81,6 +81,10 @@ export const deployments = mysqlTable(
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),
 
     // Deployment status
+    // Restate invocation ID for the deployment workflow
+    invocationId: varchar("invocation_id", { length: 256 }),
+
+    // Deployment status
     status: mysqlEnum("status", [
       "pending",
       "starting",
@@ -90,6 +94,7 @@ export const deployments = mysqlTable(
       "finalizing",
       "ready",
       "failed",
+      "cancelled",
     ])
       .notNull()
       .default("pending"),

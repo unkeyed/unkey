@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // regionProximity maps regions to their closest regions in order of proximity.
@@ -86,6 +87,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 	}, internalCaches.DefaultFindFirstOp)
 
 	if err != nil && !db.IsNotFound(err) {
+		logger.Error("error loading sentinels for environment", "error", err, "environment_id", route.EnvironmentID)
 		return nil, nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading sentinels"),

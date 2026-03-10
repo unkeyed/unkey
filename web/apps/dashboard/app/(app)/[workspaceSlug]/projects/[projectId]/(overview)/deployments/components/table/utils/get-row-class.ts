@@ -55,15 +55,17 @@ export const getRowClassName = (
   isRolledBack: boolean,
 ) => {
   const isFailed = deployment.status === "failed";
+  const isCancelled = deployment.status === "cancelled";
   const isCurrent = currentDeploymentId === deployment.id;
 
-  const style = isFailed
-    ? FAILED_STATUS_STYLES
-    : isCurrent && isRolledBack
-      ? ROLLED_BACK_STYLES
-      : isCurrent
-        ? CURRENT_STATUS_STYLES
-        : STATUS_STYLES;
+  const style =
+    isFailed || isCancelled
+      ? FAILED_STATUS_STYLES
+      : isCurrent && isRolledBack
+        ? ROLLED_BACK_STYLES
+        : isCurrent
+          ? CURRENT_STATUS_STYLES
+          : STATUS_STYLES;
 
   return cn(
     style.base,

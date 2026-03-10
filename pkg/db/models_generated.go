@@ -499,6 +499,7 @@ const (
 	DeploymentsStatusFinalizing DeploymentsStatus = "finalizing"
 	DeploymentsStatusReady      DeploymentsStatus = "ready"
 	DeploymentsStatusFailed     DeploymentsStatus = "failed"
+	DeploymentsStatusCancelled  DeploymentsStatus = "cancelled"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -1171,6 +1172,7 @@ type Deployment struct {
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
+	InvocationID                  sql.NullString            `db:"invocation_id"`
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`

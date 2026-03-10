@@ -88,11 +88,22 @@ func (c *Client) registerDeployment(ctx context.Context, uri string, force bool)
 	return fmt.Errorf("registration failed with status %d: %s", resp.StatusCode, string(body))
 }
 
-// CancelInvocation cancels a running invocation.
+// CancelInvocation cancels a running invocation gracefully, allowing compensation.
 // Returns nil if the invocation was successfully canceled or if it was not found
 // (already completed or never existed).
 func (c *Client) CancelInvocation(ctx context.Context, invocationID string) error {
-	url := fmt.Sprintf("%s/invocations/%s/cancel", c.baseURL, invocationID)
+	return c.terminateInvocation(ctx, invocationID, "cancel")
+}
+
+// KillInvocation immediately terminates a running invocation without cleanup.
+// Returns nil if the invocation was successfully killed or if it was not found
+// (already completed or never existed).
+func (c *Client) KillInvocation(ctx context.Context, invocationID string) error {
+	return c.terminateInvocation(ctx, invocationID, "kill")
+}
+
+func (c *Client) terminateInvocation(ctx context.Context, invocationID string, mode string) error {
+	url := fmt.Sprintf("%s/invocations/%s/%s", c.baseURL, invocationID, mode)
 
 	resp, err := c.do(ctx, http.MethodPatch, url, nil)
 	if err != nil {
@@ -100,17 +111,17 @@ func (c *Client) CancelInvocation(ctx context.Context, invocationID string) erro
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	// 202 Accepted = cancellation initiated
+	// 2xx = termination initiated (Restate returns 200 for kill, 202 for cancel)
 	// 404 Not Found = invocation already completed or never existed
-	if resp.StatusCode == http.StatusAccepted || resp.StatusCode == http.StatusNotFound {
+	if (resp.StatusCode >= 200 && resp.StatusCode < 300) || resp.StatusCode == http.StatusNotFound {
 		return nil
 	}
 
 	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
-		return fmt.Errorf("cancel failed with status %d (failed to read body: %w)", resp.StatusCode, readErr)
+		return fmt.Errorf("%s failed with status %d (failed to read body: %w)", mode, resp.StatusCode, readErr)
 	}
-	return fmt.Errorf("cancel failed with status %d: %s", resp.StatusCode, string(body))
+	return fmt.Errorf("%s failed with status %d: %s", mode, resp.StatusCode, string(body))
 }
 
 func (c *Client) do(ctx context.Context, method, url string, body []byte) (*http.Response, error) {

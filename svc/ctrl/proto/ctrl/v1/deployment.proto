@@ -14,6 +14,7 @@ enum DeploymentStatus {
   DEPLOYMENT_STATUS_FINALIZING = 8;
   DEPLOYMENT_STATUS_READY = 5;
   DEPLOYMENT_STATUS_FAILED = 6;
+  DEPLOYMENT_STATUS_CANCELLED = 9;
 }
 
 // Source type for deployment creation
@@ -148,6 +149,12 @@ message PromoteRequest {
 
 message PromoteResponse {}
 
+message CancelDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message CancelDeploymentResponse {}
+
 service DeployService {
   // Create a new deployment from a docker image or by auto-detecting
   // the appropriate source for the project.
@@ -161,4 +168,7 @@ service DeployService {
 
   // Promote the deployment to the live environment
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
+
+  // Cancel an in-progress deployment by terminating its Restate workflow
+  rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse) {}
 }

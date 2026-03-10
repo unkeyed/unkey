@@ -16,6 +16,7 @@ export const DEPLOYMENT_STATUSES = [
   "finalizing",
   "ready",
   "failed",
+  "cancelled",
 ] as const;
 
 // Define grouped statuses for client filtering
@@ -24,6 +25,7 @@ const GROUPED_DEPLOYMENT_STATUSES = [
   "deploying", // represents all deploying states
   "ready",
   "failed",
+  "cancelled",
 ] as const;
 
 const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;
@@ -59,6 +61,9 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
         return "bg-error-9";
       }
       if (value === "pending") {
+        return "bg-gray-9";
+      }
+      if (value === "cancelled") {
         return "bg-gray-9";
       }
       return "bg-info-9"; // building
@@ -98,6 +103,8 @@ export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): Dep
       return ["ready"];
     case "failed":
       return ["failed"];
+    case "cancelled":
+      return ["cancelled"];
     default:
       throw new Error(`Unknown grouped status: ${groupedStatus}`);
   }

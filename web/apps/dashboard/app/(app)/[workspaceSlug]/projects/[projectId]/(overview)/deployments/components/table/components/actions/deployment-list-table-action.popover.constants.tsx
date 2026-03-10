@@ -3,9 +3,10 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
-import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, Ban, ChevronUp, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { CancelDialog } from "./cancel-dialog";
 import { PromotionDialog } from "./promotion-dialog";
 import { RedeployDialog } from "./redeploy-dialog";
 import { RollbackDialog } from "./rollback-dialog";
@@ -35,6 +36,16 @@ export const DeploymentListTableActions = ({
       environment?.slug === "production" &&
       selectedDeployment.status === "ready" &&
       selectedDeployment.id !== currentDeployment.id;
+
+    const cancellableStatuses = [
+      "pending",
+      "starting",
+      "building",
+      "deploying",
+      "network",
+      "finalizing",
+    ];
+    const canCancel = cancellableStatuses.includes(selectedDeployment.status);
 
     const canRedeploy =
       selectedDeployment.status === "ready" || selectedDeployment.status === "failed";
@@ -79,6 +90,15 @@ export const DeploymentListTableActions = ({
         disabled: !canRedeploy,
         ActionComponent: canRedeploy
           ? (props) => <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
+          : undefined,
+      },
+      {
+        id: "cancel",
+        label: "Cancel",
+        icon: <Ban iconSize="md-regular" />,
+        disabled: !canCancel,
+        ActionComponent: canCancel
+          ? (props) => <CancelDialog {...props} selectedDeployment={selectedDeployment} />
           : undefined,
       },
       {

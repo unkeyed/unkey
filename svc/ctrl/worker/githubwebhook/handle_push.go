@@ -169,7 +169,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 		// Start deploy workflow keyed by workspace ID, to run 1 concurrent build per workspace for now during beta
 		deployClient := hydrav1.NewDeployServiceClient(ctx, app.WorkspaceID)
-		deployClient.Deploy().Send(&hydrav1.DeployRequest{
+		inv := deployClient.Deploy().Send(&hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Source: &hydrav1.DeployRequest_Git{
 				Git: &hydrav1.GitSource{
@@ -182,11 +182,26 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			},
 		})
 
+		// Store invocation ID for later cancellation
+		invocationID := inv.GetInvocationId()
+		if invocationID != "" {
+			if storeErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return db.Query.UpdateDeploymentInvocationID(runCtx, s.db.RW(), db.UpdateDeploymentInvocationIDParams{
+					ID:           deploymentID,
+					InvocationID: sql.NullString{Valid: true, String: invocationID},
+					UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				})
+			}, restate.WithName("store invocation id")); storeErr != nil {
+				logger.Warn("failed to store invocation ID", "deployment_id", deploymentID, "error", storeErr)
+			}
+		}
+
 		logger.Info("Deployment workflow started",
 			"deployment_id", deploymentID,
 			"delivery_id", req.GetDeliveryId(),
 			"project_id", project.ID,
 			"app_id", app.ID,
+			"invocation_id", invocationID,
 			"repository", req.GetRepositoryFullName(),
 			"commit_sha", req.GetAfter(),
 		)

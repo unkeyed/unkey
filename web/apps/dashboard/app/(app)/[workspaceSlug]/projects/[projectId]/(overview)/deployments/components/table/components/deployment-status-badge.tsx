@@ -1,6 +1,7 @@
 "use client";
 import {
   ArrowDotAntiClockwise,
+  Ban,
   CircleCheck,
   CircleHalfDottedClock,
   CircleWarning,
@@ -82,6 +83,13 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     bgColor: "bg-errorA-3",
     textColor: "text-errorA-11",
     iconColor: "text-error-11",
+  },
+  cancelled: {
+    icon: Ban,
+    label: "Cancelled",
+    bgColor: "bg-grayA-3",
+    textColor: "text-grayA-11",
+    iconColor: "text-gray-11",
   },
 };
 

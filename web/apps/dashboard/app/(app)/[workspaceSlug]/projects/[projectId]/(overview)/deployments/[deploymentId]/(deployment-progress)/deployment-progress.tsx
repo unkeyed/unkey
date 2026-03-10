@@ -18,6 +18,7 @@ export function DeploymentProgress() {
   const params = useParams();
   const workspaceSlug = params.workspaceSlug as string;
   const isFailed = deployment.status === "failed";
+  const isCancelled = deployment.status === "failed" || deployment.status === "cancelled";
 
   const steps = trpc.deploy.deployment.steps.useQuery(
     {
@@ -42,14 +43,14 @@ export function DeploymentProgress() {
 
   const [now, setNow] = useState(0);
   useEffect(() => {
-    if (isFailed) {
+    if (isCancelled) {
       return;
     }
     const interval = setInterval(() => setNow(Date.now()), 500);
     return () => {
       clearInterval(interval);
     };
-  }, [isFailed]);
+  }, [isCancelled]);
 
   const { building, deploying, network, queued, starting, finalizing } = steps.data ?? {};
 
@@ -153,7 +154,7 @@ export function DeploymentProgress() {
               ? deploying.endedAt
                 ? (deploying.error ?? "Deployed to all machines")
                 : "Deploying to all machines"
-              : isFailed
+              : isCancelled
                 ? "Skipped"
                 : "Pending"
           }
@@ -165,7 +166,7 @@ export function DeploymentProgress() {
                 ? "completed"
                 : deploying
                   ? "started"
-                  : isFailed
+                  : isCancelled
                     ? "skipped"
                     : "pending"
           }
@@ -178,7 +179,7 @@ export function DeploymentProgress() {
               ? network.endedAt
                 ? (network.error ?? `Domains assigned · ${domainsForDeployment.length} records`)
                 : "Assigning domains"
-              : isFailed
+              : isCancelled
                 ? "Skipped"
                 : "Pending"
           }
@@ -190,7 +191,7 @@ export function DeploymentProgress() {
                 ? "completed"
                 : network
                   ? "started"
-                  : isFailed
+                  : isCancelled
                     ? "skipped"
                     : "pending"
           }
@@ -203,7 +204,9 @@ export function DeploymentProgress() {
               ? finalizing.endedAt
                 ? (finalizing.error ?? "Deployment has finished")
                 : "Finalizing deployment"
-              : "Pending"
+              : isCancelled
+                ? "Skipped"
+                : "Pending"
           }
           duration={finalizing ? (finalizing.endedAt ?? now) - finalizing.startedAt : undefined}
           status={
@@ -213,20 +216,32 @@ export function DeploymentProgress() {
                 ? "completed"
                 : finalizing
                   ? "started"
-                  : "pending"
+                  : isCancelled
+                    ? "skipped"
+                    : "pending"
           }
         />
       </SettingCardGroup>
-      {isFailed && (
+      {isCancelled && (
         <div className="flex flex-col gap-3 animate-fade-slide-in">
-          <div className="border border-errorA-4 bg-errorA-2 rounded-[14px] p-4 flex items-center justify-between">
+          <div
+            className={`border rounded-[14px] p-4 flex items-center justify-between ${
+              isFailed ? "border-errorA-4 bg-errorA-2" : "border-grayA-4 bg-grayA-2"
+            }`}
+          >
             <div className="flex items-center gap-3">
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-error-11">Deployment failed</span>
+                <span
+                  className={`text-sm font-medium ${isFailed ? "text-error-11" : "text-gray-11"}`}
+                >
+                  {isFailed ? "Deployment failed" : "Deployment cancelled"}
+                </span>
                 <span className="text-xs text-gray-11">
-                  {[queued, starting, building, deploying, network, finalizing].find(
-                    (s) => s?.error,
-                  )?.error ?? "Deployment failed"}
+                  {isFailed
+                    ? ([queued, starting, building, deploying, network, finalizing].find(
+                        (s) => s?.error,
+                      )?.error ?? "Deployment failed")
+                    : "This deployment was cancelled by a user"}
                 </span>
               </div>
             </div>

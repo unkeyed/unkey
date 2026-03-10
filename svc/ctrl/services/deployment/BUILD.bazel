@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "deployment",
     srcs = [
+        "cancel_deployment.go",
         "create_deployment.go",
         "doc.go",
         "get_deployment.go",
@@ -18,6 +19,7 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
         "//pkg/logger",
+        "//pkg/restate/admin",
         "//pkg/uid",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//ingress",

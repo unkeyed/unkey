@@ -23,10 +23,12 @@ type MockDeploymentClient struct {
 	GetDeploymentFunc     func(context.Context, *ctrlv1.GetDeploymentRequest) (*ctrlv1.GetDeploymentResponse, error)
 	RollbackFunc          func(context.Context, *ctrlv1.RollbackRequest) (*ctrlv1.RollbackResponse, error)
 	PromoteFunc           func(context.Context, *ctrlv1.PromoteRequest) (*ctrlv1.PromoteResponse, error)
+	CancelDeploymentFunc  func(context.Context, *ctrlv1.CancelDeploymentRequest) (*ctrlv1.CancelDeploymentResponse, error)
 	CreateDeploymentCalls []*ctrlv1.CreateDeploymentRequest
 	GetDeploymentCalls    []*ctrlv1.GetDeploymentRequest
 	RollbackCalls         []*ctrlv1.RollbackRequest
 	PromoteCalls          []*ctrlv1.PromoteRequest
+	CancelDeploymentCalls []*ctrlv1.CancelDeploymentRequest
 }
 
 func (m *MockDeploymentClient) CreateDeployment(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
@@ -67,4 +69,14 @@ func (m *MockDeploymentClient) Promote(ctx context.Context, req *ctrlv1.PromoteR
 		return m.PromoteFunc(ctx, req)
 	}
 	return &ctrlv1.PromoteResponse{}, nil
+}
+
+func (m *MockDeploymentClient) CancelDeployment(ctx context.Context, req *ctrlv1.CancelDeploymentRequest) (*ctrlv1.CancelDeploymentResponse, error) {
+	m.mu.Lock()
+	m.CancelDeploymentCalls = append(m.CancelDeploymentCalls, req)
+	m.mu.Unlock()
+	if m.CancelDeploymentFunc != nil {
+		return m.CancelDeploymentFunc(ctx, req)
+	}
+	return &ctrlv1.CancelDeploymentResponse{}, nil
 }

@@ -131,6 +131,8 @@ func dbStatusToOpenAPI(status db.DeploymentsStatus) openapi.V2DeployGetDeploymen
 		return openapi.READY
 	case db.DeploymentsStatusFailed:
 		return openapi.FAILED
+	case db.DeploymentsStatusCancelled:
+		return openapi.CANCELLED
 	default:
 		return openapi.UNSPECIFIED
 	}

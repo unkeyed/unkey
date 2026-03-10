@@ -2582,6 +2582,7 @@ components:
                         - FINALIZING
                         - READY
                         - FAILED
+                        - CANCELLED
                     example: "READY"
                     x-speakeasy-unknown-values: allow
                 errorMessage:

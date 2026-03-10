@@ -10,7 +10,8 @@ type DeploymentStatus =
   | "network"
   | "finalizing"
   | "ready"
-  | "failed";
+  | "failed"
+  | "cancelled";
 
 type StatusConfig = {
   variant: "warning" | "success" | "error" | "secondary";
@@ -49,6 +50,10 @@ const STATUS_CONFIG: Record<DeploymentStatus, StatusConfig> = {
   failed: {
     variant: "error",
     text: "Error",
+  },
+  cancelled: {
+    variant: "secondary",
+    text: "Cancelled",
   },
 };
 

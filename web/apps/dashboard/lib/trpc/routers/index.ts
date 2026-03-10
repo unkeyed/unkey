@@ -43,6 +43,7 @@ import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
 import { retryVerification } from "./deploy/custom-domains/retry";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
+import { cancel } from "./deploy/deployment/cancel";
 import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
@@ -456,6 +457,7 @@ export const router = t.router({
       rollback,
       promote,
       redeploy,
+      cancel,
       create: createDeploy,
     }),
     sentinelLogs: t.router({

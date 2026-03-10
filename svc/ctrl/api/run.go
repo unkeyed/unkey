@@ -140,8 +140,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deployment.New(deployment.Config{
-		Database: database,
-		Restate:  restateClient,
+		Database:     database,
+		Restate:      restateClient,
+		RestateAdmin: restateAdminClient,
 	})))
 
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database)))

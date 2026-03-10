@@ -128,13 +128,13 @@ export const DeploymentsList = () => {
         header: "",
         width: "15%",
         render: ({ deployment }: { deployment: Deployment }) => {
-          const isFailed = deployment.status === "failed";
-          const cpu = isFailed ? null : formatCpuParts(deployment.cpuMillicores);
-          const mem = isFailed ? null : formatMemoryParts(deployment.memoryMib);
+          const isTerminal = deployment.status === "failed" || deployment.status === "cancelled";
+          const cpu = isTerminal ? null : formatCpuParts(deployment.cpuMillicores);
+          const mem = isTerminal ? null : formatMemoryParts(deployment.memoryMib);
           return (
             <div className="flex items-center gap-7">
               <div className="hidden 2xl:flex items-center w-[80px]">
-                {isFailed ? (
+                {isTerminal ? (
                   <span className="text-gray-9">—</span>
                 ) : (
                   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
@@ -147,7 +147,7 @@ export const DeploymentsList = () => {
                 )}
               </div>
               <div className="hidden 2xl:flex gap-1.5 w-[180px]">
-                {isFailed || !cpu || !mem ? (
+                {isTerminal || !cpu || !mem ? (
                   <span className="text-gray-9">—</span>
                 ) : (
                   <>

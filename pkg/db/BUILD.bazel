@@ -139,6 +139,7 @@ go_library(
         "deployment_update_desired_state.sql_generated.go",
         "deployment_update_git_metadata.sql_generated.go",
         "deployment_update_image.sql_generated.go",
+        "deployment_update_invocation_id.sql_generated.go",
         "deployment_update_openapi_spec.sql_generated.go",
         "deployment_update_status.sql_generated.go",
         "doc.go",

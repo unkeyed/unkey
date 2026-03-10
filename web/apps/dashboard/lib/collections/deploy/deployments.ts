@@ -28,6 +28,7 @@ const schema = z.object({
     "finalizing",
     "ready",
     "failed",
+    "cancelled",
   ]),
   instances: z.array(
     z.object({

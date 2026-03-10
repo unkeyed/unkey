@@ -294,8 +294,17 @@ func (s *Service) CreateDeployment(
 
 	logger.Info("deployment workflow started",
 		"deployment_id", deploymentID,
-		"invocation_id", invocation.Id,
+		"invocation_id", invocation.Id(),
 	)
+
+	// Store invocation ID for later cancellation
+	if updateErr := db.Query.UpdateDeploymentInvocationID(ctx, s.db.RW(), db.UpdateDeploymentInvocationIDParams{
+		ID:           deploymentID,
+		InvocationID: sql.NullString{Valid: true, String: invocation.Id()},
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	}); updateErr != nil {
+		logger.Warn("failed to store invocation ID", "deployment_id", deploymentID, "error", updateErr)
+	}
 
 	return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{
 		DeploymentId: deploymentID,

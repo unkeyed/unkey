@@ -11,8 +11,8 @@ type Props = {
 export const DomainList = ({ deploymentId, status }: Props) => {
   const { getDomainsForDeployment, isDomainsLoading } = useProjectData();
 
-  // Show placeholder for failed deployments
-  if (status === "failed") {
+  // Show placeholder for failed/cancelled deployments
+  if (status === "failed" || status === "cancelled") {
     return <span className="text-xs text-gray-9">—</span>;
   }
 

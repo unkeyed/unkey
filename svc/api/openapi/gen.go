@@ -26,6 +26,7 @@ const (
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
 const (
 	BUILDING    V2DeployGetDeploymentResponseDataStatus = "BUILDING"
+	CANCELLED   V2DeployGetDeploymentResponseDataStatus = "CANCELLED"
 	DEPLOYING   V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
 	FAILED      V2DeployGetDeploymentResponseDataStatus = "FAILED"
 	FINALIZING  V2DeployGetDeploymentResponseDataStatus = "FINALIZING"

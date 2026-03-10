@@ -5,6 +5,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 )
 
 // Service implements the DeployService ConnectRPC API. It coordinates
@@ -12,8 +13,9 @@ import (
 // workflow execution to Restate.
 type Service struct {
 	ctrlv1connect.UnimplementedDeployServiceHandler
-	db      db.Database
-	restate *restateingress.Client
+	db           db.Database
+	restate      *restateingress.Client
+	restateAdmin *restateadmin.Client
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeployService
@@ -28,6 +30,8 @@ type Config struct {
 	Database db.Database
 	// Restate is the ingress client for triggering durable workflows.
 	Restate *restateingress.Client
+	// RestateAdmin is the admin client for canceling invocations.
+	RestateAdmin *restateadmin.Client
 }
 
 // New creates a new [Service] with the given configuration. All fields in
@@ -37,5 +41,6 @@ func New(cfg Config) *Service {
 		UnimplementedDeployServiceHandler: ctrlv1connect.UnimplementedDeployServiceHandler{},
 		db:                                cfg.Database,
 		restate:                           cfg.Restate,
+		restateAdmin:                      cfg.RestateAdmin,
 	}
 }
