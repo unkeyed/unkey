@@ -29,8 +29,8 @@ export const RootKeysList = () => {
   const {
     rootKeys,
     isLoading,
+    isInitialLoading,
     isFetching,
-    isPending,
     totalCount,
     onPageChange,
     page,
@@ -106,7 +106,7 @@ export const RootKeysList = () => {
         totalCount={totalCount}
         onPageChange={onPageChange}
         itemLabel="root keys"
-        hide={isPending}
+        loading={isInitialLoading}
       />
       {editingKey && existingKey && (
         <RootKeyDialog

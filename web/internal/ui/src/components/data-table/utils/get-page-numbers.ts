@@ -1,41 +1,39 @@
 /**
- * Generates an array of page numbers (with "ellipsis" markers) for pagination UI.
- * @param page - Current page (1-indexed)
- * @param totalPages - Total number of pages
- * @param maxVisible - Maximum number of page buttons to show (default 5)
+ * Generates an array of exactly 7 page slots (or fewer when totalPages ≤ 7)
+ * for pagination UI. When only one ellipsis is needed, extra page numbers
+ * fill the remaining slots so the output length stays constant.
+ *
+ * @param page        - Current page (1-indexed)
+ * @param totalPages  - Total number of pages
  */
 export function getPageNumbers(
   page: number,
   totalPages: number,
-  maxVisible = 5,
 ): Array<number | "ellipsis"> {
-  const pages: Array<number | "ellipsis"> = [];
+  const TOTAL_SLOTS = 7;
 
-  if (totalPages <= maxVisible) {
-    for (let i = 1; i <= totalPages; i++) {
-      pages.push(i);
-    }
-    return pages;
+  if (totalPages <= TOTAL_SLOTS) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
 
-  pages.push(1);
-
-  if (page > 3) {
-    pages.push("ellipsis");
+  // Near start — no leading ellipsis, show first 5 pages + trailing ellipsis + last
+  if (page < 5) {
+    return [1, 2, 3, 4, 5, "ellipsis", totalPages];
   }
 
-  const startPage = Math.max(2, page - 1);
-  const endPage = Math.min(totalPages - 1, page + 1);
-
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(i);
+  // Near end — leading ellipsis + last 5 pages
+  if (page > totalPages - 4) {
+    return [
+      1,
+      "ellipsis",
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ];
   }
 
-  if (page < totalPages - 2) {
-    pages.push("ellipsis");
-  }
-
-  pages.push(totalPages);
-
-  return pages;
+  // Middle — both ellipses with a 3-page window around current
+  return [1, "ellipsis", page - 1, page, page + 1, "ellipsis", totalPages];
 }

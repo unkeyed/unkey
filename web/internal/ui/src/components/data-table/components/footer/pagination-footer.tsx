@@ -1,7 +1,6 @@
 "use client";
 import { ArrowsToAllDirections, ArrowsToCenter, ChevronLeft, ChevronRight } from "@unkey/icons";
-import type React from "react";
-import { useState } from "react";
+import React, { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
 import { getPageNumbers } from "../../utils/get-page-numbers";
@@ -14,10 +13,11 @@ export interface PaginationFooterProps {
   onPageChange: (page: number) => void;
   itemLabel?: string;
   hide?: boolean;
+  loading?: boolean;
   headerContent?: React.ReactNode;
 }
 
-export function PaginationFooter({
+export const PaginationFooter = memo(function PaginationFooter({
   page,
   pageSize,
   totalPages,
@@ -25,25 +25,69 @@ export function PaginationFooter({
   onPageChange,
   itemLabel = "items",
   hide,
+  loading,
   headerContent,
 }: PaginationFooterProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, totalCount);
+  const pageNumbers = useMemo(() => getPageNumbers(page, totalPages), [page, totalPages]);
 
   if (hide) {
     return null;
   }
 
+  if (loading) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 w-full flex items-center justify-center z-10 pointer-events-none">
+        <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 pointer-events-auto">
+          <div className="flex w-full justify-between items-center p-[18px]">
+            {/* Item count skeleton */}
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-12 bg-grayA-3 rounded animate-pulse" />
+              <div className="h-3 w-8 bg-grayA-4 rounded animate-pulse" />
+              <div className="h-3 w-4 bg-grayA-3 rounded animate-pulse" />
+              <div className="h-3 w-6 bg-grayA-4 rounded animate-pulse" />
+              <div className="h-3 w-14 bg-grayA-3 rounded animate-pulse" />
+            </div>
+
+            {/* Pagination controls skeleton */}
+            <div className="flex items-center gap-1">
+              {/* Prev button */}
+              <div className="size-6 bg-grayA-3 rounded animate-pulse" />
+
+              {/* Page pill group */}
+              <div className="flex items-center bg-grayA-2 border border-grayA-3 rounded-lg p-0.5 gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-7 h-7 bg-grayA-3 rounded-md animate-pulse"
+                    style={{ animationDelay: `${i * 60}ms` }}
+                  />
+                ))}
+              </div>
+
+              {/* Next button */}
+              <div className="size-6 bg-grayA-3 rounded animate-pulse" />
+
+              {/* Minimize button */}
+              <div className="size-6 bg-grayA-3 rounded ml-1 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Minimized state - parked at right side
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-10 transition-all duration-300 ease-out animate-slide-in-from-bottom">
+      <div className="fixed bottom-6 right-6 z-1 animate-fade-out animation-fade-in">
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 transition-all duration-200 hover:shadow-xl hover:scale-105 group"
+          className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 duration-200 hover:shadow-xl hover:scale-105 group"
           title={`Page ${page} of ${totalPages} • ${start}-${end} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
@@ -61,13 +105,11 @@ export function PaginationFooter({
     );
   }
 
-  const pageNumbers = getPageNumbers(page, totalPages);
-
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex z-10 transition-all duration-300 ease-out pointer-events-none",
-        "opacity-100 animate-slide-up-from-bottom",
+        "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex z-10 animation-ease-out pointer-events-none",
+        "opacity-100",
       )}
     >
       <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg pointer-events-auto">
@@ -98,49 +140,59 @@ export function PaginationFooter({
             </div>
 
             {/* Pagination controls */}
-            <div className="items-center flex gap-2">
+            <nav aria-label="Pagination navigation" className="flex items-center gap-1">
               {/* Previous button */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => onPageChange(page - 1)}
                 disabled={page === 1}
-                aria-label="Previous page"
-                className="border-none disabled:pointer-events-none"
+                aria-label="Go to previous page"
+                className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
               >
                 <ChevronLeft iconSize="sm-regular" />
               </Button>
 
-              {/* Page numbers */}
-              <div className="flex items-center gap-1">
+              {/* Page number segmented group */}
+              <div
+                role="group"
+                aria-label="Page numbers"
+                className="flex items-center justify-center bg-grayA-2 border border-grayA-3 rounded-lg p-0.5 gap-0.5 transition-all animate-fade-in duration-500"
+              >
                 {pageNumbers.map((pageNum, idx) => {
                   if (pageNum === "ellipsis") {
                     return (
                       <span
                         key={idx < pageNumbers.length / 2 ? "ellipsis-start" : "ellipsis-end"}
-                        className="px-2 text-gray-9"
+                        aria-hidden="true"
+                        className="w-7 h-7 flex items-center justify-center text-gray-11 text-[10px] tracking-widest select-none"
                       >
-                        ...
+                        ···
                       </span>
                     );
                   }
 
                   const isCurrentPage = pageNum === page;
                   return (
-                    <Button
+                    <button
                       key={pageNum}
-                      variant={isCurrentPage ? "outline" : "ghost"}
-                      size="sm"
-                      onClick={() => onPageChange(pageNum)}
+                      type="button"
+                      onClick={() => {
+                        if (!isCurrentPage) {
+                          onPageChange(pageNum);
+                        }
+                      }}
                       aria-label={`Page ${pageNum}`}
                       aria-current={isCurrentPage ? "page" : undefined}
                       className={cn(
-                        "min-w-[32px] transition-all",
-                        isCurrentPage && "bg-gray-3 text-gray-12 font-medium pointer-events-none",
+                        "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
+                        isCurrentPage
+                          ? "bg-grayA-5 text-accent-12 shadow-sm pointer-events-none ring-0 border border-grayA-3 scale-105 text-sm transition-all duration-300"
+                          : "text-gray-11 hover:text-gray-12 hover:bg-grayA-3",
                       )}
                     >
                       {pageNum}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
@@ -151,15 +203,15 @@ export function PaginationFooter({
                 size="icon"
                 onClick={() => onPageChange(page + 1)}
                 disabled={page === totalPages}
-                aria-label="Next page"
-                className="border-none disabled:pointer-events-none"
+                aria-label="Go to next page"
+                className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
               >
                 <ChevronRight iconSize="sm-regular" />
               </Button>
 
               {/* Minimize button */}
               <div
-                className="flex justify-end transition-all duration-200 animate-fade-in-down"
+                className="flex justify-end transition-all duration-200 animate-fade-in-down ml-1"
                 style={{ animationDelay: "0.1s" }}
               >
                 <Button
@@ -173,10 +225,10 @@ export function PaginationFooter({
                   <ArrowsToCenter iconSize="lg-regular" />
                 </Button>
               </div>
-            </div>
+            </nav>
           </div>
         </div>
       </div>
     </div>
   );
-}
+});
