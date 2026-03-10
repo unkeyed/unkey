@@ -16,13 +16,21 @@ describe("getDeploymentActionEligibility", () => {
       expected: { canRollback: true, canPromote: false, canRedeploy: true },
     },
     {
-      name: "ready + production + is current + isRolledBack → promote=true, rollback=false, redeploy=true",
+      name: "ready + production + is current + isRolledBack → promote=false, rollback=false, redeploy=true",
       ctx: {
         ...baseCtx,
         selectedDeployment: { id: "dep-current", status: "ready" as const },
         isRolledBack: true,
       },
-      expected: { canRollback: false, canPromote: true, canRedeploy: true },
+      expected: { canRollback: false, canPromote: false, canRedeploy: true },
+    },
+    {
+      name: "ready + production + not current + isRolledBack → rollback=true, promote=true, redeploy=true",
+      ctx: {
+        ...baseCtx,
+        isRolledBack: true,
+      },
+      expected: { canRollback: true, canPromote: true, canRedeploy: true },
     },
     {
       name: "ready + production + is current + NOT rolledBack → only redeploy",

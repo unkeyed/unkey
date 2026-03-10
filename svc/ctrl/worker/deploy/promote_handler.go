@@ -74,7 +74,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 			fault.Public("The app has no live deployment to promote from"),
 		)
 	}
-	if targetDeployment.ID == app.CurrentDeploymentID.String && !app.IsRolledBack {
+	if targetDeployment.ID == app.CurrentDeploymentID.String {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400),
 			fault.Public("This deployment is already live"),

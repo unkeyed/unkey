@@ -22,7 +22,7 @@ export function getDeploymentActionEligibility(
   const isCurrent = hasCurrent && ctx.currentDeploymentId === ctx.selectedDeployment.id;
 
   const canRollback = isProduction && isReady && hasCurrent && !isCurrent;
-  const canPromote = isProduction && isReady && isCurrent && ctx.isRolledBack;
+  const canPromote = isProduction && isReady && !isCurrent && ctx.isRolledBack;
   const canRedeploy = isReady || ctx.selectedDeployment.status === "failed";
 
   return { canRollback, canPromote, canRedeploy };

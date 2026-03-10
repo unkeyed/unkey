@@ -62,15 +62,16 @@ export const DeploymentListTableActions = ({
         label: "Promote",
         icon: <ChevronUp iconSize="md-regular" />,
         disabled: !canPromote,
-        ActionComponent: canPromote
-          ? (props) => (
-              <PromotionDialog
-                {...props}
-                currentDeployment={currentDeployment}
-                targetDeployment={selectedDeployment}
-              />
-            )
-          : undefined,
+        ActionComponent:
+          currentDeployment && canPromote
+            ? (props) => (
+                <PromotionDialog
+                  {...props}
+                  currentDeployment={currentDeployment}
+                  targetDeployment={selectedDeployment}
+                />
+              )
+            : undefined,
       },
       {
         id: "redeploy",
