@@ -47,8 +47,6 @@ export const DeploymentsList = () => {
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
 
-  console.log({ deployments: deployments.data })
-
   const getDeploymentHref = useCallback(
     (deploymentId: string) =>
       `/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`,

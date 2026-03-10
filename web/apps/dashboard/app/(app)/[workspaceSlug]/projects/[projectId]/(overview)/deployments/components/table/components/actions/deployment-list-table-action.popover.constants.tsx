@@ -33,7 +33,6 @@ export const DeploymentListTableActions = ({
   const router = useRouter();
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
   const menuItems = useMemo((): MenuItem[] => {
-
     const { canRollback, canPromote, canRedeploy } = getDeploymentActionEligibility({
       selectedDeployment,
       currentDeploymentId: currentDeployment?.id ?? null,
@@ -50,12 +49,12 @@ export const DeploymentListTableActions = ({
         ActionComponent:
           currentDeployment && canRollback
             ? (props) => (
-              <RollbackDialog
-                {...props}
-                currentDeployment={currentDeployment}
-                targetDeployment={selectedDeployment}
-              />
-            )
+                <RollbackDialog
+                  {...props}
+                  currentDeployment={currentDeployment}
+                  targetDeployment={selectedDeployment}
+                />
+              )
             : undefined,
       },
       {
@@ -63,16 +62,15 @@ export const DeploymentListTableActions = ({
         label: "Promote",
         icon: <ChevronUp iconSize="md-regular" />,
         disabled: !canPromote,
-        ActionComponent:
-          canPromote
-            ? (props) => (
+        ActionComponent: canPromote
+          ? (props) => (
               <PromotionDialog
                 {...props}
                 currentDeployment={currentDeployment}
                 targetDeployment={selectedDeployment}
               />
             )
-            : undefined,
+          : undefined,
       },
       {
         id: "redeploy",
