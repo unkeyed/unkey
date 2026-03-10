@@ -175,9 +175,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// --- GitHub Deployment Status ---
-	// Look up repo connection to determine if we should report to GitHub.
-	// Uses the interface so the noop is free — no nil checks needed.
 	statusReporter := w.createStatusReporter(ctx, deployment, project, app, environment, workspace)
 
 	statusReporter.Report(ctx, "in_progress", "Building container image...")
