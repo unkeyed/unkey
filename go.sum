@@ -835,6 +835,8 @@ github.com/ugorji/go/codec v1.2.11 h1:BMaWp1Bb6fHwEtbplGBGJ498wD+LKlNSl25MjdZY4d
 github.com/ugorji/go/codec v1.2.11/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
 github.com/unkeyed/sdks/api/go/v2 v2.6.0 h1:xJwxkst+vCyUODKF1OYiUtWGJ4rQZVZH3YRlDplKxi8=
 github.com/unkeyed/sdks/api/go/v2 v2.6.0/go.mod h1:1eT/d35dAxF/Ncbg9jrDSuw9CHo/qKzGPppo0gABOU4=
+github.com/unkeyed/sdks/api/go/v2 v2.6.1 h1:Sz4Rv4fhh7ByCTIcJ7orK+2ZOMyoXLsAV6t+q4B+Gck=
+github.com/unkeyed/sdks/api/go/v2 v2.6.1/go.mod h1:1eT/d35dAxF/Ncbg9jrDSuw9CHo/qKzGPppo0gABOU4=
 github.com/vbatts/tar-split v0.12.2 h1:w/Y6tjxpeiFMR47yzZPlPj/FcPLpXbTUi/9H7d3CPa4=
 github.com/vbatts/tar-split v0.12.2/go.mod h1:eF6B6i6ftWQcDqEn3/iGFRFRo8cBIMSJVOpnNdfTMFA=
 github.com/vishvananda/netlink v1.3.1 h1:3AEMt62VKqz90r0tmNhog0r/PpWKmrEShJU0wJW6bV0=
