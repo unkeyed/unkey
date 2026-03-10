@@ -1171,8 +1171,8 @@ type Deployment struct {
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
-	Status                        DeploymentsStatus         `db:"status"`
 	GithubDeploymentID            sql.NullInt64             `db:"github_deployment_id"`
+	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
 }

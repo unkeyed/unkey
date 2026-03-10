@@ -178,44 +178,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// --- GitHub Deployment Status ---
 	// Look up repo connection to determine if we should report to GitHub.
 	// Uses the interface so the noop is free — no nil checks needed.
-	var statusReporter deploymentStatusReporter = noopStatusReporter{}
-	repoConn, repoConnErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
-		return db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
-	}, restate.WithName("find github repo connection"))
-	if repoConnErr != nil {
-		logger.Info("no github repo connection found, skipping deployment status reporting",
-			"app_id", deployment.AppID,
-			"error", repoConnErr,
-		)
-	}
-	if repoConnErr == nil {
-		envLabel := project.Slug + " - " + environment.Slug
-		if app.Slug != "default" {
-			envLabel = project.Slug + "/" + app.Slug + " - " + environment.Slug
-		}
-
-		prefix := project.Slug
-		if app.Slug != "default" {
-			prefix = project.Slug + "-" + app.Slug
-		}
-		envURL := fmt.Sprintf("https://%s-%s-%s.%s", prefix, environment.Slug, workspace.Slug, w.defaultDomain)
-		logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s", w.dashboardURL, workspace.Slug, project.ID, deployment.ID)
-
-		ghReporter := newGithubStatusReporter(
-			w.github,
-			w.db,
-			repoConn.InstallationID,
-			repoConn.RepositoryFullName,
-			deployment.GitCommitSha.String,
-			envLabel,
-			envURL,
-			logURL,
-			deployment.ID,
-			environment.Slug == "production",
-		)
-		ghReporter.Create(ctx)
-		statusReporter = ghReporter
-	}
+	statusReporter := w.createStatusReporter(ctx, deployment, project, app, environment, workspace)
 
 	statusReporter.Report(ctx, "in_progress", "Building container image...")
 

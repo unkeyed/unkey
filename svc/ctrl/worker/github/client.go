@@ -42,6 +42,12 @@ type ghUser struct {
 	AvatarURL string `json:"avatar_url"`
 }
 
+// ghDeploymentResponse is the subset of GitHub's POST /repos/{owner}/{repo}/deployments
+// response that we need.
+type ghDeploymentResponse struct {
+	ID int64 `json:"id"`
+}
+
 // ClientConfig holds configuration for creating a [Client] instance.
 type ClientConfig struct {
 	// AppID is the numeric ID assigned to the GitHub App during registration.
@@ -266,10 +272,6 @@ func (c *Client) CreateDeployment(installationID int64, repo string, ref string,
 	}
 
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/deployments", repo)
-
-	type ghDeploymentResponse struct {
-		ID int64 `json:"id"`
-	}
 
 	result, err := httpclient.Request[ghDeploymentResponse](c.httpClient, http.MethodPost, apiURL, headers, map[string]interface{}{
 		"ref":                    ref,
