@@ -8,7 +8,7 @@ import { useEnvironmentSettings } from "../../environment-provider";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const portSchema = z.object({
-  port: z.number().int().min(2000).max(54000),
+  port: z.number().int().min(1).max(65535),
 });
 
 export const Port = () => {
@@ -57,8 +57,8 @@ export const Port = () => {
         label="Port"
         description="Port your application listens on. Changes apply on next deploy."
         placeholder="8080"
-        min={2000}
-        max={54000}
+        min={1}
+        max={65535}
         error={errors.port?.message}
         variant={errors.port ? "error" : "default"}
         {...register("port", { valueAsNumber: true })}

@@ -16,7 +16,6 @@ const (
 	LabelKeyBuildID         = "unkey.com/build.id"
 	LabelKeySentinelID      = "unkey.com/sentinel.id"
 	LabelKeyNetworkPolicyID = "unkey.com/networkpolicy.id"
-	LabelKeyInject          = "unkey.com/inject"
 	LabelKeyManagedBy       = "app.kubernetes.io/managed-by"
 	LabelKeyComponent       = "app.kubernetes.io/component"
 	LabelKeyNamespace       = "io.kubernetes.pod.namespace"
@@ -163,16 +162,6 @@ func (l Labels) ProjectID(id string) Labels {
 // for method chaining.
 func (l Labels) EnvironmentID(id string) Labels {
 	l[LabelKeyEnvironmentID] = id
-	return l
-}
-
-// Inject adds the inject label to the label set.
-//
-// This method sets the "unkey.com/inject" label to "true" to indicate
-// that the resource should be injected. Returns the same Labels instance
-// for method chaining.
-func (l Labels) Inject() Labels {
-	l[LabelKeyInject] = "true"
 	return l
 }
 

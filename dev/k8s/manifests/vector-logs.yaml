@@ -44,7 +44,7 @@ data:
     auto_partial_merge = true
     extra_label_selector = "app.kubernetes.io/managed-by=krane,app.kubernetes.io/component=deployment"
 
-    # Filter out init container logs (copy-inject)
+    # Filter to only the deployment container
     [transforms.filter_init_containers]
     type = "filter"
     inputs = ["kubernetes_logs"]

@@ -13,6 +13,7 @@ import {
 import { EmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
+import { useAutoScroll } from "./hooks/useAutoScroll";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
@@ -73,6 +74,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       renderExpanded,
       isExpandable,
       expandedRowHeight = 400,
+      autoScrollToBottom = false,
     } = props;
 
     // Merge configs, allowing specific overrides
@@ -157,6 +159,14 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       config.className,
       config.containerPadding || "px-2",
     );
+
+    useAutoScroll({
+      enabled: autoScrollToBottom,
+      parentRef,
+      data: historicData,
+      isLoading,
+      expandedCount: expandedIds.size,
+    });
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: refs are stable and shouldn't be in deps
     useImperativeHandle(

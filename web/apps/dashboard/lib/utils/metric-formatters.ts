@@ -6,6 +6,36 @@
  * - 1-24h: shows "2.0h"
  * - ≥1d: shows "1.2d"
  */
+/**
+ * Formats a duration in milliseconds as a compound string with up to 2 units.
+ * - <1000ms → "500ms"
+ * - 1s–59s → "45s"
+ * - 1m–59m → "2m 20s" (drops seconds if 0 → "2m")
+ * - 1h+ → "1h 15m" (drops minutes if 0 → "1h")
+ */
+export function formatCompoundDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
+
+  const totalSeconds = Math.floor(ms / 1000);
+
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+
+  const totalMinutes = Math.floor(totalSeconds / 60);
+
+  if (totalMinutes < 60) {
+    const remainingSeconds = totalSeconds % 60;
+    return remainingSeconds > 0 ? `${totalMinutes}m ${remainingSeconds}s` : `${totalMinutes}m`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
 export function formatLatency(latency: number): string {
   if (latency < 1000) {
     return `${latency}ms`;
