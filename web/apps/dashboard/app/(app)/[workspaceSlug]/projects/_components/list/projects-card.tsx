@@ -140,7 +140,7 @@ export const ProjectCard = ({
             </InfoTooltip>
           </div>
           {authorAvatar && (
-            <>
+            <div className="flex items-center gap-2">
               <span className="text-xs text-gray-10">by</span>
               <Avatar alt="Author avatar" src={authorAvatar} />
               <InfoTooltip
@@ -152,7 +152,7 @@ export const ProjectCard = ({
                   {author}
                 </span>
               </InfoTooltip>
-            </>
+            </div>
           )}
         </div>
       </div>
