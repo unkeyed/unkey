@@ -14,8 +14,6 @@ enum DeploymentStatus {
   DEPLOYMENT_STATUS_FINALIZING = 8;
   DEPLOYMENT_STATUS_READY = 5;
   DEPLOYMENT_STATUS_FAILED = 6;
-  // 9 and 10 were AWAITING_APPROVAL and REJECTED, removed in no-table authorization refactor.
-  reserved 9, 10;
 }
 
 // Source type for deployment creation

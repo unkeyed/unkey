@@ -1240,7 +1240,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\"\x1d\n" +
-	"\x1bAuthorizeDeploymentResponse*\xbd\x02\n" +
+	"\x1bAuthorizeDeploymentResponse*\xb1\x02\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
@@ -1250,9 +1250,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x19DEPLOYMENT_STATUS_NETWORK\x10\x04\x12 \n" +
 	"\x1cDEPLOYMENT_STATUS_FINALIZING\x10\b\x12\x1b\n" +
 	"\x17DEPLOYMENT_STATUS_READY\x10\x05\x12\x1c\n" +
-	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06\"\x04\b\t\x10\t\"\x04\b\n" +
-	"\x10\n" +
-	"*Z\n" +
+	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06*Z\n" +
 	"\n" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +

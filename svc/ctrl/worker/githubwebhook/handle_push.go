@@ -115,14 +115,14 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			workspace, wsErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 				return db.Query.FindWorkspaceByID(runCtx, s.db.RO(), project.WorkspaceID)
 			}, restate.WithName("find workspace for approval log url"), restate.WithMaxRetryDuration(30*time.Second))
-
-			logURL := ""
-			if wsErr == nil {
-				logURL = fmt.Sprintf("%s/%s/projects/%s/authorize?branch=%s",
-					s.dashboardURL, workspace.Slug, project.ID,
-					url.QueryEscape(branch),
-				)
+			if wsErr != nil {
+				return nil, wsErr
 			}
+
+			logURL := fmt.Sprintf("%s/%s/projects/%s/authorize?branch=%s",
+				s.dashboardURL, workspace.Slug, project.ID,
+				url.QueryEscape(branch),
+			)
 
 			ghDeploymentID, ghErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
 				return s.github.CreateDeployment(

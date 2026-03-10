@@ -10,7 +10,7 @@ import (
 // UpdateGitHubDeploymentStatus looks up a deployment's GitHub deployment ID and
 // repo connection, then reports the requested state to the GitHub Deployments API.
 // This runs on the worker which owns the GitHub App credentials.
-func (w *Workflow) UpdateGitHubDeploymentStatus(ctx restate.WorkflowSharedContext, req *hydrav1.UpdateGitHubDeploymentStatusRequest) (*hydrav1.UpdateGitHubDeploymentStatusResponse, error) {
+func (w *Workflow) UpdateGitHubDeploymentStatus(ctx restate.ObjectContext, req *hydrav1.UpdateGitHubDeploymentStatusRequest) (*hydrav1.UpdateGitHubDeploymentStatusResponse, error) {
 	deployment, err := restate.Run(ctx, func(ctx restate.RunContext) (*db.Deployment, error) {
 		d, findErr := db.Query.FindDeploymentById(ctx, w.db.RO(), req.DeploymentId)
 		if findErr != nil {

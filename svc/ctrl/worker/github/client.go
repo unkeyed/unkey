@@ -47,6 +47,22 @@ type ghDeploymentResponse struct {
 	ID int64 `json:"id"`
 }
 
+// ghCheckRunResponse is the subset of GitHub's check-run creation response.
+type ghCheckRunResponse struct {
+	ID int64 `json:"id"`
+}
+
+// ghCheckRun is a single check run entry from the list endpoint.
+type ghCheckRun struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+// ghCheckRunsResponse is the response from GitHub's list check-runs endpoint.
+type ghCheckRunsResponse struct {
+	CheckRuns []ghCheckRun `json:"check_runs"`
+}
+
 // ClientConfig holds configuration for creating a [Client] instance.
 type ClientConfig struct {
 	// AppID is the numeric ID assigned to the GitHub App during registration.
@@ -342,10 +358,6 @@ func (c *Client) CreateCheckRun(installationID int64, repo string, headSHA strin
 
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/check-runs", repo)
 
-	type ghCheckRunResponse struct {
-		ID int64 `json:"id"`
-	}
-
 	payload := map[string]interface{}{
 		"name":       name,
 		"head_sha":   headSHA,
@@ -397,14 +409,6 @@ func (c *Client) ListCheckRunsForRef(installationID int64, repo string, ref stri
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s/check-runs", repo, url.PathEscape(ref))
 	if checkName != "" {
 		apiURL += "?check_name=" + url.QueryEscape(checkName)
-	}
-
-	type ghCheckRun struct {
-		ID   int64  `json:"id"`
-		Name string `json:"name"`
-	}
-	type ghCheckRunsResponse struct {
-		CheckRuns []ghCheckRun `json:"check_runs"`
 	}
 
 	result, err := httpclient.Request[ghCheckRunsResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
