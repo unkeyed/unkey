@@ -5,6 +5,7 @@ import { LogSection } from "@/components/logs/details/log-details/components/log
 import { collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
+import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { CodeBranch, CodeCommit, User } from "@unkey/icons";
@@ -61,7 +62,7 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
       <LogDetails.Section delay={200}>
         <LogSection
           title="Request Body"
-          details={formatRequestBody(log.request_body, log.request_headers)}
+          details={formatBody(log.request_body, log.request_headers)}
         />
       </LogDetails.Section>
 
@@ -75,7 +76,7 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
       <LogDetails.Section delay={300}>
         <LogSection
           title="Response Body"
-          details={formatResponseBody(log.response_body, log.response_headers)}
+          details={formatBody(log.response_body, log.response_headers)}
         />
       </LogDetails.Section>
 
@@ -177,29 +178,7 @@ const isDisplayableContentType = (contentType: string | null): boolean => {
   );
 };
 
-// Format request body
-const formatRequestBody = (body: string, headers: string[]): React.ReactNode | string => {
-  const contentType = getHeaderValue(headers, "content-type");
-  if (!isDisplayableContentType(contentType)) {
-    return (
-      <details className="text-xs">
-        <summary className="text-grayA-10 italic cursor-pointer select-none">
-          Binary body ({contentType}) — click to expand
-        </summary>
-        <pre className="mt-1 whitespace-pre-wrap break-all text-accent-12">{body}</pre>
-      </details>
-    );
-  }
-  const parsed = safeParseJson(body);
-  return JSON.stringify(parsed, null, 2) === "null" ? (
-    <span className="text-xs text-accent-12">{EMPTY_TEXT}</span>
-  ) : (
-    JSON.stringify(parsed, null, 2)
-  );
-};
-
-// Format response body
-const formatResponseBody = (body: string, headers: string[]): React.ReactNode | string => {
+const formatBody = (body: string, headers: string[]): React.ReactNode | string => {
   const contentType = getHeaderValue(headers, "content-type");
   if (!isDisplayableContentType(contentType)) {
     return (
@@ -230,19 +209,19 @@ const formatLatencyMetrics = (log: SentinelLogsResponse): React.ReactNode => {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Total Latency:</span>
-        <span className="font-mono font-semibold">{log.total_latency}ms</span>
+        <span className="font-mono font-semibold">{formatLatency(log.total_latency)}</span>
       </div>
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Instance Latency:</span>
         <span className="font-mono">
-          {log.instance_latency}ms
+          {formatLatency(log.instance_latency)}
           <span className="text-grayA-10 ml-1">({instancePercent}%)</span>
         </span>
       </div>
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Sentinel Latency:</span>
         <span className="font-mono">
-          {log.sentinel_latency}ms
+          {formatLatency(log.sentinel_latency)}
           <span className="text-grayA-10 ml-1">({sentinelPercent}%)</span>
         </span>
       </div>

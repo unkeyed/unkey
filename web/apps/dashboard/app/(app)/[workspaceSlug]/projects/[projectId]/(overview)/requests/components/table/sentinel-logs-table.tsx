@@ -4,6 +4,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
+import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
 import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
@@ -174,6 +175,6 @@ const columns: Column<SentinelLogsResponse>[] = [
     key: "total_latency",
     header: "Total Latency",
     width: "10%",
-    render: (log) => <div className="font-mono pr-4">{log.total_latency}ms</div>,
+    render: (log) => <div className="font-mono pr-4">{formatLatency(log.total_latency)}</div>,
   },
 ];
