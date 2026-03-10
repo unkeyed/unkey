@@ -87,7 +87,6 @@ export const ProjectsList = () => {
               branch={project.branch}
               author={project.author}
               authorAvatar={project.authorAvatar}
-              regions={project.regions}
               repository={
                 project.repositoryFullName
                   ? `https://github.com/${project.repositoryFullName}`
