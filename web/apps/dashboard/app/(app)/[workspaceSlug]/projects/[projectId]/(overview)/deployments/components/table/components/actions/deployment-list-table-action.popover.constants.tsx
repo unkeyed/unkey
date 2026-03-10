@@ -6,6 +6,7 @@ import type { Deployment, Environment } from "@/lib/collections";
 import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { getDeploymentActionEligibility } from "./deployment-action-eligibility";
 import { PromotionDialog } from "./promotion-dialog";
 import { RedeployDialog } from "./redeploy-dialog";
 import { RollbackDialog } from "./rollback-dialog";
@@ -14,12 +15,14 @@ type DeploymentListTableActionsProps = {
   currentDeployment?: Deployment;
   selectedDeployment: Deployment;
   environment?: Environment;
+  isRolledBack: boolean;
 };
 
 export const DeploymentListTableActions = ({
   currentDeployment,
   selectedDeployment,
   environment,
+  isRolledBack,
 }: DeploymentListTableActionsProps) => {
   const workspace = useWorkspaceNavigation();
   const { getDomainsForDeployment } = useProjectData();
@@ -30,46 +33,45 @@ export const DeploymentListTableActions = ({
   const router = useRouter();
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
   const menuItems = useMemo((): MenuItem[] => {
-    const canRollbackAndRollback =
-      currentDeployment &&
-      environment?.slug === "production" &&
-      selectedDeployment.status === "ready" &&
-      selectedDeployment.id !== currentDeployment.id;
 
-    const canRedeploy =
-      selectedDeployment.status === "ready" || selectedDeployment.status === "failed";
+    const { canRollback, canPromote, canRedeploy } = getDeploymentActionEligibility({
+      selectedDeployment,
+      currentDeploymentId: currentDeployment?.id ?? null,
+      isRolledBack,
+      environmentSlug: environment?.slug ?? null,
+    });
 
     return [
       {
         id: "rollback",
         label: "Rollback",
         icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
-        disabled: !canRollbackAndRollback,
+        disabled: !canRollback,
         ActionComponent:
-          currentDeployment && canRollbackAndRollback
+          currentDeployment && canRollback
             ? (props) => (
-                <RollbackDialog
-                  {...props}
-                  currentDeployment={currentDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
+              <RollbackDialog
+                {...props}
+                currentDeployment={currentDeployment}
+                targetDeployment={selectedDeployment}
+              />
+            )
             : undefined,
       },
       {
         id: "Promote",
         label: "Promote",
         icon: <ChevronUp iconSize="md-regular" />,
-        disabled: !canRollbackAndRollback,
+        disabled: !canPromote,
         ActionComponent:
-          currentDeployment && canRollbackAndRollback
+          canPromote
             ? (props) => (
-                <PromotionDialog
-                  {...props}
-                  currentDeployment={currentDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
+              <PromotionDialog
+                {...props}
+                currentDeployment={currentDeployment}
+                targetDeployment={selectedDeployment}
+              />
+            )
             : undefined,
       },
       {
@@ -105,6 +107,7 @@ export const DeploymentListTableActions = ({
     selectedDeployment.status,
     currentDeployment?.id,
     environment?.slug,
+    isRolledBack,
     data,
   ]);
 

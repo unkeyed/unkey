@@ -47,6 +47,8 @@ export const DeploymentsList = () => {
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
 
+  console.log({ deployments: deployments.data })
+
   const getDeploymentHref = useCallback(
     (deploymentId: string) =>
       `/${workspace.slug}/projects/${project?.id}/deployments/${deploymentId}`,
@@ -224,6 +226,7 @@ export const DeploymentsList = () => {
                 selectedDeployment={deployment}
                 currentDeployment={currentDeployment}
                 environment={environment}
+                isRolledBack={project?.isRolledBack ?? false}
               />
             </div>
           );
