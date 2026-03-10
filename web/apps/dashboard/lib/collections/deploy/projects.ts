@@ -18,7 +18,6 @@ const schema = z.object({
   author: z.string().nullable(),
   authorAvatar: z.string().nullable(),
   commitTimestamp: z.number().int().nullable(),
-  regions: z.array(z.string()),
   // Domain field
   domain: z.string().nullable(),
 });
@@ -53,7 +52,9 @@ export const projects = createCollection<Project, string>(
       const mutation = transaction.mutations[0];
       const projectId = mutation.original.id;
 
-      const deleteMutation = trpcClient.deploy.project.delete.mutate({ projectId });
+      const deleteMutation = trpcClient.deploy.project.delete.mutate({
+        projectId,
+      });
 
       toast.promise(deleteMutation, {
         loading: "Deleting project...",

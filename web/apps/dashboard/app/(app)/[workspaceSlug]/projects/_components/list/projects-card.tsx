@@ -5,7 +5,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { Avatar } from "../../[projectId]/components/git-avatar";
-import { RegionBadges } from "./region-badges";
 
 type ProjectCardProps = {
   name: string;
@@ -15,7 +14,6 @@ type ProjectCardProps = {
   branch: string;
   author: string | null;
   authorAvatar: string | null;
-  regions: string[];
   repository?: string;
   actions: ReactNode;
   projectId: string;
@@ -29,8 +27,6 @@ export const ProjectCard = ({
   branch,
   author,
   authorAvatar,
-  regions,
-  repository,
   actions,
   projectId,
 }: ProjectCardProps) => {
@@ -128,8 +124,6 @@ export const ProjectCard = ({
           )}
         </div>
       </div>
-      {/*Bottom Section > Regions*/}
-      <RegionBadges regions={regions} repository={repository} />
     </div>
   );
 };
