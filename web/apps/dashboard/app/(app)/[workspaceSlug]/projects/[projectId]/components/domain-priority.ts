@@ -32,7 +32,7 @@ export type DomainPriorityResult = {
 
 export function getDomainPriority(ctx: DomainPriorityContext): DomainPriorityResult {
   const customDisplayDomains: ReadonlyArray<DisplayDomain> = [...ctx.customDomains]
-    .filter((cd) => cd.environmentId === ctx.environmentId)
+    .filter((cd) => cd.environmentId === ctx.environmentId && cd.verificationStatus === "verified")
     .sort((a, b) => a.domain.localeCompare(b.domain))
     .map((cd) => ({
       source: "custom" as const,
