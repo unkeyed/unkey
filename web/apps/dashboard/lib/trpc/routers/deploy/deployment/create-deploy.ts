@@ -1,11 +1,9 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
+import { createCtrlClient } from "@/lib/ctrl-client";
 
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { and, db, eq } from "@/lib/db";
-import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
@@ -20,26 +18,7 @@ export const createDeploy = workspaceProcedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const { CTRL_URL, CTRL_API_KEY } = env();
-    if (!CTRL_URL || !CTRL_API_KEY) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "ctrl service is not configured",
-      });
-    }
-
-    const ctrl = createClient(
-      DeployService,
-      createConnectTransport({
-        baseUrl: CTRL_URL,
-        interceptors: [
-          (next) => (req) => {
-            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
-            return next(req);
-          },
-        ],
-      }),
-    );
+    const ctrl = createCtrlClient(DeployService);
 
     try {
       const project = await db.query.projects.findFirst({

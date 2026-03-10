@@ -1,11 +1,9 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
+import { createCtrlClient } from "@/lib/ctrl-client";
 
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -19,15 +17,8 @@ export const authorizeDeployment = workspaceProcedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const { CTRL_URL, CTRL_API_KEY } = env();
-    if (!CTRL_URL || !CTRL_API_KEY) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "ctrl service is not configured",
-      });
-    }
+    const ctrl = createCtrlClient(DeployService);
 
-    // Verify the project belongs to this workspace
     const project = await db.query.projects.findFirst({
       where: (table, { eq, and }) =>
         and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
@@ -43,19 +34,6 @@ export const authorizeDeployment = workspaceProcedure
         message: "Project not found or access denied",
       });
     }
-
-    const ctrl = createClient(
-      DeployService,
-      createConnectTransport({
-        baseUrl: CTRL_URL,
-        interceptors: [
-          (next) => (req) => {
-            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
-            return next(req);
-          },
-        ],
-      }),
-    );
 
     try {
       await ctrl.authorizeDeployment({

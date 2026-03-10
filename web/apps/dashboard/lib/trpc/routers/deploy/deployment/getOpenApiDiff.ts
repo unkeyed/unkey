@@ -1,9 +1,7 @@
+import { createCtrlClient } from "@/lib/ctrl-client";
 import { OpenApiService } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
-import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -15,28 +13,7 @@ export const getOpenApiDiff = workspaceProcedure
     }),
   )
   .query(async ({ input, ctx }) => {
-    const { CTRL_URL, CTRL_API_KEY } = env();
-    if (!CTRL_URL || !CTRL_API_KEY) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "ctrl service is not configured",
-      });
-    }
-
-    // Here we make the client itself, combining the service
-    // definition with the transport.
-    const ctrl = createClient(
-      OpenApiService,
-      createConnectTransport({
-        baseUrl: CTRL_URL,
-        interceptors: [
-          (next) => (req) => {
-            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
-            return next(req);
-          },
-        ],
-      }),
-    );
+    const ctrl = createCtrlClient(OpenApiService);
 
     try {
       const deployments = await db.query.deployments.findMany({

@@ -24,13 +24,6 @@ type StatusConfig = {
 };
 
 const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
-  awaiting_approval: {
-    icon: LayerFront,
-    label: "Awaiting Approval",
-    bgColor: "bg-warningA-3",
-    textColor: "text-warningA-11",
-    iconColor: "text-warning-11",
-  },
   pending: {
     icon: LayerFront,
     label: "Pending",
@@ -88,13 +81,6 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   failed: {
     icon: CircleWarning,
     label: "Failed",
-    bgColor: "bg-errorA-3",
-    textColor: "text-errorA-11",
-    iconColor: "text-error-11",
-  },
-  rejected: {
-    icon: CircleWarning,
-    label: "Rejected",
     bgColor: "bg-errorA-3",
     textColor: "text-errorA-11",
     iconColor: "text-error-11",

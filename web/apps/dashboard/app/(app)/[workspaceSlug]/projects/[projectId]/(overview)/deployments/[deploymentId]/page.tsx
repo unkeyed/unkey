@@ -36,15 +36,7 @@ export default function DeploymentOverview() {
   return (
     <ProjectContentWrapper centered>
       <DeploymentInfo statusOverride={derivedStatus} />
-      {awaitingApproval ? (
-        <div key="awaiting-approval" className="animate-fade-slide-in">
-          <DeploymentApprovalBanner />
-        </div>
-      ) : rejected ? (
-        <div key="rejected" className="animate-fade-slide-in">
-          <DeploymentRejectedBanner />
-        </div>
-      ) : ready ? (
+      {ready ? (
         <div key="ready" className="flex flex-col gap-5 animate-fade-slide-in">
           <DeploymentDomainsCard />
           <DeploymentNetworkSection />

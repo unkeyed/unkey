@@ -1,5 +1,4 @@
 export const DEPLOYMENT_STATUSES = [
-  "awaiting_approval",
   "pending",
   "starting",
   "building",
@@ -8,7 +7,6 @@ export const DEPLOYMENT_STATUSES = [
   "finalizing",
   "ready",
   "failed",
-  "rejected",
 ] as const;
 
 export type DeploymentStatus = (typeof DEPLOYMENT_STATUSES)[number];

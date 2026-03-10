@@ -10,12 +10,10 @@ import { z } from "zod";
 
 // Define grouped statuses for client filtering
 const GROUPED_DEPLOYMENT_STATUSES = [
-  "awaiting_approval",
   "pending",
   "deploying", // represents all deploying states
   "ready",
   "failed",
-  "rejected",
 ] as const;
 
 const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;
@@ -46,7 +44,7 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
       if (value === "completed") {
         return "bg-success-9";
       }
-      if (value === "failed" || value === "rejected") {
+      if (value === "failed") {
         return "bg-error-9";
       }
       if (value === "pending") {
@@ -81,8 +79,6 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
 // Mapping function to expand grouped statuses to actual statuses
 export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): DeploymentStatus[] => {
   switch (groupedStatus) {
-    case "awaiting_approval":
-      return ["awaiting_approval"];
     case "pending":
       return ["pending"];
     case "deploying":
@@ -91,8 +87,6 @@ export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): Dep
       return ["ready"];
     case "failed":
       return ["failed"];
-    case "rejected":
-      return ["rejected"];
     default:
       throw new Error(`Unknown grouped status: ${groupedStatus}`);
   }
