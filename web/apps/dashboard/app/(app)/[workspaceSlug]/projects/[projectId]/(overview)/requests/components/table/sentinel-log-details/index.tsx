@@ -59,7 +59,10 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
       </LogDetails.Section>
 
       <LogDetails.Section delay={200}>
-        <LogSection title="Request Body" details={formatRequestBody(log.request_body)} />
+        <LogSection
+          title="Request Body"
+          details={formatRequestBody(log.request_body, log.request_headers)}
+        />
       </LogDetails.Section>
 
       <LogDetails.Section delay={250}>
@@ -70,7 +73,10 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
       </LogDetails.Section>
 
       <LogDetails.Section delay={300}>
-        <LogSection title="Response Body" details={formatResponseBody(log.response_body)} />
+        <LogSection
+          title="Response Body"
+          details={formatResponseBody(log.response_body, log.response_headers)}
+        />
       </LogDetails.Section>
 
       <LogDetails.Section delay={350}>
@@ -147,8 +153,43 @@ const SentinelLogHeader = ({
   );
 };
 
+const getHeaderValue = (headers: string[], name: string): string | null => {
+  const lower = name.toLowerCase();
+  const header = headers.find((h) => h.toLowerCase().startsWith(`${lower}:`));
+  if (!header) {
+    return null;
+  }
+  const colonIndex = header.indexOf(":");
+  return header.substring(colonIndex + 1).trim();
+};
+
+const isDisplayableContentType = (contentType: string | null): boolean => {
+  if (!contentType) {
+    return true;
+  }
+  const ct = contentType.toLowerCase();
+  return (
+    ct.includes("text/") ||
+    ct.includes("json") ||
+    ct.includes("xml") ||
+    ct.includes("yaml") ||
+    ct.includes("form-urlencoded")
+  );
+};
+
 // Format request body
-const formatRequestBody = (body: string): React.ReactNode | string => {
+const formatRequestBody = (body: string, headers: string[]): React.ReactNode | string => {
+  const contentType = getHeaderValue(headers, "content-type");
+  if (!isDisplayableContentType(contentType)) {
+    return (
+      <details className="text-xs">
+        <summary className="text-grayA-10 italic cursor-pointer select-none">
+          Binary body ({contentType}) — click to expand
+        </summary>
+        <pre className="mt-1 whitespace-pre-wrap break-all text-accent-12">{body}</pre>
+      </details>
+    );
+  }
   const parsed = safeParseJson(body);
   return JSON.stringify(parsed, null, 2) === "null" ? (
     <span className="text-xs text-accent-12">{EMPTY_TEXT}</span>
@@ -158,7 +199,18 @@ const formatRequestBody = (body: string): React.ReactNode | string => {
 };
 
 // Format response body
-const formatResponseBody = (body: string): React.ReactNode | string => {
+const formatResponseBody = (body: string, headers: string[]): React.ReactNode | string => {
+  const contentType = getHeaderValue(headers, "content-type");
+  if (!isDisplayableContentType(contentType)) {
+    return (
+      <details className="text-xs">
+        <summary className="text-grayA-10 italic cursor-pointer select-none">
+          Binary body ({contentType}) — click to expand
+        </summary>
+        <pre className="mt-1 whitespace-pre-wrap break-all text-accent-12">{body}</pre>
+      </details>
+    );
+  }
   const parsed = safeParseJson(body);
   return JSON.stringify(parsed, null, 2) === "null" ? (
     <span className="text-xs text-accent-12">{EMPTY_TEXT}</span>
@@ -169,8 +221,10 @@ const formatResponseBody = (body: string): React.ReactNode | string => {
 
 // Format latency metrics
 const formatLatencyMetrics = (log: SentinelLogsResponse): React.ReactNode => {
-  const instancePercent = ((log.instance_latency / log.total_latency) * 100).toFixed(1);
-  const sentinelPercent = ((log.sentinel_latency / log.total_latency) * 100).toFixed(1);
+  const instancePercent =
+    log.total_latency > 0 ? ((log.instance_latency / log.total_latency) * 100).toFixed(1) : "0.0";
+  const sentinelPercent =
+    log.total_latency > 0 ? ((log.sentinel_latency / log.total_latency) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="flex flex-col gap-2">
