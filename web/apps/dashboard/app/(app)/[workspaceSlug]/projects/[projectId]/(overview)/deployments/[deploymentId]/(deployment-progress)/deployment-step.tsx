@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Check, TriangleWarning2 } from "@unkey/icons";
+import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
+import { Check, CircleHalfDottedClock, TriangleWarning2 } from "@unkey/icons";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
-import ms from "ms";
 
 type DeploymentStepProps = {
   icon: React.ReactNode;
@@ -13,7 +13,6 @@ type DeploymentStepProps = {
   status: "pending" | "started" | "completed" | "error" | "skipped";
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
-  badgeText?: string;
 };
 
 export function DeploymentStep({
@@ -88,13 +87,17 @@ export function DeploymentStep({
         contentWidth="w-fit"
       >
         <div className="flex items-center gap-4 justify-end w-full absolute right-14">
-          <span className="text-gray-10 text-xs">{duration ? ms(duration) : null}</span>
+          <span className="text-gray-10 text-xs">
+            {duration !== null && duration !== undefined ? formatCompoundDuration(duration) : null}
+          </span>
           {status === "completed" ? (
             <Check iconSize="md-regular" className="text-success-11" />
           ) : status === "started" ? (
             <Loading className="size-4" />
           ) : status === "error" ? (
             <TriangleWarning2 className="text-error-11" iconSize="md-regular" />
+          ) : status === "pending" ? (
+            <CircleHalfDottedClock className="text-gray-9" iconSize="md-regular" />
           ) : null}
         </div>
       </SettingCard>

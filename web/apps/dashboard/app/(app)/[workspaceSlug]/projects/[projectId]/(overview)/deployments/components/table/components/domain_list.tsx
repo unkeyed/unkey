@@ -1,6 +1,6 @@
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { InfoTooltip } from "@unkey/ui";
 import { useProjectData } from "../../../../data-provider";
-import type { DeploymentStatus } from "../../../filters.schema";
 import { DomainListSkeleton } from "./skeletons";
 
 type Props = {
