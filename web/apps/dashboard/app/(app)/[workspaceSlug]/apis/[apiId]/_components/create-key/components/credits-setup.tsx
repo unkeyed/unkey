@@ -102,7 +102,7 @@ export const UsageSetup = ({
   };
 
   return (
-    <div className="space-y-5 px-2 py-1">
+    <div className="flex flex-col gap-y-5 px-2 py-1">
       {!overrideEnabled && (
         <ProtectionSwitch
           description="Turn on to limit how many times this key can be used. Once the limit
@@ -136,7 +136,7 @@ export const UsageSetup = ({
         control={control}
         name="limit.data.refill.interval"
         render={({ field }) => (
-          <div className="space-y-1.5">
+          <div className="gap-y-1.5">
             <div className="text-gray-11 text-[13px] flex items-center">Refill Rate</div>
             <Select
               onValueChange={(value) => {

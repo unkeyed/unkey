@@ -63,7 +63,7 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
         </Button>
       }
     >
-      <div className="space-y-9">
+      <div className="flex flex-col gap-9">
         <DeploymentSection title="Deployment" deployment={selectedDeployment} isCurrent={false} />
       </div>
     </DialogContainer>

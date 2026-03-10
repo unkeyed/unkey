@@ -58,7 +58,7 @@ export const GrantedAccess = ({
   return (
     <motion.div
       layout
-      className="space-y-3"
+      className="flex flex-col gap-3"
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}

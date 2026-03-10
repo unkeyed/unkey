@@ -32,7 +32,7 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
         <LogSection
           title="Log Information"
           details={
-            <div className="space-y-2 text-xs">
+            <div className="flex flex-col gap-2 text-xs">
               <div>
                 <span className="text-grayA-11">Time:</span>{" "}
                 <TimestampInfo
@@ -55,7 +55,7 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
         <LogSection
           title="Deployment Info"
           details={
-            <div className="space-y-2 text-xs">
+            <div className="flex flex-col gap-2 text-xs">
               <div>
                 <span className="text-grayA-11">Deployment ID:</span>{" "}
                 <span className="font-mono">{log.deployment_id}</span>

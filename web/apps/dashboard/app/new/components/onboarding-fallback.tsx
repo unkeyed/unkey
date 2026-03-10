@@ -37,7 +37,7 @@ export function OnboardingFallback() {
                 body: (
                   <form>
                     <div className="flex flex-col">
-                      <div className="space-y-4 p-1">
+                      <div className="flex flex-col gap-4 p-1">
                         <FormInput
                           value="Acme Corp"
                           placeholder="Enter workspace name"

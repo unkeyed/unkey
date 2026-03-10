@@ -154,7 +154,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
     body: (
       <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)}>
         <div className="flex flex-col">
-          <div className="space-y-4 p-1">
+          <div className="flex flex-col gap-4 p-1">
             <FormInput
               {...form.register("workspaceName", {
                 onChange: (evt) => {

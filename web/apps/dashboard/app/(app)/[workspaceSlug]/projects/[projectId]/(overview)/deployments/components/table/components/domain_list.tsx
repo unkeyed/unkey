@@ -71,7 +71,7 @@ export const DomainList = ({ deploymentId, status }: Props) => {
           align: "start",
         }}
         content={
-          <div className="space-y-2 max-w-[300px] py-2">
+          <div className="flex flex-col gap-2 max-w-75 py-2">
             {additionalDomains.map((d) => (
               <div key={d.id} className="text-xs font-medium flex items-center gap-1.5">
                 <div className="w-1 h-1 bg-gray-8 rounded-full shrink-0" />
