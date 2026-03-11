@@ -23,8 +23,9 @@ export function getDeploymentActionEligibility(
 
   // Rollback: only available for non-current, ready deployments in production
   const canRollback = isProduction && isReady && hasCurrent && !isCurrent;
-  // Promote: same as rollback, but also allowed on the current deployment when rolled back
-  // (to confirm the rollback and re-enable automatic deployments)
+  // Promote: same as rollback, but also allowed on the current deployment when rolled back.
+  // After a rollback, currentDeploymentId points to the rolled-back-to deployment
+  // so without the isRolledBack exception, Promote would be disabled, blocking rollback confirmation.
   const canPromote = isProduction && isReady && hasCurrent && (!isCurrent || ctx.isRolledBack);
   // Redeploy: available for any ready or failed deployment regardless of environment
   const canRedeploy = isReady || ctx.selectedDeployment.status === "failed";
