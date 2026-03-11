@@ -51,6 +51,7 @@ import { searchDeployments } from "./deploy/deployment/llm-search";
 import { promote } from "./deploy/deployment/promote";
 import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
+import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
@@ -450,6 +451,7 @@ export const router = t.router({
     deployment: t.router({
       list: listDeployments,
       buildSteps: getDeploymentBuildSteps,
+      runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,

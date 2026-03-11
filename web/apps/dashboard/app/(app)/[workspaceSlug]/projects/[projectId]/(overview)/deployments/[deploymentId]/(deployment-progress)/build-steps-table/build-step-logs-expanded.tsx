@@ -1,5 +1,6 @@
 import { TimestampInfo } from "@unkey/ui";
 import { Fragment } from "react/jsx-runtime";
+import { TruncatedCell } from "../truncated-cell";
 import type { BuildStepRow } from "./columns";
 
 export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
@@ -34,9 +35,12 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
             </td>
             <td className="py-0" />
             <td colSpan={3} className="h-[26px] py-px ">
-              <span className="whitespace-pre-wrap font-mono text-xs text-gray-12 break-all ">
-                {log.message}
-              </span>
+              <TruncatedCell
+                text={log.message}
+                threshold={120}
+                maxWidth="max-w-[750px]"
+                className="text-gray-12"
+              />
             </td>
           </tr>
         </Fragment>

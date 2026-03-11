@@ -11,6 +11,7 @@ import { DeploymentDomainsCard } from "../../../../components/deployment-domains
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
 import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
+import { DeploymentContainerLogsTable } from "./container-logs-table/deployment-container-logs-table";
 import { DeploymentStep } from "./deployment-step";
 import { resolveDeploymentStep } from "./deployment-step-resolution";
 import { FailedDeploymentBanner } from "./failed-deployment-banner";
@@ -49,6 +50,11 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   }, [isFailed]);
 
   const { building, deploying, network, queued, starting, finalizing } = stepsData ?? {};
+
+  const deploymentRuntimeLogs = trpc.deploy.deployment.runtimeLogs.useQuery(
+    { deploymentId: deployment.id, limit: 50 },
+    { refetchInterval: deploying && !deploying.endedAt ? 2_000 : false },
+  );
 
   const queuedImplicitlyComplete =
     !queued && Boolean(starting ?? building ?? deploying ?? network ?? finalizing);
@@ -167,9 +173,20 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           defaultExpanded={!isPrebuilt}
         />
         <DeploymentStep
+          key={deploying ? "deploying-active" : "deploying-pending"}
           icon={<CloudUp iconSize="sm-medium" className="size-[18px]" />}
           title="Deploying Containers"
           {...deployingStep}
+          expandable={
+            deploying ? (
+              <div className="bg-grayA-2">
+                <DeploymentContainerLogsTable logs={deploymentRuntimeLogs.data?.logs ?? []} />
+              </div>
+            ) : null
+          }
+          defaultExpanded={
+            Boolean(deploying && !deploying.endedAt) || deployingStep.status === "error"
+          }
         />
         <DeploymentStep
           icon={<Earth iconSize="sm-medium" className="size-[18px]" />}
