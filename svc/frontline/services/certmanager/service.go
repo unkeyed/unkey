@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
 
@@ -72,12 +71,12 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 		return tlsCert, certMaterial.Hostname, nil
 	}, caches.DefaultFindFirstOp)
 
-	if err != nil && !mysql.IsNotFound(err) {
+	if err != nil && !db.IsNotFound(err) {
 		logger.Error("Failed to get certificate", "error", err)
 		return nil, err
 	}
 
-	if hit == cache.Null || mysql.IsNotFound(err) {
+	if hit == cache.Null || db.IsNotFound(err) {
 		return nil, fmt.Errorf("certificate not found for [%v]", candidates)
 	}
 

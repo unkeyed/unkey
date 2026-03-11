@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/sentinel/internal/db"
 )
@@ -219,14 +218,14 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Fi
 		return s.db.FindDeploymentById(ctx, deploymentID)
 	}, caches.DefaultFindFirstOp)
 
-	if err != nil && !mysql.IsNotFound(err) {
+	if err != nil && !db.IsNotFound(err) {
 		return db.FindDeploymentByIdRow{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get deployment"),
 		)
 	}
 
-	if hit == cache.Null || mysql.IsNotFound(err) {
+	if hit == cache.Null || db.IsNotFound(err) {
 		return db.FindDeploymentByIdRow{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
 			fault.Internal("no deployment found for ID or wrong environment"),

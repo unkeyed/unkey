@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "db",
+    srcs = [
+        "acme_challenge_insert.sql_generated.go",
+        "custom_domain_find_id_by_domain.sql_generated.go",
+        "custom_domain_upsert.sql_generated.go",
+        "database.go",
+        "doc.go",
+        "errors.go",
+        "generate.go",
+        "models_generated.go",
+        "querier_generated.go",
+        "region_list_names.sql_generated.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/api/internal/db",
+    visibility = ["//svc/ctrl/api:__subpackages__"],
+    deps = ["//pkg/mysql"],
+)

@@ -26,6 +26,7 @@ go_library(
         "//pkg/runner",
         "//pkg/uid",
         "//pkg/version",
+        "//svc/ctrl/api/internal/db",
         "//svc/ctrl/services/acme",
         "//svc/ctrl/services/cluster",
         "//svc/ctrl/services/ctrl",

@@ -7,6 +7,7 @@ go_library(
         "deployment_find_by_id.sql_generated.go",
         "deployment_list_by_environment_id_and_status.sql_generated.go",
         "doc.go",
+        "errors.go",
         "generate.go",
         "instances_find_by_deployment_id_and_region_id.sql_generated.go",
         "models_generated.go",

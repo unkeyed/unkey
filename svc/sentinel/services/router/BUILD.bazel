@@ -17,7 +17,6 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",
-        "//pkg/mysql",
         "//pkg/uid",
         "//svc/sentinel/internal/db",
     ],

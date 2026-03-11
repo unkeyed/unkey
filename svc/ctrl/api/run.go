@@ -21,6 +21,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
+	apidb "github.com/unkeyed/unkey/svc/ctrl/api/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
@@ -90,6 +91,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	r.Defer(database.Close)
+
+	bootstrapQuerier, closeBootstrapDB, err := apidb.New(cfg.Database.Primary)
+	if err != nil {
+		return fmt.Errorf("unable to create bootstrap db: %w", err)
+	}
+	r.Defer(closeBootstrapDB)
 
 	// Restate ingress client for invoking workflows
 	restateClientOpts := []restate.IngressClientOption{}
@@ -214,7 +221,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Bootstrap certificates (wildcard domain records)
 	if cfg.DefaultDomain != "" {
 		certBootstrap := &certificateBootstrap{
-			database:       database,
+			database:       bootstrapQuerier,
 			defaultDomain:  cfg.DefaultDomain,
 			regionalDomain: cfg.RegionalDomain,
 		}
