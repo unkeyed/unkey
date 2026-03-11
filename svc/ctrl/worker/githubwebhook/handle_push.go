@@ -83,9 +83,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 
-		// --- Deployment Protection Check ---
 		needsApproval := false
-		if project.DeploymentProtection {
+		if app.DeploymentProtection {
 			needsApproval = s.requiresApproval(ctx, req, repo)
 		}
 

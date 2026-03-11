@@ -960,18 +960,19 @@ type Api struct {
 }
 
 type App struct {
-	Pk                  uint64         `db:"pk"`
-	ID                  string         `db:"id"`
-	WorkspaceID         string         `db:"workspace_id"`
-	ProjectID           string         `db:"project_id"`
-	Name                string         `db:"name"`
-	Slug                string         `db:"slug"`
-	DefaultBranch       string         `db:"default_branch"`
-	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
-	IsRolledBack        bool           `db:"is_rolled_back"`
-	DeleteProtection    sql.NullBool   `db:"delete_protection"`
-	CreatedAt           int64          `db:"created_at"`
-	UpdatedAt           sql.NullInt64  `db:"updated_at"`
+	Pk                   uint64         `db:"pk"`
+	ID                   string         `db:"id"`
+	WorkspaceID          string         `db:"workspace_id"`
+	ProjectID            string         `db:"project_id"`
+	Name                 string         `db:"name"`
+	Slug                 string         `db:"slug"`
+	DefaultBranch        string         `db:"default_branch"`
+	CurrentDeploymentID  sql.NullString `db:"current_deployment_id"`
+	IsRolledBack         bool           `db:"is_rolled_back"`
+	DeploymentProtection bool           `db:"deployment_protection"`
+	DeleteProtection     sql.NullBool   `db:"delete_protection"`
+	CreatedAt            int64          `db:"created_at"`
+	UpdatedAt            sql.NullInt64  `db:"updated_at"`
 }
 
 type AppBuildSetting struct {
@@ -1385,16 +1386,15 @@ type Permission struct {
 }
 
 type Project struct {
-	Pk                   uint64         `db:"pk"`
-	ID                   string         `db:"id"`
-	WorkspaceID          string         `db:"workspace_id"`
-	Name                 string         `db:"name"`
-	Slug                 string         `db:"slug"`
-	DepotProjectID       sql.NullString `db:"depot_project_id"`
-	DeploymentProtection bool           `db:"deployment_protection"`
-	DeleteProtection     sql.NullBool   `db:"delete_protection"`
-	CreatedAt            int64          `db:"created_at"`
-	UpdatedAt            sql.NullInt64  `db:"updated_at"`
+	Pk               uint64         `db:"pk"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	DepotProjectID   sql.NullString `db:"depot_project_id"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
 
 type Quotas struct {

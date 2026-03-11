@@ -21,6 +21,7 @@ export const apps = mysqlTable(
     defaultBranch: varchar("default_branch", { length: 256 }).notNull().default("main"),
     currentDeploymentId: varchar("current_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
+    deploymentProtection: boolean("deployment_protection").notNull().default(true),
 
     ...deleteProtection,
     ...lifecycleDates,
