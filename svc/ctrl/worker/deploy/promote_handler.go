@@ -87,6 +87,12 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	if isConfirmingRollback {
 		logger.Info("confirming rollback", "deployment_id", targetDeployment.ID, "app_id", app.ID)
 
+		// Clear scheduled state changes on the current deployment
+		_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
+		if err != nil {
+			return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the current deployment"))
+		}
+
 		// Clear isRolledBack flag, routes already point to the correct deployment
 		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 			err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
@@ -104,12 +110,6 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 			return nil, fault.Wrap(err, fault.Public("Failed to confirm rollback"))
 		}
 
-		// Clear scheduled state changes on the current deployment
-		_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
-		if err != nil {
-			return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the current deployment"))
-		}
-
 		// Find the deployment that was rolled back from and schedule it for standby
 		oldDeploymentID, findErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.Query.FindLatestReadyDeploymentByAppAndEnv(stepCtx, w.db.RO(), db.FindLatestReadyDeploymentByAppAndEnvParams{
@@ -118,7 +118,14 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 				ExcludeID:     targetDeployment.ID,
 			})
 		}, restate.WithName("finding old deployment to schedule for standby"))
-		if findErr == nil {
+
+		if findErr != nil {
+			logger.Error("failed to find old deployment to schedule for standby",
+				"app_id", targetDeployment.AppID,
+				"environment_id", targetDeployment.EnvironmentID,
+				"error", findErr,
+			)
+		} else if oldDeploymentID != "" {
 			hydrav1.NewDeploymentServiceClient(ctx, oldDeploymentID).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
 				DelayMillis: (30 * time.Minute).Milliseconds(),
