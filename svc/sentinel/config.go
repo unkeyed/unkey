@@ -1,6 +1,8 @@
 package sentinel
 
 import (
+	"fmt"
+
 	"github.com/unkeyed/unkey/pkg/config"
 )
 
@@ -50,14 +52,21 @@ type Config struct {
 	// Included in structured logs and used for routing decisions.
 	Region string `toml:"region" config:"required,nonempty"`
 
+	// RegionID is the stable database identifier for this region.
+	// When set, Sentinel skips region-name lookup queries in the router path.
+	//
+	// TODO: figure out how/if we can delete Platform and Region fields after we have RegionID in place everywhere.
+	// We may want to keep them for human-friendly logging and metrics, but they are redundant with RegionID.
+	RegionID string `toml:"region_id"`
+
 	// HttpPort is the TCP port the sentinel server binds to.
 	HttpPort int `toml:"http_port" config:"default=8080,min=1,max=65535"`
 
 	// Observability configures tracing, logging, and metrics. See [config.Observability].
 	Observability config.Observability `toml:"observability"`
 
-	// Database configures MySQL connections. See [config.DatabaseConfig].
-	Database config.DatabaseConfig `toml:"database"`
+	// DatabaseURL is the MySQL read-only replica connection string.
+	DatabaseURL string `toml:"database_url"`
 
 	// ClickHouse configures analytics storage. See [ClickHouseConfig].
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
@@ -75,6 +84,9 @@ type Config struct {
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
 func (c *Config) Validate() error {
+	if c.DatabaseURL == "" {
+		return fmt.Errorf("database_url is required")
+	}
 
 	return nil
 }

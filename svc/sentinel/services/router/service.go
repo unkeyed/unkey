@@ -13,25 +13,27 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/sentinel/internal/db"
 )
 
 var _ Service = (*service)(nil)
 
 type service struct {
-	db            db.Database
+	db            db.Querier
 	clock         clock.Clock
 	environmentID string
 	platform      string
 	region        string
+	regionID      string
 
 	// deploymentID -> deployment
-	deploymentCache cache.Cache[string, db.Deployment]
+	deploymentCache cache.Cache[string, db.FindDeploymentByIdRow]
 	// deploymentID -> instances
-	instancesCache cache.Cache[string, []db.Instance]
+	instancesCache cache.Cache[string, []db.FindInstancesByDeploymentIdAndRegionIDRow]
 
 	// dispatcher handles routing of invalidation events to all caches in this service.
 	dispatcher *clustering.InvalidationDispatcher
@@ -115,7 +117,7 @@ func New(cfg Config) (*service, error) {
 	}
 
 	deploymentCache, err := createCache(
-		cache.Config[string, db.Deployment]{
+		cache.Config[string, db.FindDeploymentByIdRow]{
 			Resource: "deployment",
 			Clock:    cfg.Clock,
 			MaxSize:  1000,
@@ -129,7 +131,7 @@ func New(cfg Config) (*service, error) {
 	}
 
 	instancesCache, err := createCache(
-		cache.Config[string, []db.Instance]{
+		cache.Config[string, []db.FindInstancesByDeploymentIdAndRegionIDRow]{
 			Clock:    cfg.Clock,
 			Resource: "instance",
 			MaxSize:  1000,
@@ -141,12 +143,29 @@ func New(cfg Config) (*service, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Temporary fallback until all sentinels receive region_id from krane.
+	if cfg.RegionID == "" {
+		regionID, err := cfg.DB.FindRegionByPlatformAndName(context.Background(), db.FindRegionByPlatformAndNameParams{
+			Platform: cfg.Platform,
+			Name:     cfg.Region,
+		})
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
+				fault.Internal(fmt.Sprintf("failed to find region ID for platform %s and region %s", cfg.Platform, cfg.Region)),
+			)
+		}
+		cfg.RegionID = regionID
+	}
+
 	s := &service{
 		db:              cfg.DB,
 		clock:           cfg.Clock,
 		environmentID:   cfg.EnvironmentID,
 		platform:        cfg.Platform,
 		region:          cfg.Region,
+		regionID:        cfg.RegionID,
 		deploymentCache: deploymentCache,
 		instancesCache:  instancesCache,
 		dispatcher:      dispatcher,
@@ -159,7 +178,7 @@ func New(cfg Config) (*service, error) {
 func (s *service) prewarm(ctx context.Context) {
 	logger.Info("prewarming cache")
 
-	deployments, err := db.Query.ListDeploymentsByEnvironmentIdAndStatus(ctx, s.db.RO(), db.ListDeploymentsByEnvironmentIdAndStatusParams{
+	deployments, err := s.db.ListDeploymentsByEnvironmentIdAndStatus(ctx, db.ListDeploymentsByEnvironmentIdAndStatusParams{
 		EnvironmentID: s.environmentID,
 		Status:        db.DeploymentsStatusReady,
 		CreatedBefore: time.Now().UnixMilli(),
@@ -170,19 +189,11 @@ func (s *service) prewarm(ctx context.Context) {
 		return
 	}
 
-	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
-		Platform: s.platform,
-		Name:     s.region,
-	})
-	if err != nil {
-		logger.Error("unable to find region for prewarming instance cache", "platform", s.platform, "region", s.region, "error", err.Error())
-		return
-	}
-
 	for _, d := range deployments {
-		instances, err := db.Query.FindInstancesByDeploymentIdAndRegionID(ctx, s.db.RO(), db.FindInstancesByDeploymentIdAndRegionIDParams{
+		instanceRows, err := s.db.FindInstancesByDeploymentIdAndRegionID(ctx, db.FindInstancesByDeploymentIdAndRegionIDParams{
 			DeploymentID: d.ID,
-			RegionID:     region.ID,
+			RegionID:     s.regionID,
+			Status:       db.InstancesStatusRunning,
 		})
 		if err != nil {
 			logger.Error("unable to find instances for deployment", "deployment_id", d.ID, "error", err.Error())
@@ -190,27 +201,33 @@ func (s *service) prewarm(ctx context.Context) {
 		}
 
 		logger.Info("precaching deployment", "deployment_id", d.ID)
-		s.deploymentCache.Set(ctx, d.ID, d)
-		s.instancesCache.Set(ctx, d.ID, instances)
+		s.deploymentCache.Set(ctx, d.ID, db.FindDeploymentByIdRow{
+			ID:             d.ID,
+			WorkspaceID:    d.WorkspaceID,
+			ProjectID:      d.ProjectID,
+			EnvironmentID:  d.EnvironmentID,
+			SentinelConfig: d.SentinelConfig,
+		})
+		s.instancesCache.Set(ctx, d.ID, instanceRows)
 	}
 
 	logger.Info("deployment and instance cache are warm")
 }
 
-func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
-	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
+func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.FindDeploymentByIdRow, error) {
+	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.FindDeploymentByIdRow, error) {
+		return s.db.FindDeploymentById(ctx, deploymentID)
 	}, caches.DefaultFindFirstOp)
 
-	if err != nil && !db.IsNotFound(err) {
-		return db.Deployment{}, fault.Wrap(err,
+	if err != nil && !mysql.IsNotFound(err) {
+		return db.FindDeploymentByIdRow{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get deployment"),
 		)
 	}
 
-	if hit == cache.Null || db.IsNotFound(err) {
-		return db.Deployment{}, fault.New("deployment not found",
+	if hit == cache.Null || mysql.IsNotFound(err) {
+		return db.FindDeploymentByIdRow{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
 			fault.Internal("no deployment found for ID or wrong environment"),
 			fault.Public("Deployment not found"),
@@ -225,7 +242,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 		)
 
 		// Return as not found to avoid leaking information about deployments in other environments
-		return db.Deployment{}, fault.New("deployment not found",
+		return db.FindDeploymentByIdRow{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
 			fault.Internal(fmt.Sprintf("deployment %s belongs to environment %s, but sentinel serves %s", deploymentID, deployment.EnvironmentID, s.environmentID)),
 			fault.Public("Deployment not found"),
@@ -235,57 +252,39 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 	return deployment, nil
 }
 
-func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
-	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
+func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.FindInstancesByDeploymentIdAndRegionIDRow, error) {
+	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.FindInstancesByDeploymentIdAndRegionIDRow, error) {
 
-		region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
-			Platform: s.platform,
-			Name:     s.region,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		return db.Query.FindInstancesByDeploymentIdAndRegionID(
+		instanceRows, findErr := s.db.FindInstancesByDeploymentIdAndRegionID(
 			ctx,
-			s.db.RO(),
 			db.FindInstancesByDeploymentIdAndRegionIDParams{
 				DeploymentID: deploymentID,
-				RegionID:     region.ID,
+				RegionID:     s.regionID,
+				Status:       db.InstancesStatusRunning,
 			},
 		)
+		if findErr != nil {
+			return nil, findErr
+		}
+
+		return instanceRows, nil
 	}, caches.DefaultFindFirstOp)
 
 	if err != nil {
-		return db.Instance{}, fault.Wrap(err,
+		return db.FindInstancesByDeploymentIdAndRegionIDRow{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get instances"),
 		)
 	}
 
 	if hit == cache.Null || len(instances) == 0 {
-		return db.Instance{}, fault.New("no instances found",
+		return db.FindInstancesByDeploymentIdAndRegionIDRow{}, fault.New("no running instances",
 			fault.Code(codes.Sentinel.Routing.NoRunningInstances.URN()),
-			fault.Internal(fmt.Sprintf("no instances for deployment %s in region %s", deploymentID, s.region)),
+			fault.Internal(fmt.Sprintf("no running instances for deployment %s in region %s", deploymentID, s.region)),
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
 
-	var runningInstances []db.Instance
-	for _, instance := range instances {
-		if instance.Status == db.InstancesStatusRunning {
-			runningInstances = append(runningInstances, instance)
-		}
-	}
-
-	if len(runningInstances) == 0 {
-		return db.Instance{}, fault.New("no running instances",
-			fault.Code(codes.Sentinel.Routing.NoRunningInstances.URN()),
-			fault.Internal(fmt.Sprintf("no running instances for deployment %s in region %s (found %d total)", deploymentID, s.region, len(instances))),
-			fault.Public("Service temporarily unavailable"),
-		)
-	}
-
-	selected := array.Random(runningInstances)
+	selected := array.Random(instances)
 	return selected, nil
 }

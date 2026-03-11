@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
+	sentineldb "github.com/unkeyed/unkey/svc/sentinel/internal/db"
 	"github.com/unkeyed/unkey/svc/sentinel/routes"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
@@ -99,9 +100,15 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 	}
 
+	routerDB, closeRouterDB, err := sentineldb.New(cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("unable to create router db: %w", err)
+	}
+	r.Defer(closeRouterDB)
+
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.Database.Primary,
-		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		PrimaryDSN:  cfg.DatabaseURL,
+		ReadOnlyDSN: cfg.DatabaseURL,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -157,11 +164,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routerSvc, err := router.New(router.Config{
-		DB:            database,
+		DB:            routerDB,
 		Clock:         clk,
 		EnvironmentID: cfg.EnvironmentID,
 		Platform:      cfg.Platform,
 		Region:        cfg.Region,
+		RegionID:      cfg.RegionID,
 		Broadcaster:   broadcaster,
 		NodeID:        cfg.SentinelID,
 	})

@@ -15,9 +15,10 @@ go_library(
         "//pkg/cache/clustering",
         "//pkg/clock",
         "//pkg/codes",
-        "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/mysql",
         "//pkg/uid",
+        "//svc/sentinel/internal/db",
     ],
 )

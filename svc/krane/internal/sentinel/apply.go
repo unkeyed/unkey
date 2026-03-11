@@ -132,11 +132,9 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		EnvironmentID: sentinel.GetEnvironmentId(),
 		Platform:      c.platform,
 		Region:        c.region,
+		RegionID:      "", // TODO: add canonical region_id from control plane instead of platform+region
 		HttpPort:      SentinelPort,
-		Database: config.DatabaseConfig{
-			Primary:         "${UNKEY_DATABASE_PRIMARY}",
-			ReadonlyReplica: "${UNKEY_DATABASE_REPLICA}",
-		},
+		DatabaseURL:   "${UNKEY_DATABASE_URL}",
 		ClickHouse: sentinelcfg.ClickHouseConfig{
 			URL: "${UNKEY_CLICKHOUSE_URL}",
 		},
