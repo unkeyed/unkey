@@ -143,7 +143,7 @@ export const ExpirationSetup = ({
   };
 
   return (
-    <div className="space-y-5 px-2 py-1">
+    <div className="flex flex-col gap-y-5 px-2 py-1">
       {!overrideEnabled && (
         <ProtectionSwitch
           description="Turn on to set an expiration date. When reached, the key will be automatically disabled."

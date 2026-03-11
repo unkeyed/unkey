@@ -69,7 +69,7 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
       </p>
 
       <form id="delete-override-form" onSubmit={handleSubmit(onSubmit)}>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <p className="text-gray-11 text-[13px]">
             Type <span className="text-gray-12 font-medium">{identifier}</span> to confirm
           </p>

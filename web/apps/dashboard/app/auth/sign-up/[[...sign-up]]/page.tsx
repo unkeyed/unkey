@@ -52,7 +52,7 @@ export default function AuthenticationPage() {
 
   return (
     <SignUpProvider>
-      <div className="flex flex-col justify-center space-y-6">
+      <div className="flex flex-col justify-center gap-6">
         {isLoading && <Loading />}
         {verify ? (
           <FadeIn>

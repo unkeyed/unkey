@@ -163,9 +163,9 @@ export default function DiffPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <h3 className="text-grayA-12 font-medium text-sm">No deployments selected</h3>
-                <p className="text-grayA-9 text-xs max-w-[280px] leading-relaxed">
+                <p className="text-grayA-9 text-xs max-w-70 leading-relaxed">
                   Select two deployments above to compare their OpenAPI specifications and see what
                   changed between versions.
                 </p>
@@ -195,7 +195,7 @@ export default function DiffPage() {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                       <h3 className="text-error-11 font-medium text-sm">
                         Unable to compare deployments
                       </h3>
