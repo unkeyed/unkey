@@ -11,35 +11,31 @@ describe("getDeploymentActionEligibility", () => {
 
   const cases = [
     {
-      name: "ready + production + not current → rollback=true, promote=false, redeploy=true",
+      name: "ready + production + not current + not rolled back → rollback=true, promote=true, redeploy=true",
       ctx: baseCtx,
-      expected: { canRollback: true, canPromote: false, canRedeploy: true },
-    },
-    {
-      name: "ready + production + is current + isRolledBack → promote=false, rollback=false, redeploy=true",
-      ctx: {
-        ...baseCtx,
-        selectedDeployment: { id: "dep-current", status: "ready" as const },
-        isRolledBack: true,
-      },
-      expected: { canRollback: false, canPromote: false, canRedeploy: true },
-    },
-    {
-      name: "ready + production + not current + isRolledBack → rollback=true, promote=true, redeploy=true",
-      ctx: {
-        ...baseCtx,
-        isRolledBack: true,
-      },
       expected: { canRollback: true, canPromote: true, canRedeploy: true },
     },
     {
-      name: "ready + production + is current + NOT rolledBack → only redeploy",
+      name: "ready + production + not current + rolled back → rollback=true, promote=true, redeploy=true",
+      ctx: { ...baseCtx, isRolledBack: true },
+      expected: { canRollback: true, canPromote: true, canRedeploy: true },
+    },
+    {
+      name: "ready + production + is current + not rolled back → promote=false, rollback=false, redeploy=true",
       ctx: {
         ...baseCtx,
         selectedDeployment: { id: "dep-current", status: "ready" as const },
-        isRolledBack: false,
       },
       expected: { canRollback: false, canPromote: false, canRedeploy: true },
+    },
+    {
+      name: "ready + production + is current + rolled back → rollback=false, promote=true, redeploy=true",
+      ctx: {
+        ...baseCtx,
+        selectedDeployment: { id: "dep-current", status: "ready" as const },
+        isRolledBack: true,
+      },
+      expected: { canRollback: false, canPromote: true, canRedeploy: true },
     },
     {
       name: "ready + staging → only redeploy",

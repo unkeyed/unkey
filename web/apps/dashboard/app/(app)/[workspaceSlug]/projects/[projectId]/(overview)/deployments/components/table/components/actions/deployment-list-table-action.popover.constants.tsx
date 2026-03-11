@@ -12,30 +12,28 @@ import { RedeployDialog } from "./redeploy-dialog";
 import { RollbackDialog } from "./rollback-dialog";
 
 type DeploymentListTableActionsProps = {
-  currentDeployment?: Deployment;
   selectedDeployment: Deployment;
   environment?: Environment;
-  isRolledBack: boolean;
 };
 
 export const DeploymentListTableActions = ({
-  currentDeployment,
   selectedDeployment,
   environment,
-  isRolledBack,
 }: DeploymentListTableActionsProps) => {
-  const workspace = useWorkspaceNavigation();
-  const { getDomainsForDeployment } = useProjectData();
-  const data = getDomainsForDeployment(selectedDeployment.id).map((domain) => ({
-    host: domain.fullyQualifiedDomainName,
-  }));
-
   const router = useRouter();
+  const workspace = useWorkspaceNavigation();
+  const { getDeploymentById, project } = useProjectData();
+
+  const currentDeploymentId = project?.currentDeploymentId ?? null;
+  const isRolledBack = Boolean(project?.isRolledBack);
+  const currentDeployment = getDeploymentById(currentDeploymentId ?? "");
+  const hasCurrentDeployment = currentDeployment !== undefined;
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
   const menuItems = useMemo((): MenuItem[] => {
     const { canRollback, canPromote, canRedeploy } = getDeploymentActionEligibility({
       selectedDeployment,
-      currentDeploymentId: currentDeployment?.id ?? null,
+      currentDeploymentId,
       isRolledBack,
       environmentSlug: environment?.slug ?? null,
     });
@@ -45,42 +43,41 @@ export const DeploymentListTableActions = ({
         id: "rollback",
         label: "Rollback",
         icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
-        disabled: !canRollback,
-        ActionComponent:
-          currentDeployment && canRollback
-            ? (props) => (
-                <RollbackDialog
-                  {...props}
-                  currentDeployment={currentDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
-            : undefined,
+        disabled: !canRollback || !hasCurrentDeployment,
+        ActionComponent: hasCurrentDeployment
+          ? (props) => (
+              <RollbackDialog
+                {...props}
+                currentDeployment={currentDeployment}
+                targetDeployment={selectedDeployment}
+              />
+            )
+          : undefined,
       },
       {
         id: "Promote",
         label: "Promote",
         icon: <ChevronUp iconSize="md-regular" />,
-        disabled: !canPromote,
-        ActionComponent:
-          currentDeployment && canPromote
-            ? (props) => (
-                <PromotionDialog
-                  {...props}
-                  currentDeployment={currentDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
-            : undefined,
+        disabled: !canPromote || !hasCurrentDeployment,
+        ActionComponent: hasCurrentDeployment
+          ? (props) => (
+              <PromotionDialog
+                {...props}
+                currentDeployment={currentDeployment}
+                targetDeployment={selectedDeployment}
+                isConfirmingRollback={isRolledBack && selectedDeployment.id === currentDeploymentId}
+              />
+            )
+          : undefined,
       },
       {
         id: "redeploy",
         label: "Redeploy",
         icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
         disabled: !canRedeploy,
-        ActionComponent: canRedeploy
-          ? (props) => <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
-          : undefined,
+        ActionComponent: (props) => (
+          <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
+        ),
       },
       {
         id: "sentinel-logs",
@@ -104,10 +101,10 @@ export const DeploymentListTableActions = ({
   }, [
     selectedDeployment.id,
     selectedDeployment.status,
-    currentDeployment?.id,
-    environment?.slug,
+    currentDeploymentId,
     isRolledBack,
-    data,
+    environment?.slug,
+    hasCurrentDeployment,
   ]);
 
   return <TableActionPopover items={menuItems} />;

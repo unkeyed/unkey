@@ -41,7 +41,7 @@ const DeploymentListTableActions = dynamic(
 
 export const DeploymentsList = () => {
   const { deployments } = useDeployments();
-  const { project, getDeploymentById } = useProjectData();
+  const { project } = useProjectData();
   const currentDeploymentId = project?.currentDeploymentId;
 
   const workspace = useWorkspaceNavigation();
@@ -215,16 +215,11 @@ export const DeploymentsList = () => {
           deployment: Deployment;
           environment?: Environment;
         }) => {
-          const currentDeployment = project?.currentDeploymentId
-            ? getDeploymentById(project?.currentDeploymentId)
-            : undefined;
           return (
             <div className="pl-5">
               <DeploymentListTableActions
                 selectedDeployment={deployment}
-                currentDeployment={currentDeployment}
                 environment={environment}
-                isRolledBack={project?.isRolledBack ?? false}
               />
             </div>
           );
