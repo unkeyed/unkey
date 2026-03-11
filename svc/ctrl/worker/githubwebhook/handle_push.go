@@ -150,9 +150,15 @@ func (s *Service) requiresApproval(
 
 	senderLogin := req.GetSenderLogin()
 
-	// No sender info or bot accounts are trusted
-	if senderLogin == "" || strings.HasSuffix(senderLogin, "[bot]") {
+	// Bot accounts are trusted (GitHub controls the [bot] suffix)
+	if strings.HasSuffix(senderLogin, "[bot]") {
 		return false
+	}
+
+	// No sender info — fail closed, require approval
+	if senderLogin == "" {
+		logger.Info("no sender login in push event, requiring approval")
+		return true
 	}
 
 	isCollaborator, err := restate.Run(ctx, func(_ restate.RunContext) (bool, error) {

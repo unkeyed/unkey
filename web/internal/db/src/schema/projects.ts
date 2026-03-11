@@ -21,7 +21,7 @@ export const projects = mysqlTable(
 
     depotProjectId: varchar("depot_project_id", { length: 255 }),
 
-    deploymentProtection: boolean("deployment_protection").notNull().default(false),
+    deploymentProtection: boolean("deployment_protection").notNull().default(true),
 
     ...deleteProtection,
     ...lifecycleDates,
