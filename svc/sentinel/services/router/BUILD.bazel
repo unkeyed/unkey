@@ -4,11 +4,13 @@ go_library(
     name = "router",
     srcs = [
         "interface.go",
+        "metrics.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/sentinel/services/router",
     visibility = ["//visibility:public"],
     deps = [
+        "//gen/proto/sentinel/v1:sentinel",
         "//internal/services/caches",
         "//pkg/array",
         "//pkg/cache",
@@ -18,6 +20,10 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/prometheus/timer",
         "//pkg/uid",
+        "//svc/sentinel/engine",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promauto",
     ],
 )
