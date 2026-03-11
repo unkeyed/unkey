@@ -13,7 +13,8 @@ go_library(
         "//internal/services/caches",
         "//pkg/cache",
         "//pkg/codes",
-        "//pkg/db",
         "//pkg/fault",
+        "//pkg/mysql",
+        "//svc/frontline/db",
     ],
 )

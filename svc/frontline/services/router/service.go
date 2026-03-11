@@ -7,8 +7,9 @@ import (
 	internalCaches "github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/svc/frontline/db"
 )
 
 // regionProximity maps regions to their closest regions in order of proximity.
@@ -44,7 +45,7 @@ var regionProximity = map[string][]string{
 type service struct {
 	platform                    string
 	region                      string
-	db                          db.Database
+	db                          mysql.MySQL
 	frontlineRouteCache         cache.Cache[string, db.FrontlineRoute]
 	sentinelsByEnvironmentCache cache.Cache[string, []db.FindSentinelsByEnvironmentIDRow]
 }
@@ -66,7 +67,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 		return db.Query.FindFrontlineRouteByFQDN(ctx, s.db.RO(), hostname)
 	}, internalCaches.DefaultFindFirstOp)
 
-	if err != nil && !db.IsNotFound(err) {
+	if err != nil && !mysql.IsNotFound(err) {
 		return nil, nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading frontline route"),
@@ -74,7 +75,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 		)
 	}
 
-	if db.IsNotFound(err) || routeHit == cache.Null {
+	if mysql.IsNotFound(err) || routeHit == cache.Null {
 		return nil, nil, fault.New("no frontline route for hostname: "+hostname,
 			fault.Code(codes.Frontline.Routing.ConfigNotFound.URN()),
 			fault.Public("Domain not configured"),
@@ -85,7 +86,7 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 		return db.Query.FindSentinelsByEnvironmentID(ctx, s.db.RO(), route.EnvironmentID)
 	}, internalCaches.DefaultFindFirstOp)
 
-	if err != nil && !db.IsNotFound(err) {
+	if err != nil && !mysql.IsNotFound(err) {
 		return nil, nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading sentinels"),

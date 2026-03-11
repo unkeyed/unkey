@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/svc/frontline/db"
 )
 
 type RouteDecision struct {
@@ -27,7 +28,7 @@ type Service interface {
 type Config struct {
 	Platform               string
 	Region                 string
-	DB                     db.Database
+	DB                     mysql.MySQL
 	FrontlineRouteCache    cache.Cache[string, db.FrontlineRoute]
 	SentinelsByEnvironment cache.Cache[string, []db.FindSentinelsByEnvironmentIDRow]
 }

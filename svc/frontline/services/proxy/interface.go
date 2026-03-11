@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 )
 

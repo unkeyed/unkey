@@ -17,8 +17,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -129,14 +129,14 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Warn("Vault not configured, dynamic TLS certificate decryption will be unavailable")
 	}
 
-	db, err := db.New(db.Config{
+	database, err := mysql.New(mysql.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create partitioned db: %w", err)
 	}
-	r.Defer(db.Close)
+	r.Defer(database.Close)
 
 	// Initialize gossip-based cache invalidation
 	var broadcaster clustering.Broadcaster
@@ -201,7 +201,7 @@ func Run(ctx context.Context, cfg Config) error {
 	var certManager certmanager.Service
 	if vaultClient != nil {
 		certManager = certmanager.New(certmanager.Config{
-			DB:                  db,
+			DB:                  database,
 			TLSCertificateCache: cache.TLSCertificates,
 			Vault:               vaultClient,
 		})
@@ -214,7 +214,7 @@ func Run(ctx context.Context, cfg Config) error {
 	routerSvc, err := router.New(router.Config{
 		Platform:               cfg.Platform,
 		Region:                 cfg.Region,
-		DB:                     db,
+		DB:                     database,
 		FrontlineRouteCache:    cache.FrontlineRoutes,
 		SentinelsByEnvironment: cache.SentinelsByEnvironment,
 	})

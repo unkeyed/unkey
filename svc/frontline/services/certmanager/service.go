@@ -11,8 +11,9 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/svc/frontline/db"
 )
 
 var _ Service = (*service)(nil)
@@ -86,12 +87,12 @@ func (s *service) GetCertificate(ctx context.Context, domain string) (*tls.Certi
 		return tlsCert, bestRow.Hostname, nil
 	}, caches.DefaultFindFirstOp)
 
-	if err != nil && !db.IsNotFound(err) {
+	if err != nil && !mysql.IsNotFound(err) {
 		logger.Error("Failed to get certificate", "error", err)
 		return nil, err
 	}
 
-	if hit == cache.Null || db.IsNotFound(err) {
+	if hit == cache.Null || mysql.IsNotFound(err) {
 		return nil, fmt.Errorf("certificate not found for [%v]", candidates)
 	}
 
