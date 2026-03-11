@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -16,7 +17,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/prometheus/timer"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/sentinel/engine"
 )
 
 var _ Service = (*service)(nil)
@@ -32,6 +35,8 @@ type service struct {
 	deploymentCache cache.Cache[string, db.Deployment]
 	// deploymentID -> instances
 	instancesCache cache.Cache[string, []db.Instance]
+	// deploymentID -> parsed sentinel policies (avoids proto unmarshal on every request)
+	policyCache cache.Cache[string, []*sentinelv1.Policy]
 
 	// dispatcher handles routing of invalidation events to all caches in this service.
 	dispatcher *clustering.InvalidationDispatcher
@@ -141,6 +146,23 @@ func New(cfg Config) (*service, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Policy cache uses the same TTLs as the deployment cache since policies
+	// are derived from the deployment's SentinelConfig.
+	policyCache, err := createCache(
+		cache.Config[string, []*sentinelv1.Policy]{
+			Clock:    cfg.Clock,
+			Resource: "policy",
+			MaxSize:  1000,
+			Fresh:    30 * time.Second,
+			Stale:    5 * time.Minute,
+		},
+		stringKeyOpts,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &service{
 		db:              cfg.DB,
 		clock:           cfg.Clock,
@@ -149,6 +171,7 @@ func New(cfg Config) (*service, error) {
 		region:          cfg.Region,
 		deploymentCache: deploymentCache,
 		instancesCache:  instancesCache,
+		policyCache:     policyCache,
 		dispatcher:      dispatcher,
 	}
 
@@ -192,17 +215,29 @@ func (s *service) prewarm(ctx context.Context) {
 		logger.Info("precaching deployment", "deployment_id", d.ID)
 		s.deploymentCache.Set(ctx, d.ID, d)
 		s.instancesCache.Set(ctx, d.ID, instances)
+
+		policies, parseErr := engine.ParseMiddleware(d.SentinelConfig)
+		if parseErr != nil {
+			logger.Error("unable to parse sentinel config for deployment", "deployment_id", d.ID, "error", parseErr.Error())
+		} else if policies != nil {
+			s.policyCache.Set(ctx, d.ID, policies)
+		}
 	}
 
 	logger.Info("deployment and instance cache are warm")
 }
 
 func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
+	t := timer.New()
+
 	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	}, caches.DefaultFindFirstOp)
 
+	sentinelRoutingDuration.WithLabelValues("get_deployment").Observe(t.Seconds())
+
 	if err != nil && !db.IsNotFound(err) {
+		sentinelInstanceSelectionTotal.WithLabelValues("error").Inc()
 		return db.Deployment{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get deployment"),
@@ -210,6 +245,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 	}
 
 	if hit == cache.Null || db.IsNotFound(err) {
+		sentinelInstanceSelectionTotal.WithLabelValues("deployment_not_found").Inc()
 		return db.Deployment{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
 			fault.Internal("no deployment found for ID or wrong environment"),
@@ -224,6 +260,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 			"sentinelEnv", s.environmentID,
 		)
 
+		sentinelInstanceSelectionTotal.WithLabelValues("deployment_not_found").Inc()
 		// Return as not found to avoid leaking information about deployments in other environments
 		return db.Deployment{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
@@ -236,6 +273,8 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 }
 
 func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
+	t := timer.New()
+
 	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
 
 		region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
@@ -256,7 +295,10 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 		)
 	}, caches.DefaultFindFirstOp)
 
+	sentinelRoutingDuration.WithLabelValues("select_instance").Observe(t.Seconds())
+
 	if err != nil {
+		sentinelInstanceSelectionTotal.WithLabelValues("error").Inc()
 		return db.Instance{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get instances"),
@@ -264,6 +306,7 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 	}
 
 	if hit == cache.Null || len(instances) == 0 {
+		sentinelInstanceSelectionTotal.WithLabelValues("no_instances").Inc()
 		return db.Instance{}, fault.New("no instances found",
 			fault.Code(codes.Sentinel.Routing.NoRunningInstances.URN()),
 			fault.Internal(fmt.Sprintf("no instances for deployment %s in region %s", deploymentID, s.region)),
@@ -279,6 +322,7 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 	}
 
 	if len(runningInstances) == 0 {
+		sentinelInstanceSelectionTotal.WithLabelValues("no_running_instances").Inc()
 		return db.Instance{}, fault.New("no running instances",
 			fault.Code(codes.Sentinel.Routing.NoRunningInstances.URN()),
 			fault.Internal(fmt.Sprintf("no running instances for deployment %s in region %s (found %d total)", deploymentID, s.region, len(instances))),
@@ -286,6 +330,28 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 		)
 	}
 
+	sentinelInstanceSelectionTotal.WithLabelValues("success").Inc()
 	selected := array.Random(runningInstances)
 	return selected, nil
+}
+
+func (s *service) GetPolicies(ctx context.Context, deployment db.Deployment) ([]*sentinelv1.Policy, error) {
+	policies, hit, err := s.policyCache.SWR(ctx, deployment.ID, func(ctx context.Context) ([]*sentinelv1.Policy, error) {
+		return engine.ParseMiddleware(deployment.SentinelConfig)
+	}, func(err error) cache.Op {
+		if err != nil {
+			return cache.Noop
+		}
+		return cache.WriteValue
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if hit == cache.Null {
+		return nil, nil
+	}
+
+	return policies, nil
 }

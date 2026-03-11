@@ -109,16 +109,19 @@ func (e *Engine) Evaluate(
 		case *sentinelv1.Policy_Keyauth:
 			// Skip if we already have a principal from a previous auth policy
 			if result.Principal != nil {
+				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", "skipped").Inc()
 				continue
 			}
 
 			principal, execErr := e.keyAuth.Execute(ctx, sess, req, cfg.Keyauth)
 			if execErr != nil {
+				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", classifyKeyauthError(execErr)).Inc()
 				return result, execErr
 			}
 
 			if principal != nil {
 				result.Principal = principal
+				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
 			}
 
 		// Future policy types will be added here:
