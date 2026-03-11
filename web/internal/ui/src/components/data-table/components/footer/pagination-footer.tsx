@@ -14,6 +14,7 @@ export interface PaginationFooterProps {
   itemLabel?: string;
   hide?: boolean;
   loading?: boolean;
+  disabled?: boolean;
   headerContent?: React.ReactNode;
 }
 
@@ -26,6 +27,7 @@ export const PaginationFooter = memo(function PaginationFooter({
   itemLabel = "items",
   hide,
   loading,
+  disabled,
   headerContent,
 }: PaginationFooterProps) {
   const [isOpen, setIsOpen] = useState(true);
@@ -146,7 +148,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                 variant="ghost"
                 size="icon"
                 onClick={() => onPageChange(page - 1)}
-                disabled={page === 1}
+                disabled={disabled || page === 1}
                 aria-label="Go to previous page"
                 className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
               >
@@ -178,10 +180,11 @@ export const PaginationFooter = memo(function PaginationFooter({
                       key={pageNum}
                       type="button"
                       onClick={() => {
-                        if (!isCurrentPage) {
+                        if (!isCurrentPage && !disabled) {
                           onPageChange(pageNum);
                         }
                       }}
+                      disabled={disabled && !isCurrentPage}
                       aria-label={`Page ${pageNum}`}
                       aria-current={isCurrentPage ? "page" : undefined}
                       className={cn(
@@ -189,6 +192,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                         isCurrentPage
                           ? "bg-grayA-5 text-accent-12 shadow-sm pointer-events-none ring-0 border border-grayA-3 scale-105 text-sm transition-all duration-300"
                           : "text-gray-11 hover:text-gray-12 hover:bg-grayA-3",
+                        disabled && !isCurrentPage && "opacity-30 pointer-events-none",
                       )}
                     >
                       {pageNum}
@@ -202,7 +206,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                 variant="ghost"
                 size="icon"
                 onClick={() => onPageChange(page + 1)}
-                disabled={page === totalPages}
+                disabled={disabled || page === totalPages}
                 aria-label="Go to next page"
                 className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
               >

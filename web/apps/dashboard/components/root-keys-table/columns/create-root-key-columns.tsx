@@ -52,7 +52,6 @@ export const createRootKeyColumns = ({
       width: "20%",
       headerClassName: "pl-[18px]",
     },
-    sortingFn: "alphanumeric",
     cell: ({ row }) => {
       const rootKey = row.original;
       const isSelected = rootKey.id === selectedRootKeyId;
@@ -63,10 +62,10 @@ export const createRootKeyColumns = ({
     id: ROOT_KEY_COLUMN_IDS.KEY,
     accessorKey: "start",
     header: "Key",
+    enableSorting: false,
     meta: {
       width: "18%",
     },
-    sortingFn: "alphanumeric",
     cell: ({ row }) => {
       const rootKey = row.original;
       return (
@@ -90,6 +89,7 @@ export const createRootKeyColumns = ({
   {
     id: ROOT_KEY_COLUMN_IDS.PERMISSIONS,
     header: "Permissions",
+    enableSorting: false,
     meta: {
       width: "15%",
     },

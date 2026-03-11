@@ -8,7 +8,7 @@ import {
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { unkeyPermissionValidation } from "@unkey/rbac";
-import { DataTable, EmptyRootKeys, PaginationFooter } from "@unkey/ui";
+import { DataTable, EmptyRootKeys, Loading, PaginationFooter } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { RootKeyDialog } from "../dialog/root-key-dialog";
 
@@ -36,6 +36,8 @@ export const RootKeysList = () => {
     page,
     pageSize,
     totalPages,
+    sorting,
+    onSortingChange,
   } = useRootKeysListPaginated();
   const [selectedRootKey, setSelectedRootKey] = useState<RootKey | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -84,8 +86,15 @@ export const RootKeysList = () => {
     [selectedRootKeyId, handleEditKey],
   );
 
+  const isNavigating = isFetching && !isInitialLoading;
+
   return (
     <>
+      {isNavigating && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <Loading size={32} className="text-accent-9" />
+        </div>
+      )}
       <DataTable
         data={rootKeys}
         columns={columns}
@@ -97,7 +106,8 @@ export const RootKeysList = () => {
         emptyState={<EmptyRootKeys />}
         config={TABLE_CONFIG}
         renderSkeletonRow={renderRootKeySkeletonRow}
-        enableSorting={true}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
       />
       <PaginationFooter
         page={page}
@@ -107,6 +117,7 @@ export const RootKeysList = () => {
         onPageChange={onPageChange}
         itemLabel="root keys"
         loading={isInitialLoading}
+        disabled={isNavigating}
       />
       {editingKey && existingKey && (
         <RootKeyDialog

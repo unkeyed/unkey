@@ -52,7 +52,8 @@ export const useDataTable = <TData>({
     columns,
     getRowId,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
+    getSortedRowModel: enableSorting && !controlledOnSortingChange ? getSortedRowModel() : undefined,
+    manualSorting: Boolean(controlledOnSortingChange),
 
     // Sorting state
     state: {

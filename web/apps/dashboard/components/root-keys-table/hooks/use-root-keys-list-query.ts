@@ -4,17 +4,34 @@ import {
 } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import type { RootKeysFilterValue } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/settings/root-keys/hooks/use-filters";
+import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { trpc } from "@/lib/trpc/client";
+import type { SortingState } from "@tanstack/react-table";
+import { parseAsInteger, useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo } from "react";
+import type { RootKeysSortField, RootKeysQueryPayload } from "../schema/query-logs.schema";
+
+type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name" | "start" | "permission">;
 
 // Mirrors LIMIT in query.ts — kept here to avoid importing the server-side router into the client bundle
 const DEFAULT_PAGE_SIZE = 50;
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import type { RootKeysQueryPayload } from "../schema/query-logs.schema";
 
-function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysQueryPayload {
-  const params: RootKeysQueryPayload = {
+// Maps TanStack column IDs → server sort field names (and reverse)
+const COLUMN_ID_TO_SORT_FIELD: Record<string, RootKeysSortField> = {
+  root_key: "name",
+  created_at: "createdAt",
+  last_updated: "lastUpdatedAt",
+};
+const SORT_FIELD_TO_COLUMN_ID: Record<RootKeysSortField, string> = {
+  name: "root_key",
+  createdAt: "created_at",
+  lastUpdatedAt: "last_updated",
+};
+
+function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysFilterParams {
+  const params: RootKeysFilterParams = {
     ...Object.fromEntries(rootKeysListFilterFieldNames.map((field) => [field, []])),
-  };
+  } as RootKeysFilterParams;
 
   for (const filter of filters) {
     if (!rootKeysListFilterFieldNames.includes(filter.field) || !params[filter.field]) {
@@ -39,68 +56,101 @@ function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysQueryPayload 
 
 export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
-  const [page, setPage] = useState(1);
-  const [isPending, startTransition] = useTransition();
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const [sortParams, setSortParams] = useQueryState(
+    "sort",
+    parseAsSortArray<RootKeysSortField>(),
+  );
 
-  // Maps page number → cursor (createdAtM) needed to fetch that page.
-  // Page 1 always starts from the beginning (undefined cursor).
-  const pageCursors = useRef<Map<number, number | undefined>>(new Map([[1, undefined]]));
+  const sorting: SortingState = useMemo(() => {
+    if (!sortParams || sortParams.length === 0) {
+      return [{ id: SORT_FIELD_TO_COLUMN_ID.createdAt, desc: true }];
+    }
+    return sortParams.map((s) => ({
+      id: SORT_FIELD_TO_COLUMN_ID[s.column] ?? s.column,
+      desc: s.direction === "desc",
+    }));
+  }, [sortParams]);
 
-  // Reset pagination whenever filters change.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: filters is an intentional trigger — not consumed in the body but must cause this effect to re-run on change
+  const onSortingChange = useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      setSortParams(
+        next.length === 0
+          ? null
+          : next
+              .filter((s) => COLUMN_ID_TO_SORT_FIELD[s.id] !== undefined)
+              .map((s) => ({
+                column: COLUMN_ID_TO_SORT_FIELD[s.id],
+                direction: s.desc ? "desc" : "asc",
+              })),
+      );
+      setPage(1);
+    },
+    [sorting, setSortParams, setPage],
+  );
+
+  // Stable string key derived from filter content — avoids resetting page when
+  // useQueryStates returns a new array reference for the same filter values
+  // (which happens on every URL change, including page navigation).
+  const filtersKey = useMemo(
+    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
+    [filters],
+  );
+
+  // Reset to page 1 only when filter content actually changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setPage is a stable nuqs setter
   useEffect(() => {
-    pageCursors.current = new Map([[1, undefined]]);
     setPage(1);
-  }, [filters]);
+  }, [filtersKey]);
 
-  const baseParams = useMemo(() => buildQueryParams(filters), [filters]);
+  const baseParams = useMemo<RootKeysFilterParams>(() => buildQueryParams(filters), [filters]);
 
   const queryParams = useMemo(
     () => ({
       ...baseParams,
-      cursor: pageCursors.current.get(page),
+      page,
       limit: pageSize,
+      sortBy: sortParams?.[0]?.column ?? "createdAt",
+      sortOrder: sortParams?.[0]?.direction ?? "desc",
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [baseParams, page, pageSize],
+    [baseParams, page, pageSize, sortParams],
   );
 
   const { data, isLoading, isFetching } = trpc.settings.rootKeys.query.useQuery(queryParams, {
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    keepPreviousData: true,
   });
 
-  // Cache the next page's cursor as soon as the current page resolves.
-  if (data?.nextCursor !== undefined && !pageCursors.current.has(page + 1)) {
-    pageCursors.current.set(page + 1, data.nextCursor);
-  }
+  const isInitialLoading = isLoading && !data;
 
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const onPageChange = useCallback(
     (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages || !pageCursors.current.has(newPage)) {
+      if (newPage < 1 || newPage > totalPages) {
         return;
       }
-
-      startTransition(() => {
-        setPage(newPage);
-      });
+      setPage(newPage);
     },
-    [totalPages],
+    [totalPages, setPage],
   );
 
   return {
     rootKeys: data?.keys ?? [],
     isLoading,
-    isPending,
+    isInitialLoading,
+    isPending: isFetching,
     isFetching,
     page,
     pageSize,
     totalPages,
     totalCount,
     onPageChange,
+    sorting,
+    onSortingChange,
   };
 }

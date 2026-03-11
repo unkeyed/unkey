@@ -2,7 +2,7 @@ import { ChartActivity2, Dots, Key2, Page2 } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
 
 export const RootKeyColumnSkeleton = () => (
-  <div className="flex flex-col items-start px-[18px] py-[6px]">
+  <div className="flex flex-col items-start px-[18px]">
     <div className="flex gap-4 items-center">
       <div className="size-5 rounded-sm flex items-center justify-center border border-grayA-3 bg-grayA-3 animate-pulse">
         <Key2 iconSize="sm-regular" className="text-gray-12 opacity-50" />
@@ -13,7 +13,7 @@ export const RootKeyColumnSkeleton = () => (
 );
 
 export const CreatedAtColumnSkeleton = () => (
-  <div className="flex flex-col items-start py-[6px]">
+  <div className="flex flex-col items-start">
     <div className="h-4 w-24 bg-grayA-3 rounded-sm animate-pulse" />
   </div>
 );
@@ -25,7 +25,7 @@ export const KeyColumnSkeleton = () => (
 );
 
 export const PermissionsColumnSkeleton = () => (
-  <div className="flex flex-col gap-1 py-2 max-w-[200px]">
+  <div className="flex flex-col gap-1 max-w-[200px]">
     <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
       <Page2 className="size-3 opacity-50" iconSize="md-medium" />
       <div className="h-2 w-20 bg-grayA-3 rounded-sm animate-pulse" />
