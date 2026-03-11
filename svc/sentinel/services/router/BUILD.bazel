@@ -20,6 +20,7 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/prometheus/timer",
         "//pkg/uid",
         "//svc/sentinel/engine",
         "@com_github_prometheus_client_golang//prometheus",
