@@ -319,10 +319,10 @@ go_library(
     deps = [
         "//pkg/assert",
         "//pkg/codes",
-        "//pkg/db/metrics",
         "//pkg/db/types",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/mysql/metrics",
         "//pkg/otel/tracing",
         "//pkg/retry",
         "@com_github_go_sql_driver_mysql//:mysql",
