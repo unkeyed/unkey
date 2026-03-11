@@ -4,14 +4,15 @@ go_library(
     name = "db",
     srcs = [
         "certificate_find_by_hostnames.sql_generated.go",
+        "database.go",
+        "doc.go",
         "generate.go",
         "ingress_route_find_by_fqdn.sql_generated.go",
         "models_generated.go",
         "querier_generated.go",
-        "queries.go",
         "sentinel_find_by_environment_id.sql_generated.go",
     ],
-    importpath = "github.com/unkeyed/unkey/svc/frontline/db",
+    importpath = "github.com/unkeyed/unkey/svc/frontline/internal/db",
     visibility = ["//visibility:public"],
     deps = ["//pkg/mysql"],
 )

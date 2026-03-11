@@ -15,6 +15,6 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/mysql",
-        "//svc/frontline/db",
+        "//svc/frontline/internal/db",
     ],
 )

@@ -11,16 +11,16 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/frontline/db"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
 
 // Caches holds all cache instances used throughout frontline.
 type Caches struct {
 	// HostName -> frontline Route
-	FrontlineRoutes cache.Cache[string, db.FrontlineRoute]
+	FrontlineRoutes cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
 
 	// EnvironmentID -> List of Sentinels
-	SentinelsByEnvironment cache.Cache[string, []db.FindSentinelsByEnvironmentIDRow]
+	SentinelsByEnvironment cache.Cache[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]
 
 	// HostName -> Certificate
 	TLSCertificates cache.Cache[string, tls.Certificate]
@@ -128,7 +128,7 @@ func New(config Config) (*Caches, error) {
 	}
 
 	frontlineRoute, err := createCache(
-		cache.Config[string, db.FrontlineRoute]{
+		cache.Config[string, db.FindFrontlineRouteByFQDNRow]{
 			Fresh:    5 * time.Second,
 			Stale:    5 * time.Minute,
 			MaxSize:  10_000,
@@ -142,7 +142,7 @@ func New(config Config) (*Caches, error) {
 	}
 
 	sentinelsByEnvironment, err := createCache(
-		cache.Config[string, []db.FindSentinelsByEnvironmentIDRow]{
+		cache.Config[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]{
 			Fresh:    5 * time.Second,
 			Stale:    2 * time.Minute,
 			MaxSize:  10_000,

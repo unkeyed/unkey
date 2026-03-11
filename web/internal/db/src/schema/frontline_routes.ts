@@ -36,6 +36,11 @@ export const frontlineRoutes = mysqlTable(
   (table) => [
     index("environment_id_idx").on(table.environmentId),
     index("deployment_id_idx").on(table.deploymentId),
+    index("fqdn_environment_deployment_idx").on(
+      table.fullyQualifiedDomainName,
+      table.environmentId,
+      table.deploymentId,
+    ),
   ],
 );
 

@@ -174,3 +174,7 @@ func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
 	// Wrap the transaction with tracing
 	return WrapTxWithContext(tx, r.mode+"_tx", ctx), nil
 }
+
+func (r *Replica) Close() error {
+	return r.db.Close()
+}

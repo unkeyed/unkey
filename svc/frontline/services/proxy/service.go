@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/frontline/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"golang.org/x/net/http2"
 )
@@ -111,10 +110,10 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sentinel *db.Sentinel, deploymentID string) error {
+func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sentinelAddress string, deploymentID string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s", sentinel.K8sAddress))
+	targetURL, err := url.Parse(fmt.Sprintf("http://%s", sentinelAddress))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),

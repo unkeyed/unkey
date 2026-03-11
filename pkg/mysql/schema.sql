@@ -779,10 +779,12 @@ CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
 CREATE INDEX `idx_environment_id` ON `sentinels` (`environment_id`);
+CREATE INDEX `idx_environment_health_region_routing` ON `sentinels` (`environment_id`,`health`,`region_id`,`k8s_address`);
 CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region_id`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
+CREATE INDEX `fqdn_environment_deployment_idx` ON `frontline_routes` (`fully_qualified_domain_name`,`environment_id`,`deployment_id`);
 CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_id`);
 CREATE INDEX `workspace_idx` ON `horizontal_autoscaling_policies` (`workspace_id`);
 

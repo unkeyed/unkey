@@ -18,7 +18,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -26,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
 	"github.com/unkeyed/unkey/svc/frontline/services/caches"
@@ -129,14 +129,11 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Warn("Vault not configured, dynamic TLS certificate decryption will be unavailable")
 	}
 
-	database, err := mysql.New(mysql.Config{
-		PrimaryDSN:  cfg.Database.Primary,
-		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-	})
+	database, databaseClose, err := db.New(cfg.DatabaseURL)
 	if err != nil {
-		return fmt.Errorf("unable to create partitioned db: %w", err)
+		return fmt.Errorf("unable to connect to database: %w", err)
 	}
-	r.Defer(database.Close)
+	r.Defer(databaseClose)
 
 	// Initialize gossip-based cache invalidation
 	var broadcaster clustering.Broadcaster

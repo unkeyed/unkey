@@ -1019,7 +1019,7 @@ type AppRuntimeSetting struct {
 	CpuMillicores  int32                            `db:"cpu_millicores"`
 	MemoryMib      int32                            `db:"memory_mib"`
 	Command        json.RawMessage                  `db:"command"`
-	Healthcheck    []byte                           `db:"healthcheck"`
+	Healthcheck    json.RawMessage                  `db:"healthcheck"`
 	ShutdownSignal AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	SentinelConfig []byte                           `db:"sentinel_config"`
 	CreatedAt      int64                            `db:"created_at"`
@@ -1027,22 +1027,22 @@ type AppRuntimeSetting struct {
 }
 
 type AuditLog struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Bucket      string         `db:"bucket"`
-	BucketID    string         `db:"bucket_id"`
-	Event       string         `db:"event"`
-	Time        int64          `db:"time"`
-	Display     string         `db:"display"`
-	RemoteIp    sql.NullString `db:"remote_ip"`
-	UserAgent   sql.NullString `db:"user_agent"`
-	ActorType   string         `db:"actor_type"`
-	ActorID     string         `db:"actor_id"`
-	ActorName   sql.NullString `db:"actor_name"`
-	ActorMeta   []byte         `db:"actor_meta"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+	Pk          uint64          `db:"pk"`
+	ID          string          `db:"id"`
+	WorkspaceID string          `db:"workspace_id"`
+	Bucket      string          `db:"bucket"`
+	BucketID    string          `db:"bucket_id"`
+	Event       string          `db:"event"`
+	Time        int64           `db:"time"`
+	Display     string          `db:"display"`
+	RemoteIp    sql.NullString  `db:"remote_ip"`
+	UserAgent   sql.NullString  `db:"user_agent"`
+	ActorType   string          `db:"actor_type"`
+	ActorID     string          `db:"actor_id"`
+	ActorName   sql.NullString  `db:"actor_name"`
+	ActorMeta   json.RawMessage `db:"actor_meta"`
+	CreatedAt   int64           `db:"created_at"`
+	UpdatedAt   sql.NullInt64   `db:"updated_at"`
 }
 
 type AuditLogBucket struct {
@@ -1057,18 +1057,18 @@ type AuditLogBucket struct {
 }
 
 type AuditLogTarget struct {
-	Pk          uint64         `db:"pk"`
-	WorkspaceID string         `db:"workspace_id"`
-	BucketID    string         `db:"bucket_id"`
-	Bucket      string         `db:"bucket"`
-	AuditLogID  string         `db:"audit_log_id"`
-	DisplayName string         `db:"display_name"`
-	Type        string         `db:"type"`
-	ID          string         `db:"id"`
-	Name        sql.NullString `db:"name"`
-	Meta        []byte         `db:"meta"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+	Pk          uint64          `db:"pk"`
+	WorkspaceID string          `db:"workspace_id"`
+	BucketID    string          `db:"bucket_id"`
+	Bucket      string          `db:"bucket"`
+	AuditLogID  string          `db:"audit_log_id"`
+	DisplayName string          `db:"display_name"`
+	Type        string          `db:"type"`
+	ID          string          `db:"id"`
+	Name        sql.NullString  `db:"name"`
+	Meta        json.RawMessage `db:"meta"`
+	CreatedAt   int64           `db:"created_at"`
+	UpdatedAt   sql.NullInt64   `db:"updated_at"`
 }
 
 type Certificate struct {
@@ -1168,7 +1168,7 @@ type Deployment struct {
 	Command                       json.RawMessage           `db:"command"`
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
-	Healthcheck                   []byte                    `db:"healthcheck"`
+	Healthcheck                   json.RawMessage           `db:"healthcheck"`
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
@@ -1268,15 +1268,15 @@ type HorizontalAutoscalingPolicy struct {
 }
 
 type Identity struct {
-	Pk          uint64        `db:"pk"`
-	ID          string        `db:"id"`
-	ExternalID  string        `db:"external_id"`
-	WorkspaceID string        `db:"workspace_id"`
-	Environment string        `db:"environment"`
-	Meta        []byte        `db:"meta"`
-	Deleted     bool          `db:"deleted"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+	Pk          uint64          `db:"pk"`
+	ID          string          `db:"id"`
+	ExternalID  string          `db:"external_id"`
+	WorkspaceID string          `db:"workspace_id"`
+	Environment string          `db:"environment"`
+	Meta        json.RawMessage `db:"meta"`
+	Deleted     bool            `db:"deleted"`
+	CreatedAt   int64           `db:"created_at"`
+	UpdatedAt   sql.NullInt64   `db:"updated_at"`
 }
 
 type Instance struct {
@@ -1531,7 +1531,7 @@ type Workspace struct {
 	StripeSubscriptionID sql.NullString     `db:"stripe_subscription_id"`
 	BetaFeatures         json.RawMessage    `db:"beta_features"`
 	Features             json.RawMessage    `db:"features"`
-	Subscriptions        []byte             `db:"subscriptions"`
+	Subscriptions        json.RawMessage    `db:"subscriptions"`
 	Enabled              bool               `db:"enabled"`
 	DeleteProtection     sql.NullBool       `db:"delete_protection"`
 	CreatedAtM           int64              `db:"created_at_m"`

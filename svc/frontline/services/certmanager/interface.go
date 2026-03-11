@@ -6,7 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/svc/frontline/db"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
 
 type Service interface {
@@ -15,7 +15,7 @@ type Service interface {
 }
 
 type Config struct {
-	DB db.Database
+	DB db.Querier
 
 	Vault vault.VaultServiceClient
 
