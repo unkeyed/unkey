@@ -1,11 +1,19 @@
 "use client";
 
-import { useProjectData } from "../(overview)/data-provider";
 import { trpc } from "@/lib/trpc/client";
+import {
+  CircleCheck,
+  CircleXMark,
+  CodeBranch,
+  CodeCommit,
+  Github,
+  ShieldAlert,
+  User,
+} from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { CircleCheck, CircleXMark, CodeBranch, CodeCommit, Github, ShieldAlert, User } from "@unkey/icons";
 import { useParams, useRouter } from "next/navigation";
 import { parseAsString, useQueryStates } from "nuqs";
+import { useProjectData } from "../(overview)/data-provider";
 
 const searchParamsParsers = {
   branch: parseAsString.withDefault(""),
@@ -65,13 +73,15 @@ export default function AuthorizeDeploymentPage() {
   }
 
   if (isStaleCommit && newHead) {
-    const newAuthorizeURL = `/${params.workspaceSlug}/projects/${params.projectId}/authorize?${new URLSearchParams({
-      branch,
-      sha: newHead.sha,
-      sender: newHead.author,
-      message: newHead.message,
-      repo,
-    }).toString()}`;
+    const newAuthorizeURL = `/${params.workspaceSlug}/projects/${params.projectId}/authorize?${new URLSearchParams(
+      {
+        branch,
+        sha: newHead.sha,
+        sender: newHead.author,
+        message: newHead.message,
+        repo,
+      },
+    ).toString()}`;
 
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -80,8 +90,8 @@ export default function AuthorizeDeploymentPage() {
             <ShieldAlert iconSize="2xl-thin" className="text-warning-9 mx-auto" />
             <h2 className="text-lg font-semibold text-content">Commit is outdated</h2>
             <p className="text-sm text-content-subtle">
-              The branch <strong className="text-content font-mono">{branch}</strong> has new commits
-              since this link was created. The latest commit is{" "}
+              The branch <strong className="text-content font-mono">{branch}</strong> has new
+              commits since this link was created. The latest commit is{" "}
               <a
                 href={`https://github.com/${repo}/commit/${newHead.sha}`}
                 target="_blank"
@@ -89,7 +99,8 @@ export default function AuthorizeDeploymentPage() {
                 className="font-mono text-accent-11 hover:text-accent-12"
               >
                 {newHead.sha.slice(0, 7)}
-              </a>.
+              </a>
+              .
             </p>
           </div>
           <div className="flex gap-3">
@@ -143,8 +154,8 @@ export default function AuthorizeDeploymentPage() {
           <h1 className="text-xl font-semibold text-content">Authorization Required</h1>
           <p className="text-sm text-content-subtle">
             An external contributor pushed to{" "}
-            <strong className="text-content">{project?.name ?? "this project"}</strong>.
-            A team member must authorize this deployment before it can proceed.
+            <strong className="text-content">{project?.name ?? "this project"}</strong>. A team
+            member must authorize this deployment before it can proceed.
           </p>
         </div>
 
@@ -241,12 +252,16 @@ export default function AuthorizeDeploymentPage() {
   );
 }
 
-function parseNewHead(errorMessage: string | undefined): { sha: string; message: string; author: string } | null {
+function parseNewHead(
+  errorMessage: string | undefined,
+): { sha: string; message: string; author: string } | null {
   if (!errorMessage) {
     return null;
   }
   const shaMatch = errorMessage.match(/current_head_sha=([0-9a-f]{40})/);
-  const messageMatch = errorMessage.match(/current_head_message=(.+?)(?:\s+current_head_author=|$)/);
+  const messageMatch = errorMessage.match(
+    /current_head_message=(.+?)(?:\s+current_head_author=|$)/,
+  );
   const authorMatch = errorMessage.match(/current_head_author=(\S+)/);
   if (!shaMatch) {
     return null;

@@ -1,5 +1,5 @@
-import { createCtrlClient } from "@/lib/ctrl-client";
 import { OpenApiService } from "@/gen/proto/ctrl/v1/openapi_pb";
+import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
