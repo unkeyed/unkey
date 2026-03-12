@@ -363,10 +363,12 @@ func (c *Client) CreateCheckRun(installationID int64, repo string, headSHA strin
 		"head_sha":   headSHA,
 		"status":     status,
 		"conclusion": conclusion,
-		"output": map[string]string{
+	}
+	if title != "" || summary != "" {
+		payload["output"] = map[string]string{
 			"title":   title,
 			"summary": summary,
-		},
+		}
 	}
 	if detailsURL != "" {
 		payload["details_url"] = detailsURL

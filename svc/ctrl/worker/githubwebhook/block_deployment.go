@@ -34,9 +34,12 @@ func (s *Service) blockDeploymentForApproval(
 		return err
 	}
 
-	logURL := fmt.Sprintf("%s/%s/projects/%s/authorize?branch=%s",
+	logURL := fmt.Sprintf("%s/%s/projects/%s/authorize?branch=%s&sha=%s&sender=%s&message=%s",
 		s.dashboardURL, workspace.Slug, project.ID,
 		url.QueryEscape(branch),
+		url.QueryEscape(req.GetAfter()),
+		url.QueryEscape(req.GetSenderLogin()),
+		url.QueryEscape(req.GetCommitMessage()),
 	)
 
 	ghDeploymentID, ghErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
@@ -74,8 +77,8 @@ func (s *Service) blockDeploymentForApproval(
 			"Unkey Deployment Authorization",
 			"completed",
 			"action_required",
-			"Awaiting authorization from a project member",
-			fmt.Sprintf("An external contributor pushed to `%s`. A project member must authorize this deployment.", branch),
+			"", // no output title — clicking the check run redirects directly to details_url
+			"",
 			logURL,
 		)
 		return crErr
