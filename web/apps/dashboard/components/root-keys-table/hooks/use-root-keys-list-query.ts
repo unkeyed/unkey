@@ -11,6 +11,8 @@ import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { RootKeysQueryPayload, RootKeysSortField } from "../schema/query-logs.schema";
 
+const PREFETCH_PAGES_AHEAD = 2;
+
 type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name" | "start" | "permission">;
 
 // Mirrors LIMIT in query.ts — kept here to avoid importing the server-side router into the client bundle
@@ -121,6 +123,8 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     [baseParams, page, pageSize, sortParams],
   );
 
+  const utils = trpc.useUtils();
+
   const { data, isLoading, isFetching } = trpc.settings.rootKeys.query.useQuery(queryParams, {
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
@@ -132,6 +136,20 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
 
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  // Prefetch the next few pages so navigation feels instant.
+  useEffect(() => {
+    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
+      const nextPage = page + i;
+      if (nextPage > totalPages) {
+        break;
+      }
+      utils.settings.rootKeys.query.prefetch(
+        { ...queryParams, page: nextPage },
+        { staleTime: Number.POSITIVE_INFINITY },
+      );
+    }
+  }, [page, totalPages, queryParams, utils.settings.rootKeys.query]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
