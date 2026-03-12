@@ -58,9 +58,9 @@ type Config struct {
 	// See [config.TLS].
 	TLS *config.TLS `toml:"tls"`
 
-	// DatabseURL is the connection string for the MySQL database.
+	// DatabaseURL is the connection string for the MySQL database.
 	// It should be a globally load balanced endpoint and only requires read access.
-	DatabaseURL string `toml:"database_url"`
+	DatabaseURL string `toml:"database_url" config:"required"`
 
 	Observability config.Observability `toml:"observability"`
 
