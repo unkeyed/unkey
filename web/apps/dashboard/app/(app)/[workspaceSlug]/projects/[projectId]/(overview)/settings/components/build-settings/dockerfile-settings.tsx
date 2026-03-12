@@ -1,11 +1,13 @@
+import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileSettings } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
+import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { useRepoTree } from "./use-repo-tree";
 
 const dockerfileSchema = z.object({
   dockerfile: z.string().min(1, "Dockerfile path is required"),
@@ -13,14 +15,16 @@ const dockerfileSchema = z.object({
 
 export const Dockerfile = () => {
   const { settings, variant } = useEnvironmentSettings();
-  const { dockerfile: defaultValue } = settings;
+  const { dockerfile: defaultValue, dockerContext } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
+  const { validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
+    useRepoTree();
 
   const {
-    register,
     handleSubmit,
     formState: { isValid, isSubmitting, errors },
     control,
+    setValue,
   } = useForm<z.infer<typeof dockerfileSchema>>({
     resolver: zodResolver(dockerfileSchema),
     mode: "onChange",
@@ -28,6 +32,16 @@ export const Dockerfile = () => {
   });
 
   const currentDockerfile = useWatch({ control, name: "dockerfile" });
+
+  const validation = validateDockerfilePath(currentDockerfile, dockerContext);
+  const caseMatch =
+    validation === "invalid" ? findDockerfileCaseMatch(currentDockerfile, dockerContext) : null;
+  const detectedDockerfiles = getDockerfilesForContext(dockerContext);
+
+  const options = useMemo(
+    () => detectedDockerfiles.map((path) => ({ label: path, value: path })),
+    [detectedDockerfiles],
+  );
 
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],
@@ -41,6 +55,31 @@ export const Dockerfile = () => {
     });
   };
 
+  const inputVariant = errors.dockerfile
+    ? "error"
+    : validation === "invalid"
+      ? "warning"
+      : "default";
+
+  const warningMessage =
+    validation === "invalid"
+      ? caseMatch
+        ? (
+            <span>
+              Did you mean{" "}
+              <button
+                type="button"
+                className="underline font-medium hover:text-warning-12"
+                onClick={() => setValue("dockerfile", caseMatch, { shouldValidate: true })}
+              >
+                {caseMatch}
+              </button>
+              ?
+            </span>
+          )
+        : "This file was not found in the connected repository"
+      : undefined;
+
   return (
     <FormSettingCard
       icon={<FileSettings className="text-gray-12" iconSize="xl-medium" />}
@@ -51,15 +90,23 @@ export const Dockerfile = () => {
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <FormInput
+      <FormCombobox
         required
         className="w-[480px]"
         label="Dockerfile path"
-        description="Dockerfile location used for docker build. Changes apply on next deploy."
-        placeholder="Dockerfile"
+        description={
+          warningMessage ??
+          "Dockerfile location used for docker build. Changes apply on next deploy."
+        }
+        options={options}
+        value={currentDockerfile}
+        onSelect={(val) => setValue("dockerfile", val, { shouldValidate: true })}
+        creatable
+        searchPlaceholder="Search or type a path..."
+        emptyMessage="No Dockerfiles detected in repository"
+        placeholder={<span className="text-grayA-8">Dockerfile</span>}
         error={errors.dockerfile?.message}
-        variant={errors.dockerfile ? "error" : "default"}
-        {...register("dockerfile")}
+        variant={inputVariant}
       />
     </FormSettingCard>
   );

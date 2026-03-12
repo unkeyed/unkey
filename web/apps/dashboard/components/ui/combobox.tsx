@@ -80,6 +80,8 @@ type ComboboxProps = {
   id?: string;
   /** Whether to close the popover on item select. Set to `false` for multi-select. */
   closeOnSelect?: boolean;
+  /** Allow typing a custom value that isn't in the options list */
+  creatable?: boolean;
   /** Additional accessibility attributes */
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
@@ -101,20 +103,29 @@ export function Combobox({
   className,
   variant = "default",
   id,
+  creatable = false,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
   "aria-required": ariaRequired,
   ...otherProps
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
 
   const selectedOption = React.useMemo(
     () => options.find((option) => option.value === value),
     [options, value],
   );
 
+  const showCreatableOption = React.useMemo(() => {
+    if (!creatable || !search.trim()) {
+      return false;
+    }
+    return !options.some((o) => o.value === search.trim());
+  }, [creatable, search, options]);
+
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={true}>
+    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) { setSearch(""); } }} modal={true}>
       <div className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
           <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
@@ -141,11 +152,13 @@ export function Combobox({
             {...otherProps}
           >
             {selectedOption ? (
-              <div className="py-0 w-full">
+              <div className="py-0 w-full text-left">
                 {selectedOption.selectedLabel || selectedOption.label}
               </div>
+            ) : value && creatable ? (
+              <div className="py-0 w-full text-left">{value}</div>
             ) : (
-              placeholder
+              <div className="text-left w-full">{placeholder}</div>
             )}
             <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />
           </Button>
@@ -172,6 +185,8 @@ export function Combobox({
           }}
         >
           <CommandInput
+            value={search}
+            onValueChange={setSearch}
             onInput={onChange}
             onKeyDown={(e) => {
               // Prevent propagation to Dialog but allow command list navigation
@@ -181,14 +196,28 @@ export function Combobox({
             className="text-xs placeholder:text-xs placeholder:text-accent-8"
           />
           <CommandList className="max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-thin">
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            {!showCreatableOption && <CommandEmpty>{emptyMessage}</CommandEmpty>}
             <CommandGroup className="max-h-[260px] overflow-y-auto">
+              {showCreatableOption && (
+                <CommandItem
+                  value={search.trim()}
+                  onSelect={() => {
+                    onSelect(search.trim());
+                    setSearch("");
+                    setOpen(false);
+                  }}
+                  className="flex items-center py-1 mt-0 text-gray-9"
+                >
+                  Use "{search.trim()}"
+                </CommandItem>
+              )}
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.searchValue || option.value}
                   onSelect={() => {
                     onSelect(option.value);
+                    setSearch("");
                     if (closeOnSelect) {
                       setOpen(false);
                     }

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { useRepoTree } from "./use-repo-tree";
 
 const rootDirectorySchema = z.object({
   dockerContext: z.string(),
@@ -15,12 +16,14 @@ export const RootDirectory = () => {
   const { settings, variant } = useEnvironmentSettings();
   const { dockerContext: defaultValue } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
+  const { validatePath, findCaseInsensitiveMatch } = useRepoTree();
 
   const {
     register,
     handleSubmit,
     formState: { isValid, isSubmitting, errors },
     control,
+    setValue,
   } = useForm<z.infer<typeof rootDirectorySchema>>({
     resolver: zodResolver(rootDirectorySchema),
     mode: "onChange",
@@ -28,6 +31,9 @@ export const RootDirectory = () => {
   });
 
   const currentDockerContext = useWatch({ control, name: "dockerContext" });
+
+  const validation = validatePath(currentDockerContext, "tree");
+  const caseMatch = validation === "invalid" ? findCaseInsensitiveMatch(currentDockerContext, "tree") : null;
 
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],
@@ -40,6 +46,26 @@ export const RootDirectory = () => {
       draft.dockerContext = values.dockerContext;
     });
   };
+
+  const inputVariant = errors.dockerContext ? "error" : validation === "invalid" ? "warning" : "default";
+
+  const warningMessage = validation === "invalid"
+    ? caseMatch
+      ? (
+        <span>
+          Did you mean{" "}
+          <button
+            type="button"
+            className="underline font-medium hover:text-warning-12"
+            onClick={() => setValue("dockerContext", caseMatch, { shouldValidate: true })}
+          >
+            {caseMatch}
+          </button>
+          ?
+        </span>
+      )
+      : "This directory was not found in the connected repository"
+    : undefined;
 
   return (
     <FormSettingCard
@@ -55,10 +81,10 @@ export const RootDirectory = () => {
         label="Root directory"
         required
         className="w-[480px]"
-        description="Build context directory for Docker. Changes apply on next deploy."
+        description={warningMessage ?? "Build context directory for Docker. Changes apply on next deploy."}
         placeholder="."
         error={errors.dockerContext?.message}
-        variant={errors.dockerContext ? "error" : "default"}
+        variant={inputVariant}
         {...register("dockerContext")}
       />
     </FormSettingCard>

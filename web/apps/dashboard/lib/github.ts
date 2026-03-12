@@ -31,6 +31,7 @@ const repositoryTreeSchema = z.object({
       type: z.string(),
     }),
   ),
+  truncated: z.boolean().optional(),
 });
 
 const repositoryBranchesSchema = z.array(
@@ -145,7 +146,7 @@ export async function getRepositoryTree(
   owner: string,
   repo: string,
   branch: string,
-): Promise<Array<{ path: string; type: string }>> {
+): Promise<{ tree: Array<{ path: string; type: string }>; truncated: boolean }> {
   const { token } = await getInstallationAccessToken(installationId);
 
   const data = repositoryTreeSchema.parse(
@@ -155,7 +156,7 @@ export async function getRepositoryTree(
     ),
   );
 
-  return data.tree;
+  return { tree: data.tree, truncated: data.truncated ?? false };
 }
 
 export async function getRepositoryBranches(
