@@ -41,8 +41,8 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	// 2. Spoofed SHA values in URL params being used to deploy arbitrary commits
 	if headCommit.SHA != commitSHA {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("commit %s is no longer the HEAD of branch %s (current HEAD: %s). The branch has been updated since this authorization link was created",
-				commitSHA[:min(7, len(commitSHA))], branch, headCommit.SHA[:min(7, len(headCommit.SHA))]))
+			fmt.Errorf("commit %s is no longer the HEAD of branch %s; current_head_sha=%s current_head_message=%s current_head_author=%s",
+				commitSHA[:min(7, len(commitSHA))], branch, headCommit.SHA, headCommit.Message, headCommit.AuthorHandle))
 	}
 
 	contexts, err := db.Query.ListRepoConnectionDeployContexts(ctx, s.db.RO(), db.ListRepoConnectionDeployContextsParams{
