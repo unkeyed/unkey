@@ -1173,7 +1173,6 @@ type Deployment struct {
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
 	GithubDeploymentID            sql.NullInt64             `db:"github_deployment_id"`
-	AwakeableID                   sql.NullString            `db:"awakeable_id"`
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`

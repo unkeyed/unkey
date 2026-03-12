@@ -508,7 +508,6 @@ CREATE TABLE `deployments` (
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`healthcheck` json,
 	`github_deployment_id` bigint,
-	`awakeable_id` varchar(256),
 	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','awaiting_approval') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
