@@ -97,7 +97,10 @@ export default function AuthorizeDeploymentPage() {
               variant="primary"
               size="xlg"
               className="flex-1"
-              onClick={() => router.push(newAuthorizeURL)}
+              onClick={() => {
+                authorize.reset();
+                router.push(newAuthorizeURL);
+              }}
             >
               View Latest Commit
             </Button>
