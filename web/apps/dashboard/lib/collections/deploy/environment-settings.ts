@@ -47,6 +47,21 @@ const schema = z.object({
   sentinelConfig: sentinelConfigSchema,
 });
 
+let _pendingSaves = 0;
+const _saveSubscribers = new Set<(isSaving: boolean) => void>();
+
+function _notifySaveSubscribers() {
+  const isSaving = _pendingSaves > 0;
+  for (const cb of _saveSubscribers) cb(isSaving);
+}
+
+export function subscribeToSettingsSaving(cb: (isSaving: boolean) => void): () => void {
+  _saveSubscribers.add(cb);
+  return () => {
+    _saveSubscribers.delete(cb);
+  };
+}
+
 /**
  * Environment settings collection - flattened build + runtime settings.
  *
@@ -273,5 +288,12 @@ async function dispatchSettingsMutations(
       }),
     });
   }
-  await allMutations;
+  _pendingSaves++;
+  _notifySaveSubscribers();
+  try {
+    await allMutations;
+  } finally {
+    _pendingSaves--;
+    _notifySaveSubscribers();
+  }
 }

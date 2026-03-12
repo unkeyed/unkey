@@ -3,10 +3,11 @@ import { collection } from "@/lib/collections";
 import {
   type EnvironmentSettings,
   buildSettingsMutations,
+  subscribeToSettingsSaving,
 } from "@/lib/collections/deploy/environment-settings";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { type PropsWithChildren, useEffect, useMemo, useRef } from "react";
+import { type PropsWithChildren, useEffect, useMemo, useRef, useState } from "react";
 import { useProjectData } from "../../[projectId]/(overview)/data-provider";
 import { EnvironmentContext } from "../../[projectId]/(overview)/settings/environment-provider";
 
@@ -48,6 +49,14 @@ export const OnboardingEnvironmentSettingsProvider = ({
     { enabled: Boolean(prodEnvId) },
   );
 
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    // Returns the unsubscribe function, which React calls on unmount to remove
+    // the subscriber from _saveSubscribers and prevent stale callbacks.
+    return subscribeToSettingsSaving(setIsSaving);
+  }, []);
+
   useInitializeSettings(settings, availableRegions, isActive);
   useSyncSettingsToOtherEnvironments(settings, otherEnvIds);
 
@@ -56,7 +65,7 @@ export const OnboardingEnvironmentSettingsProvider = ({
   }
 
   return (
-    <EnvironmentContext.Provider value={{ settings, variant: "onboarding" }}>
+    <EnvironmentContext.Provider value={{ settings, variant: "onboarding", isSaving }}>
       {children}
     </EnvironmentContext.Provider>
   );
