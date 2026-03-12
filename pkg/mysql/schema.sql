@@ -293,6 +293,8 @@ CREATE TABLE `quota` (
 	`team` boolean NOT NULL DEFAULT false,
 	`ratelimit_api_limit` int unsigned,
 	`ratelimit_api_duration` int unsigned,
+	`allocated_cpu_millicores_total` int unsigned NOT NULL DEFAULT 10240,
+	`allocated_memory_mib_total` int unsigned NOT NULL DEFAULT 20480,
 	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
 );
@@ -713,7 +715,7 @@ CREATE TABLE `cilium_network_policies` (
 	`updated_at` bigint,
 	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
-	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region_id`),
+	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region_id`,`k8s_name`),
 	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
 );
 

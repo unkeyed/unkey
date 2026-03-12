@@ -31,7 +31,7 @@ export const ciliumNetworkPolicies = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    uniqueIndex("one_deployment_per_region").on(table.deploymentId, table.regionId, table.k8sName),
+    uniqueIndex("one_deployment_per_region").on(table.deploymentId, table.regionId),
     uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
   ],
 );
