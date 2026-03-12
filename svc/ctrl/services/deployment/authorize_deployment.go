@@ -100,22 +100,17 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		)
 	}
 
-	// Mark the PR check run as green now that the deployment is authorized
-	checkRuns, listErr := s.github.ListCheckRunsForRef(repoConn.InstallationID, repoConn.RepositoryFullName, headCommit.SHA, "Unkey Deploy Authorization")
-	if listErr == nil {
-		for _, cr := range checkRuns {
-			if updateErr := s.github.UpdateCheckRun(
-				repoConn.InstallationID,
-				repoConn.RepositoryFullName,
-				cr.ID,
-				"completed",
-				"success",
-				"Deployment authorized",
-				"Deployment authorized and started by a project member.",
-			); updateErr != nil {
-				logger.Error("failed to update check run to success", "check_run_id", cr.ID, "error", updateErr)
-			}
-		}
+	// Update the commit status to success now that the deployment is authorized
+	if statusErr := s.github.CreateCommitStatus(
+		repoConn.InstallationID,
+		repoConn.RepositoryFullName,
+		headCommit.SHA,
+		"success",
+		"",
+		"Deployment authorized and started",
+		"Unkey Deploy Authorization",
+	); statusErr != nil {
+		logger.Error("failed to update commit status to success", "error", statusErr)
 	}
 
 	return connect.NewResponse(&ctrlv1.AuthorizeDeploymentResponse{}), nil

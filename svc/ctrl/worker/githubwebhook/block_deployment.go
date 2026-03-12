@@ -11,9 +11,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// blockDeploymentForApproval creates a GitHub Check Run to signal that
-// the push requires authorization from a project member. Clicking the
-// check run in the PR redirects directly to the dashboard authorize page.
+// blockDeploymentForApproval creates a GitHub commit status to signal that
+// the push requires authorization from a project member. Clicking "Details"
+// in the PR goes directly to the dashboard authorize page.
 func (s *Service) blockDeploymentForApproval(
 	ctx restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
@@ -39,19 +39,16 @@ func (s *Service) blockDeploymentForApproval(
 	)
 
 	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-		_, crErr := s.github.CreateCheckRun(
+		return s.github.CreateCommitStatus(
 			repo.InstallationID,
 			req.GetRepositoryFullName(),
 			req.GetAfter(),
-			"Unkey Deploy Authorization",
-			"completed",
-			"action_required",
-			"", // no output — clicking the check run redirects directly to details_url
-			"",
+			"failure",
 			logURL,
+			"Awaiting authorization from a project member",
+			"Unkey Deploy Authorization",
 		)
-		return crErr
-	}, restate.WithName("create check run for authorization"), restate.WithMaxRetryDuration(30*time.Second))
+	}, restate.WithName("create commit status for authorization"), restate.WithMaxRetryDuration(30*time.Second))
 
 	logger.Info("deployment blocked for authorization",
 		"project_id", project.ID,

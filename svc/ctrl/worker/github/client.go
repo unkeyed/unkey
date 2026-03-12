@@ -47,21 +47,6 @@ type ghDeploymentResponse struct {
 	ID int64 `json:"id"`
 }
 
-// ghCheckRunResponse is the subset of GitHub's check-run creation response.
-type ghCheckRunResponse struct {
-	ID int64 `json:"id"`
-}
-
-// ghCheckRun is a single check run entry from the list endpoint.
-type ghCheckRun struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-}
-
-// ghCheckRunsResponse is the response from GitHub's list check-runs endpoint.
-type ghCheckRunsResponse struct {
-	CheckRuns []ghCheckRun `json:"check_runs"`
-}
 
 // ClientConfig holds configuration for creating a [Client] instance.
 type ClientConfig struct {
@@ -348,81 +333,23 @@ func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deplo
 	return doRequest(c.httpClient, http.MethodPost, apiURL, headers, payload, http.StatusCreated)
 }
 
-// CreateCheckRun creates a GitHub Check Run on a commit SHA. The check run
-// appears in the PR checks list. Returns the check run ID.
-func (c *Client) CreateCheckRun(installationID int64, repo string, headSHA string, name string, status string, conclusion string, title string, summary string, detailsURL string) (int64, error) {
-	headers, err := c.ghHeaders(installationID)
-	if err != nil {
-		return 0, err
-	}
-
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/check-runs", repo)
-
-	payload := map[string]interface{}{
-		"name":       name,
-		"head_sha":   headSHA,
-		"status":     status,
-		"conclusion": conclusion,
-	}
-	if title != "" || summary != "" {
-		payload["output"] = map[string]string{
-			"title":   title,
-			"summary": summary,
-		}
-	}
-	if detailsURL != "" {
-		payload["details_url"] = detailsURL
-	}
-
-	result, err := httpclient.Request[ghCheckRunResponse](c.httpClient, http.MethodPost, apiURL, headers, payload, http.StatusCreated)
-	if err != nil {
-		return 0, err
-	}
-
-	return result.ID, nil
-}
-
-// UpdateCheckRun updates an existing GitHub Check Run's status and conclusion.
-func (c *Client) UpdateCheckRun(installationID int64, repo string, checkRunID int64, status string, conclusion string, title string, summary string) error {
+// CreateCommitStatus creates a commit status on a SHA using the Status API.
+// Clicking "Details" in the PR goes directly to targetURL (unlike Check Runs
+// which show an intermediate GitHub page).
+func (c *Client) CreateCommitStatus(installationID int64, repo string, sha string, state string, targetURL string, description string, context string) error {
 	headers, err := c.ghHeaders(installationID)
 	if err != nil {
 		return err
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/check-runs/%d", repo, checkRunID)
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/statuses/%s", repo, url.PathEscape(sha))
 
-	return httpclient.Do(c.httpClient, http.MethodPatch, apiURL, headers, map[string]interface{}{
-		"status":     status,
-		"conclusion": conclusion,
-		"output": map[string]string{
-			"title":   title,
-			"summary": summary,
-		},
-	}, http.StatusOK)
-}
-
-// ListCheckRunsForRef lists check runs for a commit ref, optionally filtered by name.
-func (c *Client) ListCheckRunsForRef(installationID int64, repo string, ref string, checkName string) ([]CheckRun, error) {
-	headers, err := c.ghHeaders(installationID)
-	if err != nil {
-		return nil, err
-	}
-
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s/check-runs", repo, url.PathEscape(ref))
-	if checkName != "" {
-		apiURL += "?check_name=" + url.QueryEscape(checkName)
-	}
-
-	result, err := httpclient.Request[ghCheckRunsResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
-	if err != nil {
-		return nil, err
-	}
-
-	runs := make([]CheckRun, len(result.CheckRuns))
-	for i, r := range result.CheckRuns {
-		runs[i] = CheckRun{ID: r.ID, Name: r.Name}
-	}
-	return runs, nil
+	return httpclient.Do(c.httpClient, http.MethodPost, apiURL, headers, map[string]string{
+		"state":       state,
+		"target_url":  targetURL,
+		"description": description,
+		"context":     context,
+	}, http.StatusCreated)
 }
 
 // IsCollaborator checks whether a GitHub user is a collaborator on a repository.
