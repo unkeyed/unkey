@@ -146,15 +146,15 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 	require.NoError(h.t, err)
 
 	return db.Project{
-		ID:                   project.ID,
-		WorkspaceID:          project.WorkspaceID,
-		Name:                 project.Name,
-		Slug:                 project.Slug,
+		ID:               project.ID,
+		WorkspaceID:      project.WorkspaceID,
+		Name:             project.Name,
+		Slug:             project.Slug,
 		DeleteProtection: project.DeleteProtection,
 		CreatedAt:        project.CreatedAt,
-		UpdatedAt:            project.UpdatedAt,
-		Pk:                   0,
-		DepotProjectID:       sql.NullString{String: "", Valid: false},
+		UpdatedAt:        project.UpdatedAt,
+		Pk:               0,
+		DepotProjectID:   sql.NullString{String: "", Valid: false},
 	}
 }
 

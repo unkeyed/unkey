@@ -47,7 +47,6 @@ type ghDeploymentResponse struct {
 	ID int64 `json:"id"`
 }
 
-
 // ClientConfig holds configuration for creating a [Client] instance.
 type ClientConfig struct {
 	// AppID is the numeric ID assigned to the GitHub App during registration.

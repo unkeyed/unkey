@@ -17,9 +17,10 @@ import (
 func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[ctrlv1.AuthorizeDeploymentRequest]) (*connect.Response[ctrlv1.AuthorizeDeploymentResponse], error) {
 	projectID := req.Msg.GetProjectId()
 	branch := req.Msg.GetBranch()
+	commitSHA := req.Msg.GetCommitSha()
 
-	if projectID == "" || branch == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("project_id and branch are required"))
+	if projectID == "" || branch == "" || commitSHA == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("project_id, branch, and commit_sha are required"))
 	}
 
 	repoConn, err := db.Query.FindGithubRepoConnectionByProjectId(ctx, s.db.RO(), projectID)
@@ -33,6 +34,15 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	headCommit, err := s.github.GetBranchHeadCommit(repoConn.InstallationID, repoConn.RepositoryFullName, branch)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch branch HEAD from GitHub: %w", err))
+	}
+
+	// Verify the commit SHA matches the current branch HEAD. This prevents:
+	// 1. Deploying a stale commit when the branch has moved (new push after the blocked one)
+	// 2. Spoofed SHA values in URL params being used to deploy arbitrary commits
+	if headCommit.SHA != commitSHA {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("commit %s is no longer the HEAD of branch %s (current HEAD: %s). The branch has been updated since this authorization link was created",
+				commitSHA[:min(7, len(commitSHA))], branch, headCommit.SHA[:min(7, len(headCommit.SHA))]))
 	}
 
 	contexts, err := db.Query.ListRepoConnectionDeployContexts(ctx, s.db.RO(), db.ListRepoConnectionDeployContextsParams{

@@ -1058,9 +1058,12 @@ func (*PromoteResponse) Descriptor() ([]byte, []int) {
 }
 
 type AuthorizeDeploymentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Branch        string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Branch    string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
+	// The exact commit SHA to authorize. The backend verifies this matches
+	// the current branch HEAD to prevent deploying stale or spoofed commits.
+	CommitSha     string `protobuf:"bytes,3,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1105,6 +1108,13 @@ func (x *AuthorizeDeploymentRequest) GetProjectId() string {
 func (x *AuthorizeDeploymentRequest) GetBranch() string {
 	if x != nil {
 		return x.Branch
+	}
+	return ""
+}
+
+func (x *AuthorizeDeploymentRequest) GetCommitSha() string {
+	if x != nil {
+		return x.CommitSha
 	}
 	return ""
 }
@@ -1235,11 +1245,13 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x10RollbackResponse\"B\n" +
 	"\x0ePromoteRequest\x120\n" +
 	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
-	"\x0fPromoteResponse\"S\n" +
+	"\x0fPromoteResponse\"r\n" +
 	"\x1aAuthorizeDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x16\n" +
-	"\x06branch\x18\x02 \x01(\tR\x06branch\"\x1d\n" +
+	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x1d\n" +
+	"\n" +
+	"commit_sha\x18\x03 \x01(\tR\tcommitSha\"\x1d\n" +
 	"\x1bAuthorizeDeploymentResponse*\xb1\x02\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +

@@ -151,6 +151,9 @@ message PromoteResponse {}
 message AuthorizeDeploymentRequest {
   string project_id = 1;
   string branch = 2;
+  // The exact commit SHA to authorize. The backend verifies this matches
+  // the current branch HEAD to prevent deploying stale or spoofed commits.
+  string commit_sha = 3;
 }
 
 message AuthorizeDeploymentResponse {}
