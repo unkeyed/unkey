@@ -1,7 +1,7 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { trpc } from "@/lib/trpc/client";
 import {
   CircleXMark,
   CodeBranch,
