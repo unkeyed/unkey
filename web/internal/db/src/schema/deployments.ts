@@ -83,9 +83,6 @@ export const deployments = mysqlTable(
     // GitHub Deployment ID for status reporting
     githubDeploymentId: bigint("github_deployment_id", { mode: "number" }),
 
-    // Restate awakeable ID for deployment approval flow
-    awakeableId: varchar("awakeable_id", { length: 256 }),
-
     // Deployment status
     status: mysqlEnum("status", [
       "pending",

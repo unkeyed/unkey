@@ -27,7 +27,7 @@ func (s *Service) blockDeploymentForApproval(
 		return err
 	}
 
-	logURL := fmt.Sprintf("%s/%s/projects/%s/authorize?deploymentId=%s",
+	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s",
 		s.dashboardURL, workspace.Slug, project.ID, deploymentID,
 	)
 
