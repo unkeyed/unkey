@@ -156,6 +156,21 @@ export const createProject = workspaceProcedure
             updatedAt: Date.now(),
           },
         ]);
+
+        const regions = await tx.query.regions.findMany({ columns: { id: true } });
+        await tx.insert(schema.appRegionalSettings).values(
+          [prodEnvId, previewEnvId].flatMap((environmentId) =>
+            regions.map((r) => ({
+              workspaceId: ctx.workspace.id,
+              appId,
+              environmentId,
+              regionId: r.id,
+              replicas: 1,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            })),
+          ),
+        );
       });
 
       return {

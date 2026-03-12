@@ -3,38 +3,18 @@
 import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { Button, toast, useStepWizard } from "@unkey/ui";
-import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
-import { DeploymentSettings } from "../../[projectId]/(overview)/settings/deployment-settings";
-import { useEnvironmentSettings } from "../../[projectId]/(overview)/settings/environment-provider";
-import { OnboardingEnvironmentSettingsProvider } from "./onboarding-environment-provider";
+import { DeploymentSettings } from "../../../[projectId]/(overview)/settings/deployment-settings";
+import { useEnvironmentSettings } from "../../../[projectId]/(overview)/settings/environment-provider";
 
-type ConfigureDeploymentStepProps = {
+type ConfigureDeploymentContentProps = {
   projectId: string;
   onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export const ConfigureDeploymentStep = ({
+export const ConfigureDeploymentContent = ({
   projectId,
   onDeploymentCreated,
-}: ConfigureDeploymentStepProps) => {
-  const { activeStepId } = useStepWizard();
-
-  return (
-    <ProjectDataProvider projectId={projectId}>
-      <OnboardingEnvironmentSettingsProvider isActive={activeStepId === "configure-deployment"}>
-        <ConfigureDeploymentContent
-          projectId={projectId}
-          onDeploymentCreated={onDeploymentCreated}
-        />
-      </OnboardingEnvironmentSettingsProvider>
-    </ProjectDataProvider>
-  );
-};
-
-const ConfigureDeploymentContent = ({
-  projectId,
-  onDeploymentCreated,
-}: ConfigureDeploymentStepProps) => {
+}: ConfigureDeploymentContentProps) => {
   const { next } = useStepWizard();
   const { isSaving } = useEnvironmentSettings();
 
