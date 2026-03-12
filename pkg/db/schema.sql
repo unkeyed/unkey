@@ -293,6 +293,8 @@ CREATE TABLE `quota` (
 	`team` boolean NOT NULL DEFAULT false,
 	`ratelimit_api_limit` int unsigned,
 	`ratelimit_api_duration` int unsigned,
+	`allocated_cpu_millicores_total` int unsigned NOT NULL DEFAULT 10240,
+	`allocated_memory_mib_total` int unsigned NOT NULL DEFAULT 20480,
 	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
 );
