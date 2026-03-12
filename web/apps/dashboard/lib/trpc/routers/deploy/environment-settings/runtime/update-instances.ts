@@ -7,7 +7,13 @@ export const updateInstances = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      replicasPerRegion: z.number().min(1).max(10),
+      replicasPerRegion: z
+        .number()
+        .min(1)
+        .max(
+          4,
+          "Instances are limited to 4 per region during beta. Please contact support@unkey.com if you need more.",
+        ),
     }),
   )
   .mutation(async ({ ctx, input }) => {

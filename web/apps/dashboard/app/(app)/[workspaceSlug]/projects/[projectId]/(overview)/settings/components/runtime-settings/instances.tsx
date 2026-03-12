@@ -39,9 +39,9 @@ const instancesConfig: ResourceSliderConfig = {
   title: "Instances",
   description: "Number of instances running in each region",
   settingDescription:
-    "More instances improve availability and handle higher traffic. Changes apply on next deploy.",
+    "Changes apply on next deploy. During beta, instances are limited to 4 per region. Please contact support@unkey.com if you need more.",
   colorVar: "featureA",
-  slider: { kind: "direct", min: 1, max: 10, step: 1 },
+  slider: { kind: "direct", min: 1, max: 4, step: 1 },
   formatValue: formatInstanceParts,
   readValue: (s) => s.regions[0]?.replicas ?? 1,
   writeValue: (draft, value) => {
