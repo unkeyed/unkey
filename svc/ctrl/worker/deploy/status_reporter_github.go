@@ -54,6 +54,7 @@ func newGithubStatusReporter(cfg githubStatusReporterConfig) *githubStatusReport
 		logURL:           cfg.LogURL,
 		deploymentID:     cfg.DeploymentID,
 		isProduction:     cfg.IsProduction,
+		ghDeploymentID:   0,
 	}
 }
 
