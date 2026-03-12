@@ -149,11 +149,11 @@ func (d *database) RO() *Replica {
 // This should be called when the application is shutting down.
 func (d *database) Close() error {
 	// Close the write replica connection
-	writeCloseErr := d.writeReplica.db.Close()
+	writeCloseErr := d.writeReplica.Close()
 
 	// Only close the read replica if it's a separate connection
 	if d.readReplica != nil {
-		readCloseErr := d.readReplica.db.Close()
+		readCloseErr := d.readReplica.Close()
 		if readCloseErr != nil {
 			return fault.Wrap(readCloseErr)
 		}

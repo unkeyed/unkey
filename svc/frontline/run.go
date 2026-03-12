@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -26,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
 	"github.com/unkeyed/unkey/svc/frontline/services/caches"
@@ -129,14 +129,11 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Warn("Vault not configured, dynamic TLS certificate decryption will be unavailable")
 	}
 
-	db, err := db.New(db.Config{
-		PrimaryDSN:  cfg.Database.Primary,
-		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-	})
+	database, databaseClose, err := db.New(cfg.DatabaseURL)
 	if err != nil {
-		return fmt.Errorf("unable to create partitioned db: %w", err)
+		return fmt.Errorf("unable to connect to database: %w", err)
 	}
-	r.Defer(db.Close)
+	r.Defer(databaseClose)
 
 	// Initialize gossip-based cache invalidation
 	var broadcaster clustering.Broadcaster
@@ -201,7 +198,7 @@ func Run(ctx context.Context, cfg Config) error {
 	var certManager certmanager.Service
 	if vaultClient != nil {
 		certManager = certmanager.New(certmanager.Config{
-			DB:                  db,
+			DB:                  database,
 			TLSCertificateCache: cache.TLSCertificates,
 			Vault:               vaultClient,
 		})
@@ -214,7 +211,7 @@ func Run(ctx context.Context, cfg Config) error {
 	routerSvc, err := router.New(router.Config{
 		Platform:               cfg.Platform,
 		Region:                 cfg.Region,
-		DB:                     db,
+		DB:                     database,
 		FrontlineRouteCache:    cache.FrontlineRoutes,
 		SentinelsByEnvironment: cache.SentinelsByEnvironment,
 	})
