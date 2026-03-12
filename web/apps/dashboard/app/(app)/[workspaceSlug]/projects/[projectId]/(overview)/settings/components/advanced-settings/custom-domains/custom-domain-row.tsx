@@ -6,26 +6,12 @@ import {
   retryDomainVerification,
 } from "@/lib/collections/deploy/custom-domains";
 import { cn } from "@/lib/utils";
-import {
-  CircleCheck,
-  CircleInfo,
-  Clock,
-  Refresh3,
-  Trash,
-  TriangleWarning,
-  XMark,
-} from "@unkey/icons";
-import {
-  Badge,
-  Button,
-  ConfirmPopover,
-  CopyButton,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@unkey/ui";
+import { CircleCheck, CircleInfo, Clock, Refresh3, TriangleWarning } from "@unkey/icons";
+import { Badge, Button, ConfirmPopover, Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { useProjectData } from "../../../../data-provider";
+import { RemoveButton } from "../../shared/remove-button";
+import { DnsRecordTable } from "./dns-record-table";
 
 type CustomDomainRowProps = {
   domain: CustomDomain;
@@ -39,22 +25,22 @@ const statusConfig: Record<
   pending: {
     label: "Pending",
     color: "primary",
-    icon: <Clock className="size-3!" />,
+    icon: <Clock className="size-3!" iconSize="sm-regular" />,
   },
   verifying: {
     label: "Verifying",
     color: "warning",
-    icon: <Refresh3 className="size-3! animate-spin" />,
+    icon: <Refresh3 className="size-3! animate-spin" iconSize="sm-regular" />,
   },
   verified: {
     label: "Verified",
     color: "success",
-    icon: <CircleCheck className="size-3!" />,
+    icon: <CircleCheck className="size-3!" iconSize="sm-regular" />,
   },
   failed: {
     label: "Failed",
     color: "error",
-    icon: <TriangleWarning className="size-3!" />,
+    icon: <TriangleWarning className="size-3!" iconSize="sm-regular" />,
   },
 };
 
@@ -80,7 +66,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
   };
 
   return (
-    <div className="border-b border-gray-4 last:border-b-0 hover:bg-transparent group">
+    <div className="border-b border-gray-4 last:border-b-0 group">
       <div className="flex items-center justify-between px-4 py-3 h-12">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <a
@@ -92,9 +78,9 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
             {domain.domain}
           </a>
           {environmentSlug && (
-            <span className="text-[11px] text-gray-11 bg-gray-3 px-1.5 py-0.5 rounded font-mono shrink-0">
+            <Badge variant="secondary" size="sm" font="mono" className="shrink-0">
               {environmentSlug}
-            </span>
+            </Badge>
           )}
         </div>
 
@@ -129,16 +115,12 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
               <TooltipContent className="max-w-xs">{domain.verificationError}</TooltipContent>
             </Tooltip>
           )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="w-7 px-0 justify-center text-error-11 hover:text-error-11 transition-opacity duration-150"
+
+          <RemoveButton
             onClick={() => setIsConfirmOpen(true)}
             ref={deleteButtonRef}
-          >
-            <Trash iconSize="sm-regular" />
-          </Button>
+            className="size-5.5"
+          />
 
           {deleteButtonRef.current && (
             <ConfirmPopover
@@ -165,113 +147,5 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
         />
       )}
     </div>
-  );
-}
-
-type DnsRecordTableProps = {
-  domain: string;
-  targetCname: string;
-  verificationToken: string;
-  ownershipVerified: boolean;
-  cnameVerified: boolean;
-};
-
-function DnsRecordTable({
-  domain,
-  targetCname,
-  verificationToken,
-  ownershipVerified,
-  cnameVerified,
-}: DnsRecordTableProps) {
-  const txtRecordName = `_unkey.${domain}`;
-  const txtRecordValue = `unkey-domain-verify=${verificationToken}`;
-
-  return (
-    <div className="px-4 pb-3 space-y-3">
-      <p className="text-xs text-gray-9">Add both DNS records below at your domain provider.</p>
-
-      {/* TXT Record (Ownership Verification) */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-gray-11 font-medium">TXT Record (ownership)</p>
-          <StatusIndicator
-            verified={ownershipVerified}
-            label={ownershipVerified ? "Verified" : "Pending"}
-          />
-        </div>
-        <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
-          <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-grayA-3 px-3 py-1.5 text-gray-9 font-medium">
-            <span>Type</span>
-            <span>Name</span>
-            <span>Value</span>
-            <span>Status</span>
-          </div>
-          <div className="grid grid-cols-[80px_1fr_1fr_60px] px-3 py-2 items-center">
-            <span className="text-gray-11 font-medium">TXT</span>
-            <span className="flex items-center gap-1.5 min-w-0">
-              <code className="text-content font-mono truncate">{txtRecordName}</code>
-              <CopyButton value={txtRecordName} variant="ghost" className="size-5 shrink-0" />
-            </span>
-            <span className="flex items-center gap-1.5 min-w-0">
-              <code className="text-content font-mono truncate">{txtRecordValue}</code>
-              <CopyButton value={txtRecordValue} variant="ghost" className="size-5 shrink-0" />
-            </span>
-            <span className="flex justify-center">
-              {ownershipVerified ? (
-                <CircleCheck className="size-4! text-success-9" />
-              ) : (
-                <XMark className="size-4! text-gray-7" />
-              )}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* CNAME Record (Routing) */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-gray-11 font-medium">CNAME Record (routing)</p>
-          <StatusIndicator
-            verified={cnameVerified}
-            label={cnameVerified ? "Verified" : "Pending"}
-          />
-        </div>
-        <div className="border border-gray-4 rounded-lg overflow-hidden text-xs">
-          <div className="grid grid-cols-[80px_1fr_1fr_60px] bg-grayA-3 px-3 py-1.5 text-gray-9 font-medium">
-            <span>Type</span>
-            <span>Name</span>
-            <span>Value</span>
-            <span>Status</span>
-          </div>
-          <div className="grid grid-cols-[80px_1fr_1fr_60px] px-3 py-2 items-center">
-            <span className="text-gray-11 font-medium">CNAME</span>
-            <span className="flex items-center gap-1.5 min-w-0">
-              <code className="text-content font-mono truncate">{domain}</code>
-              <CopyButton value={domain} variant="ghost" className="size-5 shrink-0" />
-            </span>
-            <span className="flex items-center gap-1.5 min-w-0">
-              <code className="text-content font-mono truncate">{targetCname}</code>
-              <CopyButton value={targetCname} variant="ghost" className="size-5 shrink-0" />
-            </span>
-            <span className="flex justify-center">
-              {cnameVerified ? (
-                <CircleCheck className="size-4! text-success-9" />
-              ) : (
-                <XMark className="size-4! text-gray-7" />
-              )}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatusIndicator({ verified, label }: { verified: boolean; label: string }) {
-  return (
-    <Badge variant={verified ? "success" : "secondary"} className="gap-1 text-xs">
-      {verified ? <CircleCheck className="size-3!" /> : <Clock className="size-3!" />}
-      {label}
-    </Badge>
   );
 }

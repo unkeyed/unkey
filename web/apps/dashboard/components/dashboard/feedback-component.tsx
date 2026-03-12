@@ -130,7 +130,7 @@ export const Feedback: React.FC = () => {
             control={control}
             name="issueType"
             render={({ field }) => (
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <div className="text-gray-11 text-[13px] flex items-center">Area</div>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger className="h-9">
@@ -159,7 +159,7 @@ export const Feedback: React.FC = () => {
             control={control}
             name="severity"
             render={({ field }) => (
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <div className="text-gray-11 text-[13px] flex items-center">Severity</div>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger className="h-9">

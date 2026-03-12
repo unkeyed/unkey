@@ -408,6 +408,38 @@ func (w *Workflow) createTopologies(
 		)
 	}
 
+	// --- Quota check ---
+	quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
+		return db.Query.FindQuotaByWorkspaceID(runCtx, w.db.RW(), deployment.WorkspaceID)
+	}, restate.WithName("find workspace quota"))
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
+	}
+
+	allocatedResources, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.SumAllocatedResourcesByWorkspaceIDRow, error) {
+		return db.Query.SumAllocatedResourcesByWorkspaceID(runCtx, w.db.RW(), workspace.ID)
+	}, restate.WithName("sum allocated resources by workspace"))
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
+	}
+
+	for _, rs := range regionalSettings {
+		allocatedResources.TotalCpuMillicores += int64(deployment.CpuMillicores * rs.Replicas)
+		allocatedResources.TotalMemoryMib += int64(deployment.MemoryMib * rs.Replicas)
+	}
+	if allocatedResources.TotalCpuMillicores > int64(quota.AllocatedCpuMillicoresTotal) {
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("CPU quota exceeded: consumed %d, quota %d", allocatedResources.TotalCpuMillicores, quota.AllocatedCpuMillicoresTotal)),
+			fault.Public("CPU quota exceeded. Please reduce the requested CPUs or free up resources in your workspace."),
+		)
+	}
+	if allocatedResources.TotalMemoryMib > int64(quota.AllocatedMemoryMibTotal) {
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("Memory quota exceeded: consumed %d, quota %d", allocatedResources.TotalMemoryMib, quota.AllocatedMemoryMibTotal)),
+			fault.Public("Memory quota exceeded. Please reduce the requested memory or free up resources in your workspace."),
+		)
+	}
+
 	topologies := make([]db.InsertDeploymentTopologyParams, 0, len(regionalSettings))
 
 	for _, rs := range regionalSettings {

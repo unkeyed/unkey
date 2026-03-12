@@ -15,7 +15,7 @@ export const DeploymentSection = ({
   isCurrent,
   showSignal,
 }: DeploymentSectionProps) => (
-  <div className="space-y-2">
+  <div className="flex flex-col gap-2">
     <div className="flex items-center gap-2">
       <h3 className="text-[13px] text-grayA-11">{title}</h3>
       <CircleInfo iconSize="sm-regular" className="text-gray-9" />

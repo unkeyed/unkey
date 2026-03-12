@@ -86,7 +86,7 @@ export const RollbackDialog = ({
         </Button>
       }
     >
-      <div className="space-y-9">
+      <div className="flex flex-col gap-9">
         <DeploymentSection
           title="Current Deployment"
           deployment={currentDeployment}

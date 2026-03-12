@@ -22,7 +22,8 @@ const (
 
 // DeployOptions contains all configuration for deployment
 type DeployOptions struct {
-	ProjectID   string
+	Project     string
+	App         string
 	KeyspaceID  string
 	DockerImage string
 	Branch      string
@@ -34,14 +35,15 @@ type DeployOptions struct {
 
 var DeployFlags = []cli.Flag{
 	// Required flags
-	cli.String("project-id", "Project ID", cli.EnvVar("UNKEY_PROJECT_ID")),
+	cli.String("project", "Project slug", cli.Required(), cli.EnvVar("UNKEY_PROJECT")),
+	cli.String("app", "App slug within the project", cli.EnvVar("UNKEY_APP"), cli.Default("default")),
 	// Optional flags with defaults
 	cli.String("keyspace-id", "Keyspace ID for API key authentication", cli.EnvVar("UNKEY_KEYSPACE_ID")),
 	cli.String("branch", "Git branch", cli.Default(DefaultBranch)),
 	cli.String("commit", "Git commit SHA"),
 	cli.String("env", "Environment slug to deploy to", cli.Default(DefaultEnvironment)),
 	// Authentication flag
-	cli.String("root-key", "Root key for authentication", cli.EnvVar("UNKEY_ROOT_KEY")),
+	cli.String("root-key", "Root key for authentication", cli.Required(), cli.EnvVar("UNKEY_ROOT_KEY")),
 	// API configuration
 	cli.String("api-base-url", "API base URL for local testing", cli.EnvVar("UNKEY_API_BASE_URL")),
 }
@@ -69,8 +71,8 @@ DEPLOYMENT PROCESS:
 2. Monitor deployment status until active
 
 EXAMPLES:
-unkey deploy ghcr.io/user/app:v1.0.0 --project-id=proj_123
-unkey deploy myregistry.io/app:latest --project-id=proj_123 --env=production`,
+unkey deploy ghcr.io/user/app:v1.0.0 --project=my-project
+unkey deploy myregistry.io/app:latest --project=my-project --app=api --env=production`,
 	Flags:  DeployFlags,
 	Action: DeployAction,
 }
@@ -82,13 +84,9 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	}
 	dockerImage := args[0]
 
-	projectID := cmd.String("project-id")
-	if projectID == "" {
-		return fmt.Errorf("project ID is required (use --project-id flag or UNKEY_PROJECT_ID env var)")
-	}
-
 	opts := DeployOptions{
-		ProjectID:   projectID,
+		Project:     cmd.String("project"),
+		App:         cmd.String("app"),
 		KeyspaceID:  cmd.String("keyspace-id"),
 		DockerImage: dockerImage,
 		Branch:      cmd.String("branch"),
@@ -125,8 +123,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	deploymentID, err := controlPlane.CreateDeployment(ctx, opts.DockerImage)
 	if err != nil {
 		terminal.StopSpinner(errors.FormatError(err), false)
-		// Don't return error it will just double print the error without formatting
-		return nil
+		return cli.Exit("", 1)
 	}
 	terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
 

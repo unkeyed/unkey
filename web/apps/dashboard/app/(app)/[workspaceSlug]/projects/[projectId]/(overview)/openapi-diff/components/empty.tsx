@@ -19,9 +19,9 @@ export const DiffViewerEmpty = () => (
         </div>
       </div>
       {/* Content */}
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <h3 className="text-gray-12 font-medium text-sm">No deployments selected</h3>
-        <p className="text-gray-9 text-xs max-w-[280px] leading-relaxed">
+        <p className="text-gray-9 text-xs max-w-70 leading-relaxed">
           Select two deployments above to compare their OpenAPI specifications and see what changed
           between versions.
         </p>

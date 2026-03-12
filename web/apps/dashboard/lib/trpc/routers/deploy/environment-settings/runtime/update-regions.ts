@@ -3,7 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { appRegionalSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
-import { resolveProjectEnvironmentIds } from "../utils";
 
 export const updateRegions = workspaceProcedure
   .input(
@@ -13,9 +12,6 @@ export const updateRegions = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const envIds = await resolveProjectEnvironmentIds(ctx.workspace.id, input.environmentId);
-
-    // Get appId from the environment
     const env = await db.query.environments.findFirst({
       where: and(
         eq(environments.id, input.environmentId),
@@ -27,7 +23,6 @@ export const updateRegions = workspaceProcedure
       throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
     }
 
-    // Get existing regional settings to preserve replica counts for existing regions
     const existingSettings = await db.query.appRegionalSettings.findMany({
       where: and(
         eq(appRegionalSettings.workspaceId, ctx.workspace.id),
@@ -35,34 +30,30 @@ export const updateRegions = workspaceProcedure
       ),
     });
 
-    const defaults = existingSettings.at(0) ?? {
-      replicas: 1,
-    };
+    const defaultReplicas = existingSettings.at(0)?.replicas ?? 1;
 
-    for (const envId of envIds) {
-      // Delete rows for regions that are no longer selected
-      await db
-        .delete(appRegionalSettings)
-        .where(
-          and(
-            eq(appRegionalSettings.workspaceId, ctx.workspace.id),
-            eq(appRegionalSettings.environmentId, envId),
-            notInArray(appRegionalSettings.regionId, input.regionIds),
-          ),
-        );
+    await db
+      .delete(appRegionalSettings)
+      .where(
+        and(
+          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+          eq(appRegionalSettings.environmentId, input.environmentId),
+          notInArray(appRegionalSettings.regionId, input.regionIds),
+        ),
+      );
 
-      // Insert rows for newly added regions
-      for (const regionId of input.regionIds) {
-        const existing = existingSettings.find((s) => s.regionId === regionId);
-        if (!existing) {
-          await db.insert(appRegionalSettings).values({
-            workspaceId: ctx.workspace.id,
-            appId: env.appId,
-            environmentId: envId,
-            regionId,
-            replicas: defaults.replicas,
-          });
-        }
-      }
+    const existingRegionIds = new Set(existingSettings.map((s) => s.regionId));
+    const toInsert = input.regionIds
+      .filter((regionId) => !existingRegionIds.has(regionId))
+      .map((regionId) => ({
+        workspaceId: ctx.workspace.id,
+        appId: env.appId,
+        environmentId: input.environmentId,
+        regionId,
+        replicas: defaultReplicas,
+      }));
+
+    if (toInsert.length > 0) {
+      await db.insert(appRegionalSettings).values(toInsert);
     }
   });

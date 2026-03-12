@@ -70,7 +70,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
     <button
       type="button"
       className={cn(
-        "flex items-center rounded-lg bg-background border-gray-6 border hover:bg-background-subtle cursor-pointer ring-0 focus:ring-0 focus:outline-none text-content transition-colors",
+        "flex items-center rounded-md bg-background border-gray-6 border hover:bg-grayA-3 cursor-pointer ring-0 focus:ring-0 focus:outline-none text-content transition-colors",
         isCollapsed
           ? "justify-center w-10 h-8 p-0"
           : "justify-between w-[200px] h-8 gap-2 px-2 flex-1",
@@ -82,9 +82,9 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
           isCollapsed ? "justify-center" : "",
         )}
       >
-        <Icon className="w-5 h-5 shrink-0 text-gray-11" />
+        <Icon className="w-5 h-5 shrink-0 text-accent-12" iconSize="sm-medium" />
         {!isCollapsed && (
-          <span className="text-sm font-medium text-gray-12 truncate w-full text-left">
+          <span className="text-[13px] font-medium text-accent-12 truncate w-full text-left">
             {currentProduct.name}
           </span>
         )}
@@ -108,7 +108,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
           <DropdownMenuItem
             key={prod.id}
             className={cn(
-              "flex items-center justify-between gap-3 p-3 cursor-pointer hover:bg-grayA-3",
+              "flex items-center justify-between gap-2.5 p-2.5 cursor-pointer hover:bg-grayA-3",
               isSelected && "bg-grayA-2",
             )}
             disabled={prod.disabled}
@@ -116,13 +116,16 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
               switchProduct(prod.id);
             }}
           >
-            <div className="flex items-center gap-3">
-              <ProdIcon className="w-5 h-5 shrink-0 text-gray-11 mt-0.5" />
+            <div className="flex items-center gap-2.5">
+              <ProdIcon
+                className={cn("size-5 shrink-0", isSelected ? "text-accent-12" : "text-gray-11")}
+                iconSize="sm-medium"
+              />
               <div className="flex flex-col">
                 <span
                   className={cn(
-                    "text-sm",
-                    isSelected ? "font-medium text-gray-12" : "text-gray-11",
+                    "text-[13px] font-medium",
+                    isSelected ? "text-accent-12" : "text-gray-12",
                   )}
                 >
                   {prod.name}
@@ -130,11 +133,11 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
                 {prod.disabled ? (
                   <span className="text-xs text-warning-10">In Private Beta</span>
                 ) : (
-                  <span className="text-xs text-gray-10">{prod.description}</span>
+                  <span className="text-xs text-gray-11">{prod.description}</span>
                 )}
               </div>
             </div>
-            {isSelected && <Check className="w-4 h-4 text-gray-11" />}
+            {isSelected && <Check className="w-4 h-4 text-accent-11" iconSize="sm-medium" />}
           </DropdownMenuItem>
         );
       })}

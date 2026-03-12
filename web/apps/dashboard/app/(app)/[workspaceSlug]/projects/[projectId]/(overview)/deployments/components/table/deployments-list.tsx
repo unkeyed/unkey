@@ -11,11 +11,11 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
 import { Avatar } from "../../../../components/git-avatar";
 import { StatusIndicator } from "../../../../components/status-indicator";
 import { useProjectData } from "../../../data-provider";
 import { useDeployments } from "../../hooks/use-deployments";
-import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { DomainList } from "./components/domain_list";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {
@@ -41,7 +41,7 @@ const DeploymentListTableActions = dynamic(
 
 export const DeploymentsList = () => {
   const { deployments } = useDeployments();
-  const { project, getDeploymentById } = useProjectData();
+  const { project } = useProjectData();
   const currentDeploymentId = project?.currentDeploymentId;
 
   const workspace = useWorkspaceNavigation();
@@ -215,14 +215,10 @@ export const DeploymentsList = () => {
           deployment: Deployment;
           environment?: Environment;
         }) => {
-          const currentDeployment = project?.currentDeploymentId
-            ? getDeploymentById(project?.currentDeploymentId)
-            : undefined;
           return (
             <div className="pl-5">
               <DeploymentListTableActions
                 selectedDeployment={deployment}
-                currentDeployment={currentDeployment}
                 environment={environment}
               />
             </div>

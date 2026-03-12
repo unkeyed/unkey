@@ -11,14 +11,20 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { useState } from "react";
-import { type Control, Controller, type UseFormRegister, useWatch } from "react-hook-form";
+import {
+  type Control,
+  Controller,
+  type UseFormRegister,
+  type UseFormTrigger,
+  useWatch,
+} from "react-hook-form";
 import { RemoveButton } from "../../shared/remove-button";
 import type { EnvVarsFormValues } from "./schema";
 import type { EnvVarItem } from "./utils";
 
 type EnvVarRowProps = {
   index: number;
-  isLast: boolean;
+  isFirst: boolean;
   isOnly: boolean;
   keyError: string | undefined;
   environmentError: string | undefined;
@@ -26,13 +32,14 @@ type EnvVarRowProps = {
   environments: { id: string; slug: string }[];
   control: Control<EnvVarsFormValues>;
   register: UseFormRegister<EnvVarsFormValues>;
+  trigger: UseFormTrigger<EnvVarsFormValues>;
   onAdd: () => void;
   onRemove: () => void;
 };
 
 export const EnvVarRow = ({
   index,
-  isLast,
+  isFirst,
   isOnly,
   keyError,
   environmentError,
@@ -40,6 +47,7 @@ export const EnvVarRow = ({
   environments,
   control,
   register,
+  trigger,
   onAdd,
   onRemove,
 }: EnvVarRowProps) => {
@@ -73,7 +81,14 @@ export const EnvVarRow = ({
           control={control}
           name={`envVars.${index}.environmentId`}
           render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange} disabled={isPreviouslyAdded}>
+            <Select
+              value={field.value}
+              onValueChange={(value) => {
+                field.onChange(value);
+                trigger("envVars");
+              }}
+              disabled={isPreviouslyAdded}
+            >
               <SelectTrigger
                 className={cn("h-9", environmentError && !isPreviouslyAdded && "border-error-9")}
                 wrapperClassName="w-[120px]"
@@ -139,7 +154,7 @@ export const EnvVarRow = ({
           className={cn(
             "absolute left-0 size-9 hover:bg-grayA-3 px-0 justify-center transition-all duration-150 rounded-lg",
             isOnly ? "translate-x-0" : "translate-x-9",
-            isLast ? "opacity-100" : "opacity-0 pointer-events-none",
+            isFirst ? "opacity-100" : "opacity-0 pointer-events-none",
           )}
           onClick={onAdd}
         >

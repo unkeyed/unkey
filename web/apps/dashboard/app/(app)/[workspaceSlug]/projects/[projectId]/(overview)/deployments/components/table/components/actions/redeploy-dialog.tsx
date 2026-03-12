@@ -1,10 +1,12 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { type Deployment, collection } from "@/lib/collections";
+import type { Deployment } from "@/lib/collections";
+import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
+import { useProjectData } from "../../../../../data-provider";
 import { DeploymentSection } from "./components/deployment-section";
 
 type RedeployDialogProps = {
@@ -14,19 +16,13 @@ type RedeployDialogProps = {
 };
 
 export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: RedeployDialogProps) => {
-  const utils = trpc.useUtils();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const { projectId } = useProjectData();
 
   const redeploy = trpc.deploy.deployment.redeploy.useMutation({
-    onSuccess: (data) => {
-      utils.invalidate();
-      try {
-        collection.deployments.utils.refetch();
-      } catch (error) {
-        console.error("Refetch error:", error);
-      }
-      onClose();
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       router.push(
         `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${data.deploymentId}`,
       );
@@ -67,7 +63,7 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
         </Button>
       }
     >
-      <div className="space-y-9">
+      <div className="flex flex-col gap-9">
         <DeploymentSection title="Deployment" deployment={selectedDeployment} isCurrent={false} />
       </div>
     </DialogContainer>

@@ -1,75 +1,120 @@
-import { CircleWarning } from "@unkey/icons";
-import { Badge } from "@unkey/ui";
+"use client";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import {
+  CircleCheck,
+  CircleWarning,
+  CloudUp,
+  Earth,
+  Hammer2,
+  LayerFront,
+  Pulse,
+  Sparkle3,
+} from "@unkey/icons";
+import type { IconProps } from "@unkey/icons/src/props";
 import { cn } from "@unkey/ui/src/lib/utils";
-
-type DeploymentStatus =
-  | "pending"
-  | "starting"
-  | "building"
-  | "deploying"
-  | "network"
-  | "finalizing"
-  | "ready"
-  | "failed";
+import type { FC } from "react";
 
 type StatusConfig = {
-  variant: "warning" | "success" | "error" | "secondary";
-  text: string;
+  icon: FC<IconProps>;
+  label: string;
+  bgColor: string;
+  textColor: string;
+  iconColor: string;
+  animated?: boolean;
 };
 
-const STATUS_CONFIG: Record<DeploymentStatus, StatusConfig> = {
+const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   pending: {
-    variant: "secondary",
-    text: "Queued",
+    icon: LayerFront,
+    label: "Pending",
+    bgColor: "bg-grayA-3",
+    textColor: "text-grayA-11",
+    iconColor: "text-gray-11",
   },
   starting: {
-    variant: "secondary",
-    text: "Starting",
+    icon: Pulse,
+    label: "Starting",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   building: {
-    variant: "secondary",
-    text: "Building",
+    icon: Hammer2,
+    label: "Building",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   deploying: {
-    variant: "secondary",
-    text: "Deploying",
+    icon: CloudUp,
+    label: "Deploying",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   network: {
-    variant: "secondary",
-    text: "Assigning Domains",
+    icon: Earth,
+    label: "Assigning Domains",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   finalizing: {
-    variant: "secondary",
-    text: "Finalizing",
+    icon: Sparkle3,
+    label: "Finalizing",
+    bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
+    textColor: "text-infoA-11",
+    iconColor: "text-info-11",
+    animated: true,
   },
   ready: {
-    variant: "success",
-    text: "Ready",
+    icon: CircleCheck,
+    label: "Ready",
+    bgColor: "bg-successA-3",
+    textColor: "text-successA-11",
+    iconColor: "text-success-11",
   },
   failed: {
-    variant: "error",
-    text: "Error",
+    icon: CircleWarning,
+    label: "Failed",
+    bgColor: "bg-errorA-3",
+    textColor: "text-errorA-11",
+    iconColor: "text-error-11",
   },
 };
 
-type Props = {
-  status?: DeploymentStatus;
+type DeploymentStatusBadgeProps = {
+  status: DeploymentStatus;
   className?: string;
 };
 
-export const DeploymentStatusBadge = ({ status, className }: Props) => {
-  if (!status) {
+export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBadgeProps) => {
+  const config = statusConfigs[status];
+
+  if (!config) {
     throw new Error(`Invalid deployment status: ${status}`);
   }
 
-  const config = STATUS_CONFIG[status];
+  const { icon: Icon, label, bgColor, textColor, iconColor, animated } = config;
 
   return (
-    <Badge variant={config.variant} className={cn("font-medium", className)}>
-      <div className="flex items-center gap-2">
-        <CircleWarning iconSize="md-regular" />
-        {config.text}
-      </div>
-    </Badge>
+    <div
+      className={cn(
+        "items-center flex gap-2 p-1.5 rounded-md w-fit relative h-5.5",
+        animated && "overflow-hidden",
+        bgColor,
+        className,
+      )}
+    >
+      {animated && (
+        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
+      )}
+      <Icon iconSize="md-regular" className={cn(iconColor, animated && "relative z-5")} />
+      <span className={cn(textColor, "text-xs", animated && "relative z-5")}>{label}</span>
+    </div>
   );
 };

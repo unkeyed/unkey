@@ -11,10 +11,6 @@ version: 2
 partial:
   by: goos
 
-git:
-  ignore_tags:
-    - "inject/*"
-
 before:
   hooks:
     # You may remove this if you don't use go modules.

@@ -15,6 +15,7 @@ import {
   Refresh3,
 } from "@unkey/icons";
 import { Button, InfoTooltip, Separator } from "@unkey/ui";
+import { useParams } from "next/navigation";
 import { useRef } from "react";
 import { RepoDisplay } from "../../../_components/list/repo-display";
 import { DisabledWrapper } from "../../components/disabled-wrapper";
@@ -48,6 +49,9 @@ export const ProjectNavigation = ({
     ? { id: project.id, name: project.name, repositoryFullName: project.repositoryFullName }
     : undefined;
 
+  const params = useParams();
+  const isOnDeploymentDetail = Boolean(params?.deploymentId);
+
   const basePath = `/${workspace.slug}/projects`;
   const breadcrumbs = useBreadcrumbConfig({
     projectId,
@@ -55,10 +59,6 @@ export const ProjectNavigation = ({
     projects: projects.data || [],
     activeProject,
   });
-
-  const isOnDeploymentDetail = Boolean(
-    breadcrumbs.find((p) => p.id === "deployment-detail")?.active,
-  );
 
   const anchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -75,6 +75,58 @@ export const ProjectNavigation = ({
       return "No deployments available. Deploy your project to view details.";
     }
     return isDetailsOpen ? "Hide deployment details" : "Show deployment details";
+  };
+
+  const renderActions = () => {
+    if (isOnDeploymentDetail) {
+      return null;
+    }
+
+    return (
+      <div className="flex gap-4 items-center">
+        {activeProject?.repositoryFullName && (
+          <>
+            <div className="text-gray-11 text-xs flex items-center gap-2.5">
+              <Refresh3 className="text-gray-12" iconSize="sm-regular" />
+              <span>Auto-deploys from pushes to </span>
+              <RepoDisplay
+                url={`https://github.com/${activeProject.repositoryFullName}`}
+                className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
+              />
+            </div>
+            <Separator orientation="vertical" className="h-5 mx-2 bg-grayA-5" />
+          </>
+        )}
+        <DisabledWrapper tooltipContent="Actions coming soon">
+          <div className="gap-2.5 items-center flex">
+            <NavbarActionButton title="Visit Project URL">Visit Project URL</NavbarActionButton>
+            <Button className="size-7" variant="outline">
+              <ListRadio iconSize="sm-regular" />
+            </Button>
+            <Button className="size-7" variant="outline">
+              <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
+            </Button>
+            <Button className="size-7" variant="outline">
+              <Dots iconSize="sm-regular" />
+            </Button>
+          </div>
+        </DisabledWrapper>
+        <InfoTooltip
+          asChild
+          content={getTooltipContent()}
+          position={{ side: "bottom", align: "end" }}
+        >
+          <Button
+            variant="outline"
+            className="size-7"
+            disabled={!currentDeploymentId}
+            onClick={onClick}
+          >
+            <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
+          </Button>
+        </InfoTooltip>
+      </div>
+    );
   };
 
   if (projects.isLoading) {
@@ -129,9 +181,22 @@ export const ProjectNavigation = ({
     );
   }
 
-  //TODO: Add a proper view here
   if (!activeProject) {
-    return <div className="h-full w-full flex items-center justify-center">Project not found</div>;
+    return (
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Cube />}>
+          <Navbar.Breadcrumbs.Link
+            href={basePath}
+            isIdentifier={false}
+            noop={false}
+            active={false}
+            isLast={false}
+          >
+            Projects
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+    );
   }
 
   return (
@@ -164,54 +229,7 @@ export const ProjectNavigation = ({
           </Navbar.Breadcrumbs.Link>
         ))}
       </Navbar.Breadcrumbs>
-      <div className="flex gap-4 items-center">
-        {activeProject.repositoryFullName && (
-          <>
-            <div className="text-gray-11 text-xs flex items-center gap-2.5">
-              <Refresh3 className="text-gray-12" iconSize="sm-regular" />
-              <span>Auto-deploys from pushes to </span>
-              <RepoDisplay
-                url={`https://github.com/${activeProject.repositoryFullName}`}
-                className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px] max-w-[130px]"
-              />
-            </div>
-            <Separator orientation="vertical" className="h-5 mx-2 bg-grayA-5" />
-          </>
-        )}
-        <DisabledWrapper tooltipContent="Actions coming soon">
-          <div className="gap-2.5 items-center flex">
-            <NavbarActionButton title="Visit Project URL">Visit Project URL</NavbarActionButton>
-            <Button className="size-7" variant="outline">
-              <ListRadio iconSize="sm-regular" />
-            </Button>
-            <Button className="size-7" variant="outline">
-              <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
-            </Button>
-            <Button className="size-7" variant="outline">
-              <Dots iconSize="sm-regular" />
-            </Button>
-          </div>
-        </DisabledWrapper>
-        {!isOnDeploymentDetail && (
-          <InfoTooltip
-            asChild
-            content={getTooltipContent()}
-            position={{
-              side: "bottom",
-              align: "end",
-            }}
-          >
-            <Button
-              variant="outline"
-              className="size-7"
-              disabled={!currentDeploymentId}
-              onClick={onClick}
-            >
-              <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
-            </Button>
-          </InfoTooltip>
-        )}
-      </div>
+      {renderActions()}
     </Navbar>
   );
 };

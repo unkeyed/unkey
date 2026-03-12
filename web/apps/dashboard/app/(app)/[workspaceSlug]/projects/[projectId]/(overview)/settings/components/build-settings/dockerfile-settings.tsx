@@ -1,10 +1,10 @@
-import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileSettings } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
+import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const dockerfileSchema = z.object({
@@ -12,8 +12,9 @@ const dockerfileSchema = z.object({
 });
 
 export const Dockerfile = () => {
-  const { settings, autoSave } = useEnvironmentSettings();
-  const { environmentId, dockerfile: defaultValue } = settings;
+  const { settings, variant } = useEnvironmentSettings();
+  const { dockerfile: defaultValue } = settings;
+  const updateAllEnvironments = useUpdateAllEnvironments();
 
   const {
     register,
@@ -35,7 +36,7 @@ export const Dockerfile = () => {
   ]);
 
   const onSubmit = async (values: z.infer<typeof dockerfileSchema>) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       draft.dockerfile = values.dockerfile;
     });
   };
@@ -48,7 +49,7 @@ export const Dockerfile = () => {
       displayValue={defaultValue}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={autoSave}
+      autoSave={variant === "onboarding"}
     >
       <FormInput
         required

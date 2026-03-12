@@ -56,7 +56,7 @@ export const OnboardingEnvironmentSettingsProvider = ({
   }
 
   return (
-    <EnvironmentContext.Provider value={{ settings, autoSave: true }}>
+    <EnvironmentContext.Provider value={{ settings, variant: "onboarding" }}>
       {children}
     </EnvironmentContext.Provider>
   );

@@ -293,6 +293,8 @@ CREATE TABLE `quota` (
 	`team` boolean NOT NULL DEFAULT false,
 	`ratelimit_api_limit` int unsigned,
 	`ratelimit_api_duration` int unsigned,
+	`allocated_cpu_millicores_total` int unsigned NOT NULL DEFAULT 10240,
+	`allocated_memory_mib_total` int unsigned NOT NULL DEFAULT 20480,
 	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
 );
@@ -539,7 +541,9 @@ CREATE TABLE `deployment_topology` (
 	`desired_status` enum('stopped','running') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
-	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`)
+	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region_id`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
 );
 
 CREATE TABLE `acme_users` (
@@ -603,7 +607,7 @@ CREATE TABLE `sentinels` (
 	`environment_id` varchar(255) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_address` varchar(255) NOT NULL,
-	`region_id` varchar(255) NOT NULL DEFAULT 'TODO',
+	`region_id` varchar(255) NOT NULL,
 	`image` varchar(255) NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
 	`health` enum('unknown','paused','healthy','unhealthy') NOT NULL DEFAULT 'unknown',
@@ -617,7 +621,9 @@ CREATE TABLE `sentinels` (
 	CONSTRAINT `sentinels_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `sentinels_id_unique` UNIQUE(`id`),
 	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
-	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`)
+	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`),
+	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region_id`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
 );
 
 CREATE TABLE `instances` (
@@ -708,7 +714,9 @@ CREATE TABLE `cilium_network_policies` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`)
+	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
+	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region_id`),
+	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
 );
 
 CREATE TABLE `clusters` (
@@ -778,11 +786,12 @@ CREATE INDEX `project_idx` ON `custom_domains` (`project_id`);
 CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
-CREATE INDEX `idx_environment_id` ON `sentinels` (`environment_id`);
+CREATE INDEX `idx_environment_health_region_routing` ON `sentinels` (`environment_id`,`region_id`,`health`);
 CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region_id`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
+CREATE INDEX `fqdn_environment_deployment_idx` ON `frontline_routes` (`fully_qualified_domain_name`,`environment_id`,`deployment_id`);
 CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_id`);
 CREATE INDEX `workspace_idx` ON `horizontal_autoscaling_policies` (`workspace_id`);
 

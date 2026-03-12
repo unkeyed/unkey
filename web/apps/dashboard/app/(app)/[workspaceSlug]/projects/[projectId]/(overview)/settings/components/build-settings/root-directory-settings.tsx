@@ -1,10 +1,10 @@
-import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FolderLink } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
+import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const rootDirectorySchema = z.object({
@@ -12,8 +12,9 @@ const rootDirectorySchema = z.object({
 });
 
 export const RootDirectory = () => {
-  const { settings, autoSave } = useEnvironmentSettings();
-  const { environmentId, dockerContext: defaultValue } = settings;
+  const { settings, variant } = useEnvironmentSettings();
+  const { dockerContext: defaultValue } = settings;
+  const updateAllEnvironments = useUpdateAllEnvironments();
 
   const {
     register,
@@ -35,7 +36,7 @@ export const RootDirectory = () => {
   ]);
 
   const onSubmit = async (values: z.infer<typeof rootDirectorySchema>) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       draft.dockerContext = values.dockerContext;
     });
   };
@@ -48,7 +49,7 @@ export const RootDirectory = () => {
       displayValue={defaultValue || "."}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={autoSave}
+      autoSave={variant === "onboarding"}
     >
       <FormInput
         label="Root directory"

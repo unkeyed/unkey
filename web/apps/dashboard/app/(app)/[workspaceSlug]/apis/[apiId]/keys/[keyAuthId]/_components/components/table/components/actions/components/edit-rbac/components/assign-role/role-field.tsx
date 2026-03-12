@@ -118,7 +118,7 @@ export const RoleField = ({
 
   const isComboboxLoading = isLoading || (isSearching && trimmedSearchVal.length > 0);
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <FormCombobox
         label="Assign roles"
         description="Select roles from your workspace."

@@ -118,9 +118,9 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
           <div className="py-1 my-2">
             <div className="h-px bg-grayA-3 w-full" />
           </div>
-          <div className="space-y-4">
+          <div>
             <FormInput
-              className="[&_input:first-of-type]:h-[36px]"
+              className="[&_input:first-of-type]:h-9"
               placeholder="Key Name"
               label="Name"
               defaultValue={keyDetails.name ?? ""}
