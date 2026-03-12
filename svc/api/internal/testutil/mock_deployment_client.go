@@ -26,7 +26,9 @@ type MockDeploymentClient struct {
 	CreateDeploymentCalls []*ctrlv1.CreateDeploymentRequest
 	GetDeploymentCalls    []*ctrlv1.GetDeploymentRequest
 	RollbackCalls         []*ctrlv1.RollbackRequest
-	PromoteCalls          []*ctrlv1.PromoteRequest
+	PromoteCalls               []*ctrlv1.PromoteRequest
+	AuthorizeDeploymentFunc    func(context.Context, *ctrlv1.AuthorizeDeploymentRequest) (*ctrlv1.AuthorizeDeploymentResponse, error)
+	AuthorizeDeploymentCalls   []*ctrlv1.AuthorizeDeploymentRequest
 }
 
 func (m *MockDeploymentClient) CreateDeployment(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
@@ -67,4 +69,14 @@ func (m *MockDeploymentClient) Promote(ctx context.Context, req *ctrlv1.PromoteR
 		return m.PromoteFunc(ctx, req)
 	}
 	return &ctrlv1.PromoteResponse{}, nil
+}
+
+func (m *MockDeploymentClient) AuthorizeDeployment(ctx context.Context, req *ctrlv1.AuthorizeDeploymentRequest) (*ctrlv1.AuthorizeDeploymentResponse, error) {
+	m.mu.Lock()
+	m.AuthorizeDeploymentCalls = append(m.AuthorizeDeploymentCalls, req)
+	m.mu.Unlock()
+	if m.AuthorizeDeploymentFunc != nil {
+		return m.AuthorizeDeploymentFunc(ctx, req)
+	}
+	return &ctrlv1.AuthorizeDeploymentResponse{}, nil
 }

@@ -140,6 +140,7 @@ func Run(ctx context.Context, cfg Config) error {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			WebhookSecret: cfg.GitHub.WebhookSecret,
 		})
 		if ghErr != nil {
 			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
