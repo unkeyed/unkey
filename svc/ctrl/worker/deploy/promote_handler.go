@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -93,18 +94,21 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 			return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the current deployment"))
 		}
 
-		// Clear isRolledBack flag, routes already point to the correct deployment
-		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
-				AppID:               app.ID,
-				CurrentDeploymentID: app.CurrentDeploymentID,
-				IsRolledBack:        false,
-				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		// Clear isRolledBack flag, routes already point to the correct deployment.
+		// Re-read the app inside a transaction to avoid using a stale CurrentDeploymentID
+		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
+			return restate.Void{}, db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+				currentApp, findErr := db.Query.FindAppById(txCtx, tx, targetDeployment.AppID)
+				if findErr != nil {
+					return findErr
+				}
+				return db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
+					AppID:               currentApp.ID,
+					CurrentDeploymentID: currentApp.CurrentDeploymentID,
+					IsRolledBack:        false,
+					UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				})
 			})
-			if err != nil {
-				return restate.Void{}, fault.Wrap(err, fault.Internal("failed to clear isRolledBack flag"))
-			}
-			return restate.Void{}, nil
 		}, restate.WithName("clearing isRolledBack flag"))
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Public("Failed to confirm rollback"))
@@ -170,19 +174,27 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, fault.Wrap(err, fault.Public("Failed to switch routes to the promoted deployment"))
 	}
 
-	// Update app's current deployment
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
-			AppID:               app.ID,
-			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
-			IsRolledBack:        false,
-			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	// Atomically read the current deployment and swap it to the promoted one.
+	//  we capture the previous deployment ID from fresh DB state so that retries don't schedule
+	// the wrong deployment for standby.
+	previousDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
+		return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
+			currentApp, findErr := db.Query.FindAppById(txCtx, tx, targetDeployment.AppID)
+			if findErr != nil {
+				return sql.NullString{}, findErr
+			}
+			updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
+				AppID:               currentApp.ID,
+				CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
+				IsRolledBack:        false,
+				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			})
+			if updateErr != nil {
+				return sql.NullString{}, fault.Wrap(updateErr, fault.Internal("failed to update app's current deployment id"))
+			}
+			logger.Info("updated app current deployment", "app_id", currentApp.ID, "current_deployment_id", targetDeployment.ID)
+			return currentApp.CurrentDeploymentID, nil
 		})
-		if err != nil {
-			return restate.Void{}, fault.Wrap(err, fault.Internal("failed to update app's current deployment id"))
-		}
-		logger.Info("updated app current deployment", "app_id", app.ID, "current_deployment_id", targetDeployment.ID)
-		return restate.Void{}, nil
 	}, restate.WithName("updating app current deployment"))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to update the project after promotion"))
@@ -194,11 +206,13 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the promoted deployment"))
 	}
 
-	// schedule old deployment to be spun down
-	hydrav1.NewDeploymentServiceClient(ctx, app.CurrentDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
-		State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
-		DelayMillis: (30 * time.Minute).Milliseconds(),
-	})
+	// schedule old deployment to be spun down using the fresh previous ID captured in the transaction
+	if previousDeploymentID.Valid {
+		hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
+			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+			DelayMillis: (30 * time.Minute).Milliseconds(),
+		})
+	}
 
 	logger.Info("promotion completed successfully",
 		"target", req.GetTargetDeploymentId(),
