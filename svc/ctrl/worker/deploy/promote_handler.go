@@ -88,12 +88,6 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	if isConfirmingRollback {
 		logger.Info("confirming rollback", "deployment_id", targetDeployment.ID, "app_id", app.ID)
 
-		// Clear scheduled state changes on the current deployment
-		_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
-		if err != nil {
-			return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the current deployment"))
-		}
-
 		// Clear isRolledBack flag, routes already point to the correct deployment.
 		// Re-read the app inside a transaction to avoid using a stale CurrentDeploymentID
 		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
