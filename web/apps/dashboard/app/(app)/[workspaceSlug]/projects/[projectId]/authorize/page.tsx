@@ -9,6 +9,7 @@ import {
   Github,
   ShieldAlert,
   User,
+  XMark,
 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
@@ -130,10 +131,12 @@ export default function AuthorizeDeploymentPage() {
           <div className="flex items-center justify-center w-12 h-12 rounded-full border border-border bg-background">
             <Github iconSize="xl-thin" />
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-warning-9" />
-            <div className="w-8 border-t border-dashed border-warning-9" />
-            <div className="w-2 h-2 rounded-full bg-warning-9" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 border-t border-dashed border-warning-9" />
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-warning-3 border border-warning-6">
+              <XMark iconSize="sm-regular" className="text-warning-9" />
+            </div>
+            <div className="w-6 border-t border-dashed border-warning-9" />
           </div>
           <div className="flex items-center justify-center w-12 h-12 rounded-full border border-border bg-background">
             <ShieldAlert iconSize="xl-thin" className="text-warning-9" />
