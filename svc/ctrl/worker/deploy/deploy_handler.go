@@ -149,14 +149,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 		quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
 			return db.Query.FindQuotaByWorkspaceID(runCtx, w.db.RW(), deployment.WorkspaceID)
-		})
+		}, restate.WithName("find workspace quota"))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
 		allocatedResources, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.SumAllocatedResourcesByWorkspaceIDRow, error) {
 			return db.Query.SumAllocatedResourcesByWorkspaceID(runCtx, w.db.RW(), workspace.ID)
-		})
+		}, restate.WithName("sum allocated resources by workspace"))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
