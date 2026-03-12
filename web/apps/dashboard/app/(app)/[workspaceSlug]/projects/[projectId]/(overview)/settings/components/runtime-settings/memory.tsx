@@ -13,9 +13,9 @@ const MEMORY_OPTIONS = [
   { label: "1 GiB", value: 1024 },
   { label: "2 GiB", value: 2048 },
   { label: "4 GiB", value: 4096 },
-  { label: "8 GiB", value: 8192 },
-  { label: "16 GiB", value: 16384 },
-  { label: "32 GiB", value: 32768 },
+  // { label: "8 GiB", value: 8192 },
+  // { label: "16 GiB", value: 16384 },
+  // { label: "32 GiB", value: 32768 },
 ] as const;
 
 const memoryConfig: ResourceSliderConfig = {
@@ -23,7 +23,7 @@ const memoryConfig: ResourceSliderConfig = {
   title: "Memory",
   description: "Memory allocation for each instance",
   settingDescription:
-    "Increase memory for applications with large datasets or caching needs. Changes apply on next deploy.",
+    "Changes apply on next deploy. During beta, memory is limited to 4 GiB. Please contact support@unkey.com if you need more.",
   colorVar: "warningA",
   slider: { kind: "index-mapped", options: MEMORY_OPTIONS, fallback: 256 },
   formatValue: formatMemoryParts,

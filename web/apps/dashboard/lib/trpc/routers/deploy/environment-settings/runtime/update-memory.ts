@@ -8,7 +8,12 @@ export const updateMemory = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      memoryMib: z.number(),
+      memoryMib: z
+        .number()
+        .max(
+          4096,
+          "Memory is limited to 4GiB during beta. Please contact support@unkey.com if you need more.",
+        ),
     }),
   )
   .mutation(async ({ ctx, input }) => {
