@@ -35,17 +35,10 @@ type Querier interface {
 	//  ORDER BY hostname = ? DESC
 	//  LIMIT 1
 	FindBestCertificateByCandidates(ctx context.Context, arg FindBestCertificateByCandidatesParams) (FindBestCertificateByCandidatesRow, error)
-	// FindFrontlineRouteByFQDN resolves an incoming hostname to the routing target
-	// used by frontline. The query intentionally projects only environment and
-	// deployment identifiers because callers do not need the full route record,
-	// and a narrow projection reduces row decoding work on the request path.
-	//
-	// The hostname column is unique in schema, so this query returns at most one
-	// row for a given input hostname.
-	//
-	// Example: with fully_qualified_domain_name 'api.example.com', the query
-	// returns the single environment_id and deployment_id currently bound to that
-	// domain.
+	// FindFrontlineRouteByFQDN resolves a hostname to the environment and
+	// deployment IDs frontline needs to route a request.
+	// The projection intentionally stays narrow because this lookup is on the
+	// request path and callers do not need the rest of the route row.
 	//
 	//  SELECT
 	//    environment_id,
@@ -53,25 +46,17 @@ type Querier interface {
 	//  FROM frontline_routes
 	//  WHERE fully_qualified_domain_name = ?
 	FindFrontlineRouteByFQDN(ctx context.Context, fullyQualifiedDomainName string) (FindFrontlineRouteByFQDNRow, error)
-	// FindHealthyRoutableSentinelsByEnvironmentID returns only healthy sentinel
-	// endpoints plus region identity needed for locality-based routing decisions.
-	// Health filtering happens in SQL so callers do not load or cache unhealthy
-	// rows in the request path.
-	//
-	// LEFT JOIN is intentional: it preserves sentinel rows when region metadata is
-	// temporarily missing. Callers can discard rows with NULL region fields while
-	// still using complete rows from the same environment.
-	//
-	// Example: if an environment has three sentinels and one is unhealthy, this
-	// query returns only the two healthy endpoints with their region name and
-	// platform data.
+	// FindHealthyRoutableSentinelsByEnvironmentID returns healthy sentinels with
+	// region metadata needed for region-aware routing.
+	// INNER JOIN drops sentinels without region metadata so callers only receive
+	// fully routable rows.
 	//
 	//  SELECT
 	//    s.k8s_address,
 	//    r.name AS region_name,
 	//    r.platform AS region_platform
 	//  FROM sentinels s
-	//  LEFT JOIN regions r ON s.region_id = r.id
+	//  INNER JOIN regions r ON s.region_id = r.id
 	//  WHERE s.environment_id = ?
 	//    AND s.health = 'healthy'
 	FindHealthyRoutableSentinelsByEnvironmentID(ctx context.Context, environmentID string) ([]FindHealthyRoutableSentinelsByEnvironmentIDRow, error)

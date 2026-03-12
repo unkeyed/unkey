@@ -31,6 +31,7 @@ Before submitting documentation, verify each item.
 - [ ] Doc comments start with the symbol name
 - [ ] Uses prose, not bullet lists, unless items are parallel
 - [ ] Depth matches complexity
+- [ ] SQL comments add non-obvious context instead of restating obvious clauses
 - [ ] Cross-references use bracket syntax: `[TypeName]`, `[FuncName]`
 - [ ] No stale documentation from copy-paste or refactoring
 
@@ -158,6 +159,10 @@ func (r *RateLimiter) Allow(ctx context.Context, identifier string, cost int) (b
 Named SQL queries are part of the public contract between application code and the database. Treat query comments like API documentation.
 
 For SQL query docs, explain why this query exists, how it resolves non-obvious behavior, and what guarantees callers can rely on. Do not just restate the `SELECT` clause.
+
+Keep SQL comments concise. In most cases, two to five lines are enough. If a comment is longer than the query, each sentence must carry non-obvious information such as fallback guarantees, deterministic ordering, intentional join behavior, or performance tradeoffs.
+
+Avoid duplicate explanations. If the SQL already makes behavior obvious, for example `AND s.health = 'healthy'`, do not repeat that in prose unless you are documenting a non-obvious guarantee that depends on it.
 
 For selection queries with fallback logic, document deterministic behavior explicitly. If exact matching must win over wildcard matching, explain how SQL enforces it, for example with `ORDER BY` and not candidate list order.
 

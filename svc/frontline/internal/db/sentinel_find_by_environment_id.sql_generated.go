@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findHealthyRoutableSentinelsByEnvironmentID = `-- name: FindHealthyRoutableSentinelsByEnvironmentID :many
@@ -16,36 +15,28 @@ SELECT
   r.name AS region_name,
   r.platform AS region_platform
 FROM sentinels s
-LEFT JOIN regions r ON s.region_id = r.id
+INNER JOIN regions r ON s.region_id = r.id
 WHERE s.environment_id = ?
   AND s.health = 'healthy'
 `
 
 type FindHealthyRoutableSentinelsByEnvironmentIDRow struct {
-	K8sAddress     string         `db:"k8s_address"`
-	RegionName     sql.NullString `db:"region_name"`
-	RegionPlatform sql.NullString `db:"region_platform"`
+	K8sAddress     string `db:"k8s_address"`
+	RegionName     string `db:"region_name"`
+	RegionPlatform string `db:"region_platform"`
 }
 
-// FindHealthyRoutableSentinelsByEnvironmentID returns only healthy sentinel
-// endpoints plus region identity needed for locality-based routing decisions.
-// Health filtering happens in SQL so callers do not load or cache unhealthy
-// rows in the request path.
-//
-// LEFT JOIN is intentional: it preserves sentinel rows when region metadata is
-// temporarily missing. Callers can discard rows with NULL region fields while
-// still using complete rows from the same environment.
-//
-// Example: if an environment has three sentinels and one is unhealthy, this
-// query returns only the two healthy endpoints with their region name and
-// platform data.
+// FindHealthyRoutableSentinelsByEnvironmentID returns healthy sentinels with
+// region metadata needed for region-aware routing.
+// INNER JOIN drops sentinels without region metadata so callers only receive
+// fully routable rows.
 //
 //	SELECT
 //	  s.k8s_address,
 //	  r.name AS region_name,
 //	  r.platform AS region_platform
 //	FROM sentinels s
-//	LEFT JOIN regions r ON s.region_id = r.id
+//	INNER JOIN regions r ON s.region_id = r.id
 //	WHERE s.environment_id = ?
 //	  AND s.health = 'healthy'
 func (q *Queries) FindHealthyRoutableSentinelsByEnvironmentID(ctx context.Context, environmentID string) ([]FindHealthyRoutableSentinelsByEnvironmentIDRow, error) {

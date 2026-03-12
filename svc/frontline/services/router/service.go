@@ -106,11 +106,11 @@ func (s *service) SelectSentinel(route *db.FindFrontlineRouteByFQDNRow, rows []d
 
 	healthyByRegion := make(map[string]string)
 	for _, row := range rows {
-		if !row.RegionName.Valid || !row.RegionPlatform.Valid {
+		if row.RegionName == "" || row.RegionPlatform == "" {
 			continue
 		}
 
-		key := fmt.Sprintf("%s.%s", row.RegionName.String, row.RegionPlatform.String)
+		key := fmt.Sprintf("%s.%s", row.RegionName, row.RegionPlatform)
 		healthyByRegion[key] = row.K8sAddress
 	}
 
