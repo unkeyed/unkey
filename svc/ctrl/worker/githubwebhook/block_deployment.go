@@ -11,22 +11,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// blockDeploymentForApproval creates GitHub Deployment and Check Run entries
-// to signal that the push requires authorization from a project member.
+// blockDeploymentForApproval creates a GitHub Check Run to signal that
+// the push requires authorization from a project member. Clicking the
+// check run in the PR redirects directly to the dashboard authorize page.
 func (s *Service) blockDeploymentForApproval(
 	ctx restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
 	project db.Project,
-	env db.Environment,
 	app db.App,
 	repo db.GithubRepoConnection,
 	branch string,
 ) error {
-	envLabel := project.Slug + " - " + env.Slug
-	if app.Slug != "default" {
-		envLabel = project.Slug + "/" + app.Slug + " - " + env.Slug
-	}
-
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 		return db.Query.FindWorkspaceByID(runCtx, s.db.RO(), project.WorkspaceID)
 	}, restate.WithName("find workspace for approval log url"), restate.WithMaxRetryDuration(30*time.Second))
@@ -42,42 +37,15 @@ func (s *Service) blockDeploymentForApproval(
 		url.QueryEscape(req.GetCommitMessage()),
 	)
 
-	ghDeploymentID, ghErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
-		return s.github.CreateDeployment(
-			repo.InstallationID,
-			req.GetRepositoryFullName(),
-			req.GetAfter(),
-			envLabel,
-			"Awaiting authorization",
-			env.Slug == "production",
-		)
-	}, restate.WithName("create github deployment for approval"), restate.WithMaxRetryDuration(30*time.Second))
-	if ghErr != nil {
-		logger.Error("failed to create GitHub deployment for approval", "error", ghErr,
-			"project_id", project.ID, "app_id", app.ID)
-	} else {
-		_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-			return s.github.CreateDeploymentStatus(
-				repo.InstallationID,
-				req.GetRepositoryFullName(),
-				ghDeploymentID,
-				"failure",
-				"",
-				logURL,
-				"Awaiting authorization from a project member",
-			)
-		}, restate.WithName("github deployment status: failure (awaiting auth)"), restate.WithMaxRetryDuration(30*time.Second))
-	}
-
 	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
 		_, crErr := s.github.CreateCheckRun(
 			repo.InstallationID,
 			req.GetRepositoryFullName(),
 			req.GetAfter(),
-			"Unkey Deployment Authorization",
+			"Unkey Deploy Authorization",
 			"completed",
 			"action_required",
-			"", // no output title — clicking the check run redirects directly to details_url
+			"", // no output — clicking the check run redirects directly to details_url
 			"",
 			logURL,
 		)

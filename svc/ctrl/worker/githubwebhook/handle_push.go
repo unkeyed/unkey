@@ -89,7 +89,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 
 		if needsApproval {
-			if blockErr := s.blockDeploymentForApproval(ctx, req, project, env, app, repo, branch); blockErr != nil {
+			if blockErr := s.blockDeploymentForApproval(ctx, req, project, app, repo, branch); blockErr != nil {
 				return nil, blockErr
 			}
 			continue

@@ -101,7 +101,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	}
 
 	// Mark the PR check run as green now that the deployment is authorized
-	checkRuns, listErr := s.github.ListCheckRunsForRef(repoConn.InstallationID, repoConn.RepositoryFullName, headCommit.SHA, "Unkey Deployment Authorization")
+	checkRuns, listErr := s.github.ListCheckRunsForRef(repoConn.InstallationID, repoConn.RepositoryFullName, headCommit.SHA, "Unkey Deploy Authorization")
 	if listErr == nil {
 		for _, cr := range checkRuns {
 			if updateErr := s.github.UpdateCheckRun(
