@@ -8,7 +8,12 @@ export const updateCpu = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      cpuMillicores: z.number(),
+      cpuMillicores: z
+        .number()
+        .max(
+          4096,
+          "CPU is limited to 4 cores during beta. Please contact support@unkey.com if you need more.",
+        ),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -20,7 +25,10 @@ export const updateCpu = workspaceProcedure
       columns: { appId: true },
     });
     if (!env) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Environment not found",
+      });
     }
 
     await db
@@ -34,5 +42,7 @@ export const updateCpu = workspaceProcedure
         createdAt: Date.now(),
         updatedAt: Date.now(),
       })
-      .onDuplicateKeyUpdate({ set: { cpuMillicores: input.cpuMillicores, updatedAt: Date.now() } });
+      .onDuplicateKeyUpdate({
+        set: { cpuMillicores: input.cpuMillicores, updatedAt: Date.now() },
+      });
   });

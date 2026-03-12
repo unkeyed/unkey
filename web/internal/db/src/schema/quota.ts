@@ -60,6 +60,22 @@ export const quotas = mysqlTable("quota", {
    * NULL means unlimited (no workspace rate limiting).
    */
   ratelimitApiDuration: int("ratelimit_api_duration", { unsigned: true }),
+
+  // allocatedCpuMillicoresTotal defines the total CPU resources (in millicores) a workspace may allocate at the same time.
+  // New deployments that would exceed this limit will be rejected.
+  allocatedCpuMillicoresTotal: int("allocated_cpu_millicores_total", {
+    unsigned: true,
+  })
+    .notNull()
+    .default(10240 /* 10 cores */),
+
+  // allocatedMemoryMibTotal defines the total memory resources (in MiB) a workspace may allocate at the same time.
+  // New deployments that would exceed this limit will be rejected.
+  allocatedMemoryMibTotal: int("allocated_memory_mib_total", {
+    unsigned: true,
+  })
+    .notNull()
+    .default(20480 /* 20 GiB */),
 });
 export const quotasRelations = relations(quotas, ({ one }) => ({
   workspace: one(workspaces, {

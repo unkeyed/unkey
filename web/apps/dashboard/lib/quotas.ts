@@ -7,4 +7,6 @@ export const freeTierQuotas: Omit<Quotas, "workspaceId" | "pk"> = {
   team: false,
   ratelimitApiDuration: null,
   ratelimitApiLimit: null,
+  allocatedCpuMillicoresTotal: 10240, // 10 cores
+  allocatedMemoryMibTotal: 20480, // 20 GiB
 };

@@ -1394,14 +1394,16 @@ type Project struct {
 }
 
 type Quotum struct {
-	Pk                     uint64        `db:"pk"`
-	WorkspaceID            string        `db:"workspace_id"`
-	RequestsPerMonth       int64         `db:"requests_per_month"`
-	LogsRetentionDays      int32         `db:"logs_retention_days"`
-	AuditLogsRetentionDays int32         `db:"audit_logs_retention_days"`
-	Team                   bool          `db:"team"`
-	RatelimitApiLimit      sql.NullInt32 `db:"ratelimit_api_limit"`
-	RatelimitApiDuration   sql.NullInt32 `db:"ratelimit_api_duration"`
+	Pk                          uint64        `db:"pk"`
+	WorkspaceID                 string        `db:"workspace_id"`
+	RequestsPerMonth            int64         `db:"requests_per_month"`
+	LogsRetentionDays           int32         `db:"logs_retention_days"`
+	AuditLogsRetentionDays      int32         `db:"audit_logs_retention_days"`
+	Team                        bool          `db:"team"`
+	RatelimitApiLimit           sql.NullInt32 `db:"ratelimit_api_limit"`
+	RatelimitApiDuration        sql.NullInt32 `db:"ratelimit_api_duration"`
+	AllocatedCpuMillicoresTotal uint32        `db:"allocated_cpu_millicores_total"`
+	AllocatedMemoryMibTotal     uint32        `db:"allocated_memory_mib_total"`
 }
 
 type Ratelimit struct {
