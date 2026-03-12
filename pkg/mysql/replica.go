@@ -1,6 +1,4 @@
-// unkey/go/pkg/db/replica.go
-
-package db
+package mysql
 
 import (
 	"context"
@@ -13,7 +11,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// Replica wraps a standard SQL database connection and implements the gen.DBTX interface
+// Replica wraps a standard SQL database connection and implements the DBTX interface
 // to enable interaction with the generated database code.
 type Replica struct {
 	mode      string
@@ -21,7 +19,7 @@ type Replica struct {
 	debugLogs bool
 }
 
-// Ensure Replica implements the gen.DBTX interface
+// Ensure Replica implements the DBTX interface
 var _ DBTX = (*Replica)(nil)
 
 // ExecContext executes a SQL statement and returns a result summary.
