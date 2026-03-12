@@ -12,7 +12,7 @@ data:
     http_port = 7443
     apex_domain = "unkey.local"
     ctrl_addr = "http://ctrl-api:7091"
-    databae_url = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+    database_url = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
     [tls]
     cert_file = "/certs/unkey.local.crt"
