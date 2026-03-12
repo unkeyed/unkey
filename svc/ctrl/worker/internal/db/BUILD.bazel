@@ -1,0 +1,13 @@
+# gazelle:ignore
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "db",
+    srcs = glob(["*.go"]),
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/internal/db",
+    visibility = ["//svc/ctrl/worker:__subpackages__"],
+    deps = [
+        "//pkg/db/types",
+        "//pkg/mysql",
+    ],
+)

@@ -10,11 +10,11 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // maxVerificationDuration limits how long we retry DNS verification before
@@ -46,7 +46,7 @@ func (s *Service) VerifyDomain(
 	domain := restate.Key(ctx)
 
 	// Fetch domain - NOT journaled so we get fresh state on each retry
-	dom, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), domain)
+	dom, err := s.db.FindCustomDomainByDomain(ctx, domain)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
@@ -58,7 +58,7 @@ func (s *Service) VerifyDomain(
 	}
 
 	// Mark domain as actively being verified - NOT journaled
-	err = db.Query.UpdateCustomDomainVerificationStatus(ctx, s.db.RW(), db.UpdateCustomDomainVerificationStatusParams{
+	err = s.db.UpdateCustomDomainVerificationStatus(ctx, db.UpdateCustomDomainVerificationStatusParams{
 		ID:                 dom.ID,
 		VerificationStatus: db.CustomDomainsVerificationStatusVerifying,
 		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -106,7 +106,7 @@ func (s *Service) VerifyDomain(
 	cnameVerified := cnameResult.verified
 
 	// Update attempt count and verification flags - NOT journaled so we get fresh updates
-	err = db.Query.UpdateCustomDomainCheckAttempt(ctx, s.db.RW(), db.UpdateCustomDomainCheckAttemptParams{
+	err = s.db.UpdateCustomDomainCheckAttempt(ctx, db.UpdateCustomDomainCheckAttemptParams{
 		ID:            dom.ID,
 		CheckAttempts: dom.CheckAttempts + 1,
 		LastCheckedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -116,7 +116,7 @@ func (s *Service) VerifyDomain(
 		return nil, err
 	}
 
-	err = db.Query.UpdateCustomDomainOwnership(ctx, s.db.RW(), db.UpdateCustomDomainOwnershipParams{
+	err = s.db.UpdateCustomDomainOwnership(ctx, db.UpdateCustomDomainOwnershipParams{
 		OwnershipVerified: txtVerified,
 		CnameVerified:     cnameVerified,
 		UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -154,7 +154,7 @@ func (s *Service) RetryVerification(
 	logger.Info("retrying domain verification", "domain", domain)
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.ResetCustomDomainVerification(stepCtx, s.db.RW(), db.ResetCustomDomainVerificationParams{
+		return restate.Void{}, s.db.ResetCustomDomainVerification(stepCtx, db.ResetCustomDomainVerificationParams{
 			Domain:             domain,
 			VerificationStatus: db.CustomDomainsVerificationStatusPending,
 			CheckAttempts:      0,
@@ -228,7 +228,7 @@ func (s *Service) onVerificationSuccess(
 	now := time.Now().UnixMilli()
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateCustomDomainVerificationStatus(stepCtx, s.db.RW(), db.UpdateCustomDomainVerificationStatusParams{
+		return restate.Void{}, s.db.UpdateCustomDomainVerificationStatus(stepCtx, db.UpdateCustomDomainVerificationStatusParams{
 			ID:                 dom.ID,
 			VerificationStatus: db.CustomDomainsVerificationStatusVerified,
 			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
@@ -241,7 +241,7 @@ func (s *Service) onVerificationSuccess(
 	// Create a placeholder ACME challenge record. Token and Authorization are empty
 	// because they're provided by the ACME server during the challenge flow, not by us.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.InsertAcmeChallenge(stepCtx, s.db.RW(), db.InsertAcmeChallengeParams{
+		return restate.Void{}, s.db.InsertAcmeChallenge(stepCtx, db.InsertAcmeChallengeParams{
 			DomainID:      dom.ID,
 			WorkspaceID:   dom.WorkspaceID,
 			Token:         "",
@@ -267,7 +267,7 @@ func (s *Service) onVerificationSuccess(
 	// Create frontline route for traffic routing. If no deployment exists yet,
 	// the route will be assigned when the first deployment happens.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		app, appErr := db.Query.FindAppById(stepCtx, s.db.RO(), dom.AppID)
+		app, appErr := s.db.FindAppById(stepCtx, dom.AppID)
 		if appErr != nil {
 			return restate.Void{}, fault.Wrap(appErr, fault.Internal("failed to find app for frontline route"))
 		}
@@ -277,7 +277,7 @@ func (s *Service) onVerificationSuccess(
 			deploymentID = app.CurrentDeploymentID.String
 		}
 
-		return restate.Void{}, db.Query.InsertFrontlineRoute(stepCtx, s.db.RW(), db.InsertFrontlineRouteParams{
+		return restate.Void{}, s.db.InsertFrontlineRoute(stepCtx, db.InsertFrontlineRouteParams{
 			ID:                       uid.New(uid.FrontlineRoutePrefix),
 			ProjectID:                dom.ProjectID,
 			AppID:                    dom.AppID,
@@ -308,7 +308,7 @@ func (s *Service) onVerificationFailed(
 	errorMsg string,
 ) (*hydrav1.VerifyDomainResponse, error) {
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateCustomDomainFailed(stepCtx, s.db.RW(), db.UpdateCustomDomainFailedParams{
+		return restate.Void{}, s.db.UpdateCustomDomainFailed(stepCtx, db.UpdateCustomDomainFailedParams{
 			ID:                 dom.ID,
 			VerificationStatus: db.CustomDomainsVerificationStatusFailed,
 			VerificationError:  sql.NullString{Valid: true, String: errorMsg},

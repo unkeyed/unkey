@@ -9,9 +9,9 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
@@ -99,7 +99,7 @@ func (s *Service) RunCheck(
 		batchIDs := workspaceIDs[i:min(i+batchSize, len(workspaceIDs))]
 
 		batch, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.GetWorkspacesForQuotaCheckByIDsRow, error) {
-			return db.Query.GetWorkspacesForQuotaCheckByIDs(rc, s.db.RO(), batchIDs)
+			return s.db.GetWorkspacesForQuotaCheckByIDs(rc, batchIDs)
 		}, restate.WithName(fmt.Sprintf("fetch workspaces batch %d", i/batchSize)))
 		if fetchErr != nil {
 			return nil, fmt.Errorf("fetch workspaces: %w", fetchErr)

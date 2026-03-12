@@ -20,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
+	shareddb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -37,6 +37,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
+	workerdb "github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
@@ -112,8 +113,8 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	}
 
-	// Initialize database
-	database, err := db.New(db.Config{
+	// Initialize shared database (used by legacy ACME/provider helpers)
+	legacyDatabase, err := shareddb.New(shareddb.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
@@ -121,7 +122,14 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	r.Defer(database.Close)
+	r.Defer(legacyDatabase.Close)
+
+	// Initialize worker-local querier
+	database, closeDatabase, err := workerdb.New(cfg.Database.Primary)
+	if err != nil {
+		return fmt.Errorf("unable to create worker db querier: %w", err)
+	}
+	r.Defer(closeDatabase)
 
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
@@ -216,7 +224,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if clk == nil {
 		clk = clock.New()
 	}
-	domainCache, domainCacheErr := cache.New(cache.Config[string, db.CustomDomain]{
+	domainCache, domainCacheErr := cache.New(cache.Config[string, shareddb.CustomDomain]{
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
 		MaxSize:  10000,
@@ -233,7 +241,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Acme.Enabled {
 		// HTTP-01 provider for regular (non-wildcard) domains
 		httpProv, httpErr := providers.NewHTTPProvider(providers.HTTPConfig{
-			DB:          database,
+			DB:          legacyDatabase,
 			DomainCache: domainCache,
 		})
 		if httpErr != nil {
@@ -245,7 +253,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// DNS-01 provider for wildcard domains (requires DNS provider config)
 		if cfg.Acme.Route53.Enabled {
 			r53Provider, r53Err := providers.NewRoute53Provider(providers.Route53Config{
-				DB:              database,
+				DB:              legacyDatabase,
 				AccessKeyID:     cfg.Acme.Route53.AccessKeyID,
 				SecretAccessKey: cfg.Acme.Route53.SecretAccessKey,
 				Region:          cfg.Acme.Route53.Region,
@@ -268,6 +276,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
 		DB:            database,
+		LegacyDB:      legacyDatabase,
 		Vault:         vaultClient,
 		EmailDomain:   cfg.Acme.EmailDomain,
 		DefaultDomain: cfg.DefaultDomain,

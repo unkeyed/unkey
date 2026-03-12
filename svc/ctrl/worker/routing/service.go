@@ -2,7 +2,7 @@ package routing
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // Service implements the routing service for frontline route management.
@@ -12,7 +12,7 @@ import (
 // operations, preventing concurrent modifications to the same routes.
 type Service struct {
 	hydrav1.UnimplementedRoutingServiceServer
-	db            db.Database
+	db            db.Querier
 	defaultDomain string
 }
 
@@ -21,7 +21,7 @@ var _ hydrav1.RoutingServiceServer = (*Service)(nil)
 // Config holds the configuration for creating a [Service].
 type Config struct {
 	// DB provides access to frontline route records.
-	DB db.Database
+	DB db.Querier
 	// DefaultDomain is the apex domain for generated deployment URLs.
 	DefaultDomain string
 }

@@ -20,6 +20,7 @@ go_library(
         "//pkg/logger",
         "//pkg/uid",
         "//svc/ctrl/services/acme",
+        "//svc/ctrl/worker/internal/db",
         "@com_github_go_acme_lego_v4//certificate",
         "@com_github_go_acme_lego_v4//challenge",
         "@com_github_go_acme_lego_v4//lego",

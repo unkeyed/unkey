@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // newDomain represents a domain to be created for a deployment, including its

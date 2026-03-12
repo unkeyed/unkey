@@ -7,8 +7,8 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // AssignFrontlineRoutes reassigns a set of frontline routes to a new deployment.
@@ -29,7 +29,7 @@ func (s *Service) AssignFrontlineRoutes(ctx restate.ObjectContext, req *hydrav1.
 	// Upsert each domain in the database
 	for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
 		_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.ReassignFrontlineRoute(stepCtx, s.db.RW(), db.ReassignFrontlineRouteParams{
+			return restate.Void{}, s.db.ReassignFrontlineRoute(stepCtx, db.ReassignFrontlineRouteParams{
 				ID:           frontlineRouteID,
 				DeploymentID: req.GetDeploymentId(),
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

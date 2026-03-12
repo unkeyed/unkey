@@ -14,9 +14,9 @@ go_library(
         "//gen/proto/vault/v1:vault",
         "//gen/rpc/vault",
         "//pkg/clickhouse",
-        "//pkg/db",
         "//pkg/logger",
         "//pkg/ptr",
+        "//svc/ctrl/worker/internal/db",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
 )

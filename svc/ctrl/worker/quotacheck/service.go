@@ -4,14 +4,14 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // Service implements the QuotaCheckService Restate virtual object.
 type Service struct {
 	hydrav1.UnimplementedQuotaCheckServiceServer
-	db              db.Database
+	db              db.Querier
 	clickhouse      clickhouse.ClickHouse
 	heartbeat       healthcheck.Heartbeat
 	slackWebhookURL string
@@ -21,7 +21,7 @@ var _ hydrav1.QuotaCheckServiceServer = (*Service)(nil)
 
 // Config holds the configuration for the quota check service.
 type Config struct {
-	DB         db.Database
+	DB         db.Querier
 	Clickhouse clickhouse.ClickHouse
 	// Heartbeat sends health signals after successful quota check runs.
 	// Must not be nil - use healthcheck.NewNoop() if monitoring is not needed.

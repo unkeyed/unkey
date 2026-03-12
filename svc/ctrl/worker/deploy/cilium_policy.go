@@ -12,8 +12,8 @@ import (
 	"github.com/cilium/cilium/pkg/policy/api"
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -46,7 +46,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 ) error {
 
 	existingPolicies, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.CiliumNetworkPolicy, error) {
-		return db.Query.FindCiliumNetworkPoliciesByDeploymentID(runCtx, w.db.RO(), deployment.ID)
+		return w.db.FindCiliumNetworkPoliciesByDeploymentID(runCtx, deployment.ID)
 	}, restate.WithName("find existing cilium policies"))
 
 	if err != nil {
@@ -96,13 +96,13 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 
-				region, err := db.Query.FindRegionById(runCtx, w.db.RO(), topo.RegionID)
+				region, err := w.db.FindRegionById(runCtx, topo.RegionID)
 				if err != nil {
 					return fmt.Errorf("failed to find region %s for cilium policy %s: %w", topo.RegionID, spec.k8sName, err)
 				}
 
 				if hasExisting {
-					return db.Query.UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(runCtx, w.db.RW(), db.UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams{
+					return w.db.UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(runCtx, db.UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams{
 						Policy:        policyPayload,
 						Version:       policyVersion.GetVersion(),
 						UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -112,7 +112,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					})
 				}
 
-				err = db.Query.InsertCiliumNetworkPolicy(runCtx, w.db.RW(), db.InsertCiliumNetworkPolicyParams{
+				err = w.db.InsertCiliumNetworkPolicy(runCtx, db.InsertCiliumNetworkPolicyParams{
 					ID:            policyID,
 					WorkspaceID:   workspace.ID,
 					ProjectID:     project.ID,

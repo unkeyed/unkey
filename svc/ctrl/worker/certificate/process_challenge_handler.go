@@ -11,10 +11,10 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // EncryptedCertificate holds a certificate with its private key encrypted for storage.
@@ -67,7 +67,7 @@ func (s *Service) ProcessChallenge(
 
 	// Step 1: Resolve domain
 	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
-		return db.Query.FindCustomDomainByDomain(stepCtx, s.db.RO(), req.GetDomain())
+		return s.db.FindCustomDomainByDomain(stepCtx, req.GetDomain())
 	}, restate.WithName("resolve domain"))
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (s *Service) ProcessChallenge(
 
 	// Step 2: Claim the challenge
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateAcmeChallengeTryClaiming(stepCtx, s.db.RW(), db.UpdateAcmeChallengeTryClaimingParams{
+		return restate.Void{}, s.db.UpdateAcmeChallengeTryClaiming(stepCtx, db.UpdateAcmeChallengeTryClaimingParams{
 			DomainID:  dom.ID,
 			Status:    db.AcmeChallengesStatusPending,
 			UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
@@ -172,7 +172,7 @@ func (s *Service) ProcessChallenge(
 
 	// Step 6: Mark challenge as verified
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateAcmeChallengeVerifiedWithExpiry(stepCtx, s.db.RW(), db.UpdateAcmeChallengeVerifiedWithExpiryParams{
+		return restate.Void{}, s.db.UpdateAcmeChallengeVerifiedWithExpiry(stepCtx, db.UpdateAcmeChallengeVerifiedWithExpiryParams{
 			Status:    db.AcmeChallengesStatusVerified,
 			ExpiresAt: cert.ExpiresAt,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -211,7 +211,7 @@ func isWildcard(domain string) bool {
 func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*lego.Client, error) {
 	// Use a single global ACME user for all certificates
 	client, err := acme.GetOrCreateUser(ctx, acme.UserConfig{
-		DB:          s.db,
+		DB:          s.legacyDB,
 		Vault:       s.vault,
 		WorkspaceID: globalAcmeUserID,
 		EmailDomain: s.emailDomain,
@@ -318,7 +318,7 @@ func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, d
 	// Check if certificate already exists for this hostname (renewal case)
 	// If it does, we keep the existing ID; otherwise use the new ID
 	certID := cert.CertificateID
-	existingCert, err := db.Query.FindCertificateByHostname(ctx, s.db.RO(), domain)
+	existingCert, err := s.db.FindCertificateByHostname(ctx, domain)
 	if err != nil && !db.IsNotFound(err) {
 		return "", fmt.Errorf("failed to check for existing certificate: %w", err)
 	}
@@ -328,7 +328,7 @@ func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, d
 	}
 
 	// InsertCertificate uses ON DUPLICATE KEY UPDATE, so this handles both insert and renewal
-	err = db.Query.InsertCertificate(ctx, s.db.RW(), db.InsertCertificateParams{
+	err = s.db.InsertCertificate(ctx, db.InsertCertificateParams{
 		ID:                  certID,
 		WorkspaceID:         dom.WorkspaceID,
 		Hostname:            domain,
@@ -347,7 +347,7 @@ func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, d
 // markChallengeFailed marks a challenge as failed during cleanup.
 func (s *Service) markChallengeFailed(ctx restate.ObjectContext, domainID string) {
 	_, _ = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		if updateErr := db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{
+		if updateErr := s.db.UpdateAcmeChallengeStatus(stepCtx, db.UpdateAcmeChallengeStatusParams{
 			DomainID:  domainID,
 			Status:    db.AcmeChallengesStatusFailed,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

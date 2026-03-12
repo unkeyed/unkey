@@ -8,7 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // how long a deployment must be idle for before we scale it down to 0
@@ -28,7 +28,7 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 	for {
 
 		environments, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Environment, error) {
-			return db.Query.ListPreviewEnvironments(runCtx, w.db.RO(), db.ListPreviewEnvironmentsParams{
+			return w.db.ListPreviewEnvironments(runCtx, db.ListPreviewEnvironmentsParams{
 				PaginationCursor: cursor,
 				Limit:            100,
 			})
@@ -45,7 +45,7 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 		for _, environment := range environments {
 
 			deployments, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Deployment, error) {
-				return db.Query.ListDeploymentsByEnvironmentIdAndStatus(runCtx, w.db.RO(), db.ListDeploymentsByEnvironmentIdAndStatusParams{
+				return w.db.ListDeploymentsByEnvironmentIdAndStatus(runCtx, db.ListDeploymentsByEnvironmentIdAndStatusParams{
 					EnvironmentID: environment.ID,
 					Status:        db.DeploymentsStatusReady,
 					CreatedBefore: cutoff,

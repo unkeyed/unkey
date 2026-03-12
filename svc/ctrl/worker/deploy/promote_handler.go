@@ -7,9 +7,9 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // Promote reassigns all sticky domains to a deployment and clears the rolled back state.
@@ -35,7 +35,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 
 	// Get target deployment
 	targetDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(stepCtx, w.db.RO(), req.GetTargetDeploymentId())
+		return w.db.FindDeploymentById(stepCtx, req.GetTargetDeploymentId())
 	}, restate.WithName("finding target deployment"))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -49,7 +49,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 
 	// Get app from deployment's app_id
 	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
-		return db.Query.FindAppById(stepCtx, w.db.RO(), targetDeployment.AppID)
+		return w.db.FindAppById(stepCtx, targetDeployment.AppID)
 	}, restate.WithName("finding app"))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -83,7 +83,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 
 	// Get all frontlineRoutes for promotion
 	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
-		return db.Query.FindFrontlineRouteForPromotion(stepCtx, w.db.RO(), db.FindFrontlineRouteForPromotionParams{
+		return w.db.FindFrontlineRouteForPromotion(stepCtx, db.FindFrontlineRouteForPromotionParams{
 			EnvironmentID: targetDeployment.EnvironmentID,
 			Sticky: []db.FrontlineRoutesSticky{
 				db.FrontlineRoutesStickyLive,
@@ -122,7 +122,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 
 	// Update app's current deployment
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
+		err = w.db.UpdateAppDeployments(stepCtx, db.UpdateAppDeploymentsParams{
 			AppID:               app.ID,
 			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
 			IsRolledBack:        false,

@@ -8,9 +8,9 @@ import (
 
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // InfraWorkspaceID is the workspace ID for infrastructure certificates. Infrastructure
@@ -91,7 +91,7 @@ func (s *Service) BootstrapInfraCerts(ctx context.Context, cfg BootstrapConfig) 
 // [Service.ProcessChallenge] if a certificate is missing.
 func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate *restateIngress.Client) error {
 	// Check if domain already has a cert via JOIN
-	existingDomain, err := db.Query.FindCustomDomainWithCertByDomain(ctx, s.db.RO(), domain)
+	existingDomain, err := s.db.FindCustomDomainWithCertByDomain(ctx, domain)
 	if err != nil && !db.IsNotFound(err) {
 		return fmt.Errorf("failed to check for existing domain: %w", err)
 	}
@@ -107,7 +107,7 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate 
 		domainID := uid.New(uid.DomainPrefix)
 		now := time.Now().UnixMilli()
 
-		err = db.Query.UpsertCustomDomain(ctx, s.db.RW(), db.UpsertCustomDomainParams{
+		err = s.db.UpsertCustomDomain(ctx, db.UpsertCustomDomainParams{
 			ID:                 domainID,
 			WorkspaceID:        InfraWorkspaceID,
 			ProjectID:          InfraWorkspaceID,
@@ -125,7 +125,7 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate 
 			return fmt.Errorf("failed to create custom domain record: %w", err)
 		}
 
-		err = db.Query.InsertAcmeChallenge(ctx, s.db.RW(), db.InsertAcmeChallengeParams{
+		err = s.db.InsertAcmeChallenge(ctx, db.InsertAcmeChallengeParams{
 			WorkspaceID:   InfraWorkspaceID,
 			DomainID:      domainID,
 			Token:         "",

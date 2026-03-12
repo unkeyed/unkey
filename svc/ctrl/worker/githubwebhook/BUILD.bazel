@@ -11,9 +11,9 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/hydra/v1:hydra",
-        "//pkg/db",
         "//pkg/logger",
         "//pkg/uid",
+        "//svc/ctrl/worker/internal/db",
         "@com_github_restatedev_sdk_go//:sdk-go",
         "@org_golang_google_protobuf//encoding/protojson",
     ],

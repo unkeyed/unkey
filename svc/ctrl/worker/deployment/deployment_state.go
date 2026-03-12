@@ -8,7 +8,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 const transitionKey = "transition"
@@ -96,12 +96,12 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 
-		return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			deployment, err := db.Query.FindDeploymentById(txCtx, tx, deploymentID)
+		return db.Tx(runCtx, v.db, func(txCtx context.Context, tx db.Querier) error {
+			deployment, err := tx.FindDeploymentById(txCtx, deploymentID)
 			if err != nil {
 				return err
 			}
-			app, err := db.Query.FindAppById(txCtx, tx, deployment.AppID)
+			app, err := tx.FindAppById(txCtx, deployment.AppID)
 			if err != nil {
 				return err
 			}
@@ -110,7 +110,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 				return restate.TerminalErrorf("not allowed to modify the current deployment")
 			}
 
-			err = db.Query.UpdateDeploymentDesiredState(txCtx, tx, db.UpdateDeploymentDesiredStateParams{
+			err = tx.UpdateDeploymentDesiredState(txCtx, db.UpdateDeploymentDesiredStateParams{
 				ID:           deploymentID,
 				DesiredState: desiredState,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -131,7 +131,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	// Update all topology entries so WatchDeployments picks up the change.
 	// Each region needs a new version from VersioningService.
 	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Region, error) {
-		return db.Query.FindDeploymentRegions(runCtx, v.db.RO(), deploymentID)
+		return v.db.FindDeploymentRegions(runCtx, deploymentID)
 	}, restate.WithName("find deployment regions"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find deployment regions: %w", err)
@@ -144,7 +144,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Query.UpdateDeploymentTopologyDesiredStatus(runCtx, v.db.RW(), db.UpdateDeploymentTopologyDesiredStatusParams{
+			return v.db.UpdateDeploymentTopologyDesiredStatus(runCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
 				DesiredStatus: topologyDesiredStatus,
 				Version:       versionResp.GetVersion(),
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -153,7 +153,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 			})
 		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region.ID)))
 		if err != nil {
-			return nil, fmt.Errorf("failed to update topology desired status in %s: %w", region, err)
+			return nil, fmt.Errorf("failed to update topology desired status in %s: %w", region.ID, err)
 		}
 	}
 

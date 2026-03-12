@@ -10,9 +10,9 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 const (
@@ -67,7 +67,7 @@ func (s *Service) ConfigureUser(
 
 	// Check if user exists
 	result, err := restate.Run(ctx, func(rc restate.RunContext) (existingUserResult, error) {
-		row, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, s.db.RO(), workspaceID)
+		row, err := s.db.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, workspaceID)
 		if db.IsNotFound(err) {
 			//nolint:exhaustruct // zero value is intentional for not-found case
 			return existingUserResult{Found: false}, nil
@@ -92,7 +92,7 @@ func (s *Service) ConfigureUser(
 
 		// Fetch retention days from workspace quota
 		quota, err := restate.Run(ctx, func(rc restate.RunContext) (db.Quotas, error) {
-			return db.Query.FindQuotaByWorkspaceID(rc, s.db.RO(), workspaceID)
+			return s.db.FindQuotaByWorkspaceID(rc, workspaceID)
 		}, restate.WithName("fetch quota"))
 		if err != nil {
 			return nil, fmt.Errorf("fetch quota: %w", err)
@@ -116,7 +116,7 @@ func (s *Service) ConfigureUser(
 			encrypted := resp.GetEncrypted()
 
 			now := time.Now().UnixMilli()
-			err = db.Query.InsertClickhouseWorkspaceSettings(rc, s.db.RW(), db.InsertClickhouseWorkspaceSettingsParams{
+			err = s.db.InsertClickhouseWorkspaceSettings(rc, db.InsertClickhouseWorkspaceSettingsParams{
 				WorkspaceID:               workspaceID,
 				Username:                  workspaceID,
 				PasswordEncrypted:         encrypted,
@@ -133,13 +133,13 @@ func (s *Service) ConfigureUser(
 				// Handle crash-recovery: if we inserted but didn't journal, fetch existing
 				// Use RW to avoid replica lag, then update quotas to ensure they're current
 				if db.IsDuplicateKeyError(err) {
-					existing, fetchErr := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, s.db.RW(), workspaceID)
+					existing, fetchErr := s.db.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, workspaceID)
 					if fetchErr != nil {
 						return "", fmt.Errorf("fetch after duplicate: %w", fetchErr)
 					}
 
 					// Update quota fields in case they changed since the original insert
-					updateErr := db.Query.UpdateClickhouseWorkspaceSettingsLimits(rc, s.db.RW(), db.UpdateClickhouseWorkspaceSettingsLimitsParams{
+					updateErr := s.db.UpdateClickhouseWorkspaceSettingsLimits(rc, db.UpdateClickhouseWorkspaceSettingsLimitsParams{
 						WorkspaceID:               workspaceID,
 						QuotaDurationSeconds:      quotas.quotaDurationSeconds,
 						MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
@@ -172,7 +172,7 @@ func (s *Service) ConfigureUser(
 
 		now := time.Now().UnixMilli()
 		_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.UpdateClickhouseWorkspaceSettingsLimits(rc, s.db.RW(), db.UpdateClickhouseWorkspaceSettingsLimitsParams{
+			return restate.Void{}, s.db.UpdateClickhouseWorkspaceSettingsLimits(rc, db.UpdateClickhouseWorkspaceSettingsLimitsParams{
 				WorkspaceID:               workspaceID,
 				QuotaDurationSeconds:      quotas.quotaDurationSeconds,
 				MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,

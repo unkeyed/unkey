@@ -11,9 +11,9 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 const stateKeyProcessedKeys = "processed_keys"
@@ -59,7 +59,7 @@ func (s *Service) RunRefill(
 	for {
 		// Fetch batch of keys needing refill via deferred join on pk
 		keys, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListKeysForRefillRow, error) {
-			return db.Query.ListKeysForRefill(rc, s.db.RO(), db.ListKeysForRefillParams{
+			return s.db.ListKeysForRefill(rc, db.ListKeysForRefillParams{
 				TodayDay:         sql.NullInt16{Int16: int16(todayDay), Valid: true},
 				IsLastDayOfMonth: isLastDayInt,
 				AfterPk:          cursor,
@@ -106,7 +106,7 @@ func (s *Service) RunRefill(
 
 		// Batch update keys
 		_, updateErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.RefillKeysByIDs(rc, s.db.RW(), db.RefillKeysByIDsParams{
+			return restate.Void{}, s.db.RefillKeysByIDs(rc, db.RefillKeysByIDsParams{
 				Now: sql.NullInt64{Int64: now, Valid: true},
 				Ids: keyIDs,
 			})
@@ -115,15 +115,19 @@ func (s *Service) RunRefill(
 			return nil, fmt.Errorf("update keys: %w", updateErr)
 		}
 
-		// Create audit logs in bulk
+		// Create audit logs and targets for the processed batch.
 		auditLogs, auditTargets := buildAuditLogs(keysToProcess, now)
 		_, auditErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-			if err := db.BulkQuery.InsertAuditLogs(rc, s.db.RW(), auditLogs); err != nil {
-				return restate.Void{}, fmt.Errorf("insert audit logs: %w", err)
+			for _, auditLog := range auditLogs {
+				if err := s.db.InsertAuditLog(rc, auditLog); err != nil {
+					return restate.Void{}, fmt.Errorf("insert audit logs: %w", err)
+				}
 			}
 
-			if err := db.BulkQuery.InsertAuditLogTargets(rc, s.db.RW(), auditTargets); err != nil {
-				return restate.Void{}, fmt.Errorf("insert audit log targets: %w", err)
+			for _, auditTarget := range auditTargets {
+				if err := s.db.InsertAuditLogTarget(rc, auditTarget); err != nil {
+					return restate.Void{}, fmt.Errorf("insert audit log targets: %w", err)
+				}
 			}
 
 			return restate.Void{}, nil

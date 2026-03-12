@@ -4,8 +4,9 @@ import (
 	"github.com/go-acme/lego/v4/challenge"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
-	"github.com/unkeyed/unkey/pkg/db"
+	shareddb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // Service orchestrates ACME certificate issuance and renewal.
@@ -25,13 +26,14 @@ import (
 // by Restate's virtual object model which keys handlers by domain name.
 type Service struct {
 	hydrav1.UnimplementedCertificateServiceServer
-	db            db.Database
+	db            db.Querier
 	vault         vault.VaultServiceClient
 	emailDomain   string
 	defaultDomain string
 	dnsProvider   challenge.Provider
 	httpProvider  challenge.Provider
 	heartbeat     healthcheck.Heartbeat
+	legacyDB      shareddb.Database
 }
 
 var _ hydrav1.CertificateServiceServer = (*Service)(nil)
@@ -39,7 +41,10 @@ var _ hydrav1.CertificateServiceServer = (*Service)(nil)
 // Config holds configuration for creating a [Service] instance.
 type Config struct {
 	// DB provides database access for domain, certificate, and ACME challenge records.
-	DB db.Database
+	DB db.Querier
+
+	// LegacyDB is used by shared ACME account helpers that still live in pkg/db.
+	LegacyDB shareddb.Database
 
 	// Vault encrypts private keys before database storage. Keys are encrypted using
 	// the workspace ID as the keyring identifier.
@@ -81,5 +86,6 @@ func New(cfg Config) *Service {
 		dnsProvider:                           cfg.DNSProvider,
 		httpProvider:                          cfg.HTTPProvider,
 		heartbeat:                             cfg.Heartbeat,
+		legacyDB:                              cfg.LegacyDB,
 	}
 }

@@ -2,7 +2,7 @@ package customdomain
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // Service orchestrates custom domain verification workflows.
@@ -20,7 +20,7 @@ import (
 // a frontline route so traffic can be routed to the user's deployment.
 type Service struct {
 	hydrav1.UnimplementedCustomDomainServiceServer
-	db          db.Database
+	db          db.Querier
 	cnameDomain string
 }
 
@@ -29,7 +29,7 @@ var _ hydrav1.CustomDomainServiceServer = (*Service)(nil)
 // Config holds configuration for creating a [Service] instance.
 type Config struct {
 	// DB provides database access for custom domain records.
-	DB db.Database
+	DB db.Querier
 
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".

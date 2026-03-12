@@ -4,8 +4,8 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // BuildPlatform specifies the target platform for container builds.
@@ -40,7 +40,7 @@ type RegistryConfig struct {
 // across different apps within the same project.
 type Workflow struct {
 	hydrav1.UnimplementedDeployServiceServer
-	db db.Database
+	db db.Querier
 
 	defaultDomain string
 	vault         vault.VaultServiceClient
@@ -61,7 +61,7 @@ var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
 // Config holds the configuration for creating a deployment workflow.
 type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
-	DB db.Database
+	DB db.Querier
 
 	// DefaultDomain is the apex domain for generated deployment URLs (e.g., "unkey.app").
 	DefaultDomain string

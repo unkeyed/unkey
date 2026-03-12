@@ -4,7 +4,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // Service orchestrates ClickHouse user provisioning for workspaces.
@@ -18,7 +18,7 @@ import (
 // by Restate's virtual object model which keys handlers by workspace_id.
 type Service struct {
 	hydrav1.UnimplementedClickhouseUserServiceServer
-	db         db.Database
+	db         db.Querier
 	vault      vault.VaultServiceClient
 	clickhouse clickhouse.ClickHouse
 }
@@ -28,7 +28,7 @@ var _ hydrav1.ClickhouseUserServiceServer = (*Service)(nil)
 // Config holds configuration for creating a [Service] instance.
 type Config struct {
 	// DB provides database access for storing encrypted credentials.
-	DB db.Database
+	DB db.Querier
 
 	// Vault encrypts passwords before database storage. Passwords are encrypted using
 	// the workspace ID as the keyring identifier.

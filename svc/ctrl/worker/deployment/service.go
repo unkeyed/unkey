@@ -2,7 +2,7 @@ package deployment
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // VirtualObject serialises all mutations targeting a single deployment. See
@@ -11,7 +11,7 @@ import (
 // changes.
 type VirtualObject struct {
 	hydrav1.UnimplementedDeploymentServiceServer
-	db db.Database
+	db db.Querier
 }
 
 var _ hydrav1.DeploymentServiceServer = (*VirtualObject)(nil)
@@ -19,7 +19,7 @@ var _ hydrav1.DeploymentServiceServer = (*VirtualObject)(nil)
 // Config holds the dependencies required to create a VirtualObject.
 type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
-	DB db.Database
+	DB db.Querier
 }
 
 // New creates a new VirtualObject from the given configuration.

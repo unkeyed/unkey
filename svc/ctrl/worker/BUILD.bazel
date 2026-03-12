@@ -35,6 +35,7 @@ go_library(
         "//svc/ctrl/worker/deployment",
         "//svc/ctrl/worker/github",
         "//svc/ctrl/worker/githubwebhook",
+        "//svc/ctrl/worker/internal/db",
         "//svc/ctrl/worker/keyrefill",
         "//svc/ctrl/worker/quotacheck",
         "//svc/ctrl/worker/routing",

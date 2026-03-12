@@ -6,8 +6,8 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/internal/db"
 )
 
 // RenewExpiringCertificates renews certificates before they expire.
@@ -32,7 +32,7 @@ func (s *Service) RenewExpiringCertificates(
 
 	// Find all challenges that need processing (waiting or expiring soon)
 	challenges, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.ListExecutableChallengesRow, error) {
-		return db.Query.ListExecutableChallenges(stepCtx, s.db.RO(), challengeTypes)
+		return s.db.ListExecutableChallenges(stepCtx, challengeTypes)
 	}, restate.WithName("list expiring certificates"))
 	if err != nil {
 		return nil, err
