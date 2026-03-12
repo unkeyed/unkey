@@ -29,12 +29,13 @@ func (s *Service) blockDeploymentForApproval(
 		return err
 	}
 
-	logURL := fmt.Sprintf("%s/%s/projects/%s/authorize?branch=%s&sha=%s&sender=%s&message=%s",
+	logURL := fmt.Sprintf("%s/%s/projects/%s/authorize?branch=%s&sha=%s&sender=%s&message=%s&repo=%s",
 		s.dashboardURL, workspace.Slug, project.ID,
 		url.QueryEscape(branch),
 		url.QueryEscape(req.GetAfter()),
 		url.QueryEscape(req.GetSenderLogin()),
 		url.QueryEscape(req.GetCommitMessage()),
+		url.QueryEscape(req.GetRepositoryFullName()),
 	)
 
 	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
