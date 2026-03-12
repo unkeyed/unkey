@@ -41,6 +41,41 @@ const (
 	defaultCacheKeepDays = 14
 )
 
+// knownBuildError maps a BuildKit error pattern to a user-friendly message.
+type knownBuildError struct {
+	// substr is matched anywhere in the error string.
+	substr string
+	// message is the clean, actionable text shown to the user.
+	message string
+}
+
+// knownBuildErrors lists BuildKit error patterns caused by user mistakes
+// (bad Dockerfile, missing files, invalid config) paired with friendly messages.
+var knownBuildErrors = []knownBuildError{
+	// Settings-fixable: dockerfile path / docker context
+	{substr: "the dockerfile cannot be empty", message: "The Dockerfile appears to be empty. Please verify the file path in settings."},
+	{substr: "failed to read dockerfile", message: "Dockerfile could not be read. Please check that the file path is correct in settings."},
+	{substr: "failed to find target", message: "The specified build target stage was not found. Please check the target name in settings."},
+	{substr: "failed to compute cache key", message: "A file referenced in the Dockerfile was not found. Please check the root directory in settings."},
+	{substr: "no such file or directory", message: "A file or directory referenced in the build was not found. Please check the root directory in settings."},
+	// Dockerfile content issues (require editing the Dockerfile)
+	{substr: "dockerfile parse error on line", message: "Dockerfile has a syntax error. Please check the Dockerfile for typos."},
+	{substr: "no build stage in current context", message: "Dockerfile has no valid build stage. Please add a FROM instruction."},
+	{substr: "circular dependency detected on stage", message: "Dockerfile contains a circular dependency between stages. Please review the stage references."},
+	{substr: "invalid reference format", message: "A Docker image reference is invalid. Please check your FROM lines."},
+	{substr: "no match for platform in manifest", message: "The base image does not support the target platform. Please use a multi-platform image or change the platform."},
+	{substr: "no matching manifest", message: "The base image does not support the target platform. Please use a multi-platform image or change the platform."},
+	{substr: "there is no variable named", message: "Dockerfile references an undefined variable. Please check your ARG declarations."},
+	{substr: "the expression result is null", message: "A Dockerfile expression evaluated to null. Please check your variable references."},
+	{substr: "invalid expression", message: "Dockerfile contains an invalid expression. Please check the syntax."},
+	{substr: "invalid block definition", message: "Dockerfile contains an invalid block definition. Please check the syntax."},
+	{substr: "must be of the form: name=value", message: "A build argument is malformed. Please use the format name=value."},
+	{substr: "contains value with non-printable ascii characters", message: "A build argument contains non-printable characters. Please remove them."},
+	{substr: "docker exporter does not currently support", message: "The requested export format is not supported. Please check your export configuration."},
+	{substr: "failed to solve: process", message: "A build command failed. Please check the build logs for details."},
+	{substr: "linting failed", message: "Dockerfile linting failed. Please check the Dockerfile for issues."},
+}
+
 // buildResult contains the output of a Docker image build, including the image
 // name and identifiers needed to trace builds in Depot.
 type buildResult struct {
@@ -201,8 +236,6 @@ func (w *Workflow) buildDockerImageFromGit(
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return nil, fmt.Errorf("build interrupted: %w", err)
 			}
-			// Build failures (bad Dockerfile, compilation errors, etc.) won't fix
-			// themselves on retry — mark as terminal to stop Restate from retrying.
 			return nil, restate.TerminalError(fmt.Errorf("build failed: %w", err))
 		}
 
@@ -413,4 +446,17 @@ func (w *Workflow) processBuildStatus(
 			})
 		}
 	}
+}
+
+// extractUserBuildError checks whether err matches a known user-caused build
+// failure and returns a clean, actionable message. For unrecognized errors it
+// returns a generic fallback.
+func extractUserBuildError(err error) string {
+	msg := strings.ToLower(err.Error())
+	for _, known := range knownBuildErrors {
+		if strings.Contains(msg, known.substr) {
+			return known.message
+		}
+	}
+	return "Build failed. Please check the build logs for details."
 }

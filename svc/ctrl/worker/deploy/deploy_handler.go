@@ -287,7 +287,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			if resolveErr != nil {
 				return fault.Wrap(
 					restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr)),
-					fault.Public("Selected Git branch could not be resolved."),
+					fault.Public("The configured Git branch could not be resolved. Please check your branch settings."),
 				)
 			}
 			commitSHA = info.SHA
@@ -327,9 +327,16 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			WorkspaceID:    deployment.WorkspaceID,
 		})
 		if err != nil {
+			// fault.Public set inside buildDockerImageFromGit is lost because
+			// restate.Run serialises terminal errors, stripping the fault wrapper.
+			// Re-extract the user message on this side of the Restate boundary.
+			publicMsg := fault.UserFacingMessage(err)
+			if publicMsg == "" {
+				publicMsg = extractUserBuildError(err)
+			}
 			return fault.Wrap(
 				fmt.Errorf("failed to build docker image from git: %w", err),
-				fault.Public("Build failed. Please check the build logs for details."),
+				fault.Public(publicMsg),
 			)
 		}
 		dockerImage = build.ImageName

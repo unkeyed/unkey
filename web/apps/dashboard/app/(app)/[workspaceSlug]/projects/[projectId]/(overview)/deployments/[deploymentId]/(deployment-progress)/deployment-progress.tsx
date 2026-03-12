@@ -4,16 +4,16 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
-import { Button, SettingCardGroup } from "@unkey/ui";
+import { SettingCardGroup } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
-import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import { useDeployment } from "../layout-provider";
 import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
 import { DeploymentStep } from "./deployment-step";
 import { resolveDeploymentStep } from "./deployment-step-resolution";
+import { FailedDeploymentBanner } from "./failed-deployment-banner";
 
 type RouterOutputs = inferRouterOutputs<Router>;
 export type StepsData = RouterOutputs["deploy"]["deployment"]["steps"];
@@ -183,33 +183,14 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
         />
       </SettingCardGroup>
       {isFailed && (
-        <div className="flex flex-col gap-3 animate-fade-slide-in">
-          <div className="border border-errorA-4 bg-errorA-2 rounded-[14px] p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-error-11">Deployment failed</span>
-                <span className="text-xs text-gray-11">
-                  {[queued, starting, building, deploying, network, finalizing].find(
-                    (s) => s?.error,
-                  )?.error ?? "Deployment failed"}
-                </span>
-              </div>
-            </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setRedeployOpen(true)}
-              className="px-3"
-            >
-              Redeploy
-            </Button>
-          </div>
-          <RedeployDialog
-            isOpen={redeployOpen}
-            onClose={() => setRedeployOpen(false)}
-            selectedDeployment={deployment}
-          />
-        </div>
+        <FailedDeploymentBanner
+          steps={[queued, starting, building, deploying, network, finalizing]}
+          settingsUrl={`/${workspaceSlug}/projects/${projectId}/settings`}
+          onRedeploy={() => setRedeployOpen(true)}
+          redeployOpen={redeployOpen}
+          onRedeployClose={() => setRedeployOpen(false)}
+          deployment={deployment}
+        />
       )}
       {network?.completed && (
         <div className="animate-fade-slide-in">
