@@ -4,19 +4,23 @@ import { useProjectData } from "../(overview)/data-provider";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@unkey/ui";
 import { CircleCheck, CircleXMark, CodeBranch, CodeCommit, Github, ShieldAlert, User } from "@unkey/icons";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { parseAsString, useQueryStates } from "nuqs";
+
+const searchParamsParsers = {
+  branch: parseAsString.withDefault(""),
+  sha: parseAsString.withDefault(""),
+  sender: parseAsString.withDefault(""),
+  message: parseAsString.withDefault(""),
+  repo: parseAsString.withDefault(""),
+};
 
 export default function AuthorizeDeploymentPage() {
   const params = useParams<{ workspaceSlug: string; projectId: string }>();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const { project } = useProjectData();
 
-  const branch = searchParams.get("branch");
-  const sha = searchParams.get("sha");
-  const sender = searchParams.get("sender");
-  const message = searchParams.get("message");
-  const repo = searchParams.get("repo");
+  const [{ branch, sha, sender, message, repo }] = useQueryStates(searchParamsParsers);
 
   const authorize = trpc.deploy.deployment.authorize.useMutation({
     onSuccess: () => {
@@ -24,11 +28,10 @@ export default function AuthorizeDeploymentPage() {
     },
   });
 
-  const shortSha = sha?.slice(0, 7);
-
-  const commitURL = repo && sha ? `https://github.com/${repo}/commit/${sha}` : null;
-  const branchURL = repo ? `https://github.com/${repo}/tree/${branch}` : null;
-  const senderURL = sender ? `https://github.com/${sender}` : null;
+  const shortSha = sha.slice(0, 7);
+  const commitURL = `https://github.com/${repo}/commit/${sha}`;
+  const branchURL = `https://github.com/${repo}/tree/${branch}`;
+  const senderURL = `https://github.com/${sender}`;
 
   if (!branch) {
     return (
@@ -91,42 +94,28 @@ export default function AuthorizeDeploymentPage() {
           <div className="flex items-center gap-3 px-4 py-3">
             <CodeBranch iconSize="md-thin" className="text-content-subtle shrink-0" />
             <span className="text-sm text-content-subtle">Branch</span>
-            {branchURL ? (
-              <a
-                href={branchURL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto text-sm font-mono text-accent-11 hover:text-accent-12 bg-background-subtle px-2 py-0.5 rounded"
-              >
-                {branch}
-              </a>
-            ) : (
-              <code className="ml-auto text-sm font-mono text-content bg-background-subtle px-2 py-0.5 rounded">
-                {branch}
-              </code>
-            )}
+            <a
+              href={branchURL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto text-sm font-mono text-accent-11 hover:text-accent-12 bg-background-subtle px-2 py-0.5 rounded"
+            >
+              {branch}
+            </a>
           </div>
 
-          {shortSha && (
-            <div className="flex items-center gap-3 px-4 py-3">
-              <CodeCommit iconSize="md-thin" className="text-content-subtle shrink-0" />
-              <span className="text-sm text-content-subtle">Commit</span>
-              {commitURL ? (
-                <a
-                  href={commitURL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-auto text-sm font-mono text-accent-11 hover:text-accent-12 bg-background-subtle px-2 py-0.5 rounded"
-                >
-                  {shortSha}
-                </a>
-              ) : (
-                <code className="ml-auto text-sm font-mono text-content bg-background-subtle px-2 py-0.5 rounded">
-                  {shortSha}
-                </code>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-3 px-4 py-3">
+            <CodeCommit iconSize="md-thin" className="text-content-subtle shrink-0" />
+            <span className="text-sm text-content-subtle">Commit</span>
+            <a
+              href={commitURL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto text-sm font-mono text-accent-11 hover:text-accent-12 bg-background-subtle px-2 py-0.5 rounded"
+            >
+              {shortSha}
+            </a>
+          </div>
 
           {message && (
             <div className="px-4 py-3">
@@ -134,23 +123,17 @@ export default function AuthorizeDeploymentPage() {
             </div>
           )}
 
-          {sender && (
-            <div className="flex items-center gap-3 px-4 py-3">
-              <User iconSize="md-thin" className="text-content-subtle shrink-0" />
-              {senderURL ? (
-                <a
-                  href={senderURL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-accent-11 hover:text-accent-12"
-                >
-                  {sender}
-                </a>
-              ) : (
-                <span className="text-sm text-content">{sender}</span>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-3 px-4 py-3">
+            <User iconSize="md-thin" className="text-content-subtle shrink-0" />
+            <a
+              href={senderURL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-accent-11 hover:text-accent-12"
+            >
+              {sender}
+            </a>
+          </div>
         </div>
 
         {/* Error */}
