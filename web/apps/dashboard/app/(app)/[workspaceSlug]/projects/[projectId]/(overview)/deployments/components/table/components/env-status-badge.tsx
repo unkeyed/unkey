@@ -1,25 +1,6 @@
-import { cn } from "@/lib/utils";
+import { TagBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/tag-badge";
 import { InfoTooltip } from "@unkey/ui";
-import { cva } from "class-variance-authority";
-import type { VariantProps } from "class-variance-authority";
 import type { HTMLAttributes, ReactNode } from "react";
-
-const statusBadgeVariants = cva(
-  "inline-flex items-center rounded-md px-2 text-xs leading-5 gap-1",
-  {
-    variants: {
-      variant: {
-        enabled: "text-successA-11 bg-successA-3",
-        disabled: "text-warningA-11 bg-warningA-3",
-        current: "text-feature-11 bg-feature-4",
-        rolledBack: "text-warningA-11 bg-warningA-4",
-      },
-    },
-    defaultVariants: {
-      variant: "current",
-    },
-  },
-);
 
 const tooltipContent = {
   enabled: "This environment is enabled and ready to receive deployments.",
@@ -29,7 +10,7 @@ const tooltipContent = {
 } as const;
 
 type EnvStatusBadgeProps = HTMLAttributes<HTMLDivElement> & {
-  variant?: VariantProps<typeof statusBadgeVariants>["variant"];
+  variant?: keyof typeof tooltipContent;
   icon?: ReactNode;
   text: string;
 };
@@ -42,14 +23,8 @@ export const EnvStatusBadge = ({
   ...props
 }: EnvStatusBadgeProps) => {
   return (
-    <InfoTooltip
-      content={tooltipContent[variant as Exclude<typeof variant, null>]}
-      variant="inverted"
-    >
-      <div className={cn(statusBadgeVariants({ variant }), className)} {...props}>
-        {icon && <span className="inline-flex items-center">{icon}</span>}
-        <span className="font-medium">{text}</span>
-      </div>
+    <InfoTooltip content={tooltipContent[variant]} variant="inverted">
+      <TagBadge variant={variant} icon={icon} text={text} className={className} {...props} />
     </InfoTooltip>
   );
 };
