@@ -47,6 +47,8 @@ export default function AuthorizeDeploymentPage() {
     );
   }
 
+  const isStaleCommit = authorize.error?.message?.includes("no longer the HEAD");
+
   if (authorize.isSuccess) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -56,6 +58,44 @@ export default function AuthorizeDeploymentPage() {
           <p className="text-content-subtle text-sm">
             The deployment has been authorized and is now in progress.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isStaleCommit) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-3">
+            <ShieldAlert iconSize="2xl-thin" className="text-warning-9 mx-auto" />
+            <h2 className="text-lg font-semibold text-content">Commit is outdated</h2>
+            <p className="text-sm text-content-subtle">
+              The branch <strong className="text-content font-mono">{branch}</strong> has new commits
+              since this authorization link was created. Check the pull request for the latest
+              authorization link.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="primary"
+              size="xlg"
+              className="flex-1"
+              onClick={() => window.open(branchURL, "_blank")}
+            >
+              View Branch on GitHub
+            </Button>
+            <Button
+              variant="outline"
+              size="xlg"
+              className="flex-1"
+              onClick={() =>
+                router.push(`/${params.workspaceSlug}/projects/${params.projectId}/deployments`)
+              }
+            >
+              Go to Deployments
+            </Button>
+          </div>
         </div>
       </div>
     );
