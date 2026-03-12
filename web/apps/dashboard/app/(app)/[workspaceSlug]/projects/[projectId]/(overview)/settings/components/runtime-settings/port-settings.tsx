@@ -1,10 +1,10 @@
-import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { NumberInput } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
+import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const portSchema = z.object({
@@ -13,7 +13,8 @@ const portSchema = z.object({
 
 export const Port = () => {
   const { settings, variant } = useEnvironmentSettings();
-  const { environmentId, port: defaultValue } = settings;
+  const { port: defaultValue } = settings;
+  const updateAllEnvironments = useUpdateAllEnvironments();
 
   const {
     register,
@@ -35,7 +36,7 @@ export const Port = () => {
   ]);
 
   const onSubmit = async (values: z.infer<typeof portSchema>) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       draft.port = values.port;
     });
   };
