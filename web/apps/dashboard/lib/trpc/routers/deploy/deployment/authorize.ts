@@ -12,47 +12,50 @@ export const authorizeDeployment = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
-      projectId: z.string().min(1, "Project ID is required"),
-      branch: z.string().min(1, "Branch is required"),
-      commitSha: z.string().regex(/^[0-9a-f]{40}$/, "Invalid commit SHA"),
+      deploymentId: z.string().min(1, "Deployment ID is required"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ctrl = createCtrlClient(DeployService);
-
-    const project = await db.query.projects.findFirst({
+    const deployment = await db.query.deployments.findFirst({
       where: (table, { eq, and }) =>
-        and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+        and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
       columns: {
         id: true,
-        name: true,
+        projectId: true,
+      },
+      with: {
+        project: {
+          columns: {
+            name: true,
+          },
+        },
       },
     });
 
-    if (!project) {
+    if (!deployment) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Project not found or access denied",
+        message: "Deployment not found or access denied",
       });
     }
 
+    const ctrl = createCtrlClient(DeployService);
+
     try {
       await ctrl.authorizeDeployment({
-        projectId: input.projectId,
-        branch: input.branch,
-        commitSha: input.commitSha,
+        deploymentId: input.deploymentId,
       });
 
       await insertAuditLogs(db, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "deployment.create",
-        description: `Authorized deployment for ${project.name} on branch ${input.branch}`,
+        description: `Authorized deployment ${input.deploymentId} for ${deployment.project.name}`,
         resources: [
           {
             type: "project",
-            id: input.projectId,
-            name: project.name,
+            id: deployment.projectId,
+            name: deployment.project.name,
           },
         ],
         context: ctx.audit,
