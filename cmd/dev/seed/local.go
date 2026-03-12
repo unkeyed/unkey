@@ -237,7 +237,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		err = db.Query.UpsertRegion(ctx, tx, db.UpsertRegionParams{
 			ID:       regionID,
 			Name:     "local",
-			Platform: "local",
+			Platform: "dev",
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create region: %w", err)
