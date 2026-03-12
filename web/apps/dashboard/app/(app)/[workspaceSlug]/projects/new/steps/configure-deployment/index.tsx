@@ -1,8 +1,8 @@
 "use client";
 
 import { ProjectDataProvider } from "../../../[projectId]/(overview)/data-provider";
-import { OnboardingEnvironmentSettingsProvider } from "./environment-provider";
 import { ConfigureDeploymentContent } from "./content";
+import { OnboardingEnvironmentSettingsProvider } from "./environment-provider";
 import { ConfigureDeploymentFallback } from "./fallback";
 
 type ConfigureDeploymentStepProps = {

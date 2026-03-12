@@ -1,9 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import {
-  subscribeToSettingsSaving,
-} from "@/lib/collections/deploy/environment-settings";
+import { subscribeToSettingsSaving } from "@/lib/collections/deploy/environment-settings";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { type PropsWithChildren, useEffect, useMemo, useState } from "react";
 import { EnvironmentContext } from "../../../[projectId]/(overview)/settings/environment-provider";

@@ -52,13 +52,25 @@ const _saveSubscribers = new Set<(isSaving: boolean) => void>();
 
 function _notifySaveSubscribers() {
   const isSaving = _pendingSaves > 0;
-  for (const cb of _saveSubscribers) cb(isSaving);
+  for (const cb of _saveSubscribers) {
+    cb(isSaving);
+  }
 }
 
 export function subscribeToSettingsSaving(cb: (isSaving: boolean) => void): () => void {
   _saveSubscribers.add(cb);
   return () => {
     _saveSubscribers.delete(cb);
+  };
+}
+
+let _savedCount = 0;
+const _savedSubscribers = new Set<() => void>();
+
+export function subscribeToSettingsSaved(cb: () => void): () => void {
+  _savedSubscribers.add(cb);
+  return () => {
+    _savedSubscribers.delete(cb);
   };
 }
 
@@ -292,6 +304,10 @@ async function dispatchSettingsMutations(
   _notifySaveSubscribers();
   try {
     await allMutations;
+    _savedCount++;
+    for (const cb of _savedSubscribers) {
+      cb();
+    }
   } finally {
     _pendingSaves--;
     _notifySaveSubscribers();

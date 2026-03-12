@@ -25,6 +25,7 @@ export const ConfigureDeploymentFallback = () => {
         <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
           {cards.map(({ titleW, descW, badgeW }, i) => (
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave
               key={i}
               className="px-4 py-[18px] lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row"
             >
@@ -37,7 +38,10 @@ export const ConfigureDeploymentFallback = () => {
               </div>
               <div className="flex w-full lg:w-[320px] items-center gap-4 justify-end">
                 <div
-                  className={cn("h-7 rounded-md border border-grayA-4 bg-grayA-3 animate-pulse", badgeW)}
+                  className={cn(
+                    "h-7 rounded-md border border-grayA-4 bg-grayA-3 animate-pulse",
+                    badgeW,
+                  )}
                 />
                 <div className="size-3.5 rounded bg-grayA-3 animate-pulse" />
               </div>
@@ -47,6 +51,7 @@ export const ConfigureDeploymentFallback = () => {
 
         {/* SettingsGroup collapsed headers skeleton */}
         {sections.map(({ titleW }, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave
           <div key={i} className="flex flex-col">
             <div className="flex items-center justify-between mb-4 px-2">
               <div className="flex items-center gap-2.5">

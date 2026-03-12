@@ -1,7 +1,6 @@
 "use client";
 
 import type { Domain } from "@/lib/collections";
-import { cn } from "@/lib/utils";
 import { ChevronDown, Cube, Earth, Link4 } from "@unkey/icons";
 import {
   Button,
@@ -16,6 +15,7 @@ import { type ReactNode, useState } from "react";
 import { useProjectData } from "../(overview)/data-provider";
 import { useDeployment } from "../(overview)/deployments/[deploymentId]/layout-provider";
 import { SettingsGroup } from "../(overview)/settings/components/shared/settings-group";
+import { GlowIcon } from "./glow-icon";
 
 export function DeploymentDomainsCard({
   emptyState,
@@ -62,28 +62,11 @@ export function DeploymentDomainsCard({
           <SettingCard
             iconClassName={glow ? "bg-transparent shadow-none dark:ring-0" : undefined}
             icon={
-              glow ? (
-                <div className="relative w-full h-full">
-                  <div
-                    className={cn(
-                      "absolute inset-[-4px] rounded-[10px] blur-[14px]",
-                      "bg-linear-to-l from-feature-8 to-info-9",
-                      "animate-pulse opacity-20",
-                    )}
-                  />
-                  <div
-                    className={cn(
-                      "w-full h-full rounded-[10px] flex items-center justify-center shrink-0 relative dark:bg-white dark:text-black bg-black text-white",
-                    )}
-                  >
-                    <Cube iconSize="md-medium" className="size-[18px]" />
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full h-full rounded-[10px] flex items-center justify-center shrink-0">
-                  <Cube iconSize="md-medium" className="size-[18px]" />
-                </div>
-              )
+              <GlowIcon
+                icon={<Cube iconSize="md-medium" className="size-[18px]" />}
+                glow={glow}
+                className="w-full h-full"
+              />
             }
             title={project?.name}
             description={
