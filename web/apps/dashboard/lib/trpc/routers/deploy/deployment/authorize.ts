@@ -14,6 +14,7 @@ export const authorizeDeployment = workspaceProcedure
     z.object({
       projectId: z.string().min(1, "Project ID is required"),
       branch: z.string().min(1, "Branch is required"),
+      commitSha: z.string().regex(/^[0-9a-f]{40}$/, "Invalid commit SHA"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -39,6 +40,7 @@ export const authorizeDeployment = workspaceProcedure
       await ctrl.authorizeDeployment({
         projectId: input.projectId,
         branch: input.branch,
+        commitSha: input.commitSha,
       });
 
       await insertAuditLogs(db, {

@@ -33,14 +33,14 @@ export default function AuthorizeDeploymentPage() {
   const branchURL = `https://github.com/${repo}/tree/${branch}`;
   const senderURL = `https://github.com/${sender}`;
 
-  if (!branch) {
+  if (!branch || !sha || !/^[0-9a-f]{40}$/.test(sha)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-2">
           <ShieldAlert iconSize="2xl-thin" className="text-warning-9 mx-auto" />
-          <h2 className="text-lg font-semibold text-content">Missing branch parameter</h2>
+          <h2 className="text-lg font-semibold text-content">Invalid authorization link</h2>
           <p className="text-content-subtle text-sm">
-            This page should be accessed from a GitHub check link.
+            This page should be accessed from a GitHub commit status link.
           </p>
         </div>
       </div>
@@ -155,6 +155,7 @@ export default function AuthorizeDeploymentPage() {
               authorize.mutate({
                 projectId: params.projectId,
                 branch,
+                commitSha: sha,
               })
             }
           >
