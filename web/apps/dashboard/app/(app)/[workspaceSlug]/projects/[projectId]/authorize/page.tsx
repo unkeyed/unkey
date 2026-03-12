@@ -48,7 +48,7 @@ export default function AuthorizeDeploymentPage() {
   }
 
   const isStaleCommit = authorize.error?.message?.includes("no longer the HEAD");
-  const newHead = isStaleCommit ? parseNewHead(authorize.error.message) : null;
+  const newHead = isStaleCommit ? parseNewHead(authorize.error!.message) : null;
 
   if (authorize.isSuccess) {
     return (
