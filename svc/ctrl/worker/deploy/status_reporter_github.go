@@ -142,7 +142,7 @@ func (w *Workflow) createStatusReporter(
 		existingGHDeploymentID = deployment.GithubDeploymentID.Int64
 	}
 
-	reporter := newGithubStatusReporter(githubStatusReporterConfig{
+	ghReporter := newGithubStatusReporter(githubStatusReporterConfig{
 		GitHub:             w.github,
 		DB:                 w.db,
 		InstallationID:     repoConn.InstallationID,
@@ -155,8 +155,24 @@ func (w *Workflow) createStatusReporter(
 		IsProduction:       environment.Slug == "production",
 		GithubDeploymentID: existingGHDeploymentID,
 	})
-	reporter.Create(ctx)
-	return reporter
+
+	prReporter := newPRCommentReporter(prCommentReporterConfig{
+		GitHub:         w.github,
+		InstallationID: repoConn.InstallationID,
+		Repo:           repoConn.RepositoryFullName,
+		Branch:         deployment.GitBranch.String,
+		CommitSHA:      deployment.GitCommitSha.String,
+		DeploymentID:   deployment.ID,
+		ProjectSlug:    project.Slug,
+		AppSlug:        app.Slug,
+		EnvSlug:        environment.Slug,
+		LogURL:         logURL,
+		EnvironmentURL: envURL,
+	})
+
+	composite := newCompositeStatusReporter(ghReporter, prReporter)
+	composite.Create(ctx)
+	return composite
 }
 
 // formatEnvironmentLabel builds a human-readable label like "project - env"
