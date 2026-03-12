@@ -1,6 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SquareTerminal } from "@unkey/icons";
 import { FormTextarea, InfoTooltip } from "@unkey/ui";
@@ -8,6 +7,7 @@ import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
+import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const commandSchema = z.object({
@@ -18,7 +18,8 @@ type CommandFormValues = z.infer<typeof commandSchema>;
 
 export const Command = () => {
   const { settings, variant } = useEnvironmentSettings();
-  const { command, environmentId } = settings;
+  const { command } = settings;
+  const updateAllEnvironments = useUpdateAllEnvironments();
   const defaultCommand = command.join(" ");
 
   const {
@@ -49,7 +50,7 @@ export const Command = () => {
   const onSubmit = async (values: CommandFormValues) => {
     const trimmed = values.command.trim();
     const command = trimmed === "" ? [] : trimmed.split(/\s+/).filter(Boolean);
-    collection.environmentSettings.update(environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       draft.command = command;
     });
   };
