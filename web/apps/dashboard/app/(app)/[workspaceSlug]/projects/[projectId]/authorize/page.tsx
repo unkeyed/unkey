@@ -48,6 +48,7 @@ export default function AuthorizeDeploymentPage() {
   }
 
   const isStaleCommit = authorize.error?.message?.includes("no longer the HEAD");
+  const newHead = isStaleCommit ? parseNewHead(authorize.error.message) : null;
 
   if (authorize.isSuccess) {
     return (
@@ -63,7 +64,15 @@ export default function AuthorizeDeploymentPage() {
     );
   }
 
-  if (isStaleCommit) {
+  if (isStaleCommit && newHead) {
+    const newAuthorizeURL = `/${params.workspaceSlug}/projects/${params.projectId}/authorize?${new URLSearchParams({
+      branch,
+      sha: newHead.sha,
+      sender: newHead.author,
+      message: newHead.message,
+      repo,
+    }).toString()}`;
+
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-full max-w-md space-y-6">
@@ -72,8 +81,15 @@ export default function AuthorizeDeploymentPage() {
             <h2 className="text-lg font-semibold text-content">Commit is outdated</h2>
             <p className="text-sm text-content-subtle">
               The branch <strong className="text-content font-mono">{branch}</strong> has new commits
-              since this authorization link was created. Check the pull request for the latest
-              authorization link.
+              since this link was created. The latest commit is{" "}
+              <a
+                href={`https://github.com/${repo}/commit/${newHead.sha}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-accent-11 hover:text-accent-12"
+              >
+                {newHead.sha.slice(0, 7)}
+              </a>.
             </p>
           </div>
           <div className="flex gap-3">
@@ -81,9 +97,9 @@ export default function AuthorizeDeploymentPage() {
               variant="primary"
               size="xlg"
               className="flex-1"
-              onClick={() => window.open(branchURL, "_blank")}
+              onClick={() => router.push(newAuthorizeURL)}
             >
-              View Branch on GitHub
+              View Latest Commit
             </Button>
             <Button
               variant="outline"
@@ -93,7 +109,7 @@ export default function AuthorizeDeploymentPage() {
                 router.push(`/${params.workspaceSlug}/projects/${params.projectId}/deployments`)
               }
             >
-              Go to Deployments
+              Dismiss
             </Button>
           </div>
         </div>
@@ -220,4 +236,18 @@ export default function AuthorizeDeploymentPage() {
       </div>
     </div>
   );
+}
+
+function parseNewHead(errorMessage: string): { sha: string; message: string; author: string } | null {
+  const shaMatch = errorMessage.match(/current_head_sha=([0-9a-f]{40})/);
+  const messageMatch = errorMessage.match(/current_head_message=(.+?)(?:\s+current_head_author=|$)/);
+  const authorMatch = errorMessage.match(/current_head_author=(\S+)/);
+  if (!shaMatch) {
+    return null;
+  }
+  return {
+    sha: shaMatch[1],
+    message: messageMatch?.[1] ?? "",
+    author: authorMatch?.[1] ?? "",
+  };
 }
