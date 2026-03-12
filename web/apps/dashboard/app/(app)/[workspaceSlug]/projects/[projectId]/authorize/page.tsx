@@ -16,6 +16,7 @@ export default function AuthorizeDeploymentPage() {
   const sha = searchParams.get("sha");
   const sender = searchParams.get("sender");
   const message = searchParams.get("message");
+  const repo = searchParams.get("repo");
 
   const authorize = trpc.deploy.deployment.authorize.useMutation({
     onSuccess: () => {
@@ -24,6 +25,10 @@ export default function AuthorizeDeploymentPage() {
   });
 
   const shortSha = sha?.slice(0, 7);
+
+  const commitURL = repo && sha ? `https://github.com/${repo}/commit/${sha}` : null;
+  const branchURL = repo ? `https://github.com/${repo}/tree/${branch}` : null;
+  const senderURL = sender ? `https://github.com/${sender}` : null;
 
   if (!branch) {
     return (
@@ -86,18 +91,40 @@ export default function AuthorizeDeploymentPage() {
           <div className="flex items-center gap-3 px-4 py-3">
             <CodeBranch iconSize="md-thin" className="text-content-subtle shrink-0" />
             <span className="text-sm text-content-subtle">Branch</span>
-            <code className="ml-auto text-sm font-mono text-content bg-background-subtle px-2 py-0.5 rounded">
-              {branch}
-            </code>
+            {branchURL ? (
+              <a
+                href={branchURL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto text-sm font-mono text-accent-11 hover:text-accent-12 bg-background-subtle px-2 py-0.5 rounded"
+              >
+                {branch}
+              </a>
+            ) : (
+              <code className="ml-auto text-sm font-mono text-content bg-background-subtle px-2 py-0.5 rounded">
+                {branch}
+              </code>
+            )}
           </div>
 
           {shortSha && (
             <div className="flex items-center gap-3 px-4 py-3">
               <CodeCommit iconSize="md-thin" className="text-content-subtle shrink-0" />
               <span className="text-sm text-content-subtle">Commit</span>
-              <code className="ml-auto text-sm font-mono text-content bg-background-subtle px-2 py-0.5 rounded">
-                {shortSha}
-              </code>
+              {commitURL ? (
+                <a
+                  href={commitURL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto text-sm font-mono text-accent-11 hover:text-accent-12 bg-background-subtle px-2 py-0.5 rounded"
+                >
+                  {shortSha}
+                </a>
+              ) : (
+                <code className="ml-auto text-sm font-mono text-content bg-background-subtle px-2 py-0.5 rounded">
+                  {shortSha}
+                </code>
+              )}
             </div>
           )}
 
@@ -110,7 +137,18 @@ export default function AuthorizeDeploymentPage() {
           {sender && (
             <div className="flex items-center gap-3 px-4 py-3">
               <User iconSize="md-thin" className="text-content-subtle shrink-0" />
-              <span className="text-sm text-content">{sender}</span>
+              {senderURL ? (
+                <a
+                  href={senderURL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-accent-11 hover:text-accent-12"
+                >
+                  {sender}
+                </a>
+              ) : (
+                <span className="text-sm text-content">{sender}</span>
+              )}
             </div>
           )}
         </div>
