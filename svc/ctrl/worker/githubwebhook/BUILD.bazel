@@ -10,11 +10,13 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook",
     visibility = ["//visibility:public"],
     deps = [
+        "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
         "//pkg/logger",
-        "//svc/ctrl/internal/deployutil",
+        "//pkg/uid",
         "//svc/ctrl/worker/github",
         "@com_github_restatedev_sdk_go//:sdk-go",
+        "@org_golang_google_protobuf//encoding/protojson",
     ],
 )

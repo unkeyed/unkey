@@ -2,7 +2,6 @@ package githubwebhook
 
 import (
 	"fmt"
-	"net/url"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -18,9 +17,8 @@ func (s *Service) blockDeploymentForApproval(
 	ctx restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
 	project db.Project,
-	app db.App,
 	repo db.GithubRepoConnection,
-	branch string,
+	deploymentID string,
 ) error {
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 		return db.Query.FindWorkspaceByID(runCtx, s.db.RO(), project.WorkspaceID)
@@ -29,13 +27,8 @@ func (s *Service) blockDeploymentForApproval(
 		return err
 	}
 
-	logURL := fmt.Sprintf("%s/%s/projects/%s/authorize?branch=%s&sha=%s&sender=%s&message=%s&repo=%s",
-		s.dashboardURL, workspace.Slug, project.ID,
-		url.QueryEscape(branch),
-		url.QueryEscape(req.GetAfter()),
-		url.QueryEscape(req.GetSenderLogin()),
-		url.QueryEscape(req.GetCommitMessage()),
-		url.QueryEscape(req.GetRepositoryFullName()),
+	logURL := fmt.Sprintf("%s/%s/projects/%s/authorize?deploymentId=%s",
+		s.dashboardURL, workspace.Slug, project.ID, deploymentID,
 	)
 
 	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
@@ -51,9 +44,8 @@ func (s *Service) blockDeploymentForApproval(
 	}, restate.WithName("create commit status for authorization"), restate.WithMaxRetryDuration(30*time.Second))
 
 	logger.Info("deployment blocked for authorization",
+		"deployment_id", deploymentID,
 		"project_id", project.ID,
-		"app_id", app.ID,
-		"branch", branch,
 		"sender", req.GetSenderLogin(),
 	)
 

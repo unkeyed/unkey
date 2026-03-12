@@ -10,7 +10,7 @@ import (
 )
 
 const listAppsByProject = `-- name: ListAppsByProject :many
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.deployment_protection, apps.delete_protection, apps.created_at, apps.updated_at
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 FROM apps
 WHERE project_id = ?
 ORDER BY created_at ASC
@@ -22,7 +22,7 @@ type ListAppsByProjectRow struct {
 
 // ListAppsByProject
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.deployment_protection, apps.delete_protection, apps.created_at, apps.updated_at
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 //	FROM apps
 //	WHERE project_id = ?
 //	ORDER BY created_at ASC
@@ -45,7 +45,6 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, projectID stri
 			&i.App.DefaultBranch,
 			&i.App.CurrentDeploymentID,
 			&i.App.IsRolledBack,
-			&i.App.DeploymentProtection,
 			&i.App.DeleteProtection,
 			&i.App.CreatedAt,
 			&i.App.UpdatedAt,

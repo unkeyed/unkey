@@ -491,14 +491,15 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 type DeploymentsStatus string
 
 const (
-	DeploymentsStatusPending    DeploymentsStatus = "pending"
-	DeploymentsStatusStarting   DeploymentsStatus = "starting"
-	DeploymentsStatusBuilding   DeploymentsStatus = "building"
-	DeploymentsStatusDeploying  DeploymentsStatus = "deploying"
-	DeploymentsStatusNetwork    DeploymentsStatus = "network"
-	DeploymentsStatusFinalizing DeploymentsStatus = "finalizing"
-	DeploymentsStatusReady      DeploymentsStatus = "ready"
-	DeploymentsStatusFailed     DeploymentsStatus = "failed"
+	DeploymentsStatusPending          DeploymentsStatus = "pending"
+	DeploymentsStatusStarting         DeploymentsStatus = "starting"
+	DeploymentsStatusBuilding         DeploymentsStatus = "building"
+	DeploymentsStatusDeploying        DeploymentsStatus = "deploying"
+	DeploymentsStatusNetwork          DeploymentsStatus = "network"
+	DeploymentsStatusFinalizing       DeploymentsStatus = "finalizing"
+	DeploymentsStatusReady            DeploymentsStatus = "ready"
+	DeploymentsStatusFailed           DeploymentsStatus = "failed"
+	DeploymentsStatusAwaitingApproval DeploymentsStatus = "awaiting_approval"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -960,19 +961,18 @@ type Api struct {
 }
 
 type App struct {
-	Pk                   uint64         `db:"pk"`
-	ID                   string         `db:"id"`
-	WorkspaceID          string         `db:"workspace_id"`
-	ProjectID            string         `db:"project_id"`
-	Name                 string         `db:"name"`
-	Slug                 string         `db:"slug"`
-	DefaultBranch        string         `db:"default_branch"`
-	CurrentDeploymentID  sql.NullString `db:"current_deployment_id"`
-	IsRolledBack         bool           `db:"is_rolled_back"`
-	DeploymentProtection bool           `db:"deployment_protection"`
-	DeleteProtection     sql.NullBool   `db:"delete_protection"`
-	CreatedAt            int64          `db:"created_at"`
-	UpdatedAt            sql.NullInt64  `db:"updated_at"`
+	Pk                  uint64         `db:"pk"`
+	ID                  string         `db:"id"`
+	WorkspaceID         string         `db:"workspace_id"`
+	ProjectID           string         `db:"project_id"`
+	Name                string         `db:"name"`
+	Slug                string         `db:"slug"`
+	DefaultBranch       string         `db:"default_branch"`
+	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
+	IsRolledBack        bool           `db:"is_rolled_back"`
+	DeleteProtection    sql.NullBool   `db:"delete_protection"`
+	CreatedAt           int64          `db:"created_at"`
+	UpdatedAt           sql.NullInt64  `db:"updated_at"`
 }
 
 type AppBuildSetting struct {
@@ -1173,6 +1173,7 @@ type Deployment struct {
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
 	GithubDeploymentID            sql.NullInt64             `db:"github_deployment_id"`
+	AwakeableID                   sql.NullString            `db:"awakeable_id"`
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`

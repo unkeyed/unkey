@@ -25,15 +25,16 @@ const (
 type DeploymentStatus int32
 
 const (
-	DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED DeploymentStatus = 0
-	DeploymentStatus_DEPLOYMENT_STATUS_PENDING     DeploymentStatus = 1
-	DeploymentStatus_DEPLOYMENT_STATUS_STARTING    DeploymentStatus = 7
-	DeploymentStatus_DEPLOYMENT_STATUS_BUILDING    DeploymentStatus = 2
-	DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING   DeploymentStatus = 3
-	DeploymentStatus_DEPLOYMENT_STATUS_NETWORK     DeploymentStatus = 4
-	DeploymentStatus_DEPLOYMENT_STATUS_FINALIZING  DeploymentStatus = 8
-	DeploymentStatus_DEPLOYMENT_STATUS_READY       DeploymentStatus = 5
-	DeploymentStatus_DEPLOYMENT_STATUS_FAILED      DeploymentStatus = 6
+	DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED       DeploymentStatus = 0
+	DeploymentStatus_DEPLOYMENT_STATUS_PENDING           DeploymentStatus = 1
+	DeploymentStatus_DEPLOYMENT_STATUS_STARTING          DeploymentStatus = 7
+	DeploymentStatus_DEPLOYMENT_STATUS_BUILDING          DeploymentStatus = 2
+	DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING         DeploymentStatus = 3
+	DeploymentStatus_DEPLOYMENT_STATUS_NETWORK           DeploymentStatus = 4
+	DeploymentStatus_DEPLOYMENT_STATUS_FINALIZING        DeploymentStatus = 8
+	DeploymentStatus_DEPLOYMENT_STATUS_READY             DeploymentStatus = 5
+	DeploymentStatus_DEPLOYMENT_STATUS_FAILED            DeploymentStatus = 6
+	DeploymentStatus_DEPLOYMENT_STATUS_AWAITING_APPROVAL DeploymentStatus = 9
 )
 
 // Enum value maps for DeploymentStatus.
@@ -48,17 +49,19 @@ var (
 		8: "DEPLOYMENT_STATUS_FINALIZING",
 		5: "DEPLOYMENT_STATUS_READY",
 		6: "DEPLOYMENT_STATUS_FAILED",
+		9: "DEPLOYMENT_STATUS_AWAITING_APPROVAL",
 	}
 	DeploymentStatus_value = map[string]int32{
-		"DEPLOYMENT_STATUS_UNSPECIFIED": 0,
-		"DEPLOYMENT_STATUS_PENDING":     1,
-		"DEPLOYMENT_STATUS_STARTING":    7,
-		"DEPLOYMENT_STATUS_BUILDING":    2,
-		"DEPLOYMENT_STATUS_DEPLOYING":   3,
-		"DEPLOYMENT_STATUS_NETWORK":     4,
-		"DEPLOYMENT_STATUS_FINALIZING":  8,
-		"DEPLOYMENT_STATUS_READY":       5,
-		"DEPLOYMENT_STATUS_FAILED":      6,
+		"DEPLOYMENT_STATUS_UNSPECIFIED":       0,
+		"DEPLOYMENT_STATUS_PENDING":           1,
+		"DEPLOYMENT_STATUS_STARTING":          7,
+		"DEPLOYMENT_STATUS_BUILDING":          2,
+		"DEPLOYMENT_STATUS_DEPLOYING":         3,
+		"DEPLOYMENT_STATUS_NETWORK":           4,
+		"DEPLOYMENT_STATUS_FINALIZING":        8,
+		"DEPLOYMENT_STATUS_READY":             5,
+		"DEPLOYMENT_STATUS_FAILED":            6,
+		"DEPLOYMENT_STATUS_AWAITING_APPROVAL": 9,
 	}
 )
 
@@ -1058,12 +1061,8 @@ func (*PromoteResponse) Descriptor() ([]byte, []int) {
 }
 
 type AuthorizeDeploymentRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	ProjectId string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Branch    string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
-	// The exact commit SHA to authorize. The backend verifies this matches
-	// the current branch HEAD to prevent deploying stale or spoofed commits.
-	CommitSha     string `protobuf:"bytes,3,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1098,23 +1097,9 @@ func (*AuthorizeDeploymentRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *AuthorizeDeploymentRequest) GetProjectId() string {
+func (x *AuthorizeDeploymentRequest) GetDeploymentId() string {
 	if x != nil {
-		return x.ProjectId
-	}
-	return ""
-}
-
-func (x *AuthorizeDeploymentRequest) GetBranch() string {
-	if x != nil {
-		return x.Branch
-	}
-	return ""
-}
-
-func (x *AuthorizeDeploymentRequest) GetCommitSha() string {
-	if x != nil {
-		return x.CommitSha
+		return x.DeploymentId
 	}
 	return ""
 }
@@ -1245,14 +1230,10 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x10RollbackResponse\"B\n" +
 	"\x0ePromoteRequest\x120\n" +
 	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
-	"\x0fPromoteResponse\"r\n" +
-	"\x1aAuthorizeDeploymentRequest\x12\x1d\n" +
-	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x16\n" +
-	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x1d\n" +
-	"\n" +
-	"commit_sha\x18\x03 \x01(\tR\tcommitSha\"\x1d\n" +
-	"\x1bAuthorizeDeploymentResponse*\xb1\x02\n" +
+	"\x0fPromoteResponse\"A\n" +
+	"\x1aAuthorizeDeploymentRequest\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x1d\n" +
+	"\x1bAuthorizeDeploymentResponse*\xda\x02\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
@@ -1262,7 +1243,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x19DEPLOYMENT_STATUS_NETWORK\x10\x04\x12 \n" +
 	"\x1cDEPLOYMENT_STATUS_FINALIZING\x10\b\x12\x1b\n" +
 	"\x17DEPLOYMENT_STATUS_READY\x10\x05\x12\x1c\n" +
-	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06*Z\n" +
+	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06\x12'\n" +
+	"#DEPLOYMENT_STATUS_AWAITING_APPROVAL\x10\t*Z\n" +
 	"\n" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +

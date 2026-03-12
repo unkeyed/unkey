@@ -6,122 +6,103 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/deployutil"
 )
 
-// AuthorizeDeployment authorizes a deployment for an external contributor's push.
-// It fetches the current HEAD of the branch from GitHub, re-derives all matching
-// deploy contexts, creates deployment records, and fires deploy workflows.
+// AuthorizeDeployment authorizes a deployment that is awaiting approval.
+// It looks up the deployment by ID, verifies it is in awaiting_approval status,
+// updates the status to pending, and triggers the deploy workflow.
 func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[ctrlv1.AuthorizeDeploymentRequest]) (*connect.Response[ctrlv1.AuthorizeDeploymentResponse], error) {
-	projectID := req.Msg.GetProjectId()
-	branch := req.Msg.GetBranch()
-	commitSHA := req.Msg.GetCommitSha()
+	deploymentID := req.Msg.GetDeploymentId()
 
-	if projectID == "" || branch == "" || commitSHA == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("project_id, branch, and commit_sha are required"))
+	if deploymentID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("deployment_id is required"))
 	}
 
-	repoConn, err := db.Query.FindGithubRepoConnectionByProjectId(ctx, s.db.RO(), projectID)
+	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no GitHub connection found for project %s", projectID))
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment %s not found", deploymentID))
 		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find deployment: %w", err))
+	}
+
+	if deployment.Status != db.DeploymentsStatusAwaitingApproval {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("deployment %s is not awaiting approval (current status: %s)", deploymentID, deployment.Status))
+	}
+
+	// Update status to pending so the deployment workflow can proceed
+	err = db.Query.UpdateDeploymentStatus(ctx, s.db.RW(), db.UpdateDeploymentStatusParams{
+		ID:     deploymentID,
+		Status: db.DeploymentsStatusPending,
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment status: %w", err))
+	}
+
+	// Look up build settings and repo connection to construct the deploy request
+	buildSetting, err := db.Query.FindAppBuildSettingByAppEnv(ctx, s.db.RO(), db.FindAppBuildSettingByAppEnvParams{
+		AppID:         deployment.AppID,
+		EnvironmentID: deployment.EnvironmentID,
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find build settings: %w", err))
+	}
+
+	repoConn, err := db.Query.FindGithubRepoConnectionByProjectId(ctx, s.db.RO(), deployment.ProjectID)
+	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find repo connection: %w", err))
 	}
 
-	headCommit, err := s.github.GetBranchHeadCommit(repoConn.InstallationID, repoConn.RepositoryFullName, branch)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch branch HEAD from GitHub: %w", err))
+	commitSHA := ""
+	if deployment.GitCommitSha.Valid {
+		commitSHA = deployment.GitCommitSha.String
 	}
 
-	// Verify the commit SHA matches the current branch HEAD. This prevents:
-	// 1. Deploying a stale commit when the branch has moved (new push after the blocked one)
-	// 2. Spoofed SHA values in URL params being used to deploy arbitrary commits
-	if headCommit.SHA != commitSHA {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("commit %s is no longer the HEAD of branch %s; current_head_sha=%s current_head_message=%s current_head_author=%s",
-				commitSHA[:min(7, len(commitSHA))], branch, headCommit.SHA, headCommit.Message, headCommit.AuthorHandle))
+	deployReq := &hydrav1.DeployRequest{
+		DeploymentId: deploymentID,
+		Source: &hydrav1.DeployRequest_Git{
+			Git: &hydrav1.GitSource{
+				InstallationId: repoConn.InstallationID,
+				Repository:     repoConn.RepositoryFullName,
+				CommitSha:      commitSHA,
+				ContextPath:    buildSetting.DockerContext,
+				DockerfilePath: buildSetting.Dockerfile,
+			},
+		},
 	}
 
-	contexts, err := db.Query.ListRepoConnectionDeployContexts(ctx, s.db.RO(), db.ListRepoConnectionDeployContextsParams{
-		InstallationID: repoConn.InstallationID,
-		RepositoryID:   repoConn.RepositoryID,
-		Branch:         branch,
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list deploy contexts: %w", err))
-	}
-
-	if len(contexts) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no deploy contexts found for project %s branch %s", projectID, branch))
-	}
-
-	allEnvVars, err := db.Query.ListEnvVarsForRepoConnections(ctx, s.db.RO(), db.ListEnvVarsForRepoConnectionsParams{
-		InstallationID: repoConn.InstallationID,
-		RepositoryID:   repoConn.RepositoryID,
-		Branch:         branch,
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list env vars: %w", err))
-	}
-
-	envVarsByApp := deployutil.GroupEnvVarsByApp(allEnvVars)
-
-	commit := deployutil.GitCommitInfo{
-		SHA:             headCommit.SHA,
-		Branch:          branch,
-		Message:         headCommit.Message,
-		AuthorHandle:    headCommit.AuthorHandle,
-		AuthorAvatarURL: headCommit.AuthorAvatarURL,
-		Timestamp:       headCommit.Timestamp.UnixMilli(),
-	}
-
-	for _, row := range contexts {
-		secretsBlob, marshalErr := deployutil.BuildSecretsBlob(envVarsByApp[row.App.ID])
-		if marshalErr != nil {
-			logger.Error("failed to marshal secrets config", "appId", row.App.ID, "error", marshalErr)
-			continue
-		}
-
-		deploymentID, insertErr := deployutil.InsertDeploymentRecord(ctx, s.db.RW(), row, commit, secretsBlob, db.DeploymentsStatusPending)
-		if insertErr != nil {
-			logger.Error("failed to insert deployment for authorization", "appId", row.App.ID, "error", insertErr)
-			continue
-		}
-
-		deployReq := deployutil.BuildDeployRequest(deploymentID, row, headCommit.SHA)
-		_, sendErr := s.deploymentClient(row.Project.ID).Deploy().Send(ctx, deployReq)
-		if sendErr != nil {
-			logger.Error("failed to trigger deploy workflow after authorization",
-				"deployment_id", deploymentID,
-				"error", sendErr,
-			)
-			continue
-		}
-
-		logger.Info("deployment authorized and workflow triggered",
+	_, sendErr := s.deploymentClient(deployment.ProjectID).Deploy().Send(ctx, deployReq)
+	if sendErr != nil {
+		logger.Error("failed to trigger deploy workflow after authorization",
 			"deployment_id", deploymentID,
-			"project_id", row.Project.ID,
-			"app_id", row.App.ID,
-			"branch", branch,
-			"commit_sha", headCommit.SHA,
+			"error", sendErr,
 		)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger deploy workflow: %w", sendErr))
 	}
 
-	// Update the commit status to success now that the deployment is authorized
-	if statusErr := s.github.CreateCommitStatus(
-		repoConn.InstallationID,
-		repoConn.RepositoryFullName,
-		headCommit.SHA,
-		"success",
-		"",
-		"Deployment authorized and started",
-		"Unkey Deploy Authorization",
-	); statusErr != nil {
-		logger.Error("failed to update commit status to success", "error", statusErr)
+	// Update commit status on GitHub
+	if commitSHA != "" {
+		if statusErr := s.github.CreateCommitStatus(
+			repoConn.InstallationID,
+			repoConn.RepositoryFullName,
+			commitSHA,
+			"success",
+			"",
+			"Deployment authorized and started",
+			"Unkey Deploy Authorization",
+		); statusErr != nil {
+			logger.Error("failed to update commit status to success", "error", statusErr)
+		}
 	}
+
+	logger.Info("deployment authorized and workflow triggered",
+		"deployment_id", deploymentID,
+		"project_id", deployment.ProjectID,
+	)
 
 	return connect.NewResponse(&ctrlv1.AuthorizeDeploymentResponse{}), nil
 }

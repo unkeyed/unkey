@@ -10,7 +10,7 @@ import (
 )
 
 const findAppByWorkspaceAndSlugs = `-- name: FindAppByWorkspaceAndSlugs :one
-SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.deployment_protection, a.delete_protection, a.created_at, a.updated_at
+SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 FROM apps a
 INNER JOIN projects p ON p.id = a.project_id
 WHERE p.workspace_id = ?
@@ -31,7 +31,7 @@ type FindAppByWorkspaceAndSlugsRow struct {
 
 // FindAppByWorkspaceAndSlugs
 //
-//	SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.deployment_protection, a.delete_protection, a.created_at, a.updated_at
+//	SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 //	FROM apps a
 //	INNER JOIN projects p ON p.id = a.project_id
 //	WHERE p.workspace_id = ?
@@ -59,7 +59,6 @@ func (q *Queries) FindAppByWorkspaceAndSlugs(ctx context.Context, db DBTX, arg F
 		&i.App.DefaultBranch,
 		&i.App.CurrentDeploymentID,
 		&i.App.IsRolledBack,
-		&i.App.DeploymentProtection,
 		&i.App.DeleteProtection,
 		&i.App.CreatedAt,
 		&i.App.UpdatedAt,

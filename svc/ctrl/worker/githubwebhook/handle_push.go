@@ -1,15 +1,19 @@
 package githubwebhook
 
 import (
+	"context"
+	"database/sql"
 	"os"
 	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/deployutil"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // HandlePush processes a GitHub push event durably via Restate. It looks up
@@ -60,16 +64,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return nil, err
 	}
 
-	envVarsByApp := deployutil.GroupEnvVarsByApp(allEnvVars)
-
-	commit := deployutil.GitCommitInfo{
-		SHA:             req.GetAfter(),
-		Branch:          branch,
-		Message:         req.GetCommitMessage(),
-		AuthorHandle:    req.GetCommitAuthorHandle(),
-		AuthorAvatarURL: req.GetCommitAuthorAvatarUrl(),
-		Timestamp:       req.GetCommitTimestamp(),
-	}
+	envVarsByApp := groupEnvVarsByApp(allEnvVars)
 
 	for _, row := range contexts {
 		project := row.Project
@@ -77,26 +72,21 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		app := row.App
 		repo := row.GithubRepoConnection
 
-		secretsBlob, marshalErr := deployutil.BuildSecretsBlob(envVarsByApp[app.ID])
+		secretsBlob, marshalErr := buildSecretsBlob(envVarsByApp[app.ID])
 		if marshalErr != nil {
 			logger.Error("failed to marshal secrets config", "appId", app.ID, "error", marshalErr)
 			continue
 		}
 
-		needsApproval := false
-		if app.DeploymentProtection {
-			needsApproval = s.requiresApproval(ctx, req, repo)
-		}
+		needsApproval := s.requiresApproval(ctx, req, repo)
 
+		status := db.DeploymentsStatusPending
 		if needsApproval {
-			if blockErr := s.blockDeploymentForApproval(ctx, req, project, app, repo, branch); blockErr != nil {
-				return nil, blockErr
-			}
-			continue
+			status = db.DeploymentsStatusAwaitingApproval
 		}
 
 		deploymentID, insertErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			return deployutil.InsertDeploymentRecord(runCtx, s.db.RW(), row, commit, secretsBlob, db.DeploymentsStatusPending)
+			return insertDeploymentRecord(runCtx, s.db.RW(), row, req, secretsBlob, status)
 		}, restate.WithName("insert deployment"))
 		if insertErr != nil {
 			logger.Error("failed to insert deployment", "appId", app.ID, "error", insertErr)
@@ -112,10 +102,29 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"commit_sha", req.GetAfter(),
 			"branch", req.GetBranch(),
 			"environment", env.Slug,
+			"needs_approval", needsApproval,
 		)
 
+		if needsApproval {
+			if blockErr := s.blockDeploymentForApproval(ctx, req, project, repo, deploymentID); blockErr != nil {
+				return nil, blockErr
+			}
+			continue
+		}
+
 		deployClient := hydrav1.NewDeployServiceClient(ctx, app.WorkspaceID)
-		deployClient.Deploy().Send(deployutil.BuildDeployRequest(deploymentID, row, req.GetAfter()))
+		deployClient.Deploy().Send(&hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			Source: &hydrav1.DeployRequest_Git{
+				Git: &hydrav1.GitSource{
+					InstallationId: repo.InstallationID,
+					Repository:     repo.RepositoryFullName,
+					CommitSha:      req.GetAfter(),
+					ContextPath:    row.AppBuildSetting.DockerContext,
+					DockerfilePath: row.AppBuildSetting.Dockerfile,
+				},
+			},
+		})
 
 		logger.Info("deployment workflow started",
 			"deployment_id", deploymentID,
@@ -177,4 +186,98 @@ func (s *Service) requiresApproval(
 	}
 
 	return !isCollaborator
+}
+
+// insertDeploymentRecord creates a deployment and its initial queued step in a single transaction.
+func insertDeploymentRecord(
+	ctx context.Context,
+	rw *db.Replica,
+	row db.ListRepoConnectionDeployContextsRow,
+	req *hydrav1.HandlePushRequest,
+	secretsBlob []byte,
+	status db.DeploymentsStatus,
+) (string, error) {
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	now := time.Now().UnixMilli()
+
+	project := row.Project
+	env := row.Environment
+	app := row.App
+	runtimeSettings := row.AppRuntimeSetting
+
+	commitSHA := req.GetAfter()
+	branch := req.GetBranch()
+	commitMessage := req.GetCommitMessage()
+	authorHandle := req.GetCommitAuthorHandle()
+	authorAvatarURL := req.GetCommitAuthorAvatarUrl()
+	commitTimestamp := req.GetCommitTimestamp()
+
+	err := db.Tx(ctx, rw, func(txCtx context.Context, tx db.DBTX) error {
+		if txErr := db.Query.InsertDeployment(txCtx, tx, db.InsertDeploymentParams{
+			ID:                            deploymentID,
+			K8sName:                       uid.DNS1035(12),
+			WorkspaceID:                   project.WorkspaceID,
+			ProjectID:                     project.ID,
+			AppID:                         app.ID,
+			EnvironmentID:                 env.ID,
+			SentinelConfig:                runtimeSettings.SentinelConfig,
+			EncryptedEnvironmentVariables: secretsBlob,
+			Command:                       runtimeSettings.Command,
+			Status:                        status,
+			CreatedAt:                     now,
+			UpdatedAt:                     sql.NullInt64{Valid: false},
+			GitCommitSha:                  sql.NullString{String: commitSHA, Valid: commitSHA != ""},
+			GitBranch:                     sql.NullString{String: branch, Valid: branch != ""},
+			GitCommitMessage:              sql.NullString{String: commitMessage, Valid: commitMessage != ""},
+			GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
+			GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
+			GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
+			OpenapiSpec:                   sql.NullString{Valid: false},
+			CpuMillicores:                 runtimeSettings.CpuMillicores,
+			MemoryMib:                     runtimeSettings.MemoryMib,
+			Port:                          runtimeSettings.Port,
+			ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
+			Healthcheck:                   runtimeSettings.Healthcheck,
+		}); txErr != nil {
+			return txErr
+		}
+
+		return db.Query.InsertDeploymentStep(txCtx, tx, db.InsertDeploymentStepParams{
+			WorkspaceID:   app.WorkspaceID,
+			ProjectID:     app.ProjectID,
+			AppID:         app.ID,
+			EnvironmentID: env.ID,
+			DeploymentID:  deploymentID,
+			Step:          db.DeploymentStepsStepQueued,
+			StartedAt:     uint64(now),
+		})
+	})
+	if err != nil {
+		return "", err
+	}
+	return deploymentID, nil
+}
+
+// buildSecretsBlob marshals environment variables into a protobuf SecretsConfig blob.
+func buildSecretsBlob(envVars []db.ListEnvVarsForRepoConnectionsRow) ([]byte, error) {
+	if len(envVars) == 0 {
+		return []byte{}, nil
+	}
+
+	secretsConfig := &ctrlv1.SecretsConfig{
+		Secrets: make(map[string]string, len(envVars)),
+	}
+	for _, ev := range envVars {
+		secretsConfig.Secrets[ev.Key] = ev.Value
+	}
+	return protojson.Marshal(secretsConfig)
+}
+
+// groupEnvVarsByApp groups environment variables by app ID for efficient lookup.
+func groupEnvVarsByApp(envVars []db.ListEnvVarsForRepoConnectionsRow) map[string][]db.ListEnvVarsForRepoConnectionsRow {
+	result := make(map[string][]db.ListEnvVarsForRepoConnectionsRow)
+	for _, ev := range envVars {
+		result[ev.AppID] = append(result[ev.AppID], ev)
+	}
+	return result
 }
