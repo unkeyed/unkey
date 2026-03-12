@@ -89,19 +89,11 @@ export const RootKeysList = () => {
 
   return (
     <>
-      {isNavigating && (
-        <div className="fixed inset-0 top-20 z-20 flex items-center justify-center pointer-events-none bg-transparent">
-          <div className="flex bg-gray-1 w-12 h-12 rounded-lg border border-grayA-4 animate-fade-in duration-200 justify-center items-center">
-            <Loading size={32} className="text-gray-12 bg-transparent m-auto" />
-          </div>
-        </div>
-      )}
       <DataTable
         data={rootKeys}
         columns={columns}
         getRowId={(rootKey) => rootKey.id}
         isLoading={isInitialLoading}
-        isNavigating={isNavigating}
         onRowClick={handleRowClick}
         selectedItem={selectedRootKey}
         rowClassName={getRowClassNameMemoized}
