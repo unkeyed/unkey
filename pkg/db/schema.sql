@@ -779,7 +779,7 @@ CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
 CREATE INDEX `status_idx` ON `acme_challenges` (`status`);
 CREATE INDEX `idx_environment_id` ON `sentinels` (`environment_id`);
-CREATE INDEX `idx_environment_health_region_routing` ON `sentinels` (`environment_id`,`health`,`region_id`,`k8s_address`);
+CREATE INDEX `idx_environment_health_region_routing` ON `sentinels` (`environment_id`,`region_id`,`health`);
 CREATE INDEX `idx_deployment_id` ON `instances` (`deployment_id`);
 CREATE INDEX `idx_region` ON `instances` (`region_id`);
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);

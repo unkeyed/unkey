@@ -46,9 +46,8 @@ export const sentinels = mysqlTable(
     index("idx_environment_id").on(table.environmentId),
     index("idx_environment_health_region_routing").on(
       table.environmentId,
-      table.health,
       table.regionId,
-      table.k8sAddress,
+      table.health,
     ),
     //uniqueIndex("one_env_per_region").on(table.environmentId, table.regionId),
     //uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
