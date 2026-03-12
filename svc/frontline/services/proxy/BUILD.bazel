@@ -18,7 +18,6 @@ go_library(
     deps = [
         "//pkg/clock",
         "//pkg/codes",
-        "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/timing",

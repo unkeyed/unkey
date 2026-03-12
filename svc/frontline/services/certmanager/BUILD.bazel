@@ -14,7 +14,8 @@ go_library(
         "//gen/rpc/vault",
         "//internal/services/caches",
         "//pkg/cache",
-        "//pkg/db",
         "//pkg/logger",
+        "//pkg/mysql",
+        "//svc/frontline/internal/db",
     ],
 )

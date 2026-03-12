@@ -1,6 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, HeartPulse } from "@unkey/icons";
 import {
@@ -14,6 +13,7 @@ import {
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
+import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { RemoveButton } from "../../shared/remove-button";
 import { MethodBadge } from "./method-badge";
@@ -22,7 +22,8 @@ import { intervalToSeconds, secondsToInterval } from "./utils";
 
 export const Healthcheck = () => {
   const { settings, variant } = useEnvironmentSettings();
-  const { healthcheck, environmentId } = settings;
+  const { healthcheck } = settings;
+  const updateAllEnvironments = useUpdateAllEnvironments();
 
   const defaultValues: HealthcheckFormValues = {
     method: healthcheck?.method ?? "GET",
@@ -48,7 +49,7 @@ export const Healthcheck = () => {
   }, [defaultValues.method, defaultValues.path, defaultValues.interval, reset]);
 
   const onSubmit = async (values: HealthcheckFormValues) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       draft.healthcheck =
         values.path.trim() === ""
           ? null
@@ -64,7 +65,7 @@ export const Healthcheck = () => {
   };
 
   const handleRemove = () => {
-    collection.environmentSettings.update(environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       draft.healthcheck = null;
     });
     reset({ method: "GET", path: "", interval: "" });

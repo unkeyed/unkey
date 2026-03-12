@@ -269,6 +269,9 @@ function categorizePermissions(permissions: PermissionResponse[]) {
       case "identity":
         category = "Identities";
         break;
+      case "project":
+        category = "Projects";
+        break;
       default:
         category = "Other";
         console.warn(`Unknown permission identifier: ${identifier}`);

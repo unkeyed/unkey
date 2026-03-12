@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mysql",
+    srcs = [
+        "database.go",
+        "doc.go",
+        "handle_err_deadlock.go",
+        "handle_err_duplicate_key.go",
+        "handle_err_no_rows.go",
+        "interface.go",
+        "replica.go",
+        "retry.go",
+        "traced_tx.go",
+        "tx.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/mysql",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/assert",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/logger",
+        "//pkg/mysql/metrics",
+        "//pkg/otel/tracing",
+        "//pkg/retry",
+        "@com_github_go_sql_driver_mysql//:mysql",
+        "@io_opentelemetry_go_otel//attribute",
+    ],
+)
