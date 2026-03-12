@@ -713,7 +713,7 @@ CREATE TABLE `cilium_network_policies` (
 	`updated_at` bigint,
 	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
-	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region_id`),
+	CONSTRAINT `one_deployment_per_region` UNIQUE(`deployment_id`,`region_id`,`k8s_name`),
 	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
 );
 

@@ -91,6 +91,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 
 	previewEnvID := uid.New(uid.EnvironmentPrefix)
 	productionEnvID := uid.New(uid.EnvironmentPrefix)
+	regionID := uid.New(uid.RegionPrefix)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -230,6 +231,41 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create build settings: %w", err)
+		}
+
+		// Create local region
+		err = db.Query.UpsertRegion(ctx, tx, db.UpsertRegionParams{
+			ID:       regionID,
+			Name:     "local",
+			Platform: "local",
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create region: %w", err)
+		}
+
+		// Create regional settings so deployments work without manually saving each environment
+		err = db.BulkQuery.UpsertAppRegionalSettings(ctx, tx, []db.UpsertAppRegionalSettingsParams{
+			{
+				WorkspaceID:   workspaceID,
+				AppID:         appID,
+				EnvironmentID: previewEnvID,
+				RegionID:      regionID,
+				Replicas:      1,
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+			},
+			{
+				WorkspaceID:   workspaceID,
+				AppID:         appID,
+				EnvironmentID: productionEnvID,
+				RegionID:      regionID,
+				Replicas:      1,
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create regional settings: %w", err)
 		}
 
 		err = db.BulkQuery.UpsertQuota(ctx, tx, []db.UpsertQuotaParams{

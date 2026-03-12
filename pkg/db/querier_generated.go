@@ -2822,6 +2822,29 @@ type Querier interface {
 	//      docker_context = VALUES(docker_context),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppBuildSettings(ctx context.Context, db DBTX, arg UpsertAppBuildSettingsParams) error
+	//UpsertAppRegionalSettings
+	//
+	//  INSERT INTO app_regional_settings (
+	//      workspace_id,
+	//      app_id,
+	//      environment_id,
+	//      region_id,
+	//      replicas,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      replicas = VALUES(replicas),
+	//      updated_at = VALUES(updated_at)
+	UpsertAppRegionalSettings(ctx context.Context, db DBTX, arg UpsertAppRegionalSettingsParams) error
 	//UpsertAppRuntimeSettings
 	//
 	//  INSERT INTO app_runtime_settings (
