@@ -78,6 +78,8 @@ type ComboboxProps = {
   className?: string;
   variant?: "default" | "success" | "warning" | "error";
   id?: string;
+  /** Whether to close the popover on item select. Set to `false` for multi-select. */
+  closeOnSelect?: boolean;
   /** Additional accessibility attributes */
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
@@ -93,6 +95,7 @@ export function Combobox({
   searchPlaceholder = "Search...",
   emptyMessage = "No results found.",
   disabled = false,
+  closeOnSelect = true,
   leftIcon,
   wrapperClassName,
   className,
@@ -186,7 +189,9 @@ export function Combobox({
                   value={option.searchValue || option.value}
                   onSelect={() => {
                     onSelect(option.value);
-                    setOpen(false);
+                    if (closeOnSelect) {
+                      setOpen(false);
+                    }
                   }}
                   className="flex items-center py-1 mt-0"
                 >
