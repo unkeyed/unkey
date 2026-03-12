@@ -2504,8 +2504,7 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
-	// Calculates the total allocated CPU and memory for a workspace by summing
-	// (deployment cpu/memory × desired replicas) across all running topologies.
+	//SumAllocatedResourcesByWorkspaceID
 	//
 	//  SELECT
 	//    CAST(COALESCE(SUM(d.`cpu_millicores` * dt.`desired_replicas`), 0) AS SIGNED) AS `total_cpu_millicores`,

@@ -147,34 +147,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return fault.Wrap(err, fault.Public("Workspace settings could not be initialized."))
 		}
 
-		quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
-			return db.Query.FindQuotaByWorkspaceID(runCtx, w.db.RW(), deployment.WorkspaceID)
-		}, restate.WithName("find workspace quota"))
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
-		}
-
-		allocatedResources, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.SumAllocatedResourcesByWorkspaceIDRow, error) {
-			return db.Query.SumAllocatedResourcesByWorkspaceID(runCtx, w.db.RW(), workspace.ID)
-		}, restate.WithName("sum allocated resources by workspace"))
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
-		}
-
-		if allocatedResources.TotalCpuMillicores+int64(deployment.CpuMillicores) > int64(quota.AllocatedCpuMillicoresTotal) {
-			return fault.Wrap(
-				restate.TerminalError(fmt.Errorf("CPU quota exceeded: allocated %d, requested %d, total quota %d", allocatedResources.TotalCpuMillicores, deployment.CpuMillicores, quota.AllocatedCpuMillicoresTotal)),
-				fault.Public("CPU quota exceeded. Please reduce the requested CPUs or free up resources in your workspace."),
-			)
-		}
-
-		if allocatedResources.TotalMemoryMib+int64(deployment.MemoryMib) > int64(quota.AllocatedMemoryMibTotal) {
-			return fault.Wrap(
-				restate.TerminalError(fmt.Errorf("Memory quota exceeded: allocated %d, requested %d, total quota %d", allocatedResources.TotalMemoryMib, deployment.MemoryMib, quota.AllocatedMemoryMibTotal)),
-				fault.Public("Memory quota exceeded. Please reduce the requested memory or free up resources in your workspace."),
-			)
-		}
-
 		project, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
 			return db.Query.FindProjectById(runCtx, w.db.RW(), deployment.ProjectID)
 		}, restate.WithName("finding project"))
@@ -433,6 +405,38 @@ func (w *Workflow) createTopologies(
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("no regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
 			fault.Public("No regions configured. Please configure at least one region before deploying."),
+		)
+	}
+
+	// --- Quota check ---
+	quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
+		return db.Query.FindQuotaByWorkspaceID(runCtx, w.db.RW(), deployment.WorkspaceID)
+	}, restate.WithName("find workspace quota"))
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
+	}
+
+	allocatedResources, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.SumAllocatedResourcesByWorkspaceIDRow, error) {
+		return db.Query.SumAllocatedResourcesByWorkspaceID(runCtx, w.db.RW(), workspace.ID)
+	}, restate.WithName("sum allocated resources by workspace"))
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
+	}
+
+	for _, rs := range regionalSettings {
+		allocatedResources.TotalCpuMillicores += int64(deployment.CpuMillicores * rs.Replicas)
+		allocatedResources.TotalMemoryMib += int64(deployment.MemoryMib * rs.Replicas)
+	}
+	if allocatedResources.TotalCpuMillicores > int64(quota.AllocatedCpuMillicoresTotal) {
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("CPU quota exceeded: consumed %d, quota %d", allocatedResources.TotalCpuMillicores, quota.AllocatedCpuMillicoresTotal)),
+			fault.Public("CPU quota exceeded. Please reduce the requested CPUs or free up resources in your workspace."),
+		)
+	}
+	if allocatedResources.TotalMemoryMib > int64(quota.AllocatedMemoryMibTotal) {
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("Memory quota exceeded: consumed %d, quota %d", allocatedResources.TotalMemoryMib, quota.AllocatedMemoryMibTotal)),
+			fault.Public("Memory quota exceeded. Please reduce the requested memory or free up resources in your workspace."),
 		)
 	}
 
