@@ -6,10 +6,7 @@
  * @param page        - Current page (1-indexed)
  * @param totalPages  - Total number of pages
  */
-export function getPageNumbers(
-  page: number,
-  totalPages: number,
-): Array<number | "ellipsis"> {
+export function getPageNumbers(page: number, totalPages: number): Array<number | "ellipsis"> {
   const TOTAL_SLOTS = 7;
 
   if (totalPages <= TOTAL_SLOTS) {

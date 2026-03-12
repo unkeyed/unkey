@@ -1,9 +1,11 @@
 "use client";
 import { ArrowsToAllDirections, ArrowsToCenter, ChevronLeft, ChevronRight } from "@unkey/icons";
-import React, { memo, useMemo, useState } from "react";
+import * as React from "react";
+import { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
 import { getPageNumbers } from "../../utils/get-page-numbers";
+import { PaginationFooterSkeleton } from "../skeletons/pagination-footer-skeleton";
 
 export interface PaginationFooterProps {
   page: number;
@@ -40,48 +42,6 @@ export const PaginationFooter = memo(function PaginationFooter({
     return null;
   }
 
-  if (loading) {
-    return (
-      <div className="fixed bottom-0 left-0 right-0 w-full flex items-center justify-center z-10 pointer-events-none">
-        <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 pointer-events-auto">
-          <div className="flex w-full justify-between items-center p-[18px]">
-            {/* Item count skeleton */}
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-12 bg-grayA-3 rounded animate-pulse" />
-              <div className="h-3 w-8 bg-grayA-4 rounded animate-pulse" />
-              <div className="h-3 w-4 bg-grayA-3 rounded animate-pulse" />
-              <div className="h-3 w-6 bg-grayA-4 rounded animate-pulse" />
-              <div className="h-3 w-14 bg-grayA-3 rounded animate-pulse" />
-            </div>
-
-            {/* Pagination controls skeleton */}
-            <div className="flex items-center gap-1">
-              {/* Prev button */}
-              <div className="size-6 bg-grayA-3 rounded animate-pulse" />
-
-              {/* Page pill group */}
-              <div className="flex items-center bg-grayA-2 border border-grayA-3 rounded-lg p-0.5 gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-7 h-7 bg-grayA-3 rounded-md animate-pulse"
-                    style={{ animationDelay: `${i * 60}ms` }}
-                  />
-                ))}
-              </div>
-
-              {/* Next button */}
-              <div className="size-6 bg-grayA-3 rounded animate-pulse" />
-
-              {/* Minimize button */}
-              <div className="size-6 bg-grayA-3 rounded ml-1 animate-pulse" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Minimized state - parked at right side
   if (!isOpen) {
     return (
@@ -114,125 +74,128 @@ export const PaginationFooter = memo(function PaginationFooter({
         "opacity-100",
       )}
     >
-      <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg pointer-events-auto">
-        <div className="flex flex-col w-full">
-          {/* Header content */}
-          {headerContent && (
+      {loading ? (
+        <PaginationFooterSkeleton />
+      ) : (
+        <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg pointer-events-auto">
+          <div className="flex flex-col w-full animate-ease-in">
+            {/* Header content */}
+            {headerContent && (
+              <div
+                className="transition-all duration-200 animate-fade-in-up"
+                style={{ animationDelay: "0.2s" }}
+              >
+                {headerContent}
+              </div>
+            )}
+
             <div
-              className="transition-all duration-200 animate-fade-in-up"
-              style={{ animationDelay: "0.2s" }}
+              className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-in-up"
+              style={{ animationDelay: "0.3s" }}
             >
-              {headerContent}
-            </div>
-          )}
-
-          <div
-            className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-in-up"
-            style={{ animationDelay: "0.3s" }}
-          >
-            {/* Item count */}
-            <div className="flex gap-2">
-              <span>Viewing</span>
-              <span className="text-accent-12 transition-colors duration-200">
-                {start}-{end}
-              </span>
-              <span>of</span>
-              <span className="text-grayA-12 transition-colors duration-200">{totalCount}</span>
-              <span>{itemLabel}</span>
-            </div>
-
-            {/* Pagination controls */}
-            <nav aria-label="Pagination navigation" className="flex items-center gap-1">
-              {/* Previous button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onPageChange(page - 1)}
-                disabled={disabled || page === 1}
-                aria-label="Go to previous page"
-                className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
-              >
-                <ChevronLeft iconSize="sm-regular" />
-              </Button>
-
-              {/* Page number segmented group */}
-              <div
-                role="group"
-                aria-label="Page numbers"
-                className="flex items-center justify-center bg-grayA-2 border border-grayA-3 rounded-lg p-0.5 gap-0.5 transition-all animate-fade-in duration-500"
-              >
-                {pageNumbers.map((pageNum, idx) => {
-                  if (pageNum === "ellipsis") {
-                    return (
-                      <span
-                        key={idx < pageNumbers.length / 2 ? "ellipsis-start" : "ellipsis-end"}
-                        aria-hidden="true"
-                        className="w-7 h-7 flex items-center justify-center text-gray-11 text-[10px] tracking-widest select-none"
-                      >
-                        ···
-                      </span>
-                    );
-                  }
-
-                  const isCurrentPage = pageNum === page;
-                  return (
-                    <button
-                      key={pageNum}
-                      type="button"
-                      onClick={() => {
-                        if (!isCurrentPage && !disabled) {
-                          onPageChange(pageNum);
-                        }
-                      }}
-                      disabled={disabled && !isCurrentPage}
-                      aria-label={`Page ${pageNum}`}
-                      aria-current={isCurrentPage ? "page" : undefined}
-                      className={cn(
-                        "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
-                        isCurrentPage
-                          ? "bg-grayA-5 text-accent-12 shadow-sm pointer-events-none ring-0 border border-grayA-3 scale-105 text-sm transition-all duration-300"
-                          : "text-gray-11 hover:text-gray-12 hover:bg-grayA-3",
-                        disabled && !isCurrentPage && "opacity-30 pointer-events-none",
-                      )}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
+              {/* Item count */}
+              <div className="flex gap-2">
+                <span>Viewing</span>
+                <span className="text-accent-12 transition-colors duration-200">
+                  {start}-{end}
+                </span>
+                <span>of</span>
+                <span className="text-grayA-12 transition-colors duration-200">{totalCount}</span>
+                <span>{itemLabel}</span>
               </div>
 
-              {/* Next button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onPageChange(page + 1)}
-                disabled={disabled || page === totalPages}
-                aria-label="Go to next page"
-                className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
-              >
-                <ChevronRight iconSize="sm-regular" />
-              </Button>
-
-              {/* Minimize button */}
-              <div
-                className="flex justify-end transition-all duration-200 animate-fade-in-down ml-1"
-                style={{ animationDelay: "0.1s" }}
-              >
+              {/* Pagination controls */}
+              <nav aria-label="Pagination navigation" className="flex items-center gap-1">
+                {/* Previous button */}
                 <Button
-                  size="icon"
                   variant="ghost"
-                  className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
-                  onClick={() => setIsOpen(false)}
-                  aria-label="Minimize"
-                  title="Minimize"
+                  size="icon"
+                  onClick={() => onPageChange(page - 1)}
+                  disabled={disabled || page === 1}
+                  aria-label="Go to previous page"
+                  className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
                 >
-                  <ArrowsToCenter iconSize="lg-regular" />
+                  <ChevronLeft iconSize="sm-regular" />
                 </Button>
-              </div>
-            </nav>
+
+                {/* Page number segmented group */}
+                <div
+                  aria-label="Page numbers"
+                  className="flex items-center justify-center bg-grayA-2 border border-grayA-3 rounded-lg p-0.5 gap-0.5 transition-all animate-fade-in duration-500"
+                >
+                  {pageNumbers.map((pageNum, idx) => {
+                    if (pageNum === "ellipsis") {
+                      return (
+                        <span
+                          key={idx < pageNumbers.length / 2 ? "ellipsis-start" : "ellipsis-end"}
+                          aria-hidden="true"
+                          className="w-7 h-7 flex items-center justify-center text-gray-11 text-[10px] tracking-widest select-none"
+                        >
+                          ···
+                        </span>
+                      );
+                    }
+
+                    const isCurrentPage = pageNum === page;
+                    return (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => {
+                          if (!isCurrentPage && !disabled) {
+                            onPageChange(pageNum);
+                          }
+                        }}
+                        disabled={disabled && !isCurrentPage}
+                        aria-label={`Page ${pageNum}`}
+                        aria-current={isCurrentPage ? "page" : undefined}
+                        className={cn(
+                          "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
+                          isCurrentPage
+                            ? "bg-grayA-5 text-accent-12 shadow-sm pointer-events-none ring-0 border border-grayA-3 scale-105 text-sm transition-all duration-300"
+                            : "text-gray-11 hover:text-gray-12 hover:bg-grayA-3",
+                          disabled && !isCurrentPage && "opacity-30 pointer-events-none",
+                        )}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Next button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onPageChange(page + 1)}
+                  disabled={disabled || page === totalPages}
+                  aria-label="Go to next page"
+                  className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
+                >
+                  <ChevronRight iconSize="sm-regular" />
+                </Button>
+
+                {/* Minimize button */}
+                <div
+                  className="flex justify-end transition-all duration-200 animate-fade-in-down ml-1"
+                  style={{ animationDelay: "0.1s" }}
+                >
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
+                    onClick={() => setIsOpen(false)}
+                    aria-label="Minimize"
+                    title="Minimize"
+                  >
+                    <ArrowsToCenter iconSize="lg-regular" />
+                  </Button>
+                </div>
+              </nav>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 });

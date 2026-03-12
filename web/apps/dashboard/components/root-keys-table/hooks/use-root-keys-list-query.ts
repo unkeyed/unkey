@@ -8,8 +8,8 @@ import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parser
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
-import type { RootKeysSortField, RootKeysQueryPayload } from "../schema/query-logs.schema";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { RootKeysQueryPayload, RootKeysSortField } from "../schema/query-logs.schema";
 
 type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name" | "start" | "permission">;
 
@@ -57,14 +57,11 @@ function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysFilterParams 
 export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const [sortParams, setSortParams] = useQueryState(
-    "sort",
-    parseAsSortArray<RootKeysSortField>(),
-  );
+  const [sortParams, setSortParams] = useQueryState("sort", parseAsSortArray<RootKeysSortField>());
 
   const sorting: SortingState = useMemo(() => {
     if (!sortParams || sortParams.length === 0) {
-      return [{ id: SORT_FIELD_TO_COLUMN_ID.createdAt, desc: true }];
+      return [];
     }
     return sortParams.map((s) => ({
       id: SORT_FIELD_TO_COLUMN_ID[s.column] ?? s.column,
@@ -98,11 +95,18 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     [filters],
   );
 
-  // Reset to page 1 only when filter content actually changes.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setPage is a stable nuqs setter
+  // Reset to page 1 only when filter content actually changes (not on initial mount).
+  const prevFiltersKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    setPage(1);
-  }, [filtersKey]);
+    if (prevFiltersKeyRef.current === null) {
+      prevFiltersKeyRef.current = filtersKey;
+      return;
+    }
+    if (filtersKey !== prevFiltersKeyRef.current) {
+      prevFiltersKeyRef.current = filtersKey;
+      setPage(1);
+    }
+  }, [filtersKey, setPage]);
 
   const baseParams = useMemo<RootKeysFilterParams>(() => buildQueryParams(filters), [filters]);
 

@@ -393,6 +393,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
           </tbody>
         </table>
       </div>
+
       {/* Legacy load more footer */}
       {loadMoreFooterProps && (
         <LoadMoreFooter

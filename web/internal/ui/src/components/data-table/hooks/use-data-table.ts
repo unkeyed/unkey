@@ -52,7 +52,8 @@ export const useDataTable = <TData>({
     columns,
     getRowId,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: enableSorting && !controlledOnSortingChange ? getSortedRowModel() : undefined,
+    getSortedRowModel:
+      enableSorting && !controlledOnSortingChange ? getSortedRowModel() : undefined,
     manualSorting: Boolean(controlledOnSortingChange),
 
     // Sorting state
@@ -66,8 +67,9 @@ export const useDataTable = <TData>({
     // Enable features
     enableSorting,
     enableRowSelection,
-    enableSortingRemoval: true, // Enable 3-state sorting (null → asc → desc → null)
+    enableSortingRemoval: true, // Enable 3-state sorting
     enableMultiSort: false, // Single column sort only
+    sortDescFirst: false, // First click sorts ascending (A→Z / oldest→newest)
   });
 
   return table;

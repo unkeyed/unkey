@@ -6,3 +6,4 @@ export {
   PermissionsColumnSkeleton,
   RootKeyColumnSkeleton,
 } from "./root-key-skeletons";
+export { PaginationFooterSkeleton } from "./pagination-footer-skeleton";

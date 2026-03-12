@@ -132,9 +132,7 @@ export const queryRootKeys = workspaceProcedure
 
     // Fetch conditions: base + filters
     const fetchConditions =
-      filterConditions.length > 0
-        ? [...baseConditions, ...filterConditions]
-        : baseConditions;
+      filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
 
     // Build ORDER BY based on sort input
     const SORT_COLUMN_MAP = {
