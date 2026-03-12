@@ -111,27 +111,21 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		}
 
 		// Find the deployment that was rolled back from and schedule it for standby
-		oldDeploymentID, findErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+		oldDeploymentID, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.Query.FindLatestReadyDeploymentByAppAndEnv(stepCtx, w.db.RO(), db.FindLatestReadyDeploymentByAppAndEnvParams{
 				AppID:         targetDeployment.AppID,
 				EnvironmentID: targetDeployment.EnvironmentID,
 				ExcludeID:     targetDeployment.ID,
 			})
 		}, restate.WithName("finding old deployment to schedule for standby"))
-
-		if findErr != nil {
-			logger.Error("failed to find old deployment to schedule for standby",
-				"app_id", targetDeployment.AppID,
-				"environment_id", targetDeployment.EnvironmentID,
-				"error", findErr,
-			)
-		} else if oldDeploymentID != "" {
-			hydrav1.NewDeploymentServiceClient(ctx, oldDeploymentID).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
-				DelayMillis: (30 * time.Minute).Milliseconds(),
-			})
-			logger.Info("scheduled old deployment for standby", "old_deployment_id", oldDeploymentID)
+		if err != nil {
+			return nil, fault.Wrap(err, fault.Public("Failed to find old deployment to schedule for standby"))
 		}
+		hydrav1.NewDeploymentServiceClient(ctx, oldDeploymentID).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
+			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+			DelayMillis: (30 * time.Minute).Milliseconds(),
+		})
+		logger.Info("scheduled old deployment for standby", "old_deployment_id", oldDeploymentID)
 
 		logger.Info("rollback confirmed successfully", "deployment_id", targetDeployment.ID)
 		return &hydrav1.PromoteResponse{}, nil
