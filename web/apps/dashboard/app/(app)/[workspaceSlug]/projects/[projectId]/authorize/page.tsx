@@ -1,15 +1,21 @@
 "use client";
+
+import { useProjectData } from "../(overview)/data-provider";
 import { trpc } from "@/lib/trpc/client";
-import { Loading } from "@unkey/ui";
+import { Button } from "@unkey/ui";
+import { CircleCheck, CircleXMark, CodeBranch, CodeCommit, Github, ShieldAlert, User } from "@unkey/icons";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
 
 export default function AuthorizeDeploymentPage() {
   const params = useParams<{ workspaceSlug: string; projectId: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { project } = useProjectData();
 
   const branch = searchParams.get("branch");
+  const sha = searchParams.get("sha");
+  const sender = searchParams.get("sender");
+  const message = searchParams.get("message");
 
   const authorize = trpc.deploy.deployment.authorize.useMutation({
     onSuccess: () => {
@@ -17,28 +23,30 @@ export default function AuthorizeDeploymentPage() {
     },
   });
 
-  const [dismissed, setDismissed] = useState(false);
+  const shortSha = sha?.slice(0, 7);
 
   if (!branch) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-2">
+          <ShieldAlert iconSize="2xl-thin" className="text-warning-9 mx-auto" />
           <h2 className="text-lg font-semibold text-content">Missing branch parameter</h2>
-          <p className="text-content-subtle mt-2">
-            This page should be accessed from a GitHub PR check link.
+          <p className="text-content-subtle text-sm">
+            This page should be accessed from a GitHub check link.
           </p>
         </div>
       </div>
     );
   }
 
-  if (dismissed) {
+  if (authorize.isSuccess) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <h2 className="text-lg font-semibold text-content">Dismissed</h2>
-          <p className="text-content-subtle mt-2">
-            The deployment was not authorized. The GitHub check will remain as failed.
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <CircleCheck iconSize="2xl-thin" className="text-success-9 mx-auto" />
+          <h2 className="text-lg font-semibold text-content">Deployment Authorized</h2>
+          <p className="text-content-subtle text-sm">
+            The deployment has been authorized and is now in progress.
           </p>
         </div>
       </div>
@@ -46,46 +54,107 @@ export default function AuthorizeDeploymentPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <div className="border border-border rounded-lg p-8 max-w-lg w-full">
-        <h2 className="text-lg font-semibold text-content">Authorize Deployment</h2>
-        <p className="text-content-subtle mt-2">
-          An external contributor pushed to{" "}
-          <code className="px-1.5 py-0.5 bg-background-subtle rounded text-sm font-mono">
-            {branch}
-          </code>
-          . Authorize this deployment?
-        </p>
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo connection indicator */}
+        <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full border border-border bg-background">
+            <Github iconSize="xl-thin" />
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-warning-9" />
+            <div className="w-8 border-t border-dashed border-warning-9" />
+            <div className="w-2 h-2 rounded-full bg-warning-9" />
+          </div>
+          <div className="flex items-center justify-center w-12 h-12 rounded-full border border-border bg-background">
+            <ShieldAlert iconSize="xl-thin" className="text-warning-9" />
+          </div>
+        </div>
 
+        {/* Title */}
+        <div className="text-center space-y-2">
+          <h1 className="text-xl font-semibold text-content">Authorization Required</h1>
+          <p className="text-sm text-content-subtle">
+            An external contributor pushed to{" "}
+            <strong className="text-content">{project?.name ?? "this project"}</strong>.
+            A team member must authorize this deployment before it can proceed.
+          </p>
+        </div>
+
+        {/* Commit details */}
+        <div className="border border-border rounded-lg divide-y divide-border">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <CodeBranch iconSize="md-thin" className="text-content-subtle shrink-0" />
+            <span className="text-sm text-content-subtle">Branch</span>
+            <code className="ml-auto text-sm font-mono text-content bg-background-subtle px-2 py-0.5 rounded">
+              {branch}
+            </code>
+          </div>
+
+          {shortSha && (
+            <div className="flex items-center gap-3 px-4 py-3">
+              <CodeCommit iconSize="md-thin" className="text-content-subtle shrink-0" />
+              <span className="text-sm text-content-subtle">Commit</span>
+              <code className="ml-auto text-sm font-mono text-content bg-background-subtle px-2 py-0.5 rounded">
+                {shortSha}
+              </code>
+            </div>
+          )}
+
+          {message && (
+            <div className="px-4 py-3">
+              <p className="text-sm text-content truncate">{message}</p>
+            </div>
+          )}
+
+          {sender && (
+            <div className="flex items-center gap-3 px-4 py-3">
+              <User iconSize="md-thin" className="text-content-subtle shrink-0" />
+              <span className="text-sm text-content">{sender}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Error */}
         {authorize.error && (
-          <div className="mt-4 p-3 bg-error-3 text-error-11 rounded-md text-sm">
-            {authorize.error.message}
+          <div className="flex items-start gap-2 p-3 bg-error-3 border border-error-6 rounded-lg">
+            <CircleXMark iconSize="md-thin" className="text-error-9 mt-0.5 shrink-0" />
+            <p className="text-sm text-error-11">{authorize.error.message}</p>
           </div>
         )}
 
-        <div className="flex gap-3 mt-6">
-          <button
-            type="button"
+        {/* Actions */}
+        <div className="flex gap-3">
+          <Button
+            variant="primary"
+            size="xlg"
+            className="flex-1"
+            loading={authorize.isLoading}
             onClick={() =>
               authorize.mutate({
                 projectId: params.projectId,
                 branch,
               })
             }
-            disabled={authorize.isLoading}
-            className="flex-1 px-4 py-2 bg-accent-9 text-white rounded-md hover:bg-accent-10 disabled:opacity-50 font-medium text-sm"
           >
-            {authorize.isLoading ? <Loading /> : "Approve"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setDismissed(true)}
+            Authorize Deployment
+          </Button>
+          <Button
+            variant="outline"
+            size="xlg"
+            className="flex-1"
             disabled={authorize.isLoading}
-            className="flex-1 px-4 py-2 border border-border rounded-md hover:bg-background-subtle text-content text-sm"
+            onClick={() =>
+              router.push(`/${params.workspaceSlug}/projects/${params.projectId}/deployments`)
+            }
           >
             Dismiss
-          </button>
+          </Button>
         </div>
+
+        <p className="text-xs text-center text-content-subtle">
+          Only workspace members can authorize deployments.
+        </p>
       </div>
     </div>
   );
