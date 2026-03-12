@@ -48,7 +48,7 @@ export default function AuthorizeDeploymentPage() {
   }
 
   const isStaleCommit = authorize.error?.message?.includes("no longer the HEAD");
-  const newHead = isStaleCommit ? parseNewHead(authorize.error!.message) : null;
+  const newHead = isStaleCommit ? parseNewHead(authorize.error?.message) : null;
 
   if (authorize.isSuccess) {
     return (
@@ -241,7 +241,10 @@ export default function AuthorizeDeploymentPage() {
   );
 }
 
-function parseNewHead(errorMessage: string): { sha: string; message: string; author: string } | null {
+function parseNewHead(errorMessage: string | undefined): { sha: string; message: string; author: string } | null {
+  if (!errorMessage) {
+    return null;
+  }
   const shaMatch = errorMessage.match(/current_head_sha=([0-9a-f]{40})/);
   const messageMatch = errorMessage.match(/current_head_message=(.+?)(?:\s+current_head_author=|$)/);
   const authorMatch = errorMessage.match(/current_head_author=(\S+)/);
