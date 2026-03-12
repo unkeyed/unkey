@@ -14,20 +14,13 @@ import (
 
 // Promote reassigns all sticky domains to a deployment and clears the rolled back state.
 //
-// This durable workflow supports two modes:
+// The workflow assigns sticky frontline routes (environment and live) to the target
+// deployment, updates the app's current deployment, and schedules the old deployment
+// for standby after 30 minutes.
 //
-// 1. Normal promotion: moves sticky domains (environment and live) from the
-// current live deployment to a new target deployment.
-//
-// 2. Confirm rollback: when the app is rolled back and the target is already
-// the current deployment, clears the rolled back flag without reassigning
-// routes (they already point to the correct deployment). This allows future
-// deployments to automatically take over sticky domains again. The deployment
-// that was rolled back from is scheduled for standby after 30 minutes.
-//
-// The workflow validates that the target deployment is ready and the app has a
-// live deployment. For normal promotion, it also validates that the target is
-// not already the live deployment and that there are sticky domains to promote.
+// When confirming a rollback (target is already the current deployment but the app is
+// marked as rolled back), the route assignment is idempotent and the old deployment is
+// looked up by querying the latest ready deployment excluding the target.
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
@@ -84,57 +77,29 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		)
 	}
 
+	// Determine old deployment to schedule for standby after promotion.
+	// When confirming a rollback, the current deployment IS the target, so we
+	// look up the deployment that was rolled back from instead.
+	var oldDeploymentID = app.CurrentDeploymentID.String
 	if isConfirmingRollback {
 		logger.Info("confirming rollback", "deployment_id", targetDeployment.ID, "app_id", app.ID)
-
-		// Clear scheduled state changes on the current deployment
-		_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
-		if err != nil {
-			return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the current deployment"))
-		}
-
-		// Clear isRolledBack flag, routes already point to the correct deployment
-		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
-				AppID:               app.ID,
-				CurrentDeploymentID: app.CurrentDeploymentID,
-				IsRolledBack:        false,
-				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-			if err != nil {
-				return restate.Void{}, fault.Wrap(err, fault.Internal("failed to clear isRolledBack flag"))
-			}
-			return restate.Void{}, nil
-		}, restate.WithName("clearing isRolledBack flag"))
-		if err != nil {
-			return nil, fault.Wrap(err, fault.Public("Failed to confirm rollback"))
-		}
-
-		// Find the deployment that was rolled back from and schedule it for standby
-		oldDeploymentID, findErr := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+		oldDeploymentID, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.Query.FindLatestReadyDeploymentByAppAndEnv(stepCtx, w.db.RO(), db.FindLatestReadyDeploymentByAppAndEnvParams{
 				AppID:         targetDeployment.AppID,
 				EnvironmentID: targetDeployment.EnvironmentID,
 				ExcludeID:     targetDeployment.ID,
 			})
 		}, restate.WithName("finding old deployment to schedule for standby"))
-
-		if findErr != nil {
+		if err != nil {
 			logger.Error("failed to find old deployment to schedule for standby",
 				"app_id", targetDeployment.AppID,
 				"environment_id", targetDeployment.EnvironmentID,
-				"error", findErr,
+				"error", err,
 			)
-		} else if oldDeploymentID != "" {
-			hydrav1.NewDeploymentServiceClient(ctx, oldDeploymentID).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
-				DelayMillis: (30 * time.Minute).Milliseconds(),
-			})
-			logger.Info("scheduled old deployment for standby", "old_deployment_id", oldDeploymentID)
+			// Non-fatal: continue with promotion even if we can't find the old deployment
+			oldDeploymentID = ""
+			err = nil
 		}
-
-		logger.Info("rollback confirmed successfully", "deployment_id", targetDeployment.ID)
-		return &hydrav1.PromoteResponse{}, nil
 	}
 
 	// Get all frontlineRoutes for promotion
@@ -200,15 +165,18 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the promoted deployment"))
 	}
 
-	// schedule old deployment to be spun down
-	hydrav1.NewDeploymentServiceClient(ctx, app.CurrentDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
-		State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
-		DelayMillis: (30 * time.Minute).Milliseconds(),
-	})
+	// Schedule old deployment for standby
+	if oldDeploymentID != "" {
+		hydrav1.NewDeploymentServiceClient(ctx, oldDeploymentID).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
+			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+			DelayMillis: (30 * time.Minute).Milliseconds(),
+		})
+		logger.Info("scheduled old deployment for standby", "old_deployment_id", oldDeploymentID)
+	}
 
 	logger.Info("promotion completed successfully",
 		"target", req.GetTargetDeploymentId(),
-		"domains_promoted", len(routeIDs))
+		"routes_promoted", len(routeIDs))
 
 	return &hydrav1.PromoteResponse{}, nil
 }
