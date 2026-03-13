@@ -3,8 +3,8 @@ package usagelimiter
 import (
 	"fmt"
 
+	"github.com/unkeyed/unkey/internal/services/usagelimiter/db"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
 )
 
 // service implements the direct DB-based usage limiter
@@ -53,6 +53,7 @@ func New(config Config) (*service, error) {
 //   - Service: Counter-based Redis implementation (recommended)
 //   - error: Any initialization errors
 func NewRedisWithCounter(config RedisConfig) (Service, error) {
+
 	//nolint:exhaustruct // ReplayWorkers defaults to 8 in NewCounter when unset
 	return NewCounter(CounterConfig{
 		DB:      config.DB,

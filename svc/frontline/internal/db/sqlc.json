@@ -15,6 +15,7 @@
           "emit_interface": true,
           "emit_sql_as_comment": true,
           "emit_methods_with_db_argument": false,
+        "omit_unused_structs": true,
           "output_files_suffix": "_generated",
           "output_models_file_name": "models_generated",
           "output_querier_file_name": "querier_generated",

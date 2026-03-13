@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/unkeyed/unkey/internal/services/usagelimiter/db"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/buffer"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/counter"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
@@ -34,9 +35,7 @@ type CreditChange struct {
 
 // RedisConfig holds configuration options for the Redis usage limiter.
 type RedisConfig struct {
-	// DB is the database connection for fallback and replay operations
 	DB db.Database
-
 	// Counter is the counter implementation to use.
 	Counter counter.Counter
 
@@ -47,7 +46,7 @@ type RedisConfig struct {
 // counterService implements usage limiting using the counter interface
 // This provides truly atomic operations via Redis INCRBY commands
 type counterService struct {
-	db      db.Database
+	db      mysql.Database
 	counter counter.Counter
 
 	// Fallback to direct DB implementation when Redis fails
@@ -67,8 +66,7 @@ var _ Service = (*counterService)(nil)
 
 // CounterConfig holds configuration options for the counter-based usage limiter
 type CounterConfig struct {
-	// DB is the database connection for fallback and replay operations
-	DB db.Database
+	DB mysql.Database
 
 	// Counter is the distributed counter implementation to use
 	Counter counter.Counter
@@ -227,7 +225,7 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.initializeFromDatabase")
 	defer span.End()
 
-	limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+	limit, err := mysql.WithRetryContext(ctx, func() (sql.NullInt32, error) {
 		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyID)
 	})
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/sentinel/internal/db"
 )
 
 type Service interface {

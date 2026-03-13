@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "db",
+    srcs = [
+        "database.go",
+        "doc.go",
+        "generate.go",
+        "key_find_credits.sql_generated.go",
+        "key_update_credits_decrement.sql_generated.go",
+        "models_generated.go",
+        "querier_generated.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/usagelimiter/db",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/mysql"],
+)

@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "db",
+    srcs = [
+        "api_insert.sql_generated.go",
+        "cached_key_data.go",
+        "certificate_find_by_hostnames.sql_generated.go",
+        "database.go",
+        "deployment_find_by_id.sql_generated.go",
+        "deployment_list_by_environment_id_and_status.sql_generated.go",
+        "doc.go",
+        "generate.go",
+        "identity_insert.sql_generated.go",
+        "ingress_route_find_by_fqdn.sql_generated.go",
+        "instances_find_by_deployment_id_and_region_id.sql_generated.go",
+        "key_find_credits.sql_generated.go",
+        "key_find_for_verification.sql_generated.go",
+        "key_insert.sql_generated.go",
+        "key_space_insert.sql_generated.go",
+        "key_update_credits_decrement.sql_generated.go",
+        "models_generated.go",
+        "querier_generated.go",
+        "region_find_by_platform_and_name.sql_generated.go",
+        "sentinel_find_by_environment_id.sql_generated.go",
+        "workspace_insert.sql_generated.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/sentinel/internal/db",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/mysql"],
+)
