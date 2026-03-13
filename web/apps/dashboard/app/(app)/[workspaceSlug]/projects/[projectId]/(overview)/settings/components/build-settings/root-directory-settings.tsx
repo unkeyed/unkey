@@ -33,7 +33,8 @@ export const RootDirectory = () => {
   const currentDockerContext = useWatch({ control, name: "dockerContext" });
 
   const validation = validatePath(currentDockerContext, "tree");
-  const caseMatch = validation === "invalid" ? findCaseInsensitiveMatch(currentDockerContext, "tree") : null;
+  const caseMatch =
+    validation === "invalid" ? findCaseInsensitiveMatch(currentDockerContext, "tree") : null;
 
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],
@@ -47,11 +48,15 @@ export const RootDirectory = () => {
     });
   };
 
-  const inputVariant = errors.dockerContext ? "error" : validation === "invalid" ? "warning" : "default";
+  const inputVariant = errors.dockerContext
+    ? "error"
+    : validation === "invalid"
+      ? "warning"
+      : "default";
 
-  const warningMessage = validation === "invalid"
-    ? caseMatch
-      ? (
+  const warningMessage =
+    validation === "invalid" ? (
+      caseMatch ? (
         <span>
           Did you mean{" "}
           <button
@@ -63,9 +68,10 @@ export const RootDirectory = () => {
           </button>
           ?
         </span>
+      ) : (
+        "This directory was not found in the connected repository"
       )
-      : "This directory was not found in the connected repository"
-    : undefined;
+    ) : undefined;
 
   return (
     <FormSettingCard
@@ -81,7 +87,9 @@ export const RootDirectory = () => {
         label="Root directory"
         required
         className="w-[480px]"
-        description={warningMessage ?? "Build context directory for Docker. Changes apply on next deploy."}
+        description={
+          warningMessage ?? "Build context directory for Docker. Changes apply on next deploy."
+        }
         placeholder="."
         error={errors.dockerContext?.message}
         variant={inputVariant}

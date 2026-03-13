@@ -125,7 +125,16 @@ export function Combobox({
   }, [creatable, search, options]);
 
   return (
-    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) { setSearch(""); } }} modal={true}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          setSearch("");
+        }
+      }}
+      modal={true}
+    >
       <div className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
           <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>

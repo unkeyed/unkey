@@ -62,23 +62,23 @@ export const Dockerfile = () => {
       : "default";
 
   const warningMessage =
-    validation === "invalid"
-      ? caseMatch
-        ? (
-            <span>
-              Did you mean{" "}
-              <button
-                type="button"
-                className="underline font-medium hover:text-warning-12"
-                onClick={() => setValue("dockerfile", caseMatch, { shouldValidate: true })}
-              >
-                {caseMatch}
-              </button>
-              ?
-            </span>
-          )
-        : "This file was not found in the connected repository"
-      : undefined;
+    validation === "invalid" ? (
+      caseMatch ? (
+        <span>
+          Did you mean{" "}
+          <button
+            type="button"
+            className="underline font-medium hover:text-warning-12"
+            onClick={() => setValue("dockerfile", caseMatch, { shouldValidate: true })}
+          >
+            {caseMatch}
+          </button>
+          ?
+        </span>
+      ) : (
+        "This file was not found in the connected repository"
+      )
+    ) : undefined;
 
   return (
     <FormSettingCard

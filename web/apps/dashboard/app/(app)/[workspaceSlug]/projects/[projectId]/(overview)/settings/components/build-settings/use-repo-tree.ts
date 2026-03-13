@@ -73,10 +73,7 @@ export function useRepoTree() {
    * Validate a Dockerfile path that is relative to the given docker context.
    * Resolves the full repo path before checking the tree.
    */
-  function validateDockerfilePath(
-    dockerfilePath: string,
-    dockerContext: string,
-  ): ValidationResult {
+  function validateDockerfilePath(dockerfilePath: string, dockerContext: string): ValidationResult {
     const fullPath = resolveAgainstContext(dockerContext, dockerfilePath);
     return validatePath(fullPath, "blob");
   }
@@ -85,10 +82,7 @@ export function useRepoTree() {
    * Find a case-insensitive match for a Dockerfile path relative to the docker context.
    * Returns the corrected *relative* path (not the full repo path).
    */
-  function findDockerfileCaseMatch(
-    dockerfilePath: string,
-    dockerContext: string,
-  ): string | null {
+  function findDockerfileCaseMatch(dockerfilePath: string, dockerContext: string): string | null {
     const fullPath = resolveAgainstContext(dockerContext, dockerfilePath);
     const match = findCaseInsensitiveMatch(fullPath, "blob");
     if (!match) {
