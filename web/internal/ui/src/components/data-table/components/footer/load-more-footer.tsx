@@ -1,6 +1,5 @@
 "use client";
 import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
-import type * as React from "react";
 import { useCallback, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";

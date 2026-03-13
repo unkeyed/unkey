@@ -38,7 +38,7 @@ export const LastUpdatedCell = ({ isSelected, lastUpdated }: LastUpdatedCellProp
             displayType="relative"
             value={lastUpdated}
             className="truncate"
-            triggerRef={badgeRef}
+            triggerRef={badgeRef as React.RefObject<HTMLElement>}
             open={showTooltip}
             onOpenChange={setShowTooltip}
           />
