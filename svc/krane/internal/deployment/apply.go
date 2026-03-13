@@ -201,6 +201,19 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		},
 	}
 
+	// Create the Secret and ServiceAccount before the ReplicaSet so they
+	// exist by the time pods are scheduled. This prevents the
+	// "serviceaccount not found" race condition. We patch ownerReferences
+	// onto them after the RS is created so K8s still garbage-collects them.
+	if hasSecrets {
+		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext); err != nil {
+			return fmt.Errorf("failed to ensure deployment secret: %w", err)
+		}
+		if err := c.ensureDeploymentServiceAccount(ctx, req.GetK8SNamespace(), req.GetDeploymentId()); err != nil {
+			return fmt.Errorf("failed to ensure deployment service account: %w", err)
+		}
+	}
+
 	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
 
 	patch, err := json.Marshal(desired)
@@ -208,8 +221,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to marshal replicaset: %w", err)
 	}
 
-	// Apply the ReplicaSet first so we get its UID for ownerReferences.
-	// Pods will retry until the secret/SA exist (created immediately after).
 	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
 		FieldManager: fieldManagerKrane,
 	})
@@ -217,23 +228,20 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to apply replicaset: %w", err)
 	}
 
-	// Create owned resources (Secret, SA) with ownerReferences
-	// so K8s garbage-collects them when the ReplicaSet is deleted.
-	ownerRef := metav1.OwnerReference{
-		APIVersion:         "apps/v1",
-		Kind:               "ReplicaSet",
-		Name:               applied.Name,
-		UID:                applied.UID,
-		Controller:         ptr.P(true),
-		BlockOwnerDeletion: ptr.P(true),
-	}
-
+	// Patch ownerReferences onto the Secret and SA so K8s garbage-collects
+	// them when the ReplicaSet is deleted.
 	if hasSecrets {
-		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext, ownerRef); err != nil {
-			return fmt.Errorf("failed to ensure deployment secret: %w", err)
+		ownerRef := metav1.OwnerReference{
+			APIVersion:         "apps/v1",
+			Kind:               "ReplicaSet",
+			Name:               applied.Name,
+			UID:                applied.UID,
+			Controller:         ptr.P(true),
+			BlockOwnerDeletion: ptr.P(true),
 		}
-		if err := c.ensureDeploymentServiceAccount(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), ownerRef); err != nil {
-			return fmt.Errorf("failed to ensure deployment service account: %w", err)
+		resName := deploymentResourcePrefix(req.GetDeploymentId())
+		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, ownerRef); err != nil {
+			return fmt.Errorf("failed to patch owner references: %w", err)
 		}
 	}
 
