@@ -7,7 +7,7 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
   if (!step.logs || step.logs.length === 0) {
     return (
       <tr>
-        <td colSpan={6} className="px-8 py-4 text-sm text-gray-9">
+        <td colSpan={6} className="px-8 py-4 text-sm text-gray-11">
           No logs available for this step
         </td>
       </tr>

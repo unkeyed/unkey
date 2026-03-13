@@ -8,13 +8,14 @@ import { MessageColumnSkeleton, SeverityColumnSkeleton, TimeColumnSkeleton } fro
 
 type Props = {
   logs: ContainerLogRow[];
+  isLoading: boolean;
 };
 
-export const DeploymentContainerLogsTable: React.FC<Props> = ({ logs }) => {
+export const DeploymentContainerLogsTable: React.FC<Props> = ({ logs, isLoading }) => {
   return (
     <VirtualTable
       data={logs}
-      isLoading={logs.length === 0}
+      isLoading={isLoading}
       columns={containerLogColumns}
       renderSkeletonRow={({ columns, rowHeight }) =>
         columns.map((column, idx) => (
@@ -41,7 +42,7 @@ export const DeploymentContainerLogsTable: React.FC<Props> = ({ logs }) => {
         containerPadding: "px-0 py-0",
         className: "bg-transparent",
       }}
-      emptyState={<div className="px-8 py-4 text-sm text-gray-9">No runtime logs yet</div>}
+      emptyState={<div className="px-8 py-4 text-sm text-gray-11">No runtime logs yet</div>}
     />
   );
 };

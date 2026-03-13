@@ -30,6 +30,7 @@ export function DeploymentStep({
   return (
     <div className={cn(isSkipped && "opacity-50")}>
       <SettingCard
+        truncateDescription
         icon={
           <div className="relative w-full h-full">
             <div

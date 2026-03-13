@@ -180,7 +180,10 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           expandable={
             deploying ? (
               <div className="bg-grayA-2">
-                <DeploymentContainerLogsTable logs={deploymentRuntimeLogs.data?.logs ?? []} />
+                <DeploymentContainerLogsTable
+                  logs={deploymentRuntimeLogs.data?.logs ?? []}
+                  isLoading={deploymentRuntimeLogs.isLoading}
+                />
               </div>
             ) : null
           }

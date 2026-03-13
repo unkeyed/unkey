@@ -49,7 +49,7 @@ export function FailedDeploymentBanner({
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-error-11">Deployment failed</span>
-            <span className="text-xs text-gray-11">
+            <span className="text-xs text-gray-11 max-w-150 break-after">
               {errorMessage}
               {showSettingsLink && (
                 <>
