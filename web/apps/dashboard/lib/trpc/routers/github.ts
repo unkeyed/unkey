@@ -1,6 +1,7 @@
 import { db, eq, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
+  checkFileExists,
   getInstallationRepositories,
   getRepositoryBranches,
   getRepositoryById,
@@ -25,13 +26,14 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
       },
       with: {
         apps: {
-          columns: { id: true },
+          columns: { id: true, defaultBranch: true },
           with: {
             githubRepoConnection: {
               columns: {
                 pk: true,
                 repositoryId: true,
                 repositoryFullName: true,
+                installationId: true,
               },
             },
           },
@@ -68,11 +70,13 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
 
   return {
     appId: app?.id ?? null,
+    defaultBranch: app?.defaultBranch ?? "main",
     repoConnection: app?.githubRepoConnection
       ? {
           pk: app.githubRepoConnection.pk,
           repositoryId: app.githubRepoConnection.repositoryId,
           repositoryFullName: app.githubRepoConnection.repositoryFullName,
+          installationId: app.githubRepoConnection.installationId,
         }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
@@ -209,6 +213,38 @@ export const githubRouter = t.router({
       };
     }),
 
+  getRepoTree: workspaceProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      if (!githubContext?.repoConnection) {
+        return { tree: null };
+      }
+
+      const { repositoryFullName, installationId } = githubContext.repoConnection;
+      const [owner, repo] = repositoryFullName.split("/");
+      if (!owner || !repo) {
+        return { tree: null };
+      }
+
+      try {
+        const result = await getRepositoryTree(
+          installationId,
+          owner,
+          repo,
+          githubContext.defaultBranch,
+        );
+
+        if (result.truncated) {
+          return { tree: null };
+        }
+
+        return { tree: result.tree };
+      } catch {
+        return { tree: null };
+      }
+    }),
+
   getInstallations: workspaceProcedure
     .input(
       z.object({
@@ -335,14 +371,27 @@ export const githubRouter = t.router({
         });
       }
 
-      const [tree, branchesData] = await Promise.all([
+      const [treeResult, branchesData] = await Promise.all([
         getRepositoryTree(input.installationId, input.owner, input.repo, input.defaultBranch),
         getRepositoryBranches(input.installationId, input.owner, input.repo),
       ]);
 
-      const hasDockerfile = tree.some(
-        (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
-      );
+      let hasDockerfile: boolean;
+      if (treeResult.truncated) {
+        // Tree was truncated by GitHub — scanning the partial tree may miss files.
+        // Fall back to a targeted existence check for the root Dockerfile.
+        hasDockerfile = await checkFileExists(
+          input.installationId,
+          input.owner,
+          input.repo,
+          input.defaultBranch,
+          "Dockerfile",
+        );
+      } else {
+        hasDockerfile = treeResult.tree.some(
+          (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
+        );
+      }
 
       return {
         hasDockerfile,
