@@ -684,7 +684,7 @@ CREATE TABLE `github_app_installations` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `github_app_installations_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `github_app_installations_installation_id_unique` UNIQUE(`installation_id`)
+	UNIQUE INDEX `workspace_installation_idx` (`workspace_id`,`installation_id`)
 );
 
 CREATE TABLE `github_repo_connections` (
