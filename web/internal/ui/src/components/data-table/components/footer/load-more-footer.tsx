@@ -69,14 +69,12 @@ export function LoadMoreFooter({
             <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
               {buttonText}
             </span>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
-              title="Maximize"
+            <span
+              aria-hidden="true"
+              className="inline-flex items-center justify-center [&_svg]:size-[14px] transition-all duration-200 rounded transform hover:scale-110"
             >
               <ArrowsToAllDirections iconSize="sm-regular" />
-            </Button>
+            </span>
           </div>
         </button>
       </div>

@@ -11,6 +11,10 @@ export interface TimestampCellProps {
 export function TimestampCell({ timestamp, format = "relative" }: TimestampCellProps) {
   const date = typeof timestamp === "number" ? new Date(timestamp) : timestamp;
 
+  if (Number.isNaN(date.getTime())) {
+    return <span className="text-xs text-accent-9">—</span>;
+  }
+
   if (format === "relative") {
     return (
       <span className="text-xs text-accent-11" title={date.toLocaleString()}>

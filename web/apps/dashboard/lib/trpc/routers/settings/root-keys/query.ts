@@ -154,7 +154,7 @@ export const queryRootKeys = workspaceProcedure
           .where(and(...countConditions)),
         db.query.keys.findMany({
           where: and(...fetchConditions),
-          orderBy: [sortFn(sortColumn)],
+          orderBy: [sortFn(sortColumn), sortFn(schema.keys.id)],
           limit: pageSize,
           offset: (page - 1) * pageSize,
           columns: {

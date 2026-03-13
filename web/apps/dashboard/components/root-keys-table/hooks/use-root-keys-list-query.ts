@@ -32,8 +32,10 @@ const SORT_FIELD_TO_COLUMN_ID: Record<RootKeysSortField, string> = {
 
 function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysFilterParams {
   const params: RootKeysFilterParams = {
-    ...Object.fromEntries(rootKeysListFilterFieldNames.map((field) => [field, []])),
-  } as RootKeysFilterParams;
+    name: [],
+    start: [],
+    permission: [],
+  };
 
   for (const filter of filters) {
     if (!rootKeysListFilterFieldNames.includes(filter.field) || !params[filter.field]) {
@@ -63,7 +65,7 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
 
   const sorting: SortingState = useMemo(() => {
     if (!sortParams || sortParams.length === 0) {
-      return [];
+      return [{ id: "created_at", desc: true }];
     }
     return sortParams.map((s) => ({
       id: SORT_FIELD_TO_COLUMN_ID[s.column] ?? s.column,
@@ -136,6 +138,13 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
 
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  // Clamp page to valid range after data/totalPages updates.
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant.
   useEffect(() => {

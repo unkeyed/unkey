@@ -1,6 +1,5 @@
 "use client";
 import { ChartActivity2 } from "@unkey/icons";
-import type React from "react";
 import { useRef, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";
@@ -13,7 +12,7 @@ export interface LastUpdatedCellProps {
 }
 
 export const LastUpdatedCell = ({ isSelected, lastUpdated }: LastUpdatedCellProps) => {
-  const badgeRef = useRef<HTMLElement>(null) as React.RefObject<HTMLElement>;
+  const badgeRef = useRef<HTMLSpanElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (

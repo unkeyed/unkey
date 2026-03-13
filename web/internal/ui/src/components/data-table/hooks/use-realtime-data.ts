@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { SeparatorItem, TableDataItem } from "../types";
+import type { TableDataItem } from "../types";
 
 /**
  * Merges realtime and historic data with separator
@@ -16,7 +16,7 @@ export const useRealtimeData = <TData>(
       return {
         data: historicData,
         getTotalLength: () => historicData.length,
-        getItemAt: (index: number): TableDataItem<TData> => historicData[index],
+        getItemAt: (index: number): TableDataItem<TData> | undefined => historicData[index],
       };
     }
 
@@ -32,7 +32,7 @@ export const useRealtimeData = <TData>(
     return {
       data: [...realtimeData, ...filteredHistoric],
       getTotalLength: () => totalLength,
-      getItemAt: (index: number): TableDataItem<TData> => {
+      getItemAt: (index: number): TableDataItem<TData> | undefined => {
         // Realtime data
         if (index < realtimeData.length) {
           return realtimeData[index];
@@ -40,7 +40,7 @@ export const useRealtimeData = <TData>(
 
         // Separator
         if (index === realtimeData.length) {
-          return { isSeparator: true } as SeparatorItem;
+          return { isSeparator: true };
         }
 
         // Historic data (offset by realtime length + separator)

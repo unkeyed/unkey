@@ -731,7 +731,7 @@ code .line::before {
   animation: fillLeft 1s ease-in-out;
 }
 
-@keyframes slideUpFromBottom {
+@keyframes slide-up-from-bottom {
   from {
     opacity: 0;
     transform: translateY(100%);
@@ -742,7 +742,7 @@ code .line::before {
   }
 }
 
-@keyframes slideInFromBottom {
+@keyframes slide-in-from-bottom {
   from {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
@@ -753,7 +753,7 @@ code .line::before {
   }
 }
 
-@keyframes fadeInDown {
+@keyframes fade-in-down {
   from {
     opacity: 0;
     transform: translateY(-10px);
@@ -764,7 +764,7 @@ code .line::before {
   }
 }
 
-@keyframes fadeInUp {
+@keyframes fade-in-up {
   from {
     opacity: 0;
     transform: translateY(10px);

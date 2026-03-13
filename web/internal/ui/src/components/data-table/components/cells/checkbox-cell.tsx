@@ -32,7 +32,13 @@ export function CheckboxHeaderCell<TData>({ table }: CheckboxHeaderCellProps<TDa
   return (
     <div className="flex items-center">
       <Checkbox
-        checked={table.getIsAllRowsSelected()}
+        checked={
+          table.getIsAllRowsSelected()
+            ? true
+            : table.getIsSomeRowsSelected()
+              ? "indeterminate"
+              : false
+        }
         onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
         aria-label="Select all rows"
       />

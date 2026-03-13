@@ -126,9 +126,10 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
 
       if (event.key === "ArrowDown" || event.key === "j") {
         event.preventDefault();
-        const nextElement = document.querySelector(
+        const nextElement = parentRef.current?.querySelector(
           `[data-row-index="${rowIndex + 1}"]`,
-        ) as HTMLElement;
+        ) as HTMLElement | null;
+
         if (nextElement) {
           nextElement.focus();
           nextElement.click();
@@ -316,7 +317,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                       elements.push(
                         <tr
                           key={rowId}
-                          tabIndex={index}
+                          tabIndex={-1}
                           data-row-index={index}
                           aria-selected={isSelected}
                           onClick={() => onRowClick?.(typedItem)}
@@ -354,7 +355,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                             <tr style={{ height: `${config.rowSpacing ?? 4}px` }} />
                           )}
                           <tr
-                            tabIndex={index}
+                            tabIndex={-1}
                             data-row-index={index}
                             aria-selected={isSelected}
                             onClick={() => onRowClick?.(typedItem)}

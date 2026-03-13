@@ -16,6 +16,7 @@ interface UseDataTableProps<TData> {
   getRowId: (row: TData) => string;
   enableSorting?: boolean;
   enableRowSelection?: boolean;
+  manualSorting?: boolean;
   sorting?: SortingState;
   onSortingChange?: OnChangeFn<SortingState>;
   rowSelection?: RowSelectionState;
@@ -31,6 +32,7 @@ export const useDataTable = <TData>({
   getRowId,
   enableSorting = true,
   enableRowSelection = false,
+  manualSorting = false,
   sorting: controlledSorting,
   onSortingChange: controlledOnSortingChange,
   rowSelection: controlledRowSelection,
@@ -52,9 +54,8 @@ export const useDataTable = <TData>({
     columns,
     getRowId,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel:
-      enableSorting && !controlledOnSortingChange ? getSortedRowModel() : undefined,
-    manualSorting: Boolean(controlledOnSortingChange),
+    getSortedRowModel: enableSorting && !manualSorting ? getSortedRowModel() : undefined,
+    manualSorting,
 
     // Sorting state
     state: {

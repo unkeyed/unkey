@@ -1,12 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { type RefObject, useEffect, useState } from "react";
 import { BREATHING_SPACE } from "../constants/constants";
 
 /**
  * Calculate dynamic table height based on viewport
  * Adds breathing space to prevent table from extending to viewport edge
  */
-export const useTableHeight = (containerRef: React.RefObject<HTMLDivElement | null>) => {
+export const useTableHeight = (containerRef: RefObject<HTMLDivElement | null>) => {
   const [fixedHeight, setFixedHeight] = useState(0);
 
   useEffect(() => {

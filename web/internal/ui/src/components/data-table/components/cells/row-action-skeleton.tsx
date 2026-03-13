@@ -4,6 +4,9 @@ import { cn } from "../../../../lib/utils";
 export const RowActionSkeleton = () => (
   <button
     type="button"
+    disabled
+    tabIndex={-1}
+    aria-hidden="true"
     className={cn(
       "group-data-[state=open]:bg-gray-6 group-hover:bg-gray-6 group size-5 p-0 rounded m-0 items-center flex justify-center",
       "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
