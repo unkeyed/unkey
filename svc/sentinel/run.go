@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/counter"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -26,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
+	"github.com/unkeyed/unkey/svc/sentinel/internal/db"
 	"github.com/unkeyed/unkey/svc/sentinel/routes"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
@@ -106,7 +106,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
-	r.Defer(database.Close)
+	//r.Defer(database.Close)
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	if cfg.ClickHouse.URL != "" {

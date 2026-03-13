@@ -3,17 +3,19 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 // Database defines the interface for database operations, providing access
 // to read and write replicas and the ability to close connections.
 type Database interface {
 	// RW returns the write (primary) replica for write operations
-	RW() *Replica
+	RW() *mysql.Replica
 
 	// RO returns the read replica for read operations
 	// If no read replica is configured, it returns the write replica
-	RO() *Replica
+	RO() *mysql.Replica
 
 	// Close properly terminates all database connections
 	Close() error

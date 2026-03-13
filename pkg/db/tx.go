@@ -13,6 +13,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 // TxWithResult executes fn within a database transaction and returns the result.
@@ -110,7 +111,7 @@ import (
 // See [Replica.Begin] for transaction initiation and [DBTX] for available
 // operations within transactions. For read-only operations that don't
 // require transactions, use query methods directly on [Database.RO].
-func TxWithResult[T any](ctx context.Context, db *Replica, fn func(context.Context, DBTX) (T, error)) (T, error) {
+func TxWithResult[T any](ctx context.Context, db *mysql.Replica, fn func(context.Context, DBTX) (T, error)) (T, error) {
 	var t T
 
 	tx, err := db.Begin(ctx)
@@ -193,7 +194,7 @@ func TxWithResult[T any](ctx context.Context, db *Replica, fn func(context.Conte
 //
 // See [TxWithResult] for detailed transaction behavior and [DBTX] for
 // available database operations.
-func Tx(ctx context.Context, db *Replica, fn func(context.Context, DBTX) error) error {
+func Tx(ctx context.Context, db *mysql.Replica, fn func(context.Context, DBTX) error) error {
 	_, err := TxWithResult(ctx, db, func(inner context.Context, tx DBTX) (any, error) {
 		return nil, fn(inner, tx)
 	})

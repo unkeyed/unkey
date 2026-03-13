@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -94,7 +95,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (db.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
 		var row db.FindKeyForVerificationRow
-		row, err = db.WithRetryContext(ctx, func() (db.FindKeyForVerificationRow, error) {
+		row, err = mysql.WithRetryContext(ctx, func() (db.FindKeyForVerificationRow, error) {
 			return db.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
 		})
 		if err != nil {

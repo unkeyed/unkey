@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
@@ -110,7 +111,7 @@ func shouldRetryError(err error) bool {
 //		// Perform transactional operations
 //		return &Result{}, nil
 //	})
-func TxWithResultRetry[T any](ctx context.Context, db *Replica, fn func(context.Context, DBTX) (T, error)) (T, error) {
+func TxWithResultRetry[T any](ctx context.Context, r *mysql.Replica, fn func(context.Context, DBTX) (T, error)) (T, error) {
 	return retry.DoWithResultContext(
 		retry.New(
 			retry.Attempts(DefaultAttempts),
@@ -119,7 +120,7 @@ func TxWithResultRetry[T any](ctx context.Context, db *Replica, fn func(context.
 		),
 		ctx,
 		func() (T, error) {
-			return TxWithResult(ctx, db, fn)
+			return TxWithResult(ctx, r, fn)
 		},
 	)
 }
@@ -133,8 +134,8 @@ func TxWithResultRetry[T any](ctx context.Context, db *Replica, fn func(context.
 //		// Perform transactional operations
 //		return nil
 //	})
-func TxRetry(ctx context.Context, db *Replica, fn func(context.Context, DBTX) error) error {
-	_, err := TxWithResultRetry(ctx, db, func(ctx context.Context, tx DBTX) (any, error) {
+func TxRetry(ctx context.Context, r *mysql.Replica, fn func(context.Context, DBTX) error) error {
+	_, err := TxWithResultRetry(ctx, r, func(ctx context.Context, tx DBTX) (any, error) {
 		return nil, fn(ctx, tx)
 	})
 

@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "db",
+    srcs = [
+        "cached_key_data.go",
+        "database.go",
+        "doc.go",
+        "generate.go",
+        "key_find_credits.sql_generated.go",
+        "key_find_for_verification.sql_generated.go",
+        "key_find_for_verification_ratelimits.go",
+        "key_migration_find_by_id.sql_generated.go",
+        "key_update_credits_decrement.sql_generated.go",
+        "key_update_hash_and_migration.sql_generated.go",
+        "models_generated.go",
+        "querier_generated.go",
+        "quota_find_by_workspace_id.sql_generated.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/keys/db",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/mysql"],
+)

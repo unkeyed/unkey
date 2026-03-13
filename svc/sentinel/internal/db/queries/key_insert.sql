@@ -1,0 +1,38 @@
+-- name: InsertKey :exec
+INSERT INTO `keys` (
+    id,
+    key_auth_id,
+    hash,
+    start,
+    workspace_id,
+    for_workspace_id,
+    name,
+    owner_id,
+    identity_id,
+    meta,
+    expires,
+    created_at_m,
+    enabled,
+    remaining_requests,
+    refill_day,
+    refill_amount,
+    pending_migration_id
+) VALUES (
+    sqlc.arg(id),
+    sqlc.arg(key_space_id),
+    sqlc.arg(hash),
+    sqlc.arg(start),
+    sqlc.arg(workspace_id),
+    sqlc.arg(for_workspace_id),
+    sqlc.arg(name),
+    null,
+    sqlc.arg(identity_id),
+    sqlc.arg(meta),
+    sqlc.arg(expires),
+    sqlc.arg(created_at_m),
+    sqlc.arg(enabled),
+    sqlc.arg(remaining_requests),
+    sqlc.arg(refill_day),
+    sqlc.arg(refill_amount),
+    sqlc.arg(pending_migration_id)
+);
