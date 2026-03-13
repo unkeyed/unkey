@@ -55,10 +55,14 @@ export const PaginationFooter = memo(function PaginationFooter({
             <span className="text-[11px] text-gray-9 font-medium">
               {start}-{end} of {totalCount}
             </span>
-            <div className="w-px h-3 bg-gray-6" />
-            <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
-              Page {page}/{totalPages}
-            </span>
+            {totalPages === 1 ? null : (
+              <>
+                <div className="w-px h-3 bg-gray-6" />
+                <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
+                  Page {page}/{totalPages}
+                </span>
+              </>
+            )}
             <ArrowsToAllDirections iconSize="sm-regular" />
           </div>
         </button>
@@ -106,74 +110,77 @@ export const PaginationFooter = memo(function PaginationFooter({
               {/* Pagination controls */}
               <nav aria-label="Pagination navigation" className="flex items-center gap-1">
                 {/* Previous button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onPageChange(page - 1)}
-                  disabled={disabled || page === 1}
-                  aria-label="Go to previous page"
-                  className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
-                >
-                  <ChevronLeft iconSize="sm-regular" />
-                </Button>
-
+                {totalPages === 1 ? null : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onPageChange(page - 1)}
+                    disabled={disabled || page === 1}
+                    aria-label="Go to previous page"
+                    className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
+                  >
+                    <ChevronLeft iconSize="sm-regular" />
+                  </Button>
+                )}
                 {/* Page number segmented group */}
-                <div
-                  aria-label="Page numbers"
-                  className="flex items-center justify-center bg-grayA-2 border border-grayA-3 rounded-lg p-0.5 gap-0.5 transition-all animate-fade-in duration-500"
-                >
-                  {pageNumbers.map((pageNum, idx) => {
-                    if (pageNum === "ellipsis") {
+                {totalPages === 1 ? null : (
+                  <div
+                    aria-label="Page numbers"
+                    className="flex items-center justify-center rounded-lg p-0.5 gap-0.5 transition-all animate-fade-in duration-500"
+                  >
+                    {pageNumbers.map((pageNum, idx) => {
+                      if (pageNum === "ellipsis") {
+                        return (
+                          <span
+                            key={idx < pageNumbers.length / 2 ? "ellipsis-start" : "ellipsis-end"}
+                            aria-hidden="true"
+                            className="w-7 h-7 flex items-center justify-center text-gray-11 text-[10px] tracking-widest select-none"
+                          >
+                            ···
+                          </span>
+                        );
+                      }
+
+                      const isCurrentPage = pageNum === page;
                       return (
-                        <span
-                          key={idx < pageNumbers.length / 2 ? "ellipsis-start" : "ellipsis-end"}
-                          aria-hidden="true"
-                          className="w-7 h-7 flex items-center justify-center text-gray-11 text-[10px] tracking-widest select-none"
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => {
+                            if (!isCurrentPage && !disabled) {
+                              onPageChange(pageNum);
+                            }
+                          }}
+                          disabled={disabled && !isCurrentPage}
+                          aria-label={`Page ${pageNum}`}
+                          aria-current={isCurrentPage ? "page" : undefined}
+                          className={cn(
+                            "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
+                            isCurrentPage
+                              ? "text-accent-12 shadow- pointer-events-none ring-0 border border-grayA-4 text-sm transition-all duration-300"
+                              : "text-gray-11 hover:text-gray-12 hover:bg-grayA-3",
+                            disabled && !isCurrentPage && "opacity-30 pointer-events-none",
+                          )}
                         >
-                          ···
-                        </span>
+                          {pageNum}
+                        </button>
                       );
-                    }
-
-                    const isCurrentPage = pageNum === page;
-                    return (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        onClick={() => {
-                          if (!isCurrentPage && !disabled) {
-                            onPageChange(pageNum);
-                          }
-                        }}
-                        disabled={disabled && !isCurrentPage}
-                        aria-label={`Page ${pageNum}`}
-                        aria-current={isCurrentPage ? "page" : undefined}
-                        className={cn(
-                          "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
-                          isCurrentPage
-                            ? "bg-grayA-5 text-accent-12 shadow-sm pointer-events-none ring-0 border border-grayA-3 scale-105 text-sm transition-all duration-300"
-                            : "text-gray-11 hover:text-gray-12 hover:bg-grayA-3",
-                          disabled && !isCurrentPage && "opacity-30 pointer-events-none",
-                        )}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-
+                    })}
+                  </div>
+                )}
                 {/* Next button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onPageChange(page + 1)}
-                  disabled={disabled || page === totalPages}
-                  aria-label="Go to next page"
-                  className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
-                >
-                  <ChevronRight iconSize="sm-regular" />
-                </Button>
-
+                {totalPages === 1 ? null : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onPageChange(page + 1)}
+                    disabled={disabled || page === totalPages}
+                    aria-label="Go to next page"
+                    className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
+                  >
+                    <ChevronRight iconSize="sm-regular" />
+                  </Button>
+                )}
                 {/* Minimize button */}
                 <div
                   className="flex justify-end transition-all duration-200 animate-fade-in-down ml-1"
