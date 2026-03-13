@@ -11,6 +11,7 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { useIsMobile } from "../../hooks/use-mobile";
 import { cn } from "../../lib/utils";
@@ -67,6 +68,9 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
   // Refs
   const parentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Roving tabindex: track which row is the current tab stop
+  const [focusedRowIndex, setFocusedRowIndex] = useState(0);
 
   // Mobile detection
   const isMobile = useIsMobile({ defaultValue: false });
@@ -126,24 +130,26 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
 
       if (event.key === "ArrowDown" || event.key === "j") {
         event.preventDefault();
+        const nextIndex = rowIndex + 1;
         const nextElement = parentRef.current?.querySelector(
-          `[data-row-index="${rowIndex + 1}"]`,
+          `[data-row-index="${nextIndex}"]`,
         ) as HTMLElement | null;
 
         if (nextElement) {
+          setFocusedRowIndex(nextIndex);
           nextElement.focus();
-          nextElement.click();
         }
       }
 
       if (event.key === "ArrowUp" || event.key === "k") {
         event.preventDefault();
-        const prevElement = document.querySelector(
-          `[data-row-index="${rowIndex - 1}"]`,
-        ) as HTMLElement;
+        const prevIndex = rowIndex - 1;
+        const prevElement = parentRef.current?.querySelector(
+          `[data-row-index="${prevIndex}"]`,
+        ) as HTMLElement | null;
         if (prevElement) {
+          setFocusedRowIndex(prevIndex);
           prevElement.focus();
-          prevElement.click();
         }
       }
     },
@@ -317,13 +323,23 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                       elements.push(
                         <tr
                           key={rowId}
-                          tabIndex={-1}
+                          tabIndex={focusedRowIndex === index ? 0 : -1}
                           data-row-index={index}
                           aria-selected={isSelected}
-                          onClick={() => onRowClick?.(typedItem)}
+                          onClick={() => {
+                            setFocusedRowIndex(index);
+                            onRowClick?.(typedItem);
+                          }}
                           onMouseEnter={() => onRowMouseEnter?.(typedItem)}
                           onMouseLeave={() => onRowMouseLeave?.()}
-                          onKeyDown={(e) => handleKeyDown(e, index)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              onRowClick?.(typedItem);
+                            } else {
+                              handleKeyDown(e, index);
+                            }
+                          }}
                           className={cn(
                             "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
                             config.rowBorders && "border-b border-gray-4",
@@ -355,13 +371,23 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                             <tr style={{ height: `${config.rowSpacing ?? 4}px` }} />
                           )}
                           <tr
-                            tabIndex={-1}
+                            tabIndex={focusedRowIndex === index ? 0 : -1}
                             data-row-index={index}
                             aria-selected={isSelected}
-                            onClick={() => onRowClick?.(typedItem)}
+                            onClick={() => {
+                              setFocusedRowIndex(index);
+                              onRowClick?.(typedItem);
+                            }}
                             onMouseEnter={() => onRowMouseEnter?.(typedItem)}
                             onMouseLeave={() => onRowMouseLeave?.()}
-                            onKeyDown={(e) => handleKeyDown(e, index)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                onRowClick?.(typedItem);
+                              } else {
+                                handleKeyDown(e, index);
+                              }
+                            }}
                             className={cn(
                               "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
                               config.rowBorders && "border-b border-gray-4",

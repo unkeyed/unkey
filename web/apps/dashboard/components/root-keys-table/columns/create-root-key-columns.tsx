@@ -106,6 +106,7 @@ export const createRootKeyColumns = ({
   {
     id: ROOT_KEY_COLUMN_IDS.CREATED_AT,
     accessorKey: "createdAt",
+    sortDescFirst: true,
     header: ({ header }) => (
       <SortableHeader key={ROOT_KEY_COLUMN_IDS.CREATED_AT} header={header}>
         Created At
