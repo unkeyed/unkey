@@ -30,17 +30,17 @@ type githubStatusReporter struct {
 
 // githubStatusReporterConfig holds the parameters for creating a githubStatusReporter.
 type githubStatusReporterConfig struct {
-	GitHub              githubclient.GitHubClient
-	DB                  db.Database
-	InstallationID      int64
-	Repo                string
-	CommitSHA           string
-	EnvironmentLabel    string
-	EnvironmentURL      string
-	LogURL              string
-	DeploymentID        string
-	IsProduction        bool
-	GithubDeploymentID  int64 // reuse existing GitHub deployment if > 0
+	GitHub             githubclient.GitHubClient
+	DB                 db.Database
+	InstallationID     int64
+	Repo               string
+	CommitSHA          string
+	EnvironmentLabel   string
+	EnvironmentURL     string
+	LogURL             string
+	DeploymentID       string
+	IsProduction       bool
+	GithubDeploymentID int64 // reuse existing GitHub deployment if > 0
 }
 
 func newGithubStatusReporter(cfg githubStatusReporterConfig) *githubStatusReporter {
