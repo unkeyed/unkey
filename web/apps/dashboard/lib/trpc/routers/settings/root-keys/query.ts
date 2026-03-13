@@ -34,6 +34,7 @@ type RootKeysResponse = z.infer<typeof RootKeysResponse>;
 export type RootKey = z.infer<typeof RootKeyResponse>;
 
 export const LIMIT = 50;
+export const MAX_LIMIT = 200;
 
 export const queryRootKeys = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -144,7 +145,7 @@ export const queryRootKeys = workspaceProcedure
     const sortFn = input.sortOrder === "asc" ? asc : desc;
 
     const page = input.page ?? 1;
-    const pageSize = input.limit ?? LIMIT;
+    const pageSize = Math.min(input.limit ?? LIMIT, MAX_LIMIT);
 
     try {
       const [totalResult, keysResult] = await Promise.all([

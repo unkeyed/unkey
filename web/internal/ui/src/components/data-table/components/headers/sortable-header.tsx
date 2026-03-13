@@ -1,11 +1,12 @@
 import type { Header } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp } from "@unkey/icons";
+import type { ReactNode } from "react";
 import { cn } from "../../../../lib/utils";
 
 export interface SortableHeaderProps<TData> {
   header: Header<TData, unknown>;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 /**

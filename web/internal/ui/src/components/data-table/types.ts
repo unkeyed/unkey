@@ -96,6 +96,7 @@ export interface DataTableProps<TData> {
   // State management (optional, controlled)
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState | ((old: SortingState) => SortingState)) => void;
+  manualSorting?: boolean;
   rowSelection?: RowSelectionState;
   onRowSelectionChange?: (
     selection: RowSelectionState | ((old: RowSelectionState) => RowSelectionState),

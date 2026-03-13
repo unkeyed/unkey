@@ -43,8 +43,8 @@ function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysFilterParams 
     }
 
     const fieldConfig = rootKeysFilterFieldConfig[filter.field];
-    if (!fieldConfig.operators.includes(filter.operator)) {
-      throw new Error("Invalid operator");
+    if (!fieldConfig || !fieldConfig.operators.includes(filter.operator)) {
+      continue;
     }
 
     if (typeof filter.value === "string") {
@@ -58,7 +58,14 @@ function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysFilterParams 
   return params;
 }
 
+const MAX_PAGE_SIZE = 200;
+
 export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
+  const normalizedPageSize =
+    Number.isFinite(pageSize) && pageSize > 0
+      ? Math.min(Math.floor(pageSize), MAX_PAGE_SIZE)
+      : DEFAULT_PAGE_SIZE;
+
   const { filters } = useFilters();
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const [sortParams, setSortParams] = useQueryState("sort", parseAsSortArray<RootKeysSortField>());
@@ -118,11 +125,11 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     () => ({
       ...baseParams,
       page,
-      limit: pageSize,
+      limit: normalizedPageSize,
       sortBy: sortParams?.[0]?.column ?? "createdAt",
       sortOrder: sortParams?.[0]?.direction ?? "desc",
     }),
-    [baseParams, page, pageSize, sortParams],
+    [baseParams, page, normalizedPageSize, sortParams],
   );
 
   const utils = trpc.useUtils();
@@ -137,7 +144,7 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const isInitialLoading = isLoading && !data;
 
   const totalCount = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
 
   // Clamp page to valid range after data/totalPages updates.
   useEffect(() => {
@@ -177,7 +184,7 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     isPending: isFetching,
     isFetching,
     page,
-    pageSize,
+    pageSize: normalizedPageSize,
     totalPages,
     totalCount,
     onPageChange,

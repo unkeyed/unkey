@@ -80,7 +80,7 @@ export const LoadMoreFooter = ({
       className={cn(
         "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex z-10 transition-all duration-300 ease-out pointer-events-none",
         shouldShow ? "opacity-100" : "opacity-0",
-        shouldShow && isOpen && "animate-slide-up-from-bottom",
+        shouldShow && isOpen && "animate-fade-slide-in",
       )}
     >
       <div

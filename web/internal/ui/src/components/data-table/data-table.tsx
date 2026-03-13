@@ -57,6 +57,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
     enableKeyboardNav = true,
     enableSorting = true,
     enableRowSelection = false,
+    manualSorting = false,
     isLoading = false,
     renderSkeletonRow,
   } = props;
@@ -89,6 +90,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
     getRowId,
     enableSorting,
     enableRowSelection,
+    manualSorting,
     sorting,
     onSortingChange,
     rowSelection,

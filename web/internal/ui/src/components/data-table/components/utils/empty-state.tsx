@@ -13,7 +13,7 @@ export interface EmptyStateProps {
 export const EmptyState = ({ content }: EmptyStateProps) => {
   return (
     <div className="flex-1 flex items-center justify-center">
-      {content || (
+      {content ?? (
         <div className="w-full flex justify-center items-center h-full">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
