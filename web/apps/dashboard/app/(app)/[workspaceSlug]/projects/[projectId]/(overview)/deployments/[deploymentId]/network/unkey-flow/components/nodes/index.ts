@@ -12,4 +12,5 @@ export {
   isInstanceNode,
   isSkeletonNode,
   type DeploymentNode,
+  type InstanceNode,
 } from "./types";

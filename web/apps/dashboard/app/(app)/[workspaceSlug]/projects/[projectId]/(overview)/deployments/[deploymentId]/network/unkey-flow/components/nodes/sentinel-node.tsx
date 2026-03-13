@@ -9,10 +9,12 @@ import { REGION_INFO, type SentinelNode as SentinelNodeType } from "./types";
 type SentinelNodeProps = {
   node: SentinelNodeType;
   deploymentId?: string;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 };
 
-export function SentinelNode({ node, deploymentId }: SentinelNodeProps) {
-  const { flagCode, cpu, memory, health, replicas } = node.metadata;
+export function SentinelNode({ node, deploymentId, isCollapsed, onToggleCollapse }: SentinelNodeProps) {
+  const { flagCode, cpu, memory, health, replicas, instances } = node.metadata;
 
   const { data: rps } = trpc.deploy.network.getSentinelRps.useQuery(
     {
@@ -31,24 +33,36 @@ export function SentinelNode({ node, deploymentId }: SentinelNodeProps) {
       : `${replicas} available ${replicas === 1 ? "replica" : "replicas"}`;
 
   return (
-    <NodeWrapper health={health}>
-      <CardHeader
-        type="sentinel"
-        icon={
-          <InfoTooltip
-            content={`AWS region ${node.label} (${regionInfo.location})`}
-            variant="primary"
-            className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
-            position={{ align: "center", side: "top", sideOffset: 5 }}
-          >
-            <RegionFlag flagCode={flagCode} size="md" shape="rounded" />
-          </InfoTooltip>
-        }
-        title={node.label}
-        subtitle={replicaText}
-        health={health}
-      />
-      <CardFooter type="sentinel" rps={rps} cpu={cpu} memory={memory} />
-    </NodeWrapper>
+    <div className="relative flex flex-col items-center">
+      <NodeWrapper health={health}>
+        <CardHeader
+          type="sentinel"
+          icon={
+            <InfoTooltip
+              content={`AWS region ${node.label} (${regionInfo.location})`}
+              variant="primary"
+              className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
+              position={{ align: "center", side: "top", sideOffset: 5 }}
+            >
+              <RegionFlag flagCode={flagCode} size="md" shape="rounded" />
+            </InfoTooltip>
+          }
+          title={node.label}
+          subtitle={replicaText}
+          health={health}
+        />
+        <CardFooter type="sentinel" rps={rps} cpu={cpu} memory={memory} />
+      </NodeWrapper>
+
+      {instances > 3 && onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          className="mt-1 text-[11px] text-gray-9 hover:text-gray-11 transition-colors px-2 py-0.5 rounded-md hover:bg-grayA-3"
+          type="button"
+        >
+          {isCollapsed ? "Show instances" : "Hide instances"}
+        </button>
+      )}
+    </div>
   );
 }

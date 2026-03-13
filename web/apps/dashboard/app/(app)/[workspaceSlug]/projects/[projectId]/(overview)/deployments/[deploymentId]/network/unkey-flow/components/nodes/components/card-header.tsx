@@ -34,9 +34,9 @@ export function CardHeader({
       style={
         isCard
           ? {
-              background:
-                "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), light-dark(#FFF, #000)",
-            }
+            background:
+              "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), light-dark(#FFF, #000)",
+          }
           : undefined
       }
     >

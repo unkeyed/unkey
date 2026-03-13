@@ -7,9 +7,10 @@ import { HealthBanner } from "./health-banner";
 
 type NodeWrapperProps = PropsWithChildren<{
   health: HealthStatus;
+  hideBanner?: boolean;
 }>;
 
-export function NodeWrapper({ health, children }: NodeWrapperProps) {
+export function NodeWrapper({ health, children, hideBanner }: NodeWrapperProps) {
   const isDisabled = health === "disabled";
   const { ring, glow } = getHealthStyles(health);
 
@@ -20,14 +21,14 @@ export function NodeWrapper({ health, children }: NodeWrapperProps) {
         isDisabled
           ? "grayscale opacity-90 cursor-not-allowed"
           : cn(
-              "transition-shadow duration-200 ease-out cursor-pointer",
-              "hover:ring-2 hover:ring-offset-0",
-              ring,
-              glow,
-            ),
+            "transition-shadow duration-200 ease-out cursor-pointer",
+            "hover:ring-2 hover:ring-offset-0",
+            ring,
+            glow,
+          ),
       )}
     >
-      <HealthBanner healthStatus={health} />
+      {!hideBanner && <HealthBanner healthStatus={health} />}
       <div
         className={cn(
           "w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]",
