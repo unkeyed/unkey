@@ -144,7 +144,7 @@ export function DeploymentDomainsCard({
                           href={d.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="transition-all hover:underline decoration-dashed underline-offset-2 max-w-[250px] truncate font-medium text-xs"
+                          className="transition-all hover:underline decoration-dashed underline-offset-2 w-[250px] max-w-[250px] truncate font-medium text-xs"
                         >
                           {d.hostname}
                         </a>
