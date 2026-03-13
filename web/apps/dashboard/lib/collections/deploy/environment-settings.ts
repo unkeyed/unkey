@@ -299,7 +299,9 @@ const saveStore = {
   savedCount: 0,
   listeners: new Set<() => void>(),
   notify() {
-    for (const cb of this.listeners) cb();
+    for (const cb of this.listeners) {
+      cb();
+    }
   },
   subscribe(cb: () => void): () => void {
     this.listeners.add(cb);
