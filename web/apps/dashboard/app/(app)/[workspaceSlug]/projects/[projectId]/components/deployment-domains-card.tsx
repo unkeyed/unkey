@@ -15,8 +15,8 @@ import { type ReactNode, useState } from "react";
 import { useProjectData } from "../(overview)/data-provider";
 import { useDeployment } from "../(overview)/deployments/[deploymentId]/layout-provider";
 import { SettingsGroup } from "../(overview)/settings/components/shared/settings-group";
-import { GlowIcon } from "./glow-icon";
 import { getDomainPriority } from "./domain-priority";
+import { GlowIcon } from "./glow-icon";
 import { TagBadge } from "./tag-badge";
 
 export function DeploymentDomainsCard({
