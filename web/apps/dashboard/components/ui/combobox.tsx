@@ -213,7 +213,9 @@ export function Combobox({
                   onSelect={() => {
                     onSelect(search.trim());
                     setSearch("");
-                    setOpen(false);
+                    if (closeOnSelect) {
+                      setOpen(false);
+                    }
                   }}
                   className="flex items-center py-1 mt-0 text-gray-9"
                 >

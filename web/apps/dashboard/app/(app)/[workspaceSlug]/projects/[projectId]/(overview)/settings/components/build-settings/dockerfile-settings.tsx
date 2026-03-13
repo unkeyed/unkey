@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
+import { SettingDescription } from "../shared/setting-description";
 import { useRepoTree } from "./use-repo-tree";
 
 const dockerfileSchema = z.object({
@@ -91,23 +92,24 @@ export const Dockerfile = () => {
       autoSave={variant === "onboarding"}
     >
       <FormCombobox
-        required
         className="w-[480px]"
-        label="Dockerfile path"
-        description={
-          warningMessage ??
-          "Dockerfile location used for docker build. Changes apply on next deploy."
-        }
         options={options}
         value={currentDockerfile}
         onSelect={(val) => setValue("dockerfile", val, { shouldValidate: true })}
         creatable
         searchPlaceholder="Search or type a path..."
-        emptyMessage="No Dockerfiles detected in repository"
+        emptyMessage={<div className="mt-2">No Dockerfiles detected in repository</div>}
         placeholder={<span className="text-grayA-8">Dockerfile</span>}
-        error={errors.dockerfile?.message}
         variant={inputVariant}
       />
+
+      {warningMessage ? (
+        <div className="text-[13px] leading-5 mt-1 text-warning-11">{warningMessage}</div>
+      ) : (
+        <SettingDescription>
+          Dockerfile location used for docker build. Changes apply on next deploy.
+        </SettingDescription>
+      )}
     </FormSettingCard>
   );
 };

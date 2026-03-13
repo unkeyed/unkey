@@ -159,6 +159,33 @@ export async function getRepositoryTree(
   return { tree: data.tree, truncated: data.truncated ?? false };
 }
 
+/**
+ * Check whether a specific file exists in a repository using the Contents API.
+ * Returns true if the file exists, false otherwise.
+ */
+export async function checkFileExists(
+  installationId: number,
+  owner: string,
+  repo: string,
+  branch: string,
+  path: string,
+): Promise<boolean> {
+  const { token } = await getInstallationAccessToken(installationId);
+
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
+    {
+      method: "HEAD",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...GITHUB_API_HEADERS,
+      },
+    },
+  );
+
+  return response.ok;
+}
+
 export async function getRepositoryBranches(
   installationId: number,
   owner: string,

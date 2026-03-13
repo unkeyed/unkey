@@ -107,7 +107,8 @@ export function useRepoTree() {
     const ctx = normalizePath(dockerContext);
     return tree
       .filter((entry) => {
-        if (entry.type !== "blob" || entry.path.split("/").pop() !== "Dockerfile") {
+        const fileName = entry.path.split("/").pop() ?? "";
+        if (entry.type !== "blob" || !fileName.toLowerCase().includes("dockerfile")) {
           return false;
         }
         if (!ctx || ctx === ".") {

@@ -1,6 +1,7 @@
 import { db, eq, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
+  checkFileExists,
   getInstallationRepositories,
   getRepositoryBranches,
   getRepositoryById,
@@ -375,9 +376,22 @@ export const githubRouter = t.router({
         getRepositoryBranches(input.installationId, input.owner, input.repo),
       ]);
 
-      const hasDockerfile = treeResult.tree.some(
-        (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
-      );
+      let hasDockerfile: boolean;
+      if (treeResult.truncated) {
+        // Tree was truncated by GitHub — scanning the partial tree may miss files.
+        // Fall back to a targeted existence check for the root Dockerfile.
+        hasDockerfile = await checkFileExists(
+          input.installationId,
+          input.owner,
+          input.repo,
+          input.defaultBranch,
+          "Dockerfile",
+        );
+      } else {
+        hasDockerfile = treeResult.tree.some(
+          (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
+        );
+      }
 
       return {
         hasDockerfile,
