@@ -6,9 +6,7 @@ type ValidationResult = "valid" | "invalid" | "unknown";
 
 /** Strip leading "./", leading/trailing slashes so `./svc/api/` and `svc/api` match the same tree entry. */
 function normalizePath(path: string): string {
-  return path
-    .replace(/^(\.\/)+/, "")
-    .replace(/^\/+|\/+$/g, "");
+  return path.replace(/^(\.\/)+/, "").replace(/^\/+|\/+$/g, "");
 }
 
 /**
