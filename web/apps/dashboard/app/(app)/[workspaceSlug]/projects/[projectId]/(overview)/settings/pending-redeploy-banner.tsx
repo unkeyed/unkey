@@ -2,26 +2,22 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
-import { subscribeToSettingsSaved } from "@/lib/collections/deploy/environment-settings";
+import { useSettingsHasSaved } from "@/lib/collections/deploy/environment-settings";
 import { trpc } from "@/lib/trpc/client";
 import { Hammer2, XMark } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { GlowIcon } from "../../components/glow-icon";
 import { useProjectData } from "../data-provider";
 
 export function PendingRedeployBanner() {
-  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const { project, deployments, projectId } = useProjectData();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-
-  useEffect(() => {
-    return subscribeToSettingsSaved(() => {
-      setVisible(true);
-    });
-  }, []);
+  const hasSaved = useSettingsHasSaved();
+  const visible = hasSaved && !dismissed;
 
   const currentDeployment = project?.currentDeploymentId
     ? deployments.find((d) => d.id === project.currentDeploymentId)
@@ -51,7 +47,7 @@ export function PendingRedeployBanner() {
       <div className="relative flex items-start gap-4 rounded-xl border border-gray-4 bg-gray-1 p-4 shadow-lg w-100">
         <button
           type="button"
-          onClick={() => setVisible(false)}
+          onClick={() => setDismissed(true)}
           className="absolute top-3 right-3 text-gray-9 hover:text-gray-11 transition-colors cursor-pointer"
           aria-label="Dismiss"
         >

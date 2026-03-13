@@ -3,6 +3,7 @@ import type { SentinelConfig } from "@/lib/trpc/routers/deploy/environment-setti
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
+import { useSyncExternalStore } from "react";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { parseEnvironmentIdFromWhere, validateEnvironmentIdInQuery } from "./utils";
@@ -46,33 +47,6 @@ const schema = z.object({
   shutdownSignal: z.string(),
   sentinelConfig: sentinelConfigSchema,
 });
-
-let _pendingSaves = 0;
-const _saveSubscribers = new Set<(isSaving: boolean) => void>();
-
-function _notifySaveSubscribers() {
-  const isSaving = _pendingSaves > 0;
-  for (const cb of _saveSubscribers) {
-    cb(isSaving);
-  }
-}
-
-export function subscribeToSettingsSaving(cb: (isSaving: boolean) => void): () => void {
-  _saveSubscribers.add(cb);
-  return () => {
-    _saveSubscribers.delete(cb);
-  };
-}
-
-let _savedCount = 0;
-const _savedSubscribers = new Set<() => void>();
-
-export function subscribeToSettingsSaved(cb: () => void): () => void {
-  _savedSubscribers.add(cb);
-  return () => {
-    _savedSubscribers.delete(cb);
-  };
-}
 
 /**
  * Environment settings collection - flattened build + runtime settings.
@@ -300,16 +274,52 @@ async function dispatchSettingsMutations(
       }),
     });
   }
-  _pendingSaves++;
-  _notifySaveSubscribers();
+  saveStore.pendingSaves++;
+  saveStore.notify();
   try {
     await allMutations;
-    _savedCount++;
-    for (const cb of _savedSubscribers) {
-      cb();
-    }
+    saveStore.savedCount++;
+    saveStore.notify();
   } finally {
-    _pendingSaves--;
-    _notifySaveSubscribers();
+    saveStore.pendingSaves--;
+    saveStore.notify();
   }
+}
+
+/**
+ * Store for tracking in-flight and completed settings saves.
+ *
+ * Grouped into a single object so the boundary is obvious and
+ * `dispatchSettingsMutations` has one place to update.
+ * Consumers subscribe via `useSyncExternalStore` — no React context needed
+ * because settings mutations always originate from this module.
+ */
+const saveStore = {
+  pendingSaves: 0,
+  savedCount: 0,
+  listeners: new Set<() => void>(),
+  notify() {
+    for (const cb of this.listeners) cb();
+  },
+  subscribe(cb: () => void): () => void {
+    this.listeners.add(cb);
+    return () => {
+      this.listeners.delete(cb);
+    };
+  },
+};
+
+export function useSettingsIsSaving(): boolean {
+  return useSyncExternalStore(
+    (cb) => saveStore.subscribe(cb),
+    () => saveStore.pendingSaves > 0,
+  );
+}
+
+/** Returns true once at least one settings save has completed in this session. */
+export function useSettingsHasSaved(): boolean {
+  return useSyncExternalStore(
+    (cb) => saveStore.subscribe(cb),
+    () => saveStore.savedCount > 0,
+  );
 }

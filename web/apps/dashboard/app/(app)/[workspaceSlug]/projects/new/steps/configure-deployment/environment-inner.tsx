@@ -1,9 +1,9 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { subscribeToSettingsSaving } from "@/lib/collections/deploy/environment-settings";
+import { useSettingsIsSaving } from "@/lib/collections/deploy/environment-settings";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { type PropsWithChildren, useEffect, useMemo, useState } from "react";
+import { type PropsWithChildren, useMemo } from "react";
 import { EnvironmentContext } from "../../../[projectId]/(overview)/settings/environment-provider";
 
 export const OnboardingEnvironmentSettingsInner = ({
@@ -29,11 +29,7 @@ export const OnboardingEnvironmentSettingsInner = ({
 
   const settings = data.at(0);
 
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    return subscribeToSettingsSaving(setIsSaving);
-  }, []);
+  const isSaving = useSettingsIsSaving();
 
   // Setting cannot be null at this point coz they are preloaded
   if (!settings) {
