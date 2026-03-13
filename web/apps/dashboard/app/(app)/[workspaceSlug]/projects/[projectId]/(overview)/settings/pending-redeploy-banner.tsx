@@ -7,7 +7,7 @@ import { trpc } from "@/lib/trpc/client";
 import { Hammer2, XMark } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { GlowIcon } from "../../components/glow-icon";
 import { useProjectData } from "../data-provider";
 
@@ -27,22 +27,15 @@ export function PendingRedeployBanner() {
     ? deployments.find((d) => d.id === project.currentDeploymentId)
     : undefined;
 
-  const currentDeploymentRef = useRef(currentDeployment);
-  useEffect(() => {
-    currentDeploymentRef.current = currentDeployment;
-  }, [currentDeployment]);
-
   const redeploy = trpc.deploy.deployment.redeploy.useMutation({
-    onSuccess: (data) => {
-      const dep = currentDeploymentRef.current;
-      if (!dep) {
+    onSuccess: async (data) => {
+      if (!currentDeployment) {
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ["deployments", projectId] }).then(() => {
-        router.push(
-          `/${workspace.slug}/projects/${dep.projectId}/deployments/${data.deploymentId}`,
-        );
-      });
+      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      router.push(
+        `/${workspace.slug}/projects/${currentDeployment.projectId}/deployments/${data.deploymentId}`,
+      );
     },
     onError: (error) => {
       toast.error("Redeploy failed", { description: error.message });
