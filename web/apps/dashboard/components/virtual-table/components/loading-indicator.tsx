@@ -48,7 +48,7 @@ export const LoadMoreFooter = ({
   // Minimized state - parked at right side
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-10 transition-all duration-300 ease-out animate-slide-in-from-bottom">
+      <div className="fixed bottom-6 right-6 z-10 transition-all duration-300 ease-out animate-fade-slide-in">
         <button
           type="button"
           onClick={handleOpen}
@@ -93,7 +93,7 @@ export const LoadMoreFooter = ({
           {/* Header content */}
           {headerContent && (
             <div
-              className="transition-all duration-200 animate-fade-in-up"
+              className="transition-all duration-200 animate-fade-slide-in"
               style={{ animationDelay: "0.2s" }}
             >
               {headerContent}
@@ -101,7 +101,7 @@ export const LoadMoreFooter = ({
           )}
 
           <div
-            className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-in-up"
+            className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-slide-in"
             style={{ animationDelay: "0.3s" }}
           >
             {countInfoText && <div className="transition-all duration-200">{countInfoText}</div>}
@@ -129,7 +129,7 @@ export const LoadMoreFooter = ({
                 {buttonText}
               </Button>
               <div
-                className="flex justify-end transition-all duration-200 animate-fade-in-down"
+                className="flex justify-end transition-all duration-200 animate-fade-slide-in"
                 style={{ animationDelay: "0.1s" }}
               >
                 <Button

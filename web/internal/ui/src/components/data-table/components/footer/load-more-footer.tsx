@@ -12,7 +12,7 @@ export interface LoadMoreFooterComponentProps {
   className?: string;
   itemLabel?: string;
   buttonText?: string;
-  hasMore?: boolean;
+  hasMore: boolean;
   hide?: boolean;
   countInfoText?: React.ReactNode;
   headerContent?: React.ReactNode;
@@ -29,7 +29,7 @@ export function LoadMoreFooter({
   totalCount,
   itemLabel = "items",
   buttonText = "Load more",
-  hasMore = true,
+  hasMore,
   countInfoText,
   hide,
   headerContent,

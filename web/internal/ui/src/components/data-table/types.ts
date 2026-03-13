@@ -77,7 +77,7 @@ export interface LoadMoreFooterProps {
   buttonText?: string;
   countInfoText?: ReactNode;
   headerContent?: ReactNode;
-  hasMore?: boolean;
+  hasMore: boolean;
   hide?: boolean;
 }
 

@@ -68,6 +68,7 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
 
   const { filters } = useFilters();
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const normalizedPage = Math.max(1, page);
   const [sortParams, setSortParams] = useQueryState("sort", parseAsSortArray<RootKeysSortField>());
 
   const sorting: SortingState = useMemo(() => {
@@ -124,12 +125,12 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const queryParams = useMemo(
     () => ({
       ...baseParams,
-      page,
+      page: normalizedPage,
       limit: normalizedPageSize,
       sortBy: sortParams?.[0]?.column ?? "createdAt",
       sortOrder: sortParams?.[0]?.direction ?? "desc",
     }),
-    [baseParams, page, normalizedPageSize, sortParams],
+    [baseParams, normalizedPage, normalizedPageSize, sortParams],
   );
 
   const utils = trpc.useUtils();
@@ -148,15 +149,15 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
 
   // Clamp page to valid range after data/totalPages updates.
   useEffect(() => {
-    if (page > totalPages) {
+    if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [page, totalPages, setPage]);
+  }, [normalizedPage, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant.
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = page + i;
+      const nextPage = normalizedPage + i;
       if (nextPage > totalPages) {
         break;
       }
@@ -165,7 +166,7 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
         { staleTime: Number.POSITIVE_INFINITY },
       );
     }
-  }, [page, totalPages, queryParams, utils.settings.rootKeys.query]);
+  }, [normalizedPage, totalPages, queryParams, utils.settings.rootKeys.query]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
@@ -183,7 +184,7 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     isInitialLoading,
     isPending: isFetching,
     isFetching,
-    page,
+    page: normalizedPage,
     pageSize: normalizedPageSize,
     totalPages,
     totalCount,
