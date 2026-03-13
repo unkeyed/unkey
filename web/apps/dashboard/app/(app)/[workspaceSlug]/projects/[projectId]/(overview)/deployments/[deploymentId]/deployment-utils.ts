@@ -34,6 +34,11 @@ export function deriveStatusFromSteps(
     return "finalizing";
   }
   if (finalizing?.completed) {
+    // Pipeline completed, but the deployment may have been marked as failed
+    // post-deploy (e.g. all instances crashed). Respect the DB status.
+    if (fallback === "failed") {
+      return "failed";
+    }
     return "ready";
   }
   if (network && !network.endedAt) {

@@ -88,6 +88,11 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
                     showGlow={health !== "normal"}
                   />
                 </div>
+                {health === "unhealthy" && instance.metadata.type === "instance" && instance.metadata.message && (
+                  <div className="text-[11px] text-error-11 mt-1">
+                    {instance.metadata.message}
+                  </div>
+                )}
               </div>
             </div>
           );
