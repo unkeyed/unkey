@@ -1,4 +1,4 @@
-package httpclient
+package github
 
 import (
 	"bytes"
@@ -10,10 +10,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// Request builds and executes an HTTP request with JSON marshalling/unmarshalling.
+// request builds and executes an HTTP request with JSON marshalling/unmarshalling.
 // The body is optional — pass nil for requests without a body.
 // Returns the decoded response or an error if the status code doesn't match expectedStatus.
-func Request[T any](client *http.Client, method string, url string, headers map[string]string, body any, expectedStatus int) (T, error) {
+func request[T any](client *http.Client, method string, url string, headers map[string]string, body any, expectedStatus int) (T, error) {
 	var zero T
 
 	var bodyReader io.Reader
@@ -59,9 +59,9 @@ func Request[T any](client *http.Client, method string, url string, headers map[
 	return result, nil
 }
 
-// Do executes an HTTP request without decoding the response body.
+// doRequest executes an HTTP request without decoding the response body.
 // Returns an error if the status code doesn't match expectedStatus.
-func Do(client *http.Client, method string, url string, headers map[string]string, body any, expectedStatus int) error {
+func doRequest(client *http.Client, method string, url string, headers map[string]string, body any, expectedStatus int) error {
 	var bodyReader io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -87,7 +87,10 @@ func Do(client *http.Client, method string, url string, headers map[string]strin
 	if err != nil {
 		return fault.Wrap(err, fault.Internal(fmt.Sprintf("%s %s failed", method, url)))
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != expectedStatus {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -100,30 +103,8 @@ func Do(client *http.Client, method string, url string, headers map[string]strin
 	return nil
 }
 
-// StatusCheck executes an HTTP request and returns whether the status matches expectedStatus.
-// Unlike Do, this doesn't return an error for non-matching statuses — it returns false.
-// Only returns an error for transport-level failures.
-func StatusCheck(client *http.Client, method string, url string, headers map[string]string, expectedStatus int) (bool, error) {
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return false, fault.Wrap(err, fault.Internal("failed to create request"))
-	}
-
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return false, fault.Wrap(err, fault.Internal(fmt.Sprintf("%s %s failed", method, url)))
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	return resp.StatusCode == expectedStatus, nil
-}
-
-// GitHubHeaders returns common GitHub API headers with the given bearer token.
-func GitHubHeaders(token string) map[string]string {
+// githubHeaders returns common GitHub API headers with the given bearer token.
+func githubHeaders(token string) map[string]string {
 	h := map[string]string{
 		"Accept":               "application/vnd.github+json",
 		"X-GitHub-Api-Version": "2022-11-28",

@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/httpclient"
 	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
@@ -109,7 +108,7 @@ func (c *Client) ghHeaders(installationID int64) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return httpclient.GitHubHeaders(token.Token), nil
+	return githubHeaders(token.Token), nil
 }
 
 // generateJWT creates a short-lived JWT for GitHub App authentication.
@@ -149,11 +148,11 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 				installationID,
 			)
 
-			return httpclient.Request[InstallationToken](
+			return request[InstallationToken](
 				c.httpClient,
 				http.MethodPost,
 				apiURL,
-				httpclient.GitHubHeaders(jwtToken),
+				githubHeaders(jwtToken),
 				nil,
 				http.StatusCreated,
 			)
@@ -182,7 +181,7 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
 
-	commit, err := httpclient.Request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
 		return CommitInfo{}, err
 	}
@@ -201,7 +200,7 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 func (c *Client) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error) {
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
 
-	commit, err := httpclient.Request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, httpclient.GitHubHeaders(""), nil, http.StatusOK)
+	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, githubHeaders(""), nil, http.StatusOK)
 	if err != nil {
 		return CommitInfo{}, err
 	}
@@ -273,7 +272,7 @@ func (c *Client) CreateDeployment(installationID int64, repo string, ref string,
 
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/deployments", repo)
 
-	result, err := httpclient.Request[ghDeploymentResponse](c.httpClient, http.MethodPost, apiURL, headers, map[string]interface{}{
+	result, err := request[ghDeploymentResponse](c.httpClient, http.MethodPost, apiURL, headers, map[string]interface{}{
 		"ref":                    ref,
 		"environment":            environment,
 		"description":            description,
@@ -310,5 +309,5 @@ func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deplo
 		payload["log_url"] = logURL
 	}
 
-	return httpclient.Do(c.httpClient, http.MethodPost, apiURL, headers, payload, http.StatusCreated)
+	return doRequest(c.httpClient, http.MethodPost, apiURL, headers, payload, http.StatusCreated)
 }

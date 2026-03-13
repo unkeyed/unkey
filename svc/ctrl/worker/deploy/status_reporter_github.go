@@ -30,16 +30,17 @@ type githubStatusReporter struct {
 
 // githubStatusReporterConfig holds the parameters for creating a githubStatusReporter.
 type githubStatusReporterConfig struct {
-	GitHub           githubclient.GitHubClient
-	DB               db.Database
-	InstallationID   int64
-	Repo             string
-	CommitSHA        string
-	EnvironmentLabel string
-	EnvironmentURL   string
-	LogURL           string
-	DeploymentID     string
-	IsProduction     bool
+	GitHub              githubclient.GitHubClient
+	DB                  db.Database
+	InstallationID      int64
+	Repo                string
+	CommitSHA           string
+	EnvironmentLabel    string
+	EnvironmentURL      string
+	LogURL              string
+	DeploymentID        string
+	IsProduction        bool
+	GithubDeploymentID  int64 // reuse existing GitHub deployment if > 0
 }
 
 func newGithubStatusReporter(cfg githubStatusReporterConfig) *githubStatusReporter {
@@ -54,12 +55,18 @@ func newGithubStatusReporter(cfg githubStatusReporterConfig) *githubStatusReport
 		logURL:           cfg.LogURL,
 		deploymentID:     cfg.DeploymentID,
 		isProduction:     cfg.IsProduction,
-		ghDeploymentID:   0,
+		ghDeploymentID:   cfg.GithubDeploymentID,
 	}
 }
 
 func (r *githubStatusReporter) Create(ctx restate.ObjectSharedContext) {
 	if r.installationID == 0 || r.repo == "" || r.commitSHA == "" {
+		return
+	}
+
+	// Reuse an existing GitHub deployment if one was already created (e.g. during approval flow).
+	if r.ghDeploymentID > 0 {
+		r.Report(ctx, "pending", "Deployment queued")
 		return
 	}
 
@@ -76,13 +83,15 @@ func (r *githubStatusReporter) Create(ctx restate.ObjectSharedContext) {
 
 	r.ghDeploymentID = ghDeploymentID
 
-	_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.Query.UpdateDeploymentGithubDeploymentId(runCtx, r.db.RW(), db.UpdateDeploymentGithubDeploymentIdParams{
 			GithubDeploymentID: sql.NullInt64{Valid: true, Int64: ghDeploymentID},
 			UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			ID:                 r.deploymentID,
 		})
-	}, restate.WithName("persist github deployment id"), restate.WithMaxRetryDuration(30*time.Second))
+	}, restate.WithName("persist github deployment id"), restate.WithMaxRetryDuration(30*time.Second)); err != nil {
+		logger.Error("failed to persist GitHub deployment ID", "error", err, "deployment_id", r.deploymentID)
+	}
 
 	r.Report(ctx, "pending", "Deployment queued")
 }
@@ -92,12 +101,14 @@ func (r *githubStatusReporter) Report(ctx restate.ObjectSharedContext, state str
 		return
 	}
 
-	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+	if err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
 		return r.github.CreateDeploymentStatus(
 			r.installationID, r.repo, r.ghDeploymentID,
 			state, r.environmentURL, r.logURL, description,
 		)
-	}, restate.WithName(fmt.Sprintf("github deployment status: %s", state)), restate.WithMaxRetryDuration(30*time.Second))
+	}, restate.WithName(fmt.Sprintf("github deployment status: %s", state)), restate.WithMaxRetryDuration(30*time.Second)); err != nil {
+		logger.Error("failed to report GitHub deployment status", "error", err, "deployment_id", r.deploymentID, "state", state)
+	}
 }
 
 // createStatusReporter builds the appropriate reporter for a deployment.
@@ -126,17 +137,23 @@ func (w *Workflow) createStatusReporter(
 	envURL := fmt.Sprintf("https://%s-%s-%s.%s", prefix, environment.Slug, workspace.Slug, w.defaultDomain)
 	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s", w.dashboardURL, workspace.Slug, project.ID, deployment.ID)
 
+	var existingGHDeploymentID int64
+	if deployment.GithubDeploymentID.Valid {
+		existingGHDeploymentID = deployment.GithubDeploymentID.Int64
+	}
+
 	reporter := newGithubStatusReporter(githubStatusReporterConfig{
-		GitHub:           w.github,
-		DB:               w.db,
-		InstallationID:   repoConn.InstallationID,
-		Repo:             repoConn.RepositoryFullName,
-		CommitSHA:        deployment.GitCommitSha.String,
-		EnvironmentLabel: envLabel,
-		EnvironmentURL:   envURL,
-		LogURL:           logURL,
-		DeploymentID:     deployment.ID,
-		IsProduction:     environment.Slug == "production",
+		GitHub:             w.github,
+		DB:                 w.db,
+		InstallationID:     repoConn.InstallationID,
+		Repo:               repoConn.RepositoryFullName,
+		CommitSHA:          deployment.GitCommitSha.String,
+		EnvironmentLabel:   envLabel,
+		EnvironmentURL:     envURL,
+		LogURL:             logURL,
+		DeploymentID:       deployment.ID,
+		IsProduction:       environment.Slug == "production",
+		GithubDeploymentID: existingGHDeploymentID,
 	})
 	reporter.Create(ctx)
 	return reporter

@@ -21,8 +21,6 @@ type GitHubClient interface {
 
 	// CreateDeploymentStatus updates the status of a GitHub Deployment.
 	// state must be one of: pending, in_progress, success, failure, error.
-	// CreateDeploymentStatus updates the status of a GitHub Deployment.
-	// state must be one of: pending, in_progress, success, failure, error.
 	// logURL is shown as "View logs" on GitHub; environmentURL as "View deployment".
 	CreateDeploymentStatus(installationID int64, repo string, deploymentID int64, state string, environmentURL string, logURL string, description string) error
 }

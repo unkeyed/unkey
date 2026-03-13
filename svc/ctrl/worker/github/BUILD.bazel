@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "client.go",
         "doc.go",
+        "http.go",
         "interface.go",
         "noop.go",
     ],
@@ -15,7 +16,6 @@ go_library(
         "//pkg/cache",
         "//pkg/clock",
         "//pkg/fault",
-        "//pkg/httpclient",
         "//pkg/jwt",
         "//pkg/logger",
     ],

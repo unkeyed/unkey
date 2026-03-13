@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/httpclient"
 )
 
 // Noop is a no-op implementation of GitHubClient that returns errors for all operations.
@@ -51,7 +50,7 @@ func (n *Noop) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
 
-	commit, err := httpclient.Request[ghCommitResponse](httpClient, http.MethodGet, apiURL, httpclient.GitHubHeaders(""), nil, http.StatusOK)
+	commit, err := request[ghCommitResponse](httpClient, http.MethodGet, apiURL, githubHeaders(""), nil, http.StatusOK)
 	if err != nil {
 		return CommitInfo{}, err
 	}

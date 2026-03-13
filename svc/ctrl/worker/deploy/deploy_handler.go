@@ -175,18 +175,17 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	statusReporter := w.createStatusReporter(ctx, deployment, project, app, environment, workspace)
-
-	statusReporter.Report(ctx, "in_progress", "Building container image...")
-
 	// --- Build ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(stepCtx restate.ObjectContext) error {
 		return w.buildImage(stepCtx, req, &deployment)
 	})
 	if err != nil {
-		statusReporter.Report(ctx, "failure", "Build failed")
 		return nil, err
 	}
+
+	// Create the status reporter after buildImage so that branch-only deploys
+	// have a resolved GitCommitSha (buildImage mutates the deployment pointer).
+	statusReporter := w.createStatusReporter(ctx, deployment, project, app, environment, workspace)
 
 	statusReporter.Report(ctx, "in_progress", "Deploying to regions...")
 
