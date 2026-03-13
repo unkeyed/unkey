@@ -12,7 +12,7 @@ type InstanceNodeProps = {
 };
 
 export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps) {
-  const { cpu, memory, health } = node.metadata;
+  const { cpu, memory, health, message } = node.metadata;
 
   const { data: rps } = trpc.deploy.network.getInstanceRps.useQuery(
     {
@@ -34,7 +34,7 @@ export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps
           </div>
         }
         title={node.label}
-        subtitle="Instance Replica"
+        subtitle={health === "unhealthy" && message ? message : "Instance Replica"}
         health={health}
       />
       <CardFooter type="instance" flagCode={flagCode} rps={rps} cpu={cpu} memory={memory} />

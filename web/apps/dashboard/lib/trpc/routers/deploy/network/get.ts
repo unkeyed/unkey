@@ -40,6 +40,8 @@ export const getDeploymentTree = workspaceProcedure
             cpuMillicores: true,
             memoryMib: true,
             status: true,
+            message: true,
+            failureReason: true,
           },
           with: {
             region: {
@@ -89,7 +91,7 @@ export const getDeploymentTree = workspaceProcedure
               latency: "—",
               health: calculateSentinelHealth(sentinelInstances, health),
             },
-            children: sentinelInstances.map(({ id, status, cpuMillicores, memoryMib }) => ({
+            children: sentinelInstances.map(({ id, status, cpuMillicores, memoryMib, message, failureReason }) => ({
               id,
               label: id,
               metadata: {
@@ -100,6 +102,8 @@ export const getDeploymentTree = workspaceProcedure
                 memory: memoryMib,
                 latency: "—",
                 health: mapInstanceStatusToHealth(status),
+                message: message ?? undefined,
+                failureReason: failureReason ?? undefined,
               },
             })),
           };

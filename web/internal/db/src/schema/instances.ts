@@ -33,6 +33,19 @@ export const instances = mysqlTable(
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
     status: mysqlEnum("status", ["inactive", "pending", "running", "failed"]).notNull(),
+    message: varchar("message", { length: 1024 }),
+    restartCount: int("restart_count").notNull().default(0),
+    failureReason: mysqlEnum("failure_reason", [
+      "unspecified",
+      "crash_loop_backoff",
+      "oom_killed",
+      "image_pull_backoff",
+      "create_container_config_error",
+      "run_container_error",
+      "non_zero_exit",
+    ])
+      .notNull()
+      .default("unspecified"),
   },
   (table) => [
     uniqueIndex("unique_address_per_region").on(table.address, table.regionId),

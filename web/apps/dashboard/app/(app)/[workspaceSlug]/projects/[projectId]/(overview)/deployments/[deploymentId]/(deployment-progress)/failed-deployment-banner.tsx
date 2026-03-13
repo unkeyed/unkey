@@ -32,6 +32,7 @@ export function FailedDeploymentBanner({
   redeployOpen,
   onRedeployClose,
   deployment,
+  instanceErrors,
 }: {
   steps: StepEntry[];
   settingsUrl: string;
@@ -39,8 +40,13 @@ export function FailedDeploymentBanner({
   redeployOpen: boolean;
   onRedeployClose: () => void;
   deployment: Deployment;
+  instanceErrors?: string[];
 }) {
-  const errorMessage = steps.find((s) => s?.error)?.error ?? "Deployment failed";
+  const stepError = steps.find((s) => s?.error)?.error;
+  const errorMessage = stepError
+    ?? (instanceErrors && instanceErrors.length > 0
+      ? instanceErrors.join("; ")
+      : "Deployment failed");
   const showSettingsLink = isSettingsRelatedError(errorMessage);
 
   return (
