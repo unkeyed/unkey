@@ -16,6 +16,8 @@ import { useProjectData } from "../(overview)/data-provider";
 import { useDeployment } from "../(overview)/deployments/[deploymentId]/layout-provider";
 import { SettingsGroup } from "../(overview)/settings/components/shared/settings-group";
 import { GlowIcon } from "./glow-icon";
+import { getDomainPriority } from "./domain-priority";
+import { TagBadge } from "./tag-badge";
 
 export function DeploymentDomainsCard({
   emptyState,
@@ -24,20 +26,29 @@ export function DeploymentDomainsCard({
 }: { emptyState?: ReactNode; glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
   const [urlsOpen, setUrlsOpen] = useState(false);
   const { deployment } = useDeployment();
-  const { getDomainsForDeployment, isDomainsLoading, project } = useProjectData();
+  const {
+    getDomainsForDeployment,
+    isDomainsLoading,
+    customDomains,
+    isCustomDomainsLoading,
+    project,
+  } = useProjectData();
 
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
   const filtered = domainFilter ? domainsForDeployment.filter(domainFilter) : domainsForDeployment;
-  const sortedDomains = [...filtered].sort((a, b) =>
-    a.fullyQualifiedDomainName.localeCompare(b.fullyQualifiedDomainName),
-  );
-  const environmentDomain = sortedDomains.find((d) => d.sticky === "environment");
-  const primaryDomain = environmentDomain ?? sortedDomains[0];
-  const additionalDomains = primaryDomain
-    ? sortedDomains.filter((d) => d.id !== primaryDomain.id)
-    : [];
+  const {
+    primary: primaryDomain,
+    additional: additionalDomains,
+    all: allDomains,
+  } = getDomainPriority({
+    domains: filtered,
+    customDomains,
+    environmentId: deployment.environmentId,
+  });
 
-  if (!isDomainsLoading && sortedDomains.length === 0) {
+  const isLoading = isDomainsLoading || isCustomDomainsLoading;
+
+  if (!isLoading && primaryDomain === null) {
     return emptyState ?? null;
   }
 
@@ -48,7 +59,7 @@ export function DeploymentDomainsCard({
       hideChevron
     >
       <SettingCardGroup>
-        {isDomainsLoading ? (
+        {isLoading || primaryDomain === null ? (
           <SettingCard
             icon={
               <div className="w-full h-full rounded-[10px] flex items-center justify-center shrink-0">
@@ -72,13 +83,14 @@ export function DeploymentDomainsCard({
             description={
               <div className="flex items-center justify-center gap-2 ">
                 <a
-                  href={`https://${primaryDomain.fullyQualifiedDomainName}`}
+                  href={primaryDomain.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-10 text-xs hover:underline decoration-dashed underline-offset-2 transition-all"
                 >
-                  {primaryDomain.fullyQualifiedDomainName}
+                  {primaryDomain.hostname}
                 </a>
+                {primaryDomain.source === "custom" && <TagBadge variant="custom" text="Custom" />}
                 {additionalDomains.length > 0 && (
                   <button
                     type="button"
@@ -105,25 +117,22 @@ export function DeploymentDomainsCard({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent side="bottom" align="end" className="p-0 max-w-[300px]">
-                    {sortedDomains.map((d) => (
+                    {allDomains.map((d) => (
                       <div
                         key={d.id}
                         className="flex items-center justify-left w-full h-10 border-b border-gray-4 px-3 py-[14px] gap-2"
                       >
                         <Link4 className="text-gray-9 size-3! shrink-0" iconSize="sm-regular" />
                         <a
-                          href={`https://${d.fullyQualifiedDomainName}`}
+                          href={d.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="transition-all hover:underline decoration-dashed underline-offset-2 max-w-[250px] truncate font-medium text-xs"
                         >
-                          {d.fullyQualifiedDomainName}
+                          {d.hostname}
                         </a>
-                        <CopyButton
-                          value={`https://${d.fullyQualifiedDomainName}`}
-                          variant="ghost"
-                          toastMessage={d.fullyQualifiedDomainName}
-                        />
+                        {d.source === "custom" && <TagBadge variant="custom" text="Custom" />}
+                        <CopyButton value={d.url} variant="ghost" toastMessage={d.hostname} />
                       </div>
                     ))}
                   </PopoverContent>

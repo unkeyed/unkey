@@ -31,6 +31,7 @@ export function DeploymentStep({
   return (
     <div className={cn(isSkipped && "opacity-50")}>
       <SettingCard
+        truncateDescription
         icon={
           <GlowIcon
             icon={icon}
