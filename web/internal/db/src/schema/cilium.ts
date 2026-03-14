@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -31,7 +31,7 @@ export const ciliumNetworkPolicies = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    uniqueIndex("one_deployment_per_region").on(table.deploymentId, table.regionId),
+    index("idx_deployment_region").on(table.deploymentId, table.regionId),
     uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
   ],
 );

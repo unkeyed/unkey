@@ -9,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
 import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { trpc } from "@/lib/trpc/client";
@@ -150,7 +149,7 @@ export const WorkspaceSwitcher: React.FC = () => {
     >
       <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
       <DropdownMenuGroup>
-        <ScrollArea className="h-96">
+        <div className="max-h-96 overflow-y-auto">
           {filteredOrgs.map((membership) => (
             <DropdownMenuItem
               key={membership.id}
@@ -175,7 +174,7 @@ export const WorkspaceSwitcher: React.FC = () => {
               )}
             </DropdownMenuItem>
           ))}
-        </ScrollArea>
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/new" className="flex items-center">
