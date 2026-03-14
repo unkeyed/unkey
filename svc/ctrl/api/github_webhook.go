@@ -123,6 +123,9 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
 	}
 
+	// Collect all unique changed files across all commits
+	changedFiles := collectChangedFiles(payload.Commits)
+
 	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
 		InstallationId:        payload.Installation.ID,
 		RepositoryId:          payload.Repository.ID,
@@ -134,6 +137,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		CommitAuthorAvatarUrl: gitCommit.AuthorAvatarURL,
 		CommitTimestamp:       gitCommit.Timestamp.UnixMilli(),
 		DeliveryId:            deliveryID,
+		ChangedFiles:          changedFiles,
 	}, sendOpts...)
 	if err != nil {
 		logger.Error("failed to send HandlePush to Restate",
@@ -205,4 +209,25 @@ func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 		fmt.Sprintf("https://github.com/%s.png", authorHandle),
 		headCommit.Timestamp,
 	)
+}
+
+// collectChangedFiles deduplicates file paths from all commits in a push.
+func collectChangedFiles(commits []pushCommit) []string {
+	seen := make(map[string]struct{})
+	for _, c := range commits {
+		for _, f := range c.Added {
+			seen[f] = struct{}{}
+		}
+		for _, f := range c.Removed {
+			seen[f] = struct{}{}
+		}
+		for _, f := range c.Modified {
+			seen[f] = struct{}{}
+		}
+	}
+	files := make([]string, 0, len(seen))
+	for f := range seen {
+		files = append(files, f)
+	}
+	return files
 }
