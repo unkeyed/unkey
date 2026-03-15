@@ -93,7 +93,7 @@ export const ProjectsList = () => {
                   : undefined
               }
               actions={
-                <ProjectActions projectId={project.id} projectName={project.name}>
+                <ProjectActions projectId={project.id}>
                   <Button
                     variant="ghost"
                     size="icon"
