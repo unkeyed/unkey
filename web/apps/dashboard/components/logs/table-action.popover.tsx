@@ -153,7 +153,7 @@ export const TableActionPopover = ({
                             <span className="text-[13px] font-medium">{item.label}</span>
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent>{item.tooltip}</TooltipContent>
+                         <TooltipContent className="z-[9998]">{item.tooltip}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   ) : (
