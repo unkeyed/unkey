@@ -1,5 +1,14 @@
 import { Dots } from "@unkey/icons";
-import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import {
+  Button,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type FC, type PropsWithChildren, forwardRef, useEffect, useRef, useState } from "react";
 
@@ -26,6 +35,7 @@ export type MenuItem = {
   divider?: boolean;
   ActionComponent?: FC<ActionComponentProps>;
   prefetch?: () => Promise<void>;
+  tooltip?: string;
 };
 
 type BaseTableActionPopoverProps = PropsWithChildren<{
@@ -112,32 +122,68 @@ export const TableActionPopover = ({
             {items.map((item, index) => (
               <div key={item.id}>
                 <div className="px-2">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    aria-disabled={item.disabled}
-                    tabIndex={!item.disabled && focusIndex === index ? 0 : -1}
-                    className={cn(
-                      "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
-                      !item.disabled &&
-                        "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
-                      item.disabled && "cursor-not-allowed opacity-50",
-                      item.className,
-                    )}
-                    onMouseEnter={() => handleItemHover(item)}
-                    onClick={(e) => {
-                      if (!item.disabled) {
-                        item.onClick?.(e);
-                        setEnabledItem(item.id);
-                        setOpen(false);
-                      }
-                    }}
-                  >
-                    <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
-                      {item.icon}
-                    </div>
-                    <span className="text-[13px] font-medium">{item.label}</span>
-                  </button>
+                  {item.tooltip ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            aria-disabled={item.disabled}
+                            tabIndex={!item.disabled && focusIndex === index ? 0 : -1}
+                            className={cn(
+                              "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
+                              !item.disabled &&
+                                "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
+                              item.disabled && "cursor-not-allowed opacity-50",
+                              item.className,
+                            )}
+                            onMouseEnter={() => handleItemHover(item)}
+                            onClick={(e) => {
+                              if (!item.disabled) {
+                                item.onClick?.(e);
+                                setEnabledItem(item.id);
+                                setOpen(false);
+                              }
+                            }}
+                          >
+                            <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
+                              {item.icon}
+                            </div>
+                            <span className="text-[13px] font-medium">{item.label}</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{item.tooltip}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      aria-disabled={item.disabled}
+                      tabIndex={!item.disabled && focusIndex === index ? 0 : -1}
+                      className={cn(
+                        "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
+                        !item.disabled &&
+                          "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
+                        item.disabled && "cursor-not-allowed opacity-50",
+                        item.className,
+                      )}
+                      onMouseEnter={() => handleItemHover(item)}
+                      onClick={(e) => {
+                        if (!item.disabled) {
+                          item.onClick?.(e);
+                          setEnabledItem(item.id);
+                          setOpen(false);
+                        }
+                      }}
+                    >
+                      <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
+                        {item.icon}
+                      </div>
+                      <span className="text-[13px] font-medium">{item.label}</span>
+                    </button>
+                  )}
                 </div>
                 {item.divider && <div className="h-px bg-grayA-3 w-full my-2" />}
               </div>
