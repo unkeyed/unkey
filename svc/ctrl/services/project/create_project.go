@@ -14,11 +14,15 @@ import (
 )
 
 // CreateProject creates a project and a default app with environments
-// by delegating app creation to the AppService.
+// by delegating app creation to [app.Service.CreateApp]. The caller's
+// Authorization header is forwarded to the internal CreateApp call.
 func (s *Service) CreateProject(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateProjectRequest],
 ) (*connect.Response[ctrlv1.CreateProjectResponse], error) {
+	if err := s.authenticate(req); err != nil {
+		return nil, err
+	}
 	if err := assert.All(
 		assert.NotEmpty(req.Msg.GetWorkspaceId(), "workspace_id is required"),
 		assert.NotEmpty(req.Msg.GetName(), "name is required"),
@@ -44,12 +48,16 @@ func (s *Service) CreateProject(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to insert project: %w", err))
 	}
 
-	_, err = s.appService.CreateApp(ctx, connect.NewRequest(&ctrlv1.CreateAppRequest{
+	appReq := connect.NewRequest(&ctrlv1.CreateAppRequest{
 		WorkspaceId: workspaceID,
 		ProjectId:   projectID,
 		Name:        req.Msg.GetName(),
 		Slug:        "default",
-	}))
+	})
+	// Forward the caller's Authorization header so the internal CreateApp
+	// call passes authentication.
+	appReq.Header().Set("Authorization", req.Header().Get("Authorization"))
+	_, err = s.appService.CreateApp(ctx, appReq)
 	if err != nil {
 		return nil, err
 	}

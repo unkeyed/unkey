@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "project",
     srcs = [
+        "auth.go",
         "create_project.go",
         "delete_project.go",
         "service.go",
@@ -16,6 +17,7 @@ go_library(
         "//pkg/assert",
         "//pkg/db",
         "//pkg/uid",
+        "//svc/ctrl/internal/auth",
         "//svc/ctrl/services/app",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//ingress",

@@ -14,11 +14,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+// envSpec defines the slug and human-readable description for a default environment.
 type envSpec struct {
 	slug        string
 	description string
 }
 
+// defaultEnvironments are the environments created automatically for every new app.
 var defaultEnvironments = []envSpec{
 	{slug: "production", description: "Production"},
 	{slug: "preview", description: "Preview"},
@@ -30,6 +32,9 @@ func (s *Service) CreateApp(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateAppRequest],
 ) (*connect.Response[ctrlv1.CreateAppResponse], error) {
+	if err := s.authenticate(req); err != nil {
+		return nil, err
+	}
 	if err := assert.All(
 		assert.NotEmpty(req.Msg.GetWorkspaceId(), "workspace_id is required"),
 		assert.NotEmpty(req.Msg.GetProjectId(), "project_id is required"),

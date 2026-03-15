@@ -10,12 +10,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 )
 
-// DeleteProject triggers the Restate workflow to durably clean up all
-// resources associated with a project.
+// DeleteProject enqueues a durable Restate workflow that cascades through
+// the project's apps and environments, cleaning up all associated resources.
+// Returns immediately after the workflow is enqueued; actual deletion
+// is eventually consistent.
 func (s *Service) DeleteProject(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.DeleteProjectRequest],
 ) (*connect.Response[ctrlv1.DeleteProjectResponse], error) {
+	if err := s.authenticate(req); err != nil {
+		return nil, err
+	}
 	if err := assert.NotEmpty(req.Msg.GetProjectId(), "project_id is required"); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}

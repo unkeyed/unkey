@@ -11,12 +11,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
-// DeleteApp triggers the Restate workflow to durably clean up all
-// resources associated with an app.
+// DeleteApp enqueues a durable Restate workflow that cascades through
+// the app's environments and cleans up all associated resources.
+// Returns immediately after the workflow is enqueued; actual deletion
+// is eventually consistent.
 func (s *Service) DeleteApp(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.DeleteAppRequest],
 ) (*connect.Response[ctrlv1.DeleteAppResponse], error) {
+	if err := s.authenticate(req); err != nil {
+		return nil, err
+	}
 	if err := assert.NotEmpty(req.Msg.GetAppId(), "app_id is required"); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}

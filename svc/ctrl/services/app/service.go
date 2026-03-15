@@ -13,12 +13,19 @@ type Service struct {
 	ctrlv1connect.UnimplementedAppServiceHandler
 	db      db.Database
 	restate *restateingress.Client
+	bearer  string
 }
 
 // Config holds the configuration for creating a new [Service].
 type Config struct {
+	// Database provides read and write access for managing apps and their resources.
 	Database db.Database
-	Restate  *restateingress.Client
+
+	// Restate is the ingress client used to trigger durable app deletion workflows.
+	Restate *restateingress.Client
+
+	// Bearer is the preshared token that callers must provide in the Authorization header.
+	Bearer string
 }
 
 // New creates a new [Service] with the given configuration.
@@ -27,5 +34,6 @@ func New(cfg Config) *Service {
 		UnimplementedAppServiceHandler: ctrlv1connect.UnimplementedAppServiceHandler{},
 		db:                             cfg.Database,
 		restate:                        cfg.Restate,
+		bearer:                         cfg.Bearer,
 	}
 }

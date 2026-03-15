@@ -1,4 +1,4 @@
-package cluster
+package app
 
 import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
