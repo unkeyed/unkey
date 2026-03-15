@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "deployment",
     srcs = [
-        "actual_state_report.go",
         "apply.go",
         "consts.go",
         "controller.go",
@@ -11,6 +10,7 @@ go_library(
         "desired_state_apply.go",
         "doc.go",
         "namespace.go",
+        "pod_watch.go",
         "rbac.go",
         "registry.go",
         "resync.go",
