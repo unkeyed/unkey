@@ -22,11 +22,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
+	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
+	"github.com/unkeyed/unkey/svc/ctrl/services/project"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -156,6 +158,16 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:      restateClient,
 		RestateAdmin: restateAdminClient,
 		CnameDomain:  cfg.CnameDomain,
+	})))
+	appSvc := app.New(app.Config{
+		Database: database,
+		Restate:  restateClient,
+	})
+	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
+	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
+		Database:   database,
+		Restate:    restateClient,
+		AppService: appSvc,
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {
