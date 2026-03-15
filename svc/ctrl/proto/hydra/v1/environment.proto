@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// EnvironmentService manages environment lifecycle.
+// Key: environment_id
+service EnvironmentService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Delete removes an environment and cleans up associated resources.
+  // Key: environment_id
+  rpc Delete(DeleteEnvironmentRequest) returns (DeleteEnvironmentResponse) {}
+}
+
+message DeleteEnvironmentRequest {}
+
+message DeleteEnvironmentResponse {}

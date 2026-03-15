@@ -36,6 +36,7 @@ import (
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
@@ -203,6 +204,9 @@ func Run(ctx context.Context, cfg Config) error {
 		DB: database,
 	})))
 	restateSrv.Bind(hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{
+		DB: database,
+	})))
+	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(workerenvironment.New(workerenvironment.Config{
 		DB: database,
 	})))
 
