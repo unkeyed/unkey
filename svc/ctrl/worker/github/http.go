@@ -126,7 +126,6 @@ func statusCheck(client *http.Client, method string, url string, headers map[str
 
 	return resp.StatusCode == expectedStatus, nil
 }
-
 // githubHeaders returns common GitHub API headers with the given bearer token.
 func githubHeaders(token string) map[string]string {
 	h := map[string]string{
