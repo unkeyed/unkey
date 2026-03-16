@@ -183,16 +183,26 @@ func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 		return githubclient.CommitInfoFromRaw("", "", "", "", "")
 	}
 
-	authorHandle := headCommit.Author.Username
+	// Use the first commit's author as the originator (PR creator).
+	// For a merged PR, head_commit is the merge commit whose author is the
+	// merger; commits[0] is the original PR work commit whose author is the
+	// PR creator. For a direct push, commits[0] == head_commit so this is
+	// equivalent.
+	authorCommit := headCommit
+	if len(payload.Commits) > 0 {
+		authorCommit = &payload.Commits[0]
+	}
+
+	authorHandle := authorCommit.Author.Username
 	if authorHandle == "" {
-		authorHandle = headCommit.Author.Name
+		authorHandle = authorCommit.Author.Name
 	}
 
 	return githubclient.CommitInfoFromRaw(
 		headCommit.ID,
 		headCommit.Message,
 		authorHandle,
-		payload.Sender.AvatarURL,
+		fmt.Sprintf("https://github.com/%s.png", authorHandle),
 		headCommit.Timestamp,
 	)
 }
