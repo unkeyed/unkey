@@ -9,8 +9,8 @@ import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
-import { SettingDescription } from "../shared/setting-description";
 import { RemoveButton } from "../shared/remove-button";
+import { SettingDescription } from "../shared/setting-description";
 
 const watchPathsSchema = z.object({
   paths: z.array(

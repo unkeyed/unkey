@@ -93,7 +93,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 				// Create skipped deployment record for visibility
 				skippedID := uid.New(uid.DeploymentPrefix)
-				restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 					return db.Tx(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 						err := db.Query.InsertDeployment(txCtx, tx, db.InsertDeploymentParams{
 							ID:                            skippedID,

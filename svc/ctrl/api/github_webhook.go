@@ -180,6 +180,9 @@ func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 			Message:   c.Message,
 			Timestamp: c.Timestamp,
 			Author:    c.Author,
+			Added:     c.Added,
+			Removed:   c.Removed,
+			Modified:  c.Modified,
 		}
 	}
 
