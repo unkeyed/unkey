@@ -34,3 +34,28 @@ ORDER BY
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 1 MONTH DELETE
 SETTINGS non_replicated_deduplication_window = 10000;
 
+-- Temporary materialized view to sync new writes from v1 to v2 during migration
+-- This ensures zero-downtime migration by duplicating all new inserts
+-- DROP this view after migration is complete and application switches to v2
+CREATE MATERIALIZED VIEW temp_sync_metrics_v1_to_v2 TO api_requests_raw_v2 AS
+SELECT
+  request_id,
+  time,
+  workspace_id,
+  host,
+  method,
+  path,
+  '' as query_string,
+  CAST(mapFromArrays(CAST([],'Array(String)'), CAST([],'Array(Array(String))')), 'Map(String, Array(String))') AS query_params,
+  request_headers,
+  request_body,
+  response_status,
+  response_headers,
+  response_body,
+  error,
+  service_latency,
+  user_agent,
+  ip_address,
+  '' as region
+FROM
+  metrics.raw_api_requests_v1;
