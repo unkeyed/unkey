@@ -543,6 +543,7 @@ const (
 	FrontlineRoutesStickyBranch      FrontlineRoutesSticky = "branch"
 	FrontlineRoutesStickyEnvironment FrontlineRoutesSticky = "environment"
 	FrontlineRoutesStickyLive        FrontlineRoutesSticky = "live"
+	FrontlineRoutesStickyDeployment  FrontlineRoutesSticky = "deployment"
 )
 
 func (e *FrontlineRoutesSticky) Scan(src interface{}) error {
@@ -1163,7 +1164,6 @@ type Deployment struct {
 	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
 	SentinelConfig                []byte                    `db:"sentinel_config"`
-	OpenapiSpec                   sql.NullString            `db:"openapi_spec"`
 	CpuMillicores                 int32                     `db:"cpu_millicores"`
 	MemoryMib                     int32                     `db:"memory_mib"`
 	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
