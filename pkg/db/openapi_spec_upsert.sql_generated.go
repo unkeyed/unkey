@@ -12,7 +12,8 @@ import (
 
 const upsertOpenApiSpec = `-- name: UpsertOpenApiSpec :exec
 INSERT INTO openapi_specs (id, workspace_id, project_id, deployment_id, spec, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?,
+        ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     spec = VALUES(spec),
     updated_at = VALUES(updated_at)
@@ -31,7 +32,8 @@ type UpsertOpenApiSpecParams struct {
 // UpsertOpenApiSpec
 //
 //	INSERT INTO openapi_specs (id, workspace_id, project_id, deployment_id, spec, created_at, updated_at)
-//	VALUES (?, ?, ?, ?, ?, ?, ?)
+//	VALUES (?, ?, ?,
+//	        ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    spec = VALUES(spec),
 //	    updated_at = VALUES(updated_at)

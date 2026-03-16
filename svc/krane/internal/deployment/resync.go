@@ -16,7 +16,7 @@ import (
 // desired state from the control plane.
 //
 // The loop runs every minute as a consistency safety net. While
-// [Controller.runActualStateReportLoop] handles real-time Kubernetes events and
+// [Controller.runPodWatchLoop] handles real-time Kubernetes events and
 // [Controller.runDesiredStateApplyLoop] handles streaming updates, both can miss
 // events during network partitions, controller restarts, or watch buffer overflows.
 // This resync loop guarantees eventual consistency by querying the control plane
@@ -45,6 +45,18 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 			}
 
 			for _, replicaSet := range replicaSets.Items {
+				// Report actual state back to the control plane if it differs
+				// from the last report. This catches pods that were skipped
+				// earlier (e.g. no IP yet) or watch events that were missed.
+				status, buildErr := c.buildDeploymentStatus(ctx, &replicaSet)
+				if buildErr != nil {
+					logger.Error("resync: unable to build deployment status", "error", buildErr.Error(), "replicaSet", replicaSet.Name)
+				} else if reported, reportErr := c.reportIfChanged(ctx, status); reportErr != nil {
+					logger.Error("resync: unable to report deployment status", "error", reportErr.Error(), "replicaSet", replicaSet.Name)
+				} else if reported {
+					logger.Info("resync: reported changed deployment status", "replicaSet", replicaSet.Name)
+				}
+
 				deploymentID, ok := labels.GetDeploymentID(replicaSet.Labels)
 				if !ok {
 					logger.Error("unable to get deployment ID", "replicaSet", replicaSet.Name)

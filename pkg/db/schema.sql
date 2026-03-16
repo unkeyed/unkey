@@ -443,7 +443,7 @@ CREATE TABLE `app_runtime_settings` (
 	`healthcheck` json,
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`sentinel_config` longblob NOT NULL,
-	`openapi_spec_path` varchar(500),
+	`openapi_spec_path` varchar(512),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `app_runtime_settings_pk` PRIMARY KEY(`pk`),
@@ -507,6 +507,7 @@ CREATE TABLE `deployments` (
 	`port` int NOT NULL DEFAULT 8080,
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`healthcheck` json,
+	`github_deployment_id` bigint,
 	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -514,21 +515,6 @@ CREATE TABLE `deployments` (
 	CONSTRAINT `deployments_id_unique` UNIQUE(`id`),
 	CONSTRAINT `deployments_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `deployments_build_id_unique` UNIQUE(`build_id`)
-);
-
-CREATE TABLE `openapi_specs` (
-	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(64) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(64),
-	`deployment_id` varchar(64),
-	`spec` longblob NOT NULL,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	CONSTRAINT `openapi_specs_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `openapi_specs_id_unique` UNIQUE(`id`),
-	CONSTRAINT `openapi_specs_deployment_idx` UNIQUE(`deployment_id`),
-	INDEX `openapi_specs_project_idx` (`project_id`)
 );
 
 CREATE TABLE `deployment_steps` (
@@ -768,6 +754,20 @@ CREATE TABLE `horizontal_autoscaling_policies` (
 	CONSTRAINT `horizontal_autoscaling_policies_id_unique` UNIQUE(`id`)
 );
 
+CREATE TABLE `openapi_specs` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(64),
+	`deployment_id` varchar(64),
+	`spec` longblob NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `openapi_specs_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `openapi_specs_id_unique` UNIQUE(`id`),
+	CONSTRAINT `openapi_specs_deployment_idx` UNIQUE(`deployment_id`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
@@ -809,4 +809,5 @@ CREATE INDEX `fqdn_environment_deployment_idx` ON `frontline_routes` (`fully_qua
 CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_id`);
 CREATE INDEX `idx_deployment_region` ON `cilium_network_policies` (`deployment_id`,`region_id`);
 CREATE INDEX `workspace_idx` ON `horizontal_autoscaling_policies` (`workspace_id`);
+CREATE INDEX `openapi_specs_project_idx` ON `openapi_specs` (`project_id`);
 

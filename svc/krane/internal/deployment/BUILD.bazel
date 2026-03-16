@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "deployment",
     srcs = [
-        "actual_state_report.go",
         "apply.go",
         "consts.go",
         "controller.go",
@@ -11,6 +10,7 @@ go_library(
         "desired_state_apply.go",
         "doc.go",
         "namespace.go",
+        "pod_watch.go",
         "rbac.go",
         "registry.go",
         "resync.go",
@@ -26,8 +26,10 @@ go_library(
         "//gen/rpc/ctrl",
         "//gen/rpc/vault",
         "//pkg/assert",
+        "//pkg/cache",
         "//pkg/circuitbreaker",
         "//pkg/db/types",
+        "//pkg/hash",
         "//pkg/logger",
         "//pkg/ptr",
         "//pkg/repeat",
@@ -53,6 +55,7 @@ go_test(
     srcs = ["controller_test.go"],
     embed = [":deployment"],
     deps = [
+        "//pkg/cache",
         "//svc/krane/internal/testutil",
         "@com_github_stretchr_testify//require",
         "@io_k8s_api//core/v1:core",

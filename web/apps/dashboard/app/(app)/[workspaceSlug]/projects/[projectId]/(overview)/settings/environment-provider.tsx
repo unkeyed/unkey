@@ -37,7 +37,7 @@ export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => 
     [getActiveEnvId],
   );
 
-  console.log(data)
+  console.log(data);
 
   // Selected envs settings cannot but null because we apply some sane defaults to them
   const settings = data.at(0);

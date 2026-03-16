@@ -21,7 +21,7 @@ import (
 type OpenapiServiceClient interface {
 	// ScrapeSpec looks up the deployment-specific public FQDN and the configured
 	// openapi_spec_path from app_runtime_settings, then fetches the spec and
-	// persists the result in the deployments table.
+	// persists the result in the openapi_specs table.
 	// Returns success when scraping is disabled, the endpoint is absent (404),
 	// or no non-sticky route exists — not all deployments expose an OpenAPI spec.
 	ScrapeSpec(opts ...sdk_go.ClientOption) sdk_go.Client[*ScrapeSpecRequest, *ScrapeSpecResponse]
@@ -53,7 +53,7 @@ func (c *openapiServiceClient) ScrapeSpec(opts ...sdk_go.ClientOption) sdk_go.Cl
 type OpenapiServiceIngressClient interface {
 	// ScrapeSpec looks up the deployment-specific public FQDN and the configured
 	// openapi_spec_path from app_runtime_settings, then fetches the spec and
-	// persists the result in the deployments table.
+	// persists the result in the openapi_specs table.
 	// Returns success when scraping is disabled, the endpoint is absent (404),
 	// or no non-sticky route exists — not all deployments expose an OpenAPI spec.
 	ScrapeSpec() ingress.Requester[*ScrapeSpecRequest, *ScrapeSpecResponse]
@@ -86,7 +86,7 @@ func (c *openapiServiceIngressClient) ScrapeSpec() ingress.Requester[*ScrapeSpec
 type OpenapiServiceServer interface {
 	// ScrapeSpec looks up the deployment-specific public FQDN and the configured
 	// openapi_spec_path from app_runtime_settings, then fetches the spec and
-	// persists the result in the deployments table.
+	// persists the result in the openapi_specs table.
 	// Returns success when scraping is disabled, the endpoint is absent (404),
 	// or no non-sticky route exists — not all deployments expose an OpenAPI spec.
 	ScrapeSpec(ctx sdk_go.Context, req *ScrapeSpecRequest) (*ScrapeSpecResponse, error)

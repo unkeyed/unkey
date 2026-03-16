@@ -48,7 +48,7 @@ func (q *BulkQueries) UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg
 		allArgs = append(allArgs, arg.Healthcheck)
 		allArgs = append(allArgs, arg.ShutdownSignal)
 		allArgs = append(allArgs, arg.SentinelConfig)
-		allArgs = append(allArgs, arg.OpenApiSpecPath)
+		allArgs = append(allArgs, arg.OpenapiSpecPath)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}

@@ -63,7 +63,7 @@ export const getOpenApiDiff = workspaceProcedure
         oldDeploymentId: input.oldDeploymentId,
         newDeploymentId: input.newDeploymentId,
       });
-      console.log({ resp })
+      console.log({ resp });
 
       return {
         hasBreakingChanges: resp.hasBreakingChanges,

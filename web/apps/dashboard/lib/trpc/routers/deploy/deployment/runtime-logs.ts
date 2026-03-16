@@ -34,6 +34,7 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
       projectId: deployment.projectId,
       deploymentId: deployment.id,
       environmentId: deployment.environmentId,
+      appId: deployment.appId,
       limit: input.limit,
       startTime: deployment.createdAt,
       endTime: Date.now(),

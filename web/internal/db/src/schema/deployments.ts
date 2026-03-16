@@ -79,6 +79,9 @@ export const deployments = mysqlTable(
     // HTTP healthcheck configuration (null = no healthcheck)
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),
 
+    // GitHub Deployment ID for status reporting
+    githubDeploymentId: bigint("github_deployment_id", { mode: "number" }),
+
     // Deployment status
     status: mysqlEnum("status", [
       "pending",

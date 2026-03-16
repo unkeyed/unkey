@@ -87,7 +87,9 @@ export default function DiffPage() {
     <div className="w-225 flex flex-col justify-center items-center gap-6 mx-auto my-14">
       <div className="flex flex-col gap-2 items-center">
         <span className="font-semibold text-gray-12 leading-8 text-lg">Compare Deployments</span>
-        <span className="leading-4 text-gray-11 text-[13px]">View API changes between deployments</span>
+        <span className="leading-4 text-gray-11 text-[13px]">
+          View API changes between deployments
+        </span>
       </div>
 
       <Card className="flex flex-col overflow-hidden w-full">

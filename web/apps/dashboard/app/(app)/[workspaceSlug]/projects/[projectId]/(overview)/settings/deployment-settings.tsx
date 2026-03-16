@@ -7,12 +7,12 @@ import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
 
+import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { Command } from "./components/runtime-settings/command";
 import { Cpu } from "./components/runtime-settings/cpu";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
 import { Instances } from "./components/runtime-settings/instances";
 import { Memory } from "./components/runtime-settings/memory";
-import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
 

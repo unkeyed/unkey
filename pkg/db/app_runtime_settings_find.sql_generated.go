@@ -46,7 +46,7 @@ func (q *Queries) FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX
 		&i.AppRuntimeSetting.Healthcheck,
 		&i.AppRuntimeSetting.ShutdownSignal,
 		&i.AppRuntimeSetting.SentinelConfig,
-		&i.AppRuntimeSetting.OpenApiSpecPath,
+		&i.AppRuntimeSetting.OpenapiSpecPath,
 		&i.AppRuntimeSetting.CreatedAt,
 		&i.AppRuntimeSetting.UpdatedAt,
 	)

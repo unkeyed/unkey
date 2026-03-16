@@ -65,7 +65,7 @@ type UpsertAppRuntimeSettingsParams struct {
 	Healthcheck     dbtype.NullHealthcheck           `db:"healthcheck"`
 	ShutdownSignal  AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
 	SentinelConfig  []byte                           `db:"sentinel_config"`
-	OpenApiSpecPath sql.NullString                   `db:"openapi_spec_path"`
+	OpenapiSpecPath sql.NullString                   `db:"openapi_spec_path"`
 	CreatedAt       int64                            `db:"created_at"`
 	UpdatedAt       sql.NullInt64                    `db:"updated_at"`
 }
@@ -123,7 +123,7 @@ func (q *Queries) UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg Ups
 		arg.Healthcheck,
 		arg.ShutdownSignal,
 		arg.SentinelConfig,
-		arg.OpenApiSpecPath,
+		arg.OpenapiSpecPath,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

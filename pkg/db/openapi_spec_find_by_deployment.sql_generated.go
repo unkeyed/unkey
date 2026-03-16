@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findOpenApiSpecByDeploymentID = `-- name: FindOpenApiSpecByDeploymentID :one
@@ -16,9 +17,9 @@ SELECT pk, id, workspace_id, project_id, deployment_id, spec, created_at, update
 // FindOpenApiSpecByDeploymentID
 //
 //	SELECT pk, id, workspace_id, project_id, deployment_id, spec, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
-func (q *Queries) FindOpenApiSpecByDeploymentID(ctx context.Context, db DBTX, deploymentID string) (OpenApiSpec, error) {
+func (q *Queries) FindOpenApiSpecByDeploymentID(ctx context.Context, db DBTX, deploymentID sql.NullString) (OpenapiSpec, error) {
 	row := db.QueryRowContext(ctx, findOpenApiSpecByDeploymentID, deploymentID)
-	var i OpenApiSpec
+	var i OpenapiSpec
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,

@@ -112,7 +112,7 @@ const file_hydra_v1_openapi_proto_rawDesc = "" +
 	"\x12ScrapeSpecResponse2a\n" +
 	"\x0eOpenapiService\x12I\n" +
 	"\n" +
-	"ScrapeSpec\x12\x1b.hydra.v1.ScrapeSpecRequest\x1a\x1c.hydra.v1.ScrapeSpecResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x92\x01\n" +
+	"ScrapeSpec\x12\x1b.hydra.v1.ScrapeSpecRequest\x1a\x1c.hydra.v1.ScrapeSpecResponse\"\x00\x1a\x04\x98\x80\x01\x00B\x92\x01\n" +
 	"\fcom.hydra.v1B\fOpenapiProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (

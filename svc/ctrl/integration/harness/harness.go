@@ -181,6 +181,7 @@ func New(t *testing.T) *Harness {
 		RegistryConfig:                  deploy.RegistryConfig{URL: "", Username: "", Password: ""},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
+		DashboardURL:                    "http://localhost:3000",
 	})
 
 	keyRefillSvc, err := keyrefill.New(keyrefill.Config{

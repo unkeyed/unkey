@@ -42,6 +42,7 @@ type BulkQuerier interface {
 	InsertKeyRoles(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error
 	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
+	UpsertOpenApiSpec(ctx context.Context, db DBTX, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
 	UpsertQuota(ctx context.Context, db DBTX, args []UpsertQuotaParams) error

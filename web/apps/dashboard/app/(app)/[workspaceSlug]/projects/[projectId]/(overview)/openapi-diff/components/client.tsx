@@ -18,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import type { BadgeProps } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
 import { useMemo, useState } from "react";
 
@@ -233,10 +233,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
             {Object.entries(groupedChanges).map(([path, operations]) => {
               const isExpanded = expandedPaths.has(path);
               return (
-                <div
-                  key={path}
-                  className="border border-gray-4 rounded-md overflow-hidden"
-                >
+                <div key={path} className="border border-gray-4 rounded-md overflow-hidden">
                   <button
                     type="button"
                     onClick={() => togglePathExpansion(path)}
@@ -273,7 +270,10 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                             {changes.map((change, index) => (
                               <div
                                 key={`${change.id}-${index}`}
-                                className={cn("px-2 py-1.5 rounded-sm", getSeverityColor(change.level))}
+                                className={cn(
+                                  "px-2 py-1.5 rounded-sm",
+                                  getSeverityColor(change.level),
+                                )}
                               >
                                 <div className="flex items-start gap-2.5">
                                   <div className="flex-1 min-w-0">
@@ -294,7 +294,6 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                             ))}
                           </div>
                         </div>
-
                       ))}
                     </div>
                   )}
@@ -323,5 +322,3 @@ function getMethodVariant(method: string): BadgeProps["variant"] {
       return "secondary";
   }
 }
-
-

@@ -68,9 +68,7 @@ export const OpenapiSpecPath = () => {
       title="OpenAPI Spec Path"
       description="Path to your OpenAPI spec. Leave empty to disable scraping."
       displayValue={
-        openapiSpecPath ? (
-          <span className="text-gray-12 text-xs">{openapiSpecPath}</span>
-        ) : null
+        openapiSpecPath ? <span className="text-gray-12 text-xs">{openapiSpecPath}</span> : null
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
