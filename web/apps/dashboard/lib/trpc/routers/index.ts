@@ -425,7 +425,7 @@ export const router = t.router({
         updateHealthcheck,
         updateRegions,
         updateInstances,
-        updateOpenapiSpecPath
+        updateOpenapiSpecPath,
       }),
       build: t.router({
         updateDockerfile,

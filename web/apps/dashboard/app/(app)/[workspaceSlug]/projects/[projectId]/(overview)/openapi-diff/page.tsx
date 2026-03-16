@@ -13,7 +13,7 @@ import { DeploymentSelect } from "./components/deployment-select";
 import { useDiffDeployments } from "./hooks/use-diff-deployments";
 
 export default function DiffPage() {
-  const { projectId, project } = useProjectData();
+  const { project } = useProjectData();
   const currentDeploymentId = project?.currentDeploymentId;
   const searchParams = useSearchParams();
 

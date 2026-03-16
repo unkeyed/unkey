@@ -34,7 +34,6 @@ export const OpenapiSpecPath = () => {
     defaultValues: { openapiSpecPath: defaultValue },
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we gucci
   useEffect(() => {
     reset({ openapiSpecPath: defaultValue });
   }, [defaultValue, reset]);
