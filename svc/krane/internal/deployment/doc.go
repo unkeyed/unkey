@@ -14,10 +14,9 @@
 // WatchDeployments RPC and applies changes to Kubernetes. It uses a version cursor
 // for resumable streaming and automatically reconnects with jittered backoff on errors.
 //
-// [Controller.runPodWatchLoop] watches Kubernetes for pod changes and reports actual
-// state back to the control plane via ReportDeploymentStatus. Watching pods directly
-// (rather than ReplicaSets) means IP assignments and readiness changes are reported
-// immediately without waiting for the RS status to roll up.
+// [Controller.runActualStateReportLoop] watches Kubernetes for ReplicaSet changes and
+// reports actual state back to the control plane via ReportDeploymentStatus. This keeps
+// the control plane's routing tables synchronized with what's actually running.
 //
 // [Controller.runResyncLoop] runs every minute as a consistency safety net. While the
 // other loops handle real-time events, they can miss updates during network partitions,

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +27,6 @@ func TestNew_CreatesControllerWithCorrectFields(t *testing.T) {
 		DynamicClient: dynamicClient,
 		Cluster:       mockCluster,
 		Region:        "us-east-1",
-		Fingerprints:  cache.NewNoopCache[string, string](),
 	}
 
 	ctrl := New(cfg)
@@ -48,7 +46,6 @@ func TestNew_CreatesOwnCircuitBreaker(t *testing.T) {
 		DynamicClient: dynamicClient,
 		Cluster:       &testutil.MockClusterClient{},
 		Region:        "us-east-1",
-		Fingerprints:  cache.NewNoopCache[string, string](),
 	}
 
 	ctrl := New(cfg)
@@ -64,7 +61,6 @@ func TestNew_InitializesVersionCursorToZero(t *testing.T) {
 		DynamicClient: dynamicClient,
 		Cluster:       &testutil.MockClusterClient{},
 		Region:        "us-east-1",
-		Fingerprints:  cache.NewNoopCache[string, string](),
 	}
 
 	ctrl := New(cfg)
@@ -80,7 +76,6 @@ func TestNew_CreatesDoneChannel(t *testing.T) {
 		DynamicClient: dynamicClient,
 		Cluster:       &testutil.MockClusterClient{},
 		Region:        "us-east-1",
-		Fingerprints:  cache.NewNoopCache[string, string](),
 	}
 
 	ctrl := New(cfg)
@@ -102,7 +97,6 @@ func TestStop_ClosesDoneChannel(t *testing.T) {
 		DynamicClient: dynamicClient,
 		Cluster:       &testutil.MockClusterClient{},
 		Region:        "us-east-1",
-		Fingerprints:  cache.NewNoopCache[string, string](),
 	}
 
 	ctrl := New(cfg)

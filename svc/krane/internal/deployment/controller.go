@@ -3,15 +3,11 @@ package deployment
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
-	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
-	"github.com/unkeyed/unkey/pkg/hash"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -38,11 +34,6 @@ type Controller struct {
 	done             chan struct{}
 	region           string
 	versionLastSeen  uint64
-
-	// fingerprints tracks the most recently reported state per ReplicaSet
-	// so we can skip redundant reports during resync. Entries auto-expire
-	// via the cache's TTL, preventing unbounded growth from deleted RSs.
-	fingerprints cache.Cache[string, string]
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -71,9 +62,6 @@ type Config struct {
 	// Registry holds container registry credentials for creating imagePullSecrets.
 	// Nil disables pull secret creation.
 	Registry *RegistryConfig
-
-	// Fingerprints is a cache for deduplicating deployment status reports.
-	Fingerprints cache.Cache[string, string]
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -98,22 +86,21 @@ func New(cfg Config) *Controller {
 		done:             make(chan struct{}),
 		region:           cfg.Region,
 		versionLastSeen:  0,
-		fingerprints:     cfg.Fingerprints,
 	}
 }
 
 // Start launches the three background control loops and blocks until they're initialized.
 //
 // The method starts [Controller.runResyncLoop] and [Controller.runDesiredStateApplyLoop]
-// as background goroutines, and initializes [Controller.runPodWatchLoop]'s Kubernetes
-// watch before returning. If watch initialization fails, Start returns the error and
-// no goroutines are left running.
+// as background goroutines, and initializes [Controller.runActualStateReportLoop]'s
+// Kubernetes watch before returning. If watch initialization fails, Start returns
+// the error and no goroutines are left running.
 //
 // All loops continue until the context is cancelled or [Controller.Stop] is called.
 func (c *Controller) Start(ctx context.Context) error {
 	go c.runResyncLoop(ctx)
 
-	if err := c.runPodWatchLoop(ctx); err != nil {
+	if err := c.runActualStateReportLoop(ctx); err != nil {
 		return err
 	}
 
@@ -132,9 +119,6 @@ func (c *Controller) Stop() error {
 // reportDeploymentStatus reports actual deployment state to the control plane
 // through the circuit breaker. The circuit breaker prevents cascading failures
 // during control plane outages by failing fast after repeated errors.
-//
-// On success, the fingerprint for this report is cached so that
-// [Controller.reportIfChanged] can skip redundant reports during resync.
 func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) error {
 	_, err := c.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
 		return c.cluster.ReportDeploymentStatus(innerCtx, status)
@@ -142,38 +126,5 @@ func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.
 	if err != nil {
 		return fmt.Errorf("failed to report deployment status: %w", err)
 	}
-
-	if update := status.GetUpdate(); update != nil {
-		c.fingerprints.Set(ctx, update.GetK8SName(), instanceFingerprint(update.GetInstances()))
-	}
-
 	return nil
-}
-
-// reportIfChanged reports deployment status only when the instance list differs
-// from the last successful report. Returns true if a report was sent.
-func (c *Controller) reportIfChanged(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) (bool, error) {
-	update := status.GetUpdate()
-	if update == nil {
-		// Deletes are always forwarded.
-		return true, c.reportDeploymentStatus(ctx, status)
-	}
-
-	fp := instanceFingerprint(update.GetInstances())
-	if prev, hit := c.fingerprints.Get(ctx, update.GetK8SName()); hit == cache.Hit && prev == fp {
-		return false, nil
-	}
-
-	return true, c.reportDeploymentStatus(ctx, status)
-}
-
-// instanceFingerprint builds a deterministic string from the instance list so
-// we can cheaply detect whether the actual state changed between resync ticks.
-func instanceFingerprint(instances []*ctrlv1.ReportDeploymentStatusRequest_Update_Instance) string {
-	parts := make([]string, 0, len(instances))
-	for _, inst := range instances {
-		parts = append(parts, fmt.Sprintf("%s|%s|%d", inst.GetK8SName(), inst.GetAddress(), inst.GetStatus()))
-	}
-	sort.Strings(parts)
-	return hash.Sha256(strings.Join(parts, ";"))
 }

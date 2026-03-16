@@ -209,6 +209,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
 		SentinelConfig: []byte("{}"),
+		OpenApiSpecPath: sql.NullString{Valid: false},
 		CreatedAt:      now,
 		UpdatedAt:      sql.NullInt64{Valid: false},
 	})
@@ -291,6 +292,7 @@ func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest
 		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
 		SentinelConfig: []byte("{}"),
+		OpenApiSpecPath: sql.NullString{Valid: false},
 		CreatedAt:      now,
 		UpdatedAt:      sql.NullInt64{Valid: false},
 	})
@@ -335,7 +337,6 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		GitCommitAuthorHandle:         sql.NullString{String: "", Valid: false},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: "", Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Int64: 0, Valid: false},
-		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		EncryptedEnvironmentVariables: []byte("{}"),
 		Command:                       nil,
 		Status:                        req.Status,

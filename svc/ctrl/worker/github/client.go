@@ -5,7 +5,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -39,12 +41,6 @@ type ghCommitAuthor struct {
 type ghUser struct {
 	Login     string `json:"login"`
 	AvatarURL string `json:"avatar_url"`
-}
-
-// ghDeploymentResponse is the subset of GitHub's POST /repos/{owner}/{repo}/deployments
-// response that we need.
-type ghDeploymentResponse struct {
-	ID int64 `json:"id"`
 }
 
 // ClientConfig holds configuration for creating a [Client] instance.
@@ -102,15 +98,6 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}, nil
 }
 
-// ghHeaders returns GitHub API headers authenticated with the given installation.
-func (c *Client) ghHeaders(installationID int64) (map[string]string, error) {
-	token, err := c.GetInstallationToken(installationID)
-	if err != nil {
-		return nil, err
-	}
-	return githubHeaders(token.Token), nil
-}
-
 // generateJWT creates a short-lived JWT for GitHub App authentication.
 func (c *Client) generateJWT() (string, error) {
 	now := time.Now()
@@ -124,6 +111,9 @@ func (c *Client) generateJWT() (string, error) {
 }
 
 // GetInstallationToken retrieves an access token for a specific installation.
+// The installation ID is provided by GitHub when the App is installed on an
+// organization or user account. Returns an error if the installation ID is zero
+// or if the GitHub API request fails.
 func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, error) {
 	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
 		return InstallationToken{}, err
@@ -132,7 +122,7 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 	value, _, err := c.tokenCache.SWR(
 		context.Background(),
 		installationID,
-		func(_ context.Context) (InstallationToken, error) {
+		func(ctx context.Context) (InstallationToken, error) {
 			logger.Info(
 				"Getting GitHub installation token",
 				"installation_id", installationID,
@@ -143,19 +133,40 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 				return InstallationToken{}, err
 			}
 
-			apiURL := fmt.Sprintf(
+			url := fmt.Sprintf(
 				"https://api.github.com/app/installations/%d/access_tokens",
 				installationID,
 			)
 
-			return request[InstallationToken](
-				c.httpClient,
-				http.MethodPost,
-				apiURL,
-				githubHeaders(jwtToken),
-				nil,
-				http.StatusCreated,
-			)
+			req, err := http.NewRequest(http.MethodPost, url, nil)
+			if err != nil {
+				return InstallationToken{}, fault.Wrap(err, fault.Internal("failed to create request"))
+			}
+
+			req.Header.Set("Authorization", "Bearer "+jwtToken)
+			req.Header.Set("Accept", "application/vnd.github+json")
+			req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+			resp, err := c.httpClient.Do(req)
+			if err != nil {
+				return InstallationToken{}, fault.Wrap(err, fault.Internal("failed to get installation token"))
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			if resp.StatusCode != http.StatusCreated {
+				body, _ := io.ReadAll(resp.Body)
+				return InstallationToken{}, fault.New(
+					"failed to get installation token",
+					fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+				)
+			}
+
+			var token InstallationToken
+			if err := json.NewDecoder(resp.Body).Decode(&token); err != nil {
+				return InstallationToken{}, fault.Wrap(err, fault.Internal("failed to decode installation token"))
+			}
+
+			return token, nil
 		},
 		func(err error) cache.Op {
 			if err != nil {
@@ -168,22 +179,47 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 		return InstallationToken{}, err
 	}
 
+	// Return a copy to avoid aliasing
 	return value, nil
 }
 
 // GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
 // repository. It uses an installation token to authenticate the request.
+// The repo parameter must be in "owner/repo" format.
 func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error) {
-	headers, err := c.ghHeaders(installationID)
+	token, err := c.GetInstallationToken(installationID)
 	if err != nil {
 		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to get installation token for branch head lookup"))
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
+	requestURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
 
-	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
-		return CommitInfo{}, err
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to create request"))
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to fetch branch head commit"))
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return CommitInfo{}, fault.New(
+			"failed to fetch branch head commit",
+			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+		)
+	}
+
+	var commit ghCommitResponse
+	if err := json.NewDecoder(resp.Body).Decode(&commit); err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to decode commit response"))
 	}
 
 	return CommitInfoFromRaw(
@@ -197,12 +233,35 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 
 // GetBranchHeadCommitPublic retrieves the HEAD commit of a branch using the
 // public GitHub API without authentication. Only works for public repositories.
+// The repo parameter must be in "owner/repo" format.
 func (c *Client) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error) {
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
+	requestURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
 
-	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, githubHeaders(""), nil, http.StatusOK)
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
-		return CommitInfo{}, err
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to create request"))
+	}
+
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to fetch branch head commit"))
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return CommitInfo{}, fault.New(
+			"failed to fetch branch head commit (public)",
+			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+		)
+	}
+
+	var commit ghCommitResponse
+	if err := json.NewDecoder(resp.Body).Decode(&commit); err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to decode commit response"))
 	}
 
 	return CommitInfoFromRaw(
@@ -238,7 +297,9 @@ func CommitInfoFromRaw(sha, message, authorHandle, authorAvatarURL, timestamp st
 }
 
 // VerifyWebhookSignature verifies a GitHub webhook signature using constant-time
-// comparison.
+// comparison. The signature should be the value of the X-Hub-Signature-256 header
+// (e.g., "sha256=..."). Returns true only if the signature is valid and matches
+// the expected HMAC-SHA256 of the payload.
 func VerifyWebhookSignature(payload []byte, signature, secret string) bool {
 	if !strings.HasPrefix(signature, "sha256=") {
 		return false
@@ -252,62 +313,14 @@ func VerifyWebhookSignature(payload []byte, signature, secret string) bool {
 	return hmacEqual([]byte(expectedSig), []byte(actualSig))
 }
 
+// hmacSHA256 computes the HMAC-SHA256 of data using the provided key.
 func hmacSHA256(key, data []byte) []byte {
 	h := hmac.New(sha256.New, key)
 	h.Write(data)
 	return h.Sum(nil)
 }
 
+// hmacEqual compares HMAC digests in constant time to avoid timing attacks.
 func hmacEqual(a, b []byte) bool {
 	return subtle.ConstantTimeCompare(a, b) == 1
-}
-
-// CreateDeployment creates a GitHub Deployment on a commit ref and returns the
-// deployment ID. The deployment appears in the PR sidebar on GitHub.
-func (c *Client) CreateDeployment(installationID int64, repo string, ref string, environment string, description string, isProduction bool) (int64, error) {
-	headers, err := c.ghHeaders(installationID)
-	if err != nil {
-		return 0, err
-	}
-
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/deployments", repo)
-
-	result, err := request[ghDeploymentResponse](c.httpClient, http.MethodPost, apiURL, headers, map[string]interface{}{
-		"ref":                    ref,
-		"environment":            environment,
-		"description":            description,
-		"auto_merge":             false,
-		"required_contexts":      []string{},
-		"transient_environment":  !isProduction,
-		"production_environment": isProduction,
-	}, http.StatusCreated)
-	if err != nil {
-		return 0, err
-	}
-
-	return result.ID, nil
-}
-
-// CreateDeploymentStatus updates the status of a GitHub Deployment.
-func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deploymentID int64, state string, environmentURL string, logURL string, description string) error {
-	headers, err := c.ghHeaders(installationID)
-	if err != nil {
-		return err
-	}
-
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/deployments/%d/statuses", repo, deploymentID)
-
-	payload := map[string]interface{}{
-		"state":         state,
-		"description":   description,
-		"auto_inactive": true,
-	}
-	if environmentURL != "" {
-		payload["environment_url"] = environmentURL
-	}
-	if logURL != "" {
-		payload["log_url"] = logURL
-	}
-
-	return doRequest(c.httpClient, http.MethodPost, apiURL, headers, payload, http.StatusCreated)
 }

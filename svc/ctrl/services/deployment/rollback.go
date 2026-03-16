@@ -15,14 +15,14 @@ import (
 // deployment via a Restate workflow. This is typically called from the dashboard
 // when a deployment needs to be reverted. The workflow runs synchronously
 // (blocking until complete) and is keyed by app ID to prevent concurrent
-// rollback operations on the same workspace.
+// rollback operations on the same app.
 func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error) {
 	logger.Info("initiating rollback via Restate",
 		"source", req.Msg.GetSourceDeploymentId(),
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
 
-	// Get source deployment to determine workspace ID for keying
+	// Get source deployment to determine app ID for keying
 	sourceDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetSourceDeploymentId())
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -35,9 +35,9 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	// Call the Restate workflow using workspace ID as the key
-	// This ensures only one rollback per workspace can run at a time during beta
-	_, err = s.deploymentClient(sourceDeployment.WorkspaceID).
+	// Call the Restate workflow using project ID as the key
+	// This ensures only one rollback per project can run at a time
+	_, err = s.deploymentClient(sourceDeployment.ProjectID).
 		Rollback().
 		Request(ctx, &hydrav1.RollbackRequest{
 			SourceDeploymentId: req.Msg.GetSourceDeploymentId(),

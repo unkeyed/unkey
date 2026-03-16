@@ -36,6 +36,7 @@ go_library(
         "//svc/ctrl/worker/github",
         "//svc/ctrl/worker/githubwebhook",
         "//svc/ctrl/worker/keyrefill",
+        "//svc/ctrl/worker/openapi",
         "//svc/ctrl/worker/quotacheck",
         "//svc/ctrl/worker/routing",
         "//svc/ctrl/worker/versioning",

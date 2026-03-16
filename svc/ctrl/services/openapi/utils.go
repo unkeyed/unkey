@@ -7,18 +7,16 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-func (s *Service) loadOpenApiSpec(ctx context.Context, deploymentID string) (string, error) {
-	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
+func (s *Service) loadOpenApiSpec(ctx context.Context, deploymentID string) ([]byte, error) {
+	row, err := db.Query.FindOpenApiSpecByDeploymentID(ctx, s.db.RO(), deploymentID)
 	if err != nil {
-		return "", err
+		return nil, fault.Wrap(err, fault.Internal("failed to find openapi spec"),
+			fault.Public("Could not load OpenAPI spec for deployment."))
 	}
-
-	// Consider: logger.Debug("Deployment fetched", "id", deployment.ID, "hasSpec", deployment.OpenapiSpec.Valid)
-	if !deployment.OpenapiSpec.Valid {
-		return "", fault.New("deployment has no OpenAPI spec stored",
-			fault.Public("OpenAPI specification not available for this deployment"),
-		)
+	if len(row.Spec) == 0 {
+		return nil, fault.New("deployment has no OpenAPI spec stored",
+			fault.Internal("openapi spec is empty"),
+			fault.Public("No OpenAPI spec found for this deployment."))
 	}
-
-	return deployment.OpenapiSpec.String, nil
+	return row.Spec, nil
 }

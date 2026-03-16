@@ -54,7 +54,6 @@ type Workflow struct {
 	buildPlatform                   BuildPlatform
 	clickhouse                      clickhouse.ClickHouse
 	allowUnauthenticatedDeployments bool
-	dashboardURL                    string
 }
 
 var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
@@ -91,10 +90,6 @@ type Config struct {
 	// AllowUnauthenticatedDeployments controls whether builds can skip GitHub authentication.
 	// Set to true only for local development with public repositories.
 	AllowUnauthenticatedDeployments bool
-
-	// DashboardURL is the base URL of the dashboard for constructing log URLs
-	// in GitHub deployment statuses (e.g., "https://app.unkey.com").
-	DashboardURL string
 }
 
 // New creates a new deployment workflow instance.
@@ -112,6 +107,5 @@ func New(cfg Config) *Workflow {
 		buildPlatform:                   cfg.BuildPlatform,
 		clickhouse:                      cfg.Clickhouse,
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
-		dashboardURL:                    cfg.DashboardURL,
 	}
 }

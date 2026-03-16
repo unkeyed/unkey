@@ -38,6 +38,7 @@ import (
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
@@ -172,7 +173,6 @@ func Run(ctx context.Context, cfg Config) error {
 		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
-		DashboardURL:                    cfg.DashboardURL,
 	}),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
 		restate.WithInvocationRetryPolicy(
@@ -193,6 +193,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
+
+	restateSrv.Bind(hydrav1.NewOpenapiServiceServer(openapi.New(openapi.Config{
+		DB: database,
+	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
 		DB: database,

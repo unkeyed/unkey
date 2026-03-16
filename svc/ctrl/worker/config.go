@@ -204,10 +204,6 @@ type Config struct {
 	// Used for sentinel deployment and automatic certificate bootstrapping.
 	DefaultDomain string `toml:"default_domain" config:"default=unkey.app"`
 
-	// DashboardURL is the base URL of the dashboard, used for constructing links
-	// in GitHub PR comments and deployment status log URLs.
-	DashboardURL string `toml:"dashboard_url" config:"default=https://app.unkey.com"`
-
 	// BuildPlatformStr defines the target architecture for container builds.
 	// Format: "linux/amd64", "linux/arm64". Only "linux" OS supported.
 	BuildPlatformStr string `toml:"build_platform" config:"default=linux/amd64"`
