@@ -13,6 +13,8 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -127,6 +129,19 @@ func Run(ctx context.Context, cfg Config) error {
 		registryCfg = deployment.NewRegistryConfig(cfg.Registry.URL, cfg.Registry.Username, cfg.Registry.Password)
 	}
 
+	// Cache for deduplicating deployment status reports. Entries auto-expire
+	// so deleted ReplicaSets don't leak memory.
+	fingerprintCache, err := cache.New(cache.Config[string, string]{
+		Fresh:    5 * time.Minute,
+		Stale:    10 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "deployment_fingerprints",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create fingerprint cache: %w", err)
+	}
+
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
 		ClientSet:     clientset,
@@ -135,6 +150,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:        cfg.Region,
 		Vault:         vaultClient,
 		Registry:      registryCfg,
+		Fingerprints:  fingerprintCache,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
