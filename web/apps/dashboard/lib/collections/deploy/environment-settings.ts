@@ -45,6 +45,7 @@ const schema = z.object({
   regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
   shutdownSignal: z.string(),
   sentinelConfig: sentinelConfigSchema,
+  openapiSpecPath: z.string().nullable().default(null),
 });
 
 /**
@@ -133,6 +134,7 @@ function flattenSettingsResponse(
     })),
     shutdownSignal: "SIGTERM",
     sentinelConfig: runtime?.sentinelConfig,
+    openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
 }
 
@@ -244,6 +246,15 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.sentinel.updateMiddleware.mutate({
         environmentId,
         keyspaceIds: extractKeyspaceIds(modified.sentinelConfig),
+      }),
+    );
+  }
+
+  if (modified.openapiSpecPath !== original.openapiSpecPath) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.runtime.updateOpenapiSpecPath.mutate({
+        environmentId,
+        openapiSpecPath: modified.openapiSpecPath,
       }),
     );
   }

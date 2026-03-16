@@ -241,7 +241,6 @@ func (s *Service) CreateDeployment(
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
 		EnvironmentID:                 env.Environment.ID,
-		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
 		Command:                       appRuntimeSettings.Command,

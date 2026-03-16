@@ -53,8 +53,6 @@ export const deployments = mysqlTable(
 
     sentinelConfig: longblob("sentinel_config").notNull(),
 
-    // OpenAPI specification
-    openapiSpec: longblob("openapi_spec"),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
     desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])

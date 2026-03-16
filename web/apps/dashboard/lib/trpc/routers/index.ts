@@ -69,6 +69,7 @@ import { updateHealthcheck } from "./deploy/environment-settings/runtime/update-
 import { updateInstances } from "./deploy/environment-settings/runtime/update-instances";
 import { updateMemory } from "./deploy/environment-settings/runtime/update-memory";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
+import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
@@ -423,6 +424,7 @@ export const router = t.router({
         updateHealthcheck,
         updateRegions,
         updateInstances,
+        updateOpenapiSpecPath,
       }),
       build: t.router({
         updateDockerfile,

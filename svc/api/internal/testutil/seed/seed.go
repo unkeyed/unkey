@@ -685,7 +685,6 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		GitCommitAuthorHandle:         sql.NullString{Valid: false},
 		GitCommitAuthorAvatarUrl:      sql.NullString{Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Valid: false},
-		OpenapiSpec:                   sql.NullString{Valid: false},
 		EncryptedEnvironmentVariables: []byte{},
 		Command:                       nil,
 		Status:                        db.DeploymentsStatusPending,

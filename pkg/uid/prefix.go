@@ -25,6 +25,7 @@ const (
 	OrgPrefix                 Prefix = "org"
 
 	// Control plane prefixes
+	OpenApiSpecPrefix    Prefix = "oas"
 	ProjectPrefix        Prefix = "proj"
 	EnvironmentPrefix    Prefix = "env"
 	AppPrefix            Prefix = "app"
