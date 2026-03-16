@@ -21,6 +21,7 @@ import { EnvVars } from "./components/advanced-settings/env-vars";
 
 import { Keyspaces } from "./components/sentinel-settings/keyspaces";
 import { SettingsGroup } from "./components/shared/settings-group";
+import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
 type DeploymentSection = "advanced" | "sentinel" | "runtime" | "build";
@@ -69,6 +70,7 @@ export const DeploymentSettings = ({
         <SettingCardGroup>
           <EnvVars />
           <CustomDomains />
+          <OpenapiSpecPath />
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup

@@ -69,6 +69,7 @@ import { updateCpu } from "./deploy/environment-settings/runtime/update-cpu";
 import { updateHealthcheck } from "./deploy/environment-settings/runtime/update-healthcheck";
 import { updateInstances } from "./deploy/environment-settings/runtime/update-instances";
 import { updateMemory } from "./deploy/environment-settings/runtime/update-memory";
+import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
@@ -424,6 +425,7 @@ export const router = t.router({
         updateHealthcheck,
         updateRegions,
         updateInstances,
+        updateOpenapiSpecPath
       }),
       build: t.router({
         updateDockerfile,
