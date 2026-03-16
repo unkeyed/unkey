@@ -27,6 +27,10 @@ func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 		return err
 	}
 
+	c.fingerprintMu.Lock()
+	delete(c.fingerprints, req.GetK8SName())
+	c.fingerprintMu.Unlock()
+
 	err = c.reportDeploymentStatus(ctx, &ctrlv1.ReportDeploymentStatusRequest{
 		Change: &ctrlv1.ReportDeploymentStatusRequest_Delete_{
 			Delete: &ctrlv1.ReportDeploymentStatusRequest_Delete{

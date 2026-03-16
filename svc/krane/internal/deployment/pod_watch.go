@@ -2,6 +2,8 @@ package deployment
 
 import (
 	"context"
+	"math/rand/v2"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
@@ -17,72 +19,100 @@ import (
 // labels. On any pod event it finds the owning ReplicaSet, rebuilds the full
 // deployment status, and reports it (deduplicated via fingerprinting).
 //
-// This replaces a previous ReplicaSet-level watch. Watching pods directly means
-// we see IP assignments and readiness changes immediately rather than waiting
-// for the RS status to roll up.
+// The initial watch must succeed for the controller to start. After that the
+// goroutine automatically reconnects with jittered backoff (1-5s) when the
+// watch disconnects or times out.
 //
 // Returns an error if the initial watch setup fails. Once started the goroutine
 // runs until the context is cancelled.
 func (c *Controller) runPodWatchLoop(ctx context.Context) error {
-	w, err := c.clientSet.CoreV1().Pods("").Watch(ctx, metav1.ListOptions{
-		LabelSelector: labels.New().
-			ManagedByKrane().
-			ComponentDeployment().
-			ToString(),
-	})
+	// Verify we can establish a watch before returning to the caller.
+	w, err := c.watchPods(ctx)
 	if err != nil {
 		return err
 	}
 
 	go func() {
-		for event := range w.ResultChan() {
-			switch event.Type {
-			case watch.Error:
-				logger.Error("error watching deployment pods", "event", event.Object)
-			case watch.Bookmark:
-			case watch.Added, watch.Modified, watch.Deleted:
-				pod, ok := event.Object.(*corev1.Pod)
-				if !ok {
-					logger.Error("unable to cast object to pod")
-					continue
-				}
+		for {
+			c.drainPodWatch(ctx, w)
 
-				logger.Debug("pod watch: event received", "pod", pod.Name, "namespace", pod.Namespace, "type", event.Type, "phase", pod.Status.Phase, "ip", pod.Status.PodIP)
+			if ctx.Err() != nil {
+				return
+			}
 
-				rsName := owningReplicaSet(pod)
-				if rsName == "" {
-					logger.Debug("pod watch: pod has no owning replicaset, skipping", "pod", pod.Name)
-					continue
-				}
+			backoff := time.Second + time.Millisecond*time.Duration(rand.Float64()*4000)
+			logger.Warn("pod watch: disconnected, reconnecting", "backoff", backoff)
+			time.Sleep(backoff)
 
-				rs, err := c.clientSet.AppsV1().ReplicaSets(pod.Namespace).Get(ctx, rsName, metav1.GetOptions{})
-				if err != nil {
-					// RS already deleted — resync loop handles orphan cleanup.
-					logger.Debug("pod watch: replicaset not found, skipping", "pod", pod.Name, "replicaSet", rsName, "error", err.Error())
-					continue
-				}
-
-				status, err := c.buildDeploymentStatus(ctx, rs)
-				if err != nil {
-					logger.Error("pod watch: unable to build status", "error", err.Error(), "replicaSet", rsName)
-					continue
-				}
-
-				reported, err := c.reportIfChanged(ctx, status)
-				if err != nil {
-					logger.Error("pod watch: unable to report status", "error", err.Error(), "replicaSet", rsName)
-					continue
-				}
-				if reported {
-					logger.Debug("pod watch: reported changed status", "replicaSet", rsName, "pod", pod.Name, "instances", len(status.GetUpdate().GetInstances()))
-				} else {
-					logger.Debug("pod watch: status unchanged, skipped report", "replicaSet", rsName, "pod", pod.Name)
-				}
+			var watchErr error
+			w, watchErr = c.watchPods(ctx)
+			if watchErr != nil {
+				logger.Error("pod watch: unable to re-establish watch", "error", watchErr.Error())
+				continue
 			}
 		}
 	}()
 
 	return nil
+}
+
+// watchPods creates a new Kubernetes watch for krane-managed deployment pods.
+func (c *Controller) watchPods(ctx context.Context) (watch.Interface, error) {
+	return c.clientSet.CoreV1().Pods("").Watch(ctx, metav1.ListOptions{
+		LabelSelector: labels.New().
+			ManagedByKrane().
+			ComponentDeployment().
+			ToString(),
+	})
+}
+
+// drainPodWatch processes events from a pod watch until the channel closes.
+func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
+	for event := range w.ResultChan() {
+		switch event.Type {
+		case watch.Error:
+			logger.Error("pod watch: error event", "event", event.Object)
+		case watch.Bookmark:
+		case watch.Added, watch.Modified, watch.Deleted:
+			pod, ok := event.Object.(*corev1.Pod)
+			if !ok {
+				logger.Error("unable to cast object to pod")
+				continue
+			}
+
+			logger.Debug("pod watch: event received", "pod", pod.Name, "namespace", pod.Namespace, "type", event.Type, "phase", pod.Status.Phase, "ip", pod.Status.PodIP)
+
+			rsName := owningReplicaSet(pod)
+			if rsName == "" {
+				logger.Debug("pod watch: pod has no owning replicaset, skipping", "pod", pod.Name)
+				continue
+			}
+
+			rs, err := c.clientSet.AppsV1().ReplicaSets(pod.Namespace).Get(ctx, rsName, metav1.GetOptions{})
+			if err != nil {
+				// RS already deleted — resync loop handles orphan cleanup.
+				logger.Debug("pod watch: replicaset not found, skipping", "pod", pod.Name, "replicaSet", rsName, "error", err.Error())
+				continue
+			}
+
+			status, err := c.buildDeploymentStatus(ctx, rs)
+			if err != nil {
+				logger.Error("pod watch: unable to build status", "error", err.Error(), "replicaSet", rsName)
+				continue
+			}
+
+			reported, err := c.reportIfChanged(ctx, status)
+			if err != nil {
+				logger.Error("pod watch: unable to report status", "error", err.Error(), "replicaSet", rsName)
+				continue
+			}
+			if reported {
+				logger.Debug("pod watch: reported changed status", "replicaSet", rsName, "pod", pod.Name, "instances", len(status.GetUpdate().GetInstances()))
+			} else {
+				logger.Debug("pod watch: status unchanged, skipped report", "replicaSet", rsName, "pod", pod.Name)
+			}
+		}
+	}
 }
 
 // owningReplicaSet returns the name of the ReplicaSet that owns this pod, or
