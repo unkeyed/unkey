@@ -170,7 +170,6 @@ type CreateEnvironmentRequest struct {
 }
 
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
-
 	now := time.Now().UnixMilli()
 
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{

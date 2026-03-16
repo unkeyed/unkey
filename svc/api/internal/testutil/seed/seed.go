@@ -221,7 +221,6 @@ type CreateEnvironmentRequest struct {
 // CreateEnvironment creates an environment within a project. If SentinelConfig is
 // nil or empty, it defaults to "{}".
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
-
 	now := time.Now().UnixMilli()
 
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
@@ -261,9 +260,9 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
 		SentinelConfig:  []byte("{}"),
-		OpenapiSpecPath: sql.NullString{Valid: false},
 		CreatedAt:       now,
 		UpdatedAt:       sql.NullInt64{Valid: false},
+		OpenapiSpecPath: sql.NullString{Valid: false, String: ""},
 	})
 	require.NoError(s.t, err)
 

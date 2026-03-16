@@ -3127,8 +3127,8 @@ type Querier interface {
 	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
 	//UpsertOpenApiSpec
 	//
-	//  INSERT INTO openapi_specs (workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
-	//  VALUES (?, ?, ?,
+	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
+	//  VALUES (?,?, ?, ?,
 	//          ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      content = VALUES(content),
