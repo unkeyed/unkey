@@ -20,13 +20,13 @@ ON DUPLICATE KEY UPDATE
 `
 
 type UpsertOpenApiSpecParams struct {
-	ID           string        `db:"id"`
-	WorkspaceID  string        `db:"workspace_id"`
-	ProjectID    string        `db:"project_id"`
-	DeploymentID string        `db:"deployment_id"`
-	Spec         []byte        `db:"spec"`
-	CreatedAt    int64         `db:"created_at"`
-	UpdatedAt    sql.NullInt64 `db:"updated_at"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	ProjectID    sql.NullString `db:"project_id"`
+	DeploymentID sql.NullString `db:"deployment_id"`
+	Spec         []byte         `db:"spec"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 // UpsertOpenApiSpec

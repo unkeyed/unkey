@@ -13,8 +13,9 @@ export const openapiSpecs = mysqlTable(
     id: varchar("id", { length: 128 }).notNull().unique(),
 
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull(),
-    deploymentId: varchar("deployment_id", { length: 128 }).notNull(),
+    // null = user-uploaded spec not linked to a specific deployment
+    projectId: varchar("project_id", { length: 64 }),
+    deploymentId: varchar("deployment_id", { length: 128 }),
 
     spec: longblob("spec").notNull(),
 

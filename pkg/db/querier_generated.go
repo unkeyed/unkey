@@ -931,7 +931,7 @@ type Querier interface {
 	//FindOpenApiSpecByDeploymentID
 	//
 	//  SELECT pk, id, workspace_id, project_id, deployment_id, spec, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
-	FindOpenApiSpecByDeploymentID(ctx context.Context, db DBTX, deploymentID string) (OpenapiSpec, error)
+	FindOpenApiSpecByDeploymentID(ctx context.Context, db DBTX, deploymentID sql.NullString) (OpenapiSpec, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
