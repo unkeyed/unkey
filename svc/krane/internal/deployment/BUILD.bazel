@@ -26,6 +26,7 @@ go_library(
         "//gen/rpc/ctrl",
         "//gen/rpc/vault",
         "//pkg/assert",
+        "//pkg/cache",
         "//pkg/circuitbreaker",
         "//pkg/db/types",
         "//pkg/hash",
@@ -54,6 +55,7 @@ go_test(
     srcs = ["controller_test.go"],
     embed = [":deployment"],
     deps = [
+        "//pkg/cache",
         "//svc/krane/internal/testutil",
         "@com_github_stretchr_testify//require",
         "@io_k8s_api//core/v1:core",

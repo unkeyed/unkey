@@ -80,18 +80,18 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 				continue
 			}
 
-			logger.Debug("pod watch: event received", "pod", pod.Name, "namespace", pod.Namespace, "type", event.Type, "phase", pod.Status.Phase, "ip", pod.Status.PodIP)
+			logger.Info("pod watch: event received", "pod", pod.Name, "namespace", pod.Namespace, "type", event.Type, "phase", pod.Status.Phase, "ip", pod.Status.PodIP)
 
 			rsName := owningReplicaSet(pod)
 			if rsName == "" {
-				logger.Debug("pod watch: pod has no owning replicaset, skipping", "pod", pod.Name)
+				logger.Info("pod watch: pod has no owning replicaset, skipping", "pod", pod.Name)
 				continue
 			}
 
 			rs, err := c.clientSet.AppsV1().ReplicaSets(pod.Namespace).Get(ctx, rsName, metav1.GetOptions{})
 			if err != nil {
 				// RS already deleted — resync loop handles orphan cleanup.
-				logger.Debug("pod watch: replicaset not found, skipping", "pod", pod.Name, "replicaSet", rsName, "error", err.Error())
+				logger.Info("pod watch: replicaset not found, skipping", "pod", pod.Name, "replicaSet", rsName, "error", err.Error())
 				continue
 			}
 
@@ -107,9 +107,9 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 				continue
 			}
 			if reported {
-				logger.Debug("pod watch: reported changed status", "replicaSet", rsName, "pod", pod.Name, "instances", len(status.GetUpdate().GetInstances()))
+				logger.Info("pod watch: reported changed status", "replicaSet", rsName, "pod", pod.Name, "instances", len(status.GetUpdate().GetInstances()))
 			} else {
-				logger.Debug("pod watch: status unchanged, skipped report", "replicaSet", rsName, "pod", pod.Name)
+				logger.Info("pod watch: status unchanged, skipped report", "replicaSet", rsName, "pod", pod.Name)
 			}
 		}
 	}

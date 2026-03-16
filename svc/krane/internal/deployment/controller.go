@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 
+	"github.com/unkeyed/unkey/pkg/cache"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -39,11 +39,10 @@ type Controller struct {
 	region           string
 	versionLastSeen  uint64
 
-	// fingerprintMu guards fingerprints.
-	fingerprintMu sync.Mutex
 	// fingerprints tracks the most recently reported state per ReplicaSet
-	// so we can skip redundant reports during resync.
-	fingerprints map[string]string
+	// so we can skip redundant reports during resync. Entries auto-expire
+	// via the cache's TTL, preventing unbounded growth from deleted RSs.
+	fingerprints cache.Cache[string, string]
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -72,6 +71,9 @@ type Config struct {
 	// Registry holds container registry credentials for creating imagePullSecrets.
 	// Nil disables pull secret creation.
 	Registry *RegistryConfig
+
+	// Fingerprints is a cache for deduplicating deployment status reports.
+	Fingerprints cache.Cache[string, string]
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -96,8 +98,7 @@ func New(cfg Config) *Controller {
 		done:             make(chan struct{}),
 		region:           cfg.Region,
 		versionLastSeen:  0,
-		fingerprintMu:    sync.Mutex{},
-		fingerprints:     make(map[string]string),
+		fingerprints:     cfg.Fingerprints,
 	}
 }
 
@@ -143,9 +144,7 @@ func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.
 	}
 
 	if update := status.GetUpdate(); update != nil {
-		c.fingerprintMu.Lock()
-		c.fingerprints[update.GetK8SName()] = instanceFingerprint(update.GetInstances())
-		c.fingerprintMu.Unlock()
+		c.fingerprints.Set(ctx, update.GetK8SName(), instanceFingerprint(update.GetInstances()))
 	}
 
 	return nil
@@ -161,10 +160,7 @@ func (c *Controller) reportIfChanged(ctx context.Context, status *ctrlv1.ReportD
 	}
 
 	fp := instanceFingerprint(update.GetInstances())
-	c.fingerprintMu.Lock()
-	prev := c.fingerprints[update.GetK8SName()]
-	c.fingerprintMu.Unlock()
-	if prev == fp {
+	if prev, hit := c.fingerprints.Get(ctx, update.GetK8SName()); hit == cache.Hit && prev == fp {
 		return false, nil
 	}
 
