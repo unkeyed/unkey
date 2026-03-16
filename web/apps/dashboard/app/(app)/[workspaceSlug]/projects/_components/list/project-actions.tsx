@@ -8,29 +8,25 @@ import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
-import { DeleteProjectDialog } from "../dialogs/delete-project-dialog";
 
 type ProjectActionsProps = {
   projectId: string;
-  projectName: string;
 };
 
 export const ProjectActions = ({
   projectId,
-  projectName,
   children,
-}: PropsWithChildren<ProjectActionsProps>) => {
+}: PropsWithChildren<Omit<ProjectActionsProps, "projectName">>) => {
   const router = useRouter();
   const { workspace } = useWorkspace();
   // biome-ignore lint/style/noNonNullAssertion: This cannot be null
-  const menuItems = getProjectActionItems(projectId, projectName, workspace?.slug!, router);
+  const menuItems = getProjectActionItems(projectId, workspace?.slug!, router);
 
   return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };
 
 const getProjectActionItems = (
   projectId: string,
-  projectName: string,
   workspaceSlug: string,
   router: AppRouterInstance,
 ): MenuItem[] => {
@@ -90,14 +86,8 @@ const getProjectActionItems = (
       id: "delete-project",
       label: "Delete project",
       icon: <Trash iconSize="md-medium" />,
-      ActionComponent: ({ isOpen, onClose }) => (
-        <DeleteProjectDialog
-          projectId={projectId}
-          projectName={projectName}
-          isOpen={isOpen}
-          onClose={onClose}
-        />
-      ),
+      disabled: true,
+      tooltip: "Contact support@unkey.com to delete this project",
     },
   ];
 };
