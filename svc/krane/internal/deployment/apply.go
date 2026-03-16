@@ -159,7 +159,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	podSpec := corev1.PodSpec{
-		RuntimeClassName:             ptr.P(runtimeClassGvisor),
+		RuntimeClassName:             nil,
 		RestartPolicy:                corev1.RestartPolicyAlways,
 		AutomountServiceAccountToken: ptr.P(false),
 		EnableServiceLinks:           ptr.P(false),
