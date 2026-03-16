@@ -188,7 +188,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
 				CreatedAt:       now,
 				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
-				OpenApiSpecPath: sql.NullString{String: "/openapi.yaml"},
+				OpenApiSpecPath: sql.NullString{Valid: true, String: "/openapi.yaml"},
 			},
 			{
 				WorkspaceID:     workspaceID,
@@ -203,7 +203,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
 				CreatedAt:       now,
 				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
-				OpenApiSpecPath: sql.NullString{String: "/openapi.yaml"},
+				OpenApiSpecPath: sql.NullString{Valid: true, String: "/openapi.yaml"},
 			},
 		})
 		if err != nil {

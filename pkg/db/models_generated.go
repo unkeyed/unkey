@@ -543,6 +543,7 @@ const (
 	FrontlineRoutesStickyBranch      FrontlineRoutesSticky = "branch"
 	FrontlineRoutesStickyEnvironment FrontlineRoutesSticky = "environment"
 	FrontlineRoutesStickyLive        FrontlineRoutesSticky = "live"
+	FrontlineRoutesStickyDeployment  FrontlineRoutesSticky = "deployment"
 )
 
 func (e *FrontlineRoutesSticky) Scan(src interface{}) error {

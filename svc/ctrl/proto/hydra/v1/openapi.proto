@@ -13,7 +13,7 @@ service OpenapiService {
 
   // ScrapeSpec looks up the deployment-specific public FQDN and the configured
   // openapi_spec_path from app_runtime_settings, then fetches the spec and
-  // persists the result in the deployments table.
+  // persists the result in the openapi_specs table.
   // Returns success when scraping is disabled, the endpoint is absent (404),
   // or no non-sticky route exists — not all deployments expose an OpenAPI spec.
   rpc ScrapeSpec(ScrapeSpecRequest) returns (ScrapeSpecResponse) {}

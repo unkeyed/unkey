@@ -29,8 +29,6 @@ func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedOpenapiServiceServer: hydrav1.UnimplementedOpenapiServiceServer{},
 		db:                                cfg.DB,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		httpClient:                        &http.Client{Timeout: 30 * time.Second},
 	}
 }

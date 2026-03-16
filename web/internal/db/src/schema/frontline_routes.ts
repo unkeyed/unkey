@@ -27,7 +27,7 @@ export const frontlineRoutes = mysqlTable(
     //
     // - live: the fullyQualifiedDomainName is sticky to the live deployment it was created on
     //     api.unkey.com
-    sticky: mysqlEnum("sticky", ["none", "branch", "environment", "live"])
+    sticky: mysqlEnum("sticky", ["none", "branch", "environment", "live", "deployment"])
       .notNull()
       .default("none"),
 

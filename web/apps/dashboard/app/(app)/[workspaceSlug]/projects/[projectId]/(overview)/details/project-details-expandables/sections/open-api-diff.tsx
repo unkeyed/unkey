@@ -1,5 +1,4 @@
 "use client";
-import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
@@ -10,7 +9,13 @@ import { useParams } from "next/navigation";
 import { type DiffStatus, StatusIndicator } from "../../../../components/status-indicator";
 import { useProjectData } from "../../../data-provider";
 
-const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
+type OpenApiDiffData = {
+  hasBreakingChanges: boolean;
+  summary?: { diff: boolean };
+  changes: { length: number }[];
+};
+
+const getDiffStatus = (data?: OpenApiDiffData): DiffStatus => {
   if (!data) {
     return "loading";
   }
@@ -51,10 +56,9 @@ export const OpenApiDiff = () => {
       newDeploymentId: newDeployment?.id ?? "",
       oldDeploymentId: currentDeploymentId ?? "",
     },
-    { enabled: false },
+    { enabled: !!newDeployment?.id && !!currentDeploymentId },
   );
 
-  // @ts-expect-error I have no idea why this whines about type diff
   const status = getDiffStatus(diff.data);
 
   if (newDeployment && !currentDeploymentId) {

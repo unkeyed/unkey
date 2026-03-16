@@ -110,12 +110,12 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 			})
 	}
 
-	// Always add a deployment-specific domain for stable public access.
+	// deployment-specific domain for stable public access.
 	sanitizedDeploymentID := strings.ReplaceAll(deploymentID, "_", "-")
 	domains = append(domains, newDomain{
 		domain: fmt.Sprintf("%s-dep-%s-%s.%s", prefix, sanitizedDeploymentID, workspaceSlug, apex),
 		//nolint: exhaustruct
-		sticky: db.FrontlineRoutesStickyNone,
+		sticky: db.FrontlineRoutesStickyDeployment,
 	})
 
 	return domains

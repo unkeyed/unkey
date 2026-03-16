@@ -72,6 +72,12 @@ export const useBreadcrumbConfig = ({
       href: `${basePath}/${projectId}/settings`,
       segment: "settings",
     },
+    {
+      id: "openapi-diff",
+      label: "OpenAPI Diff",
+      href: `${basePath}/${projectId}/openapi-diff`,
+      segment: "openapi-diff",
+    },
   ];
 
   // Determine active subpage based on segment

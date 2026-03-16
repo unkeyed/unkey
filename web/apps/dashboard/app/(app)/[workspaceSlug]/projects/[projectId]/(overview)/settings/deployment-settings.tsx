@@ -12,7 +12,7 @@ import { Cpu } from "./components/runtime-settings/cpu";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
 import { Instances } from "./components/runtime-settings/instances";
 import { Memory } from "./components/runtime-settings/memory";
-import { OpenapiSpecPath } from "./components/runtime-settings/openapi-spec-path";
+import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
 
@@ -56,7 +56,6 @@ export const DeploymentSettings = ({
           <Healthcheck />
           <Port />
           <Command />
-          <OpenapiSpecPath />
           {/* Temporarily disabled */}
           {/* <Scaling /> */}
         </SettingCardGroup>
@@ -69,6 +68,7 @@ export const DeploymentSettings = ({
         <SettingCardGroup>
           <EnvVars />
           <CustomDomains />
+          <OpenapiSpecPath />
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup

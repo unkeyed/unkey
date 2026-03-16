@@ -12,6 +12,7 @@ import {
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { instances } from "./instances";
+import { openapiSpecs } from "./openapi_specs";
 import { projects } from "./projects";
 import { sentinels } from "./sentinels";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -112,6 +113,11 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
   project: one(projects, {
     fields: [deployments.projectId],
     references: [projects.id],
+  }),
+
+  openapiSpec: one(openapiSpecs, {
+    fields: [deployments.id],
+    references: [openapiSpecs.deploymentId],
   }),
 
   sentinels: many(sentinels),

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Earth } from "@unkey/icons";
+import { BracketsCurly } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -64,31 +64,33 @@ export const OpenapiSpecPath = () => {
 
   return (
     <FormSettingCard
-      icon={<Earth className="text-gray-12" iconSize="xl-medium" />}
+      icon={<BracketsCurly className="text-gray-12" iconSize="xl-medium" />}
       title="OpenAPI Spec Path"
       description="Path to your OpenAPI spec. Leave empty to disable scraping."
       displayValue={
         openapiSpecPath ? (
-          <span className="font-medium text-gray-12 font-mono text-xs">{openapiSpecPath}</span>
+          <span className="text-gray-12 text-xs">{openapiSpecPath}</span>
         ) : null
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <div className="relative w-[480px]">
-        <FormInput
-          label="OpenAPI Spec Path"
-          description="Path your deployment serves the OpenAPI spec (e.g. /openapi.yaml). Changes apply on next deploy."
-          placeholder="/openapi.yaml"
-          className="w-full [&_input]:font-mono"
-          error={errors.openapiSpecPath?.message}
-          variant={errors.openapiSpecPath ? "error" : "default"}
-          {...register("openapiSpecPath")}
-        />
-        {openapiSpecPath && (
-          <RemoveButton onClick={handleRemove} className="absolute right-0 top-0" />
-        )}
+      <div className="flex flex-col gap-2 w-[480px]">
+        <span className="text-gray-11 text-[13px]">OpenAPI Spec Path</span>
+        <div className="relative flex items-start gap-3">
+          <FormInput
+            description="Path your deployment serves the OpenAPI spec (e.g. /openapi.yaml). Changes apply on next deploy."
+            placeholder="/openapi.yaml"
+            className="flex-1 [&_input]:font-mono"
+            error={errors.openapiSpecPath?.message}
+            variant={errors.openapiSpecPath ? "error" : "default"}
+            {...register("openapiSpecPath")}
+          />
+          {openapiSpecPath && (
+            <RemoveButton onClick={handleRemove} className="absolute -right-11 top-0" />
+          )}
+        </div>
       </div>
     </FormSettingCard>
   );
