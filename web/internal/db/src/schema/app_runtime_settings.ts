@@ -46,6 +46,9 @@ export const appRuntimeSettings = mysqlTable(
 
     sentinelConfig: longblob("sentinel_config").notNull(),
 
+    // null = scraping disabled; non-null path (e.g. /openapi.yaml) enables scraping
+    openapiSpecPath: varchar("openapi_spec_path", { length: 512 }),
+
     ...lifecycleDates,
   },
   (table) => [uniqueIndex("app_runtime_settings_app_env_idx").on(table.appId, table.environmentId)],
