@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "client.go",
         "doc.go",
+        "http.go",
         "interface.go",
         "noop.go",
     ],
