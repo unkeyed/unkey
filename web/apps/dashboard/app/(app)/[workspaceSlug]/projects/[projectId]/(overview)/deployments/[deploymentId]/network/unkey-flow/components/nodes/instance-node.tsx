@@ -20,13 +20,13 @@ export function InstanceNode({ node, flagCode, deploymentId, stacked }: Instance
       instanceId: node.id,
     },
     {
-      enabled: Boolean(deploymentId),
+      enabled: Boolean(deploymentId) && !stacked,
       refetchInterval: 5000,
     },
   );
 
   return (
-    <NodeWrapper health={health} hideBanner={stacked}>
+    <NodeWrapper health={health} showBanner={!stacked}>
       <CardHeader
         type="instance"
         icon={

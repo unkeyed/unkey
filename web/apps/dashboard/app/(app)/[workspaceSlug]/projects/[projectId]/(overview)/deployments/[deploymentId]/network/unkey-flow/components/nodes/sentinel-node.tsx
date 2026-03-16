@@ -1,10 +1,11 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { trpc } from "@/lib/trpc/client";
+import { ChevronDown, ChevronUp, Layers3 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";
-import { REGION_INFO, type SentinelNode as SentinelNodeType } from "./types";
+import { COLLAPSE_THRESHOLD, REGION_INFO, type SentinelNode as SentinelNodeType } from "./types";
 
 type SentinelNodeProps = {
   node: SentinelNodeType;
@@ -33,7 +34,7 @@ export function SentinelNode({ node, deploymentId, isCollapsed, onToggleCollapse
       : `${replicas} available ${replicas === 1 ? "replica" : "replicas"}`;
 
   return (
-    <div className="relative flex flex-col items-center">
+    <div className="relative flex flex-col items-end">
       <NodeWrapper health={health}>
         <CardHeader
           type="sentinel"
@@ -54,13 +55,19 @@ export function SentinelNode({ node, deploymentId, isCollapsed, onToggleCollapse
         <CardFooter type="sentinel" rps={rps} cpu={cpu} memory={memory} />
       </NodeWrapper>
 
-      {instances > 3 && onToggleCollapse && (
+      {instances > COLLAPSE_THRESHOLD && onToggleCollapse && (
         <button
           onClick={onToggleCollapse}
-          className="mt-1 text-[11px] text-gray-9 hover:text-gray-11 transition-colors px-2 py-0.5 rounded-md hover:bg-grayA-3"
+          className="mt-2 flex items-center gap-1.5 border border-grayA-4 bg-grayA-2 hover:bg-grayA-3 pl-2 pr-2.5 py-1 rounded-full text-xs text-gray-11 font-medium transition-colors shadow-sm"
           type="button"
         >
-          {isCollapsed ? "Show instances" : "Hide instances"}
+          <Layers3 iconSize="sm-regular" className="text-gray-9" />
+          <span className="w-7 text-center">{isCollapsed ? "Show" : "Hide"}</span> instances
+          {isCollapsed ? (
+            <ChevronDown iconSize="sm-regular" className="text-gray-9" />
+          ) : (
+            <ChevronUp iconSize="sm-regular" className="text-gray-9" />
+          )}
         </button>
       )}
     </div>

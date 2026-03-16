@@ -3,6 +3,9 @@ import { trpc } from "@/lib/trpc/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDeployment } from "../layout-provider";
 import {
+  COLLAPSE_THRESHOLD,
+  DEFAULT_NODE_HEIGHT,
+  DEFAULT_NODE_WIDTH,
   type DeploymentNode,
   type InstanceNode as InstanceNodeType,
   InfiniteCanvas,
@@ -26,16 +29,6 @@ import { InstanceNode } from "./unkey-flow/components/nodes/instance-node";
 interface DeploymentNetworkViewProps {
   showProjectDetails?: boolean;
   showNodeDetails?: boolean;
-}
-
-function applyCollapse(node: DeploymentNode, collapsed: Set<string>): DeploymentNode {
-  if (isOriginNode(node)) {
-    return { ...node, children: node.children?.map((c) => applyCollapse(c, collapsed)) };
-  }
-  if (isSentinelNode(node)) {
-    return collapsed.has(node.id) ? { ...node, children: node.children?.slice(0, 1) } : node;
-  }
-  return node;
 }
 
 export function DeploymentNetworkView({
@@ -70,11 +63,6 @@ export function DeploymentNetworkView({
     });
   }, []);
 
-  const visibleTree = useMemo(
-    () => applyCollapse(currentTree, collapsedSentinelIds),
-    [currentTree, collapsedSentinelIds],
-  );
-
   useEffect(() => {
     if (hasAutoCollapsed.current || !defaultTree) {
       return;
@@ -83,11 +71,8 @@ export function DeploymentNetworkView({
     const toCollapse = new Set<string>();
     if (isOriginNode(defaultTree)) {
       for (const child of defaultTree.children ?? []) {
-        if (isSentinelNode(child)) {
-          const instances = (child.children ?? []).filter(isInstanceNode);
-          if (instances.length > 3) {
-            toCollapse.add(child.id);
-          }
+        if (isSentinelNode(child) && (child.children ?? []).filter(isInstanceNode).length > COLLAPSE_THRESHOLD) {
+          toCollapse.add(child.id);
         }
       }
     }
@@ -96,17 +81,24 @@ export function DeploymentNetworkView({
     }
   }, [defaultTree]);
 
-  const sentinelChildrenMap = useMemo(() => {
+  const { visibleTree, sentinelChildrenMap } = useMemo(() => {
     const map = new Map<string, InstanceNodeType[]>();
-    if (isOriginNode(currentTree)) {
-      for (const child of currentTree.children ?? []) {
-        if (isSentinelNode(child)) {
-          map.set(child.id, (child.children ?? []).filter(isInstanceNode));
-        }
+
+    function collapse(node: DeploymentNode): DeploymentNode {
+      if (isOriginNode(node)) {
+        return { ...node, children: node.children?.map((c) => collapse(c)) };
       }
+      if (isSentinelNode(node)) {
+        map.set(node.id, (node.children ?? []).filter(isInstanceNode));
+        return collapsedSentinelIds.has(node.id)
+          ? { ...node, children: node.children?.slice(0, 1) }
+          : node;
+      }
+      return node;
     }
-    return map;
-  }, [currentTree]);
+
+    return { visibleTree: collapse(currentTree), sentinelChildrenMap: map };
+  }, [currentTree, collapsedSentinelIds]);
 
   const renderDeploymentNode = useCallback(
     (node: DeploymentNode, parent?: DeploymentNode): React.ReactNode => {
@@ -138,10 +130,12 @@ export function DeploymentNetworkView({
           const totalLayers = instances.length;
           const step = 10;
           const frontOffset = (totalLayers - 1) * step;
+          // pointer-events-none: stacked instances are not individually interactive
+          // users must expand the sentinel first via its toggle button
           return (
             <div
               className="relative pointer-events-none"
-              style={{ height: frontOffset + 100, width: frontOffset + 282 }}
+              style={{ height: frontOffset + DEFAULT_NODE_HEIGHT, width: frontOffset + DEFAULT_NODE_WIDTH }}
             >
               {instances.slice(1).reverse().map((inst, i) => (
                 <div key={inst.id} className="absolute" style={{ top: i * step, left: i * step }}>
