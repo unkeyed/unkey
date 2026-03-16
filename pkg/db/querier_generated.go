@@ -222,7 +222,7 @@ type Querier interface {
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
 	//FindAppRuntimeSettingsByAppAndEnv
 	//
-	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.sentinel_config, app_runtime_settings.created_at, app_runtime_settings.updated_at
+	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
 	//  FROM app_runtime_settings
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
@@ -232,7 +232,7 @@ type Querier interface {
 	//  SELECT
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
-	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
+	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM apps a
 	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
@@ -928,6 +928,10 @@ type Querier interface {
 	//  FROM roles r
 	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
+	//FindOpenApiSpecByDeploymentID
+	//
+	//  SELECT pk, id, workspace_id, project_id, deployment_id, spec, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
+	FindOpenApiSpecByDeploymentID(ctx context.Context, db DBTX, deploymentID string) (OpenapiSpec, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -1377,7 +1381,6 @@ type Querier interface {
 	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
 	//      git_commit_timestamp,
-	//      openapi_spec,
 	//      encrypted_environment_variables,
 	//      command,
 	//      status,
@@ -1390,7 +1393,6 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2315,7 +2317,7 @@ type Querier interface {
 	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
-	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
+	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM github_repo_connections gc
 	//  INNER JOIN apps a ON a.id = gc.app_id
 	//  INNER JOIN projects p ON p.id = gc.project_id
@@ -2653,12 +2655,6 @@ type Querier interface {
 	//  SET image = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
-	//UpdateDeploymentOpenapiSpec
-	//
-	//  UPDATE deployments
-	//  SET openapi_spec = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentOpenapiSpec(ctx context.Context, db DBTX, arg UpdateDeploymentOpenapiSpecParams) error
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments
@@ -2874,9 +2870,11 @@ type Querier interface {
 	//      healthcheck,
 	//      shutdown_signal,
 	//      sentinel_config,
+	//      openapi_spec_path,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2898,6 +2896,7 @@ type Querier interface {
 	//      healthcheck = VALUES(healthcheck),
 	//      shutdown_signal = VALUES(shutdown_signal),
 	//      sentinel_config = VALUES(sentinel_config),
+	//      openapi_spec_path = VALUES(openapi_spec_path),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsParams) error
 	// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
@@ -3012,6 +3011,15 @@ type Querier interface {
 	//      workspace_id = VALUES(workspace_id),
 	//      store_encrypted_keys = VALUES(store_encrypted_keys)
 	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
+	//UpsertOpenApiSpec
+	//
+	//  INSERT INTO openapi_specs (id, workspace_id, project_id, deployment_id, spec, created_at, updated_at)
+	//  VALUES (?, ?, ?,
+	//          ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      spec = VALUES(spec),
+	//      updated_at = VALUES(updated_at)
+	UpsertOpenApiSpec(ctx context.Context, db DBTX, arg UpsertOpenApiSpecParams) error
 	//UpsertQuota
 	//
 	//  INSERT INTO quota (

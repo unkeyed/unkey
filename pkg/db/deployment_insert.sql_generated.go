@@ -27,7 +27,6 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_commit_author_handle,
     git_commit_author_avatar_url,
     git_commit_timestamp,
-    openapi_spec,
     encrypted_environment_variables,
     command,
     status,
@@ -40,7 +39,6 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     updated_at
 )
 VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -81,7 +79,6 @@ type InsertDeploymentParams struct {
 	GitCommitAuthorHandle         sql.NullString            `db:"git_commit_author_handle"`
 	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
-	OpenapiSpec                   sql.NullString            `db:"openapi_spec"`
 	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
 	Command                       dbtype.StringSlice        `db:"command"`
 	Status                        DeploymentsStatus         `db:"status"`
@@ -110,7 +107,6 @@ type InsertDeploymentParams struct {
 //	    git_commit_author_handle,
 //	    git_commit_author_avatar_url,
 //	    git_commit_timestamp,
-//	    openapi_spec,
 //	    encrypted_environment_variables,
 //	    command,
 //	    status,
@@ -123,7 +119,6 @@ type InsertDeploymentParams struct {
 //	    updated_at
 //	)
 //	VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -163,7 +158,6 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitCommitAuthorHandle,
 		arg.GitCommitAuthorAvatarUrl,
 		arg.GitCommitTimestamp,
-		arg.OpenapiSpec,
 		arg.EncryptedEnvironmentVariables,
 		arg.Command,
 		arg.Status,

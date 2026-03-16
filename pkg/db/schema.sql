@@ -443,6 +443,7 @@ CREATE TABLE `app_runtime_settings` (
 	`healthcheck` json,
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`sentinel_config` longblob NOT NULL,
+	`openapi_spec_path` varchar(512),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `app_runtime_settings_pk` PRIMARY KEY(`pk`),
@@ -515,6 +516,20 @@ CREATE TABLE `deployments` (
 	CONSTRAINT `deployments_id_unique` UNIQUE(`id`),
 	CONSTRAINT `deployments_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `deployments_build_id_unique` UNIQUE(`build_id`)
+);
+
+CREATE TABLE `openapi_specs` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(64) NOT NULL,
+	`deployment_id` varchar(128) NOT NULL,
+	`spec` longblob NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `openapi_specs_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `openapi_specs_id_unique` UNIQUE(`id`),
+	CONSTRAINT `openapi_specs_deployment_id_unique` UNIQUE(`deployment_id`)
 );
 
 CREATE TABLE `deployment_steps` (
