@@ -8,7 +8,6 @@ export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
   deploymentId: z.string().nullable(),
   environmentId: z.string(),
-  appId: z.string(),
   limit: z.int(),
   startTime: z.int(),
   endTime: z.int(),
@@ -40,7 +39,6 @@ export function getRuntimeLogs(ch: Querier) {
         OR deployment_id = assumeNotNull({deploymentId: Nullable(String)})
       )
       AND environment_id = {environmentId: String}
-      AND app_id = {appId: String}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
 
       AND (
