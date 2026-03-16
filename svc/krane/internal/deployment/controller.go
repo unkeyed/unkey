@@ -96,6 +96,7 @@ func New(cfg Config) *Controller {
 		done:             make(chan struct{}),
 		region:           cfg.Region,
 		versionLastSeen:  0,
+		fingerprintMu:    sync.Mutex{},
 		fingerprints:     make(map[string]string),
 	}
 }
