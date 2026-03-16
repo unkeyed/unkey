@@ -199,18 +199,19 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 
 	// Insert default app runtime settings for this (app, environment) pair.
 	err = db.Query.UpsertAppRuntimeSettings(ctx, s.DB.RW(), db.UpsertAppRuntimeSettingsParams{
-		WorkspaceID:    req.WorkspaceID,
-		AppID:          req.AppID,
-		EnvironmentID:  req.ID,
-		Port:           8080,
-		CpuMillicores:  100,
-		MemoryMib:      128,
-		Command:        nil,
-		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
-		SentinelConfig: []byte("{}"),
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Valid: false},
+		WorkspaceID:     req.WorkspaceID,
+		AppID:           req.AppID,
+		EnvironmentID:   req.ID,
+		Port:            8080,
+		CpuMillicores:   100,
+		MemoryMib:       128,
+		Command:         nil,
+		Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
+		SentinelConfig:  []byte("{}"),
+		OpenapiSpecPath: sql.NullString{Valid: false},
+		CreatedAt:       now,
+		UpdatedAt:       sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
 
@@ -281,18 +282,19 @@ func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest
 
 	// Seed default runtime settings
 	err = db.Query.UpsertAppRuntimeSettings(ctx, s.DB.RW(), db.UpsertAppRuntimeSettingsParams{
-		WorkspaceID:    req.WorkspaceID,
-		AppID:          req.ID,
-		EnvironmentID:  environmentID,
-		Port:           8080,
-		CpuMillicores:  256,
-		MemoryMib:      256,
-		Command:        nil,
-		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
-		SentinelConfig: []byte("{}"),
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Valid: false},
+		WorkspaceID:     req.WorkspaceID,
+		AppID:           req.ID,
+		EnvironmentID:   environmentID,
+		Port:            8080,
+		CpuMillicores:   256,
+		MemoryMib:       256,
+		Command:         nil,
+		Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
+		SentinelConfig:  []byte("{}"),
+		OpenapiSpecPath: sql.NullString{Valid: false},
+		CreatedAt:       now,
+		UpdatedAt:       sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
 
@@ -335,7 +337,6 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		GitCommitAuthorHandle:         sql.NullString{String: "", Valid: false},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: "", Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Int64: 0, Valid: false},
-		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		EncryptedEnvironmentVariables: []byte("{}"),
 		Command:                       nil,
 		Status:                        req.Status,
