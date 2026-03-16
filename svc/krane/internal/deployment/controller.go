@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/unkeyed/unkey/pkg/cache"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/hash"
 	corev1 "k8s.io/api/core/v1"
