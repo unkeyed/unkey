@@ -21,11 +21,11 @@ export function NodeWrapper({ health, children, showBanner = true }: NodeWrapper
         isDisabled
           ? "grayscale opacity-90 cursor-not-allowed"
           : cn(
-            "transition-shadow duration-200 ease-out cursor-pointer",
-            "hover:ring-2 hover:ring-offset-0",
-            ring,
-            glow,
-          ),
+              "transition-shadow duration-200 ease-out cursor-pointer",
+              "hover:ring-2 hover:ring-offset-0",
+              ring,
+              glow,
+            ),
       )}
     >
       {showBanner && <HealthBanner healthStatus={health} />}

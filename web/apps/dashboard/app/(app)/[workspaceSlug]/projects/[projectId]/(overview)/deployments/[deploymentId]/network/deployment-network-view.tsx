@@ -7,8 +7,8 @@ import {
   DEFAULT_NODE_HEIGHT,
   DEFAULT_NODE_WIDTH,
   type DeploymentNode,
-  type InstanceNode as InstanceNodeType,
   InfiniteCanvas,
+  type InstanceNode as InstanceNodeType,
   InternalDevTreeGenerator,
   LiveIndicator,
   NodeDetailsPanel,
@@ -71,7 +71,10 @@ export function DeploymentNetworkView({
     const toCollapse = new Set<string>();
     if (isOriginNode(defaultTree)) {
       for (const child of defaultTree.children ?? []) {
-        if (isSentinelNode(child) && (child.children ?? []).filter(isInstanceNode).length > COLLAPSE_THRESHOLD) {
+        if (
+          isSentinelNode(child) &&
+          (child.children ?? []).filter(isInstanceNode).length > COLLAPSE_THRESHOLD
+        ) {
           toCollapse.add(child.id);
         }
       }
@@ -135,15 +138,31 @@ export function DeploymentNetworkView({
           return (
             <div
               className="relative pointer-events-none"
-              style={{ height: frontOffset + DEFAULT_NODE_HEIGHT, width: frontOffset + DEFAULT_NODE_WIDTH }}
+              style={{
+                height: frontOffset + DEFAULT_NODE_HEIGHT,
+                width: frontOffset + DEFAULT_NODE_WIDTH,
+              }}
             >
-              {instances.slice(1).reverse().map((inst, i) => (
-                <div key={inst.id} className="absolute" style={{ top: i * step, left: i * step }}>
-                  <InstanceNode node={inst} flagCode={parent.metadata.flagCode} deploymentId={deployment.id} stacked />
-                </div>
-              ))}
+              {instances
+                .slice(1)
+                .reverse()
+                .map((inst, i) => (
+                  <div key={inst.id} className="absolute" style={{ top: i * step, left: i * step }}>
+                    <InstanceNode
+                      node={inst}
+                      flagCode={parent.metadata.flagCode}
+                      deploymentId={deployment.id}
+                      stacked
+                    />
+                  </div>
+                ))}
               <div className="absolute" style={{ top: frontOffset, left: frontOffset }}>
-                <InstanceNode node={node} flagCode={parent.metadata.flagCode} deploymentId={deployment.id} stacked />
+                <InstanceNode
+                  node={node}
+                  flagCode={parent.metadata.flagCode}
+                  deploymentId={deployment.id}
+                  stacked
+                />
               </div>
             </div>
           );

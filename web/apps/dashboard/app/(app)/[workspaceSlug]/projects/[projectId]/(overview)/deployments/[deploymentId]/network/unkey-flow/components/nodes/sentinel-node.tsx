@@ -14,7 +14,12 @@ type SentinelNodeProps = {
   onToggleCollapse?: () => void;
 };
 
-export function SentinelNode({ node, deploymentId, isCollapsed, onToggleCollapse }: SentinelNodeProps) {
+export function SentinelNode({
+  node,
+  deploymentId,
+  isCollapsed,
+  onToggleCollapse,
+}: SentinelNodeProps) {
   const { flagCode, cpu, memory, health, replicas, instances } = node.metadata;
 
   const { data: rps } = trpc.deploy.network.getSentinelRps.useQuery(
