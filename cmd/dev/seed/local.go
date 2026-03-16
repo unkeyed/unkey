@@ -176,32 +176,34 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		// Create default runtime settings for each environment
 		err = db.BulkQuery.UpsertAppRuntimeSettings(ctx, tx, []db.UpsertAppRuntimeSettingsParams{
 			{
-				WorkspaceID:    workspaceID,
-				AppID:          appID,
-				EnvironmentID:  previewEnvID,
-				Port:           8080,
-				CpuMillicores:  256,
-				MemoryMib:      256,
-				Command:        dbtype.StringSlice{},
-				Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-				SentinelConfig: []byte{},
-				ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
-				CreatedAt:      now,
-				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
+				WorkspaceID:     workspaceID,
+				AppID:           appID,
+				EnvironmentID:   previewEnvID,
+				Port:            8080,
+				CpuMillicores:   256,
+				MemoryMib:       256,
+				Command:         dbtype.StringSlice{},
+				Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+				SentinelConfig:  []byte{},
+				ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
+				CreatedAt:       now,
+				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
+				OpenapiSpecPath: sql.NullString{Valid: true, String: "/openapi.yaml"},
 			},
 			{
-				WorkspaceID:    workspaceID,
-				AppID:          appID,
-				EnvironmentID:  productionEnvID,
-				Port:           8080,
-				CpuMillicores:  256,
-				MemoryMib:      256,
-				Command:        dbtype.StringSlice{},
-				Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-				SentinelConfig: []byte{},
-				ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
-				CreatedAt:      now,
-				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
+				WorkspaceID:     workspaceID,
+				AppID:           appID,
+				EnvironmentID:   productionEnvID,
+				Port:            8080,
+				CpuMillicores:   256,
+				MemoryMib:       256,
+				Command:         dbtype.StringSlice{},
+				Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+				SentinelConfig:  []byte{},
+				ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
+				CreatedAt:       now,
+				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
+				OpenapiSpecPath: sql.NullString{Valid: true, String: "/openapi.yaml"},
 			},
 		})
 		if err != nil {
@@ -472,12 +474,12 @@ UNKEY_ROOT_KEY=%s
 
 		// Ensure directory exists
 		if dir := filepath.Dir(outputFile); dir != "" && dir != "." {
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
 				return fmt.Errorf("failed to create output directory: %w", err)
 			}
 		}
 
-		if err := os.WriteFile(outputFile, []byte(envContent), 0600); err != nil {
+		if err := os.WriteFile(outputFile, []byte(envContent), 0o600); err != nil {
 			return fmt.Errorf("failed to write output file: %w", err)
 		}
 		logger.Info("wrote environment file", "path", outputFile)
