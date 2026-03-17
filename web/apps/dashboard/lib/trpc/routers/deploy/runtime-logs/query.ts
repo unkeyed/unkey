@@ -83,9 +83,7 @@ export const queryRuntimeLogs = workspaceProcedure
 
     const unknownK8sNames = [
       ...new Set(
-        chLogs
-          .map((log) => log.k8s_pod_name)
-          .filter((name) => !knownK8sToInstanceId.has(name)),
+        chLogs.map((log) => log.k8s_pod_name).filter((name) => !knownK8sToInstanceId.has(name)),
       ),
     ];
     const resolvedMapping = await resolveK8sNamesToInstanceIds(unknownK8sNames);
