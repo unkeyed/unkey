@@ -63,7 +63,7 @@ export const FormSettingCard = ({
         >
           <div
             className={cn(
-              "px-4 pt-4 flex flex-col gap-0.5 overflow-y-auto max-h-[500px]",
+              "px-4 pt-4 flex flex-col gap-0.5 overflow-y-auto max-h-[850px]",
               autoSave ? "pb-4" : "pb-2",
             )}
           >

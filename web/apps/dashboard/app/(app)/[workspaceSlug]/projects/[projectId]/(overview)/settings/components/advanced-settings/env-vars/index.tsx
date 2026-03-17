@@ -90,6 +90,7 @@ const EnvVarsForm = ({
     control,
     reset,
     trigger,
+    getValues,
   } = useForm<EnvVarsFormValues>({
     resolver: zodResolver(envVarsSchema),
     mode: "onChange",
@@ -105,7 +106,8 @@ const EnvVarsForm = ({
     }
   }, [defaultValues, reset]);
 
-  const { ref, isDragging } = useDropZone(reset, defaultEnvironmentId);
+  const { ref, isDragging } = useDropZone(reset, trigger, getValues, defaultEnvironmentId);
+
   const { fields, prepend, remove } = useFieldArray({ control, name: "envVars" });
 
   const onSubmit = async (values: EnvVarsFormValues) => {
