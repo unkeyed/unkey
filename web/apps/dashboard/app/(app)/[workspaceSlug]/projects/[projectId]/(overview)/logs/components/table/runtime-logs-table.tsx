@@ -127,7 +127,7 @@ export function RuntimeLogsTable() {
         header: "Region",
         width: "10%",
         render: (log) => (
-          <div className="font-mono pr-4 truncate uppercase" title={log.region}>
+          <div className="font-mono pr-4 truncate" title={log.region}>
             {log.region}
           </div>
         ),

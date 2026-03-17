@@ -1,8 +1,13 @@
-import { runtimeLog } from "@unkey/clickhouse/src/runtime-logs";
 import { z } from "zod";
 
-export const dashboardRuntimeLog = runtimeLog.omit({ k8s_pod_name: true }).extend({
+export const dashboardRuntimeLog = z.object({
+  time: z.int(),
+  severity: z.string(),
+  message: z.string(),
+  deployment_id: z.string(),
+  region: z.string(),
   instance_id: z.string(),
+  attributes: z.record(z.string(), z.unknown()).nullable(),
 });
 
 export type RuntimeLog = z.infer<typeof dashboardRuntimeLog>;

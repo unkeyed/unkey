@@ -1,5 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db, eq, inArray, schema } from "@/lib/db";
+import { db, inArray, schema } from "@/lib/db";
 import {
   type RuntimeLogsResponseSchema,
   runtimeLogsRequestSchema,
