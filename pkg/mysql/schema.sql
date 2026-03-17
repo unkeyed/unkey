@@ -521,9 +521,8 @@ CREATE TABLE `deployments` (
 CREATE TABLE `openapi_specs` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`app_id` varchar(64),
-	`project_id` varchar(64),
 	`deployment_id` varchar(128),
+	`portal_config_id` varchar(256),
 	`spec` longblob NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -697,7 +696,7 @@ CREATE TABLE `github_app_installations` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `github_app_installations_pk` PRIMARY KEY(`pk`),
-	UNIQUE INDEX `workspace_installation_idx` (`workspace_id`,`installation_id`)
+	CONSTRAINT `workspace_installation_idx` UNIQUE(`workspace_id`,`installation_id`)
 );
 
 CREATE TABLE `github_repo_connections` (

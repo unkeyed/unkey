@@ -1375,14 +1375,13 @@ type KeysRole struct {
 }
 
 type OpenapiSpec struct {
-	Pk           uint64         `db:"pk"`
-	WorkspaceID  string         `db:"workspace_id"`
-	AppID        sql.NullString `db:"app_id"`
-	ProjectID    sql.NullString `db:"project_id"`
-	DeploymentID sql.NullString `db:"deployment_id"`
-	Spec         []byte         `db:"spec"`
-	CreatedAt    int64          `db:"created_at"`
-	UpdatedAt    sql.NullInt64  `db:"updated_at"`
+	Pk             uint64         `db:"pk"`
+	WorkspaceID    string         `db:"workspace_id"`
+	DeploymentID   sql.NullString `db:"deployment_id"`
+	PortalConfigID sql.NullString `db:"portal_config_id"`
+	Spec           []byte         `db:"spec"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
 }
 
 type Permission struct {

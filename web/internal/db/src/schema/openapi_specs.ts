@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
-import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
@@ -11,11 +10,8 @@ export const openapiSpecs = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    // App this openapi-spec belongs to
-    appId: varchar("app_id", { length: 64 }),
-    // null = user-uploaded spec not linked to a specific deployment
-    projectId: varchar("project_id", { length: 64 }),
     deploymentId: varchar("deployment_id", { length: 128 }),
+    portalConfigId: varchar("portal_config_id", { length: 256 }),
 
     spec: longblob("spec").notNull(),
 
@@ -28,10 +24,6 @@ export const openapiSpecsRelations = relations(openapiSpecs, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [openapiSpecs.workspaceId],
     references: [workspaces.id],
-  }),
-  project: one(projects, {
-    fields: [openapiSpecs.projectId],
-    references: [projects.id],
   }),
   deployment: one(deployments, {
     fields: [openapiSpecs.deploymentId],
