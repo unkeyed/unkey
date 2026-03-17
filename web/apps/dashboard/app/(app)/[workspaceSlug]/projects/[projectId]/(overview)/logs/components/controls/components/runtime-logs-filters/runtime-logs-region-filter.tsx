@@ -16,7 +16,7 @@ type RegionOption = {
 
 export function RuntimeLogsRegionFilter() {
   const { filters, updateFilters } = useRuntimeLogsFilters();
-  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
+  const { data: availableRegions, isLoading } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
 
   const options: RegionOption[] = useMemo(
     () =>
@@ -28,6 +28,20 @@ export function RuntimeLogsRegionFilter() {
       })),
     [availableRegions],
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-2 p-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4.5 px-2 py-1">
+            <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
+            <div className="size-4 bg-grayA-3 rounded-full animate-pulse shrink-0" />
+            <div className="h-4 w-[80px] bg-grayA-3 rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <FilterCheckbox

@@ -1,9 +1,17 @@
+import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import type { Column } from "@/components/virtual-table/types";
+import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { TriangleWarning } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
 import { TruncatedCell } from "../truncated-cell";
 
-export type ContainerLogRow = { time: number; severity: string; message: string };
+export type ContainerLogRow = {
+  time: number;
+  severity: string;
+  message: string;
+  instance_id: string;
+  region: string;
+};
 
 function SeverityIcon({ severity }: { severity: string }) {
   switch (severity.toUpperCase()) {
@@ -18,33 +26,34 @@ function SeverityIcon({ severity }: { severity: string }) {
 
 export const containerLogColumns: Column<ContainerLogRow>[] = [
   {
-    key: "time",
-    width: "85px",
+    key: "log",
+    width: "auto",
     cellClassName: "pl-[25px]",
     render: (log) => (
-      <TimestampInfo
-        displayType="local_hours_with_millis"
-        value={log.time}
-        className="font-mono group-hover:underline decoration-dotted"
-      />
-    ),
-  },
-  {
-    key: "severity",
-    width: "32px",
-    render: (log) => <SeverityIcon severity={log.severity} />,
-  },
-  {
-    key: "message",
-    width: "auto",
-    render: (log) => (
-      <TruncatedCell
-        text={log.message}
-        threshold={120}
-        maxWidth="max-w-[750px]"
-        className="text-gray-12"
-        side="top"
-      />
+      <div className="flex items-center gap-6">
+        <TimestampInfo
+          displayType="local_hours_with_millis"
+          value={log.time}
+          className="font-mono group-hover:underline decoration-dotted"
+        />
+        <SeverityIcon severity={log.severity} />
+        <div className="items-center flex gap-2">
+          <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
+          <span className="font-mono text-xs uppercase">{log.region}</span>
+        </div>
+        <span className="font-mono truncate text-xs" title={log.instance_id}>
+          {log.instance_id}
+        </span>
+        <div className="flex-1 min-w-0">
+          <TruncatedCell
+            text={log.message}
+            threshold={120}
+            maxWidth="max-w-[750px]"
+            className="text-gray-12"
+            side="top"
+          />
+        </div>
+      </div>
     ),
   },
 ];

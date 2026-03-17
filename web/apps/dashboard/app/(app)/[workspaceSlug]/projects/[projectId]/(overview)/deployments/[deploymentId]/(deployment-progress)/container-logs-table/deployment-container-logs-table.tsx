@@ -1,10 +1,9 @@
 "use client";
 
 import { VirtualTable } from "@/components/virtual-table/index";
-import { cn } from "@/lib/utils";
 import { type ContainerLogRow, containerLogColumns } from "./columns";
 import { getContainerLogRowClass } from "./get-row-class";
-import { MessageColumnSkeleton, SeverityColumnSkeleton, TimeColumnSkeleton } from "./skeletons";
+import { ContainerLogRowSkeleton } from "./skeletons";
 
 type Props = {
   logs: ContainerLogRow[];
@@ -18,19 +17,13 @@ export const DeploymentContainerLogsTable: React.FC<Props> = ({ logs, isLoading 
       isLoading={isLoading}
       columns={containerLogColumns}
       renderSkeletonRow={({ columns, rowHeight }) =>
-        columns.map((column, idx) => (
+        columns.map((column) => (
           <td
             key={column.key}
-            className={cn(
-              "text-xs align-middle whitespace-nowrap",
-              idx === 0 ? "pl-[25px]" : "",
-              column.cellClassName,
-            )}
+            className="text-xs align-middle whitespace-nowrap"
             style={{ height: `${rowHeight}px` }}
           >
-            {column.key === "time" && <TimeColumnSkeleton />}
-            {column.key === "severity" && <SeverityColumnSkeleton />}
-            {column.key === "message" && <MessageColumnSkeleton />}
+            <ContainerLogRowSkeleton />
           </td>
         ))
       }
