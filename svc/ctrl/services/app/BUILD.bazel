@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "app",
+    srcs = [
+        "auth.go",
+        "create_app.go",
+        "delete_app.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/app",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
+        "//pkg/db",
+        "//pkg/db/types",
+        "//pkg/uid",
+        "//svc/ctrl/internal/auth",
+        "@com_connectrpc_connect//:connect",
+        "@com_github_restatedev_sdk_go//ingress",
+    ],
+)
