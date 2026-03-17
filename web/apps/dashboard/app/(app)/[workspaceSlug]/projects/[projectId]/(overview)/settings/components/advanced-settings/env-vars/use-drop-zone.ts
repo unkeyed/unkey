@@ -36,7 +36,12 @@ const parseEnvText = (text: string): Array<{ key: string; value: string; secret:
     .filter((v): v is NonNullable<typeof v> => v !== null);
 };
 
-export function useDropZone(reset: UseFormReset<EnvVarsFormValues>, trigger: UseFormTrigger<EnvVarsFormValues>, getValues: UseFormGetValues<EnvVarsFormValues>, defaultEnvironmentId: string) {
+export function useDropZone(
+  reset: UseFormReset<EnvVarsFormValues>,
+  trigger: UseFormTrigger<EnvVarsFormValues>,
+  getValues: UseFormGetValues<EnvVarsFormValues>,
+  defaultEnvironmentId: string,
+) {
   const [isDragging, setIsDragging] = useState(false);
   const ref = useRef<HTMLFormElement>(null);
 
@@ -64,7 +69,7 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>, trigger: Use
             const newRows = parsed.map((row) => ({ ...row, environmentId: defaultEnvironmentId }));
             reset({ envVars: [...existing, ...newRows] }, { keepDefaultValues: true });
             toast.success(`Imported ${parsed.length} variable(s)`);
-            trigger()
+            trigger();
           } else {
             toast.error("No valid environment variables found");
           }
@@ -81,7 +86,7 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>, trigger: Use
           const newRows = parsed.map((row) => ({ ...row, environmentId: defaultEnvironmentId }));
           reset({ envVars: [...existing, ...newRows] }, { keepDefaultValues: true });
           toast.success(`Imported ${parsed.length} variable(s)`);
-          trigger()
+          trigger();
         } else {
           toast.error("No valid environment variables found");
         }
@@ -126,7 +131,7 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>, trigger: Use
           const newRows = parsed.map((row) => ({ ...row, environmentId: defaultEnvironmentId }));
           reset({ envVars: [...existing, ...newRows] }, { keepDefaultValues: true });
           toast.success(`Imported ${parsed.length} variable(s)`);
-          trigger()
+          trigger();
         } else {
           toast.error("No valid environment variables found");
         }
@@ -148,7 +153,7 @@ export function useDropZone(reset: UseFormReset<EnvVarsFormValues>, trigger: Use
       dropZone.removeEventListener("dragleave", handleDragLeave);
       dropZone.removeEventListener("drop", handleDrop);
     };
-  }, [reset, getValues, defaultEnvironmentId]);
+  }, [reset, getValues, defaultEnvironmentId, trigger]);
 
   return { ref, isDragging };
 }

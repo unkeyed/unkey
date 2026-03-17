@@ -13,10 +13,12 @@ type EditableSettingCardProps = {
 
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   children: React.ReactNode;
+  stickyHeader?: React.ReactNode;
 
   saveState: SaveState;
 
   ref?: React.Ref<HTMLFormElement>;
+  contentRef?: React.Ref<HTMLDivElement>;
   className?: string;
   autoSave?: boolean;
 };
@@ -29,8 +31,10 @@ export const FormSettingCard = ({
   displayValue,
   onSubmit,
   children,
+  stickyHeader,
   saveState,
   ref,
+  contentRef,
   className,
   autoSave,
 }: EditableSettingCardProps) => {
@@ -61,9 +65,12 @@ export const FormSettingCard = ({
             }
           }}
         >
+          {stickyHeader && <div className="px-4 pt-4 pb-2">{stickyHeader}</div>}
           <div
+            ref={contentRef}
             className={cn(
-              "px-4 pt-4 flex flex-col gap-0.5 overflow-y-auto max-h-[850px]",
+              "px-4 flex flex-col gap-0.5 overflow-y-auto max-h-[850px]",
+              !stickyHeader && "pt-4",
               autoSave ? "pb-4" : "pb-2",
             )}
           >
