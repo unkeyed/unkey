@@ -95,8 +95,7 @@ export function DeploymentNetworkView({
         const instanceChildren = (node.children ?? []).filter(isInstanceNode);
         map.set(node.id, instanceChildren);
 
-        return collapsedSentinelIds.has(node.id) &&
-          node.metadata.instances > COLLAPSE_THRESHOLD
+        return collapsedSentinelIds.has(node.id) && node.metadata.instances > COLLAPSE_THRESHOLD
           ? { ...node, children: instanceChildren.slice(0, 1) }
           : node;
       }
