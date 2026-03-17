@@ -35,6 +35,7 @@ export const SelectRepo = ({
   const selectRepoMutation = trpc.github.selectRepository.useMutation({
     onSuccess: async (_data, variables) => {
       trpcUtils.github.getInstallations.invalidate();
+      trpcUtils.github.getRepoTree.invalidate();
       const name =
         variables.repositoryFullName.length > 40
           ? `${variables.repositoryFullName.slice(0, 37)}...`
