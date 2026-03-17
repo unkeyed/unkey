@@ -1,32 +1,6 @@
 import { z } from "zod";
-import type { Inserter, Querier } from "./client";
+import type { Querier } from "./client";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
-
-// INSERTION
-export function insertVerification(ch: Inserter) {
-  return ch.insert({
-    table: "verifications.raw_key_verifications_v1",
-    schema: z.object({
-      request_id: z.string(),
-      time: z.int(),
-      workspace_id: z.string(),
-      key_space_id: z.string(),
-      key_id: z.string(),
-      region: z.string(),
-      tags: z.array(z.string()).transform((arr) => arr.sort()),
-      outcome: z.enum([
-        "VALID",
-        "RATE_LIMITED",
-        "EXPIRED",
-        "DISABLED",
-        "FORBIDDEN",
-        "USAGE_EXCEEDED",
-        "INSUFFICIENT_PERMISSIONS",
-      ]),
-      identity_id: z.string().optional().prefault(""),
-    }),
-  });
-}
 
 // LOGS
 export const keyDetailsLogsParams = z.object({

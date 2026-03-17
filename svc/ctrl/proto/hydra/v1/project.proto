@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// ProjectService manages project lifecycle.
+// Key: project_id
+service ProjectService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Delete removes a project and cleans up associated resources.
+  // Key: project_id
+  rpc Delete(DeleteProjectRequest) returns (DeleteProjectResponse) {}
+}
+
+message DeleteProjectRequest {}
+
+message DeleteProjectResponse {}
