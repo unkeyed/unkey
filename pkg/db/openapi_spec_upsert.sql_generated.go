@@ -11,8 +11,8 @@ import (
 )
 
 const upsertOpenApiSpec = `-- name: UpsertOpenApiSpec :exec
-INSERT INTO openapi_specs (workspace_id, project_id, deployment_id, spec, created_at, updated_at)
-VALUES (?, ?,
+INSERT INTO openapi_specs (workspace_id, app_id, project_id, deployment_id, spec, created_at, updated_at)
+VALUES (?, ?, ?,
         ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     spec = VALUES(spec),
@@ -21,6 +21,7 @@ ON DUPLICATE KEY UPDATE
 
 type UpsertOpenApiSpecParams struct {
 	WorkspaceID  string         `db:"workspace_id"`
+	AppID        sql.NullString `db:"app_id"`
 	ProjectID    sql.NullString `db:"project_id"`
 	DeploymentID sql.NullString `db:"deployment_id"`
 	Spec         []byte         `db:"spec"`
@@ -30,8 +31,8 @@ type UpsertOpenApiSpecParams struct {
 
 // UpsertOpenApiSpec
 //
-//	INSERT INTO openapi_specs (workspace_id, project_id, deployment_id, spec, created_at, updated_at)
-//	VALUES (?, ?,
+//	INSERT INTO openapi_specs (workspace_id, app_id, project_id, deployment_id, spec, created_at, updated_at)
+//	VALUES (?, ?, ?,
 //	        ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    spec = VALUES(spec),
@@ -39,6 +40,7 @@ type UpsertOpenApiSpecParams struct {
 func (q *Queries) UpsertOpenApiSpec(ctx context.Context, db DBTX, arg UpsertOpenApiSpecParams) error {
 	_, err := db.ExecContext(ctx, upsertOpenApiSpec,
 		arg.WorkspaceID,
+		arg.AppID,
 		arg.ProjectID,
 		arg.DeploymentID,
 		arg.Spec,
