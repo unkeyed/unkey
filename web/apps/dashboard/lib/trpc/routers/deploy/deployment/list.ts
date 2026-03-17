@@ -29,7 +29,7 @@ export const listDeployments = workspaceProcedure
         with: {
           openapiSpec: {
             columns: {
-              id: true,
+              pk: true,
             },
           },
           instances: {
