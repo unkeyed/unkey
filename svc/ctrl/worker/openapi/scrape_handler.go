@@ -59,24 +59,20 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	}
 	specPath := settings.AppRuntimeSetting.OpenapiSpecPath.String
 
-	routes, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FrontlineRoute, error) {
-		return db.Query.FindFrontlineRoutesByDeploymentID(runCtx, s.db.RO(), deploymentID)
-	}, restate.WithName("find frontline routes"))
+	route, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FrontlineRoute, error) {
+		return db.Query.FindFrontlineRouteByDeploymentIDAndSticky(runCtx, s.db.RO(), db.FindFrontlineRouteByDeploymentIDAndStickyParams{
+			DeploymentID: deploymentID,
+			Sticky:       db.FrontlineRoutesStickyDeployment,
+		})
+	}, restate.WithName("find deployment-sticky route"))
 	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to find frontline routes."))
-	}
-
-	var fqdn string
-	for _, route := range routes {
-		if route.Sticky == db.FrontlineRoutesStickyDeployment {
-			fqdn = route.FullyQualifiedDomainName
-			break
+		if db.IsNotFound(err) {
+			logger.Info("no deployment-sticky route found, skipping openapi scrape", "deployment_id", deploymentID)
+			return &hydrav1.ScrapeSpecResponse{}, nil
 		}
+		return nil, fault.Wrap(err, fault.Public("Failed to find deployment-sticky route."))
 	}
-	if fqdn == "" {
-		logger.Info("no deployment-sticky route found, skipping openapi scrape", "deployment_id", deploymentID)
-		return &hydrav1.ScrapeSpecResponse{}, nil
-	}
+	fqdn := route.FullyQualifiedDomainName
 
 	// Local dev: *.unkey.local FQDNs are not publicly routable and the mkcert CA
 	// is not trusted inside the cluster, so reach the pod directly via plain HTTP.

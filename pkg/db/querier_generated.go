@@ -469,6 +469,10 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
+	//FindFrontlineRouteByDeploymentIDAndSticky
+	//
+	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
+	FindFrontlineRouteByDeploymentIDAndSticky(ctx context.Context, db DBTX, arg FindFrontlineRouteByDeploymentIDAndStickyParams) (FrontlineRoute, error)
 	//FindFrontlineRouteByFQDN
 	//
 	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
