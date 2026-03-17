@@ -1,6 +1,7 @@
 "use client";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import {
+  Ban,
   CircleCheck,
   CircleWarning,
   CloudUp,
@@ -84,6 +85,13 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     bgColor: "bg-errorA-3",
     textColor: "text-errorA-11",
     iconColor: "text-error-11",
+  },
+  skipped: {
+    icon: Ban,
+    label: "Skipped",
+    bgColor: "bg-grayA-3",
+    textColor: "text-grayA-11",
+    iconColor: "text-gray-11",
   },
 };
 

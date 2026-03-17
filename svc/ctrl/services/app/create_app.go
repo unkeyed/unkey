@@ -86,6 +86,7 @@ func (s *Service) CreateApp(
 				EnvironmentID: envID,
 				Dockerfile:    "",
 				DockerContext: "",
+				WatchPaths:    nil,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			}); txErr != nil {

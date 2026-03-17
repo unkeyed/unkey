@@ -32,6 +32,7 @@ const (
 	NETWORK     V2DeployGetDeploymentResponseDataStatus = "NETWORK"
 	PENDING     V2DeployGetDeploymentResponseDataStatus = "PENDING"
 	READY       V2DeployGetDeploymentResponseDataStatus = "READY"
+	SKIPPED     V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
 	STARTING    V2DeployGetDeploymentResponseDataStatus = "STARTING"
 	UNSPECIFIED V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
