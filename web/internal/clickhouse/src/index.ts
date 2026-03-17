@@ -115,7 +115,6 @@ import {
   getTwoHourlyVerificationTimeseries,
   getWeeklyIdentityTimeseries,
   getWeeklyVerificationTimeseries,
-  insertVerification,
 } from "./verifications";
 
 export type ClickHouseConfig =
@@ -159,7 +158,6 @@ export class ClickHouse {
 
   public get verifications() {
     return {
-      insert: insertVerification(this.inserter),
       latest: getLatestVerifications(this.querier),
       timeseries: {
         // Minute-based granularity
