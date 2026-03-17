@@ -235,7 +235,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create build settings: %w", err)
 		}
 
-		// Create local region
+		// Create local region (no-op if Krane's heartbeat already inserted it)
 		err = db.Query.UpsertRegion(ctx, tx, db.UpsertRegionParams{
 			ID:       regionID,
 			Name:     "local",
