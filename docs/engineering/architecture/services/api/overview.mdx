@@ -21,7 +21,7 @@ Routes that serve internal tooling such as pprof use a reduced stack. The livene
 
 ## Core services
 
-The API service composes domain services into handlers registered in <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/routes/register.go" target="_blank">`svc/api/routes/register.go`</a>.
+The API service composes domain services into handlers registered in [`svc/api/routes/register.go`](https://github.com/unkeyed/unkey/blob/main/svc/api/routes/register.go).
 
 - Key service for authentication, authorization, key verification, and mutations.
 - Rate limit service backed by Redis counters.
@@ -53,4 +53,4 @@ Clients inject `Authorization: Bearer <token>` headers on every request.
 
 ## Reference and schema
 
-The OpenAPI specification is bundled from <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/openapi" target="_blank">`svc/api/openapi`</a> and served at `/openapi.yaml`. The `/reference` route serves the Scalar API reference UI built from the same spec.
+The OpenAPI specification is bundled from [`svc/api/openapi`](https://github.com/unkeyed/unkey/blob/main/svc/api/openapi) and served at `/openapi.yaml`. The `/reference` route serves the Scalar API reference UI built from the same spec.
