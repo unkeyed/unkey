@@ -92,9 +92,12 @@ export function DeploymentNetworkView({
         return { ...node, children: node.children?.map((c) => collapse(c)) };
       }
       if (isSentinelNode(node)) {
-        map.set(node.id, (node.children ?? []).filter(isInstanceNode));
-        return collapsedSentinelIds.has(node.id)
-          ? { ...node, children: node.children?.slice(0, 1) }
+        const instanceChildren = (node.children ?? []).filter(isInstanceNode);
+        map.set(node.id, instanceChildren);
+
+        return collapsedSentinelIds.has(node.id) &&
+          node.metadata.instances > COLLAPSE_THRESHOLD
+          ? { ...node, children: instanceChildren.slice(0, 1) }
           : node;
       }
       return node;
