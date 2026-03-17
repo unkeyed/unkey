@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, Plus } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
+import { FormInput } from "@unkey/ui";
 import { useCallback, useRef } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -140,15 +140,14 @@ export const WatchPaths = () => {
             </div>
           );
         })}
-        <Button
+        <button
           type="button"
-          variant="ghost"
-          size="sm"
-          className="size-9 hover:bg-grayA-3 px-0 justify-center rounded-lg"
+          className="flex items-center gap-1.5 text-gray-9 hover:text-gray-11 text-sm transition-colors w-fit"
           onClick={() => append({ value: "" })}
         >
           <Plus iconSize="sm-regular" />
-        </Button>
+          Add pattern
+        </button>
         <SettingDescription>
           Glob patterns (e.g. src/**, **/*.go). Deployments are skipped when no changed files match.
         </SettingDescription>
