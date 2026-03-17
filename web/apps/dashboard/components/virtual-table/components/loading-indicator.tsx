@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useCallback, useState } from "react";
@@ -47,12 +48,7 @@ export const LoadMoreFooter = ({
   // Minimized state - parked at right side
   if (!isOpen) {
     return (
-      <div
-        className="fixed bottom-6 right-6 z-10 transition-all duration-300 ease-out"
-        style={{
-          animation: "slideInFromBottom 0.3s ease-out",
-        }}
-      >
+      <div className="fixed bottom-6 right-6 z-10 transition-all duration-300 ease-out animate-fade-slide-in">
         <button
           type="button"
           onClick={handleOpen}
@@ -81,11 +77,11 @@ export const LoadMoreFooter = ({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 w-full items-center justify-center flex z-10 transition-all duration-300 ease-out pointer-events-none"
-      style={{
-        opacity: shouldShow ? 1 : 0,
-        animation: isOpen ? "slideUpFromBottom 0.3s ease-out" : undefined,
-      }}
+      className={cn(
+        "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex z-10 transition-all duration-300 ease-out pointer-events-none",
+        shouldShow ? "opacity-100" : "opacity-0",
+        shouldShow && isOpen && "animate-fade-slide-in",
+      )}
     >
       <div
         className={`w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-xs mb-5 transition-all duration-200 hover:shadow-lg ${
@@ -96,22 +92,12 @@ export const LoadMoreFooter = ({
         <div className="flex flex-col w-full">
           {/* Header content */}
           {headerContent && (
-            <div
-              className="transition-all duration-200"
-              style={{
-                animation: "fadeInUp 0.3s ease-out 0.2s both",
-              }}
-            >
+            <div className="transition-all duration-200 animate-fade-slide-in [animation-delay:0.2s] [animation-fill-mode:backwards]">
               {headerContent}
             </div>
           )}
 
-          <div
-            className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200"
-            style={{
-              animation: "fadeInUp 0.3s ease-out 0.3s both",
-            }}
-          >
+          <div className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-slide-in [animation-delay:0.3s] [animation-fill-mode:backwards]">
             {countInfoText && <div className="transition-all duration-200">{countInfoText}</div>}
             {!countInfoText && (
               <div className="flex gap-2 transition-all duration-200">
@@ -136,12 +122,7 @@ export const LoadMoreFooter = ({
               >
                 {buttonText}
               </Button>
-              <div
-                className="flex justify-end transition-all duration-200"
-                style={{
-                  animation: "fadeInDown 0.3s ease-out 0.1s both",
-                }}
-              >
+              <div className="flex justify-end transition-all duration-200 animate-fade-slide-in [animation-delay:0.1s] [animation-fill-mode:backwards]">
                 <Button
                   size="icon"
                   variant="ghost"
@@ -156,53 +137,6 @@ export const LoadMoreFooter = ({
           </div>
         </div>
       </div>
-
-      {/* CSS Keyframes */}
-      <style jsx>{`
-        @keyframes slideUpFromBottom {
-          from {
-            opacity: 0;
-            transform: translateY(100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideInFromBottom {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes fadeInDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
 };

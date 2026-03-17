@@ -499,6 +499,7 @@ const (
 	DeploymentsStatusFinalizing DeploymentsStatus = "finalizing"
 	DeploymentsStatusReady      DeploymentsStatus = "ready"
 	DeploymentsStatusFailed     DeploymentsStatus = "failed"
+	DeploymentsStatusSkipped    DeploymentsStatus = "skipped"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -975,14 +976,15 @@ type App struct {
 }
 
 type AppBuildSetting struct {
-	Pk            uint64        `db:"pk"`
-	WorkspaceID   string        `db:"workspace_id"`
-	AppID         string        `db:"app_id"`
-	EnvironmentID string        `db:"environment_id"`
-	Dockerfile    string        `db:"dockerfile"`
-	DockerContext string        `db:"docker_context"`
-	CreatedAt     int64         `db:"created_at"`
-	UpdatedAt     sql.NullInt64 `db:"updated_at"`
+	Pk            uint64             `db:"pk"`
+	WorkspaceID   string             `db:"workspace_id"`
+	AppID         string             `db:"app_id"`
+	EnvironmentID string             `db:"environment_id"`
+	Dockerfile    string             `db:"dockerfile"`
+	DockerContext string             `db:"docker_context"`
+	WatchPaths    dbtype.StringSlice `db:"watch_paths"`
+	CreatedAt     int64              `db:"created_at"`
+	UpdatedAt     sql.NullInt64      `db:"updated_at"`
 }
 
 type AppEnvironmentVariable struct {
@@ -1171,6 +1173,7 @@ type Deployment struct {
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
+	GithubDeploymentID            sql.NullInt64             `db:"github_deployment_id"`
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`

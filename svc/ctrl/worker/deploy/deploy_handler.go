@@ -183,6 +183,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
+	// Create the status reporter after buildImage so that branch-only deploys
+	// have a resolved GitCommitSha (buildImage mutates the deployment pointer).
+	statusReporter := w.createStatusReporter(ctx, deployment, project, app, environment, workspace)
+
+	statusReporter.Report(ctx, "in_progress", "Deploying to regions...")
+
 	// --- Deploy ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.ObjectContext) error {
 
@@ -206,8 +212,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 
 	if err != nil {
+		statusReporter.Report(ctx, "failure", "Deployment to regions failed")
 		return nil, err
 	}
+
+	statusReporter.Report(ctx, "in_progress", "Configuring routing...")
 
 	// --- Network ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
@@ -215,6 +224,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
 	if err != nil {
+		statusReporter.Report(ctx, "failure", "Routing configuration failed")
 		return nil, err
 	}
 
@@ -237,8 +247,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil
 	})
 	if err != nil {
+		statusReporter.Report(ctx, "failure", "Finalization failed")
 		return nil, err
 	}
+
+	statusReporter.Report(ctx, "success", "Deployment is live")
+
 	logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
@@ -437,13 +451,13 @@ func (w *Workflow) createTopologies(
 	if allocatedResources.TotalCpuMillicores > int64(quota.AllocatedCpuMillicoresTotal) {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("CPU quota exceeded: consumed %d, quota %d", allocatedResources.TotalCpuMillicores, quota.AllocatedCpuMillicoresTotal)),
-			fault.Public("CPU quota exceeded. Please reduce the requested CPUs or free up resources in your workspace."),
+			fault.Public("We are unable to deploy this application as you have exceeded your CPU quota."),
 		)
 	}
 	if allocatedResources.TotalMemoryMib > int64(quota.AllocatedMemoryMibTotal) {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("Memory quota exceeded: consumed %d, quota %d", allocatedResources.TotalMemoryMib, quota.AllocatedMemoryMibTotal)),
-			fault.Public("Memory quota exceeded. Please reduce the requested memory or free up resources in your workspace."),
+			fault.Public("We are unable to deploy this application as you have exceeded your Memory quota."),
 		)
 	}
 

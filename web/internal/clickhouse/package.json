@@ -8,8 +8,7 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "scripts": {
-    "build-clickhouse": "docker compose -f ../../../dev/docker-compose.yaml build clickhouse",
-    "test": "pnpm build-clickhouse && vitest run"
+    "build-clickhouse": "docker compose -f ../../../dev/docker-compose.yaml build clickhouse"
   },
   "devDependencies": {
     "@dagger.io/dagger": "0.14.0",

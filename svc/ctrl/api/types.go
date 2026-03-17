@@ -25,6 +25,9 @@ type pushCommit struct {
 	Message   string           `json:"message"`
 	Timestamp string           `json:"timestamp"`
 	Author    pushCommitAuthor `json:"author"`
+	Added     []string         `json:"added"`
+	Removed   []string         `json:"removed"`
+	Modified  []string         `json:"modified"`
 }
 
 type pushCommitAuthor struct {

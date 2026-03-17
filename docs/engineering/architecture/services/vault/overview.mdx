@@ -38,7 +38,7 @@ The service uses Connect RPC and exposes these methods:
 
 ## Key model
 
-Vault works with two key types defined in <a href="https://github.com/unkeyed/unkey/blob/main/svc/vault/proto/vault/v1/object.proto" target="_blank">`svc/vault/proto/vault/v1/object.proto`</a>:
+Vault works with two key types defined in [`svc/vault/proto/vault/v1/object.proto`](https://github.com/unkeyed/unkey/blob/main/svc/vault/proto/vault/v1/object.proto):
 
 - `KeyEncryptionKey` (KEK), the master key used to encrypt DEKs
 - `DataEncryptionKey` (DEK), the per-keyring data key used for payload encryption
@@ -60,7 +60,7 @@ keyring/<ring_id>/LATEST
 
 ## Object format
 
-Stored object values are serialized `EncryptedDataEncryptionKey` protobuf messages from <a href="https://github.com/unkeyed/unkey/blob/main/svc/vault/proto/vault/v1/object.proto" target="_blank">`svc/vault/proto/vault/v1/object.proto`</a>.
+Stored object values are serialized `EncryptedDataEncryptionKey` protobuf messages from [`svc/vault/proto/vault/v1/object.proto`](https://github.com/unkeyed/unkey/blob/main/svc/vault/proto/vault/v1/object.proto).
 
 Decoded fields:
 

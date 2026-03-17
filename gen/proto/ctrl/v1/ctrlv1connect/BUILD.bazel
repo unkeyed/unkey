@@ -4,11 +4,13 @@ go_library(
     name = "ctrlv1connect",
     srcs = [
         "acme.connect.go",
+        "app.connect.go",
         "cluster.connect.go",
         "custom_domain.connect.go",
         "deployment.connect.go",
         "environment.connect.go",
         "openapi.connect.go",
+        "project.connect.go",
         "service.connect.go",
     ],
     importpath = "github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect",

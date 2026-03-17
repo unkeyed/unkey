@@ -42,6 +42,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.1
+	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/cilium/cilium v1.18.6
 	github.com/curioswitch/go-reassign v0.3.0
 	github.com/depot/depot-go v0.5.2
@@ -51,8 +52,6 @@ require (
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-acme/lego/v4 v4.31.0
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/google/go-containerregistry v0.20.7
-	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20260114192324-795787c558e1
 	github.com/gordonklaus/ineffassign v0.2.0
 	github.com/hashicorp/memberlist v0.5.4
 	github.com/kisielk/errcheck v1.9.0
@@ -90,7 +89,6 @@ require (
 	golang.org/x/text v0.33.0
 	golang.org/x/tools v0.41.0
 	google.golang.org/protobuf v1.36.11
-	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.6.1
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
@@ -115,20 +113,11 @@ require (
 	buf.build/go/standard v0.1.0 // indirect
 	cel.dev/expr v0.25.1 // indirect
 	cloud.google.com/go v0.123.0 // indirect
-	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	connectrpc.com/otelconnect v0.9.0 // indirect
+	dario.cat/mergo v1.0.2 // indirect
 	dev.gaijin.team/go/golib v0.6.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
-	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest v0.11.30 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.24 // indirect
-	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13 // indirect
-	github.com/Azure/go-autorest/autorest/azure/cli v0.4.7 // indirect
-	github.com/Azure/go-autorest/autorest/date v0.3.1 // indirect
-	github.com/Azure/go-autorest/logger v0.2.2 // indirect
-	github.com/Azure/go-autorest/tracing v0.6.1 // indirect
 	github.com/ClickHouse/ch-go v0.69.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/TwiN/go-color v1.4.1 // indirect
@@ -142,8 +131,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.17 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.17 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.51.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.38.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.17 // indirect
@@ -154,7 +141,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.6 // indirect
 	github.com/aws/smithy-go v1.24.0 // indirect
-	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.11.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/basgys/goxml2json v1.1.1-0.20231018121955-e66ee54ceaad // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -163,9 +149,9 @@ require (
 	github.com/bufbuild/protocompile v0.14.2-0.20260114160500-16922e24f2b6 // indirect
 	github.com/bufbuild/protoplugin v0.0.0-20250218205857-750e09ce93e1 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/chrismellard/docker-credential-acr-env v0.0.0-20230304212654-82a0ddb27589 // indirect
 	github.com/cilium/ebpf v0.19.0 // indirect
 	github.com/cilium/hive v0.0.0-20250611195437-5a5dacdfb354 // indirect
 	github.com/cilium/proxy v0.0.0-20250623105955-2136f59a4ea1 // indirect
@@ -183,11 +169,11 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.18.2 // indirect
 	github.com/containerd/ttrpc v1.2.7 // indirect
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
+	github.com/cpuguy83/dockercfg v0.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/cubicdaiya/gonp v1.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.5 // indirect
@@ -234,7 +220,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
@@ -242,7 +227,7 @@ require (
 	github.com/google/cel-go v0.27.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20250225234217-098045d5e61f // indirect
+	github.com/google/go-containerregistry v0.20.7 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3 // indirect
@@ -270,6 +255,7 @@ require (
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/lufia/plan9stats v0.0.0-20250827001030-24949be3fa54 // indirect
 	github.com/mackerelio/go-osstat v0.2.6 // indirect
+	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -278,9 +264,13 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
+	github.com/moby/go-archive v0.1.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
+	github.com/moby/sys/sequential v0.6.0 // indirect
 	github.com/moby/sys/signal v0.7.1 // indirect
+	github.com/moby/sys/user v0.4.0 // indirect
+	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
@@ -343,6 +333,7 @@ require (
 	github.com/spyzhov/ajson v0.8.0 // indirect
 	github.com/sqlc-dev/sqlc v1.30.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/testcontainers/testcontainers-go v0.40.0 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/tidwall/btree v1.8.1 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
@@ -401,6 +392,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect

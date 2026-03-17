@@ -47,7 +47,7 @@ const TimestampInfo: React.FC<{
   value: string | number;
   className?: string;
   displayType?: DisplayType;
-  triggerRef?: React.RefObject<HTMLElement>;
+  triggerRef?: React.RefObject<HTMLElement | null>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }> = ({
@@ -61,7 +61,7 @@ const TimestampInfo: React.FC<{
   className?: string;
   value: string | number;
   displayType?: DisplayType;
-  triggerRef?: React.RefObject<HTMLElement>;
+  triggerRef?: React.RefObject<HTMLElement | null>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) => {
