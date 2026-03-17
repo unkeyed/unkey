@@ -1,17 +1,18 @@
-import { cn } from "@/lib/utils";
+"use client";
 import { ChartActivity2 } from "@unkey/icons";
-import { Badge, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
-import { STATUS_STYLES } from "../utils/get-row-class";
+import { cn } from "../../../../lib/utils";
+import { Badge } from "../../../badge";
+import { TimestampInfo } from "../../../timestamp-info";
+import { STATUS_STYLES } from "../../constants/constants";
 
-export const LastUpdated = ({
-  isSelected,
-  lastUpdated,
-}: {
+export interface LastUpdatedCellProps {
   isSelected: boolean;
   lastUpdated?: number | null;
-}) => {
-  const badgeRef = useRef<HTMLElement>(null) as React.RefObject<HTMLElement>;
+}
+
+export const LastUpdatedCell = ({ isSelected, lastUpdated }: LastUpdatedCellProps) => {
+  const badgeRef = useRef<HTMLSpanElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (

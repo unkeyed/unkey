@@ -1,5 +1,8 @@
+import {
+  rootKeysFilterOperatorEnum,
+  rootKeysListFilterFieldNames,
+} from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import { z } from "zod";
-import { rootKeysFilterOperatorEnum, rootKeysListFilterFieldNames } from "../../filters.schema";
 
 const filterItemSchema = z.object({
   operator: rootKeysFilterOperatorEnum,
@@ -21,7 +24,12 @@ const filterFieldsSchema = rootKeysListFilterFieldNames.reduce(
 const baseRootKeysSchema = z.object(filterFieldsSchema);
 
 export const rootKeysQueryPayload = baseRootKeysSchema.extend({
-  cursor: z.number().nullish(),
+  limit: z.number().min(20).optional(),
+  page: z.number().int().min(1).optional().default(1),
+  sortBy: z.enum(["name", "createdAt", "lastUpdatedAt"]).optional().default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
+export type RootKeysSortField = "name" | "createdAt" | "lastUpdatedAt";
+export type RootKeysSortOrder = "asc" | "desc";
 export type RootKeysQueryPayload = z.infer<typeof rootKeysQueryPayload>;

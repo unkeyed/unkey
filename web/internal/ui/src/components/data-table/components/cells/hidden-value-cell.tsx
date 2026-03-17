@@ -1,16 +1,14 @@
-import { cn } from "@/lib/utils";
 import { CircleLock } from "@unkey/icons";
-import { toast } from "@unkey/ui";
+import { cn } from "../../../../lib/utils";
+import { toast } from "../../../toaster";
 
-export const HiddenValueCell = ({
-  value,
-  title = "Value",
-  selected,
-}: {
+export interface HiddenValueCellProps {
   value: string;
   title: string;
   selected: boolean;
-}) => {
+}
+
+export const HiddenValueCell = ({ value, title = "Value", selected }: HiddenValueCellProps) => {
   // Show only first 4 characters, then dots
   const displayValue = value.padEnd(16, "•");
 

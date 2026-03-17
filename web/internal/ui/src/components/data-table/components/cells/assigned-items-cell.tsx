@@ -1,16 +1,18 @@
-import { cn } from "@/lib/utils";
 import { Page2 } from "@unkey/icons";
+import { cn } from "../../../../lib/utils";
 
-export const AssignedItemsCell = ({
-  permissionSummary,
-  isSelected = false,
-}: {
+export interface AssignedItemsCellProps {
   permissionSummary: {
     total: number;
     categories: Record<string, number>;
   };
   isSelected?: boolean;
-}) => {
+}
+
+export const AssignedItemsCell = ({
+  permissionSummary,
+  isSelected = false,
+}: AssignedItemsCellProps) => {
   const { total } = permissionSummary;
 
   const itemClassName = cn(

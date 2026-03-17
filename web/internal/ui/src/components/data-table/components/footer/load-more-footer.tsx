@@ -1,9 +1,10 @@
-import { cn } from "@/lib/utils";
+"use client";
 import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
-import { Button } from "@unkey/ui";
 import { useCallback, useState } from "react";
+import { cn } from "../../../../lib/utils";
+import { Button } from "../../../buttons/button";
 
-type LoadMoreFooterProps = {
+export interface LoadMoreFooterComponentProps {
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
   totalVisible: number;
@@ -11,24 +12,28 @@ type LoadMoreFooterProps = {
   className?: string;
   itemLabel?: string;
   buttonText?: string;
-  hasMore?: boolean;
+  hasMore: boolean;
   hide?: boolean;
   countInfoText?: React.ReactNode;
   headerContent?: React.ReactNode;
-};
+}
 
-export const LoadMoreFooter = ({
+/**
+ * Load more footer component with collapsible design
+ * Preserves exact design from virtual-table
+ */
+export function LoadMoreFooter({
   onLoadMore,
   isFetchingNextPage = false,
   totalVisible,
   totalCount,
   itemLabel = "items",
   buttonText = "Load more",
-  hasMore = true,
+  hasMore,
   countInfoText,
   hide,
   headerContent,
-}: LoadMoreFooterProps) => {
+}: LoadMoreFooterComponentProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   const shouldShow = !!onLoadMore;
@@ -48,7 +53,7 @@ export const LoadMoreFooter = ({
   // Minimized state - parked at right side
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-10 transition-all duration-300 ease-out animate-fade-slide-in">
+      <div className="fixed bottom-6 right-6 z-10 transition-all duration-300 ease-out animate-slide-in-from-bottom">
         <button
           type="button"
           onClick={handleOpen}
@@ -63,12 +68,12 @@ export const LoadMoreFooter = ({
             <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
               {buttonText}
             </span>
-            <div
-              className="inline-flex size-6 items-center justify-center rounded-sm transition-all duration-200 hover:bg-gray-3 transform hover:scale-110 [&_svg]:size-[14px]"
-              title="Maximize"
+            <span
+              aria-hidden="true"
+              className="inline-flex items-center justify-center [&_svg]:size-[14px] transition-all duration-200 rounded transform hover:scale-110"
             >
               <ArrowsToAllDirections iconSize="sm-regular" />
-            </div>
+            </span>
           </div>
         </button>
       </div>
@@ -84,7 +89,7 @@ export const LoadMoreFooter = ({
       )}
     >
       <div
-        className={`w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-xs mb-5 transition-all duration-200 hover:shadow-lg ${
+        className={`w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg ${
           shouldShow ? "pointer-events-auto" : "pointer-events-none"
         }`}
         aria-hidden={!shouldShow}
@@ -92,12 +97,18 @@ export const LoadMoreFooter = ({
         <div className="flex flex-col w-full">
           {/* Header content */}
           {headerContent && (
-            <div className="transition-all duration-200 animate-fade-slide-in [animation-delay:0.2s] [animation-fill-mode:backwards]">
+            <div
+              className="transition-all duration-200 animate-fade-in-up"
+              style={{ animationDelay: "0.2s" }}
+            >
               {headerContent}
             </div>
           )}
 
-          <div className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-slide-in [animation-delay:0.3s] [animation-fill-mode:backwards]">
+          <div
+            className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-in-up"
+            style={{ animationDelay: "0.3s" }}
+          >
             {countInfoText && <div className="transition-all duration-200">{countInfoText}</div>}
             {!countInfoText && (
               <div className="flex gap-2 transition-all duration-200">
@@ -122,11 +133,14 @@ export const LoadMoreFooter = ({
               >
                 {buttonText}
               </Button>
-              <div className="flex justify-end transition-all duration-200 animate-fade-slide-in [animation-delay:0.1s] [animation-fill-mode:backwards]">
+              <div
+                className="flex justify-end transition-all duration-200 animate-fade-in-down"
+                style={{ animationDelay: "0.1s" }}
+              >
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="[&_svg]:size-[14px] transition-all duration-200 rounded-sm hover:bg-gray-3 transform hover:scale-110"
+                  className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
                   onClick={handleClose}
                   title="Minimize"
                 >
@@ -139,4 +153,4 @@ export const LoadMoreFooter = ({
       </div>
     </div>
   );
-};
+}
