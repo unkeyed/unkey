@@ -27,7 +27,7 @@ jobs:
     if: github.event.schedule == '0 15 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'quota-check'
     strategy:
       matrix:
-        environment: [restate_production, restate_staging]
+        environment: [restate_production]
     environment: ${{ matrix.environment }}
     runs-on: ubuntu-latest
     steps:
@@ -51,7 +51,7 @@ jobs:
     if: github.event.schedule == '0 3 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'cert-renewal'
     strategy:
       matrix:
-        environment: [restate_production, restate_staging]
+        environment: [restate_production]
     environment: ${{ matrix.environment }}
     runs-on: ubuntu-latest
     steps:
@@ -71,7 +71,7 @@ jobs:
     if: github.event.schedule == '0 0 * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'key-refill'
     strategy:
       matrix:
-        environment: [restate_production, restate_staging]
+        environment: [restate_production]
     environment: ${{ matrix.environment }}
     runs-on: ubuntu-latest
     steps:
@@ -95,7 +95,7 @@ jobs:
     if: github.event.schedule == '*/15 * * * *' || github.event.inputs.task == 'all' || github.event.inputs.task == 'scale-down-idle-deployments'
     strategy:
       matrix:
-        environment: [restate_production, restate_staging]
+        environment: [restate_production]
     environment: ${{ matrix.environment }}
     runs-on: ubuntu-latest
     steps:

@@ -54,6 +54,10 @@ export const Port = () => {
       <FormInput
         required
         type="number"
+        onWheelCapture={(e) => {
+          //@ts-expect-error there is no other way to prevent scroll here
+          e.target.blur();
+        }}
         className="w-[480px]"
         label="Port"
         description="Port your application listens on. Changes apply on next deploy."

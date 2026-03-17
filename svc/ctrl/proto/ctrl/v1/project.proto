@@ -1,0 +1,28 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+service ProjectService {
+  // Create a new project within a workspace
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse) {}
+
+  // Delete a project and all associated resources
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse) {}
+}
+
+message CreateProjectRequest {
+  string workspace_id = 1;
+  string name = 2;
+  string slug = 3;
+}
+
+message CreateProjectResponse {
+  string id = 1;
+}
+
+message DeleteProjectRequest {
+  string project_id = 1;
+}
+
+message DeleteProjectResponse {}
