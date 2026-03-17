@@ -4,7 +4,7 @@ import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useMemo } from "react";
-import { RegionFlag } from "../../../../../../components/region-flag";
+import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 type RegionOption = {
@@ -50,6 +50,7 @@ export function RuntimeLogsRegionFilter() {
       options={options}
       filterField="region"
       checkPath="region"
+      selectionMode="multiple"
       renderOptionContent={(option) => (
         <>
           <RegionFlag

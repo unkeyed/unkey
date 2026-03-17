@@ -1,8 +1,9 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db, inArray, schema } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { resolveK8sNamesToInstanceIds } from "../runtime-logs/utils";
 
 export const getDeploymentRuntimeLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -61,27 +62,16 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
       });
     }
 
-    // Resolve k8s_pod_name to instance IDs for display
     const chLogs = logsResult.val;
     const uniqueK8sNames = [...new Set(chLogs.map((log) => log.k8s_pod_name))];
-    const k8sNameToInstanceId = new Map<string, string>();
-
-    if (uniqueK8sNames.length > 0) {
-      const instances = await db.query.instances.findMany({
-        where: inArray(schema.instances.k8sName, uniqueK8sNames),
-        columns: { id: true, k8sName: true },
-      });
-      for (const inst of instances) {
-        k8sNameToInstanceId.set(inst.k8sName, inst.id);
-      }
-    }
+    const k8sNameToInstanceId = await resolveK8sNamesToInstanceIds(uniqueK8sNames);
 
     return {
       logs: chLogs.map((log) => ({
         time: log.time,
         severity: log.severity,
         message: log.message,
-        instance_id: k8sNameToInstanceId.get(log.k8s_pod_name) ?? log.k8s_pod_name,
+        instance_id: k8sNameToInstanceId.get(log.k8s_pod_name) ?? "—",
         region: log.region,
       })),
     };
