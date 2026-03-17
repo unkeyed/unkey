@@ -155,6 +155,7 @@ go_library(
         "deployment_update_build_id.sql_generated.go",
         "deployment_update_desired_state.sql_generated.go",
         "deployment_update_git_metadata.sql_generated.go",
+        "deployment_update_github_deployment_id.sql_generated.go",
         "deployment_update_image.sql_generated.go",
         "deployment_update_openapi_spec.sql_generated.go",
         "deployment_update_status.sql_generated.go",

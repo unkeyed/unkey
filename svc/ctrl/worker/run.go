@@ -175,6 +175,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		DashboardURL:                    cfg.DashboardURL,
 	}),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
 		restate.WithInvocationRetryPolicy(
