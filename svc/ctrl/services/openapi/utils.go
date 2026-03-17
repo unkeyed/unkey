@@ -11,9 +11,12 @@ import (
 func (s *Service) loadOpenApiSpec(ctx context.Context, deploymentID string) (string, error) {
 	spec, err := db.Query.FindOpenApiSpecByDeploymentID(ctx, s.db.RO(), sql.NullString{String: deploymentID, Valid: true})
 	if err != nil {
-		return "", fault.Wrap(err,
-			fault.Public("OpenAPI specification not available for this deployment"),
-		)
+		if db.IsNotFound(err) {
+			return "", fault.Wrap(err,
+				fault.Public("OpenAPI specification not available for this deployment"),
+			)
+		}
+		return "", fault.Wrap(err)
 	}
 
 	return string(spec.Spec), nil

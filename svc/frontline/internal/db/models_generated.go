@@ -1374,8 +1374,8 @@ type KeysRole struct {
 
 type OpenapiSpec struct {
 	Pk           uint64         `db:"pk"`
-	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
+	AppID        string         `db:"app_id"`
 	ProjectID    sql.NullString `db:"project_id"`
 	DeploymentID sql.NullString `db:"deployment_id"`
 	Spec         []byte         `db:"spec"`

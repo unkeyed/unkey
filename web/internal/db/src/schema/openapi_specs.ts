@@ -10,9 +10,9 @@ export const openapiSpecs = mysqlTable(
   "openapi_specs",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 128 }).notNull().unique(),
-
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    // App this openapi-spec belongs to
+    appId: varchar("app_id", { length: 64 }),
     // null = user-uploaded spec not linked to a specific deployment
     projectId: varchar("project_id", { length: 64 }),
     deploymentId: varchar("deployment_id", { length: 128 }),

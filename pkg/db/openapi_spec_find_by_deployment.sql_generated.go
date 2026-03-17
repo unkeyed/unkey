@@ -11,19 +11,19 @@ import (
 )
 
 const findOpenApiSpecByDeploymentID = `-- name: FindOpenApiSpecByDeploymentID :one
-SELECT pk, id, workspace_id, project_id, deployment_id, spec, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
+SELECT pk, workspace_id, app_id, project_id, deployment_id, spec, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
 `
 
 // FindOpenApiSpecByDeploymentID
 //
-//	SELECT pk, id, workspace_id, project_id, deployment_id, spec, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
+//	SELECT pk, workspace_id, app_id, project_id, deployment_id, spec, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
 func (q *Queries) FindOpenApiSpecByDeploymentID(ctx context.Context, db DBTX, deploymentID sql.NullString) (OpenapiSpec, error) {
 	row := db.QueryRowContext(ctx, findOpenApiSpecByDeploymentID, deploymentID)
 	var i OpenapiSpec
 	err := row.Scan(
 		&i.Pk,
-		&i.ID,
 		&i.WorkspaceID,
+		&i.AppID,
 		&i.ProjectID,
 		&i.DeploymentID,
 		&i.Spec,

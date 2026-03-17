@@ -519,15 +519,14 @@ CREATE TABLE `deployments` (
 
 CREATE TABLE `openapi_specs` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(128) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
+	`app_id` varchar(64),
 	`project_id` varchar(64),
 	`deployment_id` varchar(128),
 	`spec` longblob NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `openapi_specs_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `openapi_specs_id_unique` UNIQUE(`id`),
 	CONSTRAINT `openapi_specs_deployment_id_unique` UNIQUE(`deployment_id`)
 );
 

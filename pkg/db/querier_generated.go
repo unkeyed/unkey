@@ -930,7 +930,7 @@ type Querier interface {
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
 	//FindOpenApiSpecByDeploymentID
 	//
-	//  SELECT pk, id, workspace_id, project_id, deployment_id, spec, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
+	//  SELECT pk, workspace_id, app_id, project_id, deployment_id, spec, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
 	FindOpenApiSpecByDeploymentID(ctx context.Context, db DBTX, deploymentID sql.NullString) (OpenapiSpec, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
@@ -3013,8 +3013,8 @@ type Querier interface {
 	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
 	//UpsertOpenApiSpec
 	//
-	//  INSERT INTO openapi_specs (id, workspace_id, project_id, deployment_id, spec, created_at, updated_at)
-	//  VALUES (?, ?, ?,
+	//  INSERT INTO openapi_specs (workspace_id, project_id, deployment_id, spec, created_at, updated_at)
+	//  VALUES (?, ?,
 	//          ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      spec = VALUES(spec),
