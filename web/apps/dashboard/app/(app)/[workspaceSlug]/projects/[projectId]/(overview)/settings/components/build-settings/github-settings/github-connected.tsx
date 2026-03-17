@@ -18,6 +18,7 @@ export const GitHubConnected = ({
     onSuccess: async () => {
       toast.success("Repository disconnected");
       await utils.github.getInstallations.invalidate();
+      await utils.github.getRepoTree.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
