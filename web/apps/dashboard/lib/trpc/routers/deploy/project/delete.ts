@@ -1,8 +1,9 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, inArray, schema } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { getCtrlClients } from "../../ctrl";
 
 export const deleteProject = workspaceProcedure
   .input(
@@ -12,11 +13,9 @@ export const deleteProject = workspaceProcedure
   )
   .use(withRatelimit(ratelimit.delete))
   .mutation(async ({ ctx, input }) => {
-    const workspace = ctx.workspace;
-
     const project = await db.query.projects.findFirst({
       where: (table, { and, eq }) =>
-        and(eq(table.id, input.projectId), eq(table.workspaceId, workspace.id)),
+        and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
     });
 
     if (!project) {
@@ -33,77 +32,39 @@ export const deleteProject = workspaceProcedure
       });
     }
 
-    await db.transaction(async (tx) => {
-      // 1. Delete app environment variables and apps (via project)
-      const projectApps = await tx.query.apps.findMany({
-        where: (table, { eq }) => eq(table.projectId, input.projectId),
-        columns: { id: true },
+    const ctrl = getCtrlClients();
+
+    try {
+      await ctrl.project.deleteProject({
+        projectId: input.projectId,
       });
-
-      if (projectApps.length > 0) {
-        const appIds = projectApps.map((a) => a.id);
-        await tx
-          .delete(schema.appEnvironmentVariables)
-          .where(inArray(schema.appEnvironmentVariables.appId, appIds));
+    } catch (err) {
+      if (err instanceof TRPCError) {
+        throw err;
       }
-
-      // Delete apps
-      await tx.delete(schema.apps).where(eq(schema.apps.projectId, input.projectId));
-
-      // Delete environments
-      await tx
-        .delete(schema.environments)
-        .where(eq(schema.environments.projectId, input.projectId));
-
-      // Delete instances (via deployments)
-      const deployments = await tx.query.deployments.findMany({
-        where: (table, { eq }) => eq(table.projectId, input.projectId),
-        columns: { id: true },
+      console.error("Failed to delete project:", err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to delete project",
       });
+    }
 
-      if (deployments.length > 0) {
-        const deploymentIds = deployments.map((d) => d.id);
-        await tx
-          .delete(schema.instances)
-          .where(inArray(schema.instances.deploymentId, deploymentIds));
-      }
-
-      // Delete sentinels (by projectId)
-      await tx.delete(schema.sentinels).where(eq(schema.sentinels.projectId, input.projectId));
-
-      // Delete deployments
-      await tx.delete(schema.deployments).where(eq(schema.deployments.projectId, input.projectId));
-
-      // Delete custom domains, frontline routes, github connections
-      await tx
-        .delete(schema.customDomains)
-        .where(eq(schema.customDomains.projectId, input.projectId));
-      await tx
-        .delete(schema.frontlineRoutes)
-        .where(eq(schema.frontlineRoutes.projectId, input.projectId));
-      await tx
-        .delete(schema.githubRepoConnections)
-        .where(eq(schema.githubRepoConnections.projectId, input.projectId));
-
-      await tx.delete(schema.projects).where(eq(schema.projects.id, input.projectId));
-
-      await insertAuditLogs(tx, {
-        workspaceId: ctx.workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "project.delete",
-        description: `Deleted ${project.id}`,
-        resources: [
-          {
-            type: "project",
-            id: project.id,
-            name: project.name,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
+    await insertAuditLogs(db, {
+      workspaceId: ctx.workspace.id,
+      actor: { type: "user", id: ctx.user.id },
+      event: "project.delete",
+      description: `Deleted ${project.id}`,
+      resources: [
+        {
+          type: "project",
+          id: project.id,
+          name: project.name,
         },
-      });
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
     });
 
     return { success: true, projectId: input.projectId };

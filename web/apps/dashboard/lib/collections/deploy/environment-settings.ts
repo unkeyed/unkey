@@ -126,11 +126,13 @@ function flattenSettingsResponse(
     memoryMib: runtime?.memoryMib ?? 256,
     command: runtime?.command ?? [],
     healthcheck: runtime?.healthcheck ?? null,
-    regions: regional.map((r) => ({
-      id: r.region.id,
-      name: r.region.name,
-      replicas: r.replicas,
-    })),
+    regions: regional
+      .filter((r): r is typeof r & { region: NonNullable<typeof r.region> } => r.region !== null)
+      .map((r) => ({
+        id: r.region.id,
+        name: r.region.name,
+        replicas: r.replicas,
+      })),
     shutdownSignal: "SIGTERM",
     sentinelConfig: runtime?.sentinelConfig,
   };
