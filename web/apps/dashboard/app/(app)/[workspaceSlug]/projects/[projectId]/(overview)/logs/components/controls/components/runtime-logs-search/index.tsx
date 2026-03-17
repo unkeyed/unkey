@@ -58,6 +58,7 @@ export const RuntimeLogsSearch = () => {
         "Show errors in the last hour",
         "Show warnings containing 'timeout'",
         "Show all debug logs from yesterday",
+        "Show errors from us-east-1 in the last hour",
       ]}
       isLoading={queryLLMForStructuredOutput.isLoading}
       searchMode="manual"

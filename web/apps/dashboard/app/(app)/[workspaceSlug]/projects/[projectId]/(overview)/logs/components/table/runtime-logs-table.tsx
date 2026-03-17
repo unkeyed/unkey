@@ -65,7 +65,8 @@ const getSeverityStyle = (severity: string): StatusStyle => {
   return STATUS_STYLES.success;
 };
 
-const getLogKey = (log: RuntimeLog): string => `${log.time}-${log.region}-${log.message}`;
+const getLogKey = (log: RuntimeLog): string =>
+  `${log.time}-${log.region}-${log.instance_id}-${log.message}`;
 
 const getSelectedClassName = (log: RuntimeLog, isSelected: boolean): string => {
   if (!isSelected) {
@@ -128,6 +129,16 @@ export function RuntimeLogsTable() {
         render: (log) => (
           <div className="font-mono pr-4 truncate uppercase" title={log.region}>
             {log.region}
+          </div>
+        ),
+      },
+      {
+        key: "instanceId",
+        header: "Instance ID",
+        width: "12%",
+        render: (log) => (
+          <div className="font-mono pr-4 truncate text-xs" title={log.instance_id}>
+            {log.instance_id}
           </div>
         ),
       },

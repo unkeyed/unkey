@@ -39,7 +39,9 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
       startTime: deployment.createdAt,
       endTime: Date.now(),
       severity: [],
+      region: null,
       message: null,
+      k8sPodNames: [],
       cursorTime: null,
     });
 

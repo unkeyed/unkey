@@ -6,9 +6,10 @@ export function transformFilters(
   params: RuntimeLogsRequestSchema,
 ): Omit<
   RuntimeLogsRequest,
-  "workspaceId" | "projectId" | "environmentId" | "deploymentId" | "appId"
+  "workspaceId" | "projectId" | "environmentId" | "deploymentId" | "appId" | "k8sPodNames"
 > {
   const severity = params.severity?.filters?.map((f) => f.value) || [];
+  const region = params.region?.filters?.map((f) => f.value) || [];
 
   let startTime = params.startTime;
   let endTime = params.endTime;
@@ -24,6 +25,7 @@ export function transformFilters(
     startTime,
     endTime,
     severity,
+    region,
     message: params.message,
     cursorTime: params.cursor ?? null,
   };

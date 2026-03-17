@@ -64,6 +64,10 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
                 <span className="text-grayA-11">Region:</span>{" "}
                 <span className="font-mono">{log.region}</span>
               </div>
+              <div>
+                <span className="text-grayA-11">Instance ID:</span>{" "}
+                <span className="font-mono">{log.instance_id}</span>
+              </div>
             </div>
           }
         />

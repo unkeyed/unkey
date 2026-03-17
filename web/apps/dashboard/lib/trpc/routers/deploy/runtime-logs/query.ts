@@ -1,5 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
+import { db, eq, inArray, schema } from "@/lib/db";
 import {
   type RuntimeLogsResponseSchema,
   runtimeLogsRequestSchema,
@@ -43,9 +43,21 @@ export const queryRuntimeLogs = workspaceProcedure
       });
     }
 
+    // Resolve instanceIds to k8sPodNames for ClickHouse filtering
+    const instanceIds = input.instanceId?.filters?.map((f) => f.value) ?? [];
+    let k8sPodNames: string[] = [];
+    if (instanceIds.length > 0) {
+      const instances = await db.query.instances.findMany({
+        where: inArray(schema.instances.id, instanceIds),
+        columns: { k8sName: true },
+      });
+      k8sPodNames = instances.map((inst) => inst.k8sName);
+    }
+
     const transformedInputs = transformFilters(input);
     const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs({
       ...transformedInputs,
+      k8sPodNames,
       workspaceId: ctx.workspace.id,
       projectId: project.id,
       deploymentId: input.deploymentId ?? null,
@@ -62,7 +74,31 @@ export const queryRuntimeLogs = workspaceProcedure
       });
     }
 
-    const logs = logsResult.val;
+    const chLogs = logsResult.val;
+
+    // Resolve k8s_pod_name to instance IDs for display
+    const uniqueK8sNames = [...new Set(chLogs.map((log) => log.k8s_pod_name))];
+    const k8sNameToInstanceId = new Map<string, string>();
+
+    if (uniqueK8sNames.length > 0) {
+      const instances = await db.query.instances.findMany({
+        where: inArray(schema.instances.k8sName, uniqueK8sNames),
+        columns: { id: true, k8sName: true },
+      });
+      for (const inst of instances) {
+        k8sNameToInstanceId.set(inst.k8sName, inst.id);
+      }
+    }
+
+    const logs = chLogs.map((log) => ({
+      time: log.time,
+      severity: log.severity,
+      message: log.message,
+      deployment_id: log.deployment_id,
+      region: log.region,
+      instance_id: k8sNameToInstanceId.get(log.k8s_pod_name) ?? log.k8s_pod_name,
+      attributes: log.attributes,
+    }));
 
     const response: RuntimeLogsResponseSchema = {
       logs,

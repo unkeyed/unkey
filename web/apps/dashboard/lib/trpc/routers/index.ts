@@ -84,6 +84,7 @@ import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
 
+import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
 import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
 import { llmSearch as sentinelLogsLlmSearch } from "./deploy/sentinel-logs/llm-search";
@@ -467,6 +468,7 @@ export const router = t.router({
     runtimeLogs: t.router({
       query: queryRuntimeLogs,
       llmSearch: runtimeLogsLlmSearch,
+      listInstances,
     }),
     metrics: t.router({
       getDeploymentRps,
