@@ -27,7 +27,6 @@ export const RuntimeLogsDeploymentFilter = () => {
           <span className="text-accent-9">{checkbox.gitBranch}</span>
           <span className="font-mono">{checkbox.slug}</span>
         </div>
-
       )}
       createFilterValue={(option) => ({
         value: option.deploymentId,

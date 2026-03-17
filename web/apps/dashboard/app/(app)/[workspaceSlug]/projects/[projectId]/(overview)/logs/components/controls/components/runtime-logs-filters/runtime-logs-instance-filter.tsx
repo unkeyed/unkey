@@ -2,8 +2,8 @@
 
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
 import { useParams } from "next/navigation";
+import { useMemo } from "react";
 import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 type InstanceOption = {
@@ -37,6 +37,7 @@ export const RuntimeLogsInstanceFilter = () => {
     return (
       <div className="flex flex-col gap-2 p-2">
         {Array.from({ length: 3 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave
           <div key={i} className="flex items-center gap-4.5 px-2 py-1">
             <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
             <div className="h-4 w-[48px] bg-grayA-3 rounded animate-pulse" />

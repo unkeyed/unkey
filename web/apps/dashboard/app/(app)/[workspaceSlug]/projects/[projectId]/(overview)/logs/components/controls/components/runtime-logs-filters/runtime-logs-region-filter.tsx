@@ -1,10 +1,10 @@
 "use client";
 
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { RegionFlag } from "../../../../../../components/region-flag";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useMemo } from "react";
+import { RegionFlag } from "../../../../../../components/region-flag";
 import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 type RegionOption = {
@@ -16,7 +16,8 @@ type RegionOption = {
 
 export function RuntimeLogsRegionFilter() {
   const { filters, updateFilters } = useRuntimeLogsFilters();
-  const { data: availableRegions, isLoading } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
+  const { data: availableRegions, isLoading } =
+    trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
 
   const options: RegionOption[] = useMemo(
     () =>
@@ -33,6 +34,7 @@ export function RuntimeLogsRegionFilter() {
     return (
       <div className="flex flex-col gap-2 p-2">
         {Array.from({ length: 3 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave
           <div key={i} className="flex items-center gap-4.5 px-2 py-1">
             <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
             <div className="size-4 bg-grayA-3 rounded-full animate-pulse shrink-0" />
