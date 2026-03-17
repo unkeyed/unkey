@@ -7,9 +7,9 @@ The control plane deployment service creates deployment records and delegates ex
 
 Key components:
 
-- Control API deployment service (<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment" target="_blank">`svc/ctrl/services/deployment`</a>).
-- Restate DeployService workflows (<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy" target="_blank">`svc/ctrl/worker/deploy`</a>).
-- Deployment virtual object for serialized state changes (<a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment" target="_blank">`svc/ctrl/worker/deployment`</a>).
+- Control API deployment service ([`svc/ctrl/services/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment)).
+- Restate DeployService workflows ([`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)).
+- Deployment virtual object for serialized state changes ([`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)).
 
 ## Flow: create deployment
 
@@ -66,7 +66,7 @@ sequenceDiagram
 
 ## State serialization
 
-Scheduled state changes are serialized via a Restate virtual object keyed by deployment ID in <a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment" target="_blank">`svc/ctrl/worker/deployment`</a>. The object stores a nonce for the most recent transition so older delayed requests no-op.
+Scheduled state changes are serialized via a Restate virtual object keyed by deployment ID in [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment). The object stores a nonce for the most recent transition so older delayed requests no-op.
 
 ## Notes
 
