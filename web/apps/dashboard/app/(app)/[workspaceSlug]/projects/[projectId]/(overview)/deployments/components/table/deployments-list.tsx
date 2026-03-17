@@ -170,14 +170,19 @@ export const DeploymentsList = () => {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 font-mono text-[13px]">
-                    <span className="truncate text-accent-12 max-w-25" title={deployment.gitBranch}>{deployment.gitBranch}</span>
+                    <span className="truncate text-accent-12 max-w-25" title={deployment.gitBranch}>
+                      {deployment.gitBranch}
+                    </span>
                     <span className="text-gray-6 shrink-0">·</span>
                     <span className="text-gray-9 shrink-0">
                       {deployment.gitCommitSha?.slice(0, 7)}
                     </span>
                   </div>
                   {deployment.gitCommitMessage ? (
-                    <div className="truncate text-xs text-gray-9 max-w-50" title={deployment.gitCommitMessage}>
+                    <div
+                      className="truncate text-xs text-gray-9 max-w-50"
+                      title={deployment.gitCommitMessage}
+                    >
                       {deployment.gitCommitMessage}
                     </div>
                   ) : null}
